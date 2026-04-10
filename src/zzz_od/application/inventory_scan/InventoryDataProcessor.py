@@ -9,7 +9,7 @@ class InventoryDataProcessor:
     """库存数据处理器"""
     
     # 配置单个驱动盘的理论最高分数
-    MAX_DISK_SCORE = 55
+    MAX_DISK_SCORE = 100
     
     # 配置品质权重
     QUALITY_WEIGHTS = {
@@ -365,8 +365,18 @@ class InventoryDataProcessor:
         
         # 总得分
         total_score = main_stat_score + substat_score
+
+        # 计算当前位的最大得分
+        max_score_config = self.calculate_optimal_disc_config(position, character_weight, disc_data.get('rarity', 'S'))
+        max_score = max_score_config.get('score', 1)  # 避免除以0
+
+        # 相对得分
+        relative_score = (total_score / max_score) * self.MAX_DISK_SCORE
         
         return {
+            'score_ceiling': max_score,
+            'relative_score_ceiling': self.MAX_DISK_SCORE,
+            'relativeScore': relative_score,
             'mainStatScore': main_stat_score,
             'substatScore': substat_score,
             'totalScore': total_score,
@@ -455,6 +465,7 @@ class InventoryDataProcessor:
                 print(f"    主词条得分: {score_data['mainStatScore']:.2f}")
                 print(f"    副词条得分: {score_data['substatScore']:.2f}")
                 print(f"    总得分: {score_data['totalScore']:.2f}")
+                print(f"    相对得分: {score_data.get('relativeScore', '未知'):.2f}")
                 print(f"    有效副词条:")
                 for substat in score_data['validSubstats']:
                     print(f"      {substat['key']} (升级次数: {substat['upgrades']}, 权重: {substat['weight']:.2f}, 得分: {substat['score']:.2f})")

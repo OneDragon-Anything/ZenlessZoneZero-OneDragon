@@ -112,17 +112,17 @@ class AgentParser:
             # 构建代理人数据
             self.agent_counter += 1
             agent_data = {
-                'key': agent_name,
-                'level': current_level,
-                'core': core_skill_level,
-                'mindscape': mindscape,
-                'dodge': dodge,
-                'basic': basic,
-                'chain': chain,
-                'special': special,
-                'assist': assist,
-                'promotion': promotion,
-                'potential': 0,
+                'key': agent_name,# 代理人代码
+                'level': current_level,#代理人等级
+                'core': core_skill_level,#代理人核心技等级
+                'mindscape': mindscape,#代理人影画
+                'dodge': dodge,#代理人闪避等级
+                'basic': basic,#代理人普通攻击等级
+                'chain': chain,#代理人连携技等级
+                'special': special,#代理人特殊技等级
+                'assist': assist,#代理人支援技等级
+                'promotion': promotion,#代理人突破等级
+                'potential': 0,#硬编码为0
                 'equippedDiscs': {},
                 'equippedWengine': "",
                 'id': f'zzz_agent_{self.agent_counter}'

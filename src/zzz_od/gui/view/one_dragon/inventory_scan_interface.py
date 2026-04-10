@@ -566,12 +566,79 @@ class InventoryScanInterface(AppRunInterface):
         
         # 音擎详细页面
         engine_detail_page = QWidget()
-        engine_detail_layout = QVBoxLayout(engine_detail_page)
+        engine_detail_layout = QHBoxLayout(engine_detail_page)
+        engine_detail_layout.setContentsMargins(0, 0, 0, 0)
+        engine_detail_layout.setSpacing(16)
+        
+        # 左侧卡片：音擎信息
+        from qfluentwidgets import SimpleCardWidget
+        left_card = SimpleCardWidget()
+        left_card_layout = QVBoxLayout(left_card)
+        left_card_layout.setContentsMargins(16, 16, 16, 16)
+        left_card_layout.setSpacing(8)
+        left_card_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
+        # 左侧卡片标题
+        from qfluentwidgets import SubtitleLabel
+        left_title = SubtitleLabel(text=gt('音擎信息'))
+        left_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        left_card_layout.addWidget(left_title)
         
         # 音擎信息显示
         self.engine_info_label = BodyLabel()
         self.engine_info_label.setWordWrap(True)
-        engine_detail_layout.addWidget(self.engine_info_label)
+        left_card_layout.addWidget(self.engine_info_label)
+        
+        # 设置左侧卡片固定宽度
+        left_card.setFixedWidth(350)
+        engine_detail_layout.addWidget(left_card)
+        
+        # 右侧布局：两个卡片
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(16)
+        
+        # 右侧卡片1：音擎推荐1
+        right_card1 = SimpleCardWidget()
+        right_card1_layout = QVBoxLayout(right_card1)
+        right_card1_layout.setContentsMargins(16, 16, 16, 16)
+        right_card1_layout.setSpacing(8)
+        right_card1_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
+        # 右侧卡片1标题
+        right_title1 = SubtitleLabel(text=gt('音擎推荐1'))
+        right_title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        right_card1_layout.addWidget(right_title1)
+        
+        # 音擎推荐1显示
+        self.engine_recommend1_label = BodyLabel()
+        self.engine_recommend1_label.setWordWrap(True)
+        self.engine_recommend1_label.setText(gt('推荐音擎信息将在此显示'))
+        right_card1_layout.addWidget(self.engine_recommend1_label)
+        
+        right_layout.addWidget(right_card1)
+        
+        # 右侧卡片2：音擎推荐2
+        right_card2 = SimpleCardWidget()
+        right_card2_layout = QVBoxLayout(right_card2)
+        right_card2_layout.setContentsMargins(16, 16, 16, 16)
+        right_card2_layout.setSpacing(8)
+        right_card2_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
+        # 右侧卡片2标题
+        right_title2 = SubtitleLabel(text=gt('音擎推荐2'))
+        right_title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        right_card2_layout.addWidget(right_title2)
+        
+        # 音擎推荐2显示
+        self.engine_recommend2_label = BodyLabel()
+        self.engine_recommend2_label.setWordWrap(True)
+        self.engine_recommend2_label.setText(gt('推荐音擎信息将在此显示'))
+        right_card2_layout.addWidget(self.engine_recommend2_label)
+        
+        right_layout.addWidget(right_card2)
+        
+        engine_detail_layout.addLayout(right_layout)
         
         self.detail_stacked.addWidget(engine_detail_page)
         
@@ -704,14 +771,14 @@ class InventoryScanInterface(AppRunInterface):
                 name_text_label, total_score_label, main_label, main_score_label, sub1_label, sub1_score_label, sub2_label, sub2_score_label, sub3_label, sub3_score_label, sub4_label, sub4_score_label, detail_button = disk_cards[i]
                 
                 # 为详细信息按钮添加点击事件 - 使用工厂函数避免闭包变量问题
-                def create_detail_clicked_handler(disc_data, position, main_stat_key, main_scr, sub_stats, total_scr, char_weight, agent_name):
+                def create_detail_clicked_handler(disc_data, position, main_stat_key, main_scr, sub_stats, total_scr, relative_score, char_weight, agent_name):
                     def handler():
                         """显示驱动盘详细计算信息"""
                         from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
                         from PySide6.QtCore import Qt
                         
                         dialog = QDialog(self, Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowCloseButtonHint)
-                        dialog.setWindowTitle(f"驱动盘详细信息 - {position}号位")
+                        dialog.setWindowTitle(f"驱动盘计算详细 - {position}号位")
                         dialog.resize(500, 450)
                         
                         layout = QVBoxLayout(dialog)
@@ -727,11 +794,18 @@ class InventoryScanInterface(AppRunInterface):
                             detail_text += f"位置: {position}号位\n"
                             detail_text += f"等级: 0\n"
                             detail_text += f"品质: 未知\n\n"
+                            
                             detail_text += f"主词条: 未知\n"
-                            detail_text += f"主词条得分: 0.0\n\n"
+                            # 1-3号位主词条不参与计算
+                            if 1 <= position <= 3:
+                                detail_text += f"主词条得分: 0.0 (不参与计算)\n\n"
+                            else:
+                                detail_text += f"主词条得分: 0.0\n\n"
+                            
                             detail_text += "副词条:\n"
                             detail_text += "  无\n"
                             detail_text += f"\n总得分: 0.0\n"
+                            detail_text += f"相对得分: 0.0\n"
                             if char_weight:
                                 detail_text += f"\n角色有效权重参考 ({agent_name}):\n"
                                 # 显示所有权重项
@@ -751,7 +825,11 @@ class InventoryScanInterface(AppRunInterface):
                             # 主词条信息
                             main_stat_key_display = disc_data.get('mainStatKeyChinese', disc_data.get('mainStatKey', '未知'))
                             detail_text += f"主词条: {main_stat_key_display}\n"
-                            detail_text += f"主词条得分: {main_scr:.1f}\n\n"
+                            # 1-3号位主词条不参与计算
+                            if 1 <= position <= 3:
+                                detail_text += f"主词条得分: {main_scr:.1f} (不参与计算)\n\n"
+                            else:
+                                detail_text += f"主词条得分: {main_scr:.1f}\n\n"
                             
                             # 副词条信息
                             detail_text += "副词条:\n"
@@ -769,6 +847,7 @@ class InventoryScanInterface(AppRunInterface):
                             
                             # 总得分
                             detail_text += f"\n总得分: {total_scr:.1f}\n"
+                            detail_text += f"相对得分: {relative_score:.1f}\n"
                             
                             # 角色权重信息
                             if char_weight:
@@ -793,11 +872,15 @@ class InventoryScanInterface(AppRunInterface):
                     return handler
                 
                 # 断开之前的所有连接，避免重复触发
-                try:
-                    # 断开所有clicked信号的连接
-                    detail_button.clicked.disconnect()
-                except:
-                    pass
+                import warnings
+                # 忽略 RuntimeWarning 警告
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    try:
+                        detail_button.clicked.disconnect()
+                    except Exception:
+                        # 忽略任何可能的异常
+                        pass
                 
                 if disc:
                     # 已装备驱动盘
@@ -821,6 +904,7 @@ class InventoryScanInterface(AppRunInterface):
                         score_data = processor.calculate_actual_disc_score(disc_with_position, character_weight, slot_mapping)
                         main_score = score_data['mainStatScore']
                         total_score = score_data['totalScore']
+                        relative_score = score_data.get('relativeScore', 0)
                         # 为每个原始副词条计算得分
                         substats = disc.get('substats', [])
                         for j, substat in enumerate(substats[:4]):
@@ -831,10 +915,10 @@ class InventoryScanInterface(AppRunInterface):
                     
                     # 创建并连接点击事件处理函数
                     main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
-                    detail_button.clicked.connect(create_detail_clicked_handler(disc, int(disc_key), main_stat_key, main_score, sub_scores, total_score, character_weight, agent_name))
+                    detail_button.clicked.connect(create_detail_clicked_handler(disc, int(disc_key), main_stat_key, main_score, sub_scores, total_score, relative_score, character_weight, agent_name))
                     
-                    # 显示总得分
-                    total_score_label.setText(f"{total_score:.1f}")
+                    # 显示总得分（使用相对得分）
+                    total_score_label.setText(f"{relative_score:.1f}")
                     
                     # 主词条名称和权重得分
                     main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
@@ -862,7 +946,7 @@ class InventoryScanInterface(AppRunInterface):
                 else:
                     # 未装备驱动盘
                     # 创建并连接点击事件处理函数
-                    detail_button.clicked.connect(create_detail_clicked_handler({}, i + 1, '未知', 0, [0, 0, 0, 0], 0, character_weight, agent_name))
+                    detail_button.clicked.connect(create_detail_clicked_handler({}, i + 1, '未知', 0, [0, 0, 0, 0], 0, 0, character_weight, agent_name))
         
 
         
@@ -891,33 +975,29 @@ class InventoryScanInterface(AppRunInterface):
                 # 更新代理人详细信息
                 self.agent_info_title.setText(f"{chs_name}的详细信息")
                 agent_info = []
-                agent_info.append(f"{gt('等级')}: {report.get('level', '未知')}")
-                agent_info.append(f"{gt('核心等级')}: {report.get('core', '未知')}")
-                agent_info.append(f"{gt('心境等级')}: {report.get('mindscape', '未知')}")
-                agent_info.append(f"{gt('闪避等级')}: {report.get('dodge', '未知')}")
-                agent_info.append(f"{gt('晋升等级')}: {report.get('promotion', '未知')}")
+                agent_info.append(f"- {gt('等级')}: {report.get('level', '未知')}")
+                agent_info.append(f"- {gt('影画')}: {report.get('mindscape', '未知')}")
+                agent_info.append(f"- {gt('突破等级')}: {report.get('promotion', '未知')}")
                 
                 self.agent_info_label.setText('\n'.join(agent_info))
                 
-                # 更新卡片内容
+                # 更新代理人详细信息
                 if self.agent_cards:
                     # 卡片1：提升建议
                     card1_title, card1_content = self.agent_cards[0]
                     card1_title.setText(f"{chs_name}的提升建议")
                     card1_content.setText(
-                        f"- 代理人等级技能:提升普攻等级\n"
-                        f"- 音擎:无\n"
-                        f"- 驱动盘:将2号位的驱动盘替换为0行0列的驱动盘"
+                        "当前功能正在开发"
                     )
                     
                     # 卡片2：技能信息
                     card2_title, card2_content = self.agent_cards[1]
                     card2_title.setText(f"{chs_name}的技能信息")
                     skills_info = []
-                    skills_info.append(f"- 基础技能: {report.get('basic', '未知')}")
-                    skills_info.append(f"- 连锁技能: {report.get('chain', '未知')}")
-                    skills_info.append(f"- 特殊技能: {report.get('special', '未知')}")
-                    skills_info.append(f"- 援助技能: {report.get('assist', '未知')}")
+                    skills_info.append(f"- {gt('普通攻击等级')}: {report.get('basic', '未知')}")
+                    skills_info.append(f"- {gt('连携技等级')}: {report.get('chain', '未知')}")
+                    skills_info.append(f"- {gt('特殊技等级')}: {report.get('special', '未知')}")
+                    skills_info.append(f"- {gt('支援技等级')}: {report.get('assist', '未知')}")
                     card2_content.setText('\n'.join(skills_info))
                     
                     # 卡片3：装备信息
@@ -942,9 +1022,7 @@ class InventoryScanInterface(AppRunInterface):
                 
                 # 更新音擎详细信息
                 engine_info = []
-                engine_info.append(f"{gt('代理人')}: {chs_name}")
                 if 'equippedWengine' in report:
-                    engine_info.append(f"\n{gt('音擎详细信息')}:")
                     engine = report['equippedWengine']
                     engine_name = engine.get('key', '未知')
                     engine_level = engine.get('level', 0)
@@ -952,16 +1030,34 @@ class InventoryScanInterface(AppRunInterface):
                     engine_promotion = engine.get('promotion', 0)
                     engine_info.append(f"\n{gt('音擎名称')}: {engine_name}")
                     engine_info.append(f"{gt('等级')}: {engine_level}")
-                    engine_info.append(f"{gt('改造')}: {engine_modification}")
-                    engine_info.append(f"{gt('晋升')}: {engine_promotion}")
+                    #engine_info.append(f"{gt('改造')}: {engine_modification}")
+                    engine_info.append(f"{gt('突破等级')}: {engine_promotion}")
                 else:
                     engine_info.append(f"\n{gt('未装备音擎')}")
                 
                 self.engine_info_label.setText('\n'.join(engine_info))
+                
+                # 更新音擎推荐信息
+                # 这里可以根据实际情况获取推荐音擎数据
+                recommend1_info = [
+                    f"{gt('推荐音擎1')}: 示例音擎A",
+                    f"{gt('推荐理由')}: 适合当前角色的输出定位",
+                    f"{gt('核心属性')}: 攻击力 + 异常精通"
+                ]
+                self.engine_recommend1_label.setText('\n'.join(recommend1_info))
+                
+                recommend2_info = [
+                    f"{gt('推荐音擎2')}: 示例音擎B",
+                    f"{gt('推荐理由')}: 提供更多生存能力",
+                    f"{gt('核心属性')}: 生命值 + 防御力"
+                ]
+                self.engine_recommend2_label.setText('\n'.join(recommend2_info))
             except Exception as e:
                 update_disk_cards({})
                 self.agent_info_label.setText(f"{gt('读取报告失败')}: {str(e)}")
                 self.engine_info_label.setText(f"{gt('读取报告失败')}: {str(e)}")
+                self.engine_recommend1_label.setText(f"{gt('读取报告失败')}: {str(e)}")
+                self.engine_recommend2_label.setText(f"{gt('读取报告失败')}: {str(e)}")
         
         # 定义完整的on_agent_clicked函数
         def on_agent_clicked(agent_name):
