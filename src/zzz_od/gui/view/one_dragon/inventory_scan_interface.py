@@ -1097,11 +1097,18 @@ class InventoryScanInterface(AppRunInterface):
                 self.agent_info_label.setText('\n'.join(agent_info))
                 
                 # 显示扫描时间
-                if hasattr(self, 'scan_time_label'):
-                    self.scan_time_label.setText(f"扫描时间: {scan_time}")
-                    self.scan_time_label.setVisible(True)
-                else:
-                    # 创建扫描时间标签
+                try:
+                    # 先从布局中移除旧的扫描时间标签
+                    if hasattr(self, 'scan_time_label') and self.scan_time_label is not None:
+                        try:
+                            # 从布局中移除旧控件
+                            self.left_card_layout.removeWidget(self.scan_time_label)
+                            # 清除旧控件
+                            self.scan_time_label.deleteLater()
+                        except:
+                            pass
+                    
+                    # 创建新的扫描时间标签
                     from qfluentwidgets import CaptionLabel
                     from PySide6.QtCore import Qt
                     self.scan_time_label = CaptionLabel()
@@ -1110,84 +1117,154 @@ class InventoryScanInterface(AppRunInterface):
                     self.scan_time_label.setStyleSheet("font-size: 10px; color: #666666;")
                     # 添加到标题下方
                     self.left_card_layout.insertWidget(1, self.scan_time_label)
+                except Exception as e:
+                    log.error(f"更新扫描时间标签失败: {str(e)}")
                 
                 # 更新代理人详细信息
-                if self.agent_cards:
-                    # 卡片1：提升建议
-                    card1_title, card1_content = self.agent_cards[0]
-                    card1_title.setText(f"{chs_name}的提升建议")
-                    card1_content.setText(
-                        "当前功能正在开发"
-                    )
-                    
-                    # 卡片2：技能信息
-                    card2_title, card2_content = self.agent_cards[1]
-                    card2_title.setText(f"{chs_name}的技能信息")
-                    skills_info = []
-                    skills_info.append(f"- {gt('普通攻击等级')}: {report.get('basic', '未知')}")
-                    skills_info.append(f"- {gt('连携技等级')}: {report.get('chain', '未知')}")
-                    skills_info.append(f"- {gt('特殊技等级')}: {report.get('special', '未知')}")
-                    skills_info.append(f"- {gt('支援技等级')}: {report.get('assist', '未知')}")
-                    card2_content.setText('\n'.join(skills_info))
-                    
-                    # 卡片3：装备信息
-                    card3_title, card3_content = self.agent_cards[2]
-                    card3_title.setText(f"{chs_name}的装备信息")
-                    equipment_info = []
-                    if 'equippedWengine' in report and report['equippedWengine']:
+                try:
+                    if self.agent_cards:
+                        # 卡片1：提升建议
+                        card1_title, card1_content = self.agent_cards[0]
+                        try:
+                            card1_title.setText(f"{chs_name}的提升建议")
+                            card1_content.setText(
+                                "当前功能正在开发"
+                            )
+                        except Exception as e:
+                            log.error(f"更新卡片1失败: {str(e)}")
+                        
+                        # 卡片2：技能信息
+                        card2_title, card2_content = self.agent_cards[1]
+                        try:
+                            card2_title.setText(f"{chs_name}的技能信息")
+                            skills_info = []
+                            skills_info.append(f"- {gt('普通攻击等级')}: {report.get('basic', '未知')}")
+                            skills_info.append(f"- {gt('连携技等级')}: {report.get('chain', '未知')}")
+                            skills_info.append(f"- {gt('特殊技等级')}: {report.get('special', '未知')}")
+                            skills_info.append(f"- {gt('支援技等级')}: {report.get('assist', '未知')}")
+                            card2_content.setText('\n'.join(skills_info))
+                        except Exception as e:
+                            log.error(f"更新卡片2失败: {str(e)}")
+                        
+                        # 卡片3：装备信息
+                        card3_title, card3_content = self.agent_cards[2]
+                        try:
+                            card3_title.setText(f"{chs_name}的装备信息")
+                            equipment_info = []
+                            if 'equippedWengine' in report and report['equippedWengine']:
+                                engine = report['equippedWengine']
+                                engine_name = engine.get('key', '未知')
+                                engine_level = engine.get('level', 0)
+                                equipment_info.append(f"- 音擎: {engine_name} (等级: {engine_level})")
+                            else:
+                                equipment_info.append("- 音擎: 无")
+                            
+                            equipped_discs = report.get('equippedDiscs', {})
+                            if equipped_discs:
+                                equipment_info.append("- 驱动盘: 已装备")
+                            else:
+                                equipment_info.append("- 驱动盘: 未装备")
+                            
+                            card3_content.setText('\n'.join(equipment_info))
+                        except Exception as e:
+                            log.error(f"更新卡片3失败: {str(e)}")
+                except Exception as e:
+                    log.error(f"更新代理人卡片信息失败: {str(e)}")
+                
+                # 更新音擎详细信息
+                try:
+                    engine_info = []
+                    if 'equippedWengine' in report:
                         engine = report['equippedWengine']
                         engine_name = engine.get('key', '未知')
                         engine_level = engine.get('level', 0)
-                        equipment_info.append(f"- 音擎: {engine_name} (等级: {engine_level})")
+                        engine_modification = engine.get('modification', 0)
+                        engine_promotion = engine.get('promotion', 0)
+                        engine_info.append(f"\n{gt('音擎名称')}: {engine_name}")
+                        engine_info.append(f"{gt('等级')}: {engine_level}")
+                        #engine_info.append(f"{gt('改造')}: {engine_modification}")
+                        engine_info.append(f"{gt('突破等级')}: {engine_promotion}")
                     else:
-                        equipment_info.append("- 音擎: 无")
+                        engine_info.append(f"\n{gt('未装备音擎')}")
                     
-                    equipped_discs = report.get('equippedDiscs', {})
-                    if equipped_discs:
-                        equipment_info.append("- 驱动盘: 已装备")
-                    else:
-                        equipment_info.append("- 驱动盘: 未装备")
+                    # 检查控件是否有效
+                    if hasattr(self, 'engine_info_label') and self.engine_info_label is not None:
+                        if hasattr(self.engine_info_label, 'isValid') and self.engine_info_label.isValid():
+                            self.engine_info_label.setText('\n'.join(engine_info))
+                        else:
+                            # 直接尝试更新，不依赖 isValid 方法
+                            try:
+                                self.engine_info_label.setText('\n'.join(engine_info))
+                            except:
+                                pass
                     
-                    card3_content.setText('\n'.join(equipment_info))
-                
-                # 更新音擎详细信息
-                engine_info = []
-                if 'equippedWengine' in report:
-                    engine = report['equippedWengine']
-                    engine_name = engine.get('key', '未知')
-                    engine_level = engine.get('level', 0)
-                    engine_modification = engine.get('modification', 0)
-                    engine_promotion = engine.get('promotion', 0)
-                    engine_info.append(f"\n{gt('音擎名称')}: {engine_name}")
-                    engine_info.append(f"{gt('等级')}: {engine_level}")
-                    #engine_info.append(f"{gt('改造')}: {engine_modification}")
-                    engine_info.append(f"{gt('突破等级')}: {engine_promotion}")
-                else:
-                    engine_info.append(f"\n{gt('未装备音擎')}")
-                
-                self.engine_info_label.setText('\n'.join(engine_info))
-                
-                # 更新音擎推荐信息
-                # 这里可以根据实际情况获取推荐音擎数据
-                recommend1_info = [
-                    f"{gt('推荐音擎1')}: 示例音擎A",
-                    f"{gt('推荐理由')}: 适合当前角色的输出定位",
-                    f"{gt('核心属性')}: 攻击力 + 异常精通"
-                ]
-                self.engine_recommend1_label.setText('\n'.join(recommend1_info))
-                
-                recommend2_info = [
-                    f"{gt('推荐音擎2')}: 示例音擎B",
-                    f"{gt('推荐理由')}: 提供更多生存能力",
-                    f"{gt('核心属性')}: 生命值 + 防御力"
-                ]
-                self.engine_recommend2_label.setText('\n'.join(recommend2_info))
+                    # 更新音擎推荐信息
+                    # 这里可以根据实际情况获取推荐音擎数据
+                    recommend1_info = [
+                        f"{gt('推荐音擎1')}: 示例音擎A",
+                        f"{gt('推荐理由')}: 适合当前角色的输出定位",
+                        f"{gt('核心属性')}: 攻击力 + 异常精通"
+                    ]
+                    if hasattr(self, 'engine_recommend1_label') and self.engine_recommend1_label is not None:
+                        if hasattr(self.engine_recommend1_label, 'isValid') and self.engine_recommend1_label.isValid():
+                            self.engine_recommend1_label.setText('\n'.join(recommend1_info))
+                        else:
+                            # 直接尝试更新，不依赖 isValid 方法
+                            try:
+                                self.engine_recommend1_label.setText('\n'.join(recommend1_info))
+                            except:
+                                pass
+                    
+                    recommend2_info = [
+                        f"{gt('推荐音擎2')}: 示例音擎B",
+                        f"{gt('推荐理由')}: 提供更多生存能力",
+                        f"{gt('核心属性')}: 生命值 + 防御力"
+                    ]
+                    if hasattr(self, 'engine_recommend2_label') and self.engine_recommend2_label is not None:
+                        if hasattr(self.engine_recommend2_label, 'isValid') and self.engine_recommend2_label.isValid():
+                            self.engine_recommend2_label.setText('\n'.join(recommend2_info))
+                        else:
+                            # 直接尝试更新，不依赖 isValid 方法
+                            try:
+                                self.engine_recommend2_label.setText('\n'.join(recommend2_info))
+                            except:
+                                pass
+                except Exception as e:
+                    log.error(f"更新音擎信息失败: {str(e)}")
             except Exception as e:
                 update_disk_cards({})
-                self.agent_info_label.setText(f"{gt('读取报告失败')}: {str(e)}")
-                self.engine_info_label.setText(f"{gt('读取报告失败')}: {str(e)}")
-                self.engine_recommend1_label.setText(f"{gt('读取报告失败')}: {str(e)}")
-                self.engine_recommend2_label.setText(f"{gt('读取报告失败')}: {str(e)}")
+                # 检查控件是否有效并尝试更新
+                error_msg = f"{gt('读取报告失败')}: {str(e)}"
+                
+                # 更新 agent_info_label
+                if hasattr(self, 'agent_info_label') and self.agent_info_label is not None:
+                    try:
+                        self.agent_info_label.setText(error_msg)
+                    except:
+                        pass
+                
+                # 更新 engine_info_label
+                if hasattr(self, 'engine_info_label') and self.engine_info_label is not None:
+                    try:
+                        self.engine_info_label.setText(error_msg)
+                    except:
+                        pass
+                
+                # 更新 engine_recommend1_label
+                if hasattr(self, 'engine_recommend1_label') and self.engine_recommend1_label is not None:
+                    try:
+                        self.engine_recommend1_label.setText(error_msg)
+                    except:
+                        pass
+                
+                # 更新 engine_recommend2_label
+                if hasattr(self, 'engine_recommend2_label') and self.engine_recommend2_label is not None:
+                    try:
+                        self.engine_recommend2_label.setText(error_msg)
+                    except:
+                        pass
+                
+                log.error(f"加载报告失败: {str(e)}")
         
         # 定义完整的on_agent_clicked函数
         def on_agent_clicked(agent_name):

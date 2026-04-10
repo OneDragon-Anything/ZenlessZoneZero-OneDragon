@@ -104,7 +104,10 @@ class SpecialScanApp(ZApplication):
         self._img_name = cv2_utils.crop_image_only(screen, area_name.rect)
         self._img_level = cv2_utils.crop_image_only(screen, area_level.rect)
 
-        self.round_by_goto_screen(screen_name='代理人-技能')# 导航到技能界面
+        # 导航到技能界面
+        result = self.round_by_goto_screen(screen_name='代理人-技能')
+        # if not result.is_success:
+        #     return self.round_fail('导航到代理人-技能界面失败')
         time.sleep(0.3)# 等待技能界面加载完成
         
         #技能信息截图
@@ -117,7 +120,7 @@ class SpecialScanApp(ZApplication):
 
         self.ctx.controller.click(self.agent_core_skill_area.rect.center)# 点击按钮到技能详细界面
         time.sleep(0.3)# 等待核心技等级界面加载完成
-
+        
         #核心技等级信息截图
         screen = self.screenshot()
         if screen is None:
@@ -274,4 +277,4 @@ class SpecialScanApp(ZApplication):
                     json.dump(agent, f, ensure_ascii=False, indent=4)
         except Exception as e:
                 return self.round_fail(f'写数据到JSON文件失败: {e}')  
-        return self.round_success('代理人扫描完成并生成json文件成功')  
+        return self.round_success('代理人扫描完成并生成代理人列表json文件成功')  
