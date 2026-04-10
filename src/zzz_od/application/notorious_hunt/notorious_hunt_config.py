@@ -89,10 +89,10 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
 
-    def save(self):
-        self.data = {}
-
+    def save(self) -> None:
         weekly_challenge_start_weekday = self.weekly_challenge_start_weekday
+
+        self.data = {}
         self.data['weekly_challenge_start_weekday'] = weekly_challenge_start_weekday
 
         plan_list = []
