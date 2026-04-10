@@ -208,7 +208,8 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan
-        if self.config.skip_plan or is_agent_plan:
+        is_blocked_by_left_times = self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
+        if self.config.skip_plan or is_agent_plan or is_blocked_by_left_times:
             # 标记当前计划为跳过，继续尝试下一个
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
