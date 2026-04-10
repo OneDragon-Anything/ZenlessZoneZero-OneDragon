@@ -1,10 +1,10 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
-    CheckBox,
     FluentIcon,
     LineEdit,
+    SwitchButton,
     ToolButton,
 )
 
@@ -70,8 +70,11 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        self.disabled_checkbox = CheckBox(text=gt('禁用'))
-        self.disabled_checkbox.checkStateChanged.connect(self._on_disabled_changed)
+        enable_label = CaptionLabel(text=gt('启用'))
+        self.enable_switch = SwitchButton()
+        self.enable_switch.setOnText('')
+        self.enable_switch.setOffText('')
+        self.enable_switch.checkedChanged.connect(self._on_enable_changed)
 
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
@@ -92,7 +95,8 @@ class NotoriousHuntCard(DraggableListItem):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
-                    self.disabled_checkbox,
+                    enable_label,
+                    self.enable_switch,
                     self.move_top_btn,
                 ]
             ]
@@ -125,7 +129,7 @@ class NotoriousHuntCard(DraggableListItem):
         self.init_auto_battle_box()
         self.init_level_combo_box()
         self.init_buff_combo_box()
-        self.init_disabled_checkbox()
+        self.init_enable_switch()
 
         self.init_plan_times_input()
         self.init_run_times_input()
@@ -165,10 +169,10 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
 
-    def init_disabled_checkbox(self) -> None:
-        self.disabled_checkbox.blockSignals(True)
-        self.disabled_checkbox.setChecked(not self.plan.enable)
-        self.disabled_checkbox.blockSignals(False)
+    def init_enable_switch(self) -> None:
+        self.enable_switch.blockSignals(True)
+        self.enable_switch.setChecked(self.plan.enable)
+        self.enable_switch.blockSignals(False)
 
     def _on_mission_type_changed(self, idx: int) -> None:
         mission_type_name = self.mission_type_combo_box.itemData(idx)
@@ -205,8 +209,8 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan.plan_times = int(self.plan_times_input.text())
         self._emit_value()
 
-    def _on_disabled_changed(self, value: Qt.CheckState) -> None:
-        self.plan.enable = value != Qt.CheckState.Checked
+    def _on_enable_changed(self, value: bool) -> None:
+        self.plan.enable = value
         self._emit_value()
 
     def _emit_value(self) -> None:
