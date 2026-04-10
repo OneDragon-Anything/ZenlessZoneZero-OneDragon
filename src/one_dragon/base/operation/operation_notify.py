@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.notify_config import NotifyLevel
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 
@@ -79,24 +80,46 @@ def send_application_notify(app: Application, status: bool | None) -> None:
     if status is None and not app.ctx.notify_config.enable_before_notify:
         return
 
-    # 确定状态和图片来源
+    # 确定状态文本
     if status is True:
-        status = gt('成功')
+        status_text = gt('成功')
     elif status is False:
-        status = gt('失败')
+        status_text = gt('失败')
     else:  # status is None
-        status = gt('开始')
+        status_text = gt('开始')
 
     # 构建消息
     _, app_name = _get_app_info(app)
     app_name = gt(app_name)
-    message = f"{gt('任务')}「{app_name}」{gt('运行')}{status}"
+    message = f"{gt('任务')}「{app_name}」{gt('运行')}{status_text}"
 
-    # 异步推送
-    app.ctx.push_service.push_async(
-        title=app.ctx.notify_config.title,
-        content=message,
-    )
+    if status is None:
+        # 开始通知 - 直接推送
+        app.ctx.push_service.push_async(
+            title=app.ctx.notify_config.title,
+            content=message,
+        )
+        return
+
+    # 结束通知
+    pool = app.ctx.run_context.notify_pool
+    notify_level = _get_notify_level(app)
+
+    if notify_level == NotifyLevel.MERGE and len(pool) > 0:
+        # 合并模式: 将结束消息放在开头，与池中消息合并送出
+        items = [NotifyPoolItem(content=message)] + pool.items
+        app.ctx.push_service.push_merged_async(
+            title=app.ctx.notify_config.title,
+            items=items,
+        )
+    else:
+        # 普通模式: 发送结束通知，附带池中最后一张图片
+        last_image = pool.last_image
+        app.ctx.push_service.push_async(
+            title=app.ctx.notify_config.title,
+            content=message,
+            image=last_image,
+        )
 
 
 class NodeNotifyDesc:
@@ -174,7 +197,10 @@ def send_node_notify(
     next_node: OperationNode | None = None
 ):
     """
-    发送节点级通知
+    发送节点级通知，并收集到通知池中。
+
+    当通知池存在时，始终收集消息到池中（用于合并通知和最后一张图片）。
+    仅在通知等级为 ALL 且未启用合并通知时，才立即发送单条节点通知。
 
     Args:
         operation: Operation 实例
@@ -182,7 +208,13 @@ def send_node_notify(
         current_node: 当前正在执行的节点
         next_node: 下一个要执行的节点
     """
-    if _get_notify_level(operation) < NotifyLevel.ALL or current_node is None:
+    pool = operation.ctx.run_context.notify_pool
+    notify_level = _get_notify_level(operation)
+
+    # OFF 等级不处理任何节点通知
+    if notify_level < NotifyLevel.APP:
+        return
+    if current_node is None:
         return
 
     # 初始化通知列表
@@ -254,9 +286,15 @@ def send_node_notify(
     if custom_message:
         message += custom_message
 
-    # 异步推送
-    operation.ctx.push_service.push_async(
-        title=operation.ctx.notify_config.title,
-        content=message,
-        image=operation.last_screenshot if send_image else None,
-    )
+    image = operation.last_screenshot if send_image else None
+
+    # 收集到通知池
+    pool.add(content=message, image=image)
+
+    # ALL 等级时逐条发送；MERGE 等级时仅收集，但失败时也立即发送
+    if notify_level == NotifyLevel.ALL or (notify_level == NotifyLevel.MERGE and not is_success):
+        operation.ctx.push_service.push_async(
+            title=operation.ctx.notify_config.title,
+            content=message,
+            image=image,
+        )

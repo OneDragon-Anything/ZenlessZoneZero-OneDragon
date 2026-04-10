@@ -4,8 +4,12 @@ from typing import Any
 import requests
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.push.push_channel import PushChannel
-from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
+from one_dragon.base.push.push_channel_config import (
+    FieldTypeEnum,
+    PushChannelConfigField,
+)
 from one_dragon.utils.log_utils import log
 
 
@@ -177,3 +181,104 @@ class OneBot(PushChannel):
             return False, "QQ 号和群号至少需要配置一个"
 
         return True, "配置验证通过"
+
+    def push_merged(
+        self,
+        config: dict[str, str],
+        title: str,
+        items: list[NotifyPoolItem],
+        proxy_url: str | None = None,
+    ) -> tuple[bool, str]:
+        """
+        使用 OneBot 合并转发 API 推送合并消息
+
+        Args:
+            config: 配置字典
+            title: 消息标题（用作转发节点的发送者名称）
+            items: 消息列表
+            proxy_url: 代理地址
+
+        Returns:
+            tuple[bool, str]: 是否成功、错误信息
+        """
+        try:
+            ok, msg = self.validate_config(config)
+            if not ok:
+                return False, msg
+
+            base_url = config.get('URL', '').rstrip('/')
+            if base_url.endswith('/send_msg'):
+                base_url = base_url[:-len('/send_msg')]
+
+            user_id = config.get('USER', '')
+            group_id = config.get('GROUP', '')
+            token = config.get('TOKEN', '')
+
+            headers = {'Content-Type': 'application/json'}
+            if token and len(token) > 0:
+                headers['Authorization'] = f'Bearer {token}'
+
+            # 构建合并转发节点
+            nodes = []
+            for item in items:
+                msg_content: list[dict] = [{'type': 'text', 'data': {'text': item.content}}]
+                if item.image is not None:
+                    image_base64 = self.image_to_base64(item.image)
+                    if image_base64 is not None:
+                        msg_content.append({'type': 'image', 'data': {'file': f'base64://{image_base64}'}})
+                nodes.append({
+                    'type': 'node',
+                    'data': {
+                        'name': title,
+                        'uin': user_id or '10086',
+                        'content': msg_content,
+                    }
+                })
+
+            success_count = 0
+            error_messages = []
+
+            # 私聊合并转发
+            if user_id and len(user_id) > 0:
+                fwd_url = base_url + '/send_private_forward_msg'
+                data = {'user_id': user_id, 'messages': nodes}
+                try:
+                    resp = requests.post(fwd_url, data=json.dumps(data), headers=headers, timeout=30)
+                    resp.raise_for_status()
+                    result = resp.json()
+                    if result.get('status') == 'ok':
+                        success_count += 1
+                        log.info('OneBot 私聊合并转发成功！')
+                    else:
+                        error_messages.append(f'OneBot 私聊合并转发失败: {result}')
+                        log.error(f'OneBot 私聊合并转发失败: {result}')
+                except Exception as e:
+                    error_messages.append(f'OneBot 私聊合并转发异常: {str(e)}')
+                    log.error(f'OneBot 私聊合并转发异常: {str(e)}')
+
+            # 群聊合并转发
+            if group_id and len(group_id) > 0:
+                fwd_url = base_url + '/send_group_forward_msg'
+                data = {'group_id': group_id, 'messages': nodes}
+                try:
+                    resp = requests.post(fwd_url, data=json.dumps(data), headers=headers, timeout=30)
+                    resp.raise_for_status()
+                    result = resp.json()
+                    if result.get('status') == 'ok':
+                        success_count += 1
+                        log.info('OneBot 群聊合并转发成功！')
+                    else:
+                        error_messages.append(f'OneBot 群聊合并转发失败: {result}')
+                        log.error(f'OneBot 群聊合并转发失败: {result}')
+                except Exception as e:
+                    error_messages.append(f'OneBot 群聊合并转发异常: {str(e)}')
+                    log.error(f'OneBot 群聊合并转发异常: {str(e)}')
+
+            if success_count > 0:
+                if len(error_messages) > 0:
+                    return True, f"部分推送成功: {'; '.join(error_messages)}"
+                return True, '合并转发成功'
+            return False, f"推送失败: {'; '.join(error_messages)}" if error_messages else '未配置有效的接收者'
+
+        except Exception as e:
+            return False, f'OneBot 合并转发异常: {str(e)}'
