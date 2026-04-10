@@ -8,6 +8,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.utils import cv2_utils, str_utils, gpu_executor
@@ -347,8 +348,14 @@ class LostVoidRunLevel(ZOperation):
         else:
             return self.round_fail(op_result.status)
 
-    @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_INTERACT)
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_ENTRY)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='下层入口处理')
+    def on_entry(self) -> OperationRoundResult:
+        return self.round_success()
+
+    @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_INTERACT)
+    @node_from(from_name='下层入口处理')
     @operation_node(name='尝试交互')
     def try_interact(self) -> OperationRoundResult:
         """
