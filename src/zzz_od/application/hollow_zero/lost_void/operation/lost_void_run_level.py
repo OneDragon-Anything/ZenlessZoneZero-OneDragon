@@ -350,7 +350,7 @@ class LostVoidRunLevel(ZOperation):
 
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_ENTRY)
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
-    @operation_node(name='下层入口处理')
+    @operation_node(name='下层入口处理', screenshot_before_round=False)
     def on_entry(self) -> OperationRoundResult:
         return self.round_success()
 

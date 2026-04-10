@@ -788,7 +788,6 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='加载自动战斗配置')
     @node_from(from_name='层间移动')
-    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='层间移动', screenshot_before_round=False)
     def run_level(self) -> OperationRoundResult:
         log.info(f'推测楼层类型 {self.next_region_type.value.value}')
