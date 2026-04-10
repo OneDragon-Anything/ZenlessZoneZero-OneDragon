@@ -1,5 +1,5 @@
-import types
 from abc import ABC
+from types import ModuleType
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
@@ -35,7 +35,7 @@ class ApplicationFactory(ABC):
         'PLUGIN_DESCRIPTION',
     )
 
-    def __init__(self, app_const: types.ModuleType):
+    def __init__(self, app_const: ModuleType):
         """
         初始化应用工厂。
 
