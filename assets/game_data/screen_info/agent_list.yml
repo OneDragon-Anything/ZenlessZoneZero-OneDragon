@@ -30,17 +30,8 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
-<<<<<<< HEAD
-<<<<<<< HEAD
   goto_list:
   - 代理人-信息
-=======
-  goto_list: []
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-  goto_list:
-  - 代理人-信息
->>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)
 - area_name: 技能
   id_mark: true
   pc_rect:
@@ -54,17 +45,8 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
-<<<<<<< HEAD
-<<<<<<< HEAD
   goto_list:
   - 代理人-技能
-=======
-  goto_list: []
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-  goto_list:
-  - 代理人-技能
->>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)
 - area_name: 装备
   id_mark: true
   pc_rect:
@@ -78,29 +60,5 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
-<<<<<<< HEAD
-<<<<<<< HEAD
   goto_list:
   - 代理人-装备
-=======
-  goto_list: []
-- area_name: select
-  id_mark: false
-  pc_rect:
-  - 1793
-  - 442
-  - 1902
-  - 632
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: 
-  - 代理人-信息
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-  goto_list:
-  - 代理人-装备
->>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)

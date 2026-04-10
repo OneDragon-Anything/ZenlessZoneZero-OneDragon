@@ -84,11 +84,7 @@ class DriveDiskParser:
     def __init__(self):
         self.disc_counter = 0
         # 初始化翻译服务
-<<<<<<< HEAD
         from zzz_od.application.inventory_scan.translation_service import TranslationService
-=======
-        from zzz_od.application.inventory_scan.translation import TranslationService
->>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)
         self.translation_service = TranslationService()
         # 初始化头像匹配器(弃用)
         # from zzz_od.application.inventory_scan.utils.agent_icon_matcher import AgentIconMatcher

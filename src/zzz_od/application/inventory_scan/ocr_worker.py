@@ -1,13 +1,6 @@
 import threading
 import queue
-<<<<<<< HEAD
-<<<<<<< HEAD
 import time
-=======
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-import time
->>>>>>> 668cd623 (feat: 添加Node.js微服务集成及驱动盘评分功能)
 from typing import Optional, Any
 from one_dragon.utils.log_utils import log
 from cv2.typing import MatLike
@@ -43,18 +36,9 @@ class OcrWorker:
 
     def start(self):
         """启动OCR工作线程"""
-<<<<<<< HEAD
-<<<<<<< HEAD
         if self._thread is not None and self._thread.is_alive():
             log.warning("OCR工作线程已在运行中")
             return
-=======
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-        if self._thread is not None and self._thread.is_alive():
-            log.warning("OCR工作线程已在运行中")
-            return
->>>>>>> 668cd623 (feat: 添加Node.js微服务集成及驱动盘评分功能)
         self._stop_event.clear()
         self._processed_count = 0
         self._error_count = 0
@@ -112,15 +96,7 @@ class OcrWorker:
         while not self._stop_event.is_set():
             try:
                 if self._pause_event.is_set():
-<<<<<<< HEAD
-<<<<<<< HEAD
                     time.sleep(0.05)
-=======
-                    self._stop_event.wait(0.05)
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
-                    time.sleep(0.05)
->>>>>>> 668cd623 (feat: 添加Node.js微服务集成及驱动盘评分功能)
                     continue
 
                 task = self._queue.get(timeout=0.1)
