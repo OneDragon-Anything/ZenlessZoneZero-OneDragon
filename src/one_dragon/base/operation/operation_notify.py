@@ -107,7 +107,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
 
     if notify_level == NotifyLevel.MERGE and len(pool) > 0:
         # 合并模式: 将结束消息放在开头，与池中消息合并送出
-        items = [NotifyPoolItem(content=message)] + pool.items
+        items = [NotifyPoolItem(content=message), *pool.items]
         app.ctx.push_service.push_merged_async(
             title=app.ctx.notify_config.title,
             items=items,
