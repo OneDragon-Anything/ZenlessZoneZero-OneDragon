@@ -141,12 +141,26 @@ class InventoryDataProcessor:
             # 转换副词条
             substats = disc_data.get('substats', [])
             converted_substats = []
+            
+            # 获取驱动盘品质
+            rarity = disc_data.get('rarity', 'B')
+            # 获取该品质的最大副词条数量
+            max_substats = self.MAX_SUB_PROPERTIES.get(rarity, 2)
+            
             for substat in substats:
+                # 检查是否达到最大副词条数量
+                if len(converted_substats) >= max_substats:
+                    break
+                
                 converted_substat = substat.copy()
                 stat_key = substat.get('key', '')
+                
+                # 转换为中文
                 if stat_key in slot_mapping:
                     converted_substat['keyChinese'] = slot_mapping[stat_key]
-                converted_substats.append(converted_substat)
+                    # 检查是否在副词条池中
+                    if converted_substat['keyChinese'] in self.SUB_STATS_POOL:
+                        converted_substats.append(converted_substat)
             
             converted_disc['substats'] = converted_substats
             converted_discs[slot_key] = converted_disc

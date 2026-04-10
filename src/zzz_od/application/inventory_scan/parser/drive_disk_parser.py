@@ -5,6 +5,7 @@ import cv2
 from typing import Optional, Dict, List, Any
 from one_dragon.utils.log_utils import log
 from one_dragon.utils import os_utils
+from zzz_od.application.inventory_scan.InventoryDataProcessor import InventoryDataProcessor
 
 
 class DriveDiskParser:
@@ -41,9 +42,9 @@ class DriveDiskParser:
         '昇常精通': 'anomProf',  # "异常精通"的OCR错误
         '昇常掌控': 'anomMas_',
         # 属性伤害加成（新增）
-        '火': 'fire_dmg_',
-        '冰': 'ice_dmg_',
-        '电': 'electric_dmg_',
+        '火属性': 'fire_dmg_',
+        '冰属性': 'ice_dmg_',
+        '电属性': 'electric_dmg_',
         '以太': 'ether_dmg_',
         '物理': 'physical_dmg_',
     }
@@ -137,7 +138,7 @@ class DriveDiskParser:
             slot_key = self._parse_slot(texts)
 
             # 解析等级（Lv. 15/15）
-            level = self._parse_level(texts)
+            level, max_level = self._parse_level(texts)
 
             # 解析主属性（根据位置判断是否百分比）
             main_stat_key, main_stat_value = self._parse_main_stat(texts, slot_key)
@@ -145,12 +146,12 @@ class DriveDiskParser:
             # 解析副属性（需要位置信息来匹配升级标记，且需要排除主属性）
             substats = self._parse_substats(ocr_items, main_stat_key)
 
-            # **异常检测：15级驱动盘应该有4个不同种类的副属性**
-            if level == 15:
+            # **异常检测：满级驱动盘应该有4个不同种类的副属性**
+            if max_level > 0 and level == max_level:
                 # 检查副属性种类数量
                 unique_keys = set(sub['key'] for sub in substats)
                 if len(unique_keys) < 4:
-                    error_msg = f"异常检测：15级驱动盘只有{len(unique_keys)}种副属性（应该有4种不同的副属性）"
+                    error_msg = f"异常检测：{max_level}级驱动盘只有{len(unique_keys)}种副属性（应该有4种不同的副属性）"
                     log.error(error_msg)
                     log.error(f"副属性列表: {substats}")
                     self._save_error_data(screenshot, ocr_texts, texts, level, substats, index, error_msg)
@@ -164,11 +165,20 @@ class DriveDiskParser:
             #     if self.icon_matcher.is_region_colorful(screenshot, 54, 54, 85, 85):
             #         agent_key = self.icon_matcher.match_agent_icon(screenshot, 54, 54, 85, 85)
 
+            # 根据等级上限反推品级
+            rarity = 'S'  # 默认S级
+            if max_level > 0:
+                # 查找匹配的品级
+                for r, max_lvl in InventoryDataProcessor.MAX_LEVELS.items():
+                    if max_level == max_lvl:
+                        rarity = r
+                        break
+
             # 生成驱动盘数据
             self.disc_counter += 1
             disc_data = {
                 'setKey': set_key,# 套装名称
-                'rarity': 'S',  # 默认S级，可以根据RARITY字段判断
+                'rarity': rarity,  # 根据等级上限反推的品级
                 'level': level,
                 'slotKey': slot_key,# 装备位置
                 'mainStatKey': main_stat_key,# 主属性名称
@@ -222,18 +232,26 @@ class DriveDiskParser:
                 return text.strip()
         return '1'
 
-    def _parse_level(self, texts: List[str]) -> int:
-        """解析等级"""
+    def _parse_level(self, texts: List[str]) -> tuple[int, int]:
+        """解析等级和等级上限"""
         for text in texts:
             # 匹配中文格式: 等级15/15
+            match = re.search(r'等级\s*(\d+)/(\d+)', text)
+            if match:
+                return int(match.group(1)), int(match.group(2))
+            # 匹配中文格式: 等级15
             match = re.search(r'等级\s*(\d+)', text)
             if match:
-                return int(match.group(1))
+                return int(match.group(1)), 0
             # 匹配英文格式: Lv. 15/15 或 Lv.15
+            match = re.search(r'Lv\.?\s*(\d+)/(\d+)', text, re.IGNORECASE)
+            if match:
+                return int(match.group(1)), int(match.group(2))
+            # 匹配英文格式: Lv.15
             match = re.search(r'Lv\.?\s*(\d+)', text, re.IGNORECASE)
             if match:
-                return int(match.group(1))
-        return 0
+                return int(match.group(1)), 0
+        return 0, 0
 
     def _parse_main_stat(self, texts: List[str], slot_key: str) -> tuple[str, Optional[float]]:
         """

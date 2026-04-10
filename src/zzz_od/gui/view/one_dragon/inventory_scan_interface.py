@@ -21,10 +21,34 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPixmap, QCursor
 from qfluentwidgets import FluentIcon, PushButton, SegmentedWidget
+from dataclasses import dataclass
+from typing import Callable, Any
+from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
+from qfluentwidgets import TableWidget, ScrollArea
+from PySide6.QtCore import Qt, Signal, QSize, QThread
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
+    QGridLayout,
+    QWidget,
+    QDialog,
+    QScrollArea,
+    QLabel,
+    QPushButton,
+    QFrame,
+)
+from PySide6.QtGui import QPixmap, QCursor
+from qfluentwidgets import FluentIcon, PushButton, SegmentedWidget
 from one_dragon.utils import os_utils
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
+from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from zzz_od.application.inventory_scan import inventory_scan_const
@@ -80,9 +104,61 @@ class ReportLoader(QThread):
             self.finished.emit(report_files, translation_dict)
         except Exception as e:
             self.error.emit(str(e))
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QHeaderView
+from qfluentwidgets import (
+    BodyLabel,
+    CaptionLabel,
+    FluentIcon,
+    InfoBarIcon,
+    PrimaryPushButton,
+    PushButton,
+    SimpleCardWidget,
+    SubtitleLabel,
+    SwitchButton,
+    ComboBox
+)
+from one_dragon_qt.utils.layout_utils import Margins
+from one_dragon_qt.widgets.column import Column
+
+
+class ReportLoader(QThread):
+    """报告加载子线程"""
+    finished = Signal(dict, dict)  # 传递报告文件和翻译字典
+    error = Signal(str)
+
+    def __init__(self, data_file_path, wiki_file_path):
+        super().__init__()
+        self.data_file_path = data_file_path
+        self.wiki_file_path = wiki_file_path
+
+    def run(self):
+        try:
+            # 加载报告文件
+            report_files = {}
+            for file_name in os.listdir(self.data_file_path):
+                if '_data' in file_name and file_name.endswith('.json'):
+                    agent_name = file_name.split('_data')[0]
+                    report_files[agent_name] = os.path.join(self.data_file_path, file_name)
+            
+            # 加载翻译文件
+            translation_dict = {}
+            translation_file_path = os.path.join(self.wiki_file_path, 'zzz_translation.json')
+            if os.path.exists(translation_file_path):
+                with open(translation_file_path, 'r', encoding='utf-8') as f:
+                    translation_data = json.load(f)
+                    translation_dict = translation_data.get('character', {})
+            
+            self.finished.emit(report_files, translation_dict)
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 class InventoryScanInterface(AppRunInterface):
+    """仓库扫描界面，支持预扫描和特定扫描两种模式"""
+
+    MODE_PRE_SCAN = '预扫描'
+    MODE_SPECIAL_SCAN = '特定扫描'
     """仓库扫描界面，支持预扫描和特定扫描两种模式"""
 
     MODE_PRE_SCAN = '预扫描'
@@ -94,7 +170,17 @@ class InventoryScanInterface(AppRunInterface):
         self.ctx: ZContext = ctx
         self.app: ZApplication | None = None
         # 初始化数据文件路径
+        # 初始化数据文件路径
         self.data_file_path = os_utils.get_path_under_work_dir('.debug', 'inventory_data')
+        # 初始化角色权重数据路径
+        self.character_weight_file_path = os_utils.get_path_under_work_dir('assets', 'character_weight')
+        #初始化wiki数据路径
+        self.wiki_file_path = os_utils.get_path_under_work_dir('assets', 'wiki_data')
+
+        self._init = False
+        # 初始化权重数据
+        self.agent_weights = {}
+        self._load_weights_data()
         # 初始化角色权重数据路径
         self.character_weight_file_path = os_utils.get_path_under_work_dir('assets', 'character_weight')
         #初始化wiki数据路径
@@ -115,6 +201,40 @@ class InventoryScanInterface(AppRunInterface):
             parent=parent,
         )
 
+    def get_widget_at_top(self) -> QWidget:
+        """构建顶部内容区域，包含模式切换和配置"""
+        top = Column()
+
+        # SegmentedWidget 模式切换
+        self.mode_segment = SegmentedWidget()
+        self.mode_segment.addItem(
+            routeKey=self.MODE_PRE_SCAN, text=self.MODE_PRE_SCAN,
+            onClick=lambda: self._apply_mode(self.MODE_PRE_SCAN),
+        )
+        self.mode_segment.addItem(
+            routeKey=self.MODE_SPECIAL_SCAN, text=self.MODE_SPECIAL_SCAN,
+            onClick=lambda: self._apply_mode(self.MODE_SPECIAL_SCAN),
+        )
+        top.add_widget(self.mode_segment)
+
+        # 配置区域 QStackedWidget（高度跟随当前页面）
+        self.mode_stacked = QStackedWidget()
+        self.pre_scan_page = self._build_pre_scan_page()
+        self.special_scan_page = self._build_special_scan_page()
+        self.mode_stacked.addWidget(self.pre_scan_page)
+        self.mode_stacked.addWidget(self.special_scan_page)
+        self.mode_stacked.currentChanged.connect(self._on_stacked_page_changed)
+        top.add_widget(self.mode_stacked)
+
+        # 默认选择预扫描模式
+        self.mode_segment.setCurrentItem(self.MODE_PRE_SCAN)
+        # 初始化时触发一次页面切换事件，确保QStackedWidget高度正确设置
+        self._on_stacked_page_changed(0)
+
+        return top
+
+    def _update_agent_options(self) -> None:
+        """更新特定扫描的代理人选项"""
     def get_widget_at_top(self) -> QWidget:
         """构建顶部内容区域，包含模式切换和配置"""
         top = Column()
@@ -186,13 +306,13 @@ class InventoryScanInterface(AppRunInterface):
                             chs_name = f"{translation_dict[code].get('CHS', code)} (权重配置缺失)"
                         else:
                             chs_name = f"{code} (未定义)"
-                    options.append(ConfigItem(chs_name,code))
+                    options.append(ConfigItem(chs_name, code))
         except FileNotFoundError:
             log.info(f"文件 {agent_names_file_path} 不存在，请先执行预扫描生成代理人列表")
         except json.JSONDecodeError:
             log.error(f"文件 {agent_names_file_path} 或翻译文件格式错误")
         except Exception as e:
-            log.error(f"读取文件时发生错误: {e}")
+            log.error(f"更新代理人选项失败: {e}")
         # 更新下拉框选项
         if hasattr(self, 'scan_agent_opt'):
             self.scan_agent_opt.set_options_by_list(options)
@@ -227,17 +347,6 @@ class InventoryScanInterface(AppRunInterface):
         )
         page.add_widget(self.special_help_opt)
 
-        # from one_dragon_qt.widgets.row import Row as HRow
-        # row = HRow()
-
-        # 管理代理人权重;暂时不启用
-        # self.agent_weight_opt = PushButton(
-        #     icon=FluentIcon.SEARCH,
-        #     text=f"{gt('选择代理人权重')}",
-        # )
-        # self.agent_weight_opt.clicked.connect(self._on_agent_weight_clicked)
-        # row.add_widget(self.agent_weight_opt)
-
         # 查看代理人检查报告
         self.check_report_btn = PushButton(
             icon=FluentIcon.VIEW,
@@ -245,8 +354,6 @@ class InventoryScanInterface(AppRunInterface):
         )
         self.check_report_btn.clicked.connect(self._on_check_report_clicked)
         page.add_widget(self.check_report_btn)
-
-        # page.add_widget(row)
 
         # 特定代理人选择
         self.scan_agent_opt = ComboBoxSettingCard(
@@ -285,7 +392,6 @@ class InventoryScanInterface(AppRunInterface):
         """在启动应用前保存用户选择的配置"""
         # 获取当前模式
         current_mode = self.MODE_PRE_SCAN
-        #print(f"当前扫描模式: {current_mode}")
         if hasattr(self, 'mode_segment'):
             current_mode = self.mode_segment.currentRouteKey()
 
@@ -399,20 +505,20 @@ class InventoryScanInterface(AppRunInterface):
         # 左侧：完整的一个卡片
         left_card = SimpleCardWidget()
         left_card.setFixedWidth(300)
-        left_card_layout = QVBoxLayout(left_card)
-        left_card_layout.setContentsMargins(16, 16, 16, 16)
-        left_card_layout.setSpacing(8)
-        left_card_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.left_card_layout = QVBoxLayout(left_card)
+        self.left_card_layout.setContentsMargins(16, 16, 16, 16)
+        self.left_card_layout.setSpacing(8)
+        self.left_card_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         
         # 左侧卡片标题
         self.agent_info_title = SubtitleLabel()
         self.agent_info_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        left_card_layout.addWidget(self.agent_info_title)
+        self.left_card_layout.addWidget(self.agent_info_title)
         
         # 左侧卡片内容
         self.agent_info_label = BodyLabel()
         self.agent_info_label.setWordWrap(True)
-        left_card_layout.addWidget(self.agent_info_label)
+        self.left_card_layout.addWidget(self.agent_info_label)
         
         agent_detail_layout.addWidget(left_card)
         
@@ -771,7 +877,7 @@ class InventoryScanInterface(AppRunInterface):
                 name_text_label, total_score_label, main_label, main_score_label, sub1_label, sub1_score_label, sub2_label, sub2_score_label, sub3_label, sub3_score_label, sub4_label, sub4_score_label, detail_button = disk_cards[i]
                 
                 # 为详细信息按钮添加点击事件 - 使用工厂函数避免闭包变量问题
-                def create_detail_clicked_handler(disc_data, position, main_stat_key, main_scr, sub_stats, total_scr, relative_score, char_weight, agent_name):
+                def create_detail_clicked_handler(disc_data, position, main_stat_key, main_scr, sub_stats, total_scr, relative_score, score_ceiling, char_weight, agent_name):
                     def handler():
                         """显示驱动盘详细计算信息"""
                         from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
@@ -805,9 +911,10 @@ class InventoryScanInterface(AppRunInterface):
                             detail_text += "副词条:\n"
                             detail_text += "  无\n"
                             detail_text += f"\n总得分: 0.0\n"
+                            detail_text += f"得分上限: 0.0\n"
                             detail_text += f"相对得分: 0.0\n"
                             if char_weight:
-                                detail_text += f"\n角色有效权重参考 ({agent_name}):\n"
+                                detail_text += f"\n代理人有效权重 ({agent_name}):\n"
                                 # 显示所有权重项
                                 weight_items = list(char_weight.items())
                                 for key, value in weight_items:
@@ -847,6 +954,7 @@ class InventoryScanInterface(AppRunInterface):
                             
                             # 总得分
                             detail_text += f"\n总得分: {total_scr:.1f}\n"
+                            detail_text += f"得分上限: {score_ceiling:.1f}\n"
                             detail_text += f"相对得分: {relative_score:.1f}\n"
                             
                             # 角色权重信息
@@ -905,6 +1013,7 @@ class InventoryScanInterface(AppRunInterface):
                         main_score = score_data['mainStatScore']
                         total_score = score_data['totalScore']
                         relative_score = score_data.get('relativeScore', 0)
+                        score_ceiling = score_data.get('score_ceiling', 0)
                         # 为每个原始副词条计算得分
                         substats = disc.get('substats', [])
                         for j, substat in enumerate(substats[:4]):
@@ -915,7 +1024,7 @@ class InventoryScanInterface(AppRunInterface):
                     
                     # 创建并连接点击事件处理函数
                     main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
-                    detail_button.clicked.connect(create_detail_clicked_handler(disc, int(disc_key), main_stat_key, main_score, sub_scores, total_score, relative_score, character_weight, agent_name))
+                    detail_button.clicked.connect(create_detail_clicked_handler(disc, int(disc_key), main_stat_key, main_score, sub_scores, total_score, relative_score, score_ceiling, character_weight, agent_name))
                     
                     # 显示总得分（使用相对得分）
                     total_score_label.setText(f"{relative_score:.1f}")
@@ -946,7 +1055,7 @@ class InventoryScanInterface(AppRunInterface):
                 else:
                     # 未装备驱动盘
                     # 创建并连接点击事件处理函数
-                    detail_button.clicked.connect(create_detail_clicked_handler({}, i + 1, '未知', 0, [0, 0, 0, 0], 0, 0, character_weight, agent_name))
+                    detail_button.clicked.connect(create_detail_clicked_handler({}, i + 1, '未知', 0, [0, 0, 0, 0], 0, 0, 0, character_weight, agent_name))
         
 
         
@@ -957,6 +1066,9 @@ class InventoryScanInterface(AppRunInterface):
                 update_disk_cards({})
                 self.agent_info_label.setText(gt('未找到该代理人的报告文件'))
                 self.engine_info_label.setText(gt('未找到该代理人的报告文件'))
+                # 隐藏扫描时间标签
+                if hasattr(self, 'scan_time_label'):
+                    self.scan_time_label.setVisible(False)
                 return
             
             # 获取中文名称
@@ -972,6 +1084,9 @@ class InventoryScanInterface(AppRunInterface):
                 equipped_discs = report.get('equippedDiscs', {})
                 update_disk_cards(equipped_discs, agent_name)
                 
+                # 获取扫描时间
+                scan_time = report.get('scanTime', '未知')
+                
                 # 更新代理人详细信息
                 self.agent_info_title.setText(f"{chs_name}的详细信息")
                 agent_info = []
@@ -980,6 +1095,21 @@ class InventoryScanInterface(AppRunInterface):
                 agent_info.append(f"- {gt('突破等级')}: {report.get('promotion', '未知')}")
                 
                 self.agent_info_label.setText('\n'.join(agent_info))
+                
+                # 显示扫描时间
+                if hasattr(self, 'scan_time_label'):
+                    self.scan_time_label.setText(f"扫描时间: {scan_time}")
+                    self.scan_time_label.setVisible(True)
+                else:
+                    # 创建扫描时间标签
+                    from qfluentwidgets import CaptionLabel
+                    from PySide6.QtCore import Qt
+                    self.scan_time_label = CaptionLabel()
+                    self.scan_time_label.setText(f"扫描时间: {scan_time}")
+                    self.scan_time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                    self.scan_time_label.setStyleSheet("font-size: 10px; color: #666666;")
+                    # 添加到标题下方
+                    self.left_card_layout.insertWidget(1, self.scan_time_label)
                 
                 # 更新代理人详细信息
                 if self.agent_cards:
