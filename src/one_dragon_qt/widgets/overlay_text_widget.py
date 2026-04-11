@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QFrame, QTextEdit
 
 
@@ -28,6 +29,19 @@ class OverlayTextWidget(QTextEdit):
         self._text_color = str(color or "").strip() or "#eaeaea"
         self._refresh_style()
 
+    def visible_line_count(self) -> int:
+        """Estimate how many single-height lines fit in the visible viewport."""
+        fm = QFontMetrics(self.currentFont())
+        line_h = fm.lineSpacing()
+        if line_h <= 0:
+            line_h = self._font_size + 4
+        vp_h = self.viewport().height()
+        return max(1, vp_h // line_h)
+
+    def setHtml(self, text: str) -> None:
+        super().setHtml(text)
+        self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
+
     def _refresh_style(self) -> None:
         self.setStyleSheet(
             f"""
@@ -44,4 +58,3 @@ class OverlayTextWidget(QTextEdit):
             }}
             """
         )
-

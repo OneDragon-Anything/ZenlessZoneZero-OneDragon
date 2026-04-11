@@ -217,7 +217,10 @@ class OverlayManager(QObject):
                 lambda g: self._on_panel_geometry_changed("log_panel", g)
             )
             self._log_panel.appearance_changed.connect(
-                self._on_log_panel_appearance_changed
+                self._on_panel_appearance_changed
+            )
+            self._log_panel.edit_mode_changed.connect(
+                self._on_panel_edit_mode_changed
             )
             geo = self._panel_geometry_with_fallback("log_panel")
             self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -227,6 +230,8 @@ class OverlayManager(QObject):
             self._state_panel.geometry_changed.connect(
                 lambda g: self._on_panel_geometry_changed("state_panel", g)
             )
+            self._state_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._state_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("state_panel")
             self._state_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         if self._decision_panel is None:
@@ -235,6 +240,8 @@ class OverlayManager(QObject):
             self._decision_panel.geometry_changed.connect(
                 lambda g: self._on_panel_geometry_changed("decision_panel", g)
             )
+            self._decision_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._decision_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("decision_panel")
             self._decision_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         if self._timeline_panel is None:
@@ -243,6 +250,8 @@ class OverlayManager(QObject):
             self._timeline_panel.geometry_changed.connect(
                 lambda g: self._on_panel_geometry_changed("timeline_panel", g)
             )
+            self._timeline_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._timeline_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("timeline_panel")
             self._timeline_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         if self._performance_panel is None:
@@ -251,6 +260,8 @@ class OverlayManager(QObject):
             self._performance_panel.geometry_changed.connect(
                 lambda g: self._on_panel_geometry_changed("performance_panel", g)
             )
+            self._performance_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._performance_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("performance_panel")
             self._performance_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         return self._overlay_window
@@ -266,9 +277,7 @@ class OverlayManager(QObject):
         panel.set_title_visible(False)
         panel.set_drag_anywhere(False)
         panel.set_passthrough_on_body(True)
-        panel.set_interaction_enabled(self.config.panel_edit_mode)
-        if panel_name == "log_panel":
-            panel.set_edit_mode(self.config.panel_edit_mode)
+        panel.set_edit_mode(self.config.panel_edit_mode)
 
     def _iter_side_panels(self):
         return [
@@ -352,14 +361,20 @@ class OverlayManager(QObject):
         except Exception:
             log.error("保存 Overlay 面板位置失败", exc_info=True)
 
-    def _on_log_panel_appearance_changed(
-        self, font_size: int, panel_opacity: int
+    def _on_panel_appearance_changed(
+        self, panel_name: str, font_size: int, panel_opacity: int
     ) -> None:
         try:
-            self.config.font_size = int(font_size)
-            self.config.panel_opacity = int(panel_opacity)
+            self.config.set_panel_appearance(panel_name, font_size=font_size, opacity=panel_opacity)
         except Exception:
-            log.error("保存 Overlay 日志面板样式失败", exc_info=True)
+            log.error(f"保存 Overlay {panel_name} 样式失败", exc_info=True)
+
+    def _on_panel_edit_mode_changed(self, enabled: bool) -> None:
+        try:
+            self.config.panel_edit_mode = bool(enabled)
+            self._safe_follow_window()
+        except Exception:
+            log.error("保存 Overlay 编辑模式失败", exc_info=True)
 
     def _safe_follow_window(self) -> None:
         try:
@@ -435,14 +450,16 @@ class OverlayManager(QObject):
 
             if panel_name == "log_panel":
                 panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
-                panel.set_edit_mode(edit_mode)
-            panel.set_appearance(self.config.font_size, self.config.panel_opacity)
-            panel.setWindowOpacity(self.config.panel_opacity / 100.0)
+            pa = self.config.get_panel_appearance(panel_name)
+            panel.set_appearance(pa["font_size"], pa["opacity"])
+            if edit_mode:
+                panel.setWindowOpacity(1.0)
+            else:
+                panel.setWindowOpacity(pa["opacity"] / 100.0)
             if hasattr(panel, "set_text_color"):
                 panel.set_text_color(self.config.panel_text_color)
-            panel.set_title_visible(edit_mode)
-            panel.set_drag_anywhere(edit_mode)
-            panel.set_interaction_enabled(edit_mode)
+            # set_edit_mode last so placeholder is not overwritten by set_appearance/set_text_color
+            panel.set_edit_mode(edit_mode)
             panel.set_passthrough_on_body(False)
 
             show_panel = self.config.visible and panel_visible_map.get(panel_name, True)

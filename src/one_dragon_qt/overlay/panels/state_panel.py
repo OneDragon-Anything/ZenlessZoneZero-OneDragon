@@ -2,30 +2,34 @@ from __future__ import annotations
 
 import html
 
+from one_dragon_qt.overlay.panels.resizable_panel import ResizablePanel
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
-from one_dragon_qt.widgets.resizable_panel import ResizablePanel
 
 
 class StatePanel(ResizablePanel):
     """Overlay run-state panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Overlay State", min_width=220, min_height=90, parent=parent)
+        super().__init__(
+            title="Overlay State", panel_name="state_panel",
+            min_width=220, min_height=90, parent=parent,
+        )
         self.set_title_visible(False)
         self._text_color = "#f2f2f2"
+
         self._text_widget = OverlayTextWidget(self)
+        self._edit_text_widget = self._text_widget
         self.body_layout.addWidget(self._text_widget, 1)
         self._text_widget.set_text_color(self._text_color)
-
-    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
-        self.set_panel_opacity(panel_opacity)
-        self._text_widget.set_appearance(font_size)
+        self._build_edit_toolbar()
 
     def set_text_color(self, color: str) -> None:
         self._text_color = str(color or "").strip() or "#f2f2f2"
         self._text_widget.set_text_color(self._text_color)
 
     def update_snapshot(self, items: list[tuple[str, str]]) -> None:
+        if self._edit_mode:
+            return
         rows: list[str] = []
         for key, value in items:
             safe_key = html.escape(key)
@@ -36,4 +40,3 @@ class StatePanel(ResizablePanel):
                 f"<span style='color:{self._text_color}'>{safe_value}</span>"
             )
         self._text_widget.setHtml("<br>".join(rows))
-

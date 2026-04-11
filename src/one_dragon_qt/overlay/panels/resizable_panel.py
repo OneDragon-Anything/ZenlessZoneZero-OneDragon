@@ -5,18 +5,33 @@ import sys
 from ctypes import wintypes
 
 from PySide6.QtCore import QPoint, QRect, Qt, Signal
-from PySide6.QtGui import QGuiApplication, QMouseEvent
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
-
+from PySide6.QtGui import (
+    QColor,
+    QGuiApplication,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 WM_NCHITTEST = 0x0084
 HTTRANSPARENT = -1
 
 
 class ResizablePanel(QFrame):
-    """Draggable and resizable overlay panel."""
+    """Draggable and resizable overlay panel with built-in edit mode."""
 
     geometry_changed = Signal(dict)
+    appearance_changed = Signal(str, int, int)
+    edit_mode_changed = Signal(bool)
 
     _EDGE_NONE = 0
     _EDGE_LEFT = 1
@@ -27,12 +42,14 @@ class ResizablePanel(QFrame):
     def __init__(
         self,
         title: str,
+        panel_name: str = "",
         min_width: int = 260,
         min_height: int = 140,
         parent=None,
     ):
         super().__init__(parent)
         self._title = title
+        self._panel_name = panel_name or title
         self._min_width = max(160, min_width)
         self._min_height = max(100, min_height)
         self._edge_margin = 6
@@ -40,6 +57,8 @@ class ResizablePanel(QFrame):
         self._drag_handle_height = self._header_height + 4
         self._title_visible = True
         self._panel_opacity = 70
+        self._font_size = 12
+        self._edit_mode = False
         self._interaction_enabled = True
         self._drag_anywhere = False
         self._passthrough_on_body = False
@@ -49,6 +68,9 @@ class ResizablePanel(QFrame):
         self._active_edge = self._EDGE_NONE
         self._press_global = QPoint()
         self._press_geometry = QRect()
+
+        # Subclasses should assign the main text widget here for edit-mode mouse passthrough.
+        self._edit_text_widget: QWidget | None = None
 
         self._setup_ui()
 
@@ -128,6 +150,150 @@ class ResizablePanel(QFrame):
         )
         # WA_TranslucentBackground 窗口 setStyleSheet 不一定自动触发重绘
         self.update()
+
+    # ------------------------------------------------------------------
+    # Edit-mode support (toolbar, gray background, font / opacity)
+    # ------------------------------------------------------------------
+
+    def set_edit_mode(self, enabled: bool) -> None:
+        self._edit_mode = bool(enabled)
+        self.set_interaction_enabled(self._edit_mode)
+        self.set_drag_anywhere(self._edit_mode)
+        if self._edit_text_widget is not None:
+            self._edit_text_widget.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents, self._edit_mode
+            )
+        if hasattr(self, "_toolbar"):
+            self._toolbar.setVisible(self._edit_mode)
+        if self._edit_mode:
+            self._show_edit_placeholder()
+        self._sync_toolbar_state()
+        self.update()
+
+    def _show_edit_placeholder(self) -> None:
+        """Fill text widget with numbered placeholder lines for layout preview."""
+        tw = self._edit_text_widget
+        if tw is None:
+            return
+        if hasattr(tw, "visible_line_count"):
+            n = tw.visible_line_count()
+            if n <= 1:
+                n = 8
+        else:
+            n = 8
+        lines = [self._title] + [f"Line {i + 1}" for i in range(n - 1)]
+        tw.setHtml("<br>".join(lines))
+
+    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
+        self._font_size = max(10, min(28, int(font_size)))
+        self._panel_opacity = max(5, min(100, int(panel_opacity)))
+        self.set_panel_opacity(self._panel_opacity)
+        if self._edit_text_widget is not None and hasattr(self._edit_text_widget, "set_appearance"):
+            self._edit_text_widget.set_appearance(self._font_size)
+        self._sync_toolbar_state()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        if self._edit_mode:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+            painter.fillRect(self.rect(), QColor(80, 80, 80, 180))
+            painter.end()
+        super().paintEvent(event)
+
+    def _build_edit_toolbar(self) -> None:
+        """Build the standard edit-mode toolbar. Call once at the end of subclass __init__."""
+        toolbar_id = f"overlay{self._panel_name.replace('_', '')}Toolbar"
+        self._toolbar = QWidget(self)
+        self._toolbar.setObjectName(toolbar_id)
+        self._toolbar.setFixedHeight(28)
+        self._toolbar.setStyleSheet(
+            f"QWidget#{toolbar_id} {{ background-color: transparent; border: none; }}"
+        )
+        layout = QHBoxLayout(self._toolbar)
+        layout.setContentsMargins(6, 2, 6, 2)
+        layout.setSpacing(8)
+
+        self._status_label = QLabel("", self._toolbar)
+        self._status_label.setStyleSheet(
+            "QLabel { color: #c0c0c0; font-size: 10px; background: transparent; border: none; }"
+        )
+        self._status_label.setFixedHeight(20)
+        layout.addWidget(self._status_label, 0)
+        layout.addStretch(1)
+
+        self._btn_font_dec = self._create_toolbar_button("A\u2212", "减小字号 (Ctrl+滚轮下)", self._on_font_dec)
+        layout.addWidget(self._btn_font_dec)
+        self._btn_font_inc = self._create_toolbar_button("A\u207A", "增大字号 (Ctrl+滚轮上)", self._on_font_inc)
+        layout.addWidget(self._btn_font_inc)
+        self._btn_panel_dec = self._create_toolbar_button("\u25A3\u2212", "降低面板不透明度", self._on_panel_dec)
+        layout.addWidget(self._btn_panel_dec)
+        self._btn_panel_inc = self._create_toolbar_button("\u25A3\u207A", "提高面板不透明度", self._on_panel_inc)
+        layout.addWidget(self._btn_panel_inc)
+        self._btn_close_edit = self._create_toolbar_button("\u2715", "关闭编辑模式", self._on_close_edit_mode)
+        layout.addWidget(self._btn_close_edit)
+
+        self.body_layout.addWidget(self._toolbar, 0)
+        self._toolbar.setVisible(False)
+        self._sync_toolbar_state()
+
+    def _create_toolbar_button(self, text: str, tip: str, handler) -> QToolButton:
+        btn = QToolButton(self)
+        btn.setText(text)
+        btn.setToolTip(tip)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setFixedSize(32, 22)
+        btn.clicked.connect(lambda _checked=False: handler())
+        btn.setStyleSheet(
+            "QToolButton { background-color: rgba(190,190,190,160); color: #1e1e1e;"
+            " border: none; border-radius: 4px; font-size: 12px; font-weight: 600; padding: 0px; }"
+            "QToolButton:hover { background-color: rgba(210,210,210,190); }"
+            "QToolButton:pressed { background-color: rgba(168,168,168,200); }"
+        )
+        return btn
+
+    def _on_font_dec(self) -> None:
+        if self._edit_mode:
+            self._emit_appearance(max(10, self._font_size - 1), self._panel_opacity)
+
+    def _on_font_inc(self) -> None:
+        if self._edit_mode:
+            self._emit_appearance(min(28, self._font_size + 1), self._panel_opacity)
+
+    def _on_panel_dec(self) -> None:
+        if self._edit_mode:
+            self._emit_appearance(self._font_size, max(5, self._panel_opacity - 5))
+
+    def _on_panel_inc(self) -> None:
+        if self._edit_mode:
+            self._emit_appearance(self._font_size, min(100, self._panel_opacity + 5))
+
+    def _on_close_edit_mode(self) -> None:
+        self.set_edit_mode(False)
+        self.edit_mode_changed.emit(False)
+
+    def _emit_appearance(self, font_size: int, panel_opacity: int) -> None:
+        self.set_appearance(font_size, panel_opacity)
+        self.appearance_changed.emit(self._panel_name, self._font_size, self._panel_opacity)
+
+    def _sync_toolbar_state(self) -> None:
+        if hasattr(self, "_status_label"):
+            mode_text = "EDIT" if self._edit_mode else "PASS"
+            self._status_label.setText(f"{mode_text} F{self._font_size} P{self._panel_opacity}")
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        if self._edit_mode and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            if delta > 0:
+                self._on_font_inc()
+            elif delta < 0:
+                self._on_font_dec()
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    # ------------------------------------------------------------------
+    # Hit-testing / drag / resize
+    # ------------------------------------------------------------------
 
     def _hit_test_edge(self, pos: QPoint) -> int:
         edge = self._EDGE_NONE

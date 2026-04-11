@@ -15,6 +15,14 @@ _DEFAULT_PANEL_GEOMETRY: dict[str, dict[str, int]] = {
     "performance_panel": {"x": 0, "y": 0, "w": 300, "h": 110},
 }
 
+_DEFAULT_PANEL_APPEARANCE: dict[str, dict[str, int]] = {
+    "log_panel": {"font_size": 12, "opacity": 70},
+    "state_panel": {"font_size": 12, "opacity": 70},
+    "decision_panel": {"font_size": 12, "opacity": 70},
+    "timeline_panel": {"font_size": 12, "opacity": 70},
+    "performance_panel": {"font_size": 12, "opacity": 70},
+}
+
 _DEFAULT_PERFORMANCE_METRIC_ENABLED: dict[str, bool] = {
     "ocr_ms": True,
     "yolo_ms": True,
@@ -56,6 +64,7 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "input_poll_interval_ms": 50,
     "state_poll_interval_ms": 200,
     "panel_geometry": deepcopy(_DEFAULT_PANEL_GEOMETRY),
+    "panel_appearance": deepcopy(_DEFAULT_PANEL_APPEARANCE),
 }
 
 _OVERLAY_SCALAR_KEYS = {
@@ -124,6 +133,23 @@ class OverlayConfig(YamlConfig):
                 }
             )
         merged["panel_geometry"] = default_geometry
+
+        panel_appearance = merged.get("panel_appearance", {})
+        if not isinstance(panel_appearance, dict):
+            panel_appearance = {}
+        default_appearance = deepcopy(_DEFAULT_PANEL_APPEARANCE)
+        for panel_name, appearance in panel_appearance.items():
+            if panel_name not in default_appearance:
+                continue
+            if not isinstance(appearance, dict):
+                continue
+            default_appearance[panel_name].update(
+                {
+                    "font_size": int(appearance.get("font_size", default_appearance[panel_name]["font_size"])),
+                    "opacity": int(appearance.get("opacity", default_appearance[panel_name]["opacity"])),
+                }
+            )
+        merged["panel_appearance"] = default_appearance
 
         metric_map = merged.get("performance_metric_enabled_map", {})
         if not isinstance(metric_map, dict):
@@ -465,3 +491,23 @@ class OverlayConfig(YamlConfig):
 
     def reset_panel_geometry(self) -> None:
         self._update_overlay_data("panel_geometry", deepcopy(_DEFAULT_PANEL_GEOMETRY))
+
+    def get_panel_appearance(self, panel_name: str) -> dict[str, int]:
+        appearance = self._overlay_data()["panel_appearance"].get(panel_name, {})
+        defaults = _DEFAULT_PANEL_APPEARANCE.get(panel_name, {"font_size": 12, "opacity": 70})
+        return {
+            "font_size": max(10, min(28, int(appearance.get("font_size", defaults["font_size"])))),
+            "opacity": max(5, min(100, int(appearance.get("opacity", defaults["opacity"])))),
+        }
+
+    def set_panel_appearance(self, panel_name: str, font_size: int | None = None, opacity: int | None = None) -> None:
+        if panel_name not in _DEFAULT_PANEL_APPEARANCE:
+            return
+        all_appearance = self._overlay_data()["panel_appearance"]
+        current = all_appearance.get(panel_name, {})
+        if font_size is not None:
+            current["font_size"] = max(10, min(28, int(font_size)))
+        if opacity is not None:
+            current["opacity"] = max(5, min(100, int(opacity)))
+        all_appearance[panel_name] = current
+        self._update_overlay_data("panel_appearance", all_appearance)

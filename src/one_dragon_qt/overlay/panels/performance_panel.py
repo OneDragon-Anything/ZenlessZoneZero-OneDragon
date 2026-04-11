@@ -4,9 +4,8 @@ import html
 import time
 
 from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
+from one_dragon_qt.overlay.panels.resizable_panel import ResizablePanel
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
-from one_dragon_qt.widgets.resizable_panel import ResizablePanel
-
 
 _CORE_METRIC_ORDER = [
     "ocr_ms",
@@ -21,17 +20,19 @@ class PerformancePanel(ResizablePanel):
     """Overlay performance panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Performance", min_width=220, min_height=90, parent=parent)
+        super().__init__(
+            title="Performance", panel_name="performance_panel",
+            min_width=220, min_height=90, parent=parent,
+        )
         self.set_title_visible(False)
         self._text_color = "#f2f2f2"
-        self._text_widget = OverlayTextWidget(self)
-        self.body_layout.addWidget(self._text_widget, 1)
         self._enabled_metric_map: dict[str, bool] = {}
-        self._text_widget.set_text_color(self._text_color)
 
-    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
-        self.set_panel_opacity(panel_opacity)
-        self._text_widget.set_appearance(font_size)
+        self._text_widget = OverlayTextWidget(self)
+        self._edit_text_widget = self._text_widget
+        self.body_layout.addWidget(self._text_widget, 1)
+        self._text_widget.set_text_color(self._text_color)
+        self._build_edit_toolbar()
 
     def set_text_color(self, color: str) -> None:
         self._text_color = str(color or "").strip() or "#f2f2f2"
@@ -41,6 +42,8 @@ class PerformancePanel(ResizablePanel):
         self._enabled_metric_map = dict(metric_map or {})
 
     def update_items(self, items: list[PerfMetricSample]) -> None:
+        if self._edit_mode:
+            return
         latest_by_metric: dict[str, PerfMetricSample] = {}
         for item in sorted(items, key=lambda x: x.created):
             latest_by_metric[item.metric] = item
