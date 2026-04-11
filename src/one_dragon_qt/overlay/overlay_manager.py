@@ -387,6 +387,10 @@ class OverlayManager(QObject):
             return
         self._warned_waiting_game_window = False
 
+        if not self._is_game_window_active() and not self.config.panel_edit_mode:
+            self._hide_overlay()
+            return
+
         overlay = self._ensure_overlay_window()
         game_qt_rect = self._to_qt_rect(game_rect)
         overlay.update_with_game_rect(game_qt_rect)
