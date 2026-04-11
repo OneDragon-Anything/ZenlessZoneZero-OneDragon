@@ -872,8 +872,8 @@ class LostVoidRunLevel(ZOperation):
         status = f'{self.previous_node.name}: {self.previous_node.status}'
         # 打开菜单保存现场
         result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
+        time.sleep(1)
         if result.is_success:
-            time.sleep(1)
             self.screenshot()
             return self.round_success(status)
         return self.round_retry(status + ' (打开tab页面失败)')
