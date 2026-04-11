@@ -62,7 +62,7 @@ class ChargePlanApp(ZApplication):
 
     @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
-    @node_from(from_name='电量不足')
+    @node_from(from_name='跳过或结束计划')
     @node_from(from_name='恢复电量', success=True)
     @node_from(from_name='恢复电量', success=False)
     @operation_node(name='打开菜单')
@@ -203,11 +203,13 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
-    @operation_node(name='电量不足')
-    def charge_not_enough(self) -> OperationRoundResult:
+    @operation_node(name='跳过或结束计划')
+    def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan
-        if self.config.skip_plan or is_agent_plan:
+        is_blocked_by_left_times = self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
+        if self.config.skip_plan or is_agent_plan or is_blocked_by_left_times:
             # 标记当前计划为跳过，继续尝试下一个
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
@@ -227,7 +229,7 @@ class ChargePlanApp(ZApplication):
         )
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
+    @node_from(from_name='跳过或结束计划', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', success=False)
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
@@ -236,3 +238,27 @@ class ChargePlanApp(ZApplication):
         op = BackToNormalWorld(self.ctx)
         op_result = op.execute()
         return self.round_by_op_result(op_result, status=f'剩余电量 {self.charge_power}')
+
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.run_context.start_running()
+    app = ChargePlanApp(ctx)
+    app.config.plan_list = [
+        ChargePlanItem(
+            tab_name='训练',
+            category_name='恶名狩猎',
+            mission_type_name='猎血清道夫',
+            level='默认等级',
+            auto_battle_config='全配队通用',
+            plan_times=1,
+            predefined_team_idx=-1,
+        )
+    ]
+    app.config.data['loop'] = False
+    app.execute()
+
+
+if __name__ == '__main__':
+    __debug()

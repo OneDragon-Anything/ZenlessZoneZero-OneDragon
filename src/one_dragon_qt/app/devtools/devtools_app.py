@@ -1,15 +1,17 @@
 import sys
 from typing import Optional
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from qfluentwidgets import NavigationItemPosition, setTheme, Theme
+from qfluentwidgets import Theme, setTheme
 
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.windows.app_window_base import AppWindowBase
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
-
-from one_dragon_qt.app.devtools.image_processing_interface import ImageProcessingInterface
+from one_dragon_qt.app.devtools.image_processing_interface import (
+    ImageProcessingInterface,
+)
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.windows.app_window_base import AppWindowBase
 
 
 class DevtoolsAppWindow(AppWindowBase):
@@ -44,7 +46,6 @@ class DevtoolsAppWindow(AppWindowBase):
 
         # 布局样式调整
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-        self.areaLayout.setContentsMargins(0, 32, 0, 0)
         self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
         # 配置样式

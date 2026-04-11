@@ -6,9 +6,8 @@ from pathlib import Path
 
 import requests
 from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics
+from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
-    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QSizePolicy,
     QSpacerItem,
@@ -19,56 +18,48 @@ from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
-    PrimaryPushButton,
-    SimpleCardWidget,
+    PillPushButton,
+    setCustomStyleSheet,
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
-from one_dragon_qt.utils.color_utils import ColorUtils
+from one_dragon_qt.utils.color_utils import get_foreground_color
+from one_dragon_qt.utils.layout_utils import apply_shadow
 from one_dragon_qt.widgets.banner import Banner
+from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.icon_button import IconButton
-from one_dragon_qt.widgets.notice_card import NoticeCardContainer
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.notice_card import NoticeCard
 from zzz_od.context.zzz_context import ZContext
 
 
-class ButtonGroup(SimpleCardWidget):
+class ButtonGroup(QWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
     def __init__(self, ctx: ZContext, parent=None):
-        super().__init__(parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.ctx = ctx
 
-        self.setBorderRadius(12)
-
-        self.setFixedSize(70, 190)
-
-        # 添加阴影效果
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(30)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 160))
-        self.setGraphicsEffect(shadow)
+        self.setFixedSize(70, 250)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.setSpacing(8)  # 增加按钮间距
-        layout.setContentsMargins(8, 8, 8, 8)  # 增加内边距
+        layout.setSpacing(24)
+        layout.setContentsMargins(8, 8, 8, 8)
 
-        # 存储按钮列表，用于自动提示演示
+        # 右侧按钮列表
         self.buttons = []
 
         # 创建主页按钮
         home_button = IconButton(
             FluentIcon.HOME.icon(color=QColor("#fff")),
-            tip_title="一条龙官网",
-            tip_content="🏠一条龙软件说明书>>",
+            tip_title="官网",
+            tip_content="使用说明 · 功能介绍",
             isTooltip=True,
         )
-        home_button.setIconSize(QSize(42, 42))
+        home_button.setIconSize(QSize(30, 30))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
         self.buttons.append(home_button)
@@ -76,11 +67,11 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 GitHub 按钮
         github_button = IconButton(
             FluentIcon.GITHUB.icon(color=QColor("#fff")),
-            tip_title="GitHub仓库",
-            tip_content="⭐点击收藏关注项目动态",
+            tip_title="GitHub",
+            tip_content="源码 · 反馈 · Star⭐",
             isTooltip=True,
         )
-        github_button.setIconSize(QSize(42, 42))
+        github_button.setIconSize(QSize(30, 30))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
         self.buttons.append(github_button)
@@ -88,11 +79,11 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 文档 按钮
         doc_button = IconButton(
             FluentIcon.LIBRARY.icon(color=QColor("#fff")),
-            tip_title="自助排障文档",
-            tip_content="📕遇到问题? 查看更详细文档教程",
+            tip_title="帮助文档",
+            tip_content="遇到问题？点这里找答案",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(42, 42))
+        doc_button.setIconSize(QSize(30, 30))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
         self.buttons.append(doc_button)
@@ -100,123 +91,15 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 频道 按钮
         chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
-            tip_title="官方 社群",
-            tip_content="🔥立刻点击加入火辣官方社区>>>>",
+            tip_title="官方频道",
+            tip_content="加入官方交流频道",
             isTooltip=True,
         )
-        chat_button.setIconSize(QSize(42, 42))
+        chat_button.setIconSize(QSize(30, 30))
         chat_button.clicked.connect(self.open_chat)
         layout.addWidget(chat_button)
         self.buttons.append(chat_button)
 
-        # 创建 官方店铺 按钮 (当然没有)
-        shop_button = IconButton(
-            FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
-            tip_title="🏅官方店铺???",
-            tip_content="💵限时劲爆特惠仅需0元点击马上加入会员>>",
-            isTooltip=True,
-        )
-        shop_button.setIconSize(QSize(42, 42))
-        shop_button.clicked.connect(self.open_sales)
-        layout.addWidget(shop_button)
-        self.buttons.append(shop_button)
-
-        # 初始化自动提示定时器
-        self.tooltip_timer = QTimer(self)
-        self.tooltip_timer.timeout.connect(self._show_next_tooltip)
-        self.tooltip_demo_active = False
-
-        # 未完工区域, 暂时隐藏
-        # # 添加一个可伸缩的空白区域
-        # layout.addStretch()
-
-        # # 创建 同步 按钮
-        # sync_button = IconButton(
-        #     FluentIcon.SYNC.icon(color=QColor("#fff")), tip_title="未完工", tip_content="开发中", isTooltip=True
-        # )
-        # sync_button.setIconSize(QSize(32, 32))
-        # layout.addWidget(sync_button)
-
-    def start_tooltip_demo(self):
-        """启动自动提示演示"""
-        if self.tooltip_demo_active:
-            return
-
-        self.tooltip_demo_active = True
-        # 临时禁用所有按钮的鼠标悬停事件处理
-        self._disable_buttons_hover()
-
-        # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
-        if not hasattr(self, "_show_timer"):
-            self._show_timer = QTimer(self)
-            self._show_timer.setSingleShot(True)
-            self._show_timer.timeout.connect(self._show_all_tooltips)
-        if not hasattr(self, "_hide_timer"):
-            self._hide_timer = QTimer(self)
-            self._hide_timer.setSingleShot(True)
-            self._hide_timer.timeout.connect(self._hide_all_tooltips)
-        self._show_timer.start(2000)
-
-    def _show_all_tooltips(self):
-        """同时显示所有按钮的提示"""
-        if not self.tooltip_demo_active:
-            return
-
-        # 同时显示所有按钮的提示（优先使用公开方法）
-        for btn in self.buttons:
-            show_fn = getattr(btn, "show_tooltip", None) or getattr(btn, "_show_tooltip", None)
-            if callable(show_fn):
-                show_fn()
-
-        # 3秒后自动隐藏所有提示（对象级计时器，便于 stop 时取消）
-        if hasattr(self, "_hide_timer"):
-            self._hide_timer.start(3000)
-
-    def _hide_all_tooltips(self):
-        """隐藏所有按钮的提示"""
-        for btn in self.buttons:
-            hide_fn = getattr(btn, "hide_tooltip", None) or getattr(btn, "_hide_tooltip", None)
-            if callable(hide_fn):
-                hide_fn()
-        self.tooltip_demo_active = False
-        # 重新启用所有按钮的鼠标悬停事件处理
-        self._enable_buttons_hover()
-
-    def stop_tooltip_demo(self):
-        """停止提示演示并立即隐藏所有提示"""
-        self.tooltip_demo_active = False
-        self.tooltip_timer.stop()
-        if hasattr(self, "_show_timer"):
-            self._show_timer.stop()
-        if hasattr(self, "_hide_timer"):
-            self._hide_timer.stop()
-        self._hide_all_tooltips()
-
-    def _disable_buttons_hover(self):
-        """临时禁用所有按钮的鼠标悬停事件处理"""
-        for btn in self.buttons:
-            if hasattr(btn, 'removeEventFilter'):
-                btn.removeEventFilter(btn)
-                btn._hover_disabled = True
-
-    def _enable_buttons_hover(self):
-        """重新启用所有按钮的鼠标悬停事件处理"""
-        for btn in self.buttons:
-            if hasattr(btn, '_hover_disabled') and btn._hover_disabled:
-                btn.installEventFilter(btn)
-                btn._hover_disabled = False
-
-    def _start_demo_timer(self):
-        """开始演示定时器 - 不再使用，保留以兼容"""
-        pass
-
-    def _show_next_tooltip(self):
-        """显示下一个按钮的提示 - 不再使用，保留以兼容"""
-        pass
-
-    def _normalBackgroundColor(self):
-        # 使用更鲜艳的渐变背景，增强视觉效果
-        return QColor(0, 0, 0, 140)  # 增加透明度使其更显眼
 
     def open_home(self):
         """打开主页链接"""
@@ -234,9 +117,6 @@ class ButtonGroup(SimpleCardWidget):
         """打开 腾讯文档 链接, 感谢历任薪王的付出 """
         QDesktopServices.openUrl(QUrl(self.ctx.project_config.doc_link))
 
-    def open_sales(self):
-        """打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl(self.ctx.project_config.qq_link))
 
 class BaseThread(QThread):
     """基础线程类，提供统一的 _is_running 管理"""
@@ -451,126 +331,102 @@ class BackgroundImageDownloader(BaseThread):
 
         return True
 
-class HomeInterface(VerticalScrollInterface):
+class HomeInterface(BaseInterface):
     """主页界面"""
 
     def __init__(self, ctx: ZContext, parent=None):
-        self.ctx: ZContext = ctx
-        self.main_window = parent
-
-        self._banner_widget = Banner(self.choose_banner_media())
-        self._banner_widget.set_percentage_size(0.8, 0.5)
-
-        v_layout = QVBoxLayout(self._banner_widget)
-        v_layout.setContentsMargins(20, 20, 20, 0)
-        v_layout.setSpacing(5)
-        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignJustify)
-
-        # 空白占位符
-        v_layout.addItem(QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
-
-        # 顶部部分 (按钮组)
-        h1_layout = QHBoxLayout()
-        h1_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # 左边留白区域
-        h1_layout.addStretch()
-
-        # 按钮组
-        self.button_group = ButtonGroup(self.ctx)
-        self.button_group.setMaximumHeight(320)
-        h1_layout.addWidget(self.button_group)
-
-        # 空白占位符
-        h1_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
-
-        # 将顶部水平布局添加到垂直布局
-        v_layout.addLayout(h1_layout)
-
-        # 中间留白区域
-        v_layout.addItem(QSpacerItem(10, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
-        v_layout.addStretch()
-
-        # 底部部分 (公告卡片 + 启动按钮)
-        bottom_bar = QWidget()
-        h2_layout = QHBoxLayout(bottom_bar)
-        h2_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
-
-        h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
-
-        # 公告卡片
-        self.notice_container = NoticeCardContainer(self.ctx.project_config.notice_url)
-        notice_wrap = QWidget()
-        self._notice_wrap_layout = QVBoxLayout(notice_wrap)
-        self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
-        self._notice_wrap_layout.addWidget(self.notice_container)
-        h2_layout.addWidget(notice_wrap)
-
-        h2_layout.addStretch()
-
-        # 启动游戏按钮布局
-        self.start_button = PrimaryPushButton(text="启动一条龙🚀")
-        self.start_button.setObjectName("start_button")
-        self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        # 动态计算宽度：文本宽度 + 左右内边距（约 48px）
-        fm = QFontMetrics(self.start_button.font())
-        text_width = fm.horizontalAdvance(self.start_button.text())
-        self.start_button.setFixedSize(max(180, text_width + 48), 48)
-        self.start_button.clicked.connect(self._on_start_game)
-
-        # 按钮阴影
-        shadow = QGraphicsDropShadowEffect(self.start_button)
-        shadow.setBlurRadius(24)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 120))
-        self.start_button.setGraphicsEffect(shadow)
-
-        # @A-nony-mous 2025-08-15T03:50:00+01:00
-        # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
-        # 核心是阴影+到底部margin的高度=20px
-
-        # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
-        shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
-        shadow_down_extent = min(20, shadow_down_extent)
-        # 20px = 阴影高度 + 阴影到底部的高度 ⇒ 按钮容器底边距 = 阴影高度
-
-        # 与按钮对齐：提升公告卡片相同的底边距
-
-        if hasattr(self, '_notice_wrap_layout'):
-            self._notice_wrap_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
-
-        # 按钮容器，整体距离底部20px（包含阴影）
-        button_container = QWidget()
-        button_v_layout = QVBoxLayout(button_container)
-        button_v_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
-        button_v_layout.addStretch()
-        button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
-
-        h2_layout.addWidget(button_container)
-
-        # 将底部容器添加到主垂直布局
-        v_layout.addWidget(bottom_bar)
-
         # 初始化父类
-        super().__init__(
-            parent=parent,
-            content_widget=self._banner_widget,
+        BaseInterface.__init__(
+            self,
             object_name="home_interface",
             nav_text_cn="仪表盘",
             nav_icon=FluentIcon.HOME,
+            parent=parent,
         )
-
-        QTimer.singleShot(0, self._update_start_button_style_from_banner)
-
-        self.ctx = ctx
-        self._init_check_runners()
+        self.ctx: ZContext = ctx
+        self.main_window = parent
+        self._saved_area_margins = None
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
+        self._last_applied_theme_color: tuple[int, int, int] | None = None
 
         # 记录上次自动检查更新的时间
         self._last_auto_check_time = 0
         self._auto_check_interval = 300  # 5分钟冷却时间
+
+        self._init_check_runners()
+        self._init_ui()
+
+    def _init_ui(self) -> None:
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._banner_widget = Banner(self.choose_banner_media())
+        main_layout.addWidget(self._banner_widget)
+
+        v_layout = QVBoxLayout(self._banner_widget)
+        # 边缘距离由子布局控制，避免与子布局叠加导致超过 16px
+        v_layout.setContentsMargins(0, 0, 0, 0)
+        v_layout.setSpacing(5)
+        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignJustify)
+
+        # 顶部留白 64px
+        v_layout.addItem(QSpacerItem(10, 64, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+
+        # 底部区域 (公告卡片 + 启动按钮 + 按钮组)
+        bottom_bar = QWidget()
+        bottom_bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        h2_layout = QHBoxLayout(bottom_bar)
+
+        h2_layout.setContentsMargins(32, 32, 0, 32)
+
+        # 公告卡片
+        self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
+        apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
+        h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        h2_layout.addStretch()
+
+        # 启动游戏按钮布局
+        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
+        self.start_button.setObjectName("start_button")
+        self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
+        self.start_button.setFixedHeight(48)
+        self.start_button.setMinimumWidth(int(self.start_button.sizeHint().width() * 1.1))  # 加宽10%
+        self.start_button.clicked.connect(self._on_start_game)
+        apply_shadow(self.start_button, blur=24, offset_x=0, offset_y=6, alpha=140)
+
+        # 设置图标和文本之间的间距
+        if self.start_button.layout():
+            self.start_button.layout().setSpacing(12)
+
+        # 保存黑色和黄色图标
+        self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#000000"))
+        self._yellow_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#FFDB29"))
+
+        # 连接悬停事件
+        self.start_button.enterEvent = self._on_button_enter
+        self.start_button.leaveEvent = self._on_button_leave
+
+        # 添加启动按钮到布局
+        h2_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        # 按钮组
+        self.button_group = ButtonGroup(self.ctx)
+        self.button_group.setMaximumHeight(320)
+        self._apply_button_group_shadows()
+        h2_layout.addWidget(self.button_group, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        # 将底部容器添加到主垂直布局
+        v_layout.addWidget(bottom_bar)
+
+        QTimer.singleShot(0, self._update_start_button_style_from_banner)
+
+    def _apply_button_group_shadows(self) -> None:
+        """给首页右侧悬浮图标加硬阴影，增强在复杂背景上的辨识度。"""
+        for button in self.button_group.buttons:
+            apply_shadow(button)
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -651,6 +507,11 @@ class HomeInterface(VerticalScrollInterface):
             Qt.ConnectionType.BlockingQueuedConnection
         )
 
+    def showEvent(self, event) -> None:
+        """首次显示首页时立即应用标题栏样式，避免需要切页后才生效。"""
+        QWidget.showEvent(self, event)
+        self._set_title_bar_home_mode(True)
+
     def _on_dynamic_background_download_start(self) -> None:
         """在后台下载新的视频前释放当前播放器占用"""
         if not self._banner_widget:
@@ -665,8 +526,16 @@ class HomeInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
+
         if self._banner_widget:
             self._banner_widget.resume_media()
+
+        # 设置顶部边距为0，让海报覆盖标题栏；同时切换标题栏首页模式
+        if self.main_window:
+            if self._saved_area_margins is None:
+                self._saved_area_margins = self.main_window.areaLayout.contentsMargins()
+            self.main_window.areaLayout.setContentsMargins(0, 0, 0, 0)
+            self._set_title_bar_home_mode(True)
 
         # 检查是否满足自动检查的冷却时间
         current_time = time.time()
@@ -703,11 +572,15 @@ class HomeInterface(VerticalScrollInterface):
         # 初始化主题色，避免navbar颜色闪烁
         self._update_start_button_style_from_banner()
 
-        # 启动导航栏按钮自动提示演示
-        self.button_group.start_tooltip_demo()
+    def on_interface_leave(self) -> None:
+        """视觉切换前恢复 margin 和标题栏，避免新页面闪烁旧样式。"""
+        if self.main_window and self._saved_area_margins is not None:
+            self.main_window.areaLayout.setContentsMargins(self._saved_area_margins)
+            self._saved_area_margins = None
+            self._set_title_bar_home_mode(False)
 
     def on_interface_hidden(self) -> None:
-        """界面隐藏时的处理"""
+        """界面隐藏时的清理工作"""
         super().on_interface_hidden()
         if self._banner_widget:
             self._banner_widget.pause_media()
@@ -719,9 +592,6 @@ class HomeInterface(VerticalScrollInterface):
             self._static_background_downloader.stop()
         if self._dynamic_background_downloader.isRunning():
             self._dynamic_background_downloader.stop()
-
-        # 立即停止并隐藏所有提示
-        self.button_group.stop_tooltip_demo()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -739,16 +609,19 @@ class HomeInterface(VerticalScrollInterface):
             self._show_info_bar("有新启动器啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
-        """显示信息条"""
-        InfoBar.success(
+        """显示信息条（手动定位，避免标题栏遮挡）"""
+        bar = InfoBar.success(
             title=title,
             content=content,
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
+            position=InfoBarPosition.NONE,
             duration=duration,
             parent=self,
-        ).setCustomBackgroundColor("white", "#202020")
+        )
+        bar.setCustomBackgroundColor("white", "#202020")
+        bar.move(self.width() - bar.width() - 24, 48)
+        bar.show()
 
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
@@ -756,6 +629,18 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx.signal.start_onedragon = True
         one_dragon_interface = self.main_window.stackedWidget.widget(2)
         self.main_window.switchTo(one_dragon_interface)
+
+    def _on_button_enter(self, event):
+        """按钮悬停事件"""
+        self.start_button.setIcon(self._yellow_icon)
+        # 调用父类的 enterEvent
+        PillPushButton.enterEvent(self.start_button, event)
+
+    def _on_button_leave(self, event):
+        """按钮离开悬停事件"""
+        self.start_button.setIcon(self._black_icon)
+        # 调用父类的 leaveEvent
+        PillPushButton.leaveEvent(self.start_button, event)
 
     def reload_banner(self, show_notification: bool = False) -> None:
         """
@@ -768,10 +653,7 @@ class HomeInterface(VerticalScrollInterface):
             return
 
         try:
-            # 强制清空主题色缓存，确保重新提取
-            self._clear_theme_color_cache()
-
-            # 更新背景图片
+            # 更新背景图片（Banner.set_media 会自动重新提取主题色）
             self._banner_widget.set_media(self.choose_banner_media())
             # 依据背景重新计算按钮配色
             self._update_start_button_style_from_banner()
@@ -816,138 +698,61 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        # 确保按钮存在
         if not hasattr(self, 'start_button'):
-            log.debug("start_button 不存在，跳过样式更新")
             return
 
-        # 检查是否能使用缓存
-        current_banner_path = self.choose_banner_media()
-        if self._can_use_cached_theme_color(current_banner_path):
-            log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
-            return
-
-        # 获取主题色
         theme_color = self._get_theme_color()
+
+        # 跳过未变化的主题色
+        if theme_color == self._last_applied_theme_color:
+            return
+        self._last_applied_theme_color = theme_color
+
         self.ctx.custom_config.theme_color = theme_color
-
-        # 更新全局主题色
         ThemeManager.set_theme_color(theme_color)
-
-        # 应用按钮样式
         self._apply_button_style(theme_color)
 
+    def _set_title_bar_home_mode(self, enable: bool) -> None:
+        """切换标题栏首页模式。启用时额外检查当前页是否为首页，避免误伤其他页面。"""
+        if not self.main_window or not hasattr(self.main_window, "titleBar"):
+            return
+        if enable:
+            if not hasattr(self.main_window, "stackedWidget"):
+                return
+            if self.main_window.stackedWidget.currentWidget() is not self:
+                return
+        self.main_window.titleBar.set_home_mode(enable)
+
     def _get_theme_color(self) -> tuple[int, int, int]:
-        """获取主题色，优先使用缓存，否则从图片提取"""
-        # 如果是自定义模式，直接返回自定义颜色
+        """获取主题色，优先使用自定义颜色，否则从 Banner 读取"""
         if self.ctx.custom_config.custom_theme_color:
             return self.ctx.custom_config.theme_color
 
-        current_banner_path = self.choose_banner_media()
-
-        # 检查是否能使用缓存的主题色
-        if self._can_use_cached_theme_color(current_banner_path):
-            lr, lg, lb = self.ctx.custom_config.theme_color
-            log.debug(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
-            return lr, lg, lb
-
-        # 背景图片改变了，需要重新提取颜色
-        theme_color = self._extract_color_from_image()
-
-        # 更新缓存
-        self._update_theme_color_cache(current_banner_path)
-
-        return theme_color
-
-    def _extract_color_from_image(self) -> tuple[int, int, int]:
-        """从背景图片提取主题色"""
-        image = self._banner_widget.banner_image
-        log.debug(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
-
-        if image is None or image.isNull():
-            log.debug("使用默认蓝色主题")
-            return 64, 158, 255  # 默认蓝色
-
-        # 取右下角区域的平均色，代表按钮附近背景
-        w, h = image.width(), image.height()
-        x0 = int(w * 0.65)
-        y0 = int(h * 0.65)
-        x1, y1 = w, h
-
-        # 提取区域平均颜色
-        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
-
-        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
-            log.debug("无法从图片获取颜色，使用默认蓝色")
-            return r, g, b
-
-        # 处理提取的颜色
-        return self._process_extracted_color(r, g, b)
-
-    def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
-        """处理从图片提取的颜色，增强鲜艳度和亮度，并限制在舒适的范围内"""
-        # 增强颜色鲜艳度
-        lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
-
-        # 如果太暗则适当提亮
-        lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
-
-        # 限制颜色强度，避免过于鲜艳，保持人眼舒适度
-        lr, lg, lb = ColorUtils.limit_color_intensity(lr, lg, lb)
-
-        return lr, lg, lb
+        return self._banner_widget.theme_color
 
     def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
         """应用样式到启动按钮"""
-        lr, lg, lb = theme_color
-        text_color = ColorUtils.get_text_color_for_background(lr, lg, lb)
+        r, g, b = theme_color
+        foreground = get_foreground_color(r, g, b)
+        theme_bg = f"rgb({r}, {g}, {b})"
+        hover_bg = foreground
 
-        # 本按钮局部样式：圆角与主页按钮组统一为12px，背景从图取色
-        radius = 12  # 与ButtonGroup保持一致的圆角
+        self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor(foreground))
+        self._yellow_icon = FluentIcon.PLAY_SOLID.icon(color=QColor(r, g, b))
+        self.start_button.setIcon(self._black_icon)
 
-        style_sheet = f"""
-        background-color: rgb({lr}, {lg}, {lb});
-        color: {text_color};
-        border-radius: {radius}px;
-        border: none;
-        font-weight: bold;
-        margin: 0px;
-        padding: 0px;
+        # 使用 setCustomStyleSheet 而不是 setStyleSheet，避免破坏按钮的内部布局
+        qss = f"""
+        PillPushButton#start_button {{
+            background-color: {theme_bg};
+            color: {foreground};
+            border-radius: 28px;
+            height: 48px;
+            min-height: 48px;
+        }}
+        PillPushButton#start_button:hover {{
+            background-color: {hover_bg};
+            color: {theme_bg};
+        }}
         """
-        self.start_button.setStyleSheet(style_sheet)
-
-    def _clear_theme_color_cache(self) -> None:
-        """清空主题色缓存"""
-        self.ctx.custom_config.theme_color_banner_path = ''
-        self.ctx.custom_config.theme_color_banner_mtime = 0.0
-
-    def _can_use_cached_theme_color(self, current_banner_path: str) -> bool:
-        """检查是否可以使用缓存的主题色"""
-        cached_path = self.ctx.custom_config.theme_color_banner_path
-        current_path = Path(current_banner_path)
-
-        if cached_path != current_banner_path or not current_path.exists():
-            return False
-
-        # 检查文件修改时间是否改变
-        try:
-            current_mtime = current_path.stat().st_mtime
-            cached_mtime = self.ctx.custom_config.theme_color_banner_mtime
-
-            if current_mtime != cached_mtime:
-                # 文件已被修改，不能使用缓存
-                return False
-
-        except OSError:
-            # 无法获取文件时间戳，为安全起见不使用缓存
-            return False
-
-        return True
-
-    def _update_theme_color_cache(self, banner_path: str) -> None:
-        """更新主题色缓存"""
-        self.ctx.custom_config.theme_color_banner_path = banner_path
-        try:
-            self.ctx.custom_config.theme_color_banner_mtime = Path(banner_path).stat().st_mtime
-        except OSError:
-            self.ctx.custom_config.theme_color_banner_mtime = 0.0
+        setCustomStyleSheet(self.start_button, qss, qss)

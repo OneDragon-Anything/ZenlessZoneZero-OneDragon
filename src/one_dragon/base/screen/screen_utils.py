@@ -238,6 +238,7 @@ def find_and_click_area(
     screen_name: str,
     area_name: str,
     crop_first: bool = True,
+    center_x: bool = False,
 ) -> OcrClickResultEnum:
     """
     在一个区域匹配成功后进行点击
@@ -248,6 +249,7 @@ def find_and_click_area(
         screen_name: 画面名称
         area_name: 区域名称
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        center_x: 模板区域点击时是否固定使用游戏中心点的 x 坐标
 
     Returns:
         OcrClickResultEnum: 点击结果
@@ -280,7 +282,11 @@ def find_and_click_area(
                                     debug_offset=(rect.x1, rect.y1))
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
-        if ctx.controller.click(mrl.max.center + rect.left_top, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
+
+        matched_center = mrl.max.center + rect.left_top
+        to_click = Point(ctx.controller.center_point.x, matched_center.y) if center_x else matched_center
+
+        if ctx.controller.click(to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
             return OcrClickResultEnum.OCR_CLICK_SUCCESS
         else:
             return OcrClickResultEnum.OCR_CLICK_FAIL

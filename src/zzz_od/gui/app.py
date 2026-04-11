@@ -11,7 +11,7 @@ try:
     from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
-    from one_dragon_qt.windows.app_window_base import AppWindowBase
+    from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
     from one_dragon_qt.windows.window import PhosTitleBar
     from zzz_od.context.zzz_context import ZContext
 
@@ -21,12 +21,14 @@ try:
     class CtxInitRunner(QThread):
         finished = Signal()
 
-        def __init__(self, ctx: ZContext, parent=None):
+        def __init__(self, ctx: ZContext, window: MainAppWindowBase, parent=None):
             super().__init__(parent)
             self.ctx = ctx
+            self._window = window
 
         def run(self):
             self.ctx.init()
+            self._window.on_ctx_ready()
             self.finished.emit()
 
 
@@ -45,7 +47,7 @@ try:
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
-    class AppWindow(AppWindowBase):
+    class AppWindow(MainAppWindowBase):
         titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
@@ -56,8 +58,9 @@ try:
             import time
             self._app_start_time = time.time()
 
-            AppWindowBase.__init__(
+            MainAppWindowBase.__init__(
                 self,
+                ctx=ctx,
                 win_title="%s %s"
                 % (
                     gt(ctx.project_config.project_name),
@@ -75,9 +78,6 @@ try:
             self._check_version_runner = CheckVersionRunner(self.ctx)
             self._check_version_runner.get.connect(self._update_version)
 
-            # 立即检查并应用已有的主题色，避免navbar颜色闪烁
-            self._apply_initial_theme_color()
-
             # 延迟发送应用启动事件，等待窗口完全显示
             self._launch_timer = QTimer()
             self._launch_timer.setSingleShot(True)
@@ -90,7 +90,7 @@ try:
 
         # 继承初始化函数
         def init_window(self):
-            self.resize(1095, 730)  # 3:2比例
+            self.resize(1140, 760)  # 3:2比例
 
             # 初始化位置
             screen = QApplication.primaryScreen()
@@ -106,7 +106,6 @@ try:
 
             # 布局样式调整
             self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-            self.areaLayout.setContentsMargins(0, 32, 0, 0)
             self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
             # 配置样式
@@ -117,30 +116,28 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
+            super().create_sub_interface()
 
             # 主页
             from zzz_od.gui.view.home.home_interface import HomeInterface
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
-            # 战斗助手
-            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
-            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
+            # 游戏助手
+            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
-            # 空洞
-            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
-            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
+            # 应用运行
+            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import ZStandaloneAppInterface
+            self.add_sub_interface(ZStandaloneAppInterface(self.ctx, parent=self))
 
-            # 锄大地
-            from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
-            self.add_sub_interface(WorldPatrolInterface(self.ctx, parent=self))
-
-            # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
-            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
+            # 画中画
+            from one_dragon_qt.widgets.pip_button import PipButton
+            self.pip_btn = PipButton(self.ctx, parent=self)
+            self.add_nav_widget(self.pip_btn)
 
             # 点赞
             from one_dragon_qt.view.like_interface import LikeInterface
@@ -246,13 +243,6 @@ try:
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 
-        def _apply_initial_theme_color(self):
-            """立即应用已有的主题色，避免navbar颜色闪烁"""
-            # 从配置文件加载主题色到theme_manager
-            from one_dragon_qt.services.theme_manager import ThemeManager
-            ThemeManager.load_from_config(self.ctx)
-            self.navigationInterface.update_all_buttons_theme_color(ThemeManager.get_current_color())
-
         def _after_app_launch(self):
             """异步处理应用启动后需要处理的事情"""
             self._check_version_runner.start()
@@ -293,6 +283,9 @@ try:
 
         def closeEvent(self, event):
             """窗口关闭事件"""
+            if hasattr(self, 'pip_btn') and self.pip_btn:
+                self.pip_btn.dispose()
+
             if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
                 self.overlay_manager.shutdown()
 
@@ -354,7 +347,7 @@ def main() -> None:
     w.activateWindow()
 
     # 加载配置
-    init_runner = CtxInitRunner(_ctx)
+    init_runner = CtxInitRunner(_ctx, w)
     init_runner.start()
 
     # 启动应用程序事件循环
