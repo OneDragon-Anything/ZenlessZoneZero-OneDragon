@@ -255,17 +255,13 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             tmp = ocr_utils.merge_ocr_result_to_single_line(ocr_map, join_space=False)
             return tmp
 
-    def run_ocr(self, image: MatLike, threshold: float = 0,
-                merge_line_distance: float = -1,
-                overlay_offset_x: int = 0,
-                overlay_offset_y: int = 0) -> dict[str, MatchResultList]:
+    def run_ocr(self, image: MatLike, threshold: float | None = 0,
+                merge_line_distance: float = -1) -> dict[str, MatchResultList]:
         """
         对图片进行OCR 返回所有匹配结果
         :param image: 图片
         :param threshold: 匹配阈值
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
-        :param overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
-        :param overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
         :return: {key_word: []}
         """
         if image is None:
@@ -314,7 +310,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                                                                      merge_line_distance=merge_line_distance)
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision(result_map, overlay_offset_x, overlay_offset_y)
+        self._emit_overlay_vision(result_map)
         self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
@@ -357,8 +353,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             ignore_case: bool = True,
             lcs_percent: float = -1,
             merge_line_distance: float = -1,
-            overlay_offset_x: int = 0,
-            overlay_offset_y: int = 0,
     ) -> dict[str, MatchResultList]:
         """
         在图片中查找关键词 返回所有词对应的位置
@@ -369,13 +363,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param ignore_case: 忽略大小写
         :param lcs_percent: 最长公共子序列长度百分比 -1代表不使用 same_word=True时不生效
         :param merge_line_distance: 多少行距内合并结果 -1为不合并
-        :param overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
-        :param overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
         :return: {key_word: []}
         """
-        all_match_result: dict = self.run_ocr(image, threshold, merge_line_distance=merge_line_distance,
-                                              overlay_offset_x=overlay_offset_x,
-                                              overlay_offset_y=overlay_offset_y)
+        all_match_result: dict = self.run_ocr(image, threshold, merge_line_distance=merge_line_distance)
         match_key = set()
         for k in all_match_result.keys():
             for w in words:
@@ -403,8 +393,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             image: MatLike,
             threshold: float = 0,
             merge_line_distance: float = -1,
-            overlay_offset_x: int = 0,
-            overlay_offset_y: int = 0,
     ) -> list[OcrMatchResult]:
         """
         对图片进行OCR 返回所有识别结果
@@ -413,8 +401,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             image: 图片
             threshold: 匹配阈值
             merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
-            overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
-            overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
 
         Returns:
             ocr_result_list: 识别结果列表
@@ -452,11 +438,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             pass  # TODO
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision_from_ocr_results(
-            ocr_result_list,
-            overlay_offset_x=overlay_offset_x,
-            overlay_offset_y=overlay_offset_y,
-        )
+        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
         self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
 
         if log.isEnabledFor(DEBUG):
@@ -467,8 +449,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     def _emit_overlay_vision(
         self,
         result_map: dict[str, MatchResultList],
-        overlay_offset_x: int = 0,
-        overlay_offset_y: int = 0,
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
         if bus is None or not result_map:
@@ -479,6 +459,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         except Exception:
             return
 
+        ox, oy = bus.crop_offset
         pushed = 0
         max_items = 60
         for text, match_list in result_map.items():
@@ -494,10 +475,10 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                     VisionDrawItem(
                         source="ocr",
                         label=label,
-                        x1=match.x + overlay_offset_x,
-                        y1=match.y + overlay_offset_y,
-                        x2=match.x + match.w + overlay_offset_x,
-                        y2=match.y + match.h + overlay_offset_y,
+                        x1=match.x + ox,
+                        y1=match.y + oy,
+                        x2=match.x + match.w + ox,
+                        y2=match.y + match.h + oy,
                         score=match.confidence,
                         color="#ff6ac1",
                         ttl_seconds=1.4,
@@ -508,8 +489,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     def _emit_overlay_vision_from_ocr_results(
         self,
         ocr_results: list[OcrMatchResult],
-        overlay_offset_x: int = 0,
-        overlay_offset_y: int = 0,
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
         if bus is None or not ocr_results:
@@ -520,6 +499,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         except Exception:
             return
 
+        offset_x, offset_y = bus.crop_offset
         for i, result in enumerate(ocr_results[:60]):
             label = str(result.data or "").strip()
             if len(label) > 32:
@@ -528,10 +508,10 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 VisionDrawItem(
                     source="ocr",
                     label=label,
-                    x1=result.x + overlay_offset_x,
-                    y1=result.y + overlay_offset_y,
-                    x2=result.x + result.w + overlay_offset_x,
-                    y2=result.y + result.h + overlay_offset_y,
+                    x1=result.x + offset_x,
+                    y1=result.y + offset_y,
+                    x2=result.x + result.w + offset_x,
+                    y2=result.y + result.h + offset_y,
                     score=result.confidence,
                     color="#ff6ac1",
                     ttl_seconds=1.4,

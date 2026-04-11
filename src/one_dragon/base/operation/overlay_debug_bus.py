@@ -89,6 +89,17 @@ class OverlayDebugBus:
         self._decision_items: deque[DecisionTraceItem] = deque(maxlen=max_decision_items)
         self._timeline_items: deque[TimelineItem] = deque(maxlen=max_timeline_items)
         self._performance_items: deque[PerfMetricSample] = deque(maxlen=max_perf_items)
+        self._thread_local = threading.local()
+
+    def set_crop_offset(self, x: int, y: int) -> None:
+        self._thread_local.crop_offset = (x, y)
+
+    def reset_crop_offset(self) -> None:
+        self._thread_local.crop_offset = (0, 0)
+
+    @property
+    def crop_offset(self) -> tuple[int, int]:
+        return getattr(self._thread_local, 'crop_offset', (0, 0))
 
     def add_vision(self, item: VisionDrawItem) -> None:
         item.created = _normalize_created(item.created)

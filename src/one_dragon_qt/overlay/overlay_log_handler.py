@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class OverlayLogHandler(logging.Handler):
     """Bridge logging records to ContextEventBus for overlay rendering."""
 
-    def __init__(self, ctx: "OneDragonContext"):
+    def __init__(self, ctx: OneDragonContext):
         super().__init__()
         self.ctx = ctx
 
@@ -37,4 +37,3 @@ class OverlayLogHandler(logging.Handler):
         except Exception:
             # Never raise from a logging handler.
             return
-

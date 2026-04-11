@@ -1,8 +1,8 @@
 import cv2
 from cv2.typing import MatLike
-from typing import Optional
 
-from one_dragon.base.matcher.match_result import MatchResultList, MatchResult
+from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import cv2_utils
@@ -20,11 +20,10 @@ class TemplateMatcher:
                        template_id: str,
                        template_type: str = 'raw',
                        threshold: float = 0.5,
-                       mask: MatLike = None,
+                       mask: MatLike | None = None,
                        ignore_template_mask: bool = False,
                        only_best: bool = True,
-                       ignore_inf: bool = True,
-                       debug_offset: tuple[int, int] | None = None) -> MatchResultList:
+                       ignore_inf: bool = True) -> MatchResultList:
         """
         在原图中 匹配模板 如果模板图中有掩码图 会自动使用
         :param source: 原图
@@ -40,25 +39,25 @@ class TemplateMatcher:
         """
         template: TemplateInfo = self.template_loader.get_template(template_sub_dir, template_id)
         if template is None:
-            log.error('未加载模板 %s' % template_id)
+            log.error(f'未加载模板 {template_id}')
             return MatchResultList()
 
-        mask_usage: Optional[MatLike] = None
+        mask_usage: MatLike | None = None
         if not ignore_template_mask:
             mask_usage = cv2.bitwise_or(mask_usage, template.mask) if mask_usage is not None else template.mask
         if mask is not None:
             mask_usage = cv2.bitwise_or(mask_usage, mask) if mask_usage is not None else mask
         result = cv2_utils.match_template(source, template.get_image(template_type), threshold, mask=mask_usage,
                                           only_best=only_best, ignore_inf=ignore_inf)
-        self._emit_overlay_vision(template_sub_dir, template_id, result, debug_offset)
+        self._emit_overlay_vision(template_sub_dir, template_id, result)
         return result
 
     def match_one_by_feature(self, source: MatLike,
                              template_sub_dir: str,
                              template_id: str,
-                             source_mask: MatLike = None,
+                             source_mask: MatLike | None = None,
                              knn_distance_percent: float = 0.7
-                             ) -> Optional[MatchResult]:
+                             ) -> MatchResult | None:
         """
         使用特征匹配找到模板的位置
         @param source:
@@ -87,11 +86,10 @@ class TemplateMatcher:
                               template_id: str,
                               threshold: float = 0.5,
                               binary_threshold: int = 127,
-                              mask: MatLike = None,
+                              mask: MatLike | None = None,
                               ignore_template_mask: bool = False,
                               only_best: bool = True,
-                              ignore_inf: bool = True,
-                              debug_offset: tuple[int, int] | None = None) -> MatchResultList:
+                              ignore_inf: bool = True) -> MatchResultList:
         """
         使用二值化图像进行模板匹配
         :param source: 原图
@@ -107,7 +105,7 @@ class TemplateMatcher:
         """
         template: TemplateInfo = self.template_loader.get_template(template_sub_dir, template_id)
         if template is None:
-            log.error('未加载模板 %s' % template_id)
+            log.error(f'未加载模板 {template_id}')
             return MatchResultList()
 
         # 对原图和模板都进行二值化处理
@@ -115,7 +113,7 @@ class TemplateMatcher:
         template_binary = cv2_utils.to_binary(template.raw, threshold=binary_threshold)
 
         # 处理掩码
-        mask_usage: Optional[MatLike] = None
+        mask_usage: MatLike | None = None
         if not ignore_template_mask and template.mask is not None:
             mask_usage = template.mask
         if mask is not None:
@@ -130,7 +128,61 @@ class TemplateMatcher:
             only_best=only_best,
             ignore_inf=ignore_inf
         )
-        self._emit_overlay_vision(template_sub_dir, template_id, result, debug_offset)
+        self._emit_overlay_vision(template_sub_dir, template_id, result)
+        return result
+
+    def crop_and_match_template(
+            self,
+            source: MatLike,
+            rect: Rect,
+            template_sub_dir: str,
+            template_id: str,
+            **kwargs,
+    ) -> MatchResultList:
+        """
+        裁剪图片后进行模板匹配 自动处理 overlay 坐标偏移
+        :param source: 原图
+        :param rect: 裁剪区域
+        :param template_sub_dir: 模板的子文件夹
+        :param template_id: 模板id
+        :param kwargs: 传递给 match_template 的额外参数
+        """
+        part = cv2_utils.crop_image_only(source, rect)
+        bus = getattr(self, 'overlay_debug_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(rect.x1, rect.y1)
+        try:
+            result = self.match_template(part, template_sub_dir, template_id, **kwargs)
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
+        return result
+
+    def crop_and_match_template_binary(
+            self,
+            source: MatLike,
+            rect: Rect,
+            template_sub_dir: str,
+            template_id: str,
+            **kwargs,
+    ) -> MatchResultList:
+        """
+        裁剪图片后进行二值化模板匹配 自动处理 overlay 坐标偏移
+        :param source: 原图
+        :param rect: 裁剪区域
+        :param template_sub_dir: 模板的子文件夹
+        :param template_id: 模板id
+        :param kwargs: 传递给 match_template_binary 的额外参数
+        """
+        part = cv2_utils.crop_image_only(source, rect)
+        bus = getattr(self, 'overlay_debug_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(rect.x1, rect.y1)
+        try:
+            result = self.match_template_binary(part, template_sub_dir, template_id, **kwargs)
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
         return result
 
     def _emit_overlay_vision(
@@ -138,7 +190,6 @@ class TemplateMatcher:
         template_sub_dir: str,
         template_id: str,
         result: MatchResultList,
-        debug_offset: tuple[int, int] | None = None,
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
         if bus is None or result is None or len(result.arr) == 0:
@@ -149,8 +200,7 @@ class TemplateMatcher:
         except Exception:
             return
 
-        offset_x = int(debug_offset[0]) if debug_offset is not None else 0
-        offset_y = int(debug_offset[1]) if debug_offset is not None else 0
+        offset_x, offset_y = bus.crop_offset
         for match in result.arr[:20]:
             bus.add_vision(
                 VisionDrawItem(
