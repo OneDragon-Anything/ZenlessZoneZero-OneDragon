@@ -634,11 +634,66 @@ class OverlayManager(QObject):
             "template": self.config.vision_template_enabled,
             "cv": self.config.vision_cv_enabled,
         }
-        return [
+        filtered_items = [
             item
             for item in items
             if source_enabled.get(getattr(item, "source", ""), True)
         ]
+        return self._dedupe_yolo_vision_items(filtered_items)
+
+    def _dedupe_yolo_vision_items(self, items):
+        kept_items = []
+        latest_yolo_items = []
+
+        for item in reversed(items):
+            if getattr(item, "source", "") != "yolo":
+                kept_items.append(item)
+                continue
+            if self._matches_recent_yolo_item(item, latest_yolo_items):
+                continue
+            latest_yolo_items.append(item)
+            kept_items.append(item)
+
+        kept_items.reverse()
+        return kept_items
+
+    def _matches_recent_yolo_item(self, item, recent_items) -> bool:
+        item_label = str(getattr(item, "label", "") or "")
+        for recent_item in recent_items:
+            if item_label != str(getattr(recent_item, "label", "") or ""):
+                continue
+            if self._vision_item_iou(item, recent_item) >= 0.3:
+                return True
+        return False
+
+    @staticmethod
+    def _vision_item_iou(a, b) -> float:
+        ax1 = float(getattr(a, "x1", 0))
+        ay1 = float(getattr(a, "y1", 0))
+        ax2 = float(getattr(a, "x2", 0))
+        ay2 = float(getattr(a, "y2", 0))
+        bx1 = float(getattr(b, "x1", 0))
+        by1 = float(getattr(b, "y1", 0))
+        bx2 = float(getattr(b, "x2", 0))
+        by2 = float(getattr(b, "y2", 0))
+
+        inter_x1 = max(ax1, bx1)
+        inter_y1 = max(ay1, by1)
+        inter_x2 = min(ax2, bx2)
+        inter_y2 = min(ay2, by2)
+        inter_w = max(0.0, inter_x2 - inter_x1)
+        inter_h = max(0.0, inter_y2 - inter_y1)
+        inter_area = inter_w * inter_h
+        if inter_area <= 0:
+            return 0.0
+
+        a_area = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+        b_area = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+        union_area = a_area + b_area - inter_area
+        if union_area <= 0:
+            return 0.0
+
+        return inter_area / union_area
 
     def _collect_state_items(self) -> list[tuple[str, str]]:
         run_ctx = self.ctx.run_context
