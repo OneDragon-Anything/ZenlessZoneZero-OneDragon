@@ -198,7 +198,7 @@ class CombatSimulation(ZOperation):
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         digit = str_utils.get_positive_digits(ocr_result, None)
         max_card_count = 5
-        if digit is None or digit < 0 or digit > max_card_count:
+        if digit is None or digit > max_card_count:
             return self.round_success(status="未识别到选择数量, 进行基本操作")
 
         plan_card_num = int(self.plan.card_num)
