@@ -204,10 +204,8 @@ class CombatSimulation(ZOperation):
             return self.round_success(status="选择数量等于计划设置")
         elif digit < int(self.plan.card_num):
             return self.round_success(status="选择数量小于计划设置", data=int(self.plan.card_num) - digit)
-        elif digit > int(self.plan.card_num):
+        else:
             return self.round_success(status="选择数量大于计划设置", data=digit - int(self.plan.card_num))
-
-        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='识别已选卡片数量', status='未识别到选择数量, 进行基本操作')
     @operation_node(name='选择数量')
