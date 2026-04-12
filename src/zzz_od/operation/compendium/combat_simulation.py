@@ -187,12 +187,31 @@ class CombatSimulation(ZOperation):
                                             success_wait=1, retry_wait=1)
 
     @node_from(from_name='进入选择数量')
-    @operation_node(name='选择数量')
-    def choose_card_num(self) -> OperationRoundResult:
+    @operation_node(name='识别已选卡片数量')
+    def identify_selected_card_count(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '保存方案')
         if not result.is_success:
             return self.round_retry(result.status, wait=1)
 
+        area = self.ctx.screen_loader.get_area('实战模拟室', '内层卡片已选择数量')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+        digit = str_utils.get_positive_digits(ocr_result, None)
+        if digit is None:
+            return self.round_success(status="未识别到选择数量, 进行基本操作")
+
+        if digit == int(self.plan.card_num):
+            return self.round_success(status="选择数量等于计划设置")
+        elif digit < int(self.plan.card_num):
+            return self.round_success(status="选择数量小于计划设置", data=int(self.plan.card_num) - digit)
+        elif digit > int(self.plan.card_num):
+            return self.round_success(status="选择数量大于计划设置", data=digit - int(self.plan.card_num))
+
+        return self.round_retry(result.status, wait=1)
+
+    @node_from(from_name='识别已选卡片数量', status='未识别到选择数量, 进行基本操作')
+    @operation_node(name='选择数量')
+    def choose_card_num(self) -> OperationRoundResult:
         for i in range(1, 6):
             log.info('开始取消已选择数量 %d', i)
             self.round_by_click_area('实战模拟室', '内层-已选择卡片1')
@@ -205,8 +224,38 @@ class CombatSimulation(ZOperation):
         return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '保存方案',
                                                  success_wait=2, retry_wait=1)
 
+    @node_from(from_name='识别已选卡片数量', status='选择数量等于计划设置')
+    @operation_node(name='关闭卡片选择界面')
+    def close_card_selection_screen(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回')
+
+    @node_from(from_name='识别已选卡片数量', status='选择数量小于计划设置')
+    @operation_node(name='增加卡片至计划数量')
+    def add_more_cards_to_meet_plan(self) -> OperationRoundResult:
+        for i in range(1, self.previous_node.data + 1):
+            log.info('开始选择数量 %d', i)
+            self.round_by_click_area('实战模拟室', '内层-卡片1')
+            time.sleep(0.5)
+
+        return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '保存方案',
+                                                 success_wait=2, retry_wait=1)
+
+    @node_from(from_name='识别已选卡片数量', status='选择数量大于计划设置')
+    @operation_node(name='移除多余卡片至计划数量')
+    def remove_extra_cards_to_meet_plan(self) -> OperationRoundResult:
+        for i in range(1, self.previous_node.data + 1):
+            log.info('开始取消已选择数量 %d', i)
+            self.round_by_click_area('实战模拟室', '内层-已选择卡片1')
+            time.sleep(0.5)
+
+        return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '保存方案',
+                                                 success_wait=2, retry_wait=1)
+
     @node_from(from_name='进入选择数量', status=CardNumEnum.DEFAULT.value.value)
     @node_from(from_name='选择数量')
+    @node_from(from_name='关闭卡片选择界面')
+    @node_from(from_name='增加卡片至计划数量')
+    @node_from(from_name='移除多余卡片至计划数量')
     @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
