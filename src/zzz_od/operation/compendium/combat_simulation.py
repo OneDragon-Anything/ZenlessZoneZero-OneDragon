@@ -197,15 +197,17 @@ class CombatSimulation(ZOperation):
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         digit = str_utils.get_positive_digits(ocr_result, None)
-        if digit is None:
+        max_card_count = 5
+        if digit is None or digit < 0 or digit > max_card_count:
             return self.round_success(status="未识别到选择数量, 进行基本操作")
 
-        if digit == int(self.plan.card_num):
+        plan_card_num = int(self.plan.card_num)
+        if digit == plan_card_num:
             return self.round_success(status="选择数量等于计划设置")
-        elif digit < int(self.plan.card_num):
-            return self.round_success(status="选择数量小于计划设置", data=int(self.plan.card_num) - digit)
+        elif digit < plan_card_num:
+            return self.round_success(status="选择数量小于计划设置", data=plan_card_num - digit)
         else:
-            return self.round_success(status="选择数量大于计划设置", data=digit - int(self.plan.card_num))
+            return self.round_success(status="选择数量大于计划设置", data=digit - plan_card_num)
 
     @node_from(from_name='识别已选卡片数量', status='未识别到选择数量, 进行基本操作')
     @operation_node(name='选择数量')
