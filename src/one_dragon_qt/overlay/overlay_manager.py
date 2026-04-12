@@ -219,6 +219,9 @@ class OverlayManager(QObject):
             self._log_panel.appearance_changed.connect(
                 self._on_panel_appearance_changed
             )
+            self._log_panel.free_mode_changed.connect(
+                self._on_panel_free_mode_changed
+            )
             self._log_panel.edit_mode_changed.connect(
                 self._on_panel_edit_mode_changed
             )
@@ -231,6 +234,7 @@ class OverlayManager(QObject):
                 lambda g: self._on_panel_geometry_changed("state_panel", g)
             )
             self._state_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._state_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
             self._state_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("state_panel")
             self._state_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -241,6 +245,7 @@ class OverlayManager(QObject):
                 lambda g: self._on_panel_geometry_changed("decision_panel", g)
             )
             self._decision_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._decision_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
             self._decision_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("decision_panel")
             self._decision_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -251,6 +256,7 @@ class OverlayManager(QObject):
                 lambda g: self._on_panel_geometry_changed("timeline_panel", g)
             )
             self._timeline_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._timeline_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
             self._timeline_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("timeline_panel")
             self._timeline_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -261,6 +267,7 @@ class OverlayManager(QObject):
                 lambda g: self._on_panel_geometry_changed("performance_panel", g)
             )
             self._performance_panel.appearance_changed.connect(self._on_panel_appearance_changed)
+            self._performance_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
             self._performance_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
             geo = self._panel_geometry_with_fallback("performance_panel")
             self._performance_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -277,6 +284,7 @@ class OverlayManager(QObject):
         panel.set_title_visible(False)
         panel.set_drag_anywhere(False)
         panel.set_passthrough_on_body(True)
+        panel.set_free_mode(self.config.is_panel_free_mode(panel_name))
         panel.set_edit_mode(self.config.panel_edit_mode)
 
     def _iter_side_panels(self):
@@ -352,7 +360,7 @@ class OverlayManager(QObject):
 
     def _on_panel_geometry_changed(self, panel_name: str, geometry: dict[str, int]) -> None:
         try:
-            if self.config.panel_lock_to_game_window:
+            if not self.config.is_panel_free_mode(panel_name):
                 game_rect = self._get_game_rect()
                 if game_rect is not None:
                     qt_rect = self._to_qt_rect(game_rect)
@@ -375,6 +383,13 @@ class OverlayManager(QObject):
             self._safe_follow_window()
         except Exception:
             log.error("保存 Overlay 编辑模式失败", exc_info=True)
+
+    def _on_panel_free_mode_changed(self, panel_name: str, enabled: bool) -> None:
+        try:
+            self.config.set_panel_free_mode(panel_name, bool(enabled))
+            self._safe_follow_window()
+        except Exception:
+            log.error(f"保存 Overlay {panel_name} 窗口模式失败", exc_info=True)
 
     def _safe_follow_window(self) -> None:
         try:
@@ -428,7 +443,6 @@ class OverlayManager(QObject):
 
     def _sync_side_panels(self, game_qt_rect: Rect) -> None:
         edit_mode = self.config.panel_edit_mode
-        lock_in_game = self.config.panel_lock_to_game_window
         panel_visible_map = {
             "log_panel": self.config.log_panel_enabled,
             "state_panel": self.config.state_panel_enabled,
@@ -440,17 +454,19 @@ class OverlayManager(QObject):
         # If game window moved, shift panel windows with it before clamping.
         delta_x = 0
         delta_y = 0
-        if lock_in_game and self._last_game_qt_rect is not None:
+        if self._last_game_qt_rect is not None:
             delta_x = int(getattr(game_qt_rect, "x1", 0)) - int(getattr(self._last_game_qt_rect, "x1", 0))
             delta_y = int(getattr(game_qt_rect, "y1", 0)) - int(getattr(self._last_game_qt_rect, "y1", 0))
 
         for panel_name, panel in self._iter_side_panels():
             if panel is None:
                 continue
+            lock_in_game = not self.config.is_panel_free_mode(panel_name)
 
             if panel_name == "log_panel":
                 panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
             pa = self.config.get_panel_appearance(panel_name)
+            panel.set_free_mode(not lock_in_game)
             panel.set_appearance(pa["font_size"], pa["opacity"])
             if edit_mode:
                 panel.setWindowOpacity(1.0)
@@ -468,7 +484,7 @@ class OverlayManager(QObject):
                     panel.hide()
                 continue
 
-            if delta_x != 0 or delta_y != 0:
+            if lock_in_game and (delta_x != 0 or delta_y != 0):
                 g = panel.geometry()
                 panel.setGeometry(g.x() + delta_x, g.y() + delta_y, g.width(), g.height())
 

@@ -10,7 +10,9 @@ from PySide6.QtGui import (
     QGuiApplication,
     QMouseEvent,
     QPainter,
+    QPainterPath,
     QPaintEvent,
+    QPen,
     QWheelEvent,
 )
 from PySide6.QtWidgets import (
@@ -32,6 +34,7 @@ class ResizablePanel(QFrame):
     geometry_changed = Signal(dict)
     appearance_changed = Signal(str, int, int)
     edit_mode_changed = Signal(bool)
+    free_mode_changed = Signal(str, bool)
 
     _EDGE_NONE = 0
     _EDGE_LEFT = 1
@@ -59,6 +62,7 @@ class ResizablePanel(QFrame):
         self._panel_opacity = 70
         self._font_size = 12
         self._edit_mode = False
+        self._free_mode = False
         self._interaction_enabled = True
         self._drag_anywhere = False
         self._passthrough_on_body = False
@@ -68,6 +72,10 @@ class ResizablePanel(QFrame):
         self._active_edge = self._EDGE_NONE
         self._press_global = QPoint()
         self._press_geometry = QRect()
+        self._background_color = QColor(12, 12, 14, 180)
+        self._border_color = QColor(255, 255, 255, 40)
+        self._border_radius = 5
+        self._border_width = 1
 
         # Subclasses should assign the main text widget here for edit-mode mouse passthrough.
         self._edit_text_widget: QWidget | None = None
@@ -130,16 +138,45 @@ class ResizablePanel(QFrame):
         self._panel_opacity = max(5, min(100, int(opacity_percent)))
         self._refresh_style()
 
+    def set_free_mode(self, enabled: bool) -> None:
+        self._free_mode = bool(enabled)
+        self._refresh_style()
+        self._sync_toolbar_state()
+
     def _refresh_style(self) -> None:
         panel_alpha = int(255 * self._panel_opacity / 100.0)
-        border_alpha = max(18, min(90, int(panel_alpha * 0.22)))
+        if self._free_mode:
+            background_alpha = max(132, panel_alpha)
+            border_alpha = max(72, min(150, int(background_alpha * 0.52)))
+            border_radius = 14
+            border_width = 2
+            self._background_color = QColor(80, 80, 80, background_alpha)
+            self._border_color = QColor(255, 255, 255, border_alpha)
+            panel_style = """
+            #overlayPanel {
+                background-color: transparent;
+                border: none;
+            }
+            """
+        else:
+            background_alpha = panel_alpha
+            border_alpha = max(18, min(90, int(panel_alpha * 0.22)))
+            border_radius = 5
+            border_width = 1
+            self._background_color = QColor(12, 12, 14, background_alpha)
+            self._border_color = QColor(255, 255, 255, border_alpha)
+            panel_style = f"""
+            #overlayPanel {{
+                background-color: rgba(12, 12, 14, {background_alpha});
+                border: {border_width}px solid rgba(255, 255, 255, {border_alpha});
+                border-radius: {border_radius}px;
+            }}
+            """
+        self._border_radius = border_radius
+        self._border_width = border_width
         self.setStyleSheet(
             f"""
-            #overlayPanel {{
-                background-color: rgba(12, 12, 14, {panel_alpha});
-                border: 1px solid rgba(255, 255, 255, {border_alpha});
-                border-radius: 5px;
-            }}
+            {panel_style}
             QLabel#overlayPanelTitle {{
                 color: #f0f0f0;
                 font-size: 12px;
@@ -193,7 +230,25 @@ class ResizablePanel(QFrame):
         self._sync_toolbar_state()
 
     def paintEvent(self, event: QPaintEvent) -> None:
-        if self._edit_mode:
+        if self._free_mode:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+
+            border_rect = self.rect().adjusted(
+                self._border_width // 2,
+                self._border_width // 2,
+                -(self._border_width // 2) - 1,
+                -(self._border_width // 2) - 1,
+            )
+            path = QPainterPath()
+            path.addRoundedRect(border_rect, self._border_radius, self._border_radius)
+            painter.fillPath(path, self._background_color)
+            if self._edit_mode:
+                painter.fillPath(path, QColor(80, 80, 80, 120))
+            painter.setPen(QPen(self._border_color, self._border_width))
+            painter.drawPath(path)
+            painter.end()
+        elif self._edit_mode:
             painter = QPainter(self)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
             painter.fillRect(self.rect(), QColor(80, 80, 80, 180))
@@ -229,6 +284,8 @@ class ResizablePanel(QFrame):
         layout.addWidget(self._btn_panel_dec)
         self._btn_panel_inc = self._create_toolbar_button("\u25A3\u207A", "提高面板不透明度", self._on_panel_inc)
         layout.addWidget(self._btn_panel_inc)
+        self._btn_mode_toggle = self._create_toolbar_button("", "切换锁定/自由模式", self._on_toggle_free_mode, 44)
+        layout.addWidget(self._btn_mode_toggle)
         self._btn_close_edit = self._create_toolbar_button("\u2715", "关闭编辑模式", self._on_close_edit_mode)
         layout.addWidget(self._btn_close_edit)
 
@@ -236,12 +293,12 @@ class ResizablePanel(QFrame):
         self._toolbar.setVisible(False)
         self._sync_toolbar_state()
 
-    def _create_toolbar_button(self, text: str, tip: str, handler) -> QToolButton:
+    def _create_toolbar_button(self, text: str, tip: str, handler, width: int = 32) -> QToolButton:
         btn = QToolButton(self)
         btn.setText(text)
         btn.setToolTip(tip)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedSize(32, 22)
+        btn.setFixedSize(width, 22)
         btn.clicked.connect(lambda _checked=False: handler())
         btn.setStyleSheet(
             "QToolButton { background-color: rgba(190,190,190,160); color: #1e1e1e;"
@@ -267,6 +324,12 @@ class ResizablePanel(QFrame):
         if self._edit_mode:
             self._emit_appearance(self._font_size, min(100, self._panel_opacity + 5))
 
+    def _on_toggle_free_mode(self) -> None:
+        if not self._edit_mode:
+            return
+        self.set_free_mode(not self._free_mode)
+        self.free_mode_changed.emit(self._panel_name, self._free_mode)
+
     def _on_close_edit_mode(self) -> None:
         self.set_edit_mode(False)
         self.edit_mode_changed.emit(False)
@@ -278,7 +341,15 @@ class ResizablePanel(QFrame):
     def _sync_toolbar_state(self) -> None:
         if hasattr(self, "_status_label"):
             mode_text = "EDIT" if self._edit_mode else "PASS"
-            self._status_label.setText(f"{mode_text} F{self._font_size} P{self._panel_opacity}")
+            dock_text = "FREE" if self._free_mode else "LOCK"
+            self._status_label.setText(f"{mode_text} {dock_text} F{self._font_size} P{self._panel_opacity}")
+        if hasattr(self, "_btn_mode_toggle"):
+            if self._free_mode:
+                self._btn_mode_toggle.setText("自由")
+                self._btn_mode_toggle.setToolTip("切换到锁定模式")
+            else:
+                self._btn_mode_toggle.setText("锁定")
+                self._btn_mode_toggle.setToolTip("切换到自由模式")
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         if self._edit_mode and event.modifiers() & Qt.KeyboardModifier.ControlModifier:

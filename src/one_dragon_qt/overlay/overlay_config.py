@@ -23,6 +23,14 @@ _DEFAULT_PANEL_APPEARANCE: dict[str, dict[str, int]] = {
     "performance_panel": {"font_size": 12, "opacity": 70},
 }
 
+_DEFAULT_PANEL_FREE_MODE_MAP: dict[str, bool] = {
+    "log_panel": False,
+    "state_panel": False,
+    "decision_panel": False,
+    "timeline_panel": False,
+    "performance_panel": False,
+}
+
 _DEFAULT_PERFORMANCE_METRIC_ENABLED: dict[str, bool] = {
     "ocr_ms": True,
     "yolo_ms": True,
@@ -57,6 +65,7 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "performance_panel_enabled": True,
     "panel_edit_mode": False,
     "panel_lock_to_game_window": True,
+    "panel_free_mode_map": dict(_DEFAULT_PANEL_FREE_MODE_MAP),
     "performance_metric_enabled_map": dict(_DEFAULT_PERFORMANCE_METRIC_ENABLED),
     "log_max_lines": 120,
     "log_fade_seconds": 12,
@@ -94,6 +103,7 @@ _OVERLAY_SCALAR_KEYS = {
     "state_panel_enabled",
     "panel_edit_mode",
     "panel_lock_to_game_window",
+    "panel_free_mode_map",
     "log_max_lines",
     "log_fade_seconds",
     "follow_interval_ms",
@@ -150,6 +160,15 @@ class OverlayConfig(YamlConfig):
                 }
             )
         merged["panel_appearance"] = default_appearance
+
+        panel_free_mode_map = merged.get("panel_free_mode_map", {})
+        if not isinstance(panel_free_mode_map, dict):
+            panel_free_mode_map = {}
+        default_free_mode_map = {
+            panel_name: bool(panel_free_mode_map.get(panel_name, not merged["panel_lock_to_game_window"]))
+            for panel_name in _DEFAULT_PANEL_FREE_MODE_MAP
+        }
+        merged["panel_free_mode_map"] = default_free_mode_map
 
         metric_map = merged.get("performance_metric_enabled_map", {})
         if not isinstance(metric_map, dict):
@@ -491,6 +510,19 @@ class OverlayConfig(YamlConfig):
 
     def reset_panel_geometry(self) -> None:
         self._update_overlay_data("panel_geometry", deepcopy(_DEFAULT_PANEL_GEOMETRY))
+
+    def is_panel_free_mode(self, panel_name: str) -> bool:
+        free_mode_map = self._overlay_data()["panel_free_mode_map"]
+        if panel_name not in _DEFAULT_PANEL_FREE_MODE_MAP:
+            return False
+        return bool(free_mode_map.get(panel_name, False))
+
+    def set_panel_free_mode(self, panel_name: str, free_mode: bool) -> None:
+        if panel_name not in _DEFAULT_PANEL_FREE_MODE_MAP:
+            return
+        all_modes = self._overlay_data()["panel_free_mode_map"]
+        all_modes[panel_name] = bool(free_mode)
+        self._update_overlay_data("panel_free_mode_map", all_modes)
 
     def get_panel_appearance(self, panel_name: str) -> dict[str, int]:
         appearance = self._overlay_data()["panel_appearance"].get(panel_name, {})

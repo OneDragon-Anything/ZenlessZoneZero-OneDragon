@@ -218,14 +218,6 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.panel_edit_mode_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.panel_edit_mode_opt)
 
-        self.panel_lock_to_game_opt = SwitchSettingCard(
-            icon=FluentIcon.PIN,
-            title="锁定在游戏窗口内",
-            content="开启后面板会限制在游戏窗口区域内",
-        )
-        self.panel_lock_to_game_opt.value_changed.connect(self._on_config_changed)
-        group.addSettingCard(self.panel_lock_to_game_opt)
-
         self.font_size_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
             title="面板字体大小",
@@ -368,7 +360,6 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.timeline_panel_opt.init_with_adapter(self.config.get_prop_adapter("timeline_panel_enabled"))
         self.performance_panel_opt.init_with_adapter(self.config.get_prop_adapter("performance_panel_enabled"))
         self.panel_edit_mode_opt.init_with_adapter(self.config.get_prop_adapter("panel_edit_mode"))
-        self.panel_lock_to_game_opt.init_with_adapter(self.config.get_prop_adapter("panel_lock_to_game_window"))
         self.font_size_opt.init_with_adapter(self.config.get_prop_adapter("font_size"))
         self.panel_text_color_opt.init_with_adapter(self.config.get_prop_adapter("panel_text_color"))
         self.log_max_lines_opt.init_with_adapter(self.config.get_prop_adapter("log_max_lines"))
