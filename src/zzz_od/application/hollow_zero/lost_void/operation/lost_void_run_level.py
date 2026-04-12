@@ -875,10 +875,9 @@ class LostVoidRunLevel(ZOperation):
         time.sleep(1)
         if result.is_success:
             self.screenshot()
-            return self.round_success(status)
+            return self.round_fail(status)
         return self.round_retry(status + ' (打开tab页面失败)')
 
-    @node_from(from_name='保存错误信息')
     @node_from(from_name='保存错误信息', success=False)
     @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='失败退出空洞', screenshot_before_round=False)
