@@ -151,11 +151,7 @@ class LostVoidContext:
         return False
 
     def is_boss_health_bar_present(self, screen: MatLike) -> bool:
-        """
-        判断当前画面是否已经出现BOSS血条
-        @param screen: 游戏画面
-        @return:
-        """
+        """判断当前画面是否已出现 BOSS 血条。"""
         result = screen_utils.find_area(self.ctx, screen, '迷失之地-大世界', '标识-BOSS血条')
         return result == FindAreaResultEnum.TRUE
 
