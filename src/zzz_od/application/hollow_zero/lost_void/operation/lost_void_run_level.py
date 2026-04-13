@@ -221,17 +221,40 @@ class LostVoidRunLevel(ZOperation):
 
         return self.round_success('非战斗区域')
 
+    def enter_battle(self, screenshot_time: Optional[float] = None, end_boss_pre_battle: bool = False) -> OperationRoundResult:
+        """
+        更新进入战斗后的公共状态
+        @param screenshot_time: 进入战斗时使用的截图时间
+        @param end_boss_pre_battle: 是否结束终结之役战前阶段
+        @return:
+        """
+        if end_boss_pre_battle:
+            self.boss_pre_battle = False
+
+        self.nothing_times = 0
+        current_time = self.last_screenshot_time if screenshot_time is None else screenshot_time
+        self.last_det_time = current_time
+        self.last_check_finish_time = current_time
+
+        return self.round_success(status='进入战斗')
+
+    def is_boss_battle_started(self) -> bool:
+        """
+        判断终结之役是否已经正式进入战斗
+        @return:
+        """
+        if self.ctx.lost_void.is_boss_health_bar_present(self.last_screenshot):
+            return True
+
+        return self.ctx.lost_void.check_battle_encounter(self.last_screenshot, self.last_screenshot_time)
+
     def handle_boss_pre_battle(self) -> OperationRoundResult:
         """
         终结之役在正式战斗开始前 可能会先出现可交互的蓝色感叹号
         @return:
         """
-        if self.ctx.lost_void.is_boss_health_bar_present(self.last_screenshot):
-            self.boss_pre_battle = False
-            self.nothing_times = 0
-            self.last_det_time = self.last_screenshot_time
-            self.last_check_finish_time = self.last_screenshot_time
-            return self.round_success(status='进入战斗')
+        if self.is_boss_battle_started():
+            return self.enter_battle(end_boss_pre_battle=True)
 
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result.is_success:
@@ -257,12 +280,9 @@ class LostVoidRunLevel(ZOperation):
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
                     self.screenshot()
-                    if self.ctx.lost_void.is_boss_health_bar_present(self.last_screenshot):
-                        self.boss_pre_battle = False
-                        self.last_det_time = self.last_screenshot_time
-                        self.last_check_finish_time = self.last_screenshot_time
-                        return self.round_success('进入战斗')
-                    return self.round_wait('等待BOSS血条', wait=0.2)
+                    if self.is_boss_battle_started():
+                        return self.enter_battle(end_boss_pre_battle=True)
+                    return self.round_wait('等待BOSS进入战斗', wait=0.2)
                 elif op_result.status == LostVoidMoveByDet.STATUS_INTERACT:
                     self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
                     return self.round_success('未在大世界')
@@ -280,6 +300,10 @@ class LostVoidRunLevel(ZOperation):
         if self.nothing_times >= 50:
             self.nothing_times = 0
             return self.round_fail('处理寻路失败')
+
+        in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
+        if in_battle:
+            return self.enter_battle(screenshot_time=time.time(), end_boss_pre_battle=True)
 
         return self.round_wait(status='转动识别目标')
 
@@ -400,9 +424,7 @@ class LostVoidRunLevel(ZOperation):
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
         if in_battle:
-            self.last_det_time = time.time()
-            self.last_check_finish_time = time.time()
-            return self.round_success(status='进入战斗')
+            return self.enter_battle(screenshot_time=time.time())
 
         return self.round_wait(status='转动识别目标')
 
