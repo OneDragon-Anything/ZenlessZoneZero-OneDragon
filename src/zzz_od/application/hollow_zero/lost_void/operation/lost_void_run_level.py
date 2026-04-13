@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 import cv2
 from cv2.typing import MatLike
@@ -16,41 +16,21 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import (
-    LostVoidDetector,
-)
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
-    LostVoidRegionType,
-)
-from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
-    LostVoidRunRecord,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import (
-    LostVoidBangbooStore,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import (
-    LostVoidChooseCommon,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import (
-    LostVoidChooseGear,
-)
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
+from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import LostVoidBangbooStore
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import LostVoidChooseGear
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_interact_target_const import (
     LostVoidInteractNPC,
     LostVoidInteractTarget,
     match_interact_target,
 )
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import (
-    LostVoidLottery,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import (
-    LostVoidRouteChange,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
-    LostVoidMoveByDet,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import (
-    UpdatePriorityOperation,
-)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import LostVoidLottery
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import LostVoidRouteChange
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import LostVoidMoveByDet
+from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import UpdatePriorityOperation
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
@@ -105,7 +85,7 @@ class LostVoidRunLevel(ZOperation):
             op_name='迷失之地-层间移动',
             # timeout_seconds=600,  # 不在这里设置超时 而是统一在 '非战斗画面识别' 中处理
         )
-        self.run_record: Optional[LostVoidRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: LostVoidRunRecord | None = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=lost_void_const.APP_ID,
         )
@@ -114,7 +94,7 @@ class LostVoidRunLevel(ZOperation):
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
-        self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
+        self.interact_target: LostVoidInteractTarget | None = None  # 最终识别的交互目标 后续改动应该都是用这个判断
         self.interact_attempted: bool = False  # 是否尝试过交互
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
@@ -128,7 +108,7 @@ class LostVoidRunLevel(ZOperation):
         self.click_challenge_confirm: bool = False  # 点击了挑战确认
         self.boss_pre_battle: bool = self.region_type == LostVoidRegionType.BOSS  # 终结之役正式开战前的交互阶段
 
-        self.had_been_list: List[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
+        self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -221,7 +201,7 @@ class LostVoidRunLevel(ZOperation):
 
         return self.round_success('非战斗区域')
 
-    def enter_battle(self, screenshot_time: Optional[float] = None, end_boss_pre_battle: bool = False) -> OperationRoundResult:
+    def enter_battle(self, screenshot_time: float | None = None, end_boss_pre_battle: bool = False) -> OperationRoundResult:
         """
         更新进入战斗后的公共状态
         @param screenshot_time: 进入战斗时使用的截图时间
@@ -519,8 +499,8 @@ class LostVoidRunLevel(ZOperation):
                 '迷失之地-大世界'
             ]
         )
-        interact_op: Optional[ZOperation] = None
-        interact_type: Optional[str] = None
+        interact_op: ZOperation | None = None
+        interact_type: str | None = None
         if screen_name == '迷失之地-武备选择':
             interact_op = LostVoidChooseGear(self.ctx)
         elif screen_name == '迷失之地-通用选择':
@@ -634,7 +614,7 @@ class LostVoidRunLevel(ZOperation):
                 self.ctx.controller.click(area.center)
                 return self.round_wait(f'尝试交互 {str(list(ocr_result_map.keys()))}', wait=0.5)
 
-    def try_talk_options(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def try_talk_options(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断是否有对话选项
         @return:
