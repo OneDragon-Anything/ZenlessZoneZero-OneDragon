@@ -102,7 +102,8 @@ class LostVoidMoveByDet(ZOperation):
         target_type: str,
         stop_when_interact: bool = True,
         stop_when_disappear: bool = True,
-        ignore_entry_list: Optional[List[str]] = None
+        ignore_entry_list: Optional[List[str]] = None,
+        allow_arrival_by_interact_btn: bool = False,
     ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
@@ -112,6 +113,7 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_interact:
         @param stop_when_disappear:
         @param ignore_entry_list:
+        @param allow_arrival_by_interact_btn: 是否允许仅凭交互按钮出现就判定到位
         """
         ZOperation.__init__(
             self,
@@ -125,6 +127,7 @@ class LostVoidMoveByDet(ZOperation):
         self.stop_when_interact: bool = stop_when_interact  # 可交互时停止移动
         self.stop_when_disappear: bool = stop_when_disappear  # 目标消失时停止移动
         self.ignore_entry_list: List[str] = ignore_entry_list
+        self.allow_arrival_by_interact_btn: bool = allow_arrival_by_interact_btn
 
         # 需要按方向选的时候 按最大x值选
         # 入口时 从右往左选可以上楼梯
@@ -511,6 +514,9 @@ class LostVoidMoveByDet(ZOperation):
                     self.ctx.controller.stop_moving_forward()
                     time.sleep(0.5)
             return False
+
+        if self.allow_arrival_by_interact_btn:
+            return True
 
         # 2. 检测图标是否变大
         for result in frame_result.results:
