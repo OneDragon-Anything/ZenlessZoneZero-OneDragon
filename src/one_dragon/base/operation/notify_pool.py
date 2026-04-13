@@ -21,7 +21,7 @@ class NotifyPool:
     last_image 属性从 items 尾部遍历获取，用于 APP 级别结束通知附带截图。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.items: list[NotifyPoolItem] = []
         self.max_images: int = 10
         self._image_count: int = 0
