@@ -880,7 +880,7 @@ class LostVoidRunLevel(ZOperation):
         return self.round_retry(f'{status}（打开tab页面失败）')
 
     @node_from(from_name='保存错误信息', success=False)
-    @operation_node(name='失败退出空洞', screenshot_before_round=False)
+    @operation_node(name='失败退出空洞')
     def fail_exit_lost_void(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.stop_auto_battle()
         op = ExitInBattle(self.ctx, '迷失之地-挑战结果', '按钮-完成')
