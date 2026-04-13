@@ -28,12 +28,12 @@ class NotifyPool:
 
     def add(self, content: str, image: MatLike | None = None) -> None:
         """添加一条通知到池中"""
+        self.items.append(NotifyPoolItem(content=content, image=image))
         if image is not None:
             self._image_count += 1
             # 超出图片上限时，移除最旧的图片以释放内存
             if self._image_count > self.max_images:
                 self._strip_oldest_image()
-        self.items.append(NotifyPoolItem(content=content, image=image))
 
     def _strip_oldest_image(self) -> None:
         """将最旧的一张图片从池中移除（替换为 None），文本保留"""
