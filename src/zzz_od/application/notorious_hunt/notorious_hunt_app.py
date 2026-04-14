@@ -7,7 +7,7 @@ from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
-from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig, NotoriousHuntLevelEnum
 from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -103,3 +103,18 @@ class NotoriousHuntApp(ZApplication):
     def back_to_world(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
+
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.run_context.start_running()
+    op = NotoriousHuntApp(ctx)
+    op.can_run_times = 1
+    op.auto_op = None
+
+    op.execute()
+
+
+if __name__ == '__main__':
+    __debug()

@@ -244,7 +244,7 @@ class LostVoidRunLevel(ZOperation):
 
         # 在大世界 判断整体超时
         # 在这里判断是因为需要确保在大世界画面 可以按到菜单退出按钮 防止卡在事件选择之类的地方
-        if self.last_screenshot_time - self.operation_start_time >= 600:  # 10分钟超时
+        if self.last_screenshot_time - self.operation_start_time >= 1200:  # 20分钟超时
             return self.round_fail(Operation.STATUS_TIMEOUT)
 
         if self.boss_pre_battle:

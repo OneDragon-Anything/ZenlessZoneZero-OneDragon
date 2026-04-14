@@ -265,8 +265,17 @@ class LostVoidChooseGear(ZOperation):
             log.info("武备选择成功，已设置优先级更新标志")
         return result
 
-    @node_from(from_name='选择武备', success=False)
     @node_from(from_name='点击携带')
+    @operation_node(name='识别不再提示')
+    def no_more_confirm(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '不再提示')
+        if result.is_success:
+            time.sleep(1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '传送确认')
+        return self.round_success()
+
+    @node_from(from_name='选择武备', success=False)
+    @node_from(from_name='识别不再提示')
     @operation_node(name='点击返回')
     def click_back(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='按钮-返回',

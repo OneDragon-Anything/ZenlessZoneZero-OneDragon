@@ -256,7 +256,7 @@ def __debug():
         category_name='区域巡防',
         mission_type_name='铁律与狂徒',
         auto_battle_config='全配队通用',
-        predefined_team_idx=0
+        predefined_team_idx=2
     )
     op = AreaPatrol(ctx, plan)
     op.execute()
