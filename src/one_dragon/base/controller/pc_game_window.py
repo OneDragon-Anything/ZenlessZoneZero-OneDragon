@@ -23,6 +23,10 @@ class PcGameWindow:
         self._win: Win32Window | None = None
         self._hWnd = None
 
+    def _clear_cached_window(self) -> None:
+        self._win = None
+        self._hWnd = None
+
     def init_win(self) -> None:
         """
         初始化窗口
@@ -48,8 +52,11 @@ class PcGameWindow:
         """
         if self.win_title != new_title:
             self.win_title = new_title
-            self._win = None
-            self._hWnd = None
+            self._clear_cached_window()
+
+    def refresh_win(self) -> None:
+        self._clear_cached_window()
+        self.init_win()
 
     def get_win(self) -> Win32Window | None:
         if self._win is None:

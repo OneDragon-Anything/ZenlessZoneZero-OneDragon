@@ -82,6 +82,7 @@ class ApplicationRunContext:
         self.current_app_id: Optional[str] = None
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
+        self.current_application: Optional[Application] = None
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
@@ -418,6 +419,7 @@ class ApplicationRunContext:
             self.current_app_id = app_id
             self.current_instance_idx = instance_idx
             self.current_group_id = group_id
+            self.current_application = app
 
             op_result = app.execute()
         except Exception:
@@ -427,6 +429,7 @@ class ApplicationRunContext:
             self.current_app_id = None
             self.current_instance_idx = None
             self.current_group_id = None
+            self.current_application = None
 
         return True
 

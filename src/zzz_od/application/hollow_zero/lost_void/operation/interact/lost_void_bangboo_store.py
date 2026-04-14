@@ -181,8 +181,7 @@ class LostVoidBangbooStore(ZOperation):
         min_blood = self.ctx.lost_void.challenge_config.store_blood_min
 
         area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '区域-角色头像')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
         for ocr_result, mrl in ocr_result_map.items():
             blood = str_utils.get_positive_digits(ocr_result)
             if blood is None:

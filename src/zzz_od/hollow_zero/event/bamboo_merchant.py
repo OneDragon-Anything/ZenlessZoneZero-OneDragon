@@ -185,7 +185,7 @@ class BambooMerchant(ZOperation):
     def _ocr_desc_area(self, screen: MatLike) -> dict[str, MatchResultList]:
         area = self.ctx.screen_loader.get_area('零号空洞-商店', '商品描述区域')
         part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
         for mrl in ocr_result_map.values():
             mrl.add_offset(area.left_top)
 
