@@ -374,7 +374,6 @@ def check_in_hollow(ctx: ZContext, screen: MatLike) -> str | None:
         screen=screen,
         screen_name='零号空洞-事件',
         area_name='背包',
-        crop_first=False,
     )
 
     if result == FindAreaResultEnum.TRUE:
