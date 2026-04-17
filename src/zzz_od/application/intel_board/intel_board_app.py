@@ -129,19 +129,15 @@ class IntelBoardApp(ZApplication):
                           if result.data in commission_map.keys()]
         all_commissions.sort(key=lambda x: x[1].y1)
 
-        # 识别"star"标记的位置信息
-        stars_list = []
-        try:
-            stars_template = TemplateMatcher(self.ctx.template_loader).match_template(
-                source=self.last_screenshot,
-                template_sub_dir='intel_board',
-                template_id='Star',
-                threshold=0.8,
-                only_best=False
-            )
-            stars_list = [match_result.rect for match_result in stars_template.results]
-        except Exception:
-            pass
+        # 识别"star"标记的位置信息（失败应抛异常，避免误接自己发布的委托）
+        stars_template = TemplateMatcher(self.ctx.template_loader).match_template(
+            source=self.last_screenshot,
+            template_sub_dir='intel_board',
+            template_id='Star',
+            threshold=0.8,
+            only_best=False,
+        )
+        stars_list = [match_result.rect for match_result in stars_template]
 
         # 过滤含star标记的委托
         if stars_list:
