@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
     OperationRoundResultEnum,
 )
+from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.utils import cv2_utils
 from zzz_od.application.intel_board import intel_board_const
 from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
@@ -119,15 +120,49 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='寻找委托', status='翻页')
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
-        # 4. Ocr 专业挑战室/恶名狩猎，找不到就往下翻到找到为止
-        result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=['专业挑战室', '恶名狩猎'],
-            success_wait=0.5,
-        )
-        if result.is_success:
+        # 4. Ocr 专业挑战室/恶名狩猎，过滤"star"列
+        expand_pixel = int(30 * self.last_screenshot.shape[0] / 1080)
+        # 收集委托类型、区域位置信息
+        ocr_results = self.ctx.ocr.ocr(self.last_screenshot)
+        commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
+        all_commissions = [(result.data, result.rect) for result in ocr_results
+                          if any(target in result.data for target in commission_map.keys())]
+        all_commissions.sort(key=lambda x: x[1].y1)
+
+        # 识别"star"标记的位置信息
+        stars_list = []
+        try:
+            stars_template = TemplateMatcher(self.ctx.template_loader).match_template(
+                source=self.last_screenshot,
+                template_sub_dir='intel_board',
+                template_id='Star',
+                threshold=0.8,
+                only_best=False
+            )
+            stars_list = [match_result.rect for match_result in stars_template.results]
+        except Exception:
+            pass
+
+        # 过滤含star标记的委托
+        if stars_list:
+            valid_commissions = [
+                (text, rect) for text, rect in all_commissions
+                if not any(
+                    rect.x1 < star_rect.x1 + star_rect.width + expand_pixel and
+                    star_rect.x1 < rect.x1 + rect.width
+                    for star_rect in stars_list
+                )
+            ]
+        else:
+            valid_commissions = all_commissions
+
+        # 点击第一个有效的委托
+        if valid_commissions:
+            selected_text, selected_rect = valid_commissions[0]
+            self.ctx.controller.click(selected_rect.center)
             commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
-            self.current_commission_type = commission_map.get(result.status)
-            return result
+            self.current_commission_type = commission_map.get(selected_text, None)
+            return self.round_success()
 
         # 翻页
         if self.scroll_times >= 5:
