@@ -123,10 +123,10 @@ class IntelBoardApp(ZApplication):
         # 4. Ocr 专业挑战室/恶名狩猎，过滤"star"列
         expand_pixel = int(30 * self.last_screenshot.shape[0] / 1080)
         # 收集委托类型、区域位置信息
-        ocr_results = self.ctx.ocr.ocr(self.last_screenshot)
+        ocr_results = self.ctx.ocr.ocr(self.last_screenshot) 
         commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
         all_commissions = [(result.data, result.rect) for result in ocr_results
-                          if any(target in result.data for target in commission_map.keys())]
+                          if result.data in commission_map.keys()]
         all_commissions.sort(key=lambda x: x[1].y1)
 
         # 识别"star"标记的位置信息
@@ -160,7 +160,6 @@ class IntelBoardApp(ZApplication):
         if valid_commissions:
             selected_text, selected_rect = valid_commissions[0]
             self.ctx.controller.click(selected_rect.center)
-            commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
             self.current_commission_type = commission_map.get(selected_text, None)
             return self.round_success()
 
