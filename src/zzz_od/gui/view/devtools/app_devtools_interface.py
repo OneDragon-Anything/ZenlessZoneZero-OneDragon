@@ -17,6 +17,7 @@ from zzz_od.gui.view.devtools.agent_template_generator_interface import (
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
     DevtoolsScreenshotHelperInterface,
 )
+from zzz_od.gui.view.devtools.intel_manage_interface import IntelManageInterface
 from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
 
 
@@ -39,4 +40,5 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         self.add_sub_interface(DevtoolsScreenManageInterface(self.ctx))
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
+        self.add_sub_interface(IntelManageInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))

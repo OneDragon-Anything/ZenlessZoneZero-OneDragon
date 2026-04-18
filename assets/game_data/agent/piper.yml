@@ -2,3 +2,4 @@ agent_name: "派派"
 agent_type: "ATTACK"
 dmg_type: "PHYSICAL"
 rare_type: "A"
+code: 'piper'
