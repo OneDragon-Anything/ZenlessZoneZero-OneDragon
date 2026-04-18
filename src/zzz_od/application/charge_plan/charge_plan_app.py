@@ -203,14 +203,13 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_NO_LEFT_TIMES)
+    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan
-        # 无剩余次数时无条件跳过
-        is_no_left_times = self.previous_node.status == NotoriousHunt.STATUS_NO_LEFT_TIMES
-        if self.config.skip_plan or is_agent_plan or is_no_left_times:
+        is_blocked_by_left_times = self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
+        if self.config.skip_plan or is_agent_plan or is_blocked_by_left_times:
             # 标记当前计划为跳过，继续尝试下一个
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan

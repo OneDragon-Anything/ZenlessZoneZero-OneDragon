@@ -8,7 +8,9 @@ from one_dragon.base.operation.application.application_factory import Applicatio
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
-from zzz_od.application.hollow_zero.withered_domain.withered_domain_app import WitheredDomainApp
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_app import (
+    WitheredDomainApp,
+)
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
     WitheredDomainConfig,
 )
@@ -23,13 +25,7 @@ if TYPE_CHECKING:
 class WitheredDomainAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=withered_domain_const.APP_ID,
-            app_name=withered_domain_const.APP_NAME,
-            default_group=withered_domain_const.DEFAULT_GROUP,
-            need_notify=withered_domain_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, withered_domain_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

@@ -504,3 +504,6 @@ class AgentEnum(Enum):
                                         hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                         max_length=100)
                       ])
+
+    CISSIA = Agent('cissia', '希希芙', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['cissia'],
+                   state_list=[])

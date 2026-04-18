@@ -5,9 +5,13 @@ from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
 )
@@ -21,6 +25,7 @@ from zzz_od.application.notorious_hunt.notorious_hunt_config import (
     NotoriousHuntBuffEnum,
     NotoriousHuntConfig,
     NotoriousHuntLevelEnum,
+    NotoriousHuntWeekdayEnum,
 )
 from zzz_od.context.zzz_context import ZContext
 
@@ -30,8 +35,7 @@ class NotoriousHuntCard(DraggableListItem):
     changed = Signal(int, ChargePlanItem)
     move_top = Signal(int)
 
-    def __init__(self, ctx: ZContext,
-                 idx: int, plan: ChargePlanItem):
+    def __init__(self, ctx: ZContext, idx: int, plan: ChargePlanItem) -> None:
         self.ctx: ZContext = ctx
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
@@ -206,7 +210,18 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
+        self.weekly_challenge_start_weekday_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='恶名狩猎（周期挑战）开始日',
+            content='从开始日起才会自动调度周期挑战。当日未完成会顺延到次日，直到当周完成/过期',
+            options_enum=NotoriousHuntWeekdayEnum,
+        )
+        self.content_widget.add_widget(self.weekly_challenge_start_weekday_opt)
+
         self.drag_list = DraggableList()
+        drag_list_layout = self.drag_list.layout()
+        if drag_list_layout is not None:
+            drag_list_layout.setSpacing(0)
         self.drag_list.order_changed.connect(self._on_order_changed)
         self.content_widget.add_widget(self.drag_list)
 
@@ -226,6 +241,9 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
                 self.card_list.append(card)
                 self.drag_list.add_list_item(card)
+                card_layout = card.layout()
+                if card_layout is not None:
+                    card_layout.setContentsMargins(0, 4, 0, 4)
 
         elif len(plan_list) < len(self.card_list):
             while len(self.card_list) > len(plan_list):
@@ -244,6 +262,9 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
             group_id=self.group_id,
         )
 
+        self.weekly_challenge_start_weekday_opt.init_with_adapter(
+            get_prop_adapter(self.config, 'weekly_challenge_start_weekday')
+        )
         self.update_plan_list_display()
 
     def on_interface_hidden(self) -> None:

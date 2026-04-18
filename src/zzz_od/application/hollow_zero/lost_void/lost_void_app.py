@@ -272,11 +272,6 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击预备编队')
     @operation_node(name='矩阵行动-选择配队', node_max_retry_times=7)
     def matrix_select_team(self) -> OperationRoundResult:
-        predefined_idx = self.ctx.lost_void.challenge_config.predefined_team_idx
-        self.ctx.lost_void.predefined_team_idx = predefined_idx
-        if predefined_idx == -1:
-            return self.round_success('使用游戏内编队')
-
         # 初始为较高的匹配阈值，如果超过5次匹配失败则改用0.5的阈值兜底
         lcs_percent = 0.7 if self.node_retry_times < 5 else 0.5
 
@@ -284,6 +279,10 @@ class LostVoidApp(ZApplication):
         main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
 
         # 获取目标编队名称
+        predefined_idx = self.ctx.lost_void.challenge_config.predefined_team_idx
+        if predefined_idx == -1:
+            predefined_idx = 0
+        self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
 
         # 查找并点击目标配队
@@ -724,7 +723,6 @@ class LostVoidApp(ZApplication):
         :return:
         """
         self.use_priority_agent = False
-        self.ctx.lost_void.predefined_team_idx = -1
         mission_name = self.config.mission_name
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
@@ -788,7 +786,6 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='加载自动战斗配置')
     @node_from(from_name='层间移动')
-    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='层间移动')
     def run_level(self) -> OperationRoundResult:
         log.info(f'推测楼层类型 {self.next_region_type.value.value}')

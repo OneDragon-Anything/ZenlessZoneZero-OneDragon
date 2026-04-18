@@ -1,4 +1,3 @@
-# 强化特殊技：狂点2秒
 operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
@@ -8,3 +7,6 @@ operations:
     repeat: 20
   - op_name: "等待秒数"
     seconds: 0.5
+  - op_name: "设置状态"
+    state: "自定义-爱芮-应援能量"
+    add: 6

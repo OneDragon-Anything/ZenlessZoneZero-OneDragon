@@ -18,13 +18,7 @@ if TYPE_CHECKING:
 class WorldPatrolAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=world_patrol_const.APP_ID,
-            app_name=world_patrol_const.APP_NAME,
-            default_group=world_patrol_const.DEFAULT_GROUP,
-            need_notify=world_patrol_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, world_patrol_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

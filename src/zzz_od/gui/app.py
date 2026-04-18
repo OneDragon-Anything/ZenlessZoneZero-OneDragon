@@ -174,32 +174,7 @@ try:
 
         def _on_navigation_changed(self, index):
             """导航变化时的处理"""
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                current_widget = self.stackedWidget.widget(index)
-                if current_widget:
-                    interface_name = current_widget.__class__.__name__
-
-                    # 跟踪导航
-                    previous_widget = self.stackedWidget.widget(self._last_stack_idx) if self._last_stack_idx < self.stackedWidget.count() else None
-                    if previous_widget:
-                        # 优先使用nav_text，如果没有则使用类名
-                        previous_name = getattr(previous_widget, 'nav_text', previous_widget.__class__.__name__)
-                    else:
-                        previous_name = 'app_start'
-
-                    # 获取当前界面的显示名称
-                    current_display_name = getattr(current_widget, 'nav_text', interface_name)
-
-                    self.ctx.telemetry.track_navigation(previous_name, current_display_name)
-
-                    # 跟踪功能使用
-                    self.ctx.telemetry.track_feature_usage(current_display_name, {
-                        'interface_type': 'gui',
-                        'navigation_index': index,
-                        'interface_class': interface_name
-                    })
-
-                    self._last_stack_idx = index
+            self._last_stack_idx = index
 
         def _on_instance_active_event(self, event) -> None:
             """
@@ -242,56 +217,11 @@ try:
             """异步处理应用启动后需要处理的事情"""
             self._check_version_runner.start()
             self._check_first_run()
-            self._track_app_launch()
-
-        def _track_app_launch(self):
-            """跟踪应用启动"""
-            from one_dragon.utils.log_utils import log
-
-            if not hasattr(self.ctx, 'telemetry') or not self.ctx.telemetry:
-                log.debug("Telemetry manager not available, skip app_launched event")
-                return
-
-            telemetry = self.ctx.telemetry
-            if not telemetry.is_enabled():
-                log.debug("Telemetry not enabled, attempting re-initialization before sending app_launched")
-                telemetry.initialize()
-
-            import time
-            launch_time = time.time() - self._app_start_time
-
-            log.debug(f"发送app_launched事件，启动时间: {launch_time:.2f}秒")
-
-            # 跟踪应用启动
-            telemetry.track_app_launch(launch_time)
-
-            # 跟踪启动时间性能
-            telemetry.track_startup_time(launch_time)
-
-            # 跟踪UI交互
-            telemetry.track_ui_interaction('main_window', 'show', {
-                'window_title': self.windowTitle(),
-                'first_run': self.ctx.env_config.is_first_run
-            })
-
-            log.debug("app_launched事件发送成功")
 
         def closeEvent(self, event):
             """窗口关闭事件"""
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
-
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                import time
-                session_duration = time.time() - self._app_start_time
-
-                # 跟踪应用关闭
-                self.ctx.telemetry.track_ui_interaction('main_window', 'close', {
-                    'session_duration': session_duration
-                })
-
-                # 强制刷新遥测队列，确保关闭事件被发送
-                self.ctx.telemetry.flush()
 
             # 调用父类的关闭事件
             super().closeEvent(event)
