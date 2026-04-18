@@ -1,5 +1,5 @@
 ATTACK  → 强攻
-STUN    → 异常
+STUN    → 击破
 SUPPORT → 支援
 DEFENSE → 防护
 BREAK   → 击破
