@@ -4,6 +4,77 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+# 全局缓存属性映射
+_slot_mapping: dict[str, str] | None = None
+
+
+def _get_slot_mapping() -> dict[str, str]:
+    """获取属性映射字典（从 slot_Mapping.json 加载）"""
+    global _slot_mapping
+    if _slot_mapping is None:
+        mapping_path = Path(get_resource_path('src', 'zzz_od', 'game_data', 'slot_Mapping.json'))
+        try:
+            with open(mapping_path, 'r', encoding='utf-8') as f:
+                _slot_mapping = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            from one_dragon.utils.log_utils import log
+            log.error(f'属性映射文件加载失败: {e}')
+            _slot_mapping = {}
+    return _slot_mapping
+
+
+def _get_weight_order() -> list[str]:
+    """从 slot_Mapping.json 获取权重项顺序（按照 slot_Mapping.json 的顺序）"""
+    mapping = _get_slot_mapping()
+    # 权重项的键顺序（按照 slot_Mapping.json 的顺序）
+    weight_key_order = [
+        'hp_', 'atk_', 'def_', 'pen_', 'impact',
+        'crit_', 'crit_dmg_', 'physical_dmg_', 'ether_dmg_', 'fire_dmg_',
+        'ice_dmg_', 'electric_dmg_', 'anomMas_', 'anomProf', 'energyRegen_',
+        'atk', 'hp', 'def', 'pen'
+    ]
+    return [mapping.get(key, key) for key in weight_key_order]
+
+
+# dmg_type 到元素伤害加成键的映射
+_DMG_TYPE_TO_DMG_BONUS_KEY = {
+    'ELECTRIC': 'electric_dmg_',
+    'ICE': 'ice_dmg_',
+    'FIRE': 'fire_dmg_',
+    'PHYSICAL': 'physical_dmg_',
+    'ETHER': 'ether_dmg_',
+}
+
+
+def _get_dmg_bonus_key(dmg_type: str) -> str:
+    """根据 dmg_type 获取对应的元素伤害加成键"""
+    return _DMG_TYPE_TO_DMG_BONUS_KEY.get(dmg_type, 'physical_dmg_')
+
+
+def _get_weight_order_for_agent(dmg_type: str) -> list[str]:
+    """根据 agent 的 dmg_type 获取权重项顺序（只包含对应元素的伤害加成）"""
+    mapping = _get_slot_mapping()
+    
+    # 基础属性（不包含元素伤害加成）
+    base_key_order = [
+        'hp_', 'atk_', 'def_', 'pen_', 'impact',
+        'crit_', 'crit_dmg_',
+    ]
+    
+    # 获取对应元素的伤害加成键
+    dmg_bonus_key = _get_dmg_bonus_key(dmg_type)
+    
+    # 其他属性
+    other_key_order = [
+        'anomMas_', 'anomProf', 'energyRegen_',
+        'atk', 'hp', 'def', 'pen'
+    ]
+    
+    # 组合：基础属性 + 对应元素伤害加成 + 其他属性
+    weight_key_order = base_key_order + [dmg_bonus_key] + other_key_order
+    
+    return [mapping.get(key, key) for key in weight_key_order]
+
 import yaml
 from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.utils.os_utils import get_resource_path
@@ -61,11 +132,15 @@ class ColumnMeta:
 class WeightConfigDialog(QDialog):
     """权重配置对话框"""
 
-    WEIGHT_OPTIONS = [
-        '生命值', '攻击力', '防御力', '穿透率', '冲击力',
-        '暴击率', '暴击伤害', '物理伤害加成', '异常掌控', '异常精通',
-        '能量自动回复', '小攻击', '小生命', '小防御', '穿透值'
-    ]
+    @classmethod
+    def get_weight_options(cls) -> list[str]:
+        """从 slot_Mapping.json 获取权重选项列表"""
+        return _get_weight_order()
+
+    @property
+    def WEIGHT_OPTIONS(self) -> list[str]:
+        """权重选项列表（动态从配置文件加载）"""
+        return self.get_weight_options()
 
     def __init__(self, character_name: str, parent=None):
         super().__init__(parent)
@@ -158,8 +233,12 @@ class WeightConfigDialog(QDialog):
             weight_file.parent.mkdir(parents=True, exist_ok=True)
             with open(weight_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+        except OSError as e:
+            from one_dragon.utils.log_utils import log
+            log.error(f'保存权重配置失败: {e}')
+            from qfluentwidgets import MessageBox
+            MessageBox.warning(self, '保存失败', f'无法保存权重配置文件:\n{e}')
+            return
 
         self.accept()
 
@@ -186,8 +265,8 @@ class IntelManageInterface(VerticalScrollInterface):
         self.mode_segment: SegmentedWidget | None = None
         self.agent_table_widget: TableWidget | None = None
 
-        # 引用 WeightConfigDialog 的权重选项常量
-        self.WEIGHT_OPTIONS = WeightConfigDialog.WEIGHT_OPTIONS
+        # 从 WeightConfigDialog 获取权重选项（动态从配置文件加载）
+        self.WEIGHT_OPTIONS = WeightConfigDialog.get_weight_options()
 
     def get_content_widget(self) -> QWidget:
         main_widget = QWidget()
@@ -517,9 +596,18 @@ class IntelManageInterface(VerticalScrollInterface):
         return {}
 
     def _get_intel_manage_app(self) -> IntelManageApp | None:
-        """获取信息管理应用实例"""
+        """获取信息管理应用实例（通过应用实例管理机制）"""
         from zzz_od.application.devtools.intel_manage import intel_manage_const
-        return self.ctx.get_app(intel_manage_const.APP_ID)
+        try:
+            return self.ctx.run_context.get_application(
+                app_id=intel_manage_const.APP_ID,
+                instance_idx=self.ctx.current_instance_idx,
+                group_id=''
+            )
+        except Exception:
+            from one_dragon.utils.log_utils import log
+            log.error(f"获取信息管理应用实例失败")
+            return None
 
     def _on_agent_selected(self, agent_name: str) -> None:
         """选择代理人时更新显示"""
@@ -531,11 +619,42 @@ class IntelManageInterface(VerticalScrollInterface):
 
         agent_info = self.agent_data[agent_name]
 
+        # 更新比较公式的可用选项（根据 dmg_type 过滤）
+        self._update_formula_combo_options(agent_info.get('dmg_type', 'PHYSICAL'))
+
         # 显示基础信息
         self._show_basic_info(agent_info)
 
         # 显示权重配置
         self._show_weight_info(agent_info)
+
+    def _update_formula_combo_options(self, dmg_type: str) -> None:
+        """根据 dmg_type 更新比较公式下拉框的选项"""
+        # 获取当前选中的值
+        selected1 = self.formula_combo1.currentText()
+        selected2 = self.formula_combo2.currentText()
+        selected3 = self.formula_combo3.currentText()
+
+        # 根据 dmg_type 获取可用的权重选项
+        weight_order = _get_weight_order_for_agent(dmg_type)
+        EXCLUDED_OPTIONS = {'穿透值', '小防御', '小生命', '小攻击'}
+        available = ['无'] + [opt for opt in weight_order if opt not in EXCLUDED_OPTIONS]
+
+        # 更新三个下拉框
+        self._update_single_combo(self.formula_combo1, available, selected1)
+        self._update_single_combo(self.formula_combo2, available, selected2)
+        self._update_single_combo(self.formula_combo3, available, selected3)
+
+    def _update_single_combo(self, combo: ComboBox, available: list[str], current_value: str):
+        """更新单个下拉框的选项"""
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(available)
+        if current_value in available:
+            combo.setCurrentText(current_value)
+        elif available:
+            combo.setCurrentText(available[0])
+        combo.blockSignals(False)
 
     def _clear_table(self, table: TableWidget) -> None:
         """清空表格"""
@@ -620,12 +739,9 @@ class IntelManageInterface(VerticalScrollInterface):
         """显示代理人权重配置"""
         weight_data = agent_info.get('weight', {})
         
-        # 权重项顺序（按照 Aria.yml）
-        weight_order = [
-            '生命值', '攻击力', '防御力', '穿透率', '冲击力',
-            '暴击率', '暴击伤害', '物理伤害加成', '异常掌控', '异常精通',
-            '能量自动回复', '小攻击', '小生命', '小防御', '穿透值'
-        ]
+        # 根据 agent 的 dmg_type 获取权重项顺序（只显示对应元素的伤害加成）
+        dmg_type = agent_info.get('dmg_type', 'PHYSICAL')
+        weight_order = _get_weight_order_for_agent(dmg_type)
         
         self.weight_table.clear()
         self.weight_table.setColumnCount(2)
@@ -1136,15 +1252,21 @@ class IntelManageInterface(VerticalScrollInterface):
         if weight_data:
             agent_data['weight'] = weight_data
 
-        # 更新内存中的代理人数据
-        self.agent_data[agent_name].update(agent_data)
+        # 更新内存中的代理人数据（合并完整数据）
+        merged_agent_data = dict(self.agent_data[agent_name])
+        merged_agent_data.update(agent_data)
+        self.agent_data[agent_name] = merged_agent_data
 
         # 调用 App 层保存数据（业务逻辑委托给 App 层）
         app = self._get_intel_manage_app()
         if app:
-            success = app.save_agent_data(agent_name, agent_data)
+            success = app.save_agent_data(agent_name, merged_agent_data)
             if success:
                 self.show_info_bar('成功', '代理人数据已保存', icon=InfoBarIcon.SUCCESS)
+                
+                # 如果修改了 dmg_type，更新 WEIGHT_OPTIONS 和比较公式下拉框
+                if 'dmg_type' in agent_data:
+                    self._on_agent_selected(agent_name)
             else:
                 self.show_info_bar('失败', '保存失败', icon=InfoBarIcon.ERROR)
         else:

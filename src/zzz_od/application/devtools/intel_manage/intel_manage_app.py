@@ -3,6 +3,7 @@ from typing import Dict
 
 import yaml
 from one_dragon.base.config.yaml_operator import YamlOperator
+from one_dragon.utils.log_utils import log
 from one_dragon.utils.os_utils import get_resource_path
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -26,7 +27,7 @@ class IntelManageApp(ZApplication):
         self.agent_data: Dict[str, dict] = {}
 
     def _execute(self) -> None:
-        self.log.info('信息管理应用执行')
+        log.info('信息管理应用执行')
 
     def load_agent_data(self) -> Dict[str, dict]:
         """加载所有代理人数据（业务逻辑）"""
@@ -34,7 +35,7 @@ class IntelManageApp(ZApplication):
         agent_dir = Path(get_resource_path('assets', 'game_data', 'agent'))
 
         if not agent_dir.exists():
-            self.log.warning(f"Agent directory not found: {agent_dir}")
+            log.warning(f"Agent directory not found: {agent_dir}")
             return self.agent_data
 
         agent_type_mapping = self._get_enum_mapping(AgentTypeEnum)
@@ -47,17 +48,17 @@ class IntelManageApp(ZApplication):
                 continue
             
             if '..' in yml_file.name or '/' in yml_file.name or '\\' in yml_file.name:
-                self.log.warning(f'跳过包含非法字符的文件: {yml_file.name}')
+                log.warning(f'跳过包含非法字符的文件: {yml_file.name}')
                 continue
 
             try:
                 with open(yml_file, 'r', encoding='utf-8') as f:
                     data = yaml.safe_load(f)
             except (IOError, yaml.YAMLError) as e:
-                self.log.error(f'文件读取或解析错误 {yml_file}: {e}')
+                log.error(f'文件读取或解析错误 {yml_file}: {e}')
                 continue
             except Exception as e:
-                self.log.error(f'未知错误 {yml_file}: {e}')
+                log.error(f'未知错误 {yml_file}: {e}')
                 continue
 
             if data and 'agent_name' in data:
@@ -74,7 +75,7 @@ class IntelManageApp(ZApplication):
 
                 self.agent_data[data['agent_name']] = data
 
-        self.log.info(f"Loaded {len(self.agent_data)} agents")
+        log.info(f"Loaded {len(self.agent_data)} agents")
         return self.agent_data
 
     def _get_safe_filename(self, agent_name: str, agent_data: dict) -> str | None:
@@ -85,7 +86,7 @@ class IntelManageApp(ZApplication):
         file_name = safe_name + '.yml'
         
         if '..' in file_name or '/' in file_name or '\\' in file_name:
-            self.log.error(f'文件名包含非法字符: {file_name}')
+            log.error(f'文件名包含非法字符: {file_name}')
             return None
         
         return file_name
@@ -108,10 +109,10 @@ class IntelManageApp(ZApplication):
             yaml_op.data = agent_data
             yaml_op.save()
 
-            self.log.info(f"Saved agent data to: {file_path}")
+            log.info(f"Saved agent data to: {file_path}")
             return True
         except Exception as e:
-            self.log.error(f'Failed to save agent data: {e}')
+            log.error(f'Failed to save agent data: {e}')
             return False
 
     def _get_enum_mapping(self, enum_class) -> Dict[str, str]:

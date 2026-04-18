@@ -30,10 +30,9 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         PivotNavigatorInterface.__init__(self, object_name='app_devtools_interface', parent=parent,
                                          nav_text_cn='开发工具', nav_icon=FluentIcon.DEVELOPER_TOOLS)
 
-    def create_sub_interface(self):
+    def create_sub_interface(self) -> None:
         """
         创建下面的子页面
-        :return:
         """
         self.add_sub_interface(DevtoolsImageAnalysisInterface(self.ctx))
         self.add_sub_interface(DevtoolsTemplateHelperInterface(self.ctx))
