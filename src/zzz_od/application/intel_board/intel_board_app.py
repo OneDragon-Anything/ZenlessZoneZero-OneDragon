@@ -128,9 +128,10 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
         # OCR 识别委托类型 按 y 坐标排序
+        commission_values = {e.value for e in CommissionType}
         ocr_results = self.ctx.ocr.ocr(self.last_screenshot)
         all_commissions = [(result.data, result.rect) for result in ocr_results
-                          if result.data in CommissionType]
+                          if result.data in commission_values]
         all_commissions.sort(key=lambda x: x[1].y1)
 
         # 模板匹配 star 标记（我的帖子）
