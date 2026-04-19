@@ -196,7 +196,7 @@ class OneBot(PushChannel):
         payload = 0
         for node, text, has_img in zip(nodes, texts, has_images, strict=False):
             overhead = self._IMAGE_NODE_OVERHEAD if has_img else self._TEXT_NODE_OVERHEAD
-            cost = overhead + len(text)
+            cost = overhead + len(text.encode('utf-8'))
             if batch and payload + cost > self._FORWARD_PAYLOAD_LIMIT:
                 batches.append(batch)
                 batch = []
