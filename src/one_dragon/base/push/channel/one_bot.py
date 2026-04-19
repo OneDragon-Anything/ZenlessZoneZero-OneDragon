@@ -182,6 +182,54 @@ class OneBot(PushChannel):
 
         return True, "配置验证通过"
 
+    # QQ 合并转发 payload 上限约 18KB（节点数 × 开销 + 总文本字符数）
+    _FORWARD_PAYLOAD_LIMIT: int = 16000  # 留 2KB 余量
+    _TEXT_NODE_OVERHEAD: int = 17
+    _IMAGE_NODE_OVERHEAD: int = 55  # 图片节点额外协议开销
+
+    def _split_into_batches(
+        self, nodes: list[dict], texts: list[str], has_images: list[bool]
+    ) -> list[list[dict]]:
+        """按 payload 上限将节点列表拆分为多个批次"""
+        batches: list[list[dict]] = []
+        batch: list[dict] = []
+        payload = 0
+        for node, text, has_img in zip(nodes, texts, has_images, strict=False):
+            overhead = self._IMAGE_NODE_OVERHEAD if has_img else self._TEXT_NODE_OVERHEAD
+            cost = overhead + len(text)
+            if batch and payload + cost > self._FORWARD_PAYLOAD_LIMIT:
+                batches.append(batch)
+                batch = []
+                payload = 0
+            batch.append(node)
+            payload += cost
+        if batch:
+            batches.append(batch)
+        return batches
+
+    def _send_forward(
+        self,
+        url: str,
+        data: dict,
+        headers: dict[str, str],
+        label: str,
+    ) -> tuple[bool, str]:
+        """发送单批合并转发请求"""
+        try:
+            resp = requests.post(url, data=json.dumps(data), headers=headers, timeout=30)
+            resp.raise_for_status()
+            result = resp.json()
+            if result.get('status') == 'ok':
+                log.info(f'OneBot {label}成功！')
+                return True, ''
+            msg = f'OneBot {label}失败: {result}'
+            log.error(msg)
+            return False, msg
+        except Exception as e:
+            msg = f'OneBot {label}异常: {str(e)}'
+            log.error(msg)
+            return False, msg
+
     def push_merged(
         self,
         config: dict[str, str],
@@ -190,16 +238,8 @@ class OneBot(PushChannel):
         proxy_url: str | None = None,
     ) -> tuple[bool, str]:
         """
-        使用 OneBot 合并转发 API 推送合并消息
-
-        Args:
-            config: 配置字典
-            title: 消息标题（用作转发节点的发送者名称）
-            items: 消息列表
-            proxy_url: 代理地址
-
-        Returns:
-            tuple[bool, str]: 是否成功、错误信息
+        使用 OneBot 合并转发 API 推送合并消息。
+        当消息量超过 QQ 单次合并上限时自动分批发送。
         """
         try:
             ok, msg = self.validate_config(config)
@@ -218,14 +258,18 @@ class OneBot(PushChannel):
             if token and len(token) > 0:
                 headers['Authorization'] = f'Bearer {token}'
 
-            # 构建合并转发节点
-            nodes = []
+            # 构建合并转发节点并记录每条文本和图片标记（用于拆批计算）
+            nodes: list[dict] = []
+            texts: list[str] = []
+            has_images: list[bool] = []
             for item in items:
                 msg_content: list[dict] = [{'type': 'text', 'data': {'text': item.content}}]
+                has_img = False
                 if item.image is not None:
                     image_base64 = self.image_to_base64(item.image)
                     if image_base64 is not None:
                         msg_content.append({'type': 'image', 'data': {'file': f'base64://{image_base64}'}})
+                        has_img = True
                 nodes.append({
                     'type': 'node',
                     'data': {
@@ -234,45 +278,39 @@ class OneBot(PushChannel):
                         'content': msg_content,
                     }
                 })
+                texts.append(item.content)
+                has_images.append(has_img)
 
+            batches = self._split_into_batches(nodes, texts, has_images)
             success_count = 0
-            error_messages = []
+            error_messages: list[str] = []
 
-            # 私聊合并转发
-            if user_id and len(user_id) > 0:
-                fwd_url = base_url + '/send_private_forward_msg'
-                data = {'user_id': user_id, 'messages': nodes}
-                try:
-                    resp = requests.post(fwd_url, data=json.dumps(data), headers=headers, timeout=30)
-                    resp.raise_for_status()
-                    result = resp.json()
-                    if result.get('status') == 'ok':
-                        success_count += 1
-                        log.info('OneBot 私聊合并转发成功！')
-                    else:
-                        error_messages.append(f'OneBot 私聊合并转发失败: {result}')
-                        log.error(f'OneBot 私聊合并转发失败: {result}')
-                except Exception as e:
-                    error_messages.append(f'OneBot 私聊合并转发异常: {str(e)}')
-                    log.error(f'OneBot 私聊合并转发异常: {str(e)}')
+            for batch_idx, batch in enumerate(batches):
+                suffix = f'(批次 {batch_idx + 1}/{len(batches)})' if len(batches) > 1 else ''
 
-            # 群聊合并转发
-            if group_id and len(group_id) > 0:
-                fwd_url = base_url + '/send_group_forward_msg'
-                data = {'group_id': group_id, 'messages': nodes}
-                try:
-                    resp = requests.post(fwd_url, data=json.dumps(data), headers=headers, timeout=30)
-                    resp.raise_for_status()
-                    result = resp.json()
-                    if result.get('status') == 'ok':
+                if user_id and len(user_id) > 0:
+                    ok, msg = self._send_forward(
+                        base_url + '/send_private_forward_msg',
+                        {'user_id': user_id, 'messages': batch},
+                        headers,
+                        f'私聊合并转发{suffix}',
+                    )
+                    if ok:
                         success_count += 1
-                        log.info('OneBot 群聊合并转发成功！')
                     else:
-                        error_messages.append(f'OneBot 群聊合并转发失败: {result}')
-                        log.error(f'OneBot 群聊合并转发失败: {result}')
-                except Exception as e:
-                    error_messages.append(f'OneBot 群聊合并转发异常: {str(e)}')
-                    log.error(f'OneBot 群聊合并转发异常: {str(e)}')
+                        error_messages.append(msg)
+
+                if group_id and len(group_id) > 0:
+                    ok, msg = self._send_forward(
+                        base_url + '/send_group_forward_msg',
+                        {'group_id': group_id, 'messages': batch},
+                        headers,
+                        f'群聊合并转发{suffix}',
+                    )
+                    if ok:
+                        success_count += 1
+                    else:
+                        error_messages.append(msg)
 
             if success_count > 0:
                 if len(error_messages) > 0:

@@ -23,11 +23,17 @@ class NotifyPool:
 
     def __init__(self) -> None:
         self.items: list[NotifyPoolItem] = []
+        self.max_items: int = 200
         self.max_images: int = 10
         self._image_count: int = 0
 
     def add(self, content: str, image: MatLike | None = None) -> None:
         """添加一条通知到池中"""
+        # 超出条目上限时，丢弃最旧的条目
+        if len(self.items) >= self.max_items:
+            removed = self.items.pop(0)
+            if removed.image is not None:
+                self._image_count -= 1
         self.items.append(NotifyPoolItem(content=content, image=image))
         if image is not None:
             self._image_count += 1
