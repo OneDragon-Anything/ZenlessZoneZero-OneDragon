@@ -130,7 +130,7 @@ class IntelBoardApp(ZApplication):
         all_commissions.sort(key=lambda x: x[1].y1)
 
         # 识别"star"标记的位置信息（失败应抛异常，避免误接自己发布的委托）
-        stars_template = TemplateMatcher(self.ctx.template_loader).match_template(
+        stars_template = self.ctx.tm.match_template(
             source=self.last_screenshot,
             template_sub_dir='intel_board',
             template_id='Star',
