@@ -34,6 +34,7 @@ class ConditionalOperatorLoader:
         self._state_handler_template_sub_dir: list[str] = state_handler_template_sub_dir  # 状态处理器模板所在目录
 
         self._template_name: str = template_name  # 配置入口文件名
+        self._raw_data: dict[str, Any] = {}
         
         # 配置数据
         self.scenes: list[Scene] = []
@@ -43,6 +44,7 @@ class ConditionalOperatorLoader:
         加载配置
         """
         data = ConditionalOperatorLoader.load_yaml_config(self._sub_dir, self._template_name, self._read_from_merged)
+        self._raw_data = data.copy()
 
         scenes = data.get('scenes', [])
 
@@ -201,9 +203,11 @@ class ConditionalOperatorLoader:
         template_dir = os_utils.get_path_under_work_dir(*full_sub_dir)
         file_path = os.path.join(template_dir, f'{self._template_name}.merged.yml')
         with open(file_path, 'w', encoding='utf-8') as file:
-            data = {
-                'scenes': [scene.original_data for scene in self.scenes]
-            }
+            if self._raw_data is None:
+                data = {}
+            else:
+                data = self._raw_data.copy()
+            data['scenes'] = [scene.original_data for scene in self.scenes]
             yaml.dump(data, file, allow_unicode=True, Dumper=MergedConfigDumper)
 
     def get_template_name(self) -> str:
