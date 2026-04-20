@@ -286,9 +286,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='矩阵行动-选择代理人')
     def matrix_select_agent(self) -> OperationRoundResult:
         # 代理人列表
-        agent_list_str = [self.ctx.lost_void.challenge_config.agent_1,
-                          self.ctx.lost_void.challenge_config.agent_2,
-                          self.ctx.lost_void.challenge_config.agent_3]
+        agent_list_str = self.ctx.lost_void.challenge_config.team_info
         # agent_list_str = ['anby', 'yeshunguang', 'ellen']
         # 记录角色在第几页的哪个位置
         agent_page_match_list: list[[int, Point] | None] = [None] * len(agent_list_str)
