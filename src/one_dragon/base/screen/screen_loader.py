@@ -138,6 +138,53 @@ class ScreenContext:
         self._global_screen_names = {
             s.screen_name for s in self.screen_info_list if not s.app_id
         }
+
+    def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> None:
+        """从额外目录加载 screen YAML 并注册（用于插件 screen 注入）
+
+        加载后会重新计算路由和全局 screen 集合。
+
+        Args:
+            dir_path: 包含 screen YAML 文件的目录路径
+            default_app_id: 如果 YAML 中未设置 app_id，使用此默认值
+        """
+        screen_dir = Path(dir_path)
+        if not screen_dir.is_dir():
+            return
+
+        added = False
+        for file_path in screen_dir.iterdir():
+            if file_path.suffix != '.yml':
+                continue
+            with file_path.open(encoding='utf-8') as file:
+                log.debug(f"加载插件画面: {file_path}")
+                data = yaml_utils.safe_load(file)
+            if not isinstance(data, dict):
+                log.warning(f"插件画面配置格式错误，已跳过: {file_path}")
+                continue
+
+            if default_app_id and not data.get('app_id'):
+                data['app_id'] = default_app_id
+
+            screen_info = ScreenInfo(data)
+            if screen_info.screen_name in self.screen_info_map:
+                log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
+                continue
+
+            self.screen_info_list.append(screen_info)
+            self.screen_info_map[screen_info.screen_name] = screen_info
+            self._id_2_screen[screen_info.screen_id] = screen_info
+
+            for screen_area in screen_info.area_list:
+                self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+            added = True
+
+        if added:
+            self.init_screen_route()
+            self._global_screen_names = {
+                s.screen_name for s in self.screen_info_list if not s.app_id
+            }
+
     def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
         """
         获取某个画面

@@ -175,9 +175,61 @@ class Application(Operation):
 3. 零号空洞（4 screen）
 4. 仓库系统（3 screen）
 
-## 8. 插件支持
+## 8. 插件 Screen 加载
 
-第三方插件在自己的 `screen_info/` 目录中定义 YAML screen，设置 `app_id` 为自己的应用 ID。
+### 加载机制
+
+插件的 screen 通过 `OneDragonContext._load_plugin_screens()` 自动加载：
+
+```
+OneDragonContext.init()
+├── register_application_factory()    ← 扫描插件，填充 plugin_infos
+├── screen_loader.reload()            ← 加载主 screen YAML
+└── _load_plugin_screens()            ← 遍历 plugin_infos → load_extra_screen_dir()
+    └── 对每个插件的 screen_info/ 目录加载 YAML
+        └── 未设 app_id 的 screen 自动使用插件的 app_id
+
+refresh_application_registration()    ← 运行时刷新插件
+├── clear_applications + discover_factories    ← 重新扫描
+├── screen_loader.reload()            ← 重新加载主 YAML
+└── _load_plugin_screens()            ← 重新加载插件 screen
+```
+
+### 插件目录结构
+
+```
+plugins/
+  my_plugin/
+    __init__.py
+    my_plugin_const.py       # APP_ID = 'my_plugin'
+    my_plugin_factory.py
+    my_plugin.py
+    screen_info/             # ← 新增，放 screen YAML
+      my_screen.yml
+```
+
+### 插件 Screen YAML 示例
+
+```yaml
+# plugins/my_plugin/screen_info/my_screen.yml
+screen_id: my_plugin_main
+screen_name: 我的插件-主界面
+# app_id 可省略，自动使用插件的 APP_ID
+pc_alt: false
+area_list:
+  - area_name: 返回按钮
+    id_mark: true
+    pc_rect: [82, 13, 150, 90]
+    template_id: back
+    template_sub_dir: menu
+    goto_list:
+      - 大世界-普通
+```
+
+### 冲突处理
+
+- 插件 screen_name 与主 YAML 或其他插件冲突时，跳过并输出警告日志
+- `default_app_id` 仅在 YAML 未显式设置 `app_id` 时使用
 插件的 screen 加载到 `ScreenContext` 后，通过 `app_id` 自动归入局部命名空间，不污染其他应用。
 
 ## 9. 文件变更清单
@@ -185,6 +237,7 @@ class Application(Operation):
 | 文件 | 变更 |
 |------|------|
 | `src/one_dragon/base/screen/screen_info.py` | `ScreenInfo` 新增 `app_id` 字段 |
-| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理 API |
+| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理 API 和 `load_extra_screen_dir` |
 | `src/one_dragon/base/screen/screen_utils.py` | BFS 匹配适配活跃范围 |
 | `src/one_dragon/base/operation/application_base.py` | `Application` 生命周期自动 enter/exit scope |
+| `src/one_dragon/base/operation/one_dragon_context.py` | 新增 `_load_plugin_screens()`，init 和 refresh 时加载插件 screen |
