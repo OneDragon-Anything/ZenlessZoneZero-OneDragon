@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -17,6 +19,12 @@ from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 
 
+class CommissionType(StrEnum):
+
+    EXPERT_CHALLENGE = '专业挑战室'
+    NOTORIOUS_HUNT = '恶名狩猎'
+
+
 class IntelBoardApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -32,7 +40,7 @@ class IntelBoardApp(ZApplication):
         )
         self.run_record: IntelBoardRunRecord = self.run_record
         self.scroll_times: int = 0
-        self.current_commission_type: str | None = None
+        self.current_commission_type: CommissionType | None = None
         self.has_filtered: bool = False
 
     @operation_node(name='返回大世界', is_start_node=True)
@@ -119,15 +127,40 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='寻找委托', status='翻页')
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
-        # 4. Ocr 专业挑战室/恶名狩猎，找不到就往下翻到找到为止
-        result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=['专业挑战室', '恶名狩猎'],
-            success_wait=0.5,
+        # OCR 识别委托类型 按 y 坐标排序
+        commission_values = {e.value for e in CommissionType}
+        ocr_results = self.ctx.ocr.ocr(self.last_screenshot)
+        all_commissions = [(result.data, result.rect) for result in ocr_results
+                          if result.data in commission_values]
+        all_commissions.sort(key=lambda x: x[1].y1)
+
+        # 模板匹配 star 标记（我的帖子）
+        stars_template = self.ctx.tm.match_template(
+            source=self.last_screenshot,
+            template_sub_dir='intel_board',
+            template_id='Star',
+            threshold=0.8,
+            only_best=False,
         )
-        if result.is_success:
-            commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
-            self.current_commission_type = commission_map.get(result.status)
-            return result
+        stars_list = [match_result.rect for match_result in stars_template]
+
+        # 过滤与 star 在 x 轴重叠的委托 避免点击自己发布的帖子
+        expand_pixel = 30
+        valid_commissions = [
+            (text, rect) for text, rect in all_commissions
+            if not any(
+                rect.x1 < star_rect.x1 + star_rect.width + expand_pixel
+                and star_rect.x1 < rect.x1 + rect.width
+                for star_rect in stars_list
+            )
+        ]
+
+        # 点击第一个有效委托
+        if valid_commissions:
+            selected_text, selected_rect = valid_commissions[0]
+            self.ctx.controller.click(selected_rect.center)
+            self.current_commission_type = CommissionType(selected_text)
+            return self.round_success()
 
         # 翻页
         if self.scroll_times >= 5:
@@ -221,7 +254,7 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='战斗前移动')
     def pre_battle_move(self) -> OperationRoundResult:
         # 12. 根据委托类型选择移动方式
-        if self.current_commission_type == 'notorious_hunt':
+        if self.current_commission_type == CommissionType.NOTORIOUS_HUNT:
             op = NotoriousHuntMove(self.ctx, 3)
             return self.round_by_op_result(op.execute())
         else:
@@ -256,9 +289,9 @@ class IntelBoardApp(ZApplication):
     def check_back_to_list(self) -> OperationRoundResult:
         result = self.round_by_ocr(self.last_screenshot, '周期内可获取')
         if result.is_success:
-            if self.current_commission_type == 'expert_challenge':
+            if self.current_commission_type == CommissionType.EXPERT_CHALLENGE:
                 self.run_record.expert_challenge_count += 1
-            elif self.current_commission_type == 'notorious_hunt':
+            elif self.current_commission_type == CommissionType.NOTORIOUS_HUNT:
                 self.run_record.notorious_hunt_count += 1
             self.current_commission_type = None
             return self.round_success('结算完成')
