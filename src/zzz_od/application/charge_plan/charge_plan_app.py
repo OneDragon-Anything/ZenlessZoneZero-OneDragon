@@ -11,6 +11,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
     ChargePlanConfig,
     ChargePlanItem,
+    get_charge_plan_config,
 )
 from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.zzz_application import ZApplication
@@ -38,11 +39,7 @@ class ChargePlanApp(ZApplication):
             app_id=charge_plan_const.APP_ID,
             op_name=charge_plan_const.APP_NAME,
         )
-        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
+        self.config: ChargePlanConfig = get_charge_plan_config(self.ctx)
         self.run_record: ChargePlanRunRecord = self.ctx.run_context.get_run_record(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
@@ -126,7 +123,7 @@ class ChargePlanApp(ZApplication):
             # 检查电量是否足够
             if need_charge_power > 0 and self.charge_power < need_charge_power:
                 if (
-                    not self.config.is_restore_charge_enabled
+                    not self.config.should_restore_charge
                     or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
                 ):
                     if not self.config.skip_plan:
