@@ -56,7 +56,6 @@ class PcControllerBase(ControllerBase):
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
         self._game_input_mode: str = 'keyboard_mouse'  # 游戏当前识别的输入设备
-        self.pyautogui_pause = pyautogui.PAUSE  # pyautogui的操作会有延迟, 一些需要低延迟的操作中会取消这个延迟然后恢复延迟, 以免影响其他功能
 
     def init_game_win(self) -> bool:
         """
@@ -72,6 +71,7 @@ class PcControllerBase(ControllerBase):
             return False
 
     def init_before_context_run(self) -> bool:
+        pyautogui.PAUSE = 0.001  # pyautogui的操作会有延迟, 一些需要低延迟的操作中会取消这个延迟然后恢复延迟, 以免影响其他功能
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
         self.init_game_win()
         if not self.background_mode:
@@ -270,8 +270,8 @@ class PcControllerBase(ControllerBase):
         screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
         win32api.SetCursorPos((screen_x, screen_y))
 
-    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False,
-              gamepad_key: str | None = None, low_delay: bool = False) -> bool:
+    def click(self, pos: Point = None, press_time: float = 0.1, pc_alt: bool = False,
+              gamepad_key: str | None = None) -> bool:
         """点击位置。
 
         Args:
@@ -279,7 +279,6 @@ class PcControllerBase(ControllerBase):
             press_time: 大于0时长按若干秒
             pc_alt: 只在PC端有用 使用ALT键进行点击
             gamepad_key: 后台模式下用手柄按键替代点击的动作名
-            low_delay: todo (前台模式下) 去除按键延迟 (pyautogui几乎所有操作都有延迟, 默认为0.1s)
 
         Returns:
             不在窗口区域时不点击 返回False
@@ -289,16 +288,15 @@ class PcControllerBase(ControllerBase):
                 return self._gamepad_click(gamepad_key)
             return self._background_click(pos, press_time)
 
-        return self._foreground_click(pos, press_time, pc_alt, low_delay)
+        return self._foreground_click(pos, press_time, pc_alt)
 
-    def _foreground_click(self, pos: Point | None, press_time: float = 0, pc_alt: bool = False, low_delay: bool = False) -> bool:
+    def _foreground_click(self, pos: Point | None, press_time: float = 0.1, pc_alt: bool = False) -> bool:
         """前台点击：通过 pyautogui 点击，可选 ALT 解锁光标。
 
         Args:
             pos: 游戏中的位置 (x,y)，None 时使用当前鼠标位置
             press_time: 大于0时长按
             pc_alt: 是否先按住 ALT 再点击
-            low_delay: todo 去除按键延迟 (pyautogui几乎所有操作都有延迟, 默认为0.1s)
 
         Returns:
             是否成功
@@ -315,7 +313,7 @@ class PcControllerBase(ControllerBase):
         if pc_alt:
             self.keyboard_controller.keyboard.press(keyboard.Key.alt)
             time.sleep(0.2)
-        self.win_click(click_pos, press_time=press_time, low_delay=low_delay)
+        win_click(click_pos, press_time=press_time)
         if pc_alt:
             self.keyboard_controller.keyboard.release(keyboard.Key.alt)
         return True
@@ -517,39 +515,29 @@ class PcControllerBase(ControllerBase):
         win_pos = self.game_win.game2win_pos(game_pos)
         if win_pos is not None:
             pyautogui.moveTo(win_pos.x, win_pos.y)
+            time.sleep(0.1)  # 原本 pyautogui 的操作会有0.1s延迟, 现在去掉了, 故在这里加上延迟
 
     @property
     def center_point(self) -> Point:
         return Point(self.standard_width // 2, self.standard_height // 2)
 
-    def win_click(self, pos: Point = None, press_time: float = 0, primary: bool = True, low_delay: bool = False):
-        """点击鼠标。
 
-        Args:
-            pos: 屏幕坐标
-            press_time: 按住时间
-            primary: 是否点击鼠标主要按键（通常是左键）
-            low_delay: todo 去除按键延迟 (pyautogui几乎所有操作都有延迟, 默认为0.1s)
-        """
-        btn = pyautogui.PRIMARY if primary else pyautogui.SECONDARY
-        if pos is None:
-            pos = get_current_mouse_pos()
+def win_click(pos: Point = None, press_time: float = 0.1, primary: bool = True):
+    """点击鼠标。
 
-        if low_delay:
-            pyautogui.PAUSE = 0.001
+    Args:
+        pos: 屏幕坐标
+        press_time: 按住时间
+        primary: 是否点击鼠标主要按键（通常是左键）
+    """
+    btn = pyautogui.PRIMARY if primary else pyautogui.SECONDARY
+    if pos is None:
+        pos = get_current_mouse_pos()
 
-        try:
-            if press_time > 0:
-                # 处理点击延迟
-                pyautogui.moveTo(pos.x, pos.y)
-                pyautogui.mouseDown(button=btn)
-                time.sleep(press_time)
-                pyautogui.mouseUp(button=btn)
-            else:
-                pyautogui.click(pos.x, pos.y, button=btn)
-        finally:
-            if low_delay:
-                pyautogui.PAUSE = self.pyautogui_pause
+    pyautogui.moveTo(pos.x, pos.y)
+    pyautogui.mouseDown(button=btn)
+    time.sleep(max(0.001, press_time))
+    pyautogui.mouseUp(button=btn)
 
 
 def win_scroll(clicks: int, pos: Point = None):
