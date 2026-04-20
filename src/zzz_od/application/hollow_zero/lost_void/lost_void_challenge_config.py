@@ -38,14 +38,12 @@ class LostVoidRegionType(Enum):
 
 
 class LostVoidPeriodBuffNo(Enum):
-
     NO_1 = ConfigItem('第一个')
     NO_2 = ConfigItem('第二个')
     NO_3 = ConfigItem('第三个')
 
 
 class LostVoidBuyOnlyPriority(Enum):
-
     NONE = ConfigItem('刷新0次', value=0)
     NO_1 = ConfigItem('刷新1次(50硬币)', value=1)
     NO_2 = ConfigItem('刷新2次(100硬币)', value=2)
@@ -127,6 +125,30 @@ class LostVoidChallengeConfig(YamlConfig):
     @choose_team_by_priority.setter
     def choose_team_by_priority(self, new_value: bool):
         self.update('choose_team_by_priority', new_value)
+
+    @property
+    def manually_choose_agent(self) -> bool:
+        """
+        自选代理人开关
+        :return:
+        """
+        return self.get('manually_choose_agent', False)
+
+    @manually_choose_agent.setter
+    def manually_choose_agent(self, new_value: bool):
+        self.update('manually_choose_agent', new_value)
+
+    @property
+    def team_info(self) -> list[str]:
+        """
+        自选代理人
+        :return:
+        """
+        return self.get('team_info', ['unknown', 'unknown', 'unknown'])
+
+    @team_info.setter
+    def team_info(self, new_value: list[str]):
+        self.update('team_info', new_value)
 
     @property
     def auto_battle(self) -> str:
@@ -269,6 +291,7 @@ class LostVoidChallengeConfig(YamlConfig):
     @chase_new_mode.setter
     def chase_new_mode(self, new_value: bool):
         self.update('chase_new_mode', new_value)
+
 
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:
