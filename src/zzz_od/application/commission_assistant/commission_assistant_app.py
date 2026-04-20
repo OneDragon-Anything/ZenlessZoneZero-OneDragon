@@ -425,7 +425,7 @@ class CommissionAssistantApp(ZApplication):
                 if result.is_success:
                     self.is_skip_in_main_story = True
                     self.chosen_opt_history.clear()
-                    return self.round_wait(f'点击剧情按钮 {result.status}', wait=0.1)
+                    return self.round_wait(f'点击剧情按钮 {result.status}', wait=0.2)
 
             # 识别跳过后的确认框
             result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', pre_delay=0)
