@@ -161,14 +161,14 @@ class CommissionAssistantApp(ZApplication):
         if with_dialog or (
                 self.check_main_story() and self.config.story_mode != StoryMode.SKIP.value.value):
             # 因为前面的检测也需要时间, 所以这里的点击需要尽可能快, 不然跳过效果在视觉上就慢了
-            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
+            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001)
             self.dialog_clicked = True
             return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
 
         # 对话框替换期间或者对话内容为 '......' 时是无法识别出内容的
         # 如果前几帧识别到对话框则需要继续点击屏幕, 但是不能一直点, 所以这里是retry
         if self.dialog_clicked:
-            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
+            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001)
             return self.round_retry(status='点击未知画面 (对话后)', wait=0.2)
         else:
             return self.round_retry(status='未知画面', wait=0.2)
