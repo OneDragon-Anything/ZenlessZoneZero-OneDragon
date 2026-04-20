@@ -56,7 +56,7 @@ class CommissionAssistantApp(ZApplication):
 
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
-        self.is_skip_in_main_story: bool = False  # 跳过主线时, 添加一个标记 以加快ocr效率和增加代码可读性
+        self.main_story_click_time: float = 0.  # 跳过主线时, 添加一个标记 点击菜单后的5s内没有跳过确认按钮出现则不处理对话框和黑框
         self.option_click_interval_min = max(self.config.OPTION_CLICK_INTERVAL_MIN,
                                              self.config.dialog_click_interval)  # 选项的最小点击间隔(需要等待点击动画结束)
         self.dialog_clicked: bool = False  # 有些对话框内容为'......', ocr不识别, 故引进这个参数, 使得结束对话框点击之后的3次识别不到任何内容时也点击屏幕
@@ -411,27 +411,31 @@ class CommissionAssistantApp(ZApplication):
 
         # 跳过剧情模式
         if self.config.story_mode == StoryMode.SKIP.value.value:
+            now = time.time()
             # (主线和支线) 识别跳过按钮
-            result = self.round_by_ocr_and_click(self.last_screenshot, '跳过', area=area, success_wait=0.1,
+            result = self.round_by_ocr_and_click(self.last_screenshot, '跳过', area=area, pre_delay=0, success_wait=0.4,
                                                  color_range=[[240, 240, 240], [255, 255, 255]])
-            if self.is_skip_in_main_story:
-                # 主线点击跳过会有动画, 额外等待0.25s, 支线跳过不用等
-                time.sleep(0.25)
-                self.is_skip_in_main_story = False
-            if not result.is_success:
+            if result.is_success:
+                log.info('节点 委托助手 -> 剧情模式 返回状态点击跳过键')
+            else:
                 # (主线) 按优先级处理 跳过/菜单/自动, 不识别遮罩后的按钮
                 result = self.round_by_ocr_and_click_by_priority(['菜单', '自动'], area=area, pre_delay=0,
                                                                  color_range=[[240, 240, 240], [255, 255, 255]])
                 if result.is_success:
-                    self.is_skip_in_main_story = True
+                    self.main_story_click_time = now
                     self.chosen_opt_history.clear()
-                    return self.round_wait(f'点击剧情按钮 {result.status}', wait=0.2)
+                    return self.round_wait(f'点击剧情按钮 {result.status}', wait=0.1)
 
             # 识别跳过后的确认框
             result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', pre_delay=0)
             if result.is_success:
                 self.chosen_opt_history.clear()
+                self.main_story_click_time = 0
                 return self.round_wait('跳过剧情', wait=0.1)
+
+            # 因为有动画, 点击主线菜单后的5s 不处理对话框和黑屏
+            if now - self.main_story_click_time <= 5:
+                return self.round_wait('等待跳过键和确认框', wait=0.1)
 
         # region 容易和剧情模式穿插的界面, 放在剧情模式之后检测
         # 判断二级菜单
