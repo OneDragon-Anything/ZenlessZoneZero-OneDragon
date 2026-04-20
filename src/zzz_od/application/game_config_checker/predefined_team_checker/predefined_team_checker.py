@@ -11,9 +11,11 @@ from one_dragon.utils.log_utils import log
 from zzz_od.application.game_config_checker.predefined_team_checker import (
     predefined_team_checker_const,
 )
+from zzz_od.application.game_config_checker.predefined_team_checker.predefined_team_template_matcher import \
+    match_team_agent_template
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import Agent, AgentEnum
+from zzz_od.game_data.agent import Agent
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.goto.goto_menu import GotoMenu
 
@@ -100,27 +102,7 @@ class PredefinedTeamChecker(ZApplication):
             part = cv2_utils.crop_image_only(screen, avatar_rect)
             source_kp, source_desc = cv2_utils.feature_detect_and_compute(part)
 
-            agent_mr_list: list[MatchResult] = []
-
-            for agent_enum in AgentEnum:
-                agent: Agent = agent_enum.value
-                for template_id in agent.template_id_list:
-                    template = self.ctx.template_loader.get_template('predefined_team', f'avatar_{template_id}')
-                    if template is None:
-                        continue
-                    template_kp, template_desc = template.features
-                    mr = cv2_utils.feature_match_for_one(
-                        source_kp, source_desc, template_kp, template_desc,
-                        template_width=template.raw.shape[1], template_height=template.raw.shape[0],
-                        knn_distance_percent=0.5
-                    )
-
-                    if mr is None:
-                        continue
-
-                    agent_mr = mr
-                    agent_mr.data = agent
-                    agent_mr_list.append(agent_mr)
+            agent_mr_list: list[MatchResult] = match_team_agent_template(self.ctx, source_kp, source_desc,None)
 
             if len(agent_mr_list) == 0:
                 continue

@@ -20,7 +20,7 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
     get_lost_void_challenge_new_name, get_all_lost_void_challenge_config, LostVoidPeriodBuffNo
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import AgentEnum
+from zzz_od.gui.view.one_dragon.predefined_team_interface import TeamSettingCard
 
 
 class LostVoidChallengeConfigInterface(VerticalScrollInterface):
@@ -95,37 +95,9 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.manually_choose_agent_opt.value_changed.connect(self.on_manually_choose_agent_changed)
         widget.add_widget(self.manually_choose_agent_opt)
 
-        self.manually_team_opt = SettingCard(FluentIcon.PEOPLE, gt(''), gt(''))
-        self.manually_team_opt.setFixedHeight(50)
-        widget.add_widget(self.manually_team_opt)
-
-        self.agent_1_selector = EditableComboBox()
-        self.agent_1_selector.currentIndexChanged.connect(self.on_agent_1_changed)
-        self.agent_1_selector.setFixedWidth(110)
-
-        self.agent_2_selector = EditableComboBox()
-        self.agent_2_selector.currentIndexChanged.connect(self.on_agent_2_changed)
-        self.agent_2_selector.setFixedWidth(110)
-
-        self.agent_3_selector = EditableComboBox()
-        self.agent_3_selector.currentIndexChanged.connect(self.on_agent_3_changed)
-        self.agent_3_selector.setFixedWidth(110)
-
-        self.manually_team_opt.hBoxLayout.addWidget(self.agent_1_selector, alignment=Qt.AlignmentFlag.AlignRight)
-        self.manually_team_opt.hBoxLayout.addSpacing(16)
-        self.manually_team_opt.hBoxLayout.addWidget(self.agent_2_selector, alignment=Qt.AlignmentFlag.AlignRight)
-        self.manually_team_opt.hBoxLayout.addSpacing(16)
-        self.manually_team_opt.hBoxLayout.addWidget(self.agent_3_selector, alignment=Qt.AlignmentFlag.AlignRight)
-        self.manually_team_opt.hBoxLayout.addSpacing(16)
-
-        self.agent_opts = ([ConfigItem(label='代理人', value='unknown')]
-                      + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
-
-        self.agent_1_selector.set_items(self.agent_opts, None)
-        self.agent_2_selector.set_items(self.agent_opts, None)
-        self.agent_3_selector.set_items(self.agent_opts, None)
-
-        self.team_info: Optional[PredefinedTeamInfo] = None
+        self.team_info_card = TeamSettingCard(only_agents=True)
+        self.team_info_card.changed.connect(self._on_team_info_changed)
+        widget.add_widget(self.team_info_card)
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动战斗',
                                                    content='预备编队使用游戏内配队时生效')
@@ -226,64 +198,27 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         chosen = self.chosen_config is not None
         is_sample = self.chosen_config is None or self.chosen_config.is_sample
 
-        self.existed_yml_btn.setDisabled(chosen)
-        self.create_btn.setDisabled(chosen)
-        self.copy_btn.setDisabled(not chosen)
-        self.delete_btn.setDisabled(not chosen or is_sample)
-        self.cancel_btn.setDisabled(not chosen)
-
-        self.name_opt.setDisabled(not chosen or is_sample)
-        self.predefined_team_opt.setDisabled(not chosen or is_sample
-                                             or self.chosen_config.choose_team_by_priority
-                                             or self.chosen_config.manually_choose_agent)
-        self.priority_team_opt.setDisabled(not chosen or is_sample or self.chosen_config.manually_choose_agent)
-        self.manually_choose_agent_opt.setDisabled(not chosen or is_sample or self.chosen_config.choose_team_by_priority)
-        self.agent_1_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
-        self.agent_2_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
-        self.agent_3_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
-        self.auto_battle_opt.setDisabled(not chosen or is_sample)
-        self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
-        self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
-        self.period_buff_no_opt.setDisabled(not chosen or is_sample)
-        self.store_gold_opt.setDisabled(not chosen or is_sample)
-        self.store_blood_opt.setDisabled(not chosen or is_sample)
-        self.store_blood_min_opt.setDisabled(not chosen or is_sample)
-        self.priority_new_opt.setDisabled(not chosen or is_sample)
-        self.buy_only_priority_1_opt.setDisabled(not chosen or is_sample)
-        self.buy_only_priority_2_opt.setDisabled(not chosen or is_sample)
-        self.artifact_priority_input.setDisabled(not chosen or is_sample)
-        self.artifact_priority_input_2.setDisabled(not chosen or is_sample)
-        self.region_type_priority_input.setDisabled(not chosen or is_sample)
-        self.stop_when_found_lottery_opt.setDisabled(not chosen or is_sample)
-
-        self._update_existed_yml_options()
-        team_config_list = ([ConfigItem('游戏内配队', -1)] +
-                       [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
-        self.predefined_team_opt.set_options_by_list(team_config_list)
-        self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
-        self.investigation_strategy_opt.set_options_by_list([
-            ConfigItem(i.strategy_name)
-            for i in self.ctx.lost_void.investigation_strategy_list
-        ])
-
         if chosen:
             self.name_opt.setValue(self.chosen_config.module_name)
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
             self.priority_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('choose_team_by_priority'))
-            self.manually_choose_agent_opt.init_with_adapter(self.chosen_config.get_prop_adapter('manually_choose_agent'))
-            self.agent_1_selector.set_items(self.agent_opts, self.chosen_config.agent_1)
-            self.agent_2_selector.set_items(self.agent_opts, self.chosen_config.agent_2)
-            self.agent_3_selector.set_items(self.agent_opts, self.chosen_config.agent_3)
+            self.manually_choose_agent_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('manually_choose_agent'))
+            self.team_info_card.init_setting_card([], PredefinedTeamInfo(-1, '', '', self.chosen_config.team_info))
             self.auto_battle_opt.setValue(self.chosen_config.auto_battle)
             self.chase_new_mode_opt.init_with_adapter(self.chosen_config.get_prop_adapter('chase_new_mode'))
-            self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
+            self.investigation_strategy_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('investigation_strategy'))
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
             self.store_gold_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_gold'))
             self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
-            self.store_blood_min_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
+            self.store_blood_min_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
             self.priority_new_opt.init_with_adapter(self.chosen_config.get_prop_adapter('artifact_priority_new'))
-            self.buy_only_priority_1_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_1', getter_convert='str', setter_convert='int'))
-            self.buy_only_priority_2_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_2', getter_convert='str', setter_convert='int'))
+            self.buy_only_priority_1_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('buy_only_priority_1', getter_convert='str', setter_convert='int'))
+            self.buy_only_priority_2_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('buy_only_priority_2', getter_convert='str', setter_convert='int'))
             self.stop_when_found_lottery_opt.init_with_adapter(self.chosen_config.get_prop_adapter('stop_when_found_lottery'))
 
             self.artifact_priority_input.blockSignals(True)
@@ -300,6 +235,45 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
             # 根据加载后的追新模式状态 更新调查战略的禁用情况
             self._on_chase_new_mode_toggled(self.chase_new_mode_opt.btn.isChecked())
+
+        # 设置完选项值之后再设置禁用情况
+        self.existed_yml_btn.setDisabled(chosen)
+        self.create_btn.setDisabled(chosen)
+        self.copy_btn.setDisabled(not chosen)
+        self.delete_btn.setDisabled(not chosen or is_sample)
+        self.cancel_btn.setDisabled(not chosen)
+
+        self.name_opt.setDisabled(not chosen or is_sample)
+        self.predefined_team_opt.setDisabled(not chosen or is_sample
+                                             or self.chosen_config.choose_team_by_priority
+                                             or self.chosen_config.manually_choose_agent)
+        self.priority_team_opt.setDisabled(not chosen or is_sample or self.chosen_config.manually_choose_agent)
+        self.manually_choose_agent_opt.setDisabled(not chosen or is_sample or self.chosen_config.choose_team_by_priority)
+        self.team_info_card.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
+        self.auto_battle_opt.setDisabled(not chosen or is_sample)
+        self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
+        self.investigation_strategy_opt.setDisabled(not chosen or is_sample or self.chosen_config.chase_new_mode)
+        self.period_buff_no_opt.setDisabled(not chosen or is_sample)
+        self.store_gold_opt.setDisabled(not chosen or is_sample)
+        self.store_blood_opt.setDisabled(not chosen or is_sample)
+        self.store_blood_min_opt.setDisabled(not chosen or is_sample)
+        self.priority_new_opt.setDisabled(not chosen or is_sample)
+        self.buy_only_priority_1_opt.setDisabled(not chosen or is_sample)
+        self.buy_only_priority_2_opt.setDisabled(not chosen or is_sample)
+        self.artifact_priority_input.setDisabled(not chosen or is_sample)
+        self.artifact_priority_input_2.setDisabled(not chosen or is_sample)
+        self.region_type_priority_input.setDisabled(not chosen or is_sample)
+        self.stop_when_found_lottery_opt.setDisabled(not chosen or is_sample)
+
+        self._update_existed_yml_options()
+        team_config_list = ([ConfigItem('游戏内配队', -1)] +
+                            [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
+        self.predefined_team_opt.set_options_by_list(team_config_list)
+        self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
+        self.investigation_strategy_opt.set_options_by_list([
+            ConfigItem(i.strategy_name)
+            for i in self.ctx.lost_void.investigation_strategy_list
+        ])
 
         if is_sample:
             self._update_error_message('当前为默认配置，点击复制后可修改')
@@ -466,22 +440,14 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
     def on_manually_choose_agent_changed(self, value: bool) -> None:
         self.predefined_team_opt.setDisabled(
             self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
+        self.predefined_team_opt.setDisabled(value)
         self.priority_team_opt.setDisabled(value)
-        self.agent_1_selector.setEnabled(value)
-        self.agent_2_selector.setEnabled(value)
-        self.agent_3_selector.setEnabled(value)
+        self.team_info_card.setEnabled(value)
 
-    def on_agent_1_changed(self) -> None:
+    def _on_team_info_changed(self, team: PredefinedTeamInfo) -> None:
+        """
+        更新手动选取的配队
+        """
         if self.chosen_config is None:
             return
-        self.chosen_config.agent_1 = self.agent_1_selector.currentData()
-
-    def on_agent_2_changed(self) -> None:
-        if self.chosen_config is None:
-            return
-        self.chosen_config.agent_2 = self.agent_2_selector.currentData()
-
-    def on_agent_3_changed(self) -> None:
-        if self.chosen_config is None:
-            return
-        self.chosen_config.agent_3 = self.agent_3_selector.currentData()
+        self.chosen_config.team_info = team.agent_id_list
