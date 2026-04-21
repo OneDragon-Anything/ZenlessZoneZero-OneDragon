@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+import contextlib
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
@@ -21,6 +21,7 @@ from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.multi_select_list import MultiSelectListWidget
 from one_dragon_qt.widgets.selectable_app_list import SelectableAppList
+from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 
 
 class StandaloneRunInterface(SplitAppRunInterface):
@@ -29,8 +30,6 @@ class StandaloneRunInterface(SplitAppRunInterface):
     左侧为用户手动添加的应用卡片列表，
     右侧为标准的运行/停止/日志控件。
     选中某个应用后，点击"开始"即运行该应用。
-
-    子类可覆盖 get_setting_dialog_map() 以提供设置弹窗。
     """
 
     def __init__(self, ctx: OneDragonContext,
@@ -78,6 +77,18 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def on_interface_shown(self) -> None:
         SplitAppRunInterface.on_interface_shown(self)
         self._refresh_app_list()
+
+        # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
+        window = self.window()
+        if isinstance(window, MainAppWindowBase):
+            window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
+
+    def on_interface_hidden(self) -> None:
+        SplitAppRunInterface.on_interface_hidden(self)
+        window = self.window()
+        if isinstance(window, MainAppWindowBase):
+            with contextlib.suppress(RuntimeError):
+                window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
 
     # ── 应用列表管理 ──
 
@@ -142,11 +153,12 @@ class StandaloneRunInterface(SplitAppRunInterface):
             self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
     def _on_app_setting_clicked(self, app_id: str) -> None:
-        dialog_fn = self.get_setting_dialog_map().get(app_id)
-        if dialog_fn is None:
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
             return
         target = self._find_setting_btn(app_id) or self.add_app_btn
-        dialog_fn(
+        window.app_setting_manager.show_app_setting(
+            app_id=app_id,
             parent=self,
             group_id=application_const.DEFAULT_GROUP_ID,
             target=target,
@@ -160,14 +172,13 @@ class StandaloneRunInterface(SplitAppRunInterface):
         return None
 
     def _update_setting_btn_visibility(self) -> None:
-        """根据 get_setting_dialog_map 的注册信息，显示或隐藏卡片的设置按钮"""
-        settable = set(self.get_setting_dialog_map())
+        """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        settable = window.app_setting_manager.settable_app_ids
         for card in self.app_list_widget._cards:
             card.setting_btn.setVisible(card.app_id in settable)
-
-    def get_setting_dialog_map(self) -> dict[str, Callable]:
-        """返回 app_id -> 设置弹窗回调 的映射，由子类实现"""
-        return {}
 
 
 class AddAppDialog(MessageBoxBase):

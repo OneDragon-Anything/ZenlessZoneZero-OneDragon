@@ -1,7 +1,6 @@
 import os
-import time
-from typing import Optional, List, Tuple
 import re
+import time
 
 from cv2.typing import MatLike
 
@@ -9,17 +8,18 @@ from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
-from one_dragon.utils import os_utils, str_utils, cv2_utils
+from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import \
-    LostVoidInvestigationStrategy
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType, \
-    LostVoidChallengeConfig
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import LostVoidInvestigationStrategy
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidChallengeConfig,
+    LostVoidRegionType,
+)
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import MoveTargetWrapper
@@ -33,12 +33,12 @@ class LostVoidContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
 
-        self.detector: Optional[LostVoidDetector] = None
-        self.challenge_config: Optional[LostVoidChallengeConfig] = None
+        self.detector: LostVoidDetector | None = None
+        self.challenge_config: LostVoidChallengeConfig | None = None
 
-        self.all_artifact_list: List[LostVoidArtifact] = []  # 武备 + 鸣徽
+        self.all_artifact_list: list[LostVoidArtifact] = []  # 武备 + 鸣徽
         self.gear_by_name: dict[str, LostVoidArtifact] = {}  # key=名称 value=武备
-        self.cate_2_artifact: dict[str, List[LostVoidArtifact]] = {}  # key=分类 value=藏品
+        self.cate_2_artifact: dict[str, list[LostVoidArtifact]] = {}  # key=分类 value=藏品
 
         self.investigation_strategy_list: list[LostVoidInvestigationStrategy] = []  # 调查战略
 
@@ -150,7 +150,12 @@ class LostVoidContext:
 
         return False
 
-    def detect_to_go(self, screen: MatLike, screenshot_time: float, ignore_list: Optional[List[str]] = None) -> DetectFrameResult:
+    def is_boss_health_bar_present(self, screen: MatLike) -> bool:
+        """判断当前画面是否已出现 BOSS 血条。"""
+        result = screen_utils.find_area(self.ctx, screen, '迷失之地-大世界', '标识-BOSS血条')
+        return result == FindAreaResultEnum.TRUE
+
+    def detect_to_go(self, screen: MatLike, screenshot_time: float, ignore_list: list[str] | None = None) -> DetectFrameResult:
         """
         识别需要前往的内容
         @param screen: 游戏画面
@@ -226,7 +231,7 @@ class LostVoidContext:
 
             time.sleep(self.ctx.battle_assistant_config.screenshot_interval)
 
-    def get_artifact_by_full_name(self, name_full_str: str) -> Optional[LostVoidArtifact]:
+    def get_artifact_by_full_name(self, name_full_str: str) -> LostVoidArtifact | None:
         """
         根据完整名称 获取对应的藏品 名称需要完全一致
         :param name_full_str: 识别的文本 [类型]名称
@@ -239,7 +244,7 @@ class LostVoidContext:
 
         return None
 
-    def match_artifact_by_ocr_full(self, name_full_str: str) -> Optional[LostVoidArtifact]:
+    def match_artifact_by_ocr_full(self, name_full_str: str) -> LostVoidArtifact | None:
         """
         使用 [类型]名称 的文本匹配 藏品
         :param name_full_str: 识别的文本 [类型]名称
@@ -278,7 +283,7 @@ class LostVoidContext:
                 if str_utils.find_by_lcs(art_name, suffix, percent=0.5):
                     return art
 
-    def check_artifact_priority_input(self, input_str: str) -> Tuple[List[str], str]:
+    def check_artifact_priority_input(self, input_str: str) -> tuple[list[str], str]:
         """
         校验优先级的文本输入
         当前采用“文本驱动”策略：
@@ -299,7 +304,7 @@ class LostVoidContext:
 
         return filter_result_list, ''
 
-    def check_region_type_priority_input(self, input_str: str) -> Tuple[List[str], str]:
+    def check_region_type_priority_input(self, input_str: str) -> tuple[list[str], str]:
         """
         校验优先级的文本输入
         错误的输入会被过滤掉
@@ -359,7 +364,7 @@ class LostVoidContext:
                     continue
 
                 # 找横坐标最接近的藏品
-                closest_artifact_pos: Optional[LostVoidArtifactPos] = None
+                closest_artifact_pos: LostVoidArtifactPos | None = None
                 for artifact_pos in artifact_pos_list:
                     # 标识需要在藏品的右方
                     if not mrl.max.rect.x1 > artifact_pos.rect.center.x:
@@ -391,7 +396,7 @@ class LostVoidContext:
             if title_idx is None or title_idx < 0:
                 continue
             # 找横坐标最接近的藏品
-            closest_artifact_pos: Optional[LostVoidArtifactPos] = None
+            closest_artifact_pos: LostVoidArtifactPos | None = None
             for artifact_pos in artifact_pos_list:
                 # 标题需要在藏品的上方
                 if not mrl.max.rect.y2 < artifact_pos.rect.y1:
@@ -491,7 +496,7 @@ class LostVoidContext:
         merged_candidates.sort(key=lambda i: (i.rect.center.x, i.rect.center.y))
         return merged_candidates
 
-    def _create_artifact_from_ocr_text(self, ocr_text: str) -> Tuple[Optional[LostVoidArtifact], bool]:
+    def _create_artifact_from_ocr_text(self, ocr_text: str) -> tuple[LostVoidArtifact | None, bool]:
         """
         从OCR文本提取候选藏品信息
         :return: (artifact, is_primary_name)
@@ -629,12 +634,12 @@ class LostVoidContext:
         return str_utils.find_by_lcs(item_name, artifact.name, percent=0.6) or str_utils.find_by_lcs(item_name, artifact_pos.ocr_text, percent=0.6)
 
     def get_artifact_by_priority(
-            self, artifact_list: List[LostVoidArtifactPos], choose_num: int,
+            self, artifact_list: list[LostVoidArtifactPos], choose_num: int,
             consider_priority_1: bool = True, consider_priority_2: bool = True,
             consider_not_in_priority: bool = True,
-            ignore_idx_list: Optional[list[int]] = None,
+            ignore_idx_list: list[int] | None = None,
             consider_priority_new: bool = False,
-    ) -> List[LostVoidArtifactPos]:
+    ) -> list[LostVoidArtifactPos]:
         """
         根据优先级 返回需要选择的藏品
         :param artifact_list: 识别到的藏品结果
@@ -684,7 +689,7 @@ class LostVoidContext:
         log.debug(f'优先级规则 第一优先级={p1_text}')
         log.debug(f'优先级规则 第二优先级={p2_text}')
 
-        priority_idx_list: List[int] = []  # 优先级排序的下标
+        priority_idx_list: list[int] = []  # 优先级排序的下标
         choose_reason_map: dict[int, str] = {}
         ignored_idx_set = set(ignore_idx_list) if ignore_idx_list is not None else set()
         all_idx_list = [i for i in range(len(artifact_list)) if i not in ignored_idx_set]
@@ -741,7 +746,7 @@ class LostVoidContext:
                         continue
                     add_idx_if_absent(idx, f'{group_name}-非优先级补位')
 
-        result_list: List[LostVoidArtifactPos] = []
+        result_list: list[LostVoidArtifactPos] = []
         for i in range(choose_num):
             if i >= len(priority_idx_list):
                 continue
@@ -761,7 +766,7 @@ class LostVoidContext:
 
         return result_list
 
-    def remove_overlapping_artifacts(self, artifact_list: List[LostVoidArtifactPos]) -> List[LostVoidArtifactPos]:
+    def remove_overlapping_artifacts(self, artifact_list: list[LostVoidArtifactPos]) -> list[LostVoidArtifactPos]:
         """
         去掉横坐标太近的藏品，保留y坐标较小的（位置较高的）
 
@@ -806,7 +811,7 @@ class LostVoidContext:
 
         return result
 
-    def get_entry_by_priority(self, entry_list: List[MoveTargetWrapper]) -> Optional[MoveTargetWrapper]:
+    def get_entry_by_priority(self, entry_list: list[MoveTargetWrapper]) -> MoveTargetWrapper | None:
         """
         根据优先级 返回一个前往的入口
         多个相同入口时选择最右 (因为丢失寻找目标的时候是往左转找)
@@ -817,7 +822,7 @@ class LostVoidContext:
             return None
 
         for priority in self.challenge_config.region_type_priority:
-            target: Optional[MoveTargetWrapper] = None
+            target: MoveTargetWrapper | None = None
 
             for entry in entry_list:
                 for target_name in entry.target_name_list:
@@ -830,7 +835,7 @@ class LostVoidContext:
             if target is not None:
                 return target
 
-        target: Optional[MoveTargetWrapper] = None
+        target: MoveTargetWrapper | None = None
         for entry in entry_list:
             if target is None or entry.entire_rect.x1 > target.entire_rect.x1:
                 target = entry

@@ -7,7 +7,9 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.redemption_code import redemption_code_const
 from zzz_od.application.redemption_code.redemption_code_app import RedemptionCodeApp
-from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
+from zzz_od.application.redemption_code.redemption_code_config import (
+    RedemptionCodeConfig,
+)
 from zzz_od.application.redemption_code.redemption_code_run_record import (
     RedemptionCodeRunRecord,
 )
@@ -19,13 +21,7 @@ if TYPE_CHECKING:
 class RedemptionCodeFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=redemption_code_const.APP_ID,
-            app_name=redemption_code_const.APP_NAME,
-            default_group=redemption_code_const.DEFAULT_GROUP,
-            need_notify=redemption_code_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, redemption_code_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
