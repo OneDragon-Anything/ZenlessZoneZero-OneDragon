@@ -4,13 +4,18 @@ from pathlib import Path
 
 from packaging import version
 from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from qfluentwidgets import ComboBox, FluentIcon, FluentThemeColor
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
-from one_dragon.envs.env_config import DEFAULT_ENV_PATH
+from one_dragon.envs.env_config import (
+    DEFAULT_ENV_PATH,
+    RuntimeUpdateSourceEnum,
+)
+from one_dragon.envs.runtime_update_service import RuntimeUpdateCheckResult
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -55,6 +60,76 @@ class LauncherVersionChecker(QThread):
         self.check_finished.emit(current_version, latest_stable, latest_beta)
 
 
+class RuntimeLauncherUpdateChecker(QThread):
+    check_finished = Signal(object, str)
+
+    def __init__(self, ctx: OneDragonEnvContext, channel: str, source: str):
+        super().__init__()
+        self.ctx = ctx
+        self.channel = channel
+        self.source = source
+
+    def run(self) -> None:
+        try:
+            result = self.ctx.runtime_update_service.check_for_updates(self.channel, self.source)
+            self.check_finished.emit(result, "")
+        except Exception as e:
+            self.check_finished.emit(None, str(e))
+
+
+class RuntimeLauncherUpdateRunner(QThread):
+    progress_changed = Signal(str)
+    finished = Signal(bool, str, object)
+
+    def __init__(self, ctx: OneDragonEnvContext):
+        super().__init__()
+        self.ctx = ctx
+        self.check_result: RuntimeUpdateCheckResult | None = None
+        self.source_mode: str = RuntimeUpdateSourceEnum.AUTO.value.value
+        self.progress_signal: dict[str, str | None] = {"signal": None}
+
+    def run(self) -> None:
+        if self.check_result is None:
+            self.finished.emit(False, "未找到可用更新", None)
+            return
+
+        try:
+            prepared = self._download_preferred_update(self.check_result)
+            self.finished.emit(True, "准备更新完成，即将重启应用", prepared)
+        except Exception as e:
+            if self.progress_signal.get("signal") == "cancel":
+                self.finished.emit(False, "下载已取消", None)
+            else:
+                self.finished.emit(False, str(e), None)
+
+    def cancel(self) -> None:
+        self.progress_signal["signal"] = "cancel"
+
+    def _download_preferred_update(self, check_result: RuntimeUpdateCheckResult):
+        try:
+            return self.ctx.runtime_update_service.download_and_prepare_update(
+                check_result,
+                progress_signal=self.progress_signal,
+                progress_callback=lambda _progress, msg: self.progress_changed.emit(msg),
+            )
+        except Exception as e:
+            if self.source_mode != RuntimeUpdateSourceEnum.AUTO.value.value:
+                raise
+            if check_result.selected_source != RuntimeUpdateSourceEnum.S3.value.value:
+                raise
+
+            self.progress_changed.emit(f"{gt('S3/CDN 下载失败，回退到 GitHub')}: {e}")
+            fallback_check = self.ctx.runtime_update_service.check_for_updates(
+                check_result.channel,
+                RuntimeUpdateSourceEnum.GITHUB.value.value,
+            )
+            return self.ctx.runtime_update_service.download_and_prepare_update(
+                fallback_check,
+                progress_signal=self.progress_signal,
+                progress_callback=lambda _progress, msg: self.progress_changed.emit(msg),
+            )
+
+
 class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def __init__(self, ctx: OneDragonEnvContext):
@@ -66,6 +141,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.current_version: str | None = None
         self.latest_stable: str | None = None
         self.latest_beta: str | None = None
+        self.runtime_update_result: RuntimeUpdateCheckResult | None = None
+        self.runtime_update_error: str = ""
+        self.runtime_update_runner = RuntimeLauncherUpdateRunner(ctx)
+        self.runtime_update_runner.progress_changed.connect(self._on_runtime_update_progress)
+        self.runtime_update_runner.finished.connect(self._on_runtime_update_finish)
+        self.runtime_checker: RuntimeLauncherUpdateChecker | None = None
 
         ZipDownloaderSettingCard.__init__(
             self,
@@ -82,11 +163,17 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.type_combo.currentIndexChanged.connect(self._on_type_changed)
         self.btn_layout.insertWidget(1, self.type_combo, alignment=Qt.AlignmentFlag.AlignRight)
 
+        self.source_combo = ComboBox()
+        self.source_combo.currentIndexChanged.connect(self._on_source_changed)
+        self.btn_layout.insertWidget(2, self.source_combo, alignment=Qt.AlignmentFlag.AlignRight)
+
         # 通道选项：稳定版 / 测试版
         self.set_options_by_list([
             ConfigItem('稳定版', 'stable'),
             ConfigItem('测试版', 'beta')
         ])
+        self._reload_runtime_source_options()
+        self._update_runtime_control_visibility()
 
     # ---- 启动器类型 ----
 
@@ -108,6 +195,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_type_changed(self, _index: int) -> None:
         self._launcher_type = self.type_combo.currentData()
+        self._update_runtime_control_visibility()
         # 断开旧检查器信号，避免竞态覆盖
         old_checker = self.version_checker
         old_checker.check_finished.disconnect(self._on_version_check_finished)
@@ -118,6 +206,43 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.current_version = None
         self.latest_stable = None
         self.latest_beta = None
+        self.runtime_update_result = None
+        self.runtime_update_error = ""
+        self.check_and_update_display()
+
+    def _reload_runtime_source_options(self) -> None:
+        selected = self.ctx.env_config.runtime_update_source
+        self.source_combo.blockSignals(True)
+        self.source_combo.clear()
+        source_names = {
+            RuntimeUpdateSourceEnum.AUTO.value.value: gt("自动"),
+            RuntimeUpdateSourceEnum.S3.value.value: gt("S3/CDN"),
+            RuntimeUpdateSourceEnum.GITHUB.value.value: gt("GitHub"),
+            RuntimeUpdateSourceEnum.MIRROR.value.value: gt("Mirror酱"),
+        }
+        options = self.ctx.runtime_update_service.get_available_sources()
+        for value, label in options:
+            self.source_combo.addItem(source_names.get(value, label), userData=value)
+        for idx in range(self.source_combo.count()):
+            if self.source_combo.itemData(idx) == selected:
+                self.source_combo.setCurrentIndex(idx)
+                break
+        else:
+            self.source_combo.setCurrentIndex(0)
+        self.source_combo.blockSignals(False)
+
+    def _update_runtime_control_visibility(self) -> None:
+        is_runtime = self._is_runtime
+        self.source_combo.setVisible(is_runtime)
+
+    def _on_source_changed(self, _index: int) -> None:
+        if not self._is_runtime:
+            return
+        source = self.source_combo.currentData()
+        if source:
+            self.ctx.env_config.runtime_update_source = source
+        self.runtime_update_result = None
+        self.runtime_update_error = ""
         self.check_and_update_display()
 
     def _get_downloader_param(self, _idx = None) -> CommonDownloaderParam:
@@ -206,12 +331,69 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 button_enabled=True
             )
 
+    def _update_runtime_ui(self) -> None:
+        if self.runtime_update_error:
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
+                message=f"{gt('更新检查失败')}: {self.runtime_update_error}",
+                button_text=gt('重试'),
+                button_enabled=True,
+            )
+            return
+
+        if self.runtime_update_result is None:
+            self._update_ui_state(
+                icon=FluentIcon.INFO,
+                message=gt('正在检查版本...'),
+                button_text=gt('检查中...'),
+                button_enabled=False,
+            )
+            return
+
+        result = self.runtime_update_result
+        if not result.has_update:
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
+                message=f"{gt('已安装')} {result.current_version or result.target_version}",
+                button_text=gt('已安装'),
+                button_enabled=False,
+            )
+            return
+
+        source_name = {
+            RuntimeUpdateSourceEnum.AUTO.value.value: gt("自动"),
+            RuntimeUpdateSourceEnum.S3.value.value: gt("S3/CDN"),
+            RuntimeUpdateSourceEnum.GITHUB.value.value: gt("GitHub"),
+            RuntimeUpdateSourceEnum.MIRROR.value.value: gt("Mirror酱"),
+        }.get(result.selected_source, result.selected_source)
+        item_size = result.selected_item.get("size", 0) or 0
+        size_text = f"{item_size / 1024 / 1024:.2f} MB" if item_size else gt("未知大小")
+        note = result.release_notes.strip().replace("\n", " ")
+        note_text = f"; {gt('更新说明')}: {note[:80]}" if note else ""
+        self._update_ui_state(
+            icon=FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value),
+            message=(
+                f"{gt('可下载')} {gt('当前版本')}: {result.current_version or gt('未安装')}; "
+                f"{gt('目标版本')}: {result.target_version}; "
+                f"{gt('更新方式')}: {result.selected_kind}; "
+                f"{gt('更新源')}: {source_name}; "
+                f"{gt('下载大小')}: {size_text}"
+                f"{note_text}"
+            ),
+            button_text=gt('更新'),
+            button_enabled=True,
+        )
+
     def check_and_update_display(self) -> None:
         """
         检查启动器状态并更新显示
         重写父类方法以实现启动器特有的逻辑
         :return:
         """
+        if self._is_runtime:
+            self._check_and_update_runtime_display()
+            return
+
         # 检查是否正在下载
         is_running = self.download_runner is not None and self.download_runner.isRunning()
 
@@ -259,6 +441,49 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 所有信息已获取，更新UI
             self._update_ui_by_version()
 
+    def _check_and_update_runtime_display(self) -> None:
+        is_running = self.runtime_update_runner.isRunning()
+        self.cancel_btn.setVisible(is_running)
+        self.cancel_btn.setEnabled(is_running)
+
+        if is_running:
+            self.download_btn.setText(gt('下载中'))
+            self.download_btn.setDisabled(True)
+            self.combo_box.setDisabled(True)
+            self.type_combo.setDisabled(True)
+            self.source_combo.setDisabled(True)
+            return
+
+        self.combo_box.setEnabled(True)
+        self.type_combo.setEnabled(True)
+        self.source_combo.setEnabled(True)
+
+        if self.runtime_checker is not None and self.runtime_checker.isRunning():
+            self._update_ui_state(
+                icon=FluentIcon.INFO,
+                message=gt('正在检查版本...'),
+                button_text=gt('检查中...'),
+                button_enabled=False,
+            )
+            return
+
+        need_check = self.runtime_update_result is None and not self.runtime_update_error
+        if need_check:
+            channel = self.combo_box.currentData() or "stable"
+            source = self.source_combo.currentData() or self.ctx.env_config.runtime_update_source
+            self.runtime_checker = RuntimeLauncherUpdateChecker(self.ctx, channel, source)
+            self.runtime_checker.check_finished.connect(self._on_runtime_check_finished)
+            self.runtime_checker.start()
+            self._update_ui_state(
+                icon=FluentIcon.INFO,
+                message=gt('正在检查版本...'),
+                button_text=gt('检查中...'),
+                button_enabled=False,
+            )
+            return
+
+        self._update_runtime_ui()
+
     def _update_ui_state(
         self,
         icon: QIcon,
@@ -296,10 +521,43 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 设置为稳定版（包括未安装、未检查或稳定版的情况）
             self.combo_box.setCurrentIndex(0)
 
+    def on_index_changed(self, index: int) -> None:
+        if self._is_runtime:
+            if index == self.last_index:
+                return
+            self.last_index = index
+            self.runtime_update_result = None
+            self.runtime_update_error = ""
+            self.check_and_update_display()
+            self.value_changed.emit(index, self.combo_box.itemData(index))
+            return
+        ZipDownloaderSettingCard.on_index_changed(self, index)
+
     def _on_download_click(self) -> None:
+        if self._is_runtime:
+            if self.runtime_update_result is None or not self.runtime_update_result.has_update:
+                self.runtime_update_error = ""
+                self.runtime_update_result = None
+                self.check_and_update_display()
+                return
+            self.runtime_update_runner.check_result = self.runtime_update_result
+            self.runtime_update_runner.source_mode = self.source_combo.currentData() or self.ctx.env_config.runtime_update_source
+            self.runtime_update_runner.progress_signal["signal"] = None
+            self.runtime_update_runner.start()
+            self.check_and_update_display()
+            return
         self._swap_backup(backup=True)
         self._delete_legacy_files()
         ZipDownloaderSettingCard._on_download_click(self)
+
+    def _on_cancel_click(self) -> None:
+        if self._is_runtime:
+            if self.runtime_update_runner.isRunning():
+                self.runtime_update_runner.cancel()
+                self.download_btn.setText(gt('取消中'))
+                self.cancel_btn.setDisabled(True)
+            return
+        ZipDownloaderSettingCard._on_cancel_click(self)
 
     def _swap_backup(self, backup: bool) -> None:
         """备份或回滚启动器文件。"""
@@ -386,3 +644,25 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self._swap_backup(backup=False)
 
         ZipDownloaderSettingCard._on_download_finish(self, success, message)
+
+    def _on_runtime_check_finished(self, result: object, error: str) -> None:
+        self.runtime_update_result = result if isinstance(result, RuntimeUpdateCheckResult) else None
+        self.runtime_update_error = error
+        self.check_and_update_display()
+
+    def _on_runtime_update_progress(self, message: str) -> None:
+        self.contentLabel.setText(message)
+
+    def _on_runtime_update_finish(self, success: bool, message: str, prepared: object) -> None:
+        if not success:
+            log.error(message)
+            self.runtime_update_error = message
+            self.runtime_update_result = None
+            self.check_and_update_display()
+            return
+
+        self.contentLabel.setText(gt('正在应用更新并重启...'))
+        self.ctx.runtime_update_service.launch_apply_script(prepared)
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()

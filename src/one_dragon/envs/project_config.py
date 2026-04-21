@@ -23,3 +23,4 @@ class ProjectConfig(YamlConfig):
         self.quick_start_link = self.get('quick_start_link')  # 链接 - 快速开始
         self.home_page_link = self.get('home_page_link')  # 链接 - 主页
         self.doc_link = self.get('doc_link')  # 链接 - 文档
+        self.runtime_update_cdn_base_url = self.get('runtime_update_cdn_base_url', '')

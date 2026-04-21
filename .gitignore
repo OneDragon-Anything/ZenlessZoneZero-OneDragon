@@ -62,6 +62,11 @@ config/world_patrol_route_list/*
 .conda/
 .venv/
 .runtime/
+.update_staging/
+.update_backup/
+.update_logs/
+runtime_update_state.json
+runtime_update_assets/
 notice_cache/
 *.bak
 

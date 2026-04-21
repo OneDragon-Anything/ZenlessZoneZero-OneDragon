@@ -67,6 +67,14 @@ class EnvSourceEnum(Enum):
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
 
+class RuntimeUpdateSourceEnum(Enum):
+
+    AUTO = ConfigItem('自动', 'auto')
+    S3 = ConfigItem('S3/CDN', 's3')
+    GITHUB = ConfigItem('GitHub', 'github')
+    MIRROR = ConfigItem('Mirror酱', 'mirror')
+
+
 class ScreenshotMethodEnum(Enum):
 
     AUTO = ConfigItem('自动', 'auto')
@@ -322,6 +330,18 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('gh_proxy_url', new_value)
+
+    @property
+    def runtime_update_source(self) -> str:
+        """
+        RuntimeLauncher 自更新源
+        :return:
+        """
+        return self.get('runtime_update_source', RuntimeUpdateSourceEnum.AUTO.value.value)
+
+    @runtime_update_source.setter
+    def runtime_update_source(self, new_value: str) -> None:
+        self.update('runtime_update_source', new_value)
 
     @property
     def auto_fetch_gh_proxy_url(self) -> bool:
