@@ -15,8 +15,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.game_config_checker.predefined_team_checker.predefined_team_template_matcher import \
-    match_team_agent_template
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidRegionType,
@@ -31,6 +29,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level impo
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
+from zzz_od.operation.agent_template_matcher import match_team_agent_template
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium

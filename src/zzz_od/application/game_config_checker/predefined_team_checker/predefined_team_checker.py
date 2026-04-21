@@ -11,11 +11,10 @@ from one_dragon.utils.log_utils import log
 from zzz_od.application.game_config_checker.predefined_team_checker import (
     predefined_team_checker_const,
 )
-from zzz_od.application.game_config_checker.predefined_team_checker.predefined_team_template_matcher import \
-    match_team_agent_template
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
+from zzz_od.operation.agent_template_matcher import match_team_agent_template
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.goto.goto_menu import GotoMenu
 
