@@ -123,15 +123,20 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='前往迷失之地-入口')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
+        """等待迷失之地入口加载。"""
+        return self._wait_for_lost_void_entry()
+
+    def _wait_for_lost_void_entry(self) -> OperationRoundResult:
+        """等待迷失之地入口加载完成。"""
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-入口', '按钮-更新弹窗-关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
         # 新入口UI：战线肃清/特遣调查需要先在“矩阵探索”页点击“常规”再点目标副本
-        # 到达入口的判定只认“常规”，后续分流由OCR导航节点按副本目标处理
+        # 到达入口的判定只认“常规”，后续分流由入口导航节点按副本目标处理
         if self.config.mission_name in ['战线肃清', '特遣调查']:
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            if self._find_ocr_text_mr(ocr_result_map, '常规') is not None:
+            result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
+            if result.is_success:
                 return self.round_success(status='迷失之地-入口')
 
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
@@ -194,23 +199,54 @@ class LostVoidApp(ZApplication):
         return self.round_by_goto_screen(screen_name='迷失之地-入口')
 
     @node_from(from_name='矩阵行动-前往入口')
+    @operation_node(name='入口OCR-点击周期', node_max_retry_times=300)
+    def click_period_in_entry(self) -> OperationRoundResult:
+        """在入口页点击周期标签。"""
+        result = self.round_by_find_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-前往挑战',
+        )
+        if result.is_success:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已开放前往挑战')
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击周期冷却', wait=0.1)
+
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-周期',
+            retry_wait=0.1,
+        )
+        if result.is_success:
+            self._record_entry_nav_click()
+            return self.round_wait('点击周期', wait=0.3)
+        return self.round_retry('点击周期失败', wait=0.1)
+
+    @node_from(from_name='入口OCR-点击周期', status='已开放前往挑战')
     @operation_node(name='矩阵行动-前往挑战')
     def matrix_goto_challenge(self) -> OperationRoundResult:
+        """在矩阵行动入口点击前往挑战。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-入口',
             '按钮-前往挑战',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-前往挑战')
     @operation_node(name='矩阵行动-点击下一步')
     def matrix_click_next_step(self) -> OperationRoundResult:
+        """在矩阵行动入口点击下一步。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-入口',
             '按钮-下一步',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-点击下一步')
@@ -353,11 +389,13 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-选择代理人')
     @operation_node(name='矩阵行动-点击协战代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
+        """在矩阵行动页面点击协战代理人。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
             '协战代理人',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-点击协战代理人')
@@ -379,20 +417,20 @@ class LostVoidApp(ZApplication):
             rect=area.rect,
         )
 
-        # 先点击UP代理人
-        clicked = False
+        # 找UP代理人, 或者第一个60 (有时候up识别会不成功, up代理人会在第一个位置所以也可以点击第一个60)
+        center: Point | None = None
         for ocr_text in ocr_result_list:
-            if 'up' in ocr_text.data.lower() and ocr_text.center.x < self.ctx.controller.standard_width // 2:
-                self.ctx.controller.click(ocr_text.center)
-                clicked = True
+            if ocr_text.data.lower() == 'up':
+                # up
+                center = ocr_text.center
                 break
+            elif center is None and ocr_text.data.lower() == '60':
+                # 第一个60
+                center = ocr_text.center
 
-        # 找不到UP，点击第一个
-        if not clicked:
-            if len(ocr_result_list) > 0:
-                self.ctx.controller.click(ocr_result_list[0].center)
-            else:
-                return self.round_retry('未找到代理人', wait=0.1)
+        if center is None:
+            return self.round_retry('未找到协战代理人', wait=0.5)
+        self.ctx.controller.click(center)
 
         # 等待画面更新，重新截图OCR
         time.sleep(0.5)
@@ -424,11 +462,13 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-选择协战代理人')
     @operation_node(name='矩阵行动-开始挑战')
     def matrix_start_challenge(self) -> OperationRoundResult:
+        """在矩阵行动页面点击开始挑战。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
             '按钮-开始挑战',
             success_wait=1,
+            retry_wait=1,
         )
 
     # ========== 常规副本入口流程节点 ==========
@@ -444,22 +484,30 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='前往副本画面', status='需OCR入口导航')
     @operation_node(name='入口OCR-点击常规', node_max_retry_times=300)
     def click_regular_in_matrix_explore(self) -> OperationRoundResult:
+        """在入口页点击常规标签。"""
         mission_name = self.config.mission_name
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        mission_area_name = f'按钮-{mission_name}'
 
         # 条件通过：检测到下一步按钮文字（战线肃清/特遣调查）
-        if self._find_ocr_text_mr(ocr_result_map, mission_name) is not None:
+        result = self.round_by_find_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            mission_area_name,
+        )
+        if result.is_success:
             self._reset_entry_nav_click_cooldown()
             return self.round_success('已显示目标副本入口')
-
-        regular_mr = self._find_ocr_text_mr(ocr_result_map, '常规')
-        if regular_mr is None:
-            return self.round_retry('未识别到常规', wait=0.1)
 
         if self._is_entry_nav_click_on_cooldown():
             return self.round_retry('点击常规冷却', wait=0.1)
 
-        if self.ctx.controller.click(regular_mr.center):
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-常规',
+            retry_wait=0.1,
+        )
+        if result.is_success:
             self._record_entry_nav_click()
             return self.round_wait('点击常规', wait=0.3)
         return self.round_retry('点击常规失败', wait=0.1)
@@ -467,8 +515,10 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='入口OCR-点击常规', status='已显示目标副本入口')
     @operation_node(name='入口OCR-点击目标副本', node_max_retry_times=300)
     def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
+        """在入口页点击目标副本入口。"""
         mission_name = self.config.mission_name
         target_screen_name = f'迷失之地-{mission_name}'
+        mission_area_name = f'按钮-{mission_name}'
 
         screen_name = self.check_and_update_current_screen(
             self.last_screenshot,
@@ -478,15 +528,16 @@ class LostVoidApp(ZApplication):
             self._reset_entry_nav_click_cooldown()
             return self.round_success('已进入目标副本')
 
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        mission_mr = self._find_ocr_text_mr(ocr_result_map, mission_name)
-        if mission_mr is None:
-            return self.round_retry('未识别到目标副本入口', wait=0.1)
-
         if self._is_entry_nav_click_on_cooldown():
             return self.round_retry('点击目标副本冷却', wait=0.1)
 
-        if self.ctx.controller.click(mission_mr.center):
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            mission_area_name,
+            retry_wait=0.1,
+        )
+        if result.is_success:
             self._record_entry_nav_click()
             return self.round_wait('点击目标副本', wait=0.5)
         return self.round_retry('点击目标副本失败', wait=0.1)
@@ -565,7 +616,9 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = no_level_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -616,7 +669,9 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = frame_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -785,7 +840,6 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='加载自动战斗配置')
     @node_from(from_name='层间移动')
-    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='层间移动')
     def run_level(self) -> OperationRoundResult:
         log.info(f'推测楼层类型 {self.next_region_type.value.value}')
@@ -805,9 +859,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name='通关后处理')
     def after_complete(self) -> OperationRoundResult:
-        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
-        if screen_name != '迷失之地-入口':
-            return self.round_wait('等待画面加载', wait=1)
+        result = self._wait_for_lost_void_entry()
+        if not result.is_success:
+            return result
 
         self.run_record.add_complete_times()
         if self.use_priority_agent:

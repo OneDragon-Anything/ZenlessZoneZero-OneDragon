@@ -11,8 +11,8 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -292,7 +292,7 @@ class ChargePlanCard(DraggableListItem):
         self.init_plan_times_input()
 
 
-class ChargePlanInterface(VerticalScrollInterface):
+class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -356,7 +356,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.config = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.update_plan_list_display()

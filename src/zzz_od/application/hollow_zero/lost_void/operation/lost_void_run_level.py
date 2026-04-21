@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 import cv2
 from cv2.typing import MatLike
@@ -8,48 +8,29 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, str_utils, gpu_executor
+from one_dragon.utils import cv2_utils, gpu_executor, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import (
-    LostVoidDetector,
-)
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
-    LostVoidRegionType,
-)
-from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
-    LostVoidRunRecord,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import (
-    LostVoidBangbooStore,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import (
-    LostVoidChooseCommon,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import (
-    LostVoidChooseGear,
-)
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
+from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import LostVoidBangbooStore
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import LostVoidChooseGear
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_interact_target_const import (
     LostVoidInteractNPC,
     LostVoidInteractTarget,
     match_interact_target,
 )
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import (
-    LostVoidLottery,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import (
-    LostVoidRouteChange,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
-    LostVoidMoveByDet,
-)
-from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import (
-    UpdatePriorityOperation,
-)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import LostVoidLottery
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import LostVoidRouteChange
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import LostVoidMoveByDet
+from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import UpdatePriorityOperation
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
@@ -104,7 +85,7 @@ class LostVoidRunLevel(ZOperation):
             op_name='迷失之地-层间移动',
             # timeout_seconds=600,  # 不在这里设置超时 而是统一在 '非战斗画面识别' 中处理
         )
-        self.run_record: Optional[LostVoidRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: LostVoidRunRecord | None = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=lost_void_const.APP_ID,
         )
@@ -113,7 +94,7 @@ class LostVoidRunLevel(ZOperation):
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
-        self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
+        self.interact_target: LostVoidInteractTarget | None = None  # 最终识别的交互目标 后续改动应该都是用这个判断
         self.interact_attempted: bool = False  # 是否尝试过交互
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
@@ -125,8 +106,9 @@ class LostVoidRunLevel(ZOperation):
         self.reward_eval_found: bool = False  # 挑战结果中可以识别到业绩点
         self.reward_dn_found: bool = False  # 挑战结果中可以识别到丁尼
         self.click_challenge_confirm: bool = False  # 点击了挑战确认
+        self.boss_pre_battle: bool = self.region_type == LostVoidRegionType.BOSS  # 终结之役正式开战前的交互阶段
 
-        self.had_been_list: List[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
+        self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -211,9 +193,30 @@ class LostVoidRunLevel(ZOperation):
         if self.region_type == LostVoidRegionType.ELITE:
             return self.round_success('战斗区域')
         if self.region_type == LostVoidRegionType.BOSS:
-            return self.round_success('战斗区域')
+            if self.boss_pre_battle:
+                # 终结之役开场可能存在战前对话，先进入非战斗区域处理
+                return self.round_success('非战斗区域')
+            else:
+                return self.round_success('战斗区域')
 
         return self.round_success('非战斗区域')
+
+    def enter_battle(self, screenshot_time: float | None = None, end_boss_pre_battle: bool = False) -> OperationRoundResult:
+        """更新进入战斗后的公共状态。"""
+        if end_boss_pre_battle:
+            self.boss_pre_battle = False
+
+        self.nothing_times = 0
+        current_time = self.last_screenshot_time if screenshot_time is None else screenshot_time
+        self.last_det_time = current_time
+        self.last_check_finish_time = current_time
+
+        return self.round_success(status='进入战斗')
+
+    def is_boss_battle_started(self) -> bool:
+        """判断终结之役是否已正式进入战斗。"""
+        return (self.ctx.lost_void.is_boss_health_bar_present(self.last_screenshot)
+                or self.ctx.lost_void.check_battle_encounter(self.last_screenshot, self.last_screenshot_time))
 
     @node_from(from_name='区域类型初始化', status='非战斗区域')
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_DISTANCE)  # 朝白点移动后重新循环
@@ -244,6 +247,16 @@ class LostVoidRunLevel(ZOperation):
         if self.last_screenshot_time - self.operation_start_time >= 600:  # 10分钟超时
             return self.round_fail(Operation.STATUS_TIMEOUT)
 
+        if self.boss_pre_battle:
+            if self.is_boss_battle_started():
+                return self.enter_battle(end_boss_pre_battle=True)
+
+            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+            if result.is_success:
+                self.nothing_times = 0
+                self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
+                return self.round_success(LostVoidDetector.CLASS_INTERACT, wait=0.5)
+
         # 在大世界 开始检测
         frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
             self.last_screenshot, screenshot_time=self.last_screenshot_time,
@@ -254,10 +267,16 @@ class LostVoidRunLevel(ZOperation):
         if with_interact:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_INTERACT,
-                                   stop_when_disappear=False)
+                                   stop_when_disappear=False,
+                                   allow_arrival_by_interact_btn=self.boss_pre_battle)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
+                    if self.boss_pre_battle:
+                        self.screenshot()
+                        if self.is_boss_battle_started():
+                            return self.enter_battle(end_boss_pre_battle=True)
+                        return self.round_wait('等待BOSS进入战斗', wait=0.2)
                     self.interact_target = LostVoidInteractTarget(name='战斗后', icon='战斗后', after_battle=True)
                     return self.round_success(LostVoidMoveByDet.STATUS_IN_BATTLE)
                 elif op_result.status == LostVoidMoveByDet.STATUS_INTERACT:
@@ -272,7 +291,7 @@ class LostVoidRunLevel(ZOperation):
                 return self.round_retry('移动失败')
 
         # 处理白点移动
-        if with_distance:
+        if with_distance and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_DISTANCE,
                                    stop_when_interact=False)
@@ -293,11 +312,11 @@ class LostVoidRunLevel(ZOperation):
                 return self.round_retry('移动失败')
 
         # 在转动视角之前，检查是否需要更新优先级
-        if not self.ctx.lost_void.priority_updated:
+        if not self.boss_pre_battle and not self.ctx.lost_void.priority_updated:
             return self.round_success('需要更新优先级')
 
         # 处理下层入口
-        if with_entry:
+        if with_entry and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_ENTRY,
                                    stop_when_disappear=False, ignore_entry_list=self.had_been_list)
@@ -329,9 +348,7 @@ class LostVoidRunLevel(ZOperation):
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
         if in_battle:
-            self.last_det_time = time.time()
-            self.last_check_finish_time = time.time()
-            return self.round_success(status='进入战斗')
+            return self.enter_battle(screenshot_time=time.time(), end_boss_pre_battle=self.boss_pre_battle)
 
         return self.round_wait(status='转动识别目标')
 
@@ -347,8 +364,14 @@ class LostVoidRunLevel(ZOperation):
         else:
             return self.round_fail(op_result.status)
 
-    @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_INTERACT)
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_ENTRY)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='下层入口处理')
+    def on_entry(self) -> OperationRoundResult:
+        return self.round_success()
+
+    @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_INTERACT)
+    @node_from(from_name='下层入口处理')
     @operation_node(name='尝试交互')
     def try_interact(self) -> OperationRoundResult:
         """
@@ -420,8 +443,8 @@ class LostVoidRunLevel(ZOperation):
                 '迷失之地-大世界'
             ]
         )
-        interact_op: Optional[ZOperation] = None
-        interact_type: Optional[str] = None
+        interact_op: ZOperation | None = None
+        interact_type: str | None = None
         if screen_name == '迷失之地-武备选择':
             interact_op = LostVoidChooseGear(self.ctx)
         elif screen_name == '迷失之地-通用选择':
@@ -482,7 +505,7 @@ class LostVoidRunLevel(ZOperation):
             return self.round_wait(status=result.status, wait=1)
 
         # 交互后 可能出现了后续的交互
-        return self.round_retry(status=f'未知画面', wait_round_time=1)
+        return self.round_retry(status='未知画面', wait_round_time=1)
 
     def try_talk(self, screen: MatLike) -> OperationRoundResult | None:
         """
@@ -535,7 +558,7 @@ class LostVoidRunLevel(ZOperation):
                 self.ctx.controller.click(area.center)
                 return self.round_wait(f'尝试交互 {str(list(ocr_result_map.keys()))}', wait=0.5)
 
-    def try_talk_options(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def try_talk_options(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断是否有对话选项
         @return:
@@ -573,7 +596,7 @@ class LostVoidRunLevel(ZOperation):
 
         result = self.round_by_find_and_click_area(screen, '迷失之地-大世界', '区域-右侧对话图标')
         if result.is_success:
-            return self.round_wait(f'尝试交互选项图标', wait=0.5)
+            return self.round_wait('尝试交互选项图标', wait=0.5)
 
     @node_from(from_name='交互处理', status='迷失之地-大世界')
     @node_from(from_name='交互处理', status='迷失之地-挑战结果')
@@ -591,7 +614,10 @@ class LostVoidRunLevel(ZOperation):
             log.info('交互后处理 上次交互对象为 %s %s', self.interact_target.icon, self.interact_target.name)
 
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
-            self.move_after_interact()
+            if not (self.boss_pre_battle
+                    and self.interact_target is not None
+                    and not self.interact_target.after_battle):
+                self.move_after_interact()
             return self.round_success(status='大世界', wait=1)
 
         result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '标题-挑战结果')
@@ -860,6 +886,19 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='处理寻路失败', status='准备最终退出')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='保存错误信息')
+    def push_error(self) -> OperationRoundResult:
+        status = f'{self.previous_node.name}: {self.previous_node.status}'
+        # 打开菜单保存现场
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
+        time.sleep(1)
+        if result.is_success:
+            self.screenshot()
+            return self.round_fail(status)
+        return self.round_retry(f'{status}（打开tab页面失败）')
+
+    @node_from(from_name='保存错误信息', success=False)
     @operation_node(name='失败退出空洞')
     def fail_exit_lost_void(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.stop_auto_battle()
@@ -867,6 +906,7 @@ class LostVoidRunLevel(ZOperation):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='战斗中', status='迷失之地-战斗失败')
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='处理战斗失败')
     def handle_battle_fail(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-战斗失败', area_name='按钮-撤退',

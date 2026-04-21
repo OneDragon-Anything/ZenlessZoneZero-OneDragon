@@ -16,13 +16,7 @@ if TYPE_CHECKING:
 class NotifyAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=notify_const.APP_ID,
-            app_name=notify_const.APP_NAME,
-            default_group=notify_const.DEFAULT_GROUP,
-            need_notify=notify_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, notify_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

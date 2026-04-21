@@ -169,7 +169,7 @@ class ChargePlanConfig(ApplicationConfig):
         if len(self.plan_list) == 0:
             return
 
-        eligible = [p for p in self.plan_list if not p.skipped]
+        eligible = [p for p in self.plan_list if not p.skipped and p.plan_times > 0]
         if not eligible:
             return
 

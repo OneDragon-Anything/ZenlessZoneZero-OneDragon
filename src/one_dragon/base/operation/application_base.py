@@ -6,6 +6,7 @@ from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
@@ -69,6 +70,11 @@ class Application(Operation):
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
             send_application_notify(self, None)
+            # 清空通知池，根据通知等级设置图片保留数量
+            pool = self.ctx.run_context.notify_pool
+            pool.clear()
+            notify_level = self.ctx.notify_config.get_app_notify_level(self.app_id)
+            pool.max_images = 10 if notify_level >= NotifyLevel.ALL else 1
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
@@ -82,6 +88,8 @@ class Application(Operation):
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
             send_application_notify(self, result.success)
+            # 清空通知池
+            self.ctx.run_context.notify_pool.clear()
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
 

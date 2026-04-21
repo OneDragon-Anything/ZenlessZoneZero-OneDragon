@@ -43,7 +43,7 @@ class VerticalScrollInterface(BaseInterface):
 
         # 创建一个垂直布局，底边距为0（由滚动内容末尾的11px空白提供视觉边距）
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 11, 0, 0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
         scroll_area.setViewportMargins(11, 0, 11, 0)

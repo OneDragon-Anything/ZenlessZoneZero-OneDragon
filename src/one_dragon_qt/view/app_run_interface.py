@@ -234,7 +234,7 @@ class SplitAppRunInterface(AppRunInterface):
         self._init = True
 
         outer_layout = QHBoxLayout(self)
-        outer_layout.setContentsMargins(11, 11, 11, 0)
+        outer_layout.setContentsMargins(11, 0, 11, 0)
         outer_layout.setSpacing(10)
 
         # 左侧：滚动区域（无底边距）

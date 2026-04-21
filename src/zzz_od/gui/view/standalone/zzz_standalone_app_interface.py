@@ -20,4 +20,7 @@ class ZStandaloneAppInterface(PivotNavigatorInterface):
         )
 
     def create_sub_interface(self):
-        self.add_sub_interface(ZStandaloneAppRunInterface(self.ctx))
+        self.add_sub_interface(
+            sub_interface=ZStandaloneAppRunInterface(self.ctx),
+            enable_page_stack=True,
+        )

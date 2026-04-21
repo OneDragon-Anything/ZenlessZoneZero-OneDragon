@@ -59,7 +59,7 @@ class LikeInterface(VerticalScrollInterface):
         left_content_layout.setSpacing(20)
 
         img_label = ImageLabel()
-        img = cv2_utils.read_image(os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'sponsor_wechat.png'))
+        img = cv2_utils.read_image(os_utils.get_resource_path('assets', 'ui', 'sponsor_wechat.png'))
         image = Cv2Image(img) if img is not None else QImage()
         img_label.setImage(image)
         img_label.setFixedWidth(250)

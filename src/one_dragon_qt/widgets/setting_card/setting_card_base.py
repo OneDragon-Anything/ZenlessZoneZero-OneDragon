@@ -44,7 +44,7 @@ class SettingCardBase(SettingCard):
         self.contentLabel.setVisible(content is not None and len(content) > 0)
 
         # 如果有图标，初始化图标组件
-        if icon is not None:
+        if icon:
             self.iconLabel = SettingIconWidget(icon, self)
             self.iconLabel.setFixedSize(icon_size.width, icon_size.height)
             self.hBoxLayout.addWidget(self.iconLabel, 0, Qt.AlignmentFlag.AlignLeft)

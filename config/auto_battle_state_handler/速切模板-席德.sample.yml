@@ -41,7 +41,7 @@ handlers:
           - op_name: "设置状态"
             state_list: ["自定义-合轴时间", "自定义-席德-铁拳冲击"]
 
-      - states: "[席德-钢能]{120,999}"
+      - states: "[席德-钢能]{100,999}"
         interrupt_states: "[席德-钢能]{0, 100}"
         debug_name: "席德铁拳合轴"
         operations:

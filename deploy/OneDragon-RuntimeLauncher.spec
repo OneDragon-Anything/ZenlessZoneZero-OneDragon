@@ -65,7 +65,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('module_manifest.py', '.'),
-        ('../config/project.yml', 'config'),
+        ('../config/project.yml', 'resources/config'),
     ],
     hiddenimports=['_cffi_backend'],
     hookspath=[],

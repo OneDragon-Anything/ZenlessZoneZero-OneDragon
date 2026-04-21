@@ -20,13 +20,7 @@ if TYPE_CHECKING:
 class ScreenshotHelperAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=screenshot_helper_const.APP_ID,
-            app_name=screenshot_helper_const.APP_NAME,
-            default_group=screenshot_helper_const.DEFAULT_GROUP,
-            need_notify=screenshot_helper_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, screenshot_helper_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
