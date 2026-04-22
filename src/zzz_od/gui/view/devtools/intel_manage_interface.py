@@ -552,6 +552,23 @@ class IntelManageInterface(VerticalScrollInterface):
 
         left_layout.addWidget(formula_card)
 
+        # 音擎设定表格
+        self.sound_engine_table = TableWidget()
+        self.sound_engine_table.setBorderVisible(True)
+        self.sound_engine_table.setBorderRadius(8)
+        self.sound_engine_table.setColumnCount(3)
+        self.sound_engine_table.setRowCount(1)
+        
+        # 设置表头
+        headers = ['最优音擎设定', '次优音擎设定', '第三优音擎设定']
+        self.sound_engine_table.setHorizontalHeaderLabels(headers)
+        
+        # 设置列宽，三列均匀分配
+        for i in range(3):
+            self.sound_engine_table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        
+        left_layout.addWidget(self.sound_engine_table)
+
         # 基础信息表格
         self.basic_info_table = TableWidget()
         self.basic_info_table.setBorderVisible(True)
