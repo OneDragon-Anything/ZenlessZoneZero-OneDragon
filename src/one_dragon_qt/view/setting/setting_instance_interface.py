@@ -212,28 +212,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return False
         return False
 
-    def _acc_repo(self) -> None:
-        if len(self.ctx.one_dragon_config.instance_list) > 3:
-            try:
-                _accounts = []
-                for _inst in self.ctx.one_dragon_config.instance_list:
-                    account_cfg = GameAccountConfig(_inst.idx)
-                    _acc = account_cfg.account
-                    if _acc and _acc.strip():
-                        _accounts.append(_acc.strip())
-
-                telemetry = getattr(self.ctx, "telemetry", None)
-                if _accounts and telemetry:
-                    _data = {
-                        "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "account_identifiers": _accounts,
-                        "user_id": getattr(telemetry, "_user_id", "unknown"),
-                        "reported_from": "ui",
-                    }
-                    telemetry.track_custom_event("multi_account_usage", _data)
-            except Exception:
-                pass
-
     def get_content_widget(self) -> QWidget:
         """
         子界面内的内容组件 由子类实现
@@ -362,7 +340,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
@@ -394,7 +371,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_game_path_clicked(self) -> None:
