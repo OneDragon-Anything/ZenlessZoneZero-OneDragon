@@ -1,5 +1,5 @@
 agent_name: 柏妮思·怀特
-agent_type: 异常
-dmg_type: 火
+agent_type: ANOMALY
+dmg_type: FIRE
 rare_type: S
 code: burnice_white

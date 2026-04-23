@@ -1,5 +1,5 @@
 agent_name: 雨果•维拉德
-agent_type: 强攻
-dmg_type: 冰
+agent_type: ATTACK
+dmg_type: ICE
 rare_type: S
 code: hugo

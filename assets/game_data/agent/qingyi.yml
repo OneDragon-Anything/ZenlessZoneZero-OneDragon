@@ -1,5 +1,5 @@
 agent_name: 青衣
-agent_type: 击破
-dmg_type: 电
+agent_type: STUN
+dmg_type: ELECTRIC
 rare_type: S
 code: qingyi

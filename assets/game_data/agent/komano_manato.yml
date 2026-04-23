@@ -1,5 +1,5 @@
 agent_name: 狛野真斗
-agent_type: 命破
-dmg_type: 火
+agent_type: RUPTURE
+dmg_type: FIRE
 rare_type: A
 code: komano_manato

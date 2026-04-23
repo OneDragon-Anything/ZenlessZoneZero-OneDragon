@@ -1,5 +1,5 @@
 agent_name: 本·比格
-agent_type: 防护
-dmg_type: 火
+agent_type: DEFENSE
+dmg_type: FIRE
 rare_type: A
 code: ben_bigger

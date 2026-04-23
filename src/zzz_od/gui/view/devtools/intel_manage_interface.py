@@ -420,18 +420,10 @@ class IntelManageInterface(VerticalScrollInterface):
 
         # 比较公式配置区域
         formula_card = SimpleCardWidget()
+        formula_card.setStyleSheet('border: none;')  # 使用样式表隐藏卡片边框
         formula_layout = QVBoxLayout(formula_card)
-        formula_layout.setContentsMargins(8, 8, 8, 8)
-        formula_layout.setSpacing(8)
-
-        # 比较公式标签
-        formula_label = QLabel('权重优先比较公式')
-        formula_label.setStyleSheet('font-weight: bold;')
-        formula_layout.addWidget(formula_label)
-
-        # 比较公式选择器：XX > YY > ZZ
-        selector_layout = QHBoxLayout()
-        selector_layout.setSpacing(8)
+        formula_layout.setContentsMargins(4, 4, 4, 4)  # 进一步减小内边距
+        formula_layout.setSpacing(4)  # 进一步减小控件间距
 
         # 定义排除的小属性
         EXCLUDED_OPTIONS = {'穿透值', '小防御', '小生命', '小攻击'}
@@ -440,119 +432,67 @@ class IntelManageInterface(VerticalScrollInterface):
             '无'  # '无'选项不受联动筛选影响，可以重复使用
         ] + [opt for opt in self.WEIGHT_OPTIONS if opt not in EXCLUDED_OPTIONS]
 
-        # 更新选择框选项的辅助函数
-        def update_combo_options(combo: EditableComboBox, selected1: str, selected2: str, selected3: str):
-            """更新选择框选项，排除已选择的选项（'无'选项不受影响）"""
-            current_text = combo.currentText()
-            # 获取其他两个选择框已选择的值（排除'无'，因为'无'可以重复使用）
-            other_values = set()
-            if selected1 and selected1 != current_text and selected1 != '无':
-                other_values.add(selected1)
-            if selected2 and selected2 != current_text and selected2 != '无':
-                other_values.add(selected2)
-            if selected3 and selected3 != current_text and selected3 != '无':
-                other_values.add(selected3)
+        # 4行4列表格
+        self.formula_table = TableWidget()
+        self.formula_table.setBorderVisible(True)
+        self.formula_table.setBorderRadius(8)
+        self.formula_table.setColumnCount(4)
+        self.formula_table.setRowCount(4)
+        
+        # 设置表头
+        headers = ['优先级', '可选词条1', '可选词条2', '可选词条3']
+        self.formula_table.setHorizontalHeaderLabels(headers)
+        
+        # 设置列宽
+        self.formula_table.setColumnWidth(0, 70)  # 优先级列
+        self.formula_table.setColumnWidth(1, 120)  # 可选词条1
+        self.formula_table.setColumnWidth(2, 120)  # 可选词条2
+        self.formula_table.setColumnWidth(3, 120)  # 可选词条3
+        
+        # 隐藏默认的行号列（垂直表头）
+        self.formula_table.verticalHeader().setVisible(False)
+        
+        # 初始化表格内容
+        self.formula_combos = []  # 存储所有下拉框，结构: [[row0_combo1, row0_combo2, row0_combo3], ...]
+        default_values = [
+            ['攻击力', '暴击伤害', '暴击率'],
+            ['防御力', '生命值', '穿透率'],
+            ['能量自动回复', '异常精通', '异常掌控'],
+            ['冲击力', '无', '无']
+        ]
+        
+        for row in range(4):
+            row_combos = []
             
-            # 生成可用选项（'无'始终可用，其他选项排除已选的）
-            available = ['无'] + [opt for opt in self.available_weight_options[1:] if opt not in other_values]
+            # 优先级标签
+            priority_item = QTableWidgetItem(f'{row + 1}')
+            priority_item.setFlags(priority_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            priority_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.formula_table.setItem(row, 0, priority_item)
             
-            combo.blockSignals(True)
-            combo.clear()
-            combo.addItems(available)
-            # 如果当前选中的仍然可用，保持选中
-            if current_text in available:
-                combo.setCurrentText(current_text)
-            # 否则选择第一个可用选项
-            elif available:
-                combo.setCurrentText(available[0])
-            combo.blockSignals(False)
-
-        self.formula_combo1 = EditableComboBox()
-        self.formula_combo1.addItems(self.available_weight_options)
-        self.formula_combo1.setCurrentText('攻击力')
-        selector_layout.addWidget(self.formula_combo1)
-
-        # 第一个比较符号选择框
-        self.arrow_combo1 = EditableComboBox()
-        self.arrow_combo1.addItems(['>', '>>'])
-        self.arrow_combo1.setCurrentText('>')
-        self.arrow_combo1.setFixedWidth(70)
-        selector_layout.addWidget(self.arrow_combo1)
-
-        self.formula_combo2 = EditableComboBox()
-        self.formula_combo2.addItems([opt for opt in self.available_weight_options if opt != '攻击力'])
-        self.formula_combo2.setCurrentText('暴击伤害')
-        selector_layout.addWidget(self.formula_combo2)
-
-        # 第二个比较符号选择框
-        self.arrow_combo2 = EditableComboBox()
-        self.arrow_combo2.addItems(['>', '>>'])
-        self.arrow_combo2.setCurrentText('>')
-        self.arrow_combo2.setFixedWidth(70)
-        selector_layout.addWidget(self.arrow_combo2)
-
-        self.formula_combo3 = EditableComboBox()
-        self.formula_combo3.addItems([opt for opt in self.available_weight_options if opt not in {'攻击力', '暴击伤害'}])
-        self.formula_combo3.setCurrentText('暴击率')
-        selector_layout.addWidget(self.formula_combo3)
-
-        # 绑定联动更新信号
-        def on_combo1_changed():
-            update_combo_options(
-                self.formula_combo2,
-                self.formula_combo1.currentText(),
-                '',
-                self.formula_combo3.currentText()
-            )
-            update_combo_options(
-                self.formula_combo3,
-                self.formula_combo1.currentText(),
-                self.formula_combo2.currentText(),
-                ''
-            )
-
-        def on_combo2_changed():
-            update_combo_options(
-                self.formula_combo1,
-                '',
-                self.formula_combo2.currentText(),
-                self.formula_combo3.currentText()
-            )
-            update_combo_options(
-                self.formula_combo3,
-                self.formula_combo1.currentText(),
-                self.formula_combo2.currentText(),
-                ''
-            )
-
-        def on_combo3_changed():
-            update_combo_options(
-                self.formula_combo1,
-                '',
-                self.formula_combo2.currentText(),
-                self.formula_combo3.currentText()
-            )
-            update_combo_options(
-                self.formula_combo2,
-                self.formula_combo1.currentText(),
-                '',
-                self.formula_combo3.currentText()
-            )
-
-        self.formula_combo1.currentTextChanged.connect(on_combo1_changed)
-        self.formula_combo2.currentTextChanged.connect(on_combo2_changed)
-        self.formula_combo3.currentTextChanged.connect(on_combo3_changed)
-
-        formula_layout.addLayout(selector_layout)
-
+            # 三个可选词条下拉框
+            for col in range(3):
+                combo = EditableComboBox()
+                combo.addItems(self.available_weight_options)
+                combo.setCurrentText(default_values[row][col])
+                # 绑定去重信号
+                combo.currentTextChanged.connect(lambda text, r=row, c=col: self._on_formula_combo_changed(r, c, text))
+                self.formula_table.setCellWidget(row, col + 1, combo)
+                row_combos.append(combo)
+            
+            self.formula_combos.append(row_combos)
+    
+        # 将表格添加到布局（关键步骤！之前缺失）
+        formula_layout.addWidget(self.formula_table)
+    
         # 一键生成按钮（使用 PrimaryPushButton，与 agent_template_generator_interface.py 保持一致）
         self.btn_generate_weight = PrimaryPushButton(FluentIcon.PLAY, '一键生成权重')
         self.btn_generate_weight.clicked.connect(self._on_generate_weight_clicked)
         formula_layout.addWidget(self.btn_generate_weight)
 
         left_layout.addWidget(formula_card)
-
-        # 音擎设定表格
+        
+        # 音擎设定表格（优化高度，减少留白）
         self.sound_engine_table = TableWidget()
         self.sound_engine_table.setBorderVisible(True)
         self.sound_engine_table.setBorderRadius(8)
@@ -567,6 +507,13 @@ class IntelManageInterface(VerticalScrollInterface):
         for i in range(3):
             self.sound_engine_table.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
         
+        # 优化表格高度：设置紧凑布局，减少留白
+        self.sound_engine_table.setRowHeight(0, 26)  # 紧凑行高
+        self.sound_engine_table.verticalHeader().setVisible(False)  # 隐藏垂直表头
+        self.sound_engine_table.horizontalHeader().setFixedHeight(24)  # 减小水平表头高度
+        self.sound_engine_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)  # 高度固定
+        self.sound_engine_table.setFixedHeight(56)  # 设置固定总高度（表头24 + 行26 + 边框等）
+        
         left_layout.addWidget(self.sound_engine_table)
 
         # 基础信息表格
@@ -575,6 +522,8 @@ class IntelManageInterface(VerticalScrollInterface):
         self.basic_info_table.setBorderRadius(8)
         self.basic_info_table.setWordWrap(True)
         self.basic_info_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.basic_info_table.verticalHeader().setVisible(False)  # 隐藏垂直表头列
+        self.basic_info_table.horizontalHeader().setVisible(False)  # 隐藏水平表头（列名行）
         left_layout.addWidget(self.basic_info_table)
 
         # 权重配置表格（右侧卡片）
@@ -591,6 +540,43 @@ class IntelManageInterface(VerticalScrollInterface):
         layout.addWidget(self.agent_info_card)
 
         return widget
+    
+    def _on_formula_combo_changed(self, row: int, col: int, text: str) -> None:
+        """当公式下拉框内容改变时，更新其他下拉框的选项（去重机制）"""
+        # 获取当前所有已选择的非'无'词条
+        selected_items = set()
+        for r in range(4):
+            for c in range(3):
+                if r == row and c == col:
+                    continue  # 跳过当前正在修改的下拉框
+                item = self.formula_combos[r][c].currentText()
+                if item != '无':
+                    selected_items.add(item)
+        
+        # 更新所有下拉框的选项
+        for r in range(4):
+            for c in range(3):
+                if r == row and c == col:
+                    continue  # 跳过当前正在修改的下拉框
+                
+                combo = self.formula_combos[r][c]
+                current_value = combo.currentText()
+                
+                # 生成当前下拉框可用的选项（包含'无'和未被选择的词条）
+                available = ['无'] + [opt for opt in self.available_weight_options[1:] 
+                                    if opt not in selected_items]
+                
+                combo.blockSignals(True)
+                combo.clear()
+                combo.addItems(available)
+                
+                # 如果当前值仍可用，保持选中；否则选择'无'
+                if current_value in available:
+                    combo.setCurrentText(current_value)
+                else:
+                    combo.setCurrentText('无')
+                
+                combo.blockSignals(False)
 
     def _set_enum_combo_value(self, combo_box, enum_class, enum_value: str, fallback_value: str) -> None:
         """设置下拉框的枚举值（安全处理，防止枚举转换异常）"""
@@ -647,20 +633,17 @@ class IntelManageInterface(VerticalScrollInterface):
 
     def _update_formula_combo_options(self, dmg_type: str) -> None:
         """根据 dmg_type 更新比较公式下拉框的选项"""
-        # 获取当前选中的值
-        selected1 = self.formula_combo1.currentText()
-        selected2 = self.formula_combo2.currentText()
-        selected3 = self.formula_combo3.currentText()
-
         # 根据 dmg_type 获取可用的权重选项
         weight_order = _get_weight_order_for_agent(dmg_type)
         EXCLUDED_OPTIONS = {'穿透值', '小防御', '小生命', '小攻击'}
         available = ['无'] + [opt for opt in weight_order if opt not in EXCLUDED_OPTIONS]
 
-        # 更新三个下拉框
-        self._update_single_combo(self.formula_combo1, available, selected1)
-        self._update_single_combo(self.formula_combo2, available, selected2)
-        self._update_single_combo(self.formula_combo3, available, selected3)
+        # 更新表格中所有下拉框
+        for row in range(4):
+            for col in range(3):
+                combo = self.formula_combos[row][col]
+                current_value = combo.currentText()
+                self._update_single_combo(combo, available, current_value)
 
     def _update_single_combo(self, combo: ComboBox, available: list[str], current_value: str):
         """更新单个下拉框的选项"""
@@ -802,37 +785,37 @@ class IntelManageInterface(VerticalScrollInterface):
             self.show_info_bar('提示', '请先选择一个代理人', icon=InfoBarIcon.WARNING)
             return
 
-        # 获取比较公式的三个权重项和比较符号
-        primary_attr = self.formula_combo1.currentText()
-        arrow1 = self.arrow_combo1.currentText()
-        secondary_attr = self.formula_combo2.currentText()
-        arrow2 = self.arrow_combo2.currentText()
-        tertiary_attr = self.formula_combo3.currentText()
-
-        # 根据比较符号确定优先级递减
-        # ">" 减小1个优先级，">>" 减小2个优先级
+        # 获取表格中的所有词条配置
         # 优先级权重：1 -> 1.0, 2 -> 0.75, 3 -> 0.5, 4 -> 0.25
         def get_weight_by_priority(priority: int) -> float:
             return max(0.25, 1.0 - (priority - 1) * 0.25)
         
-        # 计算各属性的优先级
-        primary_priority = 1
-        arrow1_decrement = 2 if arrow1 == '>>' else 1
-        secondary_priority = min(4, primary_priority + arrow1_decrement)
-        arrow2_decrement = 2 if arrow2 == '>>' else 1
-        tertiary_priority = min(4, secondary_priority + arrow2_decrement)
+        # 收集所有配置的词条及其优先级
+        attr_priority_map = {}
+        formula_description = []
+        
+        for row in range(4):
+            priority = row + 1
+            row_weight = get_weight_by_priority(priority)
+            
+            for col in range(3):
+                combo = self.formula_combos[row][col]
+                attr = combo.currentText()
+                
+                if attr != '无':
+                    # 同一优先级内的词条都获得该优先级的完整分数
+                    attr_priority_map[attr] = row_weight
+            
+            # 收集当前行的非空词条用于描述
+            row_items = [self.formula_combos[row][col].currentText() for col in range(3) 
+                        if self.formula_combos[row][col].currentText() != '无']
+            if row_items:
+                formula_description.append(f"优先级{priority}: {', '.join(row_items)}")
         
         # 根据优先级分配权重
         generated_weight = {}
         for attr in self.WEIGHT_OPTIONS:
-            if attr == primary_attr:
-                generated_weight[attr] = get_weight_by_priority(primary_priority)
-            elif attr == secondary_attr:
-                generated_weight[attr] = get_weight_by_priority(secondary_priority)
-            elif attr == tertiary_attr:
-                generated_weight[attr] = get_weight_by_priority(tertiary_priority)
-            else:
-                generated_weight[attr] = 0
+            generated_weight[attr] = attr_priority_map.get(attr, 0)
         
         # 小属性权重为对应大属性的1/3（保留两位小数）
         small_to_large_map = {
@@ -842,7 +825,7 @@ class IntelManageInterface(VerticalScrollInterface):
             '穿透值': '穿透率'
         }
         for small_attr, large_attr in small_to_large_map.items():
-            if large_attr in generated_weight:
+            if large_attr in generated_weight and generated_weight[large_attr] > 0:
                 generated_weight[small_attr] = round(generated_weight[large_attr] / 3, 2)
 
         # 更新代理人数据
@@ -851,9 +834,10 @@ class IntelManageInterface(VerticalScrollInterface):
         # 更新表格显示
         self._on_agent_selected(agent_name)
 
-        # 显示成功提示（与 agent_template_generator_interface.py 保持一致）
+        # 显示成功提示
+        formula_str = '; '.join(formula_description) if formula_description else '未配置任何词条'
         self.show_info_bar('成功', 
-            f'权重已按公式 "{primary_attr} {arrow1} {secondary_attr} {arrow2} {tertiary_attr}" 自动分配', 
+            f'权重已按优先级公式自动分配:\n{formula_str}', 
             icon=InfoBarIcon.SUCCESS)
 
     def _on_weight_config_clicked(self, character_name: str) -> None:

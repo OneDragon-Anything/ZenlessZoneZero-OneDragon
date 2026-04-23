@@ -1,5 +1,5 @@
 agent_name: 波可娜·费雷尼
-agent_type: 击破
-dmg_type: 物理
+agent_type: STUN
+dmg_type: PHYSICAL
 rare_type: A
 code: pulchra_fellini

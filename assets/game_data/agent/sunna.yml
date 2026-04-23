@@ -1,5 +1,5 @@
 agent_name: 千夏
-agent_type: 支援
-dmg_type: 物理
+agent_type: SUPPORT
+dmg_type: PHYSICAL
 rare_type: S
 code: sunna

@@ -1,5 +1,5 @@
 agent_name: 苍角
-agent_type: 支援
-dmg_type: 冰
+agent_type: SUPPORT
+dmg_type: ICE
 rare_type: A
 code: soukaku

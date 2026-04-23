@@ -1,5 +1,5 @@
 agent_name: 月城柳
-agent_type: 异常
-dmg_type: 电
+agent_type: ANOMALY
+dmg_type: ELECTRIC
 rare_type: S
 code: tsukishiro_yanagi

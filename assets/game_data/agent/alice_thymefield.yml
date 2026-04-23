@@ -1,5 +1,5 @@
 agent_name: 爱丽丝·泰姆菲尔德
-agent_type: 异常
-dmg_type: 物理
+agent_type: ANOMALY
+dmg_type: PHYSICAL
 rare_type: S
 code: alice_thymefield

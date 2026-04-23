@@ -1,5 +1,5 @@
 agent_name: 赛斯·洛威尔
-agent_type: 防护
-dmg_type: 电
+agent_type: DEFENSE
+dmg_type: ELECTRIC
 rare_type: A
 code: seth_lowell

@@ -1,5 +1,5 @@
 agent_name: 伊德海莉·墨菲
-agent_type: 命破
-dmg_type: 冰
+agent_type: RUPTURE
+dmg_type: ICE
 rare_type: S
 code: yidhari_murphy

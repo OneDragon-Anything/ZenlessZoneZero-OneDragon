@@ -1,5 +1,5 @@
 agent_name: 安比·德玛拉
-agent_type: 击破
-dmg_type: 电
+agent_type: STUN
+dmg_type: ELECTRIC
 rare_type: A
 code: anby_demara

@@ -1,5 +1,5 @@
 agent_name: 橘福福
-agent_type: 击破
-dmg_type: 火
+agent_type: STUN
+dmg_type: FIRE
 rare_type: S
 code: ju_fufu
