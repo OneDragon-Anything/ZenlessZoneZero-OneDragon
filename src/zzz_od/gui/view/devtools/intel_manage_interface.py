@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -475,8 +476,8 @@ class IntelManageInterface(VerticalScrollInterface):
                 combo = EditableComboBox()
                 combo.addItems(self.available_weight_options)
                 combo.setCurrentText(default_values[row][col])
-                # 绑定去重信号
-                combo.currentTextChanged.connect(lambda text, r=row, c=col: self._on_formula_combo_changed(r, c, text))
+                # 绑定去重信号（使用 functools.partial 确保正确捕获循环变量）
+                combo.currentTextChanged.connect(partial(self._on_formula_combo_changed, row, col))
                 self.formula_table.setCellWidget(row, col + 1, combo)
                 row_combos.append(combo)
             
