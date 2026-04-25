@@ -115,7 +115,7 @@ configure_runner_runtime_logging()
 `script_runner.py` 只导入 runner 适配层提供的 logger 和配置函数：
 
 ```python
-from script_chainer.utils.runner_logging import (
+from script_chainer.win_exe.runner_logging import (
     configure_runner_runtime_logging,
     log,
 )
