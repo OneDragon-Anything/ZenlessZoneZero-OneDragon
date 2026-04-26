@@ -43,7 +43,7 @@ def __debug():
     调试用
     """
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
 
