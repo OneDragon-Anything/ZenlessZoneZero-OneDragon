@@ -14,6 +14,7 @@ from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
+    get_charge_plan_config,
 )
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -47,11 +48,7 @@ class ExpertChallenge(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
+        self.config: ChargePlanConfig = get_charge_plan_config(self.ctx)
 
         self.plan: ChargePlanItem = plan
 
@@ -101,7 +98,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if not self.config.is_restore_charge_enabled:
+        if not self.config.should_restore_charge:
             return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())

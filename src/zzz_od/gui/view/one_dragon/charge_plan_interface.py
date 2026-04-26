@@ -311,6 +311,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
+        self.skip_plan_opt.value_changed.connect(self._update_restore_charge_opt_status)
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
@@ -364,9 +365,17 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
+        self._update_restore_charge_opt_status(self.config.skip_plan)
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
+
+    def _update_restore_charge_opt_status(self, skip_plan: bool) -> None:
+        self.restore_charge_opt.setDisabled(skip_plan)
+        if skip_plan:
+            self.restore_charge_opt.setContent('已启用跳过计划，运行时视为不使用')
+        else:
+            self.restore_charge_opt.setValue(self.config.restore_charge, emit_signal=False)
 
     def update_plan_list_display(self):
         plan_list = self.config.plan_list

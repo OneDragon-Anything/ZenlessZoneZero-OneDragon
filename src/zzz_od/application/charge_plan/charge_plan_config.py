@@ -3,6 +3,7 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.application.charge_plan import charge_plan_const
 
@@ -318,3 +319,32 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    @property
+    def effective_restore_charge(self) -> str:
+        """
+        电量不足时实际生效的恢复电量方式。
+        """
+        if self.skip_plan:
+            return RestoreChargeEnum.NONE.value.value
+        return self.restore_charge
+
+    @property
+    def should_restore_charge(self) -> bool:
+        """
+        电量不足时是否应该尝试恢复电量。
+        """
+        return self.effective_restore_charge != RestoreChargeEnum.NONE.value.value
+
+
+def get_charge_plan_config(ctx, instance_idx: int | None = None) -> ChargePlanConfig:
+    """
+    获取体力计划配置。
+    """
+    current_instance_idx = ctx.current_instance_idx if instance_idx is None else instance_idx
+    group_id = ctx.run_context.current_group_id or application_const.DEFAULT_GROUP_ID
+    return ctx.run_context.get_config(
+        app_id=charge_plan_const.APP_ID,
+        instance_idx=current_instance_idx,
+        group_id=group_id,
+    )

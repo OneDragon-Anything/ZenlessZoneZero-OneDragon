@@ -11,10 +11,10 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
+    get_charge_plan_config,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (
@@ -58,11 +58,7 @@ class NotoriousHunt(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.charge_plan_config: ChargePlanConfig = self.ctx.run_context.get_config(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
+        self.charge_plan_config: ChargePlanConfig = get_charge_plan_config(self.ctx)
 
         self.config: NotoriousHuntConfig = self.ctx.run_context.get_config(
             app_id=notorious_hunt_const.APP_ID,
@@ -284,7 +280,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if not self.charge_plan_config.is_restore_charge_enabled:
+        if not self.charge_plan_config.should_restore_charge:
             return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())

@@ -2,16 +2,15 @@ import time
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     RestoreChargeEnum,
+    get_charge_plan_config,
 )
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -40,11 +39,7 @@ class RestoreCharge(ZOperation):
             ctx=ctx,
             op_name='恢复电量'
         )
-        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
+        self.config: ChargePlanConfig = get_charge_plan_config(self.ctx)
 
         self.required_charge = required_charge
         self.is_menu = is_menu
@@ -64,12 +59,16 @@ class RestoreCharge(ZOperation):
     @node_from(from_name='打开恢复界面')
     @operation_node(name='选择电量来源')
     def select_charge_source(self) -> OperationRoundResult:
-        if self.config.restore_charge == RestoreChargeEnum.BACKUP_ONLY.value.value:
+        effective_restore_charge = self.config.effective_restore_charge
+
+        if effective_restore_charge == RestoreChargeEnum.BACKUP_ONLY.value.value:
             target_list = [self.SOURCE_BACKUP_CHARGE]
-        elif self.config.restore_charge == RestoreChargeEnum.ETHER_ONLY.value.value:
+        elif effective_restore_charge == RestoreChargeEnum.ETHER_ONLY.value.value:
             target_list = [self.SOURCE_ETHER_BATTERY]
-        elif self.config.restore_charge == RestoreChargeEnum.BOTH.value.value:
+        elif effective_restore_charge == RestoreChargeEnum.BOTH.value.value:
             target_list = [self.SOURCE_BACKUP_CHARGE, self.SOURCE_ETHER_BATTERY]
+        else:
+            return self.round_fail('未启用恢复电量')
 
         target_text_list = [gt(text, 'game') for text in target_list]
         target_area = self.ctx.screen_loader.get_area('恢复电量', '类型')
