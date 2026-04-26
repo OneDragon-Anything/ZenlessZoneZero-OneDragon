@@ -336,6 +336,7 @@ class LostVoidApp(ZApplication):
         if len(ocr_result_list) > 0:
             # 需要先点一下主战编队框才能取消
             self.ctx.controller.click(ocr_result_list[0].center)
+            time.sleep(0.5)
         for ocr_text in ocr_result_list:
             if '主战' in ocr_text.data:
                 self.ctx.controller.click(ocr_text.center)
