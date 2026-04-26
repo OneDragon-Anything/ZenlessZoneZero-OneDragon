@@ -1,23 +1,35 @@
-from typing import List, Optional
-
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, FluentThemeColor, PlainTextEdit, SubtitleLabel, BodyLabel, \
-    PushButton, ToolButton, MessageBox, SettingCard
+from qfluentwidgets import (
+    BodyLabel,
+    FluentIcon,
+    FluentThemeColor,
+    MessageBox,
+    PlainTextEdit,
+    PushButton,
+    SubtitleLabel,
+    ToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
-from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, \
-    get_lost_void_challenge_new_name, get_all_lost_void_challenge_config, LostVoidPeriodBuffNo
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidChallengeConfig,
+    LostVoidPeriodBuffNo,
+    get_all_lost_void_challenge_config,
+    get_lost_void_challenge_new_name,
+)
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.one_dragon.predefined_team_interface import TeamSettingCard
@@ -35,7 +47,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         )
 
         self.ctx: ZContext = ctx
-        self.chosen_config: Optional[LostVoidChallengeConfig] = None
+        self.chosen_config: LostVoidChallengeConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Row()
@@ -91,7 +103,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.priority_team_opt)
 
         self.manually_choose_agent_opt = SwitchSettingCard(icon=FluentIcon.PEOPLE, title='矩阵行动 - 手动选择代理人',
-                                                           content='需要在下框配置代理人 可用试用角色(矩阵行动无法保存默认配队)')
+                                                           content='需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）')
         self.manually_choose_agent_opt.value_changed.connect(self.on_manually_choose_agent_changed)
         widget.add_widget(self.manually_choose_agent_opt)
 
@@ -266,8 +278,10 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.stop_when_found_lottery_opt.setDisabled(not chosen or is_sample)
 
         self._update_existed_yml_options()
-        team_config_list = ([ConfigItem('游戏内配队', -1)] +
-                            [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
+        team_config_list = (
+            [ConfigItem('游戏内配队', -1)] +
+            [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list]
+        )
         self.predefined_team_opt.set_options_by_list(team_config_list)
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
         self.investigation_strategy_opt.set_options_by_list([
@@ -287,7 +301,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         """
         self.existed_yml_btn.blockSignals(True)
         self.existed_yml_btn.clear()
-        config_list: List[LostVoidChallengeConfig] = get_all_lost_void_challenge_config()
+        config_list: list[LostVoidChallengeConfig] = get_all_lost_void_challenge_config()
         for config in config_list:
             self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)

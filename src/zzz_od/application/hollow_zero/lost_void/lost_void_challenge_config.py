@@ -1,6 +1,5 @@
 import os
 from enum import Enum
-from typing import List
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -66,7 +65,7 @@ class LostVoidChallengeConfig(YamlConfig):
         self.old_file_path: str = self.file_path
 
         # 实战中整合协战代理人武备后的第一优先级
-        self._artifact_priority_in_battle: List[str] | None = None
+        self._artifact_priority_in_battle: list[str] | None = None
 
     def copy_new(self) -> None:
         """
@@ -171,11 +170,11 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('artifact_priority_new', new_value)
 
     @property
-    def artifact_priority(self) -> List[str]:
+    def artifact_priority(self) -> list[str]:
         return self.get('artifact_priority', [])
 
     @artifact_priority.setter
-    def artifact_priority(self, new_value: List[str]):
+    def artifact_priority(self, new_value: list[str]):
         self.update('artifact_priority', new_value)
 
     @property
@@ -184,7 +183,7 @@ class LostVoidChallengeConfig(YamlConfig):
 
     # 实战中整合协战代理人武备后的第一优先级, 程序运行时自动添加
     @property
-    def artifact_priority_in_battle(self) -> List[str] | None:
+    def artifact_priority_in_battle(self) -> list[str] | None:
         if self._artifact_priority_in_battle is None:
             self._artifact_priority_in_battle = self.artifact_priority.copy()
         return self._artifact_priority_in_battle
@@ -193,11 +192,11 @@ class LostVoidChallengeConfig(YamlConfig):
         self._artifact_priority_in_battle = None
 
     @property
-    def artifact_priority_2(self) -> List[str]:
+    def artifact_priority_2(self) -> list[str]:
         return self.get('artifact_priority_2', [])
 
     @artifact_priority_2.setter
-    def artifact_priority_2(self, new_value: List[str]):
+    def artifact_priority_2(self, new_value: list[str]):
         self.update('artifact_priority_2', new_value)
 
     @property
@@ -205,11 +204,11 @@ class LostVoidChallengeConfig(YamlConfig):
         return '\n'.join(self.artifact_priority_2)
 
     @property
-    def region_type_priority(self) -> List[str]:
+    def region_type_priority(self) -> list[str]:
         return self.get('region_type_priority', [])
 
     @region_type_priority.setter
-    def region_type_priority(self, new_value: List[str]):
+    def region_type_priority(self, new_value: list[str]):
         self.update('region_type_priority', new_value)
 
     @property
@@ -303,9 +302,8 @@ class LostVoidChallengeConfig(YamlConfig):
     def stop_when_found_lottery(self, new_value: bool):
         self.update('stop_when_found_lottery', new_value)
 
-
-def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:
-    config_list: List[LostVoidChallengeConfig] = []
+def get_all_lost_void_challenge_config(with_sample: bool = True) -> list[LostVoidChallengeConfig]:
+    config_list: list[LostVoidChallengeConfig] = []
     dir_path = os_utils.get_path_under_work_dir('config', 'lost_void_challenge')
     config_name_list = os.listdir(dir_path)
     existed_module_set = set()
