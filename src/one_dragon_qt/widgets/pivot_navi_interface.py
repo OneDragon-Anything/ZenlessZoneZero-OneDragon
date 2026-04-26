@@ -29,7 +29,6 @@ class PivotNavigatorInterface(BaseInterface):
         self._page_wrappers: dict[str, PageStackWrapper] = {}
 
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
-        self.v_box_layout.addSpacing(11)
         self.v_box_layout.addWidget(self.stacked_widget)
 
         self.create_sub_interface()
