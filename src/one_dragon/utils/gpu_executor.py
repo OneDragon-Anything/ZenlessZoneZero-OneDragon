@@ -13,5 +13,14 @@ def submit(fn, /, *args, **kwargs) -> Future:
     return f
 
 
+# 给 submit 包一层, 以简化调用写法
+def execute_function(is_use_gpu, fn, /, *args, **kwargs):
+    if is_use_gpu:
+        f = submit(fn, *args, **kwargs)
+        return f.result()
+    else:
+        return fn(*args, **kwargs)
+
+
 def shutdown(wait: bool = True):
     _executor.shutdown(wait=wait)
