@@ -32,6 +32,7 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
     ControlMethodEnum,
@@ -58,6 +59,9 @@ class SettingGameInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
+        self._help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
+        self.help_opt = HelpCard(url=f'{self._help_base_url}/config.html', title='设置说明', content='游戏路径、分辨率、输入方式等基础设置，建议首次使用前检查一遍')
+        content_widget.add_widget(self.help_opt)
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_key_settings_group())
         content_widget.add_stretch(1)
@@ -68,6 +72,7 @@ class SettingGameInterface(VerticalScrollInterface):
         basic_group = SettingCardGroup(gt('游戏基础'))
 
         self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
+                                                 content='推荐剪贴板，可避免输入法冲突',
                                                  options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
 
@@ -152,7 +157,9 @@ class SettingGameInterface(VerticalScrollInterface):
         self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启动参数')
         launch_argument_group.addHeaderWidget(self.launch_argument_switch.btn)
 
-        self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='窗口尺寸', options_enum=ScreenSizeEnum)
+        self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='窗口尺寸',
+                                                 content='推荐 1920x1080，其他分辨率可能影响识别准确率',
+                                                 options_enum=ScreenSizeEnum)
         launch_argument_group.addSettingCard(self.screen_size_opt)
 
         self.full_screen_opt = ComboBoxSettingCard(icon=FluentIcon.FULL_SCREEN, title='全屏', options_enum=FullScreenEnum)

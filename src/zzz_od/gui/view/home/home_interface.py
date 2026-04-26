@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from qfluentwidgets import (
+    BodyLabel,
     FluentIcon,
     InfoBar,
     InfoBarPosition,
@@ -33,6 +34,7 @@ from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCard
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.dialog.pre_flight_check_dialog import PreFlightCheckDialog, check_pre_flight
 
 
 class ButtonGroup(QWidget):
@@ -388,6 +390,11 @@ class HomeInterface(BaseInterface):
 
         h2_layout.addStretch()
 
+        # 就绪状态标签
+        self._ready_label = BodyLabel('')
+        self._ready_label.setFixedHeight(32)
+        h2_layout.addWidget(self._ready_label, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+
         # 启动游戏按钮布局
         self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
         self.start_button.setObjectName("start_button")
@@ -572,6 +579,16 @@ class HomeInterface(BaseInterface):
         # 初始化主题色，避免navbar颜色闪烁
         self._update_start_button_style_from_banner()
 
+        # 刷新就绪状态标签
+        self._refresh_ready_label()
+
+    def _refresh_ready_label(self) -> None:
+        issues = check_pre_flight(self.ctx)
+        if not issues:
+            self._ready_label.setText('✓ 一切就绪')
+        else:
+            self._ready_label.setText('⚠ ' + str(len(issues)) + ' 项待配置')
+
     def on_interface_leave(self) -> None:
         """视觉切换前恢复 margin 和标题栏，避免新页面闪烁旧样式。"""
         if self.main_window and self._saved_area_margins is not None:
@@ -625,6 +642,14 @@ class HomeInterface(BaseInterface):
 
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
+        issues = check_pre_flight(self.ctx)
+        if issues:
+            dialog = PreFlightCheckDialog(issues, self)
+            if dialog.exec():
+                setting_interface = self.main_window.stackedWidget.widget(10)
+                self.main_window.switchTo(setting_interface)
+                return
+
         # app.py中一条龙界面为第三个添加的
         self.ctx.signal.start_onedragon = True
         one_dragon_interface = self.main_window.stackedWidget.widget(2)
