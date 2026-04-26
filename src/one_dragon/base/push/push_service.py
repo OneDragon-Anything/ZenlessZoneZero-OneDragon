@@ -144,6 +144,8 @@ class PushService:
         """
         if not self.push_config.send_image:
             image = None
+        if image is not None:
+            content += '\n (截图如下)'
 
         any_ok: bool = False
         err_msg: str = ''
