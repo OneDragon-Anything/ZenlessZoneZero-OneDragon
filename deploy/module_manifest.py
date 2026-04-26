@@ -123,6 +123,6 @@ if not getattr(sys, 'frozen', False):
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
     from types import ModuleType
-    from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, NamedTuple, Optional, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
+    from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, NamedTuple, Optional, ParamSpec, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode
     from yaml import CSafeLoader, SafeLoader
