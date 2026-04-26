@@ -287,7 +287,13 @@ def send_node_notify(
 
     result = gt('成功') if is_success else gt('失败')
 
-    message = (f"{gt('任务')}「{app_name}」"
+    # 推送消息时添加用户信息
+    instance_name = operation.ctx.one_dragon_config.current_active_instance.name
+    if len(instance_name) > 2:
+        instance_name = instance_name[:1] + "*" * 3 + instance_name[-2:]
+    elif len(instance_name) > 1:
+        instance_name = "*" + instance_name[-1:]
+    message = (f"[{instance_name}] {gt('任务')}「{app_name}」"
                f"{gt('节点')}「{node_name}」\n"
                f"{gt('运行')}「{result}」")
 
@@ -299,6 +305,9 @@ def send_node_notify(
         message += custom_message
 
     image = operation.last_screenshot if send_image else None
+
+    if image is not None:
+        message += '\n (截图如下)'
 
     # 收集到通知池
     pool.add(content=message, image=image)
