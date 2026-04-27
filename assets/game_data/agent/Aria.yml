@@ -1,5 +1,25 @@
-agent_name: 爱芮
-agent_type: ANOMALY
-dmg_type: ETHER
-rare_type: S
-code: aria
+agent_name: 爱芮 #角色名称
+agent_type: ANOMALY #角色类型
+dmg_type: ETHER #伤害类型
+rare_type: S #稀有度
+code: aria #角色代码
+weight: #角色权重
+  生命值: 0.0
+  攻击力: 0.75
+  防御力: 0.0
+  穿透率: 0.75
+  冲击力: 0.0
+  暴击率: 0.0
+  暴击伤害: 0.0
+  物理伤害加成: 0.0
+  以太伤害加成: 1.0
+  火属性伤害加成: 0.0
+  冰属性伤害加成: 0.0
+  电属性伤害加成: 0.0
+  异常掌控: 1.0
+  异常精通: 1.0
+  能量自动回复: 0.0
+  小攻击: 0.25
+  小生命: 0.0
+  小防御: 0.0
+  穿透值: 0.25

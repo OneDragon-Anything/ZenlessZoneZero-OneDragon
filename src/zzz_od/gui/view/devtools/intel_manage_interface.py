@@ -76,9 +76,9 @@ def _get_weight_order_for_agent(dmg_type: str) -> list[str]:
     
     return [mapping.get(key, key) for key in weight_key_order]
 
-import yaml
-from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.utils.os_utils import get_resource_path
+from one_dragon.utils import yaml_utils
+from one_dragon.utils.log_utils import log
 from PySide6.QtCore import Qt
 from zzz_od.game_data.agent import AgentTypeEnum, DmgTypeEnum, RareTypeEnum
 from PySide6.QtWidgets import (
@@ -332,14 +332,6 @@ class IntelManageInterface(VerticalScrollInterface):
         self.add_btn.clicked.connect(self._on_add_clicked)
         btn_row.add_widget(self.add_btn)
 
-        self.delete_btn = ToolButton(FluentIcon.DELETE)
-        self.delete_btn.clicked.connect(self._on_delete_clicked)
-        btn_row.add_widget(self.delete_btn)
-
-        self.refresh_btn = ToolButton(FluentIcon.SYNC)
-        self.refresh_btn.clicked.connect(self._on_refresh_clicked)
-        btn_row.add_widget(self.refresh_btn)
-
         # 保存按钮（参考 agent_template_generator_interface.py）
         self.save_btn = PrimaryPushButton(FluentIcon.SAVE, '保存')
         self.save_btn.clicked.connect(self._on_save_clicked)
@@ -453,13 +445,13 @@ class IntelManageInterface(VerticalScrollInterface):
         # 隐藏默认的行号列（垂直表头）
         self.formula_table.verticalHeader().setVisible(False)
         
-        # 初始化表格内容
+        # 初始化表格内容（所有值初始化为'无'）
         self.formula_combos = []  # 存储所有下拉框，结构: [[row0_combo1, row0_combo2, row0_combo3], ...]
         default_values = [
-            ['攻击力', '暴击伤害', '暴击率'],
-            ['防御力', '生命值', '穿透率'],
-            ['能量自动回复', '异常精通', '异常掌控'],
-            ['冲击力', '无', '无']
+            ['无', '无', '无'],
+            ['无', '无', '无'],
+            ['无', '无', '无'],
+            ['无', '无', '无']
         ]
         
         for row in range(4):
@@ -544,40 +536,33 @@ class IntelManageInterface(VerticalScrollInterface):
     
     def _on_formula_combo_changed(self, row: int, col: int, text: str) -> None:
         """当公式下拉框内容改变时，更新其他下拉框的选项（去重机制）"""
-        # 获取当前所有已选择的非'无'词条
-        selected_items = set()
+        # 如果选择的是'无'，不需要进行去重处理
+        if text == '无':
+            return
+        
+        # 在整个表格范围内进行去重
+        # 收集整个表格中除当前单元格外已选择的非'无'词条
+        table_selected = set()
         for r in range(4):
             for c in range(3):
                 if r == row and c == col:
-                    continue  # 跳过当前正在修改的下拉框
+                    continue  # 跳过当前正在修改的单元格
                 item = self.formula_combos[r][c].currentText()
                 if item != '无':
-                    selected_items.add(item)
+                    table_selected.add(item)
         
-        # 更新所有下拉框的选项
-        for r in range(4):
-            for c in range(3):
-                if r == row and c == col:
-                    continue  # 跳过当前正在修改的下拉框
-                
-                combo = self.formula_combos[r][c]
-                current_value = combo.currentText()
-                
-                # 生成当前下拉框可用的选项（包含'无'和未被选择的词条）
-                available = ['无'] + [opt for opt in self.available_weight_options[1:] 
-                                    if opt not in selected_items]
-                
-                combo.blockSignals(True)
-                combo.clear()
-                combo.addItems(available)
-                
-                # 如果当前值仍可用，保持选中；否则选择'无'
-                if current_value in available:
-                    combo.setCurrentText(current_value)
-                else:
-                    combo.setCurrentText('无')
-                
-                combo.blockSignals(False)
+        # 如果新选择的词条与表格中其他单元格重复，需要将所有重复的单元格重置为'无'
+        if text in table_selected:
+            for r in range(4):
+                for c in range(3):
+                    if r == row and c == col:
+                        continue  # 跳过当前正在修改的单元格
+                    combo = self.formula_combos[r][c]
+                    if combo.currentText() == text:
+                        combo.blockSignals(True)
+                        combo.setCurrentText('无')
+                        combo.blockSignals(False)
+        # 新选择的词条不重复时，不需要更新其他下拉框，保持原有选择不变
 
     def _set_enum_combo_value(self, combo_box, enum_class, enum_value: str, fallback_value: str) -> None:
         """设置下拉框的枚举值（安全处理，防止枚举转换异常）"""
@@ -623,8 +608,8 @@ class IntelManageInterface(VerticalScrollInterface):
 
         agent_info = self.agent_data[agent_name]
 
-        # 更新比较公式的可用选项（根据 dmg_type 过滤）
-        self._update_formula_combo_options(agent_info.get('dmg_type', 'PHYSICAL'))
+        # 重置权重优先级表格（切换代理人时重置）
+        self._reset_formula_table()
 
         # 显示基础信息
         self._show_basic_info(agent_info)
@@ -632,30 +617,14 @@ class IntelManageInterface(VerticalScrollInterface):
         # 显示权重配置
         self._show_weight_info(agent_info)
 
-    def _update_formula_combo_options(self, dmg_type: str) -> None:
-        """根据 dmg_type 更新比较公式下拉框的选项"""
-        # 根据 dmg_type 获取可用的权重选项
-        weight_order = _get_weight_order_for_agent(dmg_type)
-        EXCLUDED_OPTIONS = {'穿透值', '小防御', '小生命', '小攻击'}
-        available = ['无'] + [opt for opt in weight_order if opt not in EXCLUDED_OPTIONS]
-
-        # 更新表格中所有下拉框
+    def _reset_formula_table(self) -> None:
+        """重置权重优先级表格的所有值为'无'"""
         for row in range(4):
             for col in range(3):
                 combo = self.formula_combos[row][col]
-                current_value = combo.currentText()
-                self._update_single_combo(combo, available, current_value)
-
-    def _update_single_combo(self, combo: ComboBox, available: list[str], current_value: str):
-        """更新单个下拉框的选项"""
-        combo.blockSignals(True)
-        combo.clear()
-        combo.addItems(available)
-        if current_value in available:
-            combo.setCurrentText(current_value)
-        elif available:
-            combo.setCurrentText(available[0])
-        combo.blockSignals(False)
+                combo.blockSignals(True)
+                combo.setCurrentText('无')
+                combo.blockSignals(False)
 
     def _clear_table(self, table: TableWidget) -> None:
         """清空表格"""
@@ -737,12 +706,11 @@ class IntelManageInterface(VerticalScrollInterface):
         self.basic_info_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
     def _show_weight_info(self, agent_info: dict) -> None:
-        """显示代理人权重配置"""
+        """显示代理人权重配置（显示所有 slot_Mapping.json 中的选项）"""
         weight_data = agent_info.get('weight', {})
         
-        # 根据 agent 的 dmg_type 获取权重项顺序（只显示对应元素的伤害加成）
-        dmg_type = agent_info.get('dmg_type', 'PHYSICAL')
-        weight_order = _get_weight_order_for_agent(dmg_type)
+        # 获取所有 slot_Mapping.json 中的权重选项（不根据属性类型过滤）
+        weight_order = _get_weight_order()
         
         self.weight_table.clear()
         self.weight_table.setColumnCount(2)
@@ -855,24 +823,16 @@ class IntelManageInterface(VerticalScrollInterface):
             new_name = f'新代理人{counter}'
             counter += 1
 
-        # 创建默认的权重数据
-        default_weight = {
-            '生命值': 0,
-            '攻击力': 0.5,
-            '防御力': 0,
-            '穿透率': 0,
-            '冲击力': 0,
-            '暴击率': 0.25,
-            '暴击伤害': 0.25,
-            '物理伤害加成': 0,
-            '异常掌控': 0,
-            '异常精通': 0,
-            '能量自动回复': 0.5,
-            '小攻击': 0.33,
-            '小生命': 0,
-            '小防御': 0,
-            '穿透值': 0
-        }
+        # 从 slot_Mapping.json 获取所有权重项，并初始化为 0
+        weight_order = _get_weight_order()
+        default_weight = {key: 0 for key in weight_order}
+        
+        # 设置默认值
+        default_weight['攻击力'] = 0.5
+        default_weight['暴击率'] = 0.25
+        default_weight['暴击伤害'] = 0.25
+        default_weight['能量自动回复'] = 0.5
+        default_weight['小攻击'] = 0.33
 
         # 创建新代理人数据
         new_agent = {
@@ -901,41 +861,102 @@ class IntelManageInterface(VerticalScrollInterface):
 
     def _build_drive_disk_page(self) -> QWidget:
         """构建驱动盘信息管理页面"""
+        # 从 yml 文件中读取驱动盘数据
+        drive_disk_data = self._load_drive_disk_data()
+        
         return self._build_table_page(
             columns=[
-                ColumnMeta('操作', width=80),
-                ColumnMeta('ID', 'id', lambda x: int(x) if x else 0, 60),
-                ColumnMeta('驱动盘名称', 'name', lambda x: x, 150),
-                ColumnMeta('稀有度', 'rarity', lambda x: x, 80),
-                ColumnMeta('类型', 'type', lambda x: x, 100),
-                ColumnMeta('主属性', 'main_attr', lambda x: x, 100),
-                ColumnMeta('副属性', 'sub_attr', lambda x: x, 150),
+                ColumnMeta('ID', 'id', lambda x: int(x) if x else 0),
+                ColumnMeta('驱动盘名称', 'set_name', lambda x: x),
+                ColumnMeta('任务类型', 'mission_type_name', lambda x: x),
+                ColumnMeta('code', 'code', lambda x: x),
             ],
-            data=[
-                {'id': 1, 'name': '强攻驱动盘', 'rarity': '5星', 'type': '攻击', 'main_attr': '攻击力+30%', 'sub_attr': '暴击率+10%'},
-                {'id': 2, 'name': '防御驱动盘', 'rarity': '4星', 'type': '防御', 'main_attr': '防御力+25%', 'sub_attr': '生命值+15%'},
-                {'id': 3, 'name': '支援驱动盘', 'rarity': '5星', 'type': '支援', 'main_attr': '能量恢复+20%', 'sub_attr': '技能冷却-10%'},
-            ]
+            data=drive_disk_data
         )
+    
+    def _load_drive_disk_data(self) -> list[dict]:
+        """加载驱动盘数据"""
+        import os
+        
+        def parse_disk_info(disk_info: dict) -> dict:
+            return {
+                'id': 0,
+                'set_name': disk_info.get('set_name', ''),
+                'mission_type_name': disk_info.get('mission_type_name', ''),
+                'code': disk_info.get('code', ''),
+            }
+        
+        data = self._load_yml_data(parse_disk_info, 'assets', 'game_data', 'drive_disk')
+        for idx, item in enumerate(data):
+            item['id'] = idx + 1
+        return data
 
     def _build_sound_engine_page(self) -> QWidget:
         """构建音擎信息管理页面"""
+        # 从 yml 文件中读取音擎数据
+        engine_weapon_data = self._load_engine_weapon_data()
+        
         return self._build_table_page(
             columns=[
-                ColumnMeta('操作', width=80),
-                ColumnMeta('ID', 'id', lambda x: int(x) if x else 0, 60),
-                ColumnMeta('音擎名称', 'name', lambda x: x, 150),
-                ColumnMeta('类型', 'type', lambda x: x, 100),
-                ColumnMeta('音效', 'sound_effect', lambda x: x, 150),
-                ColumnMeta('触发条件', 'trigger', lambda x: x, 150),
-                ColumnMeta('备注', 'remark', lambda x: x, 200),
+                ColumnMeta('ID', 'id', lambda x: int(x) if x else 0),
+                ColumnMeta('音擎名称', 'weapon_name', lambda x: x),
+                ColumnMeta('稀有度', 'rarity', lambda x: x),
+                ColumnMeta('code', 'code', lambda x: x),
             ],
-            data=[
-                {'id': 1, 'name': '战斗BGM', 'type': '背景音乐', 'sound_effect': '战斗主题', 'trigger': '进入战斗', 'remark': '激昂的战斗音乐'},
-                {'id': 2, 'name': '胜利音效', 'type': '音效', 'sound_effect': '胜利号角', 'trigger': '战斗胜利', 'remark': '庆祝胜利的音效'},
-                {'id': 3, 'name': '环境音效', 'type': '环境音', 'sound_effect': '城市背景音', 'trigger': '主城场景', 'remark': '营造氛围的环境音效'},
-            ]
+            data=engine_weapon_data
         )
+    
+    def _load_engine_weapon_data(self) -> list[dict]:
+        """加载音擎数据"""
+        import os
+        
+        def parse_weapon_info(weapon_info: dict) -> dict:
+            return {
+                'id': 0,
+                'weapon_name': weapon_info.get('weapon_name', ''),
+                'rarity': weapon_info.get('rarity', ''),
+                'code': weapon_info.get('code', ''),
+            }
+        
+        data = self._load_yml_data(parse_weapon_info, 'assets', 'game_data', 'engine_weapon')
+        for idx, item in enumerate(data):
+            item['id'] = idx + 1
+        return data
+    
+    def _load_yml_data(self, parser: callable, *path_parts: str) -> list[dict]:
+        """
+        通用的 YML 数据加载方法
+        :param path_parts: 资源路径的各个部分
+        :param parser: 数据解析函数，将 YML 数据转换为字典
+        :return: 解析后的数据列表
+        """
+        import os
+        
+        data = []
+        data_dir = get_resource_path(*path_parts)
+        
+        if not os.path.exists(data_dir):
+            log.warning(f"Data directory not found: {data_dir}")
+            return data
+        
+        for filename in sorted(os.listdir(data_dir)):
+            if not filename.endswith('.yml'):
+                continue
+            
+            file_path = os.path.join(data_dir, filename)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    yml_data = yaml_utils.safe_load(f)
+                    if yml_data:
+                        parsed = parser(yml_data)
+                        data.append(parsed)
+            except IOError as e:
+                log.error(f"Failed to read file {file_path}: {e}")
+            except Exception as e:
+                log.error(f"Error parsing file {file_path}: {e}")
+        
+        log.info(f"Loaded {len(data)} items from {data_dir}")
+        return data
 
     def _build_table_page(self, columns: list[ColumnMeta], data: list[dict]) -> QWidget:
         """构建通用表格页面"""
@@ -977,6 +998,9 @@ class IntelManageInterface(VerticalScrollInterface):
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                     table_widget.setItem(row_idx, col_idx, item)
 
+        # 自动调整列宽以适应内容
+        table_widget.resizeColumnsToContents()
+        
         scroll_area.setWidget(table_widget)
         layout.addWidget(scroll_area)
 
@@ -1051,43 +1075,29 @@ class IntelManageInterface(VerticalScrollInterface):
                             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                             table_widget.setItem(row_idx, col_idx, item)
                 elif self.mode_stacked.currentIndex() == 1:
+                    # 驱动盘页面 - 与实际表格结构一致
                     columns = [
-                        ColumnMeta('操作', width=80),
                         ColumnMeta('ID', 'id'),
-                        ColumnMeta('驱动盘名称', 'name'),
-                        ColumnMeta('稀有度', 'rarity'),
-                        ColumnMeta('类型', 'type'),
-                        ColumnMeta('主属性', 'main_attr'),
-                        ColumnMeta('副属性', 'sub_attr'),
+                        ColumnMeta('驱动盘名称', 'set_name'),
+                        ColumnMeta('任务类型', 'mission_type_name'),
+                        ColumnMeta('code', 'code'),
                     ]
                     for col_idx, col in enumerate(columns):
-                        if col.display_name == '操作':
-                            action_btn = ToolButton(FluentIcon.EDIT)
-                            action_btn.setToolTip('编辑')
-                            table_widget.setCellWidget(row_idx, col_idx, action_btn)
-                        else:
-                            item = QTableWidgetItem('')
-                            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-                            table_widget.setItem(row_idx, col_idx, item)
+                        item = QTableWidgetItem('')
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                        table_widget.setItem(row_idx, col_idx, item)
                 else:
+                    # 音擎页面 - 与实际表格结构一致
                     columns = [
-                        ColumnMeta('操作', width=80),
                         ColumnMeta('ID', 'id'),
-                        ColumnMeta('音擎名称', 'name'),
-                        ColumnMeta('类型', 'type'),
-                        ColumnMeta('音效', 'sound_effect'),
-                        ColumnMeta('触发条件', 'trigger'),
-                        ColumnMeta('备注', 'remark'),
+                        ColumnMeta('音擎名称', 'weapon_name'),
+                        ColumnMeta('稀有度', 'rarity'),
+                        ColumnMeta('code', 'code'),
                     ]
                     for col_idx, col in enumerate(columns):
-                        if col.display_name == '操作':
-                            action_btn = ToolButton(FluentIcon.EDIT)
-                            action_btn.setToolTip('编辑')
-                            table_widget.setCellWidget(row_idx, col_idx, action_btn)
-                        else:
-                            item = QTableWidgetItem('')
-                            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-                            table_widget.setItem(row_idx, col_idx, item)
+                        item = QTableWidgetItem('')
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                        table_widget.setItem(row_idx, col_idx, item)
 
     def _on_new_agent_weight_config(self, row_idx: int) -> None:
         """新代理人的权重配置"""
@@ -1139,12 +1149,26 @@ class IntelManageInterface(VerticalScrollInterface):
                 items = [ConfigItem(name) for name in sorted(self.agent_data.keys())]
                 self.search_combo.set_items(items)
             return
+        
+        # 如果是驱动盘页面，显示驱动盘名称列表
+        if current_page == self.drive_disk_page:
+            drive_disk_data = self._load_drive_disk_data()
+            items = [ConfigItem(disk['set_name']) for disk in drive_disk_data]
+            self.search_combo.set_items(items)
+            return
+        
+        # 如果是音擎页面，显示音擎名称列表
+        if current_page == self.sound_engine_page:
+            engine_weapon_data = self._load_engine_weapon_data()
+            items = [ConfigItem(weapon['weapon_name']) for weapon in engine_weapon_data]
+            self.search_combo.set_items(items)
+            return
 
         table_widget = current_page.findChild(TableWidget)
         if table_widget is None:
             return
 
-        # 收集所有表格中的文本作为搜索选项（非代理人页面）
+        # 收集所有表格中的文本作为搜索选项（其他页面）
         options = []
         for row_idx in range(table_widget.rowCount()):
             row_texts = []

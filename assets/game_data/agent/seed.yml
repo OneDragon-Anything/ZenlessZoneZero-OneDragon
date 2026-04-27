@@ -3,3 +3,5 @@ agent_type: ATTACK
 dmg_type: ELECTRIC
 rare_type: S
 code: seed
+agent_type_cn: 强攻
+dmg_type_cn: 电属性
