@@ -32,6 +32,7 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
     ControlMethodEnum,
@@ -57,6 +58,14 @@ class SettingGameInterface(VerticalScrollInterface):
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
+
+        help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
+        self.help_opt = HelpCard(
+            url=f'{help_base_url}/setting_game.html',
+            title='设置说明',
+            content='游戏路径、分辨率、输入方式等基础设置，建议首次使用前检查一遍',
+        )
+        content_widget.add_widget(self.help_opt)
 
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_key_settings_group())

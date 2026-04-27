@@ -28,6 +28,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
@@ -308,6 +309,14 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
+
+        help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
+        self.help_opt = HelpCard(
+            url=f'{help_base_url}/feat_one_dragon/charge_plan.html',
+            title='体力计划说明',
+            content='合理安排每日体力消耗，支持自定义优先级和循环执行',
+        )
+        self.content_widget.add_widget(self.help_opt)
 
         self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
