@@ -1,4 +1,5 @@
 import onnxruntime
+from one_dragon.utils import gpu_executor
 
 class PredictBase(object):
     def __init__(self):
@@ -16,7 +17,16 @@ class PredictBase(object):
         else:
             providers = ['CPUExecutionProvider']
 
-        onnx_session = onnxruntime.InferenceSession(model_dir, providers=providers)
+        session_options = onnxruntime.SessionOptions()
+        if "DmlExecutionProvider" in providers:
+            session_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
+            session_options.enable_mem_pattern = False
+
+        onnx_session = onnxruntime.InferenceSession(
+            model_dir,
+            sess_options=session_options,
+            providers=providers,
+        )
 
         # print("providers:", onnxruntime.get_device())
         return onnx_session
@@ -54,3 +64,6 @@ class PredictBase(object):
         for name in input_name:
             input_feed[name] = image_numpy
         return input_feed
+
+    def run_onnx_session(self, onnx_session, output_names, input_feed):
+        return gpu_executor.run_session(onnx_session, output_names, input_feed=input_feed)

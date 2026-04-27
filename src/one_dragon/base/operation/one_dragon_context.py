@@ -66,7 +66,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
+                use_gpu=self.model_config.ocr_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
