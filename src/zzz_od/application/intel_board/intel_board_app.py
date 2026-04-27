@@ -125,6 +125,7 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='刷新委托')
     @node_from(from_name='关闭筛选')
     @node_from(from_name='寻找委托', status='翻页')
+    @node_from(from_name='接取失败')
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
         # OCR 识别委托类型 按 y 坐标排序
@@ -191,6 +192,11 @@ class IntelBoardApp(ZApplication):
         result = self.round_by_ocr(self.last_screenshot, '预备编队')
         if result.is_success:
             return self.round_success()
+
+        result = self.round_by_ocr(self.last_screenshot, '接取失败')
+        if result.is_success:
+            return self.round_success('接取失败')
+
         return self.round_by_ocr_and_click_with_action(
             target_action_list=[
                 ('下一步', OperationRoundResultEnum.WAIT),
@@ -199,6 +205,11 @@ class IntelBoardApp(ZApplication):
             wait_wait=1,
             retry_wait=1
         )
+
+    @node_from(from_name='下一步', status='接取失败')
+    @operation_node(name='接取失败')
+    def accept_failed(self) -> OperationRoundResult:
+        return self.round_by_ocr_and_click(self.last_screenshot, '确认')
 
     @node_from(from_name='下一步')
     @operation_node(name='选择预备编队')
