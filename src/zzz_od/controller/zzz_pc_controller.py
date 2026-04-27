@@ -35,6 +35,7 @@ class ZPcController(PcControllerBase):
 
     def init_before_context_run(self) -> bool:
         """运行前根据配置启用后台/前台模式，刷新快照配置"""
+        self.win_follow = self.game_config.win_follow
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
