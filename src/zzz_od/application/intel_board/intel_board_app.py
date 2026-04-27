@@ -178,7 +178,8 @@ class IntelBoardApp(ZApplication):
         return self.round_by_ocr_and_click_with_action(
             target_action_list=[
                 ('接取委托', OperationRoundResultEnum.WAIT),
-                ('前往', OperationRoundResultEnum.SUCCESS),
+                ('前往', OperationRoundResultEnum.WAIT),
+                ('委托代行中', OperationRoundResultEnum.SUCCESS),
             ],
             success_wait=0.5,
             wait_wait=0.5,
