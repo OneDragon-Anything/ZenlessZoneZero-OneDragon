@@ -630,7 +630,7 @@ class HomeInterface(BaseInterface):
         if self._ready:
             self.start_button.setText('启动一条龙')
         else:
-            self.start_button.setText('⚠ %d 项待配置 ' % len(issues))
+            self.start_button.setText(f'⚠ {len(issues)} 项待配置 ')
 
     def _find_accounts_interface(self) -> QWidget | None:
         from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
