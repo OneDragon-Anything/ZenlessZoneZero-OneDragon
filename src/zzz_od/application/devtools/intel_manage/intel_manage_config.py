@@ -1,0 +1,12 @@
+from one_dragon.base.operation.application.application_config import ApplicationConfig
+from zzz_od.application.devtools.intel_manage import intel_manage_const
+
+
+class IntelManageConfig(ApplicationConfig):
+
+    def __init__(self, instance_idx: int, group_id: str):
+        super().__init__(
+            app_id=intel_manage_const.APP_ID,
+            instance_idx=instance_idx,
+            group_id=group_id,
+        )
