@@ -312,8 +312,8 @@ def send_node_notify(
     # 收集到通知池
     pool.add(content=message, image=image)
 
-    # ALL 等级时逐条发送；MERGE 等级时仅收集，但失败时也立即发送
-    if notify_level == NotifyLevel.ALL or (notify_level == NotifyLevel.MERGE and not is_success):
+    # ALL 等级时逐条发送；在不关闭通知时, 失败时也立即发送
+    if notify_level == NotifyLevel.ALL or (notify_level != NotifyLevel.OFF and not is_success):
         operation.ctx.push_service.push_async(
             title=operation.ctx.notify_config.title,
             content=message,
