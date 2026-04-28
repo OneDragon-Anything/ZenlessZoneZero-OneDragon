@@ -72,9 +72,11 @@ zzz-od-test/           # 测试仓库（需单独克隆到根目录）
 uv sync --group dev                              # 安装依赖
 uv run --env-file .env src/zzz_od/gui/app.py     # 运行 GUI
 uv run --env-file .env pytest zzz-od-test/        # 运行测试
-uv run ruff check src/                            # Lint
-uv run ruff format src/                           # 格式化
+uv run ruff check src/你修改的文件.py              # Lint（仅检查自己改的文件）
+uv run ruff format src/你修改的文件.py             # 格式化（仅格式化自己改的文件）
 ```
+
+⚠️ **不要** 对整个 `src/` 目录运行 ruff，现有代码库尚未全面适配 ruff 规则，全量运行会导致大量文件被意外格式化。
 
 优先使用 Windows PowerShell 支持的指令。环境变量在 `.env` 文件中。
 

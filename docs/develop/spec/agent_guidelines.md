@@ -25,9 +25,11 @@ uv sync --group dev
 uv run --env-file .env src/zzz_od/gui/app.py  # 运行可视化窗口
 uv run --env-file .env pytest zzz-od-test/ # 运行所有测试
 
-uv run --env-file .env ruff check src/ # 检查代码质量
-uv run --env-file .env ruff format src/ # 格式化代码
+uv run --env-file .env ruff check src/你修改的文件.py  # 仅检查自己改的文件
+uv run --env-file .env ruff format src/你修改的文件.py # 仅格式化自己改的文件
 ```
+
+⚠️ **不要** 对整个 `src/` 目录运行 ruff，现有代码库尚未全面适配 ruff 规则，全量运行会导致大量文件被意外格式化。
 
 ### 其他
 
