@@ -311,7 +311,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
+            url='https://one-dragon.com/zzz/zh/feat_one_dragon/onedragon.html',
             title='体力计划说明',
             content='合理安排每日体力消耗，支持自定义优先级和循环执行',
         )
