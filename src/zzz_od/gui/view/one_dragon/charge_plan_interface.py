@@ -310,9 +310,8 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
         self.help_opt = HelpCard(
-            url=f'{help_base_url}/feat_one_dragon/charge_plan.html',
+            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
             title='体力计划说明',
             content='合理安排每日体力消耗，支持自定义优先级和循环执行',
         )

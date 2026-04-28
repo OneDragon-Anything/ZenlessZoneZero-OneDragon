@@ -22,9 +22,8 @@ class ZStandaloneAppRunInterface(StandaloneRunInterface):
         )
 
     def get_widget_at_top(self) -> QWidget:
-        help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
         return HelpCard(
-            url=f'{help_base_url}/feat_standalone_app.html',
+            url='https://one-dragon.com/zzz/zh/feat_standalone_app.html',
             title='应用运行说明',
             content='从应用列表中自定义添加应用，手动选择单个功能模块进行运行',
         )

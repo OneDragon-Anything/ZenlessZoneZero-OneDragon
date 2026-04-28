@@ -632,12 +632,11 @@ class HomeInterface(BaseInterface):
         else:
             self.start_button.setText(f'⚠ {len(issues)} 项待配置 ')
 
-    def _find_accounts_interface(self) -> QWidget | None:
-        from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+    def _find_widget_by_name(self, name: str) -> QWidget | None:
         stacked = self.main_window.stackedWidget
         for i in range(stacked.count()):
             w = stacked.widget(i)
-            if isinstance(w, AccountsInterface):
+            if w.objectName() == name:
                 return w
         return None
 
@@ -647,14 +646,15 @@ class HomeInterface(BaseInterface):
         if issues:
             dialog = PreFlightCheckDialog(issues, self)
             if dialog.exec():
-                target = self._find_accounts_interface()
+                target = self._find_widget_by_name('app_accounts_interface')
                 if target is not None:
                     self.main_window.switchTo(target)
                 return
 
         self.ctx.signal.start_onedragon = True
-        one_dragon_interface = self.main_window.stackedWidget.widget(2)
-        self.main_window.switchTo(one_dragon_interface)
+        target = self._find_widget_by_name('one_dragon_interface')
+        if target is not None:
+            self.main_window.switchTo(target)
 
     def _on_button_enter(self, event):
         """按钮悬停事件"""

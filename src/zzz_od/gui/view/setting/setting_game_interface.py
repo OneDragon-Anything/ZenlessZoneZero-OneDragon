@@ -59,9 +59,8 @@ class SettingGameInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        help_base_url = self.ctx.project_config.home_page_link.rsplit('/', 1)[0]
         self.help_opt = HelpCard(
-            url=f'{help_base_url}/setting_game.html',
+            url='https://one-dragon.com/zzz/zh/setting_game.html',
             title='设置说明',
             content='游戏路径、分辨率、输入方式等基础设置，建议首次使用前检查一遍',
         )
