@@ -306,9 +306,6 @@ def send_node_notify(
 
     image = operation.last_screenshot if send_image else None
 
-    if image is not None:
-        message += '\n (截图如下)'
-
     # 收集到通知池
     pool.add(content=message, image=image)
 
