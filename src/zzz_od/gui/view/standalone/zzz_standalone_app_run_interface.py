@@ -25,5 +25,5 @@ class ZStandaloneAppRunInterface(StandaloneRunInterface):
         return HelpCard(
             url='https://one-dragon.com/zzz/zh/feat_standalone_app.html',
             title='应用运行说明',
-            content='从应用列表中自定义添加应用，手动选择单个功能模块进行运行',
+            content='从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程',
         )

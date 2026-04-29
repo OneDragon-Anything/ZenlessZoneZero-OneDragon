@@ -347,7 +347,7 @@ class HomeInterface(BaseInterface):
         self.ctx: ZContext = ctx
         self.main_window = parent
         self._saved_area_margins = None
-        self._ready: bool = True
+        self._ready: bool = False
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
@@ -642,11 +642,14 @@ class HomeInterface(BaseInterface):
 
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
+        self._refresh_ready_state()
         issues = check_pre_flight(self.ctx)
         if issues:
-            dialog = PreFlightCheckDialog(issues, self)
+            messages = [msg for msg, _ in issues]
+            dialog = PreFlightCheckDialog(messages, self)
             if dialog.exec():
-                target = self._find_widget_by_name('app_accounts_interface')
+                _, target_name = issues[0]
+                target = self._find_widget_by_name(target_name)
                 if target is not None:
                     self.main_window.switchTo(target)
                 return

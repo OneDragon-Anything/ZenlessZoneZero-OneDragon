@@ -62,7 +62,7 @@ class SettingGameInterface(VerticalScrollInterface):
         self.help_opt = HelpCard(
             url='https://one-dragon.com/zzz/zh/setting_game.html',
             title='设置说明',
-            content='游戏路径、分辨率、输入方式等基础设置，建议首次使用前检查一遍',
+            content='游戏路径、输入方式等基础设置，建议首次使用前检查一遍',
         )
         content_widget.add_widget(self.help_opt)
 
