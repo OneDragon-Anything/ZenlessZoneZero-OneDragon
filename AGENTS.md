@@ -23,7 +23,7 @@
 
 ## 项目结构
 
-```
+```text
 src/
   one_dragon/          # 核心框架
     base/              #   基类和工具（config、controller、cv_process、matcher、screen、push...）

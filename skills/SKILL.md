@@ -29,7 +29,7 @@ tags: [gaming, automation, zenless-zone-zero, game-bot]
 
 ### 命令行启动参数
 
-```
+```text
 OneDragon-Launcher.exe -o -c          # 一条龙运行 + 运行后关闭游戏
 OneDragon-Launcher.exe -o -s          # 一条龙运行 + 运行后关机
 OneDragon-Launcher.exe -i 1,2         # 指定账号实例 1 和 2 运行
