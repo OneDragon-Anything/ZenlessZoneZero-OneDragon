@@ -53,7 +53,9 @@ class ChargePlanCard(DraggableListItem):
 
     def __init__(self, ctx: ZContext,
                  idx: int, plan: ChargePlanItem,
-                 config: ChargePlanConfig):
+                 config: ChargePlanConfig,
+                 title: str = '',
+                 only_first_line: bool = False):
         self.ctx: ZContext = ctx
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
@@ -94,30 +96,47 @@ class ChargePlanCard(DraggableListItem):
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
-        # 创建 MultiLineSettingCard 作为 content_widget
-        content_widget = MultiLineSettingCard(
-            icon=FluentIcon.CALENDAR,
-            title='',
-            line_list=[
-                [
-                    self.category_combo_box,
-                    self.mission_type_combo_box,
-                    self.mission_combo_box,
-                    self.card_num_box,
-                    self.notorious_hunt_buff_num_opt,
-                    self.predefined_team_opt,
-                    self.auto_battle_combo_box,
-                ],
-                [
-                    run_times_label,
-                    self.run_times_input,
-                    plan_times_label,
-                    self.plan_times_input,
-                    self.move_top_btn,
-                    self.del_btn,
+        if not only_first_line:
+            # 创建 MultiLineSettingCard 作为 content_widget
+            content_widget = MultiLineSettingCard(
+                icon=FluentIcon.CALENDAR,
+                title=title,
+                line_list=[
+                    [
+                        self.category_combo_box,
+                        self.mission_type_combo_box,
+                        self.mission_combo_box,
+                        self.card_num_box,
+                        self.notorious_hunt_buff_num_opt,
+                        self.predefined_team_opt,
+                        self.auto_battle_combo_box,
+                    ],
+                    [
+                        run_times_label,
+                        self.run_times_input,
+                        plan_times_label,
+                        self.plan_times_input,
+                        self.move_top_btn,
+                        self.del_btn,
+                    ]
                 ]
-            ]
-        )
+            )
+        else:
+            content_widget = MultiLineSettingCard(
+                icon=FluentIcon.CALENDAR,
+                title=title,
+                line_list=[
+                    [
+                        self.category_combo_box,
+                        self.mission_type_combo_box,
+                        self.mission_combo_box,
+                        self.card_num_box,
+                        self.notorious_hunt_buff_num_opt,
+                        self.predefined_team_opt,
+                        self.auto_battle_combo_box,
+                    ]
+                ]
+            )
 
         # 调用 DraggableListItem 的 __init__
         DraggableListItem.__init__(
@@ -275,6 +294,8 @@ class ChargePlanCard(DraggableListItem):
         """
         根据历史记录更新
         """
+        if self.config is None:
+            return
         history = self.config.get_history_by_uid(self.plan)
         if history is None:
             return
@@ -315,6 +336,17 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
         self.content_widget.add_widget(self.restore_charge_opt)
+
+        # 自动识别实战模拟室双倍活动开关
+        self.do_double_reward_event_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='实战模拟室双倍活动',
+                                                            content='有活动时自动添加100体力代理人经验任务')
+        self.do_double_reward_event_opt.value_changed.connect(self.on_do_double_reward_event_opt_changed)
+        self.content_widget.add_widget(self.do_double_reward_event_opt)
+        self.double_reward_event_config_card = ChargePlanCard(self.ctx, idx=-1, plan=ChargePlanItem(), config=None,
+                                                         title='双倍活动副本', only_first_line=True)
+        self.double_reward_event_config_card.changed.connect(self.set_double_reward_event_config)
+        self.double_reward_event_config_card.category_combo_box.setDisabled(True)
+        self.content_widget.add_widget(self.double_reward_event_config_card)
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
@@ -361,9 +393,26 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.update_plan_list_display()
 
+        # 双倍活动只打实战模拟室, 并且屏蔽特训目标
+        self.double_reward_event_config_card.init_with_plan(self.config.double_reward_event_config, None)
+        self.double_reward_event_config_card.category_combo_box.set_items([ConfigItem('实战模拟室', '实战模拟室')])
+        self.double_reward_event_config_card.card_num_box.hide()
+        mission_types = self.double_reward_event_config_card.mission_type_combo_box.items
+        if len(mission_types) > 0 and mission_types[-1].text == '特训目标':
+            self.double_reward_event_config_card.mission_type_combo_box.items = mission_types[:-1]
+
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
+        self.do_double_reward_event_opt.init_with_adapter(get_prop_adapter(self.config, 'do_double_reward_event'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
+
+        self.double_reward_event_config_card.setEnabled(self.config.do_double_reward_event)
+
+    def on_do_double_reward_event_opt_changed(self, value):
+        self.double_reward_event_config_card.setEnabled(value)
+
+    def set_double_reward_event_config(self, _, config) -> None:
+        self.config.double_reward_event_config = config
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)

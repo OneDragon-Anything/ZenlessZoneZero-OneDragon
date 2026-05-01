@@ -1,4 +1,6 @@
-from typing import ClassVar
+import time
+
+from typing import ClassVar, List
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -57,10 +59,61 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan = None
         for plan in self.config.plan_list:
             plan.skipped = False
+        if self.config.do_double_reward_event:
+            return self.round_success('查看双倍活动')
+        else:
+            return self.round_success()
+
+    @node_from(from_name='开始体力计划', status='查看双倍活动')
+    @operation_node(name='查看双倍活动')
+    def check_double_reward_event(self):
+        """
+        实战模拟室的每日双倍总数都是5次, 刷盘子的2次暂不考虑. 理由:
+        1. 如果没抽角色, 体力没事干的时候就去屯金盘收益最高, 此时体力计划能顺便覆盖盘子双倍
+        2. 双倍盘子活动出现的时机一般在卡池开了之后几天, 此时如果抽了角色也差不多养好了要刷盘子了
+        3. 双倍基础材料活动都是在版本末期, 没事干的时候整一出双倍材料, 总不能没事干的时候一直刷基础材料吧.
+           这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
+        """
+
+        # 跳转双倍活动界面
+        op = TransportByCompendium(self.ctx, '训练', '双倍', None)
+        result = op.execute()
+        if not result.success:
+            return self.round_success('无双倍活动')
+
+        time.sleep(1)
+        # 查看剩余几次的文字
+        result = self.round_by_find_area(self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数')
+        if not result.is_success:
+            return self.round_success('无双倍活动')
+        # ocr 检测剩余次数
+        area = self.ctx.screen_loader.get_area('快捷手册', '怪物卡双倍剩余次数')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+        digit = str_utils.get_positive_digits(ocr_result, None)
+        if digit is None:
+            return self.round_retry('双倍活动识别出错', wait=1)
+        times_left = digit // 10
+        if times_left == 0 or digit % 10 != 5:
+            return self.round_success('无双倍活动')
+        # 识别出错
+        if times_left > 10:
+            return self.round_retry('双倍活动识别出错', wait=1)
+
+        temp_plan = self.config.double_reward_event_config
+
+        # add_plan.card_num = str(times_left)
+        temp_plan.card_num = '1'  # todo test, 每次打一个这样一天能测5次
+
+        # 执行双倍体力计划, todo 不能把ctx传进去否则会覆盖自己的体力计划
+        run_temp_plan(self.ctx, temp_plan)
+
         return self.round_success()
 
     @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
+    @node_from(from_name='查看双倍活动')
+    @node_from(from_name='查看双倍活动', success=False)
     @node_from(from_name='跳过或结束计划')
     @node_from(from_name='恢复电量', success=True)
     @node_from(from_name='恢复电量', success=False)
@@ -233,12 +286,19 @@ class ChargePlanApp(ZApplication):
         return self.round_by_op_result(op_result, status=f'剩余电量 {self.charge_power}')
 
 
+def run_temp_plan(ctx: ZContext, plan_list: List[ChargePlanItem]) -> List[ChargePlanItem]:
+    op = ChargePlanApp(ctx, dont_check_double_reward_event=True)
+    op.config.plan_list = [plan_list]
+    op.config.data['loop'] = False
+    op.execute()
+
+
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.current_app_id = charge_plan_const.APP_ID
     ctx.run_context.start_running()
-    app = ChargePlanApp(ctx)
-    app.config.plan_list = [
+    run_temp_plan(ctx, [
         ChargePlanItem(
             tab_name='训练',
             category_name='恶名狩猎',
@@ -248,9 +308,7 @@ def __debug():
             plan_times=1,
             predefined_team_idx=-1,
         )
-    ]
-    app.config.data['loop'] = False
-    app.execute()
+    ])
 
 
 if __name__ == '__main__':
