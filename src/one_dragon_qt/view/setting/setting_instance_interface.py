@@ -265,6 +265,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
             self.ctx.game_account_config.get_prop_adapter("bilibili_account_name")
         )
 
+        self.set_ui_of_game_region(self.ctx.game_account_config.game_region)
+
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt("账户列表"))
 
@@ -311,7 +313,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt = ComboBoxSettingCard(
             icon=FluentIcon.HOME, title="游戏区服", options_enum=GameRegionEnum
         )
-        self.game_region_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        self.game_region_opt.value_changed.connect(self.on_game_region_opt_changed)
         instance_settings_group.addSettingCard(self.game_region_opt)
 
         self.game_account_opt = TextSettingCard(
@@ -329,10 +331,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
+        self.help_bilibili_opt = HelpCard(title='B服使用提示',
+                                          content='B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。')
+        instance_settings_group.addSettingCard(self.help_bilibili_opt)
+
         self.bilibili_account_name = TextSettingCard(
             icon=FluentIcon.PEOPLE,
-            title="用户名 (B服专用)",
-            content="B服需要先手动登录游戏并记住用户，可以不用填上面的账号密码",
+            title="B服用户名",
+            content="B服为选择已有登录记录的用户进行登录，需要先手动登录游戏",
             input_placeholder="填写游戏中切换B服账号时显示的用户名",
         )
         instance_settings_group.addSettingCard(self.bilibili_account_name)
@@ -400,4 +406,20 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.game_account_config.custom_win_title = (
             self.custom_win_title_input.text()
         )
+        self.ctx.init_controller()
+
+    def set_ui_of_game_region(self, value):
+        if value == GameRegionEnum.CNB.value.value:
+            self.game_account_opt.hide()
+            self.game_password_opt.hide()
+            self.help_bilibili_opt.show()
+            self.bilibili_account_name.show()
+        else:
+            self.game_account_opt.show()
+            self.game_password_opt.show()
+            self.help_bilibili_opt.hide()
+            self.bilibili_account_name.hide()
+
+    def on_game_region_opt_changed(self, _, value):
+        self.set_ui_of_game_region(value)
         self.ctx.init_controller()

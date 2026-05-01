@@ -18,7 +18,8 @@ class GameLanguageEnum(Enum):
 
 class GameRegionEnum(Enum):
 
-    CN = ConfigItem('国服/B服', 'cn')
+    CN = ConfigItem('国服', 'cn')
+    CNB = ConfigItem('B服', 'cn_b')
     AMERICA = ConfigItem('美服', 'us')
     EUROPE = ConfigItem('欧服', 'eu')
     ASIA = ConfigItem('亚服', 'asia')
@@ -104,7 +105,8 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def game_refresh_hour_offset(self) -> int:
-        if self.game_region == GameRegionEnum.CN.value.value:
+        if self.game_region == GameRegionEnum.CN.value.value \
+                or self.game_region == GameRegionEnum.CNB.value.value:
             return 4
         elif self.game_region == GameRegionEnum.AMERICA.value.value:
             return -9

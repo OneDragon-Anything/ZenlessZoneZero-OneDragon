@@ -128,7 +128,8 @@ class EnterGame(ZOperation):
             return self.round_by_find_and_click_area(screen, '打开游戏', 'B服新-同意隐私政策')
         # endregion
 
-        if self.ctx.game_account_config.game_region != GameRegionEnum.CN.value.value:
+        if self.ctx.game_account_config.game_region != GameRegionEnum.CN.value.value \
+                and self.ctx.game_account_config.game_region != GameRegionEnum.CNB.value.value:
             return self.check_screen_intl(screen)
 
         return None
