@@ -1,0 +1,30 @@
+# 爱芮专属连携模板
+# 优先级：最高
+# 逻辑：
+#   1. 如果连携列表中有爱芮（后台）→ 优先选择爱芮的连携
+handlers:
+  # 情况1：爱芮在连携列表左侧
+  - states: "[连携技-1-爱芮]"
+    operations:
+      - operation_template: "连携-左"
+      - op_name: "设置状态"
+        state: "自定义-失衡时间"
+
+  # 情况1：爱芮在连携列表右侧
+  - states: "[连携技-2-爱芮]"
+    operations:
+      - operation_template: "连携-右"
+      - op_name: "设置状态"
+        state: "自定义-失衡时间"
+
+  # 情况2：爱芮不在连携列表中（即爱芮在前台触发连携）→ 取消连携
+  - states: "[前台-爱芮]"
+    debug_name: "跳过连携"
+    operations:
+    - op_name: "设置状态"
+      state: "自定义-连携跳过"
+    - op_name: "设置状态"
+      state: "自定义-失衡时间"
+    - operation_template: "连携-取消"
+    - op_name: "清除状态"
+      state: "按键可用-连携技"

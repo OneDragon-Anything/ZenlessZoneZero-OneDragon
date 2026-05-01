@@ -309,8 +309,8 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
-        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
+        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮')
+        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，当前计划因体力不足或次数限制无法继续时，会依次尝试后续计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)

@@ -70,6 +70,21 @@ class ChargePlanItem:
         mission_name = self.mission_name or ''
         return f'{tab_name}_{category_name}_{mission_type_name}_{mission_name}'
 
+    @property
+    def estimated_charge_power(self) -> int:
+        # 菜单态这里只做体力预估；未知类型交给副本内流程再检查真实消耗
+        if self.category_name == '实战模拟室':
+            if self.card_num == CardNumEnum.DEFAULT.value.value:
+                return 20
+            return int(self.card_num) * 20
+        if self.category_name == '区域巡防':
+            return 60
+        if self.category_name == '专业挑战室':
+            return 40
+        if self.category_name == '恶名狩猎':
+            return 60
+        return 0  # 未知类型，在副本内检查
+
 
 class ChargePlanConfig(ApplicationConfig):
 
