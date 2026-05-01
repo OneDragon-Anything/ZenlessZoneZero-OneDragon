@@ -1,3 +1,4 @@
+import copy
 import os
 
 import yaml
@@ -7,17 +8,28 @@ from one_dragon.utils.log_utils import log
 
 cached_yaml_data: dict[str, tuple[float, dict]] = {}
 
-def read_cache_or_load(file_path: str):
+
+def _validate_yaml_data(file_path: str, data) -> dict:
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise TypeError(
+            f"YAML root must be a dict in {file_path}, got {type(data).__name__}"
+        )
+    return data
+
+
+def read_cache_or_load(file_path: str) -> dict:
     cached = cached_yaml_data.get(file_path)
     last_modify = os.path.getmtime(file_path)
     if cached is not None and cached[0] == last_modify:
-        return cached[1]
+        return copy.deepcopy(cached[1])
 
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, encoding='utf-8') as file:
         log.debug(f"加载yaml: {file_path}")
-        data = yaml_utils.safe_load(file)
+        data = _validate_yaml_data(file_path, yaml_utils.safe_load(file))
         cached_yaml_data[file_path] = (last_modify, data)
-        return data
+        return copy.deepcopy(data)
 
 
 class YamlOperator:
