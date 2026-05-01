@@ -71,8 +71,8 @@ class TextClassifier(PredictBase):
             norm_img_batch = norm_img_batch.copy()
 
             input_feed = self.get_input_feed(self.cls_input_name, norm_img_batch)
-            outputs = self.cls_onnx_session.run(
-                self.cls_output_name, input_feed=input_feed
+            outputs = self.run_onnx_session(
+                self.cls_onnx_session, self.cls_output_name, input_feed=input_feed
             )
 
             prob_out = outputs[0]
