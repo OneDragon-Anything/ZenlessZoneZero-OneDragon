@@ -205,6 +205,18 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         chosen = self.chosen_config is not None
         is_sample = self.chosen_config is None or self.chosen_config.is_sample
 
+        self._update_existed_yml_options()
+        team_config_list = (
+            [ConfigItem('游戏内配队', -1)] +
+            [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list]
+        )
+        self.predefined_team_opt.set_options_by_list(team_config_list)
+        self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
+        self.investigation_strategy_opt.set_options_by_list([
+            ConfigItem(i.strategy_name)
+            for i in self.ctx.lost_void.investigation_strategy_list
+        ])
+
         if chosen:
             self.name_opt.setValue(self.chosen_config.module_name)
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
@@ -269,18 +281,6 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.artifact_priority_input.setDisabled(not chosen or is_sample)
         self.artifact_priority_input_2.setDisabled(not chosen or is_sample)
         self.region_type_priority_input.setDisabled(not chosen or is_sample)
-
-        self._update_existed_yml_options()
-        team_config_list = (
-            [ConfigItem('游戏内配队', -1)] +
-            [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list]
-        )
-        self.predefined_team_opt.set_options_by_list(team_config_list)
-        self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
-        self.investigation_strategy_opt.set_options_by_list([
-            ConfigItem(i.strategy_name)
-            for i in self.ctx.lost_void.investigation_strategy_list
-        ])
 
         if is_sample:
             self._update_error_message('当前为默认配置，点击复制后可修改')

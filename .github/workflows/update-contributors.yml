@@ -7,45 +7,53 @@ on:
   workflow_dispatch: # 允许手动触发
 
 jobs:
+  set-timestamp:
+    uses: ./.github/workflows/common-set-timestamp.yml
+
   update-contributors:
+    needs: set-timestamp
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyyaml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
 
-    - name: Run update contributors script
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        python tools/ci/update_contributors.py
+      - name: Run update contributors script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tools/ci/update_contributors.py
 
-    - name: Check for changes
-      id: changes
-      run: |
-        if git diff --quiet contributors.yaml; then
-          echo "changed=false" >> $GITHUB_OUTPUT
-        else
-          echo "changed=true" >> $GITHUB_OUTPUT
-        fi
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet contributors.yaml; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Commit and push changes
-      if: steps.changes.outputs.changed == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add contributors.yaml
-        git commit -m "自动更新贡献者列表 [skip ci]" || exit 0
-        git push
+      - name: Push changes
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions-js/push@v1.5
+        with:
+          rebase: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref || github.ref_name }}
+          message: |
+            ci: 自动更新贡献者列表 ${{ needs.set-timestamp.outputs.build_timestamp }}
+
+            [skip ci]
