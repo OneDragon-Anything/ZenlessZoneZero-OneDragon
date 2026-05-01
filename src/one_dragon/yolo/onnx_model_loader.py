@@ -6,6 +6,7 @@ from typing import Optional, List
 
 import onnxruntime as ort
 
+from one_dragon.utils import gpu_executor
 from one_dragon.yolo.log_utils import log
 
 _GH_PROXY_URL = 'https://ghfast.top'
@@ -142,12 +143,26 @@ class OnnxModelLoader:
         onnx_path = os.path.join(self.model_dir_path, 'model.onnx')
         log.info('加载模型 %s', onnx_path)
 
-        self.session = ort.InferenceSession(
-            onnx_path,
+        session_options = ort.SessionOptions()
+        if "DmlExecutionProvider" in providers:
+            session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+            session_options.enable_mem_pattern = False
+
+        log.info('开始创建ONNX Runtime会话 %s providers=%s', onnx_path, providers)
+        self.session = gpu_executor.create_onnx_session(
+            lambda: ort.InferenceSession(
+                onnx_path,
+                sess_options=session_options,
+                providers=providers,
+            ),
             providers=providers,
         )
+        log.info('创建ONNX Runtime会话完成 providers=%s', self.session.get_providers())
         self.get_input_details()
         self.get_output_details()
+
+    def run_session(self, output_names: List[str], input_feed: dict):
+        return gpu_executor.run_session(self.session, output_names, input_feed=input_feed)
 
     def get_input_details(self):
         model_inputs = self.session.get_inputs()
