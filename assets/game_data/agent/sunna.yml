@@ -3,8 +3,6 @@ agent_type: SUPPORT
 dmg_type: PHYSICAL
 rare_type: S
 code: sunna
-agent_type_cn: 支援
-dmg_type_cn: 物理
 weight:
   生命值: 0.0
   攻击力: 1.0

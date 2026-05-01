@@ -1,9 +1,9 @@
-agent_name: 爱芮 #角色名称
-agent_type: ANOMALY #角色类型
-dmg_type: ETHER #伤害类型
-rare_type: S #稀有度
-code: aria #角色代码
-weight: #角色权重
+agent_name: 爱芮
+agent_type: ANOMALY
+dmg_type: ETHER
+rare_type: S
+code: aria
+weight:
   生命值: 0.0
   攻击力: 0.75
   防御力: 0.0

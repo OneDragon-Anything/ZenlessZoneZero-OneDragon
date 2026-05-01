@@ -11,6 +11,7 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.application.devtools.intel_manage import intel_manage_const
 from zzz_od.game_data.agent import AgentTypeEnum, DmgTypeEnum
+from zzz_od.application.devtools.intel_manage.intel_manage_config import IntelManageConfig as Config
 
 
 class AgentData:
@@ -56,8 +57,12 @@ class AgentData:
         self._data['weight'] = value
     
     def to_dict(self) -> dict:
-        """转换为字典形式，用于保存"""
-        return dict(self._data)
+        """转换为字典形式，用于保存（排除派生字段）"""
+        data = dict(self._data)
+        # 排除派生字段，它们会在加载时根据 agent_type/dmg_type 重新生成
+        data.pop('agent_type_cn', None)
+        data.pop('dmg_type_cn', None)
+        return data
     
     def update(self, data: dict):
         """更新数据"""
@@ -162,7 +167,7 @@ class IntelManageApp(ZApplication):
         
         # 线程锁：保护并发写入操作
         self._agent_save_lock = threading.Lock()
-        self._agent_reload_lock = threading.Lock()
+        self._agent_reload_lock = threading.RLock()
         self._drive_disk_lock = threading.Lock()
         self._engine_weapon_lock = threading.Lock()
 
@@ -170,12 +175,12 @@ class IntelManageApp(ZApplication):
     @property
     def agent_yml_dir(self) -> str:
         """获取代理人数据目录路径"""
-        return get_resource_path('assets', 'game_data', 'agent')
+        return get_resource_path('assets', 'game_data', Config.AGENT_DIR_NAME)
     
     @property
     def agent_merge_file_path(self) -> str:
         """获取代理人合并文件路径"""
-        return str(Path(self.agent_yml_dir) / '_od_merged.yml')
+        return str(Path(self.agent_yml_dir) / Config.MERGED_FILE_NAME)
     
     def get_agent_file_path(self, agent_code: str) -> str:
         """获取单个代理人文件路径"""
@@ -185,12 +190,12 @@ class IntelManageApp(ZApplication):
     @property
     def drive_disk_yml_dir(self) -> str:
         """获取驱动盘数据目录路径"""
-        return get_resource_path('assets', 'game_data', 'drive_disk')
+        return get_resource_path('assets', 'game_data', Config.DRIVE_DISK_DIR_NAME)
     
     @property
     def drive_disk_merge_file_path(self) -> str:
         """获取驱动盘合并文件路径"""
-        return str(Path(self.drive_disk_yml_dir) / '_od_merged.yml')
+        return str(Path(self.drive_disk_yml_dir) / Config.MERGED_FILE_NAME)
     
     def get_drive_disk_file_path(self, disk_code: str) -> str:
         """获取单个驱动盘文件路径"""
@@ -200,12 +205,12 @@ class IntelManageApp(ZApplication):
     @property
     def engine_weapon_yml_dir(self) -> str:
         """获取音擎数据目录路径"""
-        return get_resource_path('assets', 'game_data', 'engine_weapon')
+        return get_resource_path('assets', 'game_data', Config.ENGINE_WEAPON_DIR_NAME)
     
     @property
     def engine_weapon_merge_file_path(self) -> str:
         """获取音擎合并文件路径"""
-        return str(Path(self.engine_weapon_yml_dir) / '_od_merged.yml')
+        return str(Path(self.engine_weapon_yml_dir) / Config.MERGED_FILE_NAME)
     
     def get_engine_weapon_file_path(self, weapon_code: str) -> str:
         """获取单个音擎文件路径"""
@@ -311,7 +316,8 @@ class IntelManageApp(ZApplication):
                     
                     merge_file = Path(self.agent_merge_file_path)
                     if not merge_file.exists():
-                        log.warning(f"Merged file not found: {merge_file}")
+                        # 如果合并文件不存在，从分离文件加载
+                        self.reload_agent(from_separated_files=True)
                         return
                     
                     try:
@@ -323,6 +329,11 @@ class IntelManageApp(ZApplication):
                     
                     if not isinstance(yaml_data, list):
                         log.warning("Merged file format error")
+                        return
+                    
+                    if len(yaml_data) == 0:
+                        # 如果合并文件为空，从分离文件加载
+                        self.reload_agent(from_separated_files=True)
                         return
                     
                     agent_type_mapping = self._get_enum_mapping(AgentTypeEnum)
@@ -659,7 +670,7 @@ class IntelManageApp(ZApplication):
                 return False
 
     def _save_to_merge_file(self) -> None:
-        """保存所有代理人数据到合并文件（带错误恢复机制）"""
+        """保存所有代理人数据到合并文件（先保存内存数据到分离文件，再合并）"""
         merge_file = Path(self.agent_merge_file_path)
         temp_file = merge_file.with_suffix('.tmp')
         
@@ -667,17 +678,38 @@ class IntelManageApp(ZApplication):
             # 确保父目录存在
             merge_file.parent.mkdir(parents=True, exist_ok=True)
             
-            # 生成数据
-            all_data = [agent.to_dict() for agent in self.agent_list]
+            # 先将内存中的所有数据保存到分离文件（确保修改不丢失）
+            agent_dir = Path(self.agent_yml_dir)
+            for agent in self.agent_list:
+                primary_key = agent.code or agent.agent_name.lower().replace(' ', '_')
+                file_path = agent_dir / f'{primary_key}.yml'
+                yaml_op = YamlOperator(str(file_path))
+                yaml_op.data = agent.to_dict()
+                yaml_op.save()
+            
+            # 从分离文件读取数据进行合并（确保数据一致性）
+            all_data = []
+            for yml_file in agent_dir.glob('*.yml'):
+                # 跳过合并文件本身
+                if yml_file.name.startswith('_'):
+                    continue
+                try:
+                    with open(yml_file, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f)
+                        if isinstance(data, dict) and 'agent_name' in data:
+                            all_data.append(data)
+                except (IOError, yaml.YAMLError) as e:
+                    log.warning(f'Failed to read file {yml_file}: {e}')
+                    continue
             
             # 原子写入：先写临时文件，再替换
             with open(temp_file, 'w', encoding='utf-8') as f:
-                yaml.dump(all_data, f, allow_unicode=True, indent=2)
+                yaml.dump(all_data, f, allow_unicode=True, indent=Config.YAML_INDENT)
             
             # 替换目标文件（原子操作）
             temp_file.replace(merge_file)
             
-            log.debug(f"Saved merged data to: {merge_file}")
+            log.debug(f"Saved merged data to: {merge_file} ({len(all_data)} agents)")
             
         except (IOError, OSError, yaml.YAMLError) as e:
             log.error(f'Failed to save merged file: {e}')

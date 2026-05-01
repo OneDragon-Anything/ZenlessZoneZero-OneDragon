@@ -3,8 +3,6 @@ agent_type: STUN
 dmg_type: ETHER
 rare_type: S
 code: nangong_yu
-agent_type_cn: 击破
-dmg_type_cn: 以太
 weight:
   生命值: 0.0
   攻击力: 0.75

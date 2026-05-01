@@ -25,54 +25,25 @@ def _get_slot_mapping() -> dict[str, str]:
 
 
 def _get_weight_order() -> list[str]:
-    """从 slot_Mapping.json 获取权重项顺序（按照 slot_Mapping.json 的顺序）"""
-    mapping = _get_slot_mapping()
-    # 权重项的键顺序（按照 slot_Mapping.json 的顺序）
-    weight_key_order = [
-        'hp_', 'atk_', 'def_', 'pen_', 'impact',
-        'crit_', 'crit_dmg_', 'physical_dmg_', 'ether_dmg_', 'fire_dmg_',
-        'ice_dmg_', 'electric_dmg_', 'anomMas_', 'anomProf', 'energyRegen_',
-        'atk', 'hp', 'def', 'pen'
-    ]
-    return [mapping.get(key, key) for key in weight_key_order]
-
-
-# dmg_type 到元素伤害加成键的映射
-_DMG_TYPE_TO_DMG_BONUS_KEY = {
-    'ELECTRIC': 'electric_dmg_',
-    'ICE': 'ice_dmg_',
-    'FIRE': 'fire_dmg_',
-    'PHYSICAL': 'physical_dmg_',
-    'ETHER': 'ether_dmg_',
-}
+    """从 drive_disk 配置获取权重项顺序（按照枚举定义的顺序）"""
+    weight_key_order = get_weight_key_order()
+    return [SLOT_MAPPING.get(key, key) for key in weight_key_order]
 
 
 def _get_dmg_bonus_key(dmg_type: str) -> str:
     """根据 dmg_type 获取对应的元素伤害加成键"""
-    return _DMG_TYPE_TO_DMG_BONUS_KEY.get(dmg_type, 'physical_dmg_')
+    return DMG_TYPE_TO_DMG_BONUS_KEY.get(dmg_type, DEFAULT_DMG_BONUS_KEY)
 
 
 def _get_weight_order_for_agent(dmg_type: str) -> list[str]:
     """根据 agent 的 dmg_type 获取权重项顺序（只包含对应元素的伤害加成）"""
     mapping = _get_slot_mapping()
     
-    # 基础属性（不包含元素伤害加成）
-    base_key_order = [
-        'hp_', 'atk_', 'def_', 'pen_', 'impact',
-        'crit_', 'crit_dmg_',
-    ]
-    
     # 获取对应元素的伤害加成键
     dmg_bonus_key = _get_dmg_bonus_key(dmg_type)
     
-    # 其他属性
-    other_key_order = [
-        'anomMas_', 'anomProf', 'energyRegen_',
-        'atk', 'hp', 'def', 'pen'
-    ]
-    
     # 组合：基础属性 + 对应元素伤害加成 + 其他属性
-    weight_key_order = base_key_order + [dmg_bonus_key] + other_key_order
+    weight_key_order = BASE_KEY_ORDER + [dmg_bonus_key] + OTHER_KEY_ORDER
     
     return [mapping.get(key, key) for key in weight_key_order]
 
@@ -81,6 +52,7 @@ from one_dragon.utils import yaml_utils
 from one_dragon.utils.log_utils import log
 from PySide6.QtCore import Qt
 from zzz_od.game_data.agent import AgentTypeEnum, DmgTypeEnum, RareTypeEnum
+from zzz_od.game_data.drive_disk import get_weight_key_order, SLOT_MAPPING, DMG_TYPE_TO_DMG_BONUS_KEY, DEFAULT_DMG_BONUS_KEY, BASE_KEY_ORDER, OTHER_KEY_ORDER, EXCLUDED_OPTIONS, SMALL_TO_LARGE_MAP, SMALL_ATTRIBUTE_WEIGHT_RATIO
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -118,6 +90,7 @@ from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.application.devtools.intel_manage.intel_manage_app import IntelManageApp
+from zzz_od.application.devtools.intel_manage.intel_manage_config import IntelManageConfig as Config
 
 
 @dataclass
@@ -351,12 +324,12 @@ class IntelManageInterface(VerticalScrollInterface):
         btn_row.add_widget(self.add_btn)
 
         # 保存按钮（参考 agent_template_generator_interface.py）
-        self.save_btn = PrimaryPushButton(FluentIcon.SAVE, '保存')
+        self.save_btn = PrimaryPushButton(FluentIcon.SAVE, Config.BTN_SAVE_TEXT)
         self.save_btn.clicked.connect(self._on_save_clicked)
         btn_row.add_widget(self.save_btn)
 
         # 更新合并配置文件按钮（参考屏幕管理的合并功能）
-        self.merge_btn = PushButton(FluentIcon.SYNC, '更新合并配置文件')
+        self.merge_btn = PushButton(FluentIcon.SYNC, Config.BTN_MERGE_TEXT)
         self.merge_btn.clicked.connect(self._on_merge_clicked)
         btn_row.add_widget(self.merge_btn)
 
@@ -441,8 +414,6 @@ class IntelManageInterface(VerticalScrollInterface):
         formula_layout.setContentsMargins(4, 4, 4, 4)  # 进一步减小内边距
         formula_layout.setSpacing(4)  # 进一步减小控件间距
 
-        # 定义排除的小属性
-        EXCLUDED_OPTIONS = {'穿透值', '小防御', '小生命', '小攻击'}
         # 可用的权重选项（排除小属性，添加'无'选项）
         self.available_weight_options = [
             '无'  # '无'选项不受联动筛选影响，可以重复使用
@@ -787,7 +758,7 @@ class IntelManageInterface(VerticalScrollInterface):
         # 获取当前选中的代理人
         agent_name = self.search_combo.currentText()
         if not agent_name or agent_name not in self.agent_data:
-            self.show_info_bar('提示', '请先选择一个代理人', icon=InfoBarIcon.WARNING)
+            self.show_info_bar('提示', Config.MSG_WARN_SELECT_AGENT, icon=InfoBarIcon.WARNING)
             return
 
         # 获取表格中的所有词条配置
@@ -822,16 +793,10 @@ class IntelManageInterface(VerticalScrollInterface):
         for attr in self.WEIGHT_OPTIONS:
             generated_weight[attr] = attr_priority_map.get(attr, 0)
         
-        # 小属性权重为对应大属性的1/3（保留两位小数）
-        small_to_large_map = {
-            '小攻击': '攻击力',
-            '小生命': '生命值',
-            '小防御': '防御力',
-            '穿透值': '穿透率'
-        }
-        for small_attr, large_attr in small_to_large_map.items():
+        # 小属性权重为对应大属性的指定比例（保留两位小数）
+        for small_attr, large_attr in SMALL_TO_LARGE_MAP.items():
             if large_attr in generated_weight and generated_weight[large_attr] > 0:
-                generated_weight[small_attr] = round(generated_weight[large_attr] / 3, 2)
+                generated_weight[small_attr] = round(generated_weight[large_attr] * SMALL_ATTRIBUTE_WEIGHT_RATIO, 2)
 
         # 更新代理人数据
         self.agent_data[agent_name]['weight'] = generated_weight
@@ -1283,7 +1248,7 @@ class IntelManageInterface(VerticalScrollInterface):
 
         agent_name = self.search_combo.currentText()
         if not agent_name or agent_name not in self.agent_data:
-            self.show_info_bar('提示', '请先选择一个代理人', icon=InfoBarIcon.WARNING)
+            self.show_info_bar('提示', Config.MSG_WARN_SELECT_AGENT, icon=InfoBarIcon.WARNING)
             return
 
         # 读取基础信息表格数据（UI层职责：数据收集）
