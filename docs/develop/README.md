@@ -55,6 +55,8 @@ uv run --env-file .env pytest zzz-od-test/
 
 可以通过创建硬链接到各个编程工具所需位置
 
+> 以下命令请在仓库根目录执行。
+
 - Qwen Coder - `New-Item -ItemType HardLink -Path "QWEN.md" -Target "AGENTS.md"`
 - Lingma Rules - `New-Item -ItemType HardLink -Path ".lingma/rules/project_rule.md" -Target "AGENTS.md"`
 - Gemini CLI - `New-Item -ItemType HardLink -Path "GEMINI.md" -Target "AGENTS.md"`
