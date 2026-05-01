@@ -212,7 +212,7 @@ class WeightConfigDialog(QDialog):
                 pass
 
     def _on_save(self):
-        """保存权重配置"""
+        """保存权重配置（优化：原子写入，避免并发风险）"""
         for option, input_box in self.weight_inputs.items():
             try:
                 self.weight_values[option] = float(input_box.text()) if input_box.text() else 0.0
@@ -220,7 +220,10 @@ class WeightConfigDialog(QDialog):
                 self.weight_values[option] = 0.0
 
         weight_file = Path(get_resource_path('config', 'character_weight.json'))
+        temp_file = weight_file.with_suffix('.tmp')
         data = {}
+        
+        # 读取现有数据
         if weight_file.exists():
             try:
                 with open(weight_file, 'r', encoding='utf-8') as f:
@@ -232,13 +235,23 @@ class WeightConfigDialog(QDialog):
 
         try:
             weight_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(weight_file, 'w', encoding='utf-8') as f:
+            
+            # 原子写入：先写临时文件，再替换原文件
+            with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # 使用 replace 方法进行原子替换（Windows/Unix 均支持）
+            temp_file.replace(weight_file)
+            
         except OSError as e:
             from one_dragon.utils.log_utils import log
             log.error(f'保存权重配置失败: {e}')
             from qfluentwidgets import MessageBox
             MessageBox.warning(self, '保存失败', f'无法保存权重配置文件:\n{e}')
+            
+            # 清理临时文件
+            if temp_file.exists():
+                temp_file.unlink(missing_ok=True)
             return
 
         self.accept()
@@ -268,6 +281,11 @@ class IntelManageInterface(VerticalScrollInterface):
 
         # 从 WeightConfigDialog 获取权重选项（动态从配置文件加载）
         self.WEIGHT_OPTIONS = WeightConfigDialog.get_weight_options()
+        
+        # 页面数据缓存（优化：避免重复加载）
+        self._cached_drive_disk_data: list[dict] | None = None
+        self._cached_engine_weapon_data: list[dict] | None = None
+        self._cached_agent_data: dict[str, dict] | None = None
 
     def get_content_widget(self) -> QWidget:
         main_widget = QWidget()
@@ -336,6 +354,11 @@ class IntelManageInterface(VerticalScrollInterface):
         self.save_btn = PrimaryPushButton(FluentIcon.SAVE, '保存')
         self.save_btn.clicked.connect(self._on_save_clicked)
         btn_row.add_widget(self.save_btn)
+
+        # 更新合并配置文件按钮（参考屏幕管理的合并功能）
+        self.merge_btn = PushButton(FluentIcon.SYNC, '更新合并配置文件')
+        self.merge_btn.clicked.connect(self._on_merge_clicked)
+        btn_row.add_widget(self.merge_btn)
 
         layout.addWidget(btn_row)
 
@@ -577,11 +600,24 @@ class IntelManageInterface(VerticalScrollInterface):
         else:
             combo_box.setCurrentText(fallback_value)
 
-    def _load_agent_data(self) -> dict[str, dict]:
-        """加载所有代理人的yml数据（委托给App层）"""
+    def _load_agent_data(self, force_reload: bool = False) -> dict[str, dict]:
+        """加载所有代理人的yml数据（委托给App层）（优化：支持多种加载模式）"""
+        # 如果已有缓存且不需要强制刷新，直接返回
+        if not force_reload and self._cached_agent_data is not None:
+            return self._cached_agent_data
+        
         app = self._get_intel_manage_app()
         if app:
-            return app.load_agent_data()
+            # 使用新的 reload 方法（默认从合并文件加载，支持多种模式）
+            if force_reload:
+                app.reload(from_separated_files=True)
+            else:
+                app.reload()  # 默认从合并文件加载
+            
+            # 转换为字典格式供界面使用
+            data = {agent.agent_name: agent.to_dict() for agent in app.agent_list}
+            self._cached_agent_data = data
+            return data
         return {}
 
     def _get_intel_manage_app(self) -> IntelManageApp | None:
@@ -874,8 +910,12 @@ class IntelManageInterface(VerticalScrollInterface):
             data=drive_disk_data
         )
     
-    def _load_drive_disk_data(self) -> list[dict]:
-        """加载驱动盘数据"""
+    def _load_drive_disk_data(self, force_reload: bool = False) -> list[dict]:
+        """加载驱动盘数据（带缓存）"""
+        # 如果已有缓存且不需要强制刷新，直接返回
+        if not force_reload and self._cached_drive_disk_data is not None:
+            return self._cached_drive_disk_data
+        
         import os
         
         def parse_disk_info(disk_info: dict) -> dict:
@@ -885,10 +925,13 @@ class IntelManageInterface(VerticalScrollInterface):
                 'mission_type_name': disk_info.get('mission_type_name', ''),
                 'code': disk_info.get('code', ''),
             }
-        
+
         data = self._load_yml_data(parse_disk_info, 'assets', 'game_data', 'drive_disk')
         for idx, item in enumerate(data):
             item['id'] = idx + 1
+        
+        # 更新缓存
+        self._cached_drive_disk_data = data
         return data
 
     def _build_sound_engine_page(self) -> QWidget:
@@ -906,8 +949,12 @@ class IntelManageInterface(VerticalScrollInterface):
             data=engine_weapon_data
         )
     
-    def _load_engine_weapon_data(self) -> list[dict]:
-        """加载音擎数据"""
+    def _load_engine_weapon_data(self, force_reload: bool = False) -> list[dict]:
+        """加载音擎数据（带缓存）"""
+        # 如果已有缓存且不需要强制刷新，直接返回
+        if not force_reload and self._cached_engine_weapon_data is not None:
+            return self._cached_engine_weapon_data
+        
         import os
         
         def parse_weapon_info(weapon_info: dict) -> dict:
@@ -917,10 +964,13 @@ class IntelManageInterface(VerticalScrollInterface):
                 'rarity': weapon_info.get('rarity', ''),
                 'code': weapon_info.get('code', ''),
             }
-        
+
         data = self._load_yml_data(parse_weapon_info, 'assets', 'game_data', 'engine_weapon')
         for idx, item in enumerate(data):
             item['id'] = idx + 1
+        
+        # 更新缓存
+        self._cached_engine_weapon_data = data
         return data
     
     def _load_yml_data(self, parser: callable, *path_parts: str) -> list[dict]:
@@ -1286,14 +1336,44 @@ class IntelManageInterface(VerticalScrollInterface):
         # 调用 App 层保存数据（业务逻辑委托给 App 层）
         app = self._get_intel_manage_app()
         if app:
-            success = app.save_agent_data(agent_name, merged_agent_data)
+            # 使用新的 save_agent API（接收 AgentData 对象）
+            from zzz_od.application.devtools.intel_manage.intel_manage_app import AgentData
+            agent_obj = AgentData(merged_agent_data)
+            success = app.save_agent(agent_obj, reload_after_save=True)
+            
             if success:
                 self.show_info_bar('成功', '代理人数据已保存', icon=InfoBarIcon.SUCCESS)
+                
+                # 清除界面层缓存（应用层缓存已由 save_agent 自动更新）
+                self._cached_agent_data = None
                 
                 # 如果修改了 dmg_type，更新 WEIGHT_OPTIONS 和比较公式下拉框
                 if 'dmg_type' in agent_data:
                     self._on_agent_selected(agent_name)
             else:
                 self.show_info_bar('失败', '保存失败', icon=InfoBarIcon.ERROR)
+        else:
+            self.show_info_bar('失败', '无法获取应用实例', icon=InfoBarIcon.ERROR)
+    
+    def _on_merge_clicked(self) -> None:
+        """更新合并配置文件（从分离文件加载并合并到 _od_merged.yml）"""
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 从分离文件加载并保存到合并文件
+                app.update_from_separated_files()
+                
+                # 刷新界面缓存并更新 agent_data
+                self._cached_agent_data = None
+                self.agent_data = self._load_agent_data()
+                
+                # 更新搜索选项
+                self._update_search_options()
+                
+                self.show_info_bar('成功', '合并配置文件已更新', icon=InfoBarIcon.SUCCESS)
+            except Exception as e:
+                from one_dragon.utils.log_utils import log
+                log.error(f'合并配置文件失败: {e}')
+                self.show_info_bar('失败', '合并配置文件失败', icon=InfoBarIcon.ERROR)
         else:
             self.show_info_bar('失败', '无法获取应用实例', icon=InfoBarIcon.ERROR)
