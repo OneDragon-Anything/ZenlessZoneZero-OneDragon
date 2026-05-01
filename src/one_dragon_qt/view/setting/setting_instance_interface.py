@@ -418,7 +418,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             self.game_account_opt.show()
             self.game_password_opt.show()
             self.help_bilibili_opt.hide()
-            self.bilibli_account_name.hide()
+            self.bilibili_account_name.hide()
 
     def on_game_region_opt_changed(self, _, value):
         self.set_ui_of_game_region(value)
