@@ -11,6 +11,7 @@ from qfluentwidgets import (
 from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
 
 
 class NotifyDialog(MessageBoxBase):
@@ -32,7 +33,13 @@ class NotifyDialog(MessageBoxBase):
         self.before_notify_switch._onText = gt('开始前通知')
         self.before_notify_switch._offText = gt('开始前通知')
         self.before_notify_switch.label.setText(gt('开始前通知'))
-        self.viewLayout.addWidget(self.before_notify_switch)
+
+        self.notify_on_error_switch = SwitchButton(self)
+        self.notify_on_error_switch.setChecked(self.ctx.notify_config.notify_on_error)
+        self.notify_on_error_switch._onText = gt('节点失败立即通知')
+        self.notify_on_error_switch._offText = gt('节点失败立即通知')
+        self.notify_on_error_switch.label.setText(gt('节点失败立即通知'))
+        self.viewLayout.addWidget(HorizontalSettingCardGroup([self.before_notify_switch, self.notify_on_error_switch], spacing=6))
 
         # 存储所有应用的 ComboBox
         self.app_combos: dict[str, ComboBox] = {}
@@ -84,6 +91,7 @@ class NotifyDialog(MessageBoxBase):
     def accept(self):
         """点击确定时，更新配置"""
         self.ctx.notify_config.enable_before_notify = self.before_notify_switch.isChecked()
+        self.ctx.notify_config.notify_on_error = self.notify_on_error_switch.isChecked()
         for app_id, combo in self.app_combos.items():
             level = combo.currentData()
             setattr(self.ctx.notify_config, app_id, level)
