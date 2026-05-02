@@ -19,6 +19,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
+from zzz_od.operation.compendium.compendium_choose_category import CompendiumChooseCategory
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
@@ -76,15 +77,22 @@ class ChargePlanApp(ZApplication):
         """
 
         # 跳转双倍活动界面
-        op = TransportByCompendium(self.ctx, '训练', '双倍', None)
-        result = op.execute()
-        if not result.success:
+        result1 = self.round_by_goto_screen(screen_name=f'快捷手册-训练')
+        if not result1.is_success:
+            return result1
+
+        time.sleep(1)
+        # '双倍' 只检查一次
+        op = CompendiumChooseCategory(self.ctx, '双倍')
+        op.screenshot()
+        result1 = op.choose_tab()
+        if not result1.is_success:
             return self.round_success('无双倍活动')
 
         time.sleep(1)
         # 查看剩余几次的文字
-        result = self.round_by_find_area(self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数')
-        if not result.is_success:
+        result1 = self.round_by_find_area(self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数')
+        if not result1.is_success:
             return self.round_success('无双倍活动')
         # ocr 检测剩余次数
         area = self.ctx.screen_loader.get_area('快捷手册', '怪物卡双倍剩余次数')
