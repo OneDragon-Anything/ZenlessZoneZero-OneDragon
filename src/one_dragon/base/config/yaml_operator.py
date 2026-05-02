@@ -32,6 +32,12 @@ def read_cache_or_load(file_path: str) -> dict:
         return copy.deepcopy(data)
 
 
+def invalidate_cache(file_path: str | None) -> None:
+    if file_path is None:
+        return
+    cached_yaml_data.pop(file_path, None)
+
+
 class YamlOperator:
 
     def __init__(self, file_path: str | None = None):
@@ -73,6 +79,7 @@ class YamlOperator:
 
         with open(self.file_path, 'w', encoding='utf-8') as file:
             yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+        invalidate_cache(self.file_path)
 
     def save_diy(self, text: str):
         """
@@ -85,6 +92,7 @@ class YamlOperator:
 
         with open(self.file_path, "w", encoding="utf-8") as file:
             file.write(text)
+        invalidate_cache(self.file_path)
 
     def get(self, prop: str, value=None):
         return self.data.get(prop, value)
@@ -107,6 +115,7 @@ class YamlOperator:
             return
         if os.path.exists(self.file_path):
             os.remove(self.file_path)
+            invalidate_cache(self.file_path)
 
     @property
     def is_file_exists(self) -> bool:
