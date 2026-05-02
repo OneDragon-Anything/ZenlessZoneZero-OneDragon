@@ -39,6 +39,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -261,6 +262,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_password_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("password")
         )
+        self.use_steam_opt.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("use_steam")
+        )
+        self.steam_app_id_opt.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("steam_app_id")
+        )
 
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt("账户列表"))
@@ -325,6 +332,19 @@ class SettingInstanceInterface(VerticalScrollInterface):
             is_password=True,
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
+
+        self.use_steam_opt = SwitchSettingCard(
+            icon=FluentIcon.GAME, title='Steam 启动',
+            content='开启后通过 Steam 启动游戏，需填写下方的 Steam App ID',
+        )
+        instance_settings_group.addSettingCard(self.use_steam_opt)
+
+        self.steam_app_id_opt = TextSettingCard(
+            icon=FluentIcon.TAG,
+            title="Steam App ID",
+            input_placeholder="默认 4162040",
+        )
+        instance_settings_group.addSettingCard(self.steam_app_id_opt)
 
         # self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
         #                                          options_enum=TypeInputWay)

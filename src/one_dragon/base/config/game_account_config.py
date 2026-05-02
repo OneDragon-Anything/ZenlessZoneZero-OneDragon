@@ -71,6 +71,22 @@ class GameAccountConfig(YamlConfig):
         self.update('game_path', new_value)
 
     @property
+    def use_steam(self) -> bool:
+        return self.get('use_steam', False)
+
+    @use_steam.setter
+    def use_steam(self, new_value: bool) -> None:
+        self.update('use_steam', new_value)
+
+    @property
+    def steam_app_id(self) -> str:
+        return self.get('steam_app_id', '4162040')
+
+    @steam_app_id.setter
+    def steam_app_id(self, new_value: str) -> None:
+        self.update('steam_app_id', new_value)
+
+    @property
     def game_language(self) -> str:
         return self.get('game_language', GameLanguageEnum.CN.value.value)
 

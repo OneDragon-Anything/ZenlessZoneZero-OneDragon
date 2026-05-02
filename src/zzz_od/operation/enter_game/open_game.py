@@ -24,6 +24,10 @@ class OpenGame(Operation):
         """
         if self.ctx.game_account_config.game_path == '':
             return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
+
+        if self.ctx.game_account_config.use_steam:
+            return self._open_game_via_steam()
+
         full_path = self.ctx.game_account_config.game_path
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)
@@ -48,4 +52,16 @@ class OpenGame(Operation):
             creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
         )
 
+        return self.round_success(wait=5)
+
+    def _open_game_via_steam(self) -> OperationRoundResult:
+        app_id = self.ctx.game_account_config.steam_app_id
+        if app_id == '':
+            return self.round_fail('未配置 Steam App ID，请前往 [ 账户管理 ] 设置')
+
+        log.info('尝试通过 Steam 启动游戏 App ID: %s', app_id)
+        command = f'cmd /c "start "" "steam://rungameid/{app_id}" & exit"'
+        log.info('命令行指令 %s', command)
+
+        subprocess.Popen(command)
         return self.round_success(wait=5)
