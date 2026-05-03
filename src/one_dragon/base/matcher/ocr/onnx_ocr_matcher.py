@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 from logging import DEBUG
 from typing import Callable, List, Optional
@@ -135,7 +136,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         )
         self._ocr_param: OnnxOcrParam = ocr_param
         self._model = None
-        self._loading: bool = False
+        self._init_lock = threading.Lock()
 
     def init_model(
             self,
@@ -147,48 +148,38 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             skip_if_existed: bool = True,
             progress_callback: Optional[Callable[[float, str], None]] = None
             ) -> bool:
-        log.info('正在加载OCR模型')
+        with self._init_lock:
+            log.info('正在加载OCR模型')
 
-        # 保证只有一个线程下载
-        if self._loading:
-            while self._loading:
-                time.sleep(1)
-            return self._model is not None
-        self._loading = True
+            if self._model is not None:
+                log.info('加载OCR模型完毕')
+                return True
 
-        # 先检查模型文件和下载模型
-        done: bool = self.download(
-            download_by_github=download_by_github,
-            download_by_gitee=download_by_gitee,
-            download_by_mirror_chan=download_by_mirror_chan,
-            proxy_url=proxy_url,
-            ghproxy_url=ghproxy_url,
-            skip_if_existed=skip_if_existed,
-            progress_callback=progress_callback
-        )
-        if not done:
-            log.error('下载OCR模型失败')
-            self._loading = False
-            return False
+            # 先检查模型文件和下载模型
+            done: bool = self.download(
+                download_by_github=download_by_github,
+                download_by_gitee=download_by_gitee,
+                download_by_mirror_chan=download_by_mirror_chan,
+                proxy_url=proxy_url,
+                ghproxy_url=ghproxy_url,
+                skip_if_existed=skip_if_existed,
+                progress_callback=progress_callback
+            )
+            if not done:
+                log.error('下载OCR模型失败')
+                return False
 
-        # 加载模型
-        if self._model is None:
+            # 加载模型
             from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
             try:
                 args = self._ocr_param.to_dict()
                 self._model = ONNXPaddleOcr(**args)
-                self._loading = False
                 log.info('加载OCR模型完毕')
                 return True
             except Exception:
                 log.error('OCR模型加载出错', exc_info=True)
-                self._loading = False
                 return False
-
-        log.info('加载OCR模型完毕')
-        self._loading = False
-        return True
 
     def update_use_gpu(self, use_gpu: bool) -> None:
         """

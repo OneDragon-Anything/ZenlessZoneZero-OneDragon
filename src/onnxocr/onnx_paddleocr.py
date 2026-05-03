@@ -4,6 +4,7 @@ import time
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
+from one_dragon.utils.log_utils import log
 
 
 class ONNXPaddleOcr(TextSystem):
@@ -64,11 +65,15 @@ class ONNXPaddleOcr(TextSystem):
                 if not rec:
                     return cls_res
                 return ocr_res
-        except Exception as e:
-            print(e)
-            from one_dragon.utils import debug_utils
-            debug_utils.save_debug_image(image=img[0], prefix='ocr_error')
-            return []
+        except Exception:
+            log.error('OCR推理出错', exc_info=True)
+            try:
+                from one_dragon.utils import debug_utils
+                debug_image = img[0] if isinstance(img, list) else img
+                debug_utils.save_debug_image(image=debug_image, prefix='ocr_error')
+            except Exception:
+                log.warning('保存OCR错误调试图片失败', exc_info=True)
+            raise
 
 
 def sav2Img(org_img, result, name="draw_ocr.jpg"):
