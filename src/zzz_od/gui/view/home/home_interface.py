@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QSpacerItem,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -33,6 +34,7 @@ from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCard
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.dialog.pre_flight_check_dialog import PreFlightCheckDialog, check_pre_flight
 
 
 class ButtonGroup(QWidget):
@@ -346,6 +348,7 @@ class HomeInterface(BaseInterface):
         self.ctx: ZContext = ctx
         self.main_window = parent
         self._saved_area_margins = None
+        self._ready: bool = False
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
@@ -393,13 +396,9 @@ class HomeInterface(BaseInterface):
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         self.start_button.setFixedHeight(48)
-        self.start_button.setMinimumWidth(int(self.start_button.sizeHint().width() * 1.1))  # 加宽10%
+        self.start_button.setMinimumWidth(180)
         self.start_button.clicked.connect(self._on_start_game)
         apply_shadow(self.start_button, blur=24, offset_x=0, offset_y=6, alpha=140)
-
-        # 设置图标和文本之间的间距
-        if self.start_button.layout():
-            self.start_button.layout().setSpacing(12)
 
         # 保存黑色和黄色图标
         self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#000000"))
@@ -572,6 +571,8 @@ class HomeInterface(BaseInterface):
         # 初始化主题色，避免navbar颜色闪烁
         self._update_start_button_style_from_banner()
 
+        self._refresh_ready_state()
+
     def on_interface_leave(self) -> None:
         """视觉切换前恢复 margin 和标题栏，避免新页面闪烁旧样式。"""
         if self.main_window and self._saved_area_margins is not None:
@@ -623,12 +624,53 @@ class HomeInterface(BaseInterface):
         bar.move(self.width() - bar.width() - 24, 48)
         bar.show()
 
+    def _refresh_ready_state(self) -> None:
+        issues = check_pre_flight(self.ctx)
+        self._ready = len(issues) == 0
+        self._apply_button_icon()
+        if self._ready:
+            self.start_button.setText('启动一条龙')
+        else:
+            self.start_button.setText(f'⚠ {len(issues)} 项待配置 ')
+
+    def _find_widget_by_name(self, name: str) -> QWidget | None:
+        stacked = self.main_window.stackedWidget
+        for i in range(stacked.count()):
+            w = stacked.widget(i)
+            if w.objectName() == name:
+                return w
+        return None
+
+    @staticmethod
+    def _find_sub_widget(stacked: QStackedWidget, name: str) -> QWidget | None:
+        for i in range(stacked.count()):
+            w = stacked.widget(i)
+            if w.objectName() == name:
+                return w
+        return None
+
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
-        # app.py中一条龙界面为第三个添加的
+        self._refresh_ready_state()
+        issues = check_pre_flight(self.ctx)
+        if issues:
+            messages = [msg for msg, _, _ in issues]
+            dialog = PreFlightCheckDialog(messages, self)
+            if dialog.exec():
+                _, target_name, sub_name = issues[0]
+                target = self._find_widget_by_name(target_name)
+                if target is not None:
+                    self.main_window.switchTo(target)
+                    if sub_name is not None and hasattr(target, 'stacked_widget'):
+                        sub = self._find_sub_widget(target.stacked_widget, sub_name)
+                        if sub is not None:
+                            target.stacked_widget.setCurrentWidget(sub)
+                return
+
         self.ctx.signal.start_onedragon = True
-        one_dragon_interface = self.main_window.stackedWidget.widget(2)
-        self.main_window.switchTo(one_dragon_interface)
+        target = self._find_widget_by_name('one_dragon_interface')
+        if target is not None:
+            self.main_window.switchTo(target)
 
     def _on_button_enter(self, event):
         """按钮悬停事件"""
@@ -737,11 +779,8 @@ class HomeInterface(BaseInterface):
         theme_bg = f"rgb({r}, {g}, {b})"
         hover_bg = foreground
 
-        self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor(foreground))
-        self._yellow_icon = FluentIcon.PLAY_SOLID.icon(color=QColor(r, g, b))
-        self.start_button.setIcon(self._black_icon)
+        self._apply_button_icon()
 
-        # 使用 setCustomStyleSheet 而不是 setStyleSheet，避免破坏按钮的内部布局
         qss = f"""
         PillPushButton#start_button {{
             background-color: {theme_bg};
@@ -749,10 +788,25 @@ class HomeInterface(BaseInterface):
             border-radius: 28px;
             height: 48px;
             min-height: 48px;
+            padding-top: 2px;
         }}
         PillPushButton#start_button:hover {{
             background-color: {hover_bg};
             color: {theme_bg};
+            padding-top: 2px;
         }}
         """
         setCustomStyleSheet(self.start_button, qss, qss)
+
+    def _apply_button_icon(self) -> None:
+        if not hasattr(self, 'start_button'):
+            return
+        if self._ready:
+            icon = FluentIcon.PLAY_SOLID
+        else:
+            icon = FluentIcon.SETTING
+        r, g, b = self._get_theme_color()
+        foreground = get_foreground_color(r, g, b)
+        self._black_icon = icon.icon(color=QColor(foreground))
+        self._yellow_icon = icon.icon(color=QColor(r, g, b))
+        self.start_button.setIcon(self._black_icon)

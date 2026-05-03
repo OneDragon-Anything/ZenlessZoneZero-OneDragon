@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Optional, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
+from one_dragon.base.operation.notify_pool import NotifyPool
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -82,6 +83,9 @@ class ApplicationRunContext:
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
         self.current_application: Optional[Application] = None
+
+        # 通知池，应用开始时清空重用
+        self.notify_pool: NotifyPool = NotifyPool()
 
     def registry_application(
         self,

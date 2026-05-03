@@ -240,7 +240,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         """
         显示通知设置对话框。配置更新由对话框内部处理。
         """
-        dialog = NotifyDialog(self, self.ctx)
+        dialog = NotifyDialog(self.ctx, self.window())
         dialog.exec()
 
     def on_app_setting_clicked(self, app_id: str) -> None:

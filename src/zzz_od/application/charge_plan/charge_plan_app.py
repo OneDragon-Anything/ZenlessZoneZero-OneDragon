@@ -8,7 +8,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
-    CardNumEnum,
     ChargePlanConfig,
     ChargePlanItem,
 )
@@ -109,19 +108,8 @@ class ChargePlanApp(ZApplication):
             if candidate_plan is None:
                 return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
-            # 计算所需电量
-            need_charge_power = 0  # 未知类型,在副本内检查
-            if candidate_plan.category_name == '实战模拟室':
-                if candidate_plan.card_num == CardNumEnum.DEFAULT.value.value:
-                    need_charge_power = 20  # 至少需要20体力
-                else:
-                    need_charge_power = int(candidate_plan.card_num) * 20
-            elif candidate_plan.category_name == '区域巡防':
-                need_charge_power = 60
-            elif candidate_plan.category_name == '专业挑战室':
-                need_charge_power = 40
-            elif candidate_plan.category_name == '恶名狩猎':
-                need_charge_power = 60
+            # 计算当前计划预估所需电量；未知类型会返回0，交给副本内流程继续判断
+            need_charge_power = candidate_plan.estimated_charge_power
 
             # 检查电量是否足够
             if need_charge_power > 0 and self.charge_power < need_charge_power:
@@ -146,6 +134,7 @@ class ChargePlanApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='查找并选择下一个可执行任务')
+    @node_from(from_name='恢复电量', status='继续前往副本')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
         # 使用已经在查找并选择下一个可执行任务节点中设置好的self.current_plan
@@ -194,9 +183,12 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='挑战完成')
     def challenge_complete(self) -> OperationRoundResult:
-        # 挑战成功后，重置last_tried_plan以继续查找下一个任务
+        # 成功后继续正常轮转；失败则标记当前计划已跳过，避免在同一轮里死循环重试
         if self.previous_node.is_success:
             self.last_tried_plan = None
+        else:
+            self.current_plan.skipped = True
+            self.last_tried_plan = self.current_plan
         return self.round_success()
 
     @node_from(from_name='实战模拟室', status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
@@ -204,6 +196,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:

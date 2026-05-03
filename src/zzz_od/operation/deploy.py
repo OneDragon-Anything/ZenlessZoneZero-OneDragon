@@ -27,6 +27,10 @@ class Deploy(ZOperation):
     @node_from(from_name='出战')
     @operation_node(name='出战确认')
     def check_level(self) -> OperationRoundResult:
+        result = self.round_by_find_area(self.last_screenshot, '通用-出战', '标题-驱动盘数量已达到可拥有上限')
+        if result.is_success:
+            return self.round_fail('驱动盘数量已达到可拥有上限')
+
         result = self.round_by_find_and_click_area(self.last_screenshot, '通用-出战', '按钮-队员数量少-确认')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
@@ -38,7 +42,7 @@ class Deploy(ZOperation):
         return self.round_retry('无需确认', wait=1)
 
     @node_from(from_name='出战确认')
-    @node_from(from_name='出战确认', success=False)
+    @node_from(from_name='出战确认', success=False, status='无需确认')
     @operation_node(name='进入成功')
     def finish(self) -> OperationRoundResult:
         return self.round_success()
@@ -46,7 +50,7 @@ class Deploy(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
     op = Deploy(ctx)
