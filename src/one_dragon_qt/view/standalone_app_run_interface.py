@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QCollator, QLocale
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QWidget
 from qfluentwidgets import (
@@ -14,6 +14,7 @@ from qfluentwidgets import (
     getFont,
 )
 
+import locale
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
@@ -50,6 +51,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             left_stretch=1,
             right_stretch=1,
         )
+        self.all_apps: list[[str, str]] = []
 
     def get_left_widget(self) -> QWidget:
         left = Column(spacing=4)
@@ -92,22 +94,37 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
     # ── 应用列表管理 ──
 
-    def _get_all_apps(self) -> dict[str, str]:
-        """获取所有已注册的默认组应用 {app_id: app_name}"""
-        result: dict[str, str] = {}
+    def _get_all_apps(self) -> list[[str, str]]:
+        """获取所有已注册的默认组应用, 并按拼音排序 {app_id: app_name}"""
+        if len(self.all_apps) > 0:
+            return self.all_apps
+        all_apps: list[[str, str]] = []
         for app_id in self.ctx.run_context.default_group_apps:
             name = self.ctx.run_context.get_application_name(app_id)
-            result[app_id] = name or app_id
-        return result
+            all_apps.append([app_id, name or app_id])
+
+        # 按拼音排序以便查找
+        _old_collate = locale.getlocale(locale.LC_COLLATE)
+        try:
+            locale.setlocale(locale.LC_COLLATE, "zh_CN.UTF-8")
+        except locale.Error:
+            locale.setlocale(locale.LC_COLLATE, "")
+        try:
+            all_apps.sort(key=lambda x: locale.strxfrm(x[1]))
+        finally:
+            locale.setlocale(locale.LC_COLLATE, _old_collate)
+
+        self.all_apps = all_apps
+        return all_apps
 
     def _refresh_app_list(self) -> None:
         """刷新应用列表"""
-        all_apps = self._get_all_apps()
+        all_apps: list = self._get_all_apps()
         config = self.ctx.standalone_app_config
+        app_list = [aid for aid in all_apps if len([item for item in config.app_list if item == aid[0]]) > 0]
 
-        valid_ids = [aid for aid in config.app_list if aid in all_apps]
+        valid_ids = [aid[0] for aid in app_list]
 
-        app_list = [(aid, all_apps[aid]) for aid in valid_ids]
         self.app_list_widget.set_app_list(app_list)
         self._update_setting_btn_visibility()
 
@@ -139,7 +156,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def _on_add_app_clicked(self) -> None:
         all_apps = self._get_all_apps()
         existing_ids = set(self.app_list_widget.app_ids)
-        available = {aid: name for aid, name in all_apps.items() if aid not in existing_ids}
+        available = [[aid, name] for aid, name in all_apps if aid not in existing_ids]
 
         if not available:
             return
@@ -148,7 +165,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
         if dialog.exec():
             selected_ids = dialog.get_selected_ids()
             for app_id in selected_ids:
-                self.app_list_widget.add_app(app_id, all_apps[app_id])
+                self.app_list_widget.add_app(app_id, [item[1] for item in all_apps if item[0] == app_id][0])
             self._update_setting_btn_visibility()
             self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
@@ -184,14 +201,14 @@ class StandaloneRunInterface(SplitAppRunInterface):
 class AddAppDialog(MessageBoxBase):
     """添加应用对话框"""
 
-    def __init__(self, available_apps: dict[str, str], parent: QWidget):
+    def __init__(self, available_apps: list[[str, str]], parent: QWidget):
         super().__init__(parent=parent)
 
         self.titleLabel = SubtitleLabel(gt('添加应用'))
         self.viewLayout.addWidget(self.titleLabel)
         self.viewLayout.addSpacing(10)
 
-        self._app_ids = list(available_apps.keys())
+        self.available_apps = available_apps
 
         self._list_widget = MultiSelectListWidget()
         self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
@@ -199,7 +216,7 @@ class AddAppDialog(MessageBoxBase):
         self._list_widget.setMinimumHeight(400)
         self._list_widget.setMinimumWidth(480)
         item_font = getFont(16)
-        for _, app_name in available_apps.items():
+        for _, app_name in available_apps:
             item = QListWidgetItem(gt(app_name))
             item.setSizeHint(QSize(0, 36))
             item.setFont(item_font)
@@ -212,4 +229,4 @@ class AddAppDialog(MessageBoxBase):
 
     def get_selected_ids(self) -> list[str]:
         selected_rows = {idx.row() for idx in self._list_widget.selectedIndexes()}
-        return [self._app_ids[i] for i in sorted(selected_rows)]
+        return [self.available_apps[i][0] for i in sorted(selected_rows)]
