@@ -1,11 +1,14 @@
-from concurrent.futures import Future, ThreadPoolExecutor
 import threading
+from collections.abc import Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Callable, TypeVar
 
+from one_dragon.utils.log_utils import log
 from one_dragon.utils import thread_utils
 
 T = TypeVar("T")
 _THREAD_PREFIX = "od_gpu"
+_DML_PROVIDER = "DmlExecutionProvider"
 _executor_local = threading.local()
 
 
@@ -37,12 +40,26 @@ def run_sync(fn: Callable[..., T], /, *args, **kwargs) -> T:
     return submit(fn, *args, **kwargs).result()
 
 
+def should_serialize_providers(providers: Sequence[str] | None) -> bool:
+    return providers is not None and _DML_PROVIDER in providers
+
+
+def create_onnx_session(
+        factory: Callable[[], T],
+        providers: Sequence[str] | None,
+) -> T:
+    if should_serialize_providers(providers):
+        return run_sync(factory)
+    return factory()
+
+
 def should_serialize_session(session) -> bool:
     try:
         providers = session.get_providers()
     except Exception:
-        return False
-    return "DmlExecutionProvider" in providers
+        log.warning('获取ONNX Runtime执行提供程序失败，将保守串行化执行', exc_info=True)
+        return True
+    return should_serialize_providers(providers)
 
 
 def run_session(session, output_names, input_feed=None, **kwargs):

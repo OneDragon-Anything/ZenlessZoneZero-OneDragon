@@ -148,11 +148,16 @@ class OnnxModelLoader:
             session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
             session_options.enable_mem_pattern = False
 
-        self.session = ort.InferenceSession(
-            onnx_path,
-            sess_options=session_options,
+        log.info('开始创建ONNX Runtime会话 %s providers=%s', onnx_path, providers)
+        self.session = gpu_executor.create_onnx_session(
+            lambda: ort.InferenceSession(
+                onnx_path,
+                sess_options=session_options,
+                providers=providers,
+            ),
             providers=providers,
         )
+        log.info('创建ONNX Runtime会话完成 providers=%s', self.session.get_providers())
         self.get_input_details()
         self.get_output_details()
 

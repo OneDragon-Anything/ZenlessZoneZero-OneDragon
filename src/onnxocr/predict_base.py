@@ -1,5 +1,6 @@
 import onnxruntime
 from one_dragon.utils import gpu_executor
+from one_dragon.utils.log_utils import log
 
 class PredictBase(object):
     def __init__(self):
@@ -22,11 +23,16 @@ class PredictBase(object):
             session_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
             session_options.enable_mem_pattern = False
 
-        onnx_session = onnxruntime.InferenceSession(
-            model_dir,
-            sess_options=session_options,
+        log.info('开始创建OCR ONNX Runtime会话 %s providers=%s', model_dir, providers)
+        onnx_session = gpu_executor.create_onnx_session(
+            lambda: onnxruntime.InferenceSession(
+                model_dir,
+                sess_options=session_options,
+                providers=providers,
+            ),
             providers=providers,
         )
+        log.info('创建OCR ONNX Runtime会话完成 providers=%s', onnx_session.get_providers())
 
         # print("providers:", onnxruntime.get_device())
         return onnx_session
