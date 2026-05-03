@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import sys
 import threading
 import time
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 
 import numpy as np
 
@@ -13,6 +14,7 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher
 from one_dragon.utils import gpu_executor
 
 
@@ -126,3 +128,59 @@ def test_run_session_does_not_serialize_cpu_sessions():
             future.result(timeout=2)
 
     assert probe.max_active >= 2
+
+
+def test_ocr_init_model_uses_lock_for_concurrent_calls(monkeypatch):
+    init_count = 0
+    download_count = 0
+    count_lock = threading.Lock()
+
+    class FakeOcrRuntime:
+
+        def __init__(self, **kwargs):
+            nonlocal init_count
+            time.sleep(0.05)
+            with count_lock:
+                init_count += 1
+
+    fake_module = ModuleType("onnxocr.onnx_paddleocr")
+    fake_module.ONNXPaddleOcr = FakeOcrRuntime
+    monkeypatch.setitem(sys.modules, "onnxocr.onnx_paddleocr", fake_module)
+
+    matcher = object.__new__(OnnxOcrMatcher)
+    matcher._ocr_param = SimpleNamespace(to_dict=lambda: {})
+    matcher._model = None
+    matcher._init_lock = threading.Lock()
+
+    def download(**kwargs):
+        nonlocal download_count
+        time.sleep(0.05)
+        with count_lock:
+            download_count += 1
+        return True
+
+    matcher.download = download
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_list = [executor.submit(matcher.init_model) for _ in range(2)]
+        for future in future_list:
+            assert future.result(timeout=2)
+
+    assert download_count == 1
+    assert init_count == 1
+
+
+def test_ocr_init_model_failure_releases_lock(monkeypatch):
+    fake_module = ModuleType("onnxocr.onnx_paddleocr")
+    fake_module.ONNXPaddleOcr = object
+    monkeypatch.setitem(sys.modules, "onnxocr.onnx_paddleocr", fake_module)
+
+    matcher = object.__new__(OnnxOcrMatcher)
+    matcher._ocr_param = SimpleNamespace(to_dict=lambda: {})
+    matcher._model = None
+    matcher._init_lock = threading.Lock()
+    matcher.download = lambda **kwargs: False
+
+    assert not matcher.init_model()
+    assert matcher._init_lock.acquire(blocking=False)
+    matcher._init_lock.release()
