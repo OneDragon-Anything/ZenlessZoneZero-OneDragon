@@ -48,6 +48,7 @@ uv run --env-file .env ruff format src/你修改的文件.py
 ### 3. 关键运行机制
 
 - `ZContext` 管理懒加载服务与配置；实例级配置变更要走 `reload_instance_config()` 对应机制。
+- 这里的 `Operation` 指框架里的基础操作单元；文档里提到的“流转 / flow”是由这些 `Operation` 节点组成的执行链。
 - 操作链基于 `ZOperation` / `Operation` 编排；状态流转沿用现有 round 系列接口与节点声明方式。
 - GPU/onnx session 的异步调用必须通过 `gpu_executor.submit`，不要并发直调多个 session。
 
