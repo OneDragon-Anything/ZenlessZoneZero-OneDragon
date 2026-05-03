@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QSpacerItem,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -640,18 +641,30 @@ class HomeInterface(BaseInterface):
                 return w
         return None
 
+    @staticmethod
+    def _find_sub_widget(stacked: QStackedWidget, name: str) -> QWidget | None:
+        for i in range(stacked.count()):
+            w = stacked.widget(i)
+            if w.objectName() == name:
+                return w
+        return None
+
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
         self._refresh_ready_state()
         issues = check_pre_flight(self.ctx)
         if issues:
-            messages = [msg for msg, _ in issues]
+            messages = [msg for msg, _, _ in issues]
             dialog = PreFlightCheckDialog(messages, self)
             if dialog.exec():
-                _, target_name = issues[0]
+                _, target_name, sub_name = issues[0]
                 target = self._find_widget_by_name(target_name)
                 if target is not None:
                     self.main_window.switchTo(target)
+                    if sub_name is not None and hasattr(target, 'stacked_widget'):
+                        sub = self._find_sub_widget(target.stacked_widget, sub_name)
+                        if sub is not None:
+                            target.stacked_widget.setCurrentWidget(sub)
                 return
 
         self.ctx.signal.start_onedragon = True
