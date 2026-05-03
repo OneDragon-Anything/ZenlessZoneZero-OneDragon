@@ -22,11 +22,11 @@ class OpenGame(Operation):
         打开游戏
         :return:
         """
-        if self.ctx.game_account_config.game_path == '':
-            return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
-
         if self.ctx.game_account_config.use_steam:
             return self._open_game_via_steam()
+
+        if self.ctx.game_account_config.game_path == '':
+            return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
 
         full_path = self.ctx.game_account_config.game_path
         dir_path = os.path.dirname(full_path)
