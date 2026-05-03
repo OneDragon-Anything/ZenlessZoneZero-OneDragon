@@ -8,6 +8,7 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
 import numpy as np
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
@@ -184,3 +185,24 @@ def test_ocr_init_model_failure_releases_lock(monkeypatch):
     assert not matcher.init_model()
     assert matcher._init_lock.acquire(blocking=False)
     matcher._init_lock.release()
+
+
+def test_onnx_paddleocr_ocr_reraises_inference_errors(monkeypatch):
+    from onnxocr.onnx_paddleocr import ONNXPaddleOcr
+
+    monkeypatch.setattr(
+        "one_dragon.utils.debug_utils.save_debug_image",
+        lambda **kwargs: None,
+    )
+
+    class FailingOcr(ONNXPaddleOcr):
+
+        def __init__(self):
+            self.use_angle_cls = False
+
+        def __call__(self, img, cls=True):
+            raise RuntimeError("ocr exploded")
+
+    image = np.zeros((16, 16, 3), dtype=np.uint8)
+    with pytest.raises(RuntimeError, match="ocr exploded"):
+        FailingOcr().ocr(image, det=True, rec=True, cls=False)
