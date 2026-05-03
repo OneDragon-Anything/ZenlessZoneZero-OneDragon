@@ -344,7 +344,7 @@ class LostVoidRunLevel(ZOperation):
 
         if self.nothing_times >= 50:
             self.nothing_times = 0
-            return self.round_success('处理寻路失败')
+            return self.round_fail(Operation.STATUS_TIMEOUT)
 
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
@@ -861,7 +861,8 @@ class LostVoidRunLevel(ZOperation):
         else:
             return result
 
-    @node_from(from_name='非战斗画面识别', success=False, status='处理寻路失败')
+    @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
+    @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_AGENT_DEAD)
     @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='处理寻路失败或阵亡')
@@ -880,8 +881,6 @@ class LostVoidRunLevel(ZOperation):
             log.info('重试次数已达上限，准备退出挑战')
             return self.round_success('准备最终退出')
 
-    @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
-    @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='处理寻路失败或阵亡', status='准备最终退出')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='保存错误信息')
