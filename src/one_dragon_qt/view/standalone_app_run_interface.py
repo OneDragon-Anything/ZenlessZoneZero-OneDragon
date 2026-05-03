@@ -51,7 +51,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             left_stretch=1,
             right_stretch=1,
         )
-        self.all_apps: list[[str, str]] = []
+        self.all_apps: list[list[str]] = []
 
     def get_left_widget(self) -> QWidget:
         left = Column(spacing=4)
@@ -94,11 +94,11 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
     # ── 应用列表管理 ──
 
-    def _get_all_apps(self) -> list[[str, str]]:
+    def _get_all_apps(self) -> list[list[str]]:
         """获取所有已注册的默认组应用, 并按拼音排序 {app_id: app_name}"""
         if len(self.all_apps) > 0:
             return self.all_apps
-        all_apps: list[[str, str]] = []
+        all_apps: list[list[str]] = []
         for app_id in self.ctx.run_context.default_group_apps:
             name = self.ctx.run_context.get_application_name(app_id)
             all_apps.append([app_id, name or app_id])
@@ -121,7 +121,8 @@ class StandaloneRunInterface(SplitAppRunInterface):
         """刷新应用列表"""
         all_apps: list = self._get_all_apps()
         config = self.ctx.standalone_app_config
-        app_list = [aid for aid in all_apps if len([item for item in config.app_list if item == aid[0]]) > 0]
+        app_ids_with_names = {pair[0]: pair[1] for pair in all_apps}
+        app_list = [[aid, app_ids_with_names[aid]] for aid in config.app_list if aid in app_ids_with_names]
 
         valid_ids = [aid[0] for aid in app_list]
 
@@ -201,7 +202,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 class AddAppDialog(MessageBoxBase):
     """添加应用对话框"""
 
-    def __init__(self, available_apps: list[[str, str]], parent: QWidget):
+    def __init__(self, available_apps: list[list[str]], parent: QWidget):
         super().__init__(parent=parent)
 
         self.titleLabel = SubtitleLabel(gt('添加应用'))
