@@ -17,6 +17,7 @@ from zzz_od.gui.view.devtools.agent_template_generator_interface import (
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
     DevtoolsScreenshotHelperInterface,
 )
+from zzz_od.gui.view.devtools.intel_manage_interface import IntelManageInterface
 from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
 
 
@@ -29,14 +30,14 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         PivotNavigatorInterface.__init__(self, object_name='app_devtools_interface', parent=parent,
                                          nav_text_cn='开发工具', nav_icon=FluentIcon.DEVELOPER_TOOLS)
 
-    def create_sub_interface(self):
+    def create_sub_interface(self) -> None:
         """
         创建下面的子页面
-        :return:
         """
         self.add_sub_interface(DevtoolsImageAnalysisInterface(self.ctx))
         self.add_sub_interface(DevtoolsTemplateHelperInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenManageInterface(self.ctx))
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
+        self.add_sub_interface(IntelManageInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))

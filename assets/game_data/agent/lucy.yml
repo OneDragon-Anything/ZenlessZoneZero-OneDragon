@@ -1,4 +1,5 @@
-agent_name: "露西"
-agent_type: "SUPPORT"
-dmg_type: "FIRE"
-rare_type: "A"
+agent_name: 露西亚娜·奥克希斯·提奥多·德·蒙特夫
+agent_type: SUPPORT
+dmg_type: FIRE
+rare_type: A
+code: lucy

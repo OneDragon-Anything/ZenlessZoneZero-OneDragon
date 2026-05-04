@@ -27,8 +27,8 @@ class AgentTypeEnum(Enum):
 class DmgTypeEnum(Enum):
 
     ELECTRIC = '电属性'
-    ETHER = '以太属性'
-    PHYSICAL = '物理属性'
+    ETHER = '以太'
+    PHYSICAL = '物理'
     FIRE = '火属性'
     ICE = '冰属性'
     UNKNOWN = '未知'
