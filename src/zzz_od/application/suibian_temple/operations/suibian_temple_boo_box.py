@@ -231,10 +231,12 @@ class SuibianTempleBooBox(ZOperation):
     @operation_node(name='处理购买动画')
     def handle_purchase_animation(self) -> OperationRoundResult:
         """处理购买流程：点击跳过按钮，然后检测确认按钮"""
-        result = self.round_by_find_and_click_area(self.last_screenshot, '随便观-邦巢', '取消', success_wait=1)
+        result = self.round_by_find_area(self.last_screenshot, '随便观-邦巢', '标题-无法聘用')
         if result.is_success:
-            log.info("派驻邦布持有数量已达上限，停止邦巢购买")
-            return self.round_success(status='持有上限')
+            result = self.round_by_find_and_click_area(self.last_screenshot, '随便观-邦巢', '取消', success_wait=1)
+            if result.is_success:
+                log.info("派驻邦布持有数量已达上限，停止邦巢购买")
+                return self.round_success(status='持有上限')
 
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
