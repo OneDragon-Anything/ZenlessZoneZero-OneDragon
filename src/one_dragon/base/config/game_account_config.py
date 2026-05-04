@@ -1,95 +1,90 @@
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 
 
 class GamePlatformEnum(Enum):
+    PC = ConfigItem("PC")
 
-    PC = ConfigItem('PC')
 
 class ClientTypeEnum(Enum):
-
-    LOCAL = ConfigItem('本地游戏', 'local')
-    CLOUD = ConfigItem('云游戏', 'cloud')
+    LOCAL = ConfigItem("本地游戏", "local")
+    CLOUD = ConfigItem("云游戏", "cloud")
 
 
 class GameLanguageEnum(Enum):
-
-    CN = ConfigItem('简体中文', 'cn')
-    EN = ConfigItem('English', 'en')
+    CN = ConfigItem("简体中文", "cn")
+    EN = ConfigItem("English", "en")
 
 
 class GameRegionEnum(Enum):
-
-    CN = ConfigItem('国服', 'cn')
-    CNB = ConfigItem('B服', 'cn_b')
-    AMERICA = ConfigItem('美服', 'us')
-    EUROPE = ConfigItem('欧服', 'eu')
-    ASIA = ConfigItem('亚服', 'asia')
-    TWHKMO = ConfigItem('港澳台服', 'twhkmo')
+    CN = ConfigItem("国服", "cn")
+    CNB = ConfigItem("B服", "cn_b")
+    AMERICA = ConfigItem("美服", "us")
+    EUROPE = ConfigItem("欧服", "eu")
+    ASIA = ConfigItem("亚服", "asia")
+    TWHKMO = ConfigItem("港澳台服", "twhkmo")
 
 
 class GameAccountConfig(YamlConfig):
-
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
+        YamlConfig.__init__(self, "game_account", instance_idx=instance_idx)
 
         # 兼容旧配置：如果存在旧键 'game_path' 且新键为空，则进行一次性迁移
-        old_game_path = self.get('game_path', None)
+        old_game_path = self.get("game_path", None)
         if old_game_path:
-            local = self.get('local_game_path', '')
+            local = self.get("local_game_path", "")
             if not local:
-                self.update('local_game_path', old_game_path)
+                self.update("local_game_path", old_game_path)
 
     @property
     def platform(self) -> str:
-        return self.get('platform', GamePlatformEnum.PC.value.value)
+        return self.get("platform", GamePlatformEnum.PC.value.value)
 
     @platform.setter
     def platform(self, new_value: str) -> None:
-        self.update('platform', new_value)
+        self.update("platform", new_value)
 
     @property
     def game_region(self) -> str:
-        return self.get('game_region', GameRegionEnum.CN.value.value)
+        return self.get("game_region", GameRegionEnum.CN.value.value)
 
     @game_region.setter
     def game_region(self, new_value: str) -> None:
-        self.update('game_region', new_value)
+        self.update("game_region", new_value)
 
     @property
     def use_custom_win_title(self) -> bool:
-        return self.get('use_custom_win_title', False)
+        return self.get("use_custom_win_title", False)
 
     @use_custom_win_title.setter
     def use_custom_win_title(self, new_value: bool) -> None:
-        self.update('use_custom_win_title', new_value)
+        self.update("use_custom_win_title", new_value)
 
     @property
     def custom_win_title(self) -> str:
-        return self.get('custom_win_title', '')
+        return self.get("custom_win_title", "")
 
     @custom_win_title.setter
     def custom_win_title(self, new_value: str) -> None:
-        self.update('custom_win_title', new_value)
+        self.update("custom_win_title", new_value)
 
     @property
     def local_game_path(self) -> str:
-        return self.get('local_game_path', '')
+        return self.get("local_game_path", "")
 
     @local_game_path.setter
     def local_game_path(self, new_value: str) -> None:
-        self.update('local_game_path', new_value)
+        self.update("local_game_path", new_value)
 
     @property
     def cloud_game_path(self) -> str:
-        return self.get('cloud_game_path', '')
+        return self.get("cloud_game_path", "")
 
     @cloud_game_path.setter
     def cloud_game_path(self, new_value: str) -> None:
-        self.update('cloud_game_path', new_value)
+        self.update("cloud_game_path", new_value)
 
     @property
     def game_path(self) -> str:
@@ -109,56 +104,67 @@ class GameAccountConfig(YamlConfig):
         return self.client_type == ClientTypeEnum.CLOUD.value.value
 
     @property
+    def prefer_bangbang_points(self) -> bool:
+        return self.get("prefer_bangbang_points", False)
+
+    @prefer_bangbang_points.setter
+    def prefer_bangbang_points(self, new_value: bool) -> None:
+        self.update("prefer_bangbang_points", new_value)
+
+    @property
     def client_type(self) -> str:
-        return self.get('client_type', ClientTypeEnum.LOCAL.value.value)
+        return self.get("client_type", ClientTypeEnum.LOCAL.value.value)
 
     @client_type.setter
     def client_type(self, new_value: str) -> None:
-        self.update('client_type', new_value)
+        self.update("client_type", new_value)
 
     @property
     def game_language(self) -> str:
-        return self.get('game_language', GameLanguageEnum.CN.value.value)
+        return self.get("game_language", GameLanguageEnum.CN.value.value)
 
     @game_language.setter
     def game_language(self, new_value: str) -> None:
-        self.update('game_language', new_value)
+        self.update("game_language", new_value)
 
     @property
     def account(self) -> str:
-        return self.get('account', '')
+        return self.get("account", "")
 
     @account.setter
     def account(self, new_value: str) -> None:
-        self.update('account', new_value)
+        self.update("account", new_value)
 
     @property
     def password(self) -> str:
-        return self.get('password', '')
+        return self.get("password", "")
 
     @password.setter
     def password(self, new_value: str) -> None:
-        self.update('password', new_value)
+        self.update("password", new_value)
 
     @property
     def bilibili_account_name(self) -> str:
-        return self.get('bilibili_account_name', '')
+        return self.get("bilibili_account_name", "")
 
     @bilibili_account_name.setter
     def bilibili_account_name(self, new_value: str) -> None:
-        self.update('bilibili_account_name', new_value)
+        self.update("bilibili_account_name", new_value)
 
     @property
     def game_refresh_hour_offset(self) -> int:
-        if self.game_region == GameRegionEnum.CN.value.value \
-                or self.game_region == GameRegionEnum.CNB.value.value:
+        if (
+            self.game_region == GameRegionEnum.CN.value.value
+            or self.game_region == GameRegionEnum.CNB.value.value
+        ):
             return 4
         elif self.game_region == GameRegionEnum.AMERICA.value.value:
             return -9
         elif self.game_region == GameRegionEnum.EUROPE.value.value:
             return -3
-        elif self.game_region == GameRegionEnum.ASIA.value.value:
-            return 4
-        elif self.game_region == GameRegionEnum.TWHKMO.value.value:
+        elif (
+            self.game_region == GameRegionEnum.ASIA.value.value
+            or self.game_region == GameRegionEnum.TWHKMO.value.value
+        ):
             return 4
         return 4

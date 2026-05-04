@@ -66,8 +66,7 @@ class CloudGameQueue(ZOperation):
         )
         result_exit = self.round_by_find_area(screen, "云游戏", "国服PC云-排队中")
         if result_bang.is_success:
-            if self.ctx.cloud_queue_config.prefer_bangbang_points:
-                # 识别"国服PC云-插队"区域
+            if self.ctx.game_account_config.prefer_bangbang_points:
                 result = self.round_by_find_and_click_area(
                     screen, "云游戏", "国服PC云-邦邦点快速队列"
                 )
@@ -117,20 +116,16 @@ class CloudGameQueue(ZOperation):
             wait_time_part, strict_one_line=False
         )
 
-        # 将识别到的值通过log输出
         log.info(
             f"国服PC云排队信息 - 排队人数: {queue_count_text}, 预计等待时间: {wait_time_text}分钟"
         )
 
-        # 检查是否能识别到"点击进入游戏"区域
         enter_game_result = self.round_by_find_area(
             self.last_screenshot, "打开游戏", "点击进入游戏"
         )
         if enter_game_result.is_success:
-            # 如果识别到"点击进入游戏"，则退出循环，返回成功 由EnterGame来进入游戏
             return self.round_success(status="点击进入游戏", wait=1)
         else:
-            # 如果未识别到"点击进入游戏"，则返回等待状态，等待一段时间后切换到第二个节点继续循环
             return self.round_wait(status="等待排队", wait=10)
 
     @node_from(from_name="国服PC云-排队", status="等待排队")
@@ -140,18 +135,4 @@ class CloudGameQueue(ZOperation):
         国服PC云-排队中转节点
         :return:
         """
-        # 仅作为中转，直接切换回第一个节点继续处理
         return self.round_wait(status="排队中转")
-
-
-def __debug():
-    ctx = ZContext()
-    ctx.init_by_config()
-    ctx.start_running()
-    ctx.init_ocr()
-    op = CloudGameQueue(ctx)
-    op.execute()
-
-
-if __name__ == "__main__":
-    __debug()

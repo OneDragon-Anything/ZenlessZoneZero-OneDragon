@@ -25,6 +25,7 @@ class ZPcController(PcControllerBase):
             standard_width=standard_width,
             standard_height=standard_height,
         )
+        self.set_window_title(win_title)
         self.game_config: GameConfig = game_config
         self.action_keys = self.game_config.get_action_keys("keyboard")
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
