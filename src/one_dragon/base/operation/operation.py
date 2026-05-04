@@ -82,6 +82,7 @@ class NodeStateProxy:
 
 class Operation(OperationBase):
 
+    STATUS_AGENT_DEAD: ClassVar[str] = '代理人阵亡'
     STATUS_TIMEOUT: ClassVar[str] = '执行超时'
     STATUS_SCREEN_UNKNOWN: ClassVar[str] = '未能识别当前画面'
 
