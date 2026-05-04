@@ -321,7 +321,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if key == self.key_start_running:
             self.run_context.switch_context_pause_and_run()
         elif key == self.key_stop_running:
-            self.run_context.stop_running()
+            self.run_context.stop_running(by_user=True)
         elif key == self.key_screenshot:
             self.screenshot_and_save_debug(self.env_config.copy_screenshot)
 
