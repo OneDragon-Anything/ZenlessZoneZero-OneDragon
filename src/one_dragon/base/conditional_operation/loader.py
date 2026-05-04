@@ -11,7 +11,7 @@ from one_dragon.utils.log_utils import log
 
 
 class MergedConfigDumper(yaml.SafeDumper):
-    
+
     def represent_str(self, data):
         return self.represent_scalar('tag:yaml.org,2002:str', data, style='"')
 
@@ -34,7 +34,8 @@ class ConditionalOperatorLoader:
         self._state_handler_template_sub_dir: list[str] = state_handler_template_sub_dir  # 状态处理器模板所在目录
 
         self._template_name: str = template_name  # 配置入口文件名
-        
+        self._raw_data: dict[str, Any] = {}
+
         # 配置数据
         self.scenes: list[Scene] = []
 
@@ -43,6 +44,7 @@ class ConditionalOperatorLoader:
         加载配置
         """
         data = ConditionalOperatorLoader.load_yaml_config(self._sub_dir, self._template_name, self._read_from_merged)
+        self._raw_data = data.copy()
 
         scenes = data.get('scenes', [])
 
@@ -50,7 +52,7 @@ class ConditionalOperatorLoader:
             self.scenes.append(Scene(scene_data))
 
         self.validate()
-            
+
         self.load_other_info(data)
         self.load_templates()
 
@@ -201,9 +203,8 @@ class ConditionalOperatorLoader:
         template_dir = os_utils.get_path_under_work_dir(*full_sub_dir)
         file_path = os.path.join(template_dir, f'{self._template_name}.merged.yml')
         with open(file_path, 'w', encoding='utf-8') as file:
-            data = {
-                'scenes': [scene.original_data for scene in self.scenes]
-            }
+            data = {} if self._raw_data is None else self._raw_data.copy()
+            data['scenes'] = [scene.original_data for scene in self.scenes]
             yaml.dump(data, file, allow_unicode=True, Dumper=MergedConfigDumper)
 
     def get_template_name(self) -> str:
@@ -241,7 +242,7 @@ class ConditionalOperatorLoader:
             return sample_file_path
 
     @staticmethod
-    def load_yaml_config(sub_dir: list[str], template_name: str, read_from_merged: bool = False) -> Any:
+    def load_yaml_config(sub_dir: list[str], template_name: str, read_from_merged: bool = False) -> dict[str, Any]:
         """
         从 config 目录下加载yml配置文件
         Args:
@@ -250,7 +251,7 @@ class ConditionalOperatorLoader:
             read_from_merged: 是否从合并后的文件中读取
 
         Returns:
-            Any: 配置文件内容
+            dict[str, Any]: 配置文件内容
         """
         file_path = ConditionalOperatorLoader.get_yaml_file_path(
             sub_dir=sub_dir,
@@ -263,6 +264,10 @@ class ConditionalOperatorLoader:
         with open(file_path, 'r', encoding='utf-8') as file:
             log.debug(f"加载yaml: {file_path}")
             data = yaml_utils.safe_load(file)
+            if data is None:
+                return {}
+            if not isinstance(data, dict):
+                raise ValueError(f'配置文件格式错误 {"/".join(sub_dir)}/{template_name} YAML顶层必须是对象')
             return data
 
 

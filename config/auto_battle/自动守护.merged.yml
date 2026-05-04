@@ -1,3 +1,7 @@
+"auto_lock_interval": 0
+"auto_turn_interval": 0
+"check_agent_interval": 0.1
+"check_dodge_interval": 0.02
 "scenes":
 - "handlers":
   - "debug_name": "画面黑白无法支援"

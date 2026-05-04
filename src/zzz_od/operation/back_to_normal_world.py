@@ -198,8 +198,7 @@ class BackToNormalWorld(ZOperation):
         处理代理人好感度对话
         """
         area = self.ctx.screen_loader.get_area('大世界', '好感度选项')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
         if len(ocr_result_map) > 0:
             self.last_dialog_idx = 1  # 每次都换一个选项 防止错误识别点击了不是选项的地方
             if self.last_dialog_idx >= len(ocr_result_map):  # 下标过大 从0开始

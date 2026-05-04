@@ -420,8 +420,7 @@ class LostVoidChooseCommon(ZOperation):
         self.to_choose_gear_branch = False
         self.to_choose_num = 0
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-标题')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr(part)
+        ocr_result = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
 
         title_words = [w.strip() for w in ocr_result.keys() if len(w.strip()) > 0]
         title_text = ''.join(title_words)

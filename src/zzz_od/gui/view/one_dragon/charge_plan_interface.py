@@ -23,12 +23,12 @@ from one_dragon_qt.widgets.horizontal_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
     MultiPushSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
@@ -311,7 +311,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/feat_one_dragon/onedragon.html',
+            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
             title='体力计划说明',
             content='合理安排每日体力消耗，支持自定义优先级和循环执行',
         )

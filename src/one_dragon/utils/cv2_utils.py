@@ -176,7 +176,7 @@ def mark_area_as_color(image: MatLike, pos: List, color, new_image: bool = False
 
 
 def match_template(source: MatLike, template: MatLike, threshold,
-                   mask: np.ndarray = None, only_best: bool = True,
+                   mask: np.ndarray | None = None, only_best: bool = True,
                    ignore_inf: bool = False) -> MatchResultList:
     """
     在原图中匹配模板 注意无法从负偏移量开始匹配 即需要保证目标模板不会在原图边缘位置导致匹配不到

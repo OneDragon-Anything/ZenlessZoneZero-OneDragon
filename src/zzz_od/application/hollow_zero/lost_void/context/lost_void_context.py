@@ -101,6 +101,7 @@ class LostVoidContext:
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
                 gpu=use_gpu
             )
+            self.detector.overlay_debug_bus = self.ctx.overlay_debug_bus
 
     def get_auto_op_name(self) -> str:
         """

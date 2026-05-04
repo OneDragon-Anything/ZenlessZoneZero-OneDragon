@@ -1,3 +1,23 @@
+"author": "巡夜子 笙梦昱"
+"auto_lock_interval": 5
+"check_agent_interval":
+- 0.4
+- 0.6
+"check_chain_interval":
+- 0.9
+- 1.1
+"check_dodge_interval": 0.02
+"check_quick_interval":
+- 0.9
+- 1.1
+"check_special_attack_interval":
+- 0.4
+- 0.6
+"check_ultimate_interval":
+- 0.4
+- 0.6
+"homepage": ""
+"introduction": "耀嘉音放艾莲前面，已有适配：柏妮思 柳 薇薇安 莱卡恩 苍角 露西 妮可 耀嘉音 "
 "scenes":
 - "handlers":
   - "states": "![自定义-动作不打断, 0, 30]"
@@ -17,13 +37,17 @@
         - "op_name": "按键-移动-右-松开"
         "states": "[前台-艾莲] & [自定义-艾莲-冰渊潜袭,1.5,2]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id034
+          "op_name": "设置状态"
           "state": "自定义-凯撒-战意激昂"
-        - "op_name": "设置状态"
+        - &id035
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "凯撒"
+        - &id036
+          "agent_name": "凯撒"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id037
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -33,11 +57,14 @@
       - "states": "[后台-苍角]"
         "sub_handlers":
         - "operations":
-          - "op_name": "设置状态"
+          - &id050
+            "op_name": "设置状态"
             "state": "自定义-招架支援"
-          - "agent_name": "苍角"
+          - &id051
+            "agent_name": "苍角"
             "op_name": "按键-切换角色"
-          - "op_name": "清除状态"
+          - &id052
+            "op_name": "清除状态"
             "state_list":
             - "自定义-连携技换人"
             - "自定义-快速支援换人"
@@ -45,11 +72,14 @@
             - "自定义-动作不打断"
           "states": "![自定义-苍角-展旗, 0, 25]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id041
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "露西"
+        - &id042
+          "agent_name": "露西"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id043
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -57,11 +87,14 @@
           - "自定义-动作不打断"
         "states": "[后台-露西] & ![自定义-露西-加油, -5, 13]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id053
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "薇薇安"
+        - &id054
+          "agent_name": "薇薇安"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id055
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -69,11 +102,14 @@
           - "自定义-动作不打断"
         "states": "[后台-薇薇安] & [薇薇安-飞羽]{0, 3}"
       - "operations":
-        - "op_name": "设置状态"
+        - &id038
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "艾莲"
+        - &id039
+          "agent_name": "艾莲"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id040
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -81,11 +117,14 @@
           - "自定义-动作不打断"
         "states": "[后台-艾莲]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id047
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "妮可"
+        - &id048
+          "agent_name": "妮可"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id049
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -93,11 +132,14 @@
           - "自定义-动作不打断"
         "states": "[后台-妮可]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id044
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "莱卡恩"
+        - &id045
+          "agent_name": "莱卡恩"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id046
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -105,11 +147,14 @@
           - "自定义-动作不打断"
         "states": "[后台-莱卡恩]"
       - "operations":
-        - "op_name": "设置状态"
+        - &id056
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "agent_name": "柳"
+        - &id057
+          "agent_name": "柳"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id058
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -385,40 +430,54 @@
   - "states": "[自定义-下场]"
     "sub_handlers":
     - "operations":
-      - "agent_name": "艾莲"
+      - &id059
+        "agent_name": "艾莲"
         "op_name": "按键-切换角色"
-      - "op_name": "清除状态"
+      - &id060
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
         - "自定义-快速支援换人"
         - "自定义-下场"
         - "自定义-动作不打断"
-      - "op_name": "设置状态"
+      - &id061
+        "op_name": "设置状态"
         "state_list":
         - "自定义-动作不打断"
         - "自定义-艾莲-冰渊潜袭"
-      - "op_name": "按键-锁定敌人"
+      - &id062
+        "op_name": "按键-锁定敌人"
         "post_delay": 0.01
-      - "op_name": "按键-移动-前-按下"
-      - "op_name": "等待秒数"
+      - &id063
+        "op_name": "按键-移动-前-按下"
+      - &id064
+        "op_name": "等待秒数"
         "seconds": 0.01
-      - "op_name": "按键-闪避"
+      - &id065
+        "op_name": "按键-闪避"
         "post_delay": 0.15
         "press": 0.01
-      - "op_name": "按键-闪避"
+      - &id066
+        "op_name": "按键-闪避"
         "post_delay": 0.1
         "press": 0.01
-      - "op_name": "按键-闪避"
+      - &id067
+        "op_name": "按键-闪避"
         "post_delay": 0.05
         "press": 0.01
-      - "op_name": "按键-普通攻击-按下"
-      - "op_name": "等待秒数"
+      - &id068
+        "op_name": "按键-普通攻击-按下"
+      - &id069
+        "op_name": "等待秒数"
         "seconds": 1.2
-      - "op_name": "按键-普通攻击-松开"
-      - "op_name": "按键-锁定敌人"
+      - &id070
+        "op_name": "按键-普通攻击-松开"
+      - &id071
+        "op_name": "按键-锁定敌人"
         "post_delay": 0.1
-      - "op_name": "清除状态"
+      - &id072
+        "op_name": "清除状态"
         "state_list":
         - "自定义-动作不打断"
         - "自定义-艾莲-急冻修剪法"
@@ -1503,3 +1562,135 @@
         "states": "![艾莲-急冻充能, 0, 999]{3, 6}"
   "interval": 0.15
   "triggers": []
+"t-chain-left":
+- *id001
+- *id002
+- *id003
+"t-chain-right":
+- *id004
+- *id005
+- *id006
+"t-dodge-astra":
+- "op_name": "设置状态"
+  "state": "自定义-招架支援"
+- "agent_name": "耀嘉音"
+  "op_name": "按键-切换角色"
+- "op_name": "清除状态"
+  "state_list":
+  - "自定义-连携技换人"
+  - "自定义-快速支援换人"
+  - "自定义-下场"
+  - "自定义-动作不打断"
+"t-dodge-burnice":
+- "op_name": "设置状态"
+  "state": "自定义-招架支援"
+- "agent_name": "柏妮思"
+  "op_name": "按键-切换角色"
+- "op_name": "清除状态"
+  "state_list":
+  - "自定义-连携技换人"
+  - "自定义-快速支援换人"
+  - "自定义-下场"
+  - "自定义-动作不打断"
+"t-dodge-caesar":
+- *id034
+- *id035
+- *id036
+- *id037
+"t-dodge-ellen":
+- *id038
+- *id039
+- *id040
+"t-dodge-lucy":
+- *id041
+- *id042
+- *id043
+"t-dodge-lycaon":
+- *id044
+- *id045
+- *id046
+"t-dodge-nicole":
+- *id047
+- *id048
+- *id049
+"t-dodge-soukaku":
+- *id050
+- *id051
+- *id052
+"t-dodge-vivian":
+- *id053
+- *id054
+- *id055
+"t-dodge-yanagi":
+- *id056
+- *id057
+- *id058
+"t-switch-astra":
+- *id010
+- *id011
+- *id012
+"t-switch-burnice":
+- *id031
+- *id032
+- *id033
+"t-switch-caesar":
+- *id007
+- *id008
+- *id009
+"t-switch-ellen":
+- *id059
+- *id060
+- *id061
+- *id062
+- *id063
+- *id064
+- *id065
+- *id066
+- *id067
+- *id068
+- *id069
+- *id070
+- *id071
+- *id072
+"t-switch-lucy":
+- *id016
+- *id017
+- *id018
+"t-switch-lycaon":
+- *id025
+- *id026
+- *id027
+"t-switch-nicole":
+- *id028
+- *id029
+- *id030
+"t-switch-soukaku":
+- *id019
+- *id020
+- *id021
+"t-switch-vivian":
+- *id013
+- *id014
+- *id015
+"t-switch-yanagi":
+- *id022
+- *id023
+- *id024
+"team_list":
+- - "莱卡恩"
+  - "苍角"
+  - "艾莲"
+- - "柳"
+  - "露西"
+  - "艾莲"
+- - "柳"
+  - "凯撒"
+  - "艾莲"
+- - "妮可"
+  - "耀嘉音"
+  - "艾莲"
+- - "露西"
+  - "柏妮思"
+  - "艾莲"
+"thanks": "starlight"
+"version": "3.0"

@@ -387,12 +387,13 @@ class AutoBattleAgentContext:
         并发识别角色
         :return:
         """
-        area_img = [
-            cv2_utils.crop_image_only(screen, self.area_agent_3_1.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_3_2.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_3_3.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_2_2.rect)
+        area_rect = [
+            self.area_agent_3_1.rect,
+            self.area_agent_3_2.rect,
+            self.area_agent_3_3.rect,
+            self.area_agent_2_2.rect
         ]
+        area_img = [cv2_utils.crop_image_only(screen, rect) for rect in area_rect]
 
         possible_agents = self.get_possible_agent_list()
 

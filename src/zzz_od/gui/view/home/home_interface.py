@@ -34,7 +34,10 @@ from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCard
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.dialog.pre_flight_check_dialog import PreFlightCheckDialog, check_pre_flight
+from zzz_od.gui.dialog.pre_flight_check_dialog import (
+    PreFlightCheckDialog,
+    check_pre_flight,
+)
 
 
 class ButtonGroup(QWidget):
@@ -631,7 +634,7 @@ class HomeInterface(BaseInterface):
         if self._ready:
             self.start_button.setText('启动一条龙')
         else:
-            self.start_button.setText(f'⚠ {len(issues)} 项待配置 ')
+            self.start_button.setText(f'{len(issues)} 项待配置 ')
 
     def _find_widget_by_name(self, name: str) -> QWidget | None:
         stacked = self.main_window.stackedWidget
@@ -801,10 +804,7 @@ class HomeInterface(BaseInterface):
     def _apply_button_icon(self) -> None:
         if not hasattr(self, 'start_button'):
             return
-        if self._ready:
-            icon = FluentIcon.PLAY_SOLID
-        else:
-            icon = FluentIcon.SETTING
+        icon = FluentIcon.PLAY_SOLID if self._ready else FluentIcon.SETTING
         r, g, b = self._get_theme_color()
         foreground = get_foreground_color(r, g, b)
         self._black_icon = icon.icon(color=QColor(foreground))
