@@ -2,6 +2,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from one_dragon.base.config.one_dragon_config import (
+    AfterDoneOpEnum,
+    should_execute_after_done,
+)
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
@@ -64,3 +68,25 @@ class TestStopRunning:
         assert run_context.start_running()
 
         assert not run_context.is_last_stop_by_user
+
+    @pytest.mark.parametrize(
+        "after_done",
+        [
+            AfterDoneOpEnum.CLOSE_GAME.value.value,
+            AfterDoneOpEnum.SHUTDOWN.value.value,
+        ],
+    )
+    def test_after_done_action_skips_user_stop(self, after_done: str) -> None:
+        """测试用户主动停止时不会执行结束后动作。"""
+        assert not should_execute_after_done(after_done, is_last_stop_by_user=True)
+
+    @pytest.mark.parametrize(
+        "after_done",
+        [
+            AfterDoneOpEnum.CLOSE_GAME.value.value,
+            AfterDoneOpEnum.SHUTDOWN.value.value,
+        ],
+    )
+    def test_after_done_action_runs_after_natural_stop(self, after_done: str) -> None:
+        """测试自然结束时会执行结束后动作。"""
+        assert should_execute_after_done(after_done, is_last_stop_by_user=False)

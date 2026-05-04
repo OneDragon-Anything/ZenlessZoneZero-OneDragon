@@ -10,7 +10,11 @@ from qfluentwidgets import (
     SettingCardGroup,
 )
 
-from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum, InstanceRun
+from one_dragon.base.config.one_dragon_config import (
+    AfterDoneOpEnum,
+    InstanceRun,
+    should_execute_after_done,
+)
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -176,12 +180,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
         if self.ctx.run_context.is_context_stop and self.need_after_done_opt:
             after_done = self.ctx.one_dragon_config.after_done
+            if not should_execute_after_done(
+                after_done, self.ctx.run_context.is_last_stop_by_user
+            ):
+                return
             if after_done == AfterDoneOpEnum.SHUTDOWN.value.value:
                 cmd_utils.shutdown_sys(60)
-            elif (
-                after_done == AfterDoneOpEnum.CLOSE_GAME.value.value
-                and not self.ctx.run_context.is_last_stop_by_user
-            ):
+            elif after_done == AfterDoneOpEnum.CLOSE_GAME.value.value:
                 self.ctx.controller.close_game()
 
     def _on_app_state_changed(self, event) -> None:
