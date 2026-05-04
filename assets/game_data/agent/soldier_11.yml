@@ -1,4 +1,25 @@
-agent_name: "11号"
-agent_type: "ATTACK"
-dmg_type: "FIRE"
-rare_type: "S"
+agent_name: 「11号」
+agent_type: ATTACK
+code: soldier_11
+dmg_type: FIRE
+rare_type: S
+weight:
+  生命值: 0.0
+  攻击力: 0.75
+  防御力: 0.0
+  穿透率: 0.75
+  冲击力: 0.0
+  暴击率: 1.0
+  暴击伤害: 1.0
+  物理伤害加成: 0.0
+  以太伤害加成: 0.0
+  火属性伤害加成: 1.0
+  冰属性伤害加成: 0.0
+  电属性伤害加成: 0.0
+  异常掌控: 0.0
+  异常精通: 0.0
+  能量自动回复: 0.0
+  小攻击: 0.25
+  小生命: 0.0
+  小防御: 0.0
+  穿透值: 0.25
