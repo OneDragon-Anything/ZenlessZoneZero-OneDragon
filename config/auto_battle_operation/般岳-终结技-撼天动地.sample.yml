@@ -10,8 +10,13 @@ operations:
     seconds: 6
   - op_name: "按键-终结技"
     post_delay: 0.1
-    repeat: 10
+    repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "般岳"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 30
   - op_name: "等待秒数"
-    seconds: 5
+    seconds: 1
   - op_name: "清除状态"
     state_list: ["自定义-动作不打断"]

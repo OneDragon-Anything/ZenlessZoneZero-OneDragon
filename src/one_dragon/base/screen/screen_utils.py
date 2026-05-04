@@ -120,15 +120,15 @@ def find_area_in_screen_binary(
     elif area.is_template_area:
         # 裁剪区域
         rect = area.rect
-        part = cv2_utils.crop_image_only(binary_screen, rect)
 
         # 使用二值化模板匹配
-        mrl = ctx.tm.match_template_binary(
-            part,
+        mrl = ctx.tm.crop_and_match_template_binary(
+            binary_screen,
+            rect,
             area.template_sub_dir,
             area.template_id,
             threshold=area.template_match_threshold,
-            binary_threshold=binary_threshold
+            binary_threshold=binary_threshold,
         )
         find = mrl.max is not None
 
@@ -171,10 +171,9 @@ def find_area_in_screen(
                 break
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
@@ -202,16 +201,14 @@ def find_template_coord_in_area(
     if area is None or not area.is_template_area:
         return None
 
-    # 裁剪出指定区域
-    part = cv2_utils.crop_image_only(screen, area.rect)
-
     # 在裁剪区域内进行模板匹配
-    mrl = ctx.tm.match_template(
-        part,
+    mrl = ctx.tm.crop_and_match_template(
+        screen,
+        area.rect,
         area.template_sub_dir,
         area.template_id,
         threshold=area.template_match_threshold,
-        only_best=True
+        only_best=True,
     )
 
     if mrl.max is None:
@@ -235,6 +232,7 @@ def find_and_click_area(
     screen_name: str,
     area_name: str,
     crop_first: bool = True,
+    center_x: bool = False,
 ) -> OcrClickResultEnum:
     """
     在一个区域匹配成功后进行点击
@@ -245,6 +243,7 @@ def find_and_click_area(
         screen_name: 画面名称
         area_name: 区域名称
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        center_x: 模板区域点击时是否固定使用游戏中心点的 x 坐标
 
     Returns:
         OcrClickResultEnum: 点击结果
@@ -262,7 +261,7 @@ def find_and_click_area(
 
         for ocr_result in ocr_result_list:
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
-                if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt):
+                if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
                 else:
                     return OcrClickResultEnum.OCR_CLICK_FAIL
@@ -270,19 +269,67 @@ def find_and_click_area(
         return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
-        elif ctx.controller.click(mrl.max.center + rect.left_top, pc_alt=area.pc_alt):
+
+        matched_center = mrl.max.center + rect.left_top
+        to_click = Point(ctx.controller.center_point.x, matched_center.y) if center_x else matched_center
+
+        if ctx.controller.click(to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
             return OcrClickResultEnum.OCR_CLICK_SUCCESS
         else:
             return OcrClickResultEnum.OCR_CLICK_FAIL
     else:
-        ctx.controller.click(area.center, pc_alt=area.pc_alt)
+        ctx.controller.click(area.center, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
         return OcrClickResultEnum.OCR_CLICK_SUCCESS
+
+
+def scroll_area(
+    ctx: OneDragonContext,
+    area: ScreenArea,
+    direction: str = 'down',
+    start_ratio: float = 0.9,
+    end_ratio: float = 0.1,
+) -> None:
+    """
+    在指定区域内滚动屏幕
+
+    Args:
+        ctx: 运行上下文
+        area: 区域
+        direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
+        start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
+        end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
+    """
+    rect = area.rect
+    height = rect.height
+
+    # 统一按“距顶部比例”计算位置，避免 start/end 计算成同一点
+    start_ratio = max(0.0, min(1.0, start_ratio))
+    end_ratio = max(0.0, min(1.0, end_ratio))
+    y_start = rect.y1 + int(height * start_ratio)
+    y_end = rect.y1 + int(height * end_ratio)
+
+    if direction == 'up':
+        # 往上滚：手势从上往下划
+        start = Point(rect.center.x, y_end)
+        end = Point(rect.center.x, y_start)
+    else:
+        # 往下滚：手势从下往上划
+        start = Point(rect.center.x, y_start)
+        end = Point(rect.center.x, y_end)
+
+    # 防止极端情况下 start/end 重合导致“看起来没有滚动”
+    if start.y == end.y:
+        if start.y >= rect.center.y:
+            end = Point(end.x, max(rect.y1 + 1, end.y - 1))
+        else:
+            end = Point(end.x, min(rect.y2 - 1, end.y + 1))
+
+    ctx.controller.drag_to(start=start, end=end)
 
 
 def get_match_screen_name(

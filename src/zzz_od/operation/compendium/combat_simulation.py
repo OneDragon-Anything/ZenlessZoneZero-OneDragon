@@ -6,7 +6,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -45,7 +45,7 @@ class CombatSimulation(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
+            op_name='{} {}'.format(
                 gt('实战模拟室', 'game'),
                 gt(plan.mission_name, 'game')
             )
@@ -94,7 +94,7 @@ class CombatSimulation(ZOperation):
             return False
         target_word_list: list[str] = [gt(i.mission_type_name, 'game') for i in category.mission_type_list]
         match_type_cnt: int = 0
-        for ocr_result in ocr_result_map.keys():
+        for ocr_result in ocr_result_map:
             match_idx: int = str_utils.find_best_match_by_difflib(ocr_result, target_word_list)
             if match_idx is not None and match_idx >= 0:
                 match_type_cnt += 1
@@ -116,9 +116,9 @@ class CombatSimulation(ZOperation):
         # 滑动次数大于10则返回失败
         if self.scroll_count > 10:
             self.scroll_count = 0
-            return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
+            return self.round_fail(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
-        if self.plan.mission_name == '代理人方案培养':
+        if self.plan.is_agent_plan:
             target_point: Point | None = None
 
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表顶部')
@@ -145,10 +145,9 @@ class CombatSimulation(ZOperation):
 
         else:
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
-            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
             target_point: Point | None = None
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
             ocr_word_list = []
             mrl_list = []
             for ocr_result, mrl in ocr_result_map.items():
@@ -207,11 +206,11 @@ class CombatSimulation(ZOperation):
 
     @node_from(from_name='进入选择数量', status=CardNumEnum.DEFAULT.value.value)
     @node_from(from_name='选择数量')
-    @node_from(from_name='恢复电量', status='恢复电量成功')
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if result.is_success:
             return self.round_success(status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -234,8 +233,7 @@ class CombatSimulation(ZOperation):
         if not self.config.is_restore_charge_enabled:
             return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -308,7 +306,10 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
+        op = ChooseNextOrFinishAfterBattle(
+            self.ctx,
+            self.plan.plan_times > self.plan.run_times,
+        )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)

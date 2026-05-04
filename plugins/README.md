@@ -107,7 +107,7 @@ class MyPluginFactory(ApplicationFactory):
 ```python
 # plugins/my_plugin/my_plugin.py
 
-from one_dragon.base.operation.application.application_base import Application
+from one_dragon.base.operation.application_base import Application
 from zzz_od.context.zzz_context import ZContext
 
 from .utils.helper import do_something  # ✅ 相对导入子模块
@@ -115,7 +115,7 @@ from .utils.helper import do_something  # ✅ 相对导入子模块
 
 class MyPlugin(Application):
     def __init__(self, ctx: ZContext):
-        super().__init__(ctx, "my_plugin", node_max_retry_times=3)
+        Application.__init__(self, ctx, "my_plugin", node_max_retry_times=3)
 
     def _execute_one_round(self):
         do_something()

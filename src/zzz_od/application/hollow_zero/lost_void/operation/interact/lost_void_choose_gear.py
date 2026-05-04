@@ -64,6 +64,12 @@ class LostVoidChooseGear(ZOperation):
                 target = priority_new[0] if len(priority_new) > 0 else unlocked_gears[0]
                 self.ctx.controller.click(target.rect.center)
                 time.sleep(0.5)
+
+                # 将选择的武备类型鸣徽添加至第一优先级
+                text = target.artifact.category
+                self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
+                log.info('【武备追新】添加开局选择的武备属性至第一优先级: [' + text + ']')
+
                 choose_new = True
                 log.info(f'【武备追新】当前可选未获取武备 {",".join([i.artifact.display_name for i in unlocked_gears])}')
             else:
@@ -101,7 +107,7 @@ class LostVoidChooseGear(ZOperation):
             level_rects = level_context.get_absolute_rect_pairs()
             # 按x1坐标排序等级框
             level_rects.sort(key=lambda item: item[1][0])  # item[1][0] 是 x1 坐标
-                
+
         # 按x1坐标排序等级框
         if level_rects:
             level_rects.sort(key=lambda item: item[1][0])  # item[1][0] 是 x1 坐标
@@ -122,12 +128,12 @@ class LostVoidChooseGear(ZOperation):
             has_level = False
 
             for j, (level_contour, (level_x1, level_y1, level_x2, level_y2)) in enumerate(remaining_levels):
-                is_overlapping = not (gear_x2 < level_x1 or level_x2 < gear_x1 or 
-                                    gear_y2 < level_y1 or level_y2 < gear_y1)
-                
+                is_overlapping = not (gear_x2 < level_x1 or level_x2 < gear_x1 or
+                                      gear_y2 < level_y1 or level_y2 < gear_y1)
+
                 if is_overlapping:
                     log.debug(f"  !!! 发现重叠: 武备[{i}] ({gear_x1},{gear_y1},{gear_x2},{gear_y2}) "
-                            f"与 等级[{j}] ({level_x1},{level_y1},{level_x2},{level_y2}) 匹配成功 !!!")
+                              f"与 等级[{j}] ({level_x1},{level_y1},{level_x2},{level_y2}) 匹配成功 !!!")
                     has_level = True
                     remaining_levels.pop(j)  # 直接移除匹配的等级
                     break
@@ -139,12 +145,12 @@ class LostVoidChooseGear(ZOperation):
         return gear_with_status, gear_context
 
     def get_gear_pos_by_click_ocr(
-        self,
-        gear_with_status: list[tuple[Any, bool]],
-        gear_context: Any,
+            self,
+            gear_with_status: list[tuple[Any, bool]],
+            gear_context: Any,
     ) -> tuple[list[LostVoidArtifactPos], list[bool]]:
         """
-        逐个点击武备，等待1秒截图，裁剪“武备名称”区域，9张纵向拼图后统一OCR。
+        逐个点击武备，等待1秒截图，裁剪“武备名称”区域，按实际数量纵向拼图后统一OCR。
         按从上到下的OCR结果回填到从左到右的武备槽位。
         """
         if len(gear_with_status) == 0:
@@ -153,9 +159,7 @@ class LostVoidChooseGear(ZOperation):
         name_area = self.ctx.screen_loader.get_area('迷失之地-武备选择', '武备名称')
         gear_abs_pairs = gear_context.get_absolute_rect_pairs()
         gear_abs_pairs.sort(key=lambda item: item[1][0])
-        gear_abs_pairs = gear_abs_pairs[:9]
         sorted_status_list = sorted(gear_with_status, key=lambda item: cv2.boundingRect(item[0])[0])
-        sorted_status_list = sorted_status_list[:9]
 
         slice_list: list[MatLike] = []
         click_rect_list: list[Rect] = []
@@ -209,10 +213,10 @@ class LostVoidChooseGear(ZOperation):
         return result_list, has_level_list
 
     def _extract_names_from_stitched_ocr(
-        self,
-        ocr_map: dict[str, MatchResultList],
-        slot_cnt: int,
-        slot_height: int,
+            self,
+            ocr_map: dict[str, MatchResultList],
+            slot_cnt: int,
+            slot_height: int,
     ) -> list[str]:
         slot_tokens: list[list[tuple[int, str]]] = [[] for _ in range(slot_cnt)]
         for text, mrl in ocr_map.items():
@@ -237,7 +241,7 @@ class LostVoidChooseGear(ZOperation):
         if len(normalized) == 0:
             return None, False
 
-        match = re.match(r'^\[(.+?)\](.+)$', normalized)
+        match = re.search(r'\[(.+?)\](.+)$', normalized)
         if match is not None:
             raw_category = match.group(1).strip()
             raw_name = match.group(2).strip()
@@ -248,7 +252,8 @@ class LostVoidChooseGear(ZOperation):
                 category = raw_category
             return LostVoidArtifact(category=category, name=raw_name, level='?', is_gear=True), True
 
-        return LostVoidArtifact(category='无详情', name=normalized, level='?', is_gear=True), False
+        # 武备选择仅接受 [分类]名称 结构，其他OCR结果直接丢弃。
+        return None, False
 
     @node_from(from_name='选择武备')
     @operation_node(name='点击携带')

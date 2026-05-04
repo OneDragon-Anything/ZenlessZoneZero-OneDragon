@@ -1,7 +1,9 @@
-# 根据动画实测，动画持续2秒
+# 耀嘉音切人有问题要频繁切
 operations:
   - op_name: "设置状态"
     state: "自定义-耀嘉音-唱歌"
   - op_name: "按键-终结技"
     post_delay: 0.1
     repeat: 3
+  - op_name: "按键-切换角色"
+    agent_name: "耀嘉音"

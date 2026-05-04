@@ -1,5 +1,5 @@
 from one_dragon.base.config.yaml_config import YamlConfig
-from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.game_config import ControlMethodEnum
 
 
 class BattleAssistantConfig(YamlConfig):
@@ -16,14 +16,6 @@ class BattleAssistantConfig(YamlConfig):
         self.update('dodge_assistant_config', new_value)
 
     @property
-    def use_gpu(self) -> bool:
-        return self.get('use_gpu', True)
-
-    @use_gpu.setter
-    def use_gpu(self, new_value: bool) -> None:
-        self.update('use_gpu', new_value)
-
-    @property
     def screenshot_interval(self) -> float:
         return self.get('screenshot_interval', 0.02)
 
@@ -32,12 +24,12 @@ class BattleAssistantConfig(YamlConfig):
         self.update('screenshot_interval', new_value)
 
     @property
-    def gamepad_type(self) -> str:
-        return self.get('gamepad_type', GamepadTypeEnum.NONE.value.value)
+    def control_method(self) -> str:
+        return self.get('control_method', ControlMethodEnum.KEYBOARD.value.value)
 
-    @gamepad_type.setter
-    def gamepad_type(self, new_value: str) -> None:
-        self.update('gamepad_type', new_value)
+    @control_method.setter
+    def control_method(self, new_value: str) -> None:
+        self.update('control_method', new_value)
 
     @property
     def auto_battle_config(self) -> str:
@@ -46,22 +38,6 @@ class BattleAssistantConfig(YamlConfig):
     @auto_battle_config.setter
     def auto_battle_config(self, new_value: str) -> None:
         self.update('auto_battle_config', new_value)
-
-    @property
-    def debug_operation_config(self) -> str:
-        return self.get('debug_operation_config', '安比-3A特殊攻击')
-
-    @debug_operation_config.setter
-    def debug_operation_config(self, new_value: str) -> None:
-        self.update('debug_operation_config', new_value)
-
-    @property
-    def debug_operation_repeat(self) -> bool:
-        return self.get('debug_operation_repeat', True)
-
-    @debug_operation_repeat.setter
-    def debug_operation_repeat(self, new_value: bool) -> None:
-        self.update('debug_operation_repeat', new_value)
 
     @property
     def use_merged_file(self) -> bool:

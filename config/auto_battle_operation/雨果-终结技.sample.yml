@@ -9,7 +9,12 @@ operations:
     seconds_add: -1
   - op_name: "按键-终结技"
     post_delay: 0.1
-    repeat: 30
+    repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "雨果"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 20
   - op_name: "等待秒数"
-    seconds: 2
+    seconds: 1
   - operation_template: "雨果-普通攻击A4"

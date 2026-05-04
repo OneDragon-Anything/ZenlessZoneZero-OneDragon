@@ -31,6 +31,7 @@ area_list:
   color_range: null
   goto_list:
   - 菜单
+  gamepad_key: menu
 - area_name: 快捷手册
   id_mark: false
   pc_rect:
@@ -46,3 +47,4 @@ area_list:
   color_range: null
   goto_list:
   - 快捷手册-训练
+  gamepad_key: compendium

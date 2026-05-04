@@ -1,7 +1,7 @@
 import time
+from typing import ClassVar
 
 from cv2.typing import MatLike
-from typing import List, Optional, ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -9,13 +9,13 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cal_utils
-from one_dragon.yolo.detect_utils import DetectObjectResult, DetectFrameResult
+from one_dragon.utils.log_utils import log
+from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
-from one_dragon.utils.log_utils import log
 
 
 class MoveTargetWrapper:
@@ -25,8 +25,8 @@ class MoveTargetWrapper:
         detect_result: DetectObjectResult,
     ):
         self.is_mixed: bool = False  # 是否混合楼层
-        self.target_name_list: List[str] = [detect_result.detect_class.class_name[5:]]
-        self.target_rect_list: List[Rect] = [Rect(detect_result.x1, detect_result.y1, detect_result.x2, detect_result.y2)]
+        self.target_name_list: list[str] = [detect_result.detect_class.class_name[5:]]
+        self.target_rect_list: list[Rect] = [Rect(detect_result.x1, detect_result.y1, detect_result.x2, detect_result.y2)]
 
         self.leftest_target_name: str = self.target_name_list[0]  # 最左边的入口类型 也就是第一个遇到的区域
         self.entire_rect: Rect = self.target_rect_list[0]
@@ -102,7 +102,8 @@ class LostVoidMoveByDet(ZOperation):
         target_type: str,
         stop_when_interact: bool = True,
         stop_when_disappear: bool = True,
-        ignore_entry_list: Optional[List[str]] = None
+        ignore_entry_list: list[str] | None = None,
+        allow_arrival_by_interact_btn: bool = False,
     ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
@@ -112,6 +113,7 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_interact:
         @param stop_when_disappear:
         @param ignore_entry_list:
+        @param allow_arrival_by_interact_btn: 是否允许仅凭交互按钮出现就判定到位
         """
         ZOperation.__init__(
             self,
@@ -124,7 +126,8 @@ class LostVoidMoveByDet(ZOperation):
         self.target_type: str = target_type
         self.stop_when_interact: bool = stop_when_interact  # 可交互时停止移动
         self.stop_when_disappear: bool = stop_when_disappear  # 目标消失时停止移动
-        self.ignore_entry_list: List[str] = ignore_entry_list
+        self.ignore_entry_list: list[str] | None = ignore_entry_list
+        self.allow_arrival_by_interact_btn: bool = allow_arrival_by_interact_btn
 
         # 需要按方向选的时候 按最大x值选
         # 入口时 从右往左选可以上楼梯
@@ -132,8 +135,8 @@ class LostVoidMoveByDet(ZOperation):
             LostVoidRegionType.ENTRY,
         ]
 
-        self.last_target_result: Optional[MoveTargetWrapper] = None  # 最后一次识别到的目标
-        self.last_target_name: Optional[str] = None  # 最后识别到的交互目标名称
+        self.last_target_result: MoveTargetWrapper | None = None  # 最后一次识别到的目标
+        self.last_target_name: str | None = None  # 最后识别到的交互目标名称
         self.same_target_times: int = 0  # 识别到相同目标的次数
         self.stuck_times: int = 0  # 被困次数
         self.total_turn_times: int = 0  # 总共转向次数
@@ -143,7 +146,7 @@ class LostVoidMoveByDet(ZOperation):
         self.lost_target_during_move_times: int = 0  # 移动过程中丢失目标次数
 
         # 转向校准
-        self.last_target_x: Optional[float] = None  # 上一次识别到的目标x轴坐标
+        self.last_target_x: float | None = None  # 上一次识别到的目标x轴坐标
         self.last_actual_turn_distance: int = 0  # 上一次实际的转向距离
         self.estimated_turn_ratio: float = 0.2  # 估算的转向比例
         self.turn_calibration_count: int = 1  # 转向校准次数
@@ -354,7 +357,7 @@ class LostVoidMoveByDet(ZOperation):
         self.last_actual_turn_distance = turn_distance_x
 
         return True
-    def get_move_target(self, frame_result: DetectFrameResult) -> Optional[MoveTargetWrapper]:
+    def get_move_target(self, frame_result: DetectFrameResult) -> MoveTargetWrapper | None:
         """
         获取移动目标
 
@@ -378,14 +381,14 @@ class LostVoidMoveByDet(ZOperation):
 
         return None
 
-    def get_entry_target(self, frame_result: DetectFrameResult) -> Optional[MoveTargetWrapper]:
+    def get_entry_target(self, frame_result: DetectFrameResult) -> MoveTargetWrapper | None:
         """
         获取入口目标 按优先级 尽量避免混合楼层
 
         @param frame_result: 当前帧识别结果
         @return:
         """
-        entry_list: List[MoveTargetWrapper] = []
+        entry_list: list[MoveTargetWrapper] = []
         for result in frame_result.results:
             if result.detect_class.class_name in [LostVoidDetector.CLASS_INTERACT, LostVoidDetector.CLASS_DISTANCE]:
                 continue
@@ -421,7 +424,7 @@ class LostVoidMoveByDet(ZOperation):
         else:
             return None
 
-    def check_stuck(self, new_target: MoveTargetWrapper) -> Optional[OperationRoundResult]:
+    def check_stuck(self, new_target: MoveTargetWrapper) -> OperationRoundResult | None:
         """
         判断是否被困
         @return:
@@ -512,6 +515,9 @@ class LostVoidMoveByDet(ZOperation):
                     time.sleep(0.5)
             return False
 
+        if self.allow_arrival_by_interact_btn:
+            return True
+
         # 2. 检测图标是否变大
         for result in frame_result.results:
             if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
@@ -578,13 +584,13 @@ class LostVoidMoveByDet(ZOperation):
 
         return self.round_success(LostVoidMoveByDet.STATUS_CONTINUE)
 
-    def get_same_as_last_target(self, entry_list: List[MoveTargetWrapper]) -> Optional[MoveTargetWrapper]:
+    def get_same_as_last_target(self, entry_list: list[MoveTargetWrapper]) -> MoveTargetWrapper | None:
         """
         从本次结果中 选择与上一次位置最接近
         @param entry_list:
         @return:
         """
-        nearest_result: Optional[MoveTargetWrapper] = None
+        nearest_result: MoveTargetWrapper | None = None
         for entry in entry_list:
             if len(entry.target_name_list) != len(self.last_target_result.target_name_list):
                 continue

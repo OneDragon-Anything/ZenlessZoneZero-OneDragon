@@ -272,8 +272,10 @@ class AgentEnum(Enum):
     CAESAR_KING = Agent('caesar_king', '凯撒', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL, ['caesar_king'])
 
     BURNICE_WHITE = Agent('burnice_white', '柏妮思', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['burnice_white'],
-                          state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.BACKGROUND_GRAY_RANGE_LENGTH,
-                                                    'burnice_white',  lower_color=0, upper_color=70)
+                          state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                    template_id='burnice_white',
+                                                    hsv_color=(0, 255, 255), hsv_color_diff=(90, 200, 100),
+                                                    max_length=100)
                                       ])
 
     YANAGI = Agent('yanagi', '柳', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['yanagi'])
@@ -457,10 +459,18 @@ class AgentEnum(Enum):
             AgentStateDef(
                 "叶瞬光-明心境",
                 AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
-                template_id="energy",
+                template_id="yeshunguang_mingxinjing",
                 hsv_color=(113, 75, 255),
                 hsv_color_diff=(10, 50, 50),
                 max_length=120,
+            ),
+            AgentStateDef(
+                "叶瞬光-明心境-标志",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_mingxinjing_sign",
+                hsv_color=(113, 75, 255),
+                hsv_color_diff=(30, 50, 50),
+                connect_cnt=2,
             ),
             AgentStateDef(
                 "叶瞬光-青溟剑势-红",
@@ -480,3 +490,20 @@ class AgentEnum(Enum):
             ),
         ],
     )
+
+    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note'],
+                 state_list=[AgentStateDef('爱芮-应援能量', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                           template_id='aria_cheer_energy',
+                                           hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
+                                           connect_cnt=2)])
+
+    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse'],
+                      state_list=[
+                          AgentStateDef('南宫羽-重拍', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                        template_id='nangongyu',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=100)
+                      ])
+
+    CISSIA = Agent('cissia', '希希芙', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['cissia'],
+                   state_list=[])

@@ -44,6 +44,7 @@ class SettingEnvInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
         content_layout = VBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         content_layout.addWidget(self._init_basic_group())

@@ -1,20 +1,16 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QFrame
-from qfluentwidgets import SettingCard, FluentIconBase
-from qfluentwidgets.components.settings.setting_card import (
-    SettingIconWidget,
-    FluentStyleSheet,
-)
-from typing import Union
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
+from qfluentwidgets import FluentIconBase, FluentStyleSheet, SettingCard
+from qfluentwidgets.components.settings.setting_card import SettingIconWidget
 
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.utils.layout_utils import IconSize, Margins
 
 
 class SettingCardBase(SettingCard):
 
-    def __init__(self, icon: Union[str, QIcon, FluentIconBase], title, content=None,
+    def __init__(self, icon: str | QIcon | FluentIconBase, title, content=None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
                  parent=None):
@@ -48,7 +44,7 @@ class SettingCardBase(SettingCard):
         self.contentLabel.setVisible(content is not None and len(content) > 0)
 
         # 如果有图标，初始化图标组件
-        if icon is not None:
+        if icon:
             self.iconLabel = SettingIconWidget(icon, self)
             self.iconLabel.setFixedSize(icon_size.width, icon_size.height)
             self.hBoxLayout.addWidget(self.iconLabel, 0, Qt.AlignmentFlag.AlignLeft)

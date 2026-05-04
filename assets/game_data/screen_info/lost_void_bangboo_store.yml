@@ -7,7 +7,7 @@ area_list:
   pc_rect:
   - 192
   - 22
-  - 252
+  - 290
   - 78
   text: 详情
   lcs_percent: 0.5

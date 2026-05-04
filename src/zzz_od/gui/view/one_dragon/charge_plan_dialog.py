@@ -1,9 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, ChargePlanConfig
-from zzz_od.context.zzz_context import ZContext
+from zzz_od.application.charge_plan.charge_plan_config import (
+    CardNumEnum,
+    ChargePlanConfig,
+    ChargePlanItem,
+)
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanCard
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
 class ChargePlanDialog(MessageBoxBase):

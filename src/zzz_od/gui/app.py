@@ -1,16 +1,17 @@
 try:
     import sys
-    from typing import Tuple
-    from PySide6.QtCore import Qt, QThread, Signal, QTimer
+
+    from PySide6.QtCore import Qt, QThread, QTimer, Signal
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, setTheme, Theme
+    from qfluentwidgets import NavigationItemPosition, Theme, setTheme
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
     from one_dragon.utils.i18_utils import gt
+    from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
-    from one_dragon_qt.windows.app_window_base import AppWindowBase
+    from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
     from one_dragon_qt.windows.window import PhosTitleBar
     from zzz_od.context.zzz_context import ZContext
 
@@ -20,12 +21,14 @@ try:
     class CtxInitRunner(QThread):
         finished = Signal()
 
-        def __init__(self, ctx: ZContext, parent=None):
+        def __init__(self, ctx: ZContext, window: MainAppWindowBase, parent=None):
             super().__init__(parent)
             self.ctx = ctx
+            self._window = window
 
         def run(self):
             self.ctx.init()
+            self._window.on_ctx_ready()
             self.finished.emit()
 
 
@@ -44,7 +47,7 @@ try:
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
-    class AppWindow(AppWindowBase):
+    class AppWindow(MainAppWindowBase):
         titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
@@ -55,8 +58,9 @@ try:
             import time
             self._app_start_time = time.time()
 
-            AppWindowBase.__init__(
+            MainAppWindowBase.__init__(
                 self,
+                ctx=ctx,
                 win_title="%s %s"
                 % (
                     gt(ctx.project_config.project_name),
@@ -74,18 +78,19 @@ try:
             self._check_version_runner = CheckVersionRunner(self.ctx)
             self._check_version_runner.get.connect(self._update_version)
 
-            # 立即检查并应用已有的主题色，避免navbar颜色闪烁
-            self._apply_initial_theme_color()
-
             # 延迟发送应用启动事件，等待窗口完全显示
             self._launch_timer = QTimer()
             self._launch_timer.setSingleShot(True)
             self._launch_timer.timeout.connect(self._after_app_launch)
             self._launch_timer.start(2000)  # 2秒后发送，确保UI完全渲染
 
+            self.overlay_manager = OverlayManager.create(self.ctx, parent=self)
+            if self.overlay_manager is not None:
+                self.overlay_manager.start()
+
         # 继承初始化函数
         def init_window(self):
-            self.resize(1095, 730)  # 3:2比例
+            self.resize(1140, 760)  # 3:2比例
 
             # 初始化位置
             screen = QApplication.primaryScreen()
@@ -101,7 +106,6 @@ try:
 
             # 布局样式调整
             self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-            self.areaLayout.setContentsMargins(0, 32, 0, 0)
             self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
             # 配置样式
@@ -112,30 +116,28 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
+            super().create_sub_interface()
 
             # 主页
             from zzz_od.gui.view.home.home_interface import HomeInterface
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
-            # 战斗助手
-            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
-            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
+            # 游戏助手
+            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
-            # 空洞
-            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
-            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
+            # 应用运行
+            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import ZStandaloneAppInterface
+            self.add_sub_interface(ZStandaloneAppInterface(self.ctx, parent=self))
 
-            # 锄大地
-            from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
-            self.add_sub_interface(WorldPatrolInterface(self.ctx, parent=self))
-
-            # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
-            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
+            # 画中画
+            from one_dragon_qt.widgets.pip_button import PipButton
+            self.pip_btn = PipButton(self.ctx, parent=self)
+            self.add_nav_widget(self.pip_btn)
 
             # 点赞
             from one_dragon_qt.view.like_interface import LikeInterface
@@ -177,32 +179,7 @@ try:
 
         def _on_navigation_changed(self, index):
             """导航变化时的处理"""
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                current_widget = self.stackedWidget.widget(index)
-                if current_widget:
-                    interface_name = current_widget.__class__.__name__
-
-                    # 跟踪导航
-                    previous_widget = self.stackedWidget.widget(self._last_stack_idx) if self._last_stack_idx < self.stackedWidget.count() else None
-                    if previous_widget:
-                        # 优先使用nav_text，如果没有则使用类名
-                        previous_name = getattr(previous_widget, 'nav_text', previous_widget.__class__.__name__)
-                    else:
-                        previous_name = 'app_start'
-
-                    # 获取当前界面的显示名称
-                    current_display_name = getattr(current_widget, 'nav_text', interface_name)
-
-                    self.ctx.telemetry.track_navigation(previous_name, current_display_name)
-
-                    # 跟踪功能使用
-                    self.ctx.telemetry.track_feature_usage(current_display_name, {
-                        'interface_type': 'gui',
-                        'navigation_index': index,
-                        'interface_class': interface_name
-                    })
-
-                    self._last_stack_idx = index
+            self._last_stack_idx = index
 
         def _on_instance_active_event(self, event) -> None:
             """
@@ -224,7 +201,7 @@ try:
                 )
             )
 
-        def _update_version(self, versions: Tuple[str, str]) -> None:
+        def _update_version(self, versions: tuple[str, str]) -> None:
             """
             更新版本显示
             @param ver:
@@ -241,53 +218,19 @@ try:
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 
-        def _apply_initial_theme_color(self):
-            """立即应用已有的主题色，避免navbar颜色闪烁"""
-            # 从配置文件加载主题色到theme_manager
-            from one_dragon_qt.services.theme_manager import ThemeManager
-            ThemeManager.load_from_config(self.ctx)
-            self.navigationInterface.update_all_buttons_theme_color(ThemeManager.get_current_color())
-
         def _after_app_launch(self):
             """异步处理应用启动后需要处理的事情"""
             self._check_version_runner.start()
             self._check_first_run()
-            self._track_app_launch()
-
-        def _track_app_launch(self):
-            """跟踪应用启动"""
-            from one_dragon.utils.log_utils import log
-
-            if not hasattr(self.ctx, 'telemetry') or not self.ctx.telemetry:
-                log.debug("Telemetry manager not available, skip app_launched event")
-                return
-
-            telemetry = self.ctx.telemetry
-            if not telemetry.is_enabled():
-                log.debug("Telemetry not enabled, attempting re-initialization before sending app_launched")
-                telemetry.initialize()
-
-            import time
-            launch_time = time.time() - self._app_start_time
-
-            log.debug(f"发送app_launched事件，启动时间: {launch_time:.2f}秒")
-
-            # 跟踪应用启动
-            telemetry.track_app_launch(launch_time)
-
-            # 跟踪启动时间性能
-            telemetry.track_startup_time(launch_time)
-
-            # 跟踪UI交互
-            telemetry.track_ui_interaction('main_window', 'show', {
-                'window_title': self.windowTitle(),
-                'first_run': self.ctx.env_config.is_first_run
-            })
-
-            log.debug("app_launched事件发送成功")
 
         def closeEvent(self, event):
             """窗口关闭事件"""
+            if hasattr(self, 'pip_btn') and self.pip_btn:
+                self.pip_btn.dispose()
+
+            if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
+                self.overlay_manager.shutdown()
+
             if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
                 import time
                 session_duration = time.time() - self._app_start_time
@@ -314,7 +257,7 @@ except Exception:
 
 
 # 初始化应用程序，并启动主窗口
-if __name__ == "__main__":
+def main() -> None:
     if _init_error is not None:
         # 显示错误弹窗，询问用户是否打开排障文档
         error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
@@ -346,10 +289,16 @@ if __name__ == "__main__":
     w.activateWindow()
 
     # 加载配置
-    init_runner = CtxInitRunner(_ctx)
+    init_runner = CtxInitRunner(_ctx, w)
     init_runner.start()
 
     # 启动应用程序事件循环
-    app.exec()
+    quit_code = app.exec()
 
     _ctx.after_app_shutdown()
+
+    sys.exit(quit_code)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,10 +1,14 @@
+import ast
 import os
+from collections.abc import Callable
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QTableWidgetItem,
@@ -15,6 +19,7 @@ from qfluentwidgets import (
     BodyLabel,
     CheckBox,
     FluentIcon,
+    InfoBarIcon,
     LineEdit,
     PushButton,
     ScrollArea,
@@ -39,6 +44,7 @@ from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
@@ -56,21 +62,57 @@ class ScreenInfoWorker(QObject):
     signal = Signal()
 
 
-AREA_FIELD_2_COLUMN: dict[str, int] = {
-    '操作': 0,
-    '标识': 1,
-    '区域名称': 2,
-    '位置': 3,
-    '文本': 4,
-    '阈值1': 5,
-    '模板': 6,
-    '阈值2': 7,
-    '颜色范围': 8,
-    '前往画面': 9,
-}
+@dataclass
+class ColumnMeta:
+    """表格列元数据"""
+    display_name: str
+    attr_name: str | None = None
+    parser: Callable[[str], Any] | None = None
+    width: int | None = None  # None = 自动宽度
+    formatter: Callable[[Any], str] | None = None  # 属性值 → 显示文本，None = str()
+
+
+def _parse_rect(text: str) -> Rect:
+    """解析矩形，校验为 (x1, y1, x2, y2) 结构。"""
+    stripped = text.strip().strip('()[]')
+    parts = [p.strip() for p in stripped.split(',')]
+    if len(parts) != 4:
+        raise ValueError(f'需要 4 个坐标值，实际: {len(parts)} 个')
+    return Rect(*(int(p) for p in parts))
+
+
+def _parse_color_range(text: str) -> list[list[int]] | None:
+    """解析颜色范围，校验为 [[r,g,b],[r,g,b]] 结构。"""
+    if not text.strip():
+        return None
+    val = ast.literal_eval(text)
+    if (isinstance(val, list) and len(val) == 2
+            and all(isinstance(v, list) and len(v) == 3 for v in val)):
+        return val
+    raise ValueError(f'需要 [[r,g,b],[r,g,b]]，实际: {val}')
 
 
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
+
+    AREA_COLUMNS: list[ColumnMeta] = [
+        ColumnMeta('操作', width=40),
+        ColumnMeta('标识', width=40),
+        ColumnMeta('区域名称', 'area_name', lambda x: x),
+        ColumnMeta('位置', 'pc_rect', _parse_rect, 200),
+        ColumnMeta('OCR文本', 'text', lambda x: x),
+        ColumnMeta('OCR阈值', 'lcs_percent', lambda x: float(x) if x else 0.5, 70),
+        ColumnMeta('模板目录', 'template_sub_dir', lambda x: x),
+        ColumnMeta('模板ID', 'template_id', lambda x: x),
+        ColumnMeta('模板阈值', 'template_match_threshold', lambda x: float(x) if x else 0.7, 70),
+        ColumnMeta('颜色范围', 'color_range', _parse_color_range,
+                   formatter=lambda v: '' if v is None else str(v)),
+        ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
+                   formatter=lambda v: ','.join(v) if v else ''),
+        ColumnMeta('手柄键', 'gamepad_key', lambda x: x.strip() or None, 120,
+                   formatter=lambda v: '' if v is None else str(v)),
+    ]
+
+    AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         VerticalScrollInterface.__init__(
@@ -118,7 +160,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(12, 0, 0, 0)
+        control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(12)
 
         self.merge_opt = PushSettingCard(
@@ -130,7 +172,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.merge_opt.clicked.connect(self._on_merge_clicked)
         control_layout.addWidget(self.merge_opt)
 
-        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
@@ -157,7 +199,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         btn_row.add_stretch(1)
 
-        img_btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        img_btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(img_btn_row)
 
         self.pc_alt_opt = CheckBox(text=gt('PC 点击需 Alt'))
@@ -169,6 +211,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         img_btn_row.add_widget(self.choose_image_btn)
+
+        self.screenshot_btn = PushButton(text=gt('截图'))
+        self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
+        img_btn_row.add_widget(self.screenshot_btn)
 
         self.choose_template_btn = PushButton(text=gt('导入模板区域'))
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
@@ -194,8 +240,15 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         )
         control_layout.addWidget(self.screen_info_opt)
 
+        self._control_layout = control_layout
         self.table_widget = self._init_area_table_widget()
         control_layout.addWidget(self.table_widget, stretch=1)
+
+        self.popup_table_btn = PushButton(text=gt('弹出表格'))
+        self.popup_table_btn.clicked.connect(self._on_popup_table)
+        control_layout.addWidget(self.popup_table_btn)
+
+        self._popup_win: QDialog | None = None
 
         scroll_area.setWidget(control_widget)
         scroll_area.setWidgetResizable(True)
@@ -219,21 +272,21 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         self.area_table = TableWidget()
         self.area_table.cellChanged.connect(self._on_area_table_cell_changed)
-        self.area_table.setMinimumWidth(980)
+        self.area_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.area_table.setBorderVisible(True)
         self.area_table.setBorderRadius(8)
         self.area_table.setWordWrap(True)
-        self.area_table.setColumnCount(len(AREA_FIELD_2_COLUMN))
+        self.area_table.setColumnCount(len(self.AREA_COLUMNS))
         self.area_table.verticalHeader().hide()
-        self.area_table.setHorizontalHeaderLabels([
-            gt(key)
-            for key in AREA_FIELD_2_COLUMN
-        ])
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['操作'], 40)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 40)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['位置'], 200)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值1'], 70)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值2'], 70)
+        self.area_table.setHorizontalHeaderLabels([gt(col.display_name) for col in self.AREA_COLUMNS])
+        for idx, col in enumerate(self.AREA_COLUMNS):
+            if col.width is not None:
+                self.area_table.setColumnWidth(idx, col.width)
+
+        # 让表格宽度始终等于所有列宽之和
+        self._sync_table_width()
+        self.area_table.horizontalHeader().sectionResized.connect(self._on_table_column_resized)
+
         # table的行被选中时 触发
         self.area_table_row_selected: int = -1  # 选中的行
         self.area_table.cellClicked.connect(self.on_area_table_cell_clicked)
@@ -244,11 +297,64 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         return widget
 
+    def _sync_table_width(self) -> None:
+        """同步表格宽度为所有列宽之和。"""
+        total = sum(
+            self.area_table.columnWidth(c)
+            for c in range(self.area_table.columnCount())
+        )
+        self.area_table.setFixedWidth(total + 2)
+
+    def _on_table_column_resized(self, _index: int, _old: int, _new: int) -> None:
+        """列宽变化时同步表格整体宽度。"""
+        self._sync_table_width()
+
+    def _on_popup_table(self) -> None:
+        """弹出区域表格到独立窗口。"""
+        if self._popup_win is not None:
+            self._popup_win.activateWindow()
+            return
+
+        self._popup_win = QDialog(self)
+        self._popup_win.setWindowTitle(gt('区域表格编辑'))
+        self._popup_win.setWindowFlags(
+            self._popup_win.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint
+        )
+        self._popup_win.setMinimumSize(1200, 600)
+        self._popup_win.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._popup_win.destroyed.connect(self._on_popup_closed)
+
+        popup_layout = QVBoxLayout(self._popup_win)
+        popup_layout.setContentsMargins(4, 4, 4, 4)
+
+        # 将表格卡片移到弹出窗口
+        self.table_widget.setParent(self._popup_win)
+        popup_layout.addWidget(self.table_widget)
+        self.table_widget.show()
+        self.popup_table_btn.hide()
+
+        # 占位拉伸，把其他控件挤到顶部
+        self._control_layout.addStretch(1)
+
+        self._popup_win.show()
+
+    def _on_popup_closed(self) -> None:
+        """弹出窗口关闭后，将表格放回原位。"""
+        # 移除占位拉伸（layout 最后一个 item）
+        last = self._control_layout.count() - 1
+        spacer = self._control_layout.itemAt(last)
+        if spacer is not None and spacer.widget() is None:
+            self._control_layout.removeItem(spacer)
+
+        # 插到弹出按钮前面
+        btn_idx = self._control_layout.indexOf(self.popup_table_btn)
+        self._control_layout.insertWidget(btn_idx, self.table_widget, stretch=1)
+        self.table_widget.show()
+        self.popup_table_btn.show()
+        self._popup_win = None
+
     def _update_existed_yml_options(self) -> None:
-        """
-        更新已有的yml选项
-        :return:
-        """
+        """更新已有的yml选项。"""
         self.existed_yml_btn.set_items([
             ConfigItem(i.screen_name)
             for i in self.ctx.screen_loader.screen_info_list
@@ -285,20 +391,13 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         return widget
 
-
     def on_interface_shown(self) -> None:
-        """
-        子界面显示时 进行初始化
-        :return:
-        """
+        """子界面显示时 进行初始化。"""
         VerticalScrollInterface.on_interface_shown(self)
         self._update_display_by_screen()
 
     def _update_display_by_screen(self) -> None:
-        """
-        根据画面图片，统一更新界面的显示
-        :return:
-        """
+        """根据画面图片，统一更新界面的显示。"""
         chosen = self.chosen_screen is not None
 
         self.merge_opt.setDisabled(chosen)
@@ -327,10 +426,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._update_area_table_display()
 
     def _update_area_table_display(self):
-        """
-        更新区域表格的显示
-        :return:
-        """
+        """更新区域表格的显示。"""
         self.area_table.blockSignals(True)
         area_list = [] if self.chosen_screen is None else self.chosen_screen.area_list
         area_cnt = len(area_list)
@@ -338,6 +434,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         for idx in range(area_cnt):
             area_item = area_list[idx]
+
             del_btn = ToolButton(FluentIcon.DELETE, parent=None)
             del_btn.setFixedSize(32, 32)
             del_btn.clicked.connect(self._on_row_delete_clicked)
@@ -346,42 +443,31 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             id_check.setChecked(area_item.id_mark)
             id_check.setProperty('area_name', area_item.area_name)
             id_check.stateChanged.connect(self.on_area_id_check_changed)
+            id_check.setFixedSize(32, 32)
+            id_check.setStyleSheet(id_check.styleSheet() + 'CheckBox { margin-left: 8px; }')
 
             self.area_table.setCellWidget(idx, 0, del_btn)
             self.area_table.setCellWidget(idx, 1, id_check)
-            self.area_table.setItem(idx, 2, QTableWidgetItem(area_item.area_name))
-            self.area_table.setItem(idx, 3, QTableWidgetItem(str(area_item.pc_rect)))
-            self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text))
-            self.area_table.setItem(idx, 5, QTableWidgetItem(str(area_item.lcs_percent)))
-            self.area_table.setItem(idx, 6, QTableWidgetItem(area_item.template_id_display_text))
-            self.area_table.setItem(idx, 7, QTableWidgetItem(str(area_item.template_match_threshold)))
-            self.area_table.setItem(idx, 8, QTableWidgetItem(str(area_item.color_range_display_text)))
-            self.area_table.setItem(idx, 9, QTableWidgetItem(area_item.goto_list_display_text))
 
+            for col_idx, col in enumerate(self.AREA_COLUMNS):
+                if col.attr_name is None:
+                    continue
+                val = getattr(area_item, col.attr_name)
+                text = col.formatter(val) if col.formatter else str(val)
+                self.area_table.setItem(idx, col_idx, QTableWidgetItem(text))
 
         # 最后一行 只保留一个新增按钮
         add_btn = ToolButton(FluentIcon.ADD, parent=None)
         add_btn.setFixedSize(32, 32)
         add_btn.clicked.connect(self._on_area_add_clicked)
         self.area_table.setCellWidget(area_cnt, 0, add_btn)
-        self.area_table.setItem(area_cnt, 1, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 2, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 3, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 4, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 5, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 6, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 7, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 8, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 9, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 10, QTableWidgetItem(''))
+        for col_idx in range(1, len(self.AREA_COLUMNS)):
+            self.area_table.setItem(area_cnt, col_idx, QTableWidgetItem(''))
 
         self.area_table.blockSignals(False)
 
     def _update_image_display(self):
-        """
-        更新图片显示
-        :return:
-        """
+        """更新图片显示。"""
         image_to_show = None if self.chosen_screen is None else self.chosen_screen.get_image_to_show(self.area_table_row_selected)
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
@@ -394,11 +480,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self.image_label.setImage(None)
 
     def _on_choose_existed_yml(self, screen_name: str):
-        """
-        选择了已有的yml
-        :param screen_name:
-        :return:
-        """
+        """选择了已有的yml。"""
         self.chosen_screen = None
         # 搜索时 输入了一半时候会找到对应的画面
         with suppress(Exception):
@@ -411,10 +493,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def _on_create_clicked(self):
-        """
-        创建一个新的
-        :return:
-        """
+        """创建一个新的。"""
         if self.chosen_screen is not None:
             return
 
@@ -424,10 +503,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def _on_save_clicked(self) -> None:
-        """
-        保存
-        :return:
-        """
+        """保存。"""
         if self.chosen_screen is None:
             return
 
@@ -435,10 +511,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._existed_yml_update.signal.emit()
 
     def _on_delete_clicked(self) -> None:
-        """
-        删除
-        :return:
-        """
+        """删除。"""
         if self.chosen_screen is None:
             return
         self.ctx.screen_loader.delete_screen(self.chosen_screen.screen_id)
@@ -447,10 +520,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._existed_yml_update.signal.emit()
 
     def _on_cancel_clicked(self) -> None:
-        """
-        取消编辑
-        :return:
-        """
+        """取消编辑。"""
         self.chosen_screen = None
         self.existed_yml_btn.blockSignals(True)
         self.existed_yml_btn.setCurrentIndex(-1)
@@ -463,10 +533,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def choose_existed_image(self) -> None:
-        """
-        选择已有的环图片
-        :return:
-        """
+        """选择已有的环图片。"""
         default_dir = os_utils.get_path_under_work_dir('.debug', 'images')
         if self.last_screen_dir is not None:
             default_dir = self.last_screen_dir
@@ -488,22 +555,37 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._on_image_chosen(fix_file_path)
 
     def _on_image_chosen(self, image_file_path: str) -> None:
-        """
-        选择图片之后的回调
-        :param image_file_path:
-        :return:
-        """
+        """选择图片之后的回调。"""
         if self.chosen_screen is None:
             return
 
         self.chosen_screen.screen_image = cv2_utils.read_image(image_file_path)
         self._image_update.signal.emit()
 
-    def _on_image_pasted(self, image_data) -> None:
+    def _on_screenshot_clicked(self) -> None:
         """
-        通过拖放或粘贴加载图片后的回调，等同于"选择图片"
-        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        截图按钮点击
         :return:
+        """
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
+            return
+
+        if self.chosen_screen is None:
+            # 没有选中画面时，自动创建一个新的
+            self.chosen_screen = ScreenInfo({})
+            # 清除撤回记录
+            self._clear_history()
+            self._whole_update.signal.emit()
+
+        self.chosen_screen.screen_image = screen
+        self._image_update.signal.emit()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """通过拖放或粘贴加载图片后的回调，等同于“选择图片”。
+
+        Args:
+            image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
         """
         if self.chosen_screen is None:
             return
@@ -540,10 +622,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._on_template_chosen(fix_file_path)
 
     def _on_template_chosen(self, template_file_path: str) -> None:
-        """
-        选择模板后 导入模板对应的区域
-        :param template_file_path: 模板文件路径
-        :return:
+        """选择模板后 导入模板对应的区域。
+
+        Args:
+            template_file_path: 模板文件路径
         """
         if self.chosen_screen is None:
             return
@@ -589,10 +671,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.chosen_screen.pc_alt = self.pc_alt_opt.isChecked()
 
     def _on_area_add_clicked(self) -> None:
-        """
-        新增一个区域
-        :return:
-        """
+        """新增一个区域。"""
         if self.chosen_screen is None:
             return
 
@@ -600,10 +679,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._area_table_update.signal.emit()
 
     def _on_row_delete_clicked(self):
-        """
-        删除一行
-        :return:
-        """
+        """删除一行。"""
         if self.chosen_screen is None:
             return
 
@@ -615,12 +691,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._image_update.signal.emit()
 
     def _on_area_table_cell_changed(self, row: int, column: int) -> None:
-        """
-        表格内容改变
-        :param row:
-        :param column:
-        :return:
-        """
+        """表格内容改变。"""
         if self.chosen_screen is None:
             return
         if row < 0 or row >= len(self.chosen_screen.area_list):
@@ -628,44 +699,33 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         area_item = self.chosen_screen.area_list[row]
         text = self.area_table.item(row, column).text().strip()
 
-        # 列映射：列索引 -> (属性名, 处理函数)
-        column_handlers = {
-            AREA_FIELD_2_COLUMN['区域名称']: ('area_name', lambda x: x),
-            AREA_FIELD_2_COLUMN['位置']: ('pc_rect', self._parse_rect_from_text),
-            AREA_FIELD_2_COLUMN['文本']: ('text', lambda x: x),
-            AREA_FIELD_2_COLUMN['阈值1']: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
-            AREA_FIELD_2_COLUMN['模板']: ('template', self._parse_template_from_text),
-            AREA_FIELD_2_COLUMN['阈值2']: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
-            AREA_FIELD_2_COLUMN['颜色范围']: ('color_range', self._parse_color_range_from_text),
-            AREA_FIELD_2_COLUMN['前往画面']: ('goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()])
-        }
-        if column not in column_handlers:
+        # 直接从 AREA_COLUMNS 获取属性名和解析器
+        if column >= len(self.AREA_COLUMNS):
             return
-
-        attr_name, handler = column_handlers[column]
+        col_meta = self.AREA_COLUMNS[column]
+        if col_meta.attr_name is None:
+            return
+        attr_name = col_meta.attr_name
+        handler = col_meta.parser
 
         # 记录修改前的状态
-        if attr_name == 'template':
-            old_value = f"{area_item.template_sub_dir}.{area_item.template_id}" if area_item.template_sub_dir else area_item.template_id
-        elif attr_name == 'pc_rect':
-            old_value = Rect(area_item.pc_rect.x1, area_item.pc_rect.y1, area_item.pc_rect.x2, area_item.pc_rect.y2)
-        elif attr_name == 'goto_list':
-            old_value = area_item.goto_list.copy() if area_item.goto_list else []
-        else:
-            old_value = getattr(area_item, attr_name)
+        old_value = getattr(area_item, attr_name)
 
         # 应用新值
         try:
             new_value = handler(text)
-            if attr_name == 'template':
-                area_item.template_sub_dir, area_item.template_id = new_value
-            elif attr_name == 'pc_rect':
-                area_item.pc_rect = new_value
+            setattr(area_item, attr_name, new_value)
+            if attr_name == 'pc_rect':
                 self._image_update.signal.emit()
-            else:
-                setattr(area_item, attr_name, new_value)
-        except Exception:
+        except Exception as e:
             # 如果解析失败，不进行修改
+            log.error('解析失败', exc_info=True)
+            self.show_info_bar(
+                '解析失败',
+                f'{col_meta.display_name}: {e}',
+                icon=InfoBarIcon.ERROR,
+                duration=5000,
+            )
             return
 
         # 添加到撤回历史记录
@@ -678,40 +738,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         }
         self._add_history_record(table_change)
 
-    def _parse_rect_from_text(self, text: str) -> Rect:
-        """解析文本为矩形对象"""
-        num_list = [int(i) for i in text[1:-1].split(',')]
-        while len(num_list) < 4:
-            num_list.append(0)
-        return Rect(num_list[0], num_list[1], num_list[2], num_list[3])
-
-    def _parse_template_from_text(self, text: str) -> tuple[str, str]:
-        """解析模板文本为 (sub_dir, template_id)"""
-        if len(text) == 0:
-            return '', ''
-        template_list = text.split('.')
-        if len(template_list) > 1:
-            return template_list[0], template_list[1]
-        else:
-            return '', template_list[0]
-
-    def _parse_color_range_from_text(self, text: str):
-        """解析颜色范围文本"""
-        try:
-            import json
-            arr = json.loads(text)
-            if isinstance(arr, list):
-                return arr
-        except Exception:
-            pass
-        return None
-
     def _on_image_left_clicked(self, x: int, y: int) -> None:
-        """
-        图片上左键单击后显示坐标
-        :param x: 点击的x坐标
-        :param y: 点击的y坐标
-        :return:
+        """图片上左键单击后显示坐标。
+
+        Args:
+            x: 点击的x坐标
+            y: 点击的y坐标
         """
         if self.chosen_screen is None or self.chosen_screen.screen_image is None:
             return
@@ -720,14 +752,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.y_pos_label.setText(str(y))
 
     def _on_image_rect_selected(self, x1: int, y1: int, x2: int, y2: int) -> None:
-        """
-        在图片上选择一个区域后的回调
-        :param x1:
-        :param y1:
-        :param x2:
-        :param y2:
-        :return:
-        """
+        """在图片上选择一个区域后的回调。"""
         if self.chosen_screen is None or self.area_table_row_selected is None:
             return
         if self.area_table_row_selected < 0 or self.area_table_row_selected >= len(self.chosen_screen.area_list):
@@ -746,7 +771,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._add_history_record(rect_change)
 
         self.area_table.blockSignals(True)
-        self.area_table.item(self.area_table_row_selected, AREA_FIELD_2_COLUMN['位置']).setText(f'({x1}, {y1}, {x2}, {y2})')
+        self.area_table.item(self.area_table_row_selected, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({x1}, {y1}, {x2}, {y2})')
         self.area_table.blockSignals(False)
 
         area_item.pc_rect = Rect(x1, y1, x2, y2)
@@ -815,16 +840,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             area_item = self.chosen_screen.area_list[row_index]
 
             # 根据修改类型恢复原值
-            if change_type == 'template':
-                if '.' in old_value:
-                    template_list = old_value.split('.')
-                    area_item.template_sub_dir = template_list[0]
-                    area_item.template_id = template_list[1]
-                else:
-                    area_item.template_sub_dir = ''
-                    area_item.template_id = old_value
-            else:
-                setattr(area_item, change_type, old_value)
+            setattr(area_item, change_type, old_value)
 
             # 如果是坐标修改，需要更新图像显示
             if change_type == 'pc_rect':
@@ -848,7 +864,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
+            self.area_table.item(row_index, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示
@@ -873,30 +889,13 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             area_item = self.chosen_screen.area_list[row_index]
 
-            # 根据修改类型恢复新值
-            if change_type == 'template':
-                if len(new_value) == 0:
-                    area_item.template_sub_dir = ''
-                    area_item.template_id = ''
-                else:
-                    template_list = new_value.split('.')
-                    if len(template_list) > 1:
-                        area_item.template_sub_dir = template_list[0]
-                        area_item.template_id = template_list[1]
-                    else:
-                        area_item.template_sub_dir = ''
-                        area_item.template_id = template_list[0]
-            elif change_type == 'pc_rect':
-                rect_value = self._parse_rect_from_text(new_value)
-                area_item.pc_rect = rect_value
+            # 将文本恢复为正确类型
+            parser = next((col.parser for col in self.AREA_COLUMNS if col.attr_name == change_type), None)
+            parsed = parser(new_value) if parser else new_value
+            setattr(area_item, change_type, parsed)
+
+            if change_type == 'pc_rect':
                 self._image_update.signal.emit()
-            else:
-                if change_type == 'lcs_percent' or change_type == 'template_match_threshold':
-                    setattr(area_item, change_type, float(new_value) if len(new_value) > 0 else (0.5 if change_type == 'lcs_percent' else 0.7))
-                elif change_type == 'goto_list':
-                    setattr(area_item, change_type, new_value.split(','))
-                else:
-                    setattr(area_item, change_type, new_value)
 
             # 更新表格显示
             self._area_table_update.signal.emit()
@@ -916,7 +915,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
+            self.area_table.item(row_index, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示

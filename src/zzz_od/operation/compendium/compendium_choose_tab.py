@@ -30,10 +30,9 @@ class CompendiumChooseTab(ZOperation):
     @operation_node(name='选择TAB', is_start_node=True)
     def choose_tab(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('快捷手册', 'TAB列表')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        target_point: Optional[Point] = None
-        ocr_results = self.ctx.ocr.run_ocr(part)
+        target_point: Point | None = None
+        ocr_results = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
@@ -42,9 +41,9 @@ class CompendiumChooseTab(ZOperation):
                 break
 
         if target_point is None:
-            return self.round_retry(status='找不到 %s' % self.tab_name, wait=1)
+            return self.round_retry(status=f'找不到 {self.tab_name}', wait=1)
 
-        click = self.ctx.controller.click(target_point)
+        self.ctx.controller.click(target_point)
         return self.round_success(wait=1)
 
 

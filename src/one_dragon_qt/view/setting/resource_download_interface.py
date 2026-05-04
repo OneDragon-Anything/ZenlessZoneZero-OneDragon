@@ -1,12 +1,16 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from qfluentwidgets import SettingCardGroup, FluentIcon, BodyLabel, setFont
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+from qfluentwidgets import BodyLabel, FluentIcon, SettingCardGroup, setFont
 
 from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.widgets.download_card.onnx_model_download_card import OnnxModelDownloadCard
-from one_dragon_qt.widgets.download_card.launcher_download_card import LauncherDownloadCard
+from one_dragon_qt.widgets.download_card.launcher_download_card import (
+    LauncherDownloadCard,
+)
+from one_dragon_qt.widgets.download_card.onnx_model_download_card import (
+    OnnxModelDownloadCard,
+)
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -28,6 +32,7 @@ class ResourceDownloadInterface(VerticalScrollInterface):
 
         content_widget = QWidget()
         control_layout = QVBoxLayout(content_widget)
+        control_layout.setContentsMargins(0, 0, 0, 0)
 
         control_layout.addWidget(self._init_common_group())
 

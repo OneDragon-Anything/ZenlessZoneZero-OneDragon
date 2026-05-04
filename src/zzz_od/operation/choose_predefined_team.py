@@ -14,6 +14,8 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class ChoosePredefinedTeam(ZOperation):
 
+    TEAM_SCROLL_STEP: int = 4
+
     def __init__(self, ctx: ZContext, target_team_idx_list: list[int]):
         """
         在出战画面使用
@@ -22,7 +24,17 @@ class ChoosePredefinedTeam(ZOperation):
         ZOperation.__init__(self, ctx, op_name=f"{gt('选择预备编队')} {target_team_idx_list}")
 
         self.target_team_idx_list: list[int] = target_team_idx_list
-        self.choose_fail_times: int = 0   # 选择失败的次数
+        self.scroll_page_count: int = 0
+        # 预备编队默认打开在第一页，因此这里记录最多需要向下翻几页。
+        # 一次下滑后，列表实际会前进 4 个编队。
+        self.max_scroll_page_count: int = max(
+            [
+                target_team_idx // self.TEAM_SCROLL_STEP
+                for target_team_idx in target_team_idx_list
+                if target_team_idx >= 0
+            ],
+            default=0,
+        )
 
     @operation_node(name='画面识别', node_max_retry_times=10, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
@@ -39,7 +51,7 @@ class ChoosePredefinedTeam(ZOperation):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击预备编队')
-    @node_from(from_name='选择编队失败')
+    @node_from(from_name='尝试查找编队')
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
@@ -61,11 +73,11 @@ class ChoosePredefinedTeam(ZOperation):
             best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
 
             if best_match is None or len(best_match) == 0:
-                return self.round_retry(wait=0.5)
+                return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
             ocr_result: MatchResultList = ocr_map.get(best_match[0], None)
             if ocr_result is None or ocr_result.max is None:
-                return self.round_retry(wait=0.5)
+                return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
             to_click = ocr_result.max.center + Point(200, 0)
             self.ctx.controller.click(to_click)
@@ -75,10 +87,10 @@ class ChoosePredefinedTeam(ZOperation):
         return self.round_wait(wait=1)
 
     @node_from(from_name='选择编队', success=False)
-    @operation_node(name='选择编队失败')
-    def choose_team_fail(self) -> OperationRoundResult:
-        self.choose_fail_times += 1
-        if self.choose_fail_times >= 2:
+    @operation_node(name='尝试查找编队')
+    def try_find_team(self) -> OperationRoundResult:
+        self.scroll_page_count += 1
+        if self.scroll_page_count > self.max_scroll_page_count:
             return self.round_fail('选择配队失败')
 
         drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
@@ -100,7 +112,7 @@ class ChoosePredefinedTeam(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
 
     from one_dragon.utils import debug_utils

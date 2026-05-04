@@ -20,13 +20,7 @@ if TYPE_CHECKING:
 class RandomPlayFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=random_play_const.APP_ID,
-            app_name=random_play_const.APP_NAME,
-            default_group=random_play_const.DEFAULT_GROUP,
-            need_notify=random_play_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, random_play_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

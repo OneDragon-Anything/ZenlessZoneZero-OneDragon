@@ -20,13 +20,7 @@ if TYPE_CHECKING:
 class EngagementRewardAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=engagement_reward_const.APP_ID,
-            app_name=engagement_reward_const.APP_NAME,
-            default_group=engagement_reward_const.DEFAULT_GROUP,
-            need_notify=engagement_reward_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, engagement_reward_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

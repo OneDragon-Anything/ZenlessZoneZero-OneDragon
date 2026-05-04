@@ -1,16 +1,14 @@
-from typing import Optional, ClassVar
+from typing import ClassVar
 
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -36,21 +34,21 @@ class ShiyuDefenseBattle(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (gt('式舆防卫战', 'game'), gt('自动战斗'))
+            op_name=f"{gt('式舆防卫战', 'game')} {gt('自动战斗')}"
         )
 
         self.team_config: PredefinedTeamInfo = self.ctx.team_config.get_team_by_idx(predefined_team_idx)
-        self.distance_pos: Optional[Rect] = None  # 显示距离的区域
+        self.distance_pos: Rect | None = None  # 显示距离的区域
         self.move_times: int = 0  # 移动次数
-        self.battle_fail: Optional[str] = None  # 战斗失败的原因
+        self.battle_fail: str | None = None  # 战斗失败的原因
         self.find_interact_btn_times: int = 0  # 发现交互按钮的次数
-        self.no_countdown_start_time: Optional[float] = None  # 连续没有倒计时的开始时间戳
+        self.no_countdown_start_time: float | None = None  # 连续没有倒计时的开始时间戳
 
     @operation_node(name='加载自动战斗指令', is_start_node=True)
     def load_auto_op(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.init_auto_op(
             sub_dir='auto_battle',
-            op_name=self.ctx.battle_assistant_config.auto_battle if self.team_config is None else self.team_config.auto_battle,
+            op_name=self.ctx.battle_assistant_config.auto_battle_config if self.team_config is None else self.team_config.auto_battle,
         )
         return self.round_success()
 
@@ -183,7 +181,6 @@ class ShiyuDefenseBattle(ZOperation):
 
         # 多层检测机制 - 统一的转向和前进逻辑
         target_pos = None
-        target_type = None
         move_distance = None
 
         # 第1层：检测距离
@@ -259,7 +256,7 @@ class ShiyuDefenseBattle(ZOperation):
         except Exception:
             return False
 
-    def check_teleport_point(self, screen: MatLike) -> Optional[Rect]:
+    def check_teleport_point(self, screen: MatLike) -> Rect | None:
         """
         检测防卫战空洞传送点
         :param screen: 屏幕截图

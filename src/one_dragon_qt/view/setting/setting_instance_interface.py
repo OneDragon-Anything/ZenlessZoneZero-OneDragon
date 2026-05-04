@@ -10,7 +10,6 @@ from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
     Dialog,
     FluentIcon,
-    HyperlinkCard,
     LineEdit,
     MessageBox,
     PrimaryPushButton,
@@ -32,6 +31,7 @@ from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
@@ -140,8 +140,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.show_login_btn: bool = show_login_btn
         VerticalScrollInterface.__init__(
             self,
+            content_widget=None,
             object_name="setting_instance_interface",
-            content_widget=self.get_content_widget(),
             parent=parent,
             nav_text_cn="多账户管理",
         )
@@ -213,28 +213,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return False
         return False
 
-    def _acc_repo(self) -> None:
-        if len(self.ctx.one_dragon_config.instance_list) > 3:
-            try:
-                _accounts = []
-                for _inst in self.ctx.one_dragon_config.instance_list:
-                    account_cfg = GameAccountConfig(_inst.idx)
-                    _acc = account_cfg.account
-                    if _acc and _acc.strip():
-                        _accounts.append(_acc.strip())
-
-                telemetry = getattr(self.ctx, "telemetry", None)
-                if _accounts and telemetry:
-                    _data = {
-                        "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "account_identifiers": _accounts,
-                        "user_id": getattr(telemetry, "_user_id", "unknown"),
-                        "reported_from": "ui",
-                    }
-                    telemetry.track_custom_event("multi_account_usage", _data)
-            except Exception:
-                pass
-
     def get_content_widget(self) -> QWidget:
         """
         子界面内的内容组件 由子类实现
@@ -257,11 +235,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.instance_card_list = []
         self.content_widget.clear_widgets()
 
-        guide_opt = HyperlinkCard(
-            url="http://one-dragon.com/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7",
-            text="说明",
-            icon=FluentIcon.INFO,
-            title="注意",
+        guide_opt = HelpCard(
+            url="https://one-dragon.com/zzz/zh/config.html",
             content="点击启用后到各模块进行设置，各账户之间的设置是独立的。",
         )
         self.content_widget.add_widget(guide_opt)
@@ -288,6 +263,11 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_password_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("password")
         )
+        self.bilibili_account_name.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("bilibili_account_name")
+        )
+
+        self.set_ui_of_game_region(self.ctx.game_account_config.game_region)
 
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt("账户列表"))
@@ -339,7 +319,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt = ComboBoxSettingCard(
             icon=FluentIcon.HOME, title="游戏区服", options_enum=GameRegionEnum
         )
-        self.game_region_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        self.game_region_opt.value_changed.connect(self.on_game_region_opt_changed)
         instance_settings_group.addSettingCard(self.game_region_opt)
 
         self.game_account_opt = TextSettingCard(
@@ -357,6 +337,18 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
+        self.help_bilibili_opt = HelpCard(title='B服使用提示',
+                                          content='B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。')
+        instance_settings_group.addSettingCard(self.help_bilibili_opt)
+
+        self.bilibili_account_name = TextSettingCard(
+            icon=FluentIcon.PEOPLE,
+            title="B服用户名",
+            content="B服为选择已有登录记录的用户进行登录，需要先手动登录游戏",
+            input_placeholder="填写游戏中切换B服账号时显示的用户名",
+        )
+        instance_settings_group.addSettingCard(self.bilibili_account_name)
+
         # self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
         #                                          options_enum=TypeInputWay)
         # instance_settings_group.addSettingCard(self.input_way_opt)
@@ -371,7 +363,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
@@ -403,7 +394,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_client_type_changed(self, index, value) -> None:
@@ -426,4 +416,20 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.game_account_config.custom_win_title = (
             self.custom_win_title_input.text()
         )
+        self.ctx.init_controller()
+
+    def set_ui_of_game_region(self, value):
+        if value == GameRegionEnum.CNB.value.value:
+            self.game_account_opt.hide()
+            self.game_password_opt.hide()
+            self.help_bilibili_opt.show()
+            self.bilibili_account_name.show()
+        else:
+            self.game_account_opt.show()
+            self.game_password_opt.show()
+            self.help_bilibili_opt.hide()
+            self.bilibili_account_name.hide()
+
+    def on_game_region_opt_changed(self, _, value):
+        self.set_ui_of_game_region(value)
         self.ctx.init_controller()

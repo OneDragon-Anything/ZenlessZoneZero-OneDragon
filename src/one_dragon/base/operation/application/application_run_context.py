@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Optional, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
+from one_dragon.base.operation.notify_pool import NotifyPool
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -81,6 +82,10 @@ class ApplicationRunContext:
         self.current_app_id: Optional[str] = None
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
+        self.current_application: Optional[Application] = None
+
+        # 通知池，应用开始时清空重用
+        self.notify_pool: NotifyPool = NotifyPool()
 
     def registry_application(
         self,
@@ -414,6 +419,7 @@ class ApplicationRunContext:
             self.current_app_id = app_id
             self.current_instance_idx = instance_idx
             self.current_group_id = group_id
+            self.current_application = app
 
             op_result = app.execute()
         except Exception:
@@ -423,6 +429,7 @@ class ApplicationRunContext:
             self.current_app_id = None
             self.current_instance_idx = None
             self.current_group_id = None
+            self.current_application = None
 
         return True
 
@@ -472,3 +479,15 @@ class ApplicationRunContext:
             except Exception:
                 # 部分应用没有运行记录 跳过即可
                 pass
+
+    def after_app_shutdown(self) -> None:
+        """
+        整个脚本运行结束后的清理
+
+        关闭应用运行上下文，包括停止当前运行任务、清除运行状态。
+        """
+        # 首先停止当前运行的应用，清除运行状态
+        self.stop_running()
+
+        # 关闭执行器
+        self._executor.shutdown(wait=False, cancel_futures=True)

@@ -12,7 +12,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class ChooseNextOrFinishAfterBattle(ZOperation):
 
-    def __init__(self, ctx: ZContext, try_next: bool):
+    def __init__(self, ctx: ZContext, try_next: bool) -> None:
         """
         在战斗结束画面 尝试点击 【再来一次】 或者 【结束】
         :param ctx: 上下文
@@ -37,9 +37,9 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
         # 检查是否在恢复电量界面
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if not result.is_success:
-            # 没有弹窗，直接返回再来一次的结果
+            # 没有恢复弹窗，说明这次“再来一次”已直接生效
             return self.round_success(status='战斗结果-再来一次')
 
         config: ChargePlanConfig = self.ctx.run_context.get_config(
@@ -50,10 +50,13 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
 
         if config.is_restore_charge_enabled:
             op = RestoreCharge(self.ctx)
-            result = self.round_by_op_result(op.execute())
-            self.try_next = result.is_success
+            op.is_after_battle_retry = True
+            op_result = op.execute()
+            if not op_result.success:
+                return self.round_by_op_result(op_result)
+            self.try_next = op_result.status == RestoreCharge.STATUS_RESTORE_SUCCESS
         else:
             self.try_next = False
 
-        # 关闭弹窗之后重新点击
-        return self.round_by_click_area('战斗画面', '战斗结果-完成', success_wait=0.5)
+        # 恢复流程结束后回到“判断再来一次”；是否继续由 try_next 决定，这里不直接点“完成”
+        return self.round_success(status='战斗结果-完成', wait=0.5)

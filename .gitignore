@@ -24,6 +24,7 @@ config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
+config/pip.yml
 config/push.yml
 config/redemption_codes.yml
 config/[0-9]*/
@@ -42,6 +43,7 @@ config/lost_void_challenge/*
 !config/lost_void_challenge/*.sample.yml
 config/yolo.yml
 config/model.yml
+config/overlay.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
 assets/ui/static_background.webp
@@ -60,6 +62,7 @@ config/world_patrol_route_list/*
 .debug/
 .conda/
 .venv/
+.runtime/
 notice_cache/
 *.bak
 

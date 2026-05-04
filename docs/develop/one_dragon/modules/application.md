@@ -2,6 +2,8 @@
 
 应用，在一条龙框架中，通常是一系列 Operation 的组合，用于完成一个具体的任务。
 
+> 相关文档：[Operation 操作模块](operation.md) | [应用插件系统架构](application_plugin_system.md) | [应用开发指引](../../guides/application_plugin_guide.md) | [应用设置开发指引](../../guides/application_setting_guide.md)
+
 `Application`继承于[Operation](operation.md)，拥有`Operation`的相同的编排能力，并添加应用配置和运行记录等功能。
 
 ## 应用工厂

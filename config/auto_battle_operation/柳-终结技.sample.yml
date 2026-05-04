@@ -6,13 +6,18 @@ operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
     seconds: 5.5
-  - op_name: "按键-终结技"
-    post_delay: 0.1
-    repeat: 30
-  - op_name: "等待秒数"
-    seconds: 2.5
   - op_name: "设置状态"
     state: "自定义-异常-电"
     add: 226
   - op_name: "设置状态"
     state: "自定义-柳-流转"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "柳"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 25
+  - op_name: "等待秒数"
+    seconds: 1

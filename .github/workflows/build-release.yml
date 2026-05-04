@@ -101,8 +101,10 @@ jobs:
         echo "__version__ = '$env:RELEASE_VERSION'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
         .\.venv\Scripts\Activate.ps1
         cd deploy
-        pyinstaller "OneDragon-Installer.spec"
-        pyinstaller "OneDragon-Launcher.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
+        Copy-Item -Path "..\src" -Destination "dist\OneDragon-RuntimeLauncher\src" -Recurse -Force
 
     - name: Bundle dependencies into wheels
       shell: pwsh
@@ -132,6 +134,14 @@ jobs:
         name: Launcher
         path: deploy/dist/OneDragon-Launcher.exe
 
+    - name: Upload RuntimeLauncher
+      if: ${{ env.CREATE_RELEASE == 'false' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: RuntimeLauncher
+        include-hidden-files: true
+        path: deploy/dist/OneDragon-RuntimeLauncher/
+
     - name: Upload Wheels
       if: ${{ env.CREATE_RELEASE == 'false' }}
       uses: actions/upload-artifact@v4
@@ -144,6 +154,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: dist
+        include-hidden-files: true
         if-no-files-found: error
         path: deploy/dist
 
@@ -157,6 +168,7 @@ jobs:
         if-no-files-found: error
         path: |
           .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-RuntimeLauncher\OneDragon-RuntimeLauncher.exe
           .\deploy\dist\OneDragon-Installer.exe
 
   sign:
@@ -244,7 +256,9 @@ jobs:
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip` 为内嵌运行时 + 源码的独立包（无需安装 Python），解压即用。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
+          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为集成启动器更新包（exe + .runtime），用于已有环境的就地升级。
           - __不要下载Source Code__
 
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
@@ -272,8 +286,10 @@ jobs:
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe
+          ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip
           ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
+          ZenlessZoneZero-OneDragon-RuntimeLauncher.zip
         generate_release_notes: false
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:

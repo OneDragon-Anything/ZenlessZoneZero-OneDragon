@@ -6,7 +6,7 @@ import yaml
 from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.conditional_operation.scene import Scene
 from one_dragon.base.conditional_operation.state_handler import StateHandler
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -262,7 +262,7 @@ class ConditionalOperatorLoader:
 
         with open(file_path, 'r', encoding='utf-8') as file:
             log.debug(f"加载yaml: {file_path}")
-            data = yaml.safe_load(file)
+            data = yaml_utils.safe_load(file)
             return data
 
 

@@ -280,3 +280,15 @@ def is_target_after_ocr_list(
             found_before_target = True
 
     return found_target and found_before_target
+
+def remove_whitespace(v: str | None) -> str:
+    """
+    移除字符串中的所有空白字符
+    :param v: 原始字符串
+    :return: 清理空白字符后的字符串
+    """
+    if v is None:
+        return ""
+
+    # 移除空格
+    return re.sub(r'\s', '', v)

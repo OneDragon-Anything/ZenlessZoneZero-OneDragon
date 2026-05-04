@@ -8,6 +8,7 @@ from email.utils import formataddr
 
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.log_utils import log
@@ -228,3 +229,91 @@ class Smtp(PushChannel):
             return False, "端口号必须为数字"
 
         return True, "配置验证通过"
+
+    def push_merged(
+        self,
+        config: dict[str, str],
+        title: str,
+        items: list[NotifyPoolItem],
+        proxy_url: str | None = None,
+    ) -> tuple[bool, str]:
+        """
+        推送合并消息到SMTP邮件，使用 <hr> 分隔每条消息
+
+        Args:
+            config: 配置字典
+            title: 邮件标题
+            items: 消息列表
+            proxy_url: 代理地址
+
+        Returns:
+            tuple[bool, str]: 是否成功、错误信息
+        """
+        try:
+            ok, msg = self.validate_config(config)
+            if not ok:
+                return False, msg
+
+            server = config.get('SERVER', '')
+            use_ssl = config.get('SSL', 'true').lower() == 'true'
+            use_starttls = config.get('STARTTLS', 'false').lower() == 'true'
+            email_addr = config.get('EMAIL', '')
+            password = config.get('PASSWORD', '')
+            name = config.get('NAME', 'OneDragon')
+
+            message = MIMEMultipart('related')
+
+            html_parts: list[str] = []
+            img_attachments: list[MIMEImage] = []
+            img_idx = 0
+
+            for item in items:
+                part_html = '<p>{}</p>'.format(html.escape(item.content).replace('\n', '<br>\n'))
+                if item.image is not None:
+                    cid = f'screenshot_{img_idx}'
+                    img_data = self.image_to_bytes(item.image)
+                    if img_data is not None:
+                        img_part = MIMEImage(img_data.getvalue())
+                        img_part.add_header('Content-ID', f'<{cid}>')
+                        img_part.add_header('Content-Disposition', 'inline', filename=f'{cid}.jpg')
+                        img_attachments.append(img_part)
+                        part_html += f'<br><img src="cid:{cid}">'
+                        img_idx += 1
+                html_parts.append(part_html)
+
+            full_html = '<hr>\n'.join(html_parts)
+            text_part = MIMEText(full_html, 'html', 'utf-8')
+            message.attach(text_part)
+            for img in img_attachments:
+                message.attach(img)
+
+            message['From'] = formataddr(
+                (Header(name, 'utf-8').encode(), email_addr)
+            )
+            message['To'] = formataddr(
+                (Header(name, 'utf-8').encode(), email_addr)
+            )
+            message['Subject'] = Header(title, 'utf-8')
+
+            host, port = server.split(':')
+            port_int = int(port) if port else None
+            smtp_server = (
+                smtplib.SMTP_SSL(host, port_int) if use_ssl
+                else smtplib.SMTP(host, port_int)
+            )
+
+            try:
+                if use_starttls and not use_ssl:
+                    smtp_server.starttls()
+                smtp_server.login(email_addr, password)
+                smtp_server.sendmail(email_addr, email_addr, message.as_bytes())
+                return True, 'SMTP邮件合并推送成功'
+            except Exception as e:
+                log.error('SMTP邮件合并推送异常', exc_info=True)
+                return False, f'SMTP邮件合并推送异常: {str(e)}'
+            finally:
+                smtp_server.close()
+
+        except Exception as e:
+            log.error('SMTP邮件合并推送异常', exc_info=True)
+            return False, f'SMTP邮件合并推送异常: {str(e)}'

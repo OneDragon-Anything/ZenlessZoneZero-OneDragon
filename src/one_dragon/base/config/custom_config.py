@@ -17,11 +17,6 @@ class ThemeEnum(Enum):
     DARK = ConfigItem('深色', 'Dark')
 
 
-class ThemeColorModeEnum(Enum):
-
-    AUTO = ConfigItem('自动', 'auto')
-    CUSTOM = ConfigItem('自定义', 'custom')
-
 
 class BackgroundTypeEnum(Enum):
 
@@ -129,25 +124,13 @@ class CustomConfig(YamlConfig):
         self.update('last_dynamic_background_fetch_time', new_value)
 
     @property
-    def theme_color_mode(self) -> str:
-        """
-        主题色模式
-        """
-        return self.get('theme_color_mode', ThemeColorModeEnum.AUTO.value.value)
+    def custom_theme_color(self) -> bool:
+        """是否使用自定义主题色"""
+        return self.get('custom_theme_color', False)
 
-    @theme_color_mode.setter
-    def theme_color_mode(self, new_value: str) -> None:
-        """
-        主题色模式
-        """
-        self.update('theme_color_mode', new_value)
-
-    @property
-    def is_custom_theme_color(self) -> bool:
-        """
-        是否使用自定义主题色
-        """
-        return self.theme_color_mode == ThemeColorModeEnum.CUSTOM.value.value
+    @custom_theme_color.setter
+    def custom_theme_color(self, value: bool) -> None:
+        self.update('custom_theme_color', value)
 
     @property
     def theme_color_str(self) -> str:
@@ -179,31 +162,3 @@ class CustomConfig(YamlConfig):
         """
         color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
         self.update('global_theme_color', color_str)
-
-    @property
-    def theme_color_banner_path(self) -> str:
-        """
-        当前主题色对应的背景图片路径
-        """
-        return self.get('theme_color_banner_path', '')
-
-    @theme_color_banner_path.setter
-    def theme_color_banner_path(self, new_value: str) -> None:
-        """
-        当前主题色对应的背景图片路径
-        """
-        self.update('theme_color_banner_path', new_value)
-
-    @property
-    def theme_color_banner_mtime(self) -> float:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        return self.get('theme_color_banner_mtime', 0.0)
-
-    @theme_color_banner_mtime.setter
-    def theme_color_banner_mtime(self, new_value: float) -> None:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        self.update('theme_color_banner_mtime', new_value)

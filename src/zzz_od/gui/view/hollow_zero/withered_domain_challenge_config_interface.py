@@ -1,15 +1,14 @@
-from typing import List, Optional
-
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     BodyLabel,
     FluentIcon,
     FluentThemeColor,
+    MessageBox,
     PlainTextEdit,
     PushButton,
     SubtitleLabel,
     TitleLabel,
-    ToolButton, MessageBox,
+    ToolButton,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -52,7 +51,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         )
 
         self.ctx: ZContext = ctx
-        self.chosen_config: Optional[HollowZeroChallengeConfig] = None
+        self.chosen_config: HollowZeroChallengeConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Row()
@@ -99,8 +98,8 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         self.name_opt.value_changed.connect(self._on_name_changed)
         widget.add_widget(self.name_opt)
 
-        self.agent_btn_list: List[EditableComboBox] = []
-        for i in range(3):
+        self.agent_btn_list: list[EditableComboBox] = []
+        for _ in range(3):
             agent_btn = EditableComboBox()
             agent_btn.currentIndexChanged.connect(self._on_agent_changed)
             self.agent_btn_list.append(agent_btn)
@@ -245,7 +244,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         """
         self.existed_yml_btn.blockSignals(True)
         self.existed_yml_btn.clear()
-        config_list: List[HollowZeroChallengeConfig] = get_all_hollow_zero_challenge_config()
+        config_list: list[HollowZeroChallengeConfig] = get_all_hollow_zero_challenge_config()
         for config in config_list:
             self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)

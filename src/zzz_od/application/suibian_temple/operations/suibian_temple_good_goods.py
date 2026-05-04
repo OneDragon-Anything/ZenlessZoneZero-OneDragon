@@ -6,7 +6,6 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
@@ -124,8 +123,7 @@ class SuibianTempleGoodGoods(ZOperation):
         plugin_rect = leftmost_bottom_plugin.max.rect
 
         # 先检查商品本身区域是否有"已售罄"文本
-        plugin_area_img = cv2_utils.crop_image_only(self.last_screenshot, plugin_rect)
-        plugin_ocr_map = self.ctx.ocr.run_ocr(plugin_area_img)
+        plugin_ocr_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, plugin_rect)
         for ocr_text, mrl in plugin_ocr_map.items():
             if '已售罄' in ocr_text or '售罄' in ocr_text:
                 return self.round_success(status='跳过购买-已售罄')
@@ -135,8 +133,7 @@ class SuibianTempleGoodGoods(ZOperation):
         price_search_rect = Rect(plugin_rect.x1 - 20, plugin_rect.y2, plugin_rect.x2 + 20, screen_height)
 
         # 截取并进行OCR
-        price_area_img = cv2_utils.crop_image_only(self.last_screenshot, price_search_rect)
-        price_ocr_map = self.ctx.ocr.run_ocr(price_area_img)
+        price_ocr_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, price_search_rect)
 
         has_price = False
         # 检查是否有价格相关文本

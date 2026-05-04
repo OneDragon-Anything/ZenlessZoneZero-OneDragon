@@ -3,6 +3,7 @@ from one_dragon.base.operation.application_run_record import (
     AppRunRecordPeriod,
 )
 from zzz_od.application.intel_board import intel_board_const
+from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 
 # 每次战斗获得的经验值
 EXP_PER_NOTORIOUS_HUNT = 500
@@ -12,7 +13,7 @@ EXP_TARGET = 5000
 
 class IntelBoardRunRecord(AppRunRecord):
 
-    def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
+    def __init__(self, config: IntelBoardConfig, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
             self,
             intel_board_const.APP_ID,
@@ -20,6 +21,7 @@ class IntelBoardRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset,
             record_period=AppRunRecordPeriod.WEEKLY
         )
+        self.config: IntelBoardConfig = config
 
     @property
     def progress_complete(self) -> bool:
@@ -77,9 +79,23 @@ class IntelBoardRunRecord(AppRunRecord):
         self.base_exp = 0
 
     @property
+    def is_finished_by_week(self) -> bool:
+        """按周的角度看是否已经完成"""
+        if self.config.exp_grind_mode:
+            return self.exp_complete
+        return self.progress_complete
+
+    @property
     def run_status_under_now(self) -> int:
         if self._should_reset_by_dt():
             return AppRunRecord.STATUS_WAIT
-        if self.progress_complete or self.exp_complete:
+        if self.is_finished_by_week:
             return AppRunRecord.STATUS_SUCCESS
-        return self.run_status
+        return AppRunRecord.STATUS_WAIT
+
+    def check_and_update_status(self) -> None:
+        if self._should_reset_by_dt():
+            self.reset_record()
+        elif not self.is_finished_by_week:
+            # 同周未完成：只重置运行状态，保留周计数
+            AppRunRecord.reset_record(self)
