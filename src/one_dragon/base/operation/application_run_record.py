@@ -14,7 +14,6 @@ class AppRunRecordPeriod(Enum):
 
 
 class AppRunRecord(YamlConfig):
-    STATUS_BEFORE_RUN = -1
     STATUS_WAIT = 0
     STATUS_SUCCESS = 1
     STATUS_FAIL = 2

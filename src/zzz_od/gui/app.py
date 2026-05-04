@@ -4,7 +4,6 @@ try:
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import NavigationItemPosition, Theme, setTheme, Dialog
-    from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
@@ -53,6 +52,7 @@ try:
 
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
+            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
             self.setting_interface: AppSettingInterface | None = None
             self.ctx: ZContext = ctx
 
@@ -170,6 +170,7 @@ try:
             )
 
             # 设置
+            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
             self.setting_interface = AppSettingInterface(self.ctx, parent=self)
             self.add_sub_interface(
                 self.setting_interface,
@@ -306,7 +307,9 @@ def main() -> None:
 def on_ctx_inited(window, ctx) -> None:
     # 历史记录加载报错时提示
     if ctx.run_context.last_run_corrupted is not None:
-        dialog = Dialog('上次运行异常停止', '是否跳转禁用GPU界面？', parent=window)
+        dialog = Dialog('上次运行异常中止',
+                        f'「{ctx.run_context.last_run_corrupted}」未正常结束，是否跳转禁用GPU界面？',
+                        parent=window)
         dialog.setTitleBarVisible(False)
         dialog.yesButton.setText('确定')
         dialog.cancelButton.setText('取消')

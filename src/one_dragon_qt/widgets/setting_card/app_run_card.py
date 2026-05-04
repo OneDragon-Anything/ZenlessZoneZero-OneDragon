@@ -88,7 +88,7 @@ class AppRunCard(DraggableListItem):
                 icon = FluentIcon.COMPLETED.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             elif status == AppRunRecord.STATUS_RUNNING:
                 icon = FluentIcon.COMPLETED.STOP_WATCH
-            elif status == AppRunRecord.STATUS_FAIL or status == AppRunRecord.STATUS_BEFORE_RUN:
+            elif status == AppRunRecord.STATUS_FAIL:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             else:
                 icon = FluentIcon.INFO

@@ -473,11 +473,14 @@ class ApplicationRunContext:
         Args:
             instance_idx: 账号实例下标
         """
+        from one_dragon.base.operation.application_run_record import AppRunRecord
         for app_id in self._application_factory_map.keys():
             try:
                 run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
-                if run_record is not None and run_record.run_status == -1:  # todo 这里写 AppRunRecord.STATUS_BEFORE_RUN 为什么会报错 "name 'AppRunRecord' is not defined"?
-                    self.last_run_corrupted = app_id
+                if run_record is not None and run_record.run_status == AppRunRecord.STATUS_RUNNING:
+                    app_name = self._application_factory_map[app_id].app_name
+                    self.last_run_corrupted = app_name
+                    log.error('上次运行异常停止: 「%s」', app_name)
                 run_record.check_and_update_status()
             except Exception:
                 # 部分应用没有运行记录 跳过即可
