@@ -8,7 +8,6 @@ from zzz_od.application.charge_plan import charge_plan_const
 
 
 class CardNumEnum(Enum):
-
     DEFAULT = ConfigItem('默认数量')
     NUM_1 = ConfigItem('1张卡片', '1')
     NUM_2 = ConfigItem('2张卡片', '2')
@@ -18,7 +17,6 @@ class CardNumEnum(Enum):
 
 
 class RestoreChargeEnum(Enum):
-
     NONE = ConfigItem('不使用')
     BACKUP_ONLY = ConfigItem('使用储蓄电量')
     ETHER_ONLY = ConfigItem('使用以太电池')
@@ -63,7 +61,6 @@ class ChargePlanItem:
 
     @property
     def uid(self) -> str:
-
         tab_name = self.tab_name or ''
         category_name = self.category_name or ''
         mission_type_name = self.mission_type_name or ''
@@ -85,6 +82,24 @@ class ChargePlanItem:
             return 60
         return 0  # 未知类型，在副本内检查
 
+    def to_dict(self):
+        return {
+            'tab_name': self.tab_name,
+            'category_name': self.category_name,
+            'mission_type_name': self.mission_type_name,
+            'mission_name': self.mission_name,
+            'auto_battle_config': self.auto_battle_config,
+            'run_times': self.run_times,
+            'plan_times': self.plan_times,
+            'card_num': self.card_num,
+            'predefined_team_idx': self.predefined_team_idx,
+            'notorious_hunt_buff_num': self.notorious_hunt_buff_num,
+            'plan_id': self.plan_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ChargePlanItem':
+        return cls(**data)
 
 class ChargePlanConfig(ApplicationConfig):
 
@@ -107,19 +122,7 @@ class ChargePlanConfig(ApplicationConfig):
         new_history_list = []
 
         for plan_item in self.plan_list:
-            plan_data = {
-                'tab_name': plan_item.tab_name,
-                'category_name': plan_item.category_name,
-                'mission_type_name': plan_item.mission_type_name,
-                'mission_name': plan_item.mission_name,
-                'auto_battle_config': plan_item.auto_battle_config,
-                'run_times': plan_item.run_times,
-                'plan_times': plan_item.plan_times,
-                'card_num': plan_item.card_num,
-                'predefined_team_idx': plan_item.predefined_team_idx,
-                'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
-                'plan_id': plan_item.plan_id,
-            }
+            plan_data = plan_item.to_dict()
 
             new_history_list.append(plan_data.copy())
             plan_list.append(plan_data)
@@ -315,12 +318,21 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('skip_plan', new_value)
 
     @property
-    def use_coupon(self) -> bool:
-        return self.get('use_coupon', False)
+    def do_double_reward_event(self) -> bool:
+        return self.get('do_double_reward_event', False)
 
-    @use_coupon.setter
-    def use_coupon(self, new_value: bool) -> None:
-        self.update('use_coupon', new_value)
+    @do_double_reward_event.setter
+    def do_double_reward_event(self, new_value: bool) -> None:
+        self.update('do_double_reward_event', new_value)
+
+    @property
+    def double_reward_event_config(self) -> ChargePlanItem:
+        data = self.get("double_reward_event_config", {})
+        return ChargePlanItem.from_dict(data)
+
+    @double_reward_event_config.setter
+    def double_reward_event_config(self, new_value: ChargePlanItem) -> None:
+        self.update('double_reward_event_config', new_value.to_dict())
 
     @property
     def restore_charge(self) -> str:
