@@ -3,7 +3,7 @@ try:
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, Theme, setTheme
+    from qfluentwidgets import NavigationItemPosition, Theme, setTheme, Dialog
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
@@ -52,6 +52,8 @@ try:
 
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
+            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+            self.setting_interface: AppSettingInterface | None = None
             self.ctx: ZContext = ctx
 
             # 记录应用启动时间
@@ -169,8 +171,9 @@ try:
 
             # 设置
             from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+            self.setting_interface = AppSettingInterface(self.ctx, parent=self)
             self.add_sub_interface(
-                AppSettingInterface(self.ctx, parent=self),
+                self.setting_interface,
                 position=NavigationItemPosition.BOTTOM,
             )
 
@@ -291,6 +294,7 @@ def main() -> None:
     # 加载配置
     init_runner = CtxInitRunner(_ctx, w)
     init_runner.start()
+    w.app_setting_manager.ready.connect(lambda: on_ctx_inited(w, _ctx))
 
     # 启动应用程序事件循环
     quit_code = app.exec()
@@ -298,6 +302,21 @@ def main() -> None:
     _ctx.after_app_shutdown()
 
     sys.exit(quit_code)
+
+
+def on_ctx_inited(window, ctx) -> None:
+    # 历史记录加载报错时提示
+    if ctx.run_context.last_run_corrupted is not None:
+        dialog = Dialog('上次运行异常中止',
+                        f'「{ctx.run_context.last_run_corrupted}」未正常结束，是否跳转禁用GPU界面？',
+                        parent=window)
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText('确定')
+        dialog.cancelButton.setText('取消')
+        if dialog.exec():
+            window.switchTo(window.setting_interface)
+            window.setting_interface.stacked_widget.setCurrentWidget(window.setting_interface.z_resource_download_interface)
+        pass
 
 
 if __name__ == "__main__":
