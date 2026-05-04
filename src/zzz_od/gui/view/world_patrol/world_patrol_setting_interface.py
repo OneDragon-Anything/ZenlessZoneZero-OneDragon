@@ -68,8 +68,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
             icon=FluentIcon.STOP_WATCH,
             title='界面消失预警时间',
             content='UI完全消失持续到该秒数后判定为卡电梯',
-            minimum=1,
-            maximum=600,
+            maximum=999,
         )
         layout.addWidget(self.ui_disappear_seconds_opt)
 
@@ -105,8 +104,6 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
             icon=FluentIcon.SYNC,
             title='单条路线重试上限',
             content='任何原因卡住的最多重试次数，超限后跳过该条小路线',
-            minimum=0,
-            maximum=10,
         )
         layout.addWidget(self.route_retry_times_opt)
 
