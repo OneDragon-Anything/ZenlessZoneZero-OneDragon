@@ -235,39 +235,45 @@ class InventoryScanInterface(AppRunInterface):
         agent_names_file_path = os.path.join(self.data_file_path, "agent_names.json")
         options = []
         try:
-            translation_file_path = os.path.join(
-                self.wiki_file_path, "zzz_translation.json"
-            )
-            translation_dict = {}
-            if os.path.exists(translation_file_path):
-                with open(translation_file_path, encoding="utf-8") as f:
-                    translation_data = json.load(f)
-                    translation_dict = translation_data.get("character", {})
-
             agents_with_weight = set()
+            agent_name_dict = {}
             yaml_path = os_utils.get_path_under_work_dir(
                 "assets", "game_data", "agent", "_od_merged.yml"
+            )
+            log.info(
+                f"[DEBUG] YAML路径: {yaml_path},是否存在: {os.path.exists(yaml_path)}"
             )
             if os.path.exists(yaml_path):
                 with open(yaml_path, encoding="utf-8") as f:
                     agents_data = safe_load(f)
+                    log.info(f"[DEBUG] YAML中共有 {len(agents_data)} 个代理人")
                     for agent in agents_data:
-                        if "weight" in agent and agent["weight"] is not None:
-                            agents_with_weight.add(agent["code"])
+                        code = agent.get("code")
+                        if code:
+                            agent_name_dict[code] = agent.get("agent_name", code)
+                        if "weight" in agent and agent["weight"] is not None and code:
+                            agents_with_weight.add(code)
+                    log.info(f"[DEBUG] agent_name_dict: {agent_name_dict}")
+                    log.info(f"[DEBUG] agents_with_weight: {agents_with_weight}")
 
+            log.info(
+                f"[DEBUG] agent_names_file_path: {agent_names_file_path},是否存在: {os.path.exists(agent_names_file_path)}"
+            )
             with open(agent_names_file_path, encoding="utf-8") as f:
                 agent_names = json.load(f)
+                log.info(f"[DEBUG] agent_names: {agent_names}")
                 for code in agent_names:
                     if code in agents_with_weight:
-                        if code in translation_dict:
-                            chs_name = translation_dict[code].get("CHS", code)
+                        if code in agent_name_dict:
+                            chs_name = agent_name_dict[code]
                         else:
                             chs_name = code
                     else:
-                        if code in translation_dict:
-                            chs_name = f"{translation_dict[code].get('CHS', code)} (权重配置缺失)"
+                        if code in agent_name_dict:
+                            chs_name = f"{agent_name_dict[code]} (权重配置缺失)"
                         else:
                             chs_name = f"{code} (未定义)"
+                    log.info(f"[DEBUG] code={code}, chs_name={chs_name}")
                     options.append(ConfigItem(chs_name, code))
         except FileNotFoundError:
             log.info(
