@@ -8,6 +8,8 @@ from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanInterface
 from zzz_od.gui.view.one_dragon.mouse_sensitivity_checker_interface import (
     MouseSensitivityCheckerInterface,
 )
+from zzz_od.gui.view.one_dragon.inventory_scan_interface import InventoryScanInterface
+from zzz_od.gui.view.one_dragon.mouse_sensitivity_checker_interface import MouseSensitivityCheckerInterface
 from zzz_od.gui.view.one_dragon.predefined_team_interface import PredefinedTeamInterface
 from zzz_od.gui.view.one_dragon.zzz_one_dragon_run_interface import (
     ZOneDragonRunInterface,
@@ -35,6 +37,7 @@ class ZOneDragonInterface(PivotNavigatorInterface):
         )
         self.add_sub_interface(ChargePlanInterface(self.ctx))
         self.add_sub_interface(PredefinedTeamInterface(self.ctx))
+        self.add_sub_interface(InventoryScanInterface(self.ctx))
         self.add_sub_interface(MouseSensitivityCheckerInterface(self.ctx))
 
     def on_interface_shown(self) -> None:
