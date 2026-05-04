@@ -1,5 +1,4 @@
-import os
-from typing import Optional
+from pathlib import Path
 
 import yaml
 
@@ -52,19 +51,24 @@ class ScreenContext:
         self._id_2_screen: dict[str, ScreenInfo] = {}
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
-        self.last_screen_name: Optional[str] = None  # 上一个画面名字
-        self.current_screen_name: Optional[str] = None  # 当前的画面名字
+        self.last_screen_name: str | None = None  # 上一个画面名字
+        self.current_screen_name: str | None = None  # 当前的画面名字
+
+        # Screen scope management
+        self._global_screen_names: set[str] = set()
+        self._local_screen_names: set[str] = set()
+        self._scoped: bool = False
 
     @property
-    def yml_file_dir(self) -> str:
-        return os_utils.get_path_under_work_dir('assets', 'game_data', 'screen_info')
+    def yml_file_dir(self) -> Path:
+        return Path(os_utils.get_path_under_work_dir('assets', 'game_data', 'screen_info'))
 
     @property
-    def merge_yml_file_path(self) -> str:
-        return os.path.join(self.yml_file_dir, '_od_merged.yml')
+    def merge_yml_file_path(self) -> Path:
+        return self.yml_file_dir / '_od_merged.yml'
 
-    def get_yml_file_path(self, screen_id: str) -> str:
-        return os.path.join(self.yml_file_dir, f'{screen_id}.yml')
+    def get_yml_file_path(self, screen_id: str) -> Path:
+        return self.yml_file_dir / f'{screen_id}.yml'
 
     def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
         """
@@ -87,13 +91,12 @@ class ScreenContext:
                     self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
         elif from_separated_files:
             self._id_2_screen.clear()
-            for file_name in os.listdir(self.yml_file_dir):
-                if not file_name.endswith('.yml'):
+            for file_path in self.yml_file_dir.iterdir():
+                if file_path.suffix != '.yml':
                     continue
-                if file_name == '_od_merged.yml':
+                if file_path.name == '_od_merged.yml':
                     continue
-                file_path = os.path.join(self.yml_file_dir, file_name)
-                with open(file_path, 'r', encoding='utf-8') as file:
+                with file_path.open(encoding='utf-8') as file:
                     log.debug(f"加载yaml: {file_path}")
                     data = yaml_utils.safe_load(file)
                 if not isinstance(data, dict):
@@ -110,7 +113,7 @@ class ScreenContext:
         else:
             self._id_2_screen.clear()
             file_path = self.merge_yml_file_path
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with file_path.open(encoding='utf-8') as file:
                 log.debug(f"加载yaml: {file_path}")
                 yaml_data = yaml_utils.safe_load(file)
             if not isinstance(yaml_data, list):
@@ -130,6 +133,57 @@ class ScreenContext:
                     self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
 
         self.init_screen_route()
+
+        # 自动计算全局 screen：没有 app_id 的 screen 为全局
+        self._global_screen_names = {
+            s.screen_name for s in self.screen_info_list if not s.app_id
+        }
+
+    def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> None:
+        """从额外目录加载 screen YAML 并注册（用于插件 screen 注入）
+
+        加载后会重新计算路由和全局 screen 集合。
+
+        Args:
+            dir_path: 包含 screen YAML 文件的目录路径
+            default_app_id: 如果 YAML 中未设置 app_id，使用此默认值
+        """
+        screen_dir = Path(dir_path)
+        if not screen_dir.is_dir():
+            return
+
+        added = False
+        for file_path in screen_dir.iterdir():
+            if file_path.suffix != '.yml':
+                continue
+            with file_path.open(encoding='utf-8') as file:
+                log.debug(f"加载插件画面: {file_path}")
+                data = yaml_utils.safe_load(file)
+            if not isinstance(data, dict):
+                log.warning(f"插件画面配置格式错误，已跳过: {file_path}")
+                continue
+
+            if default_app_id and not data.get('app_id'):
+                data['app_id'] = default_app_id
+
+            screen_info = ScreenInfo(data)
+            if screen_info.screen_name in self.screen_info_map:
+                log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
+                continue
+
+            self.screen_info_list.append(screen_info)
+            self.screen_info_map[screen_info.screen_name] = screen_info
+            self._id_2_screen[screen_info.screen_id] = screen_info
+
+            for screen_area in screen_info.area_list:
+                self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+            added = True
+
+        if added:
+            self.init_screen_route()
+            self._global_screen_names = {
+                s.screen_name for s in self.screen_info_list if not s.app_id
+            }
 
     def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
         """
@@ -182,8 +236,8 @@ class ScreenContext:
             del self._id_2_screen[screen_id]
 
             file_path = self.get_yml_file_path(screen_id)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            if file_path.exists():
+                file_path.unlink()
 
         if save:
             self.save(screen_id=screen_id)
@@ -206,11 +260,11 @@ class ScreenContext:
             all_data.append(data)
 
             if screen_id is not None and screen_id == screen_info.screen_id:
-                with open(self.get_yml_file_path(screen_id), 'w', encoding='utf-8') as file:
+                with self.get_yml_file_path(screen_id).open('w', encoding='utf-8') as file:
                     yaml.safe_dump(data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         # 保存到合并文件
-        with open(self.merge_yml_file_path, 'w', encoding='utf-8') as file:
+        with self.merge_yml_file_path.open('w', encoding='utf-8') as file:
             yaml.safe_dump(all_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         if reload_after_save:
@@ -284,9 +338,9 @@ class ScreenContext:
                         for node_kj in route_kj.node_list:
                             route_ij.node_list.append(node_kj)
 
-    def get_screen_route(self, from_screen: str, to_screen: str) -> Optional[ScreenRoute]:
+    def get_screen_route(self, from_screen: str, to_screen: str) -> ScreenRoute | None:
         """
-        获取两个画面之间的
+        获取两个画面之间的路径
         :param from_screen:
         :param to_screen:
         :return:
@@ -302,3 +356,54 @@ class ScreenContext:
         """
         self.last_screen_name = self.current_screen_name
         self.current_screen_name = screen_name
+
+    # ---- Screen Scope 管理 ----
+    # 通过 ScreenInfo.app_id 自动区分全局/局部 screen：
+    #   - app_id 为空 → 全局 screen，始终参与匹配
+    #   - app_id 非空 → 局部 screen，仅在对应应用 scope 内参与匹配
+    # reload() 后自动计算全局集合，Application 启动/停止时自动 enter/exit scope
+
+    def enter_scope(self, app_id: str) -> None:
+        """进入应用 scope，活跃范围 = 全局 screen + 该 app_id 的局部 screen
+
+        仅当 YAML 中存在 app_id 匹配的 screen 时才真正启用 scope，否则保持全量匹配。
+
+        Args:
+            app_id: 当前应用的唯一标识符（与 ScreenInfo.app_id 对应）
+        """
+        if not self._global_screen_names:
+            return  # 所有 screen 都没有 app_id，不启用 scope
+
+        local_names = {s.screen_name for s in self.screen_info_list if s.app_id == app_id}
+        if not local_names:
+            return  # 该应用没有专属 screen，不启用 scope
+
+        self._local_screen_names = local_names
+        self._scoped = True
+
+    def exit_scope(self) -> None:
+        """退出应用 scope，恢复全量 screen 匹配"""
+        self._local_screen_names.clear()
+        self._scoped = False
+
+    @property
+    def active_screen_names(self) -> set[str] | None:
+        """当前活跃的 screen 名称集合。None 表示全部活跃（未启用 scope）。"""
+        if not self._scoped:
+            return None
+        return self._global_screen_names | self._local_screen_names
+
+    @property
+    def active_screen_info_list(self) -> list[ScreenInfo]:
+        """当前活跃的 ScreenInfo 列表"""
+        names = self.active_screen_names
+        if names is None:
+            return self.screen_info_list
+        return [s for s in self.screen_info_list if s.screen_name in names]
+
+    def is_screen_active(self, screen_name: str) -> bool:
+        """判断某个 screen 是否在当前活跃范围内"""
+        names = self.active_screen_names
+        if names is None:
+            return True
+        return screen_name in names
