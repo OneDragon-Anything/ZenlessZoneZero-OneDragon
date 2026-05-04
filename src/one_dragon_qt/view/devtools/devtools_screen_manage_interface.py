@@ -160,7 +160,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(12, 0, 0, 0)
+        control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(12)
 
         self.merge_opt = PushSettingCard(

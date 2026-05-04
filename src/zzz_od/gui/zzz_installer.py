@@ -1,12 +1,11 @@
 import os
 import sys
-import shutil
-
 from pathlib import Path
+
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import Theme, setTheme
-from one_dragon_qt.app.directory_picker import DirectoryPickerWindow
 
+from one_dragon_qt.app.directory_picker import DirectoryPickerWindow
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -25,14 +24,9 @@ if __name__ == '__main__':
         sys.exit(0)
     os.chdir(work_dir)
 
-    # 解压资源
-    if hasattr(sys, '_MEIPASS'):
-        resources_path = Path(sys._MEIPASS) / 'resources'
-        shutil.copytree(resources_path, work_dir, dirs_exist_ok=True)
-
     # 延迟导入
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-    from one_dragon.utils.i18_utils import gt, detect_and_set_default_language
+    from one_dragon.utils.i18_utils import detect_and_set_default_language, gt
     from zzz_od.gui.zzz_installer_window import ZInstallerWindow
 
     _ctx = OneDragonEnvContext()

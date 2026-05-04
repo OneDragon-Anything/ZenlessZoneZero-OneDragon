@@ -17,6 +17,7 @@ class Column(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.v_layout = QVBoxLayout(self)
+        self.v_layout.setContentsMargins(0, 0, 0, 0)
 
         if spacing is not None:
             self.v_layout.setSpacing(spacing)

@@ -18,13 +18,7 @@ if TYPE_CHECKING:
 class PredefinedTeamCheckerFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=predefined_team_checker_const.APP_ID,
-            app_name=predefined_team_checker_const.APP_NAME,
-            default_group=predefined_team_checker_const.DEFAULT_GROUP,
-            need_notify=predefined_team_checker_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, predefined_team_checker_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

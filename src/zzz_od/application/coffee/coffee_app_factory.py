@@ -18,13 +18,7 @@ if TYPE_CHECKING:
 class CoffeeAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=coffee_app_const.APP_ID,
-            app_name=coffee_app_const.APP_NAME,
-            default_group=coffee_app_const.DEFAULT_GROUP,
-            need_notify=coffee_app_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, coffee_app_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

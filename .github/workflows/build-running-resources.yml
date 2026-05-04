@@ -6,11 +6,12 @@ on:
   push:
     branches: [main]
 
-env:
-  TZ: Asia/Shanghai
-
 jobs:
+  set-timestamp:
+    uses: ./.github/workflows/common-set-timestamp.yml
+
   build-running-resources:
+    needs: set-timestamp
     runs-on: windows-latest
     permissions:
       contents: write
@@ -52,19 +53,27 @@ jobs:
         env:
           PYTHONPATH: src
 
-      - name: Set timestamp
+      - name: Check for changes
+        id: changes
         shell: pwsh
-        run: echo "BUILD_TIMESTAMP=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" >> $env:GITHUB_ENV
+        run: |
+          $changes = git status --porcelain config/auto_battle/ assets/text/output/ deploy/module_manifest.py
+          if ($changes) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "changed=true"
+          }
+          else {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "changed=false"
+          }
 
       - name: Push changes
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && steps.changes.outputs.changed == 'true'
         uses: actions-js/push@v1.5
         with:
           rebase: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref || github.ref_name }}
           message: |
-            ci: 自动构建运行资源 ${{ env.BUILD_TIMESTAMP }}
+            ci: 自动构建运行资源 ${{ needs.set-timestamp.outputs.build_timestamp }}
 
             [skip ci]
 

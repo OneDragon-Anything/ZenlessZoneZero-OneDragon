@@ -10,7 +10,7 @@ class BaseInterface(QWidget):
     def __init__(self,
                  object_name: str,
                  nav_text_cn: str,
-                 nav_icon: FluentIconBase | QIcon | str = None,
+                 nav_icon: FluentIconBase | QIcon | str,
                  parent=None):
         """
         包装一个子页面需要有的内容
@@ -22,6 +22,13 @@ class BaseInterface(QWidget):
         self.nav_text: str = gt(nav_text_cn)
         self.nav_icon: FluentIconBase | QIcon | str = nav_icon
         self.setObjectName(object_name)
+
+    def on_interface_leave(self) -> None:
+        """
+        视觉切换前调用，用于恢复 margin/标题栏等必须同步的视觉状态
+        :return:
+        """
+        pass
 
     def on_interface_shown(self) -> None:
         """

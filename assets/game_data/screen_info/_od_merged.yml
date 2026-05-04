@@ -1261,14 +1261,14 @@
   - area_name: 中间选项区域
     id_mark: false
     pc_rect:
-    - 578
-    - 312
-    - 1388
-    - 880
+    - 520
+    - 245
+    - 1365
+    - 770
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
+    template_sub_dir: commission_assistant
+    template_id: '1'
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -2481,10 +2481,10 @@
   - area_name: 点击进入游戏
     id_mark: false
     pc_rect:
-    - 810
+    - 782
     - 846
-    - 1088
-    - 942
+    - 1136
+    - 1032
     text: 点击进入游戏
     lcs_percent: 0.6
     template_sub_dir: ''
@@ -2923,6 +2923,20 @@
     lcs_percent: 0.5
     template_sub_dir: enter_game
     template_id: annual_reward
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 国服-返回按钮
+    id_mark: false
+    pc_rect:
+    - 538
+    - 222
+    - 575
+    - 265
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -4772,7 +4786,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-悬赏委托
-    id_mark: false
+    id_mark: true
     pc_rect:
     - 1181
     - 19
@@ -4828,7 +4842,7 @@
     color_range: null
     goto_list: []
   - area_name: 区域-矩阵行动
-    id_mark: true
+    id_mark: false
     pc_rect:
     - 745
     - 233
@@ -4870,7 +4884,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-常规
-    id_mark: false
+    id_mark: true
     pc_rect:
     - 1616
     - 19
@@ -4905,6 +4919,20 @@
     - 1613
     - 362
     text: 特遣调查
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-周期
+    id_mark: false
+    pc_rect:
+    - 1453
+    - 26
+    - 1567
+    - 72
+    text: 周期
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -5253,6 +5281,20 @@
     color_range: null
     goto_list: []
     gamepad_key: menu
+  - area_name: 标识-BOSS血条
+    id_mark: false
+    pc_rect:
+    - 1620
+    - 16
+    - 1720
+    - 106
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: battle
+    template_id: boss_life
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 区域-对话内容
     id_mark: false
     pc_rect:
@@ -5632,6 +5674,20 @@
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 协战代理人属性
+    id_mark: false
+    pc_rect:
+    - 1300
+    - 400
+    - 1374
+    - 434
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
 - screen_id: menu
@@ -6459,10 +6515,10 @@
   - area_name: 剩余次数
     id_mark: false
     pc_rect:
-    - 384
-    - 996
-    - 406
-    - 1025
+    - 1516
+    - 1018
+    - 1538
+    - 1043
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -6781,6 +6837,20 @@
     lcs_percent: 0.5
     template_sub_dir: battle
     template_id: boss_life
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 深度追猎-信息
+    id_mark: false
+    pc_rect:
+    - 1480
+    - 675
+    - 1525
+    - 720
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: notorious_hunt
+    template_id: info
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -7128,20 +7198,6 @@
   screen_name: 恢复电量
   pc_alt: false
   area_list:
-  - area_name: 标题
-    id_mark: true
-    pc_rect:
-    - 824
-    - 348
-    - 1076
-    - 390
-    text: 恢复电量
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 类型
     id_mark: false
     pc_rect:
@@ -7163,7 +7219,7 @@
     - 650
     - 1200
     - 800
-    text: ''
+    text: 确认
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -7206,6 +7262,48 @@
     - 1020
     - 472
     text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-恢复电量
+    id_mark: true
+    pc_rect:
+    - 824
+    - 348
+    - 1076
+    - 390
+    text: 恢复电量
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-快捷使用
+    id_mark: false
+    pc_rect:
+    - 584
+    - 300
+    - 727
+    - 353
+    text: 快捷使用
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-获得
+    id_mark: false
+    pc_rect:
+    - 860
+    - 386
+    - 1060
+    - 456
+    text: 获得
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.push.channel.ai_botk import AiBotK
 from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.chronocat import Chronocat
@@ -239,6 +240,93 @@ class PushService:
             title,
             content,
             image,
+            channel_id,
+        )
+        future.add_done_callback(thread_utils.handle_future_result)
+
+    def push_merged(
+        self,
+        title: str,
+        items: list[NotifyPoolItem],
+        channel_id: str | None = None,
+    ) -> tuple[bool, str]:
+        """
+        推送合并消息
+
+        Args:
+            title: 标题
+            items: 消息列表
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+
+        Returns:
+            tuple[bool, str]: 是否成功、错误信息
+        """
+        if not self.push_config.send_image:
+            items = [NotifyPoolItem(content=item.content) for item in items]
+
+        any_ok: bool = False
+        err_msg: str = ''
+        if channel_id is None:
+            any_push = False
+            for cid, channel in self._id_2_channels.items():
+                channel_config = self.get_channel_config(cid)
+                ok, msg = channel.validate_config(channel_config)
+                if not ok:
+                    continue
+
+                any_push = True
+
+                ok, msg = channel.push_merged(
+                    config=channel_config,
+                    title=title,
+                    items=items,
+                    proxy_url=self.get_proxy(),
+                )
+                if not ok:
+                    log.error(f'合并推送失败: {cid} {msg}')
+                    err_msg += f'{cid} {msg}\n'
+                    continue
+
+                any_ok = True
+                log.info(f'合并推送成功: {cid}')
+
+            if not any_push:
+                return False, '没有可用的推送渠道'
+        else:
+            channel = self._id_2_channels.get(channel_id)
+            if channel is None:
+                return False, f'推送渠道不存在: {channel_id}'
+            channel_config = self.get_channel_config(channel_id)
+            ok, msg = channel.validate_config(channel_config)
+            if not ok:
+                return False, msg
+            any_ok, err_msg = channel.push_merged(
+                config=channel_config,
+                title=title,
+                items=items,
+                proxy_url=self.get_proxy(),
+            )
+
+        return any_ok, err_msg
+
+    def push_merged_async(
+        self,
+        title: str,
+        items: list[NotifyPoolItem],
+        channel_id: str | None = None,
+    ) -> None:
+        """
+        异步推送合并消息
+
+        Args:
+            title: 标题
+            items: 消息列表
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+        """
+        future = self._executor.submit(
+            self.push_merged,
+            title,
+            items,
             channel_id,
         )
         future.add_done_callback(thread_utils.handle_future_result)

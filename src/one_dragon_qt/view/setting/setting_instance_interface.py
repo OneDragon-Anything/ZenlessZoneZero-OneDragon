@@ -10,7 +10,6 @@ from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
     Dialog,
     FluentIcon,
-    HyperlinkCard,
     LineEdit,
     MessageBox,
     PrimaryPushButton,
@@ -32,6 +31,7 @@ from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
@@ -139,8 +139,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.show_login_btn: bool = show_login_btn
         VerticalScrollInterface.__init__(
             self,
+            content_widget=None,
             object_name="setting_instance_interface",
-            content_widget=self.get_content_widget(),
             parent=parent,
             nav_text_cn="多账户管理",
         )
@@ -212,28 +212,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return False
         return False
 
-    def _acc_repo(self) -> None:
-        if len(self.ctx.one_dragon_config.instance_list) > 3:
-            try:
-                _accounts = []
-                for _inst in self.ctx.one_dragon_config.instance_list:
-                    account_cfg = GameAccountConfig(_inst.idx)
-                    _acc = account_cfg.account
-                    if _acc and _acc.strip():
-                        _accounts.append(_acc.strip())
-
-                telemetry = getattr(self.ctx, "telemetry", None)
-                if _accounts and telemetry:
-                    _data = {
-                        "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "account_identifiers": _accounts,
-                        "user_id": getattr(telemetry, "_user_id", "unknown"),
-                        "reported_from": "ui",
-                    }
-                    telemetry.track_custom_event("multi_account_usage", _data)
-            except Exception:
-                pass
-
     def get_content_widget(self) -> QWidget:
         """
         子界面内的内容组件 由子类实现
@@ -256,11 +234,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.instance_card_list = []
         self.content_widget.clear_widgets()
 
-        guide_opt = HyperlinkCard(
-            url="http://one-dragon.com/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7",
-            text="说明",
-            icon=FluentIcon.INFO,
-            title="注意",
+        guide_opt = HelpCard(
+            url="https://one-dragon.com/zzz/zh/config.html",
             content="点击启用后到各模块进行设置，各账户之间的设置是独立的。",
         )
         self.content_widget.add_widget(guide_opt)
@@ -365,7 +340,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
@@ -397,7 +371,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._acc_repo()
         self._init_content_widget()
 
     def _on_game_path_clicked(self) -> None:

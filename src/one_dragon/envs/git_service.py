@@ -618,6 +618,15 @@ class GitService:
             log.error('获取当前分支失败', exc_info=True)
             return None
 
+    def get_head_commit_id(self, short: bool = False) -> str | None:
+        """获取当前 HEAD 的 commit hash"""
+        try:
+            repo = self._open_repo()
+            oid = str(repo.head.target)
+            return oid[:8] if short else oid
+        except Exception:
+            return None
+
     def is_current_branch_latest(self) -> tuple[bool, str]:
         """
         当前分支是否已经最新 与远程分支一致

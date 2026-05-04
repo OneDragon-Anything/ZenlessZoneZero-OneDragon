@@ -61,6 +61,21 @@ class PcGameWindow:
             self.init_win()
         return self._hWnd
 
+    def _reset_cached_window(self) -> None:
+        """清空缓存窗口对象与句柄，触发后续重新查找窗口。"""
+        self._win = None
+        self._hWnd = None
+
+    @staticmethod
+    def _try_get_client_rect(hwnd: int) -> tuple[bool, RECT]:
+        client_rect = RECT()
+        got_rect = ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(client_rect)) != 0
+        return got_rect, client_rect
+
+    @staticmethod
+    def _is_valid_client_rect(got_rect: bool, client_rect: RECT) -> bool:
+        return got_rect and client_rect.right > 0 and client_rect.bottom > 0
+
     @property
     def is_win_valid(self) -> bool:
         """
@@ -102,33 +117,33 @@ class PcGameWindow:
             return False
         if self.is_win_active:
             return True
+
         try:
+            win.restore()
+            win.activate()
+            return True
+        except Exception as error:
+            if getattr(error, 'args', None) and '1400' in str(error.args[0]):
+                log.warning('无效的窗口句柄，尝试重置窗口')
+                self._reset_cached_window()
+                return False
+            if isinstance(error, win32ui.error):
+                log.error('激活窗口失败', exc_info=True)
+                return False
+
             try:
+                # 直接 activate 偶发失败，最小化再恢复可提高成功率
+                win.minimize()
                 win.restore()
                 win.activate()
                 return True
-            except win32ui.error as e:
-                if e.args[0].find('1400') > 0:  # Invalid window handle
-                    log.warning("无效的窗口句柄，尝试重置窗口")
-                    self._win = None
-                else:
-                    log.error("截图失败", exc_info=True)
-                return None
-            except Exception as e:
-                if e.args[0].find('1400') > 0:  # Invalid window handle
-                    log.warning("无效的窗口句柄，尝试重置窗口")
-                    self._win = None
+            except Exception as fallback_error:
+                if getattr(fallback_error, 'args', None) and '1400' in str(fallback_error.args[0]):
+                    log.warning('无效的窗口句柄，尝试重置窗口')
+                    self._reset_cached_window()
                     return False
-                else:
-                    # 比较神奇的一个bug 直接activate有可能失败
-                    # https://github.com/asweigart/PyGetWindow/issues/16#issuecomment-1110207862
-                    win.minimize()
-                    win.restore()
-                    win.activate()
-                return True
-        except Exception:
-            log.error('切换到游戏窗口失败', exc_info=True)
-            return False
+                log.error('切换到游戏窗口失败', exc_info=True)
+                return False
 
     @property
     def win_rect(self) -> Rect | None:
@@ -137,11 +152,35 @@ class PcGameWindow:
         Win32Window 里是整个window的信息 参考源码获取里面client部分的
         :return: 游戏窗口信息
         """
+        win = self.get_win()
         hwnd = self.get_hwnd()
-        if hwnd is None:
+        if win is None or hwnd is None:
             return None
-        client_rect = RECT()
-        ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(client_rect))
+
+        got_rect, client_rect = self._try_get_client_rect(hwnd)
+
+        # 句柄失效时重置缓存并重试一次，避免永久复用坏句柄
+        if not got_rect and ctypes.windll.user32.IsWindow(hwnd) == 0:
+            log.warning('检测到失效窗口句柄，重置缓存后重试')
+            self._reset_cached_window()
+            win = self.get_win()
+            hwnd = self.get_hwnd()
+            if win is None or hwnd is None:
+                return None
+            got_rect, client_rect = self._try_get_client_rect(hwnd)
+
+        if not self._is_valid_client_rect(got_rect, client_rect) and ctypes.windll.user32.IsIconic(hwnd):
+            # 最小化窗口时客户区可能为 0
+            try:
+                win.restore()
+            except Exception:
+                log.debug('win.restore 失败，尝试 ShowWindow 兜底', exc_info=True)
+                ctypes.windll.user32.ShowWindow(hwnd, 4)  # SW_SHOWNOACTIVATE
+            got_rect, client_rect = self._try_get_client_rect(hwnd)
+
+        if not self._is_valid_client_rect(got_rect, client_rect):
+            return None
+
         left_top_pos = ctypes.wintypes.POINT(client_rect.left, client_rect.top)
         ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(left_top_pos))
         return Rect(left_top_pos.x, left_top_pos.y, left_top_pos.x + client_rect.right, left_top_pos.y + client_rect.bottom)

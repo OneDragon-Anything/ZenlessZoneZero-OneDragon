@@ -14,9 +14,9 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
-    WitheredDomainConfig,
     HollowZeroExtraExitEnum,
     HollowZeroExtraTask,
+    WitheredDomainConfig,
 )
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import (
     WitheredDomainRunRecord,
@@ -46,7 +46,6 @@ from zzz_od.hollow_zero.hollow_map.hollow_zero_map import (
     HollowZeroMapNode,
 )
 from zzz_od.operation.zzz_operation import ZOperation
-from zzz_od.telemetry.hollow_telemetry import track_hollow_level_progress
 
 
 class HollowRunner(ZOperation):
@@ -120,13 +119,6 @@ class HollowRunner(ZOperation):
 
         self._handled_events: set[str] = set()  # 当前已处理过的事件 移动后清空
 
-    def _get_telemetry(self):
-        """获取遥测管理器"""
-        if hasattr(self, 'ctx') and hasattr(self.ctx, 'telemetry'):
-            return self.ctx.telemetry
-        return None
-
-    @track_hollow_level_progress
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen(self) -> OperationRoundResult:
 
