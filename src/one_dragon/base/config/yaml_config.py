@@ -81,6 +81,7 @@ class YamlConfig(YamlOperator):
         if self._sample and os.path.exists(sample_yml_path):
             if self._copy_from_sample:
                 shutil.copyfile(sample_yml_path, yml_path)
+                return yml_path
             return sample_yml_path
 
         # 冻结环境回退到 MEIPASS/resources

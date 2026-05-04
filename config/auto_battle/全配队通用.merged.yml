@@ -1,3 +1,13 @@
+"abnormal_status_interval": 0
+"author": "遥酱"
+"auto_lock_interval": -1
+"auto_turn_interval": 2
+"check_agent_interval": 0.1
+"check_chain_interval": 0.02
+"check_dodge_interval": 0.02
+"check_quick_interval": 0.2
+"homepage": "https://github.com/kawayiYokami/ZenlessZoneZero-OneDragon"
+"introduction": "支持全角色 任意三人/单人/双人作战，通杀所有情况，有问题去主页发需求"
 "scenes":
 - "handlers":
   - "debug_name": "画面黑白无法支援"
@@ -19827,3 +19837,7 @@
   "interval": 0.02
   "priority": 9
   "triggers": []
+"target_lock_interval": 1.0
+"team_list": []
+"thanks": "火"
+"version": "3.1"

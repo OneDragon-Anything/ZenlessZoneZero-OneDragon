@@ -1,5 +1,9 @@
 # 一条龙架构
 
+> 相关文档：[初始化流程](initialization.md) | [应用插件系统](modules/application_plugin_system.md) | [操作模块](modules/operation.md) | [CV 流水线架构](modules/cv_pipeline_architecture.md)
+>
+> 注意：本文档部分内容标注了"未实现/待改造"，最新实现以代码为准。应用相关架构详见 [应用插件系统](modules/application_plugin_system.md)。
+
 ## 核心组件
 
 ### OneDragonContext

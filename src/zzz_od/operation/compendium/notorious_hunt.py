@@ -113,8 +113,7 @@ class NotoriousHunt(ZOperation):
         # 通过代理人进入则跳过重新选择副本
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         is_target_mission: bool = False  # 当前是否目标副本
 
         for ocr_result in ocr_result_map:
@@ -132,9 +131,8 @@ class NotoriousHunt(ZOperation):
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('恶名狩猎', '副本名称列表')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
 
         for ocr_result, mrl in ocr_result_map.items():
             if self._match_mission_type(self.plan.mission_type_name, ocr_result):
