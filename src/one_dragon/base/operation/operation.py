@@ -393,6 +393,8 @@ class Operation(OperationBase):
         Returns:
             OperationResult: 操作执行的最终结果。
         """
+        # 开始之前记录开始了, 以便判断是否有异常中断
+        self.before_operation_execute()
         try:
             self._init_before_execute()
         except Exception:
@@ -663,6 +665,9 @@ class Operation(OperationBase):
             str: 格式化的显示名称。
         """
         return '指令[ %s ]' % self.op_name
+
+    def before_operation_execute(self) -> None:
+        pass
 
     def after_operation_done(self, result: OperationResult):
         """处理操作完成后的处理。

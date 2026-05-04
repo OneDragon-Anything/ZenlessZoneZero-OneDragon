@@ -78,6 +78,10 @@ class Application(Operation):
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
+    def before_operation_execute(self) -> None:
+        if self.run_record is not None:
+            self.run_record.update_status(AppRunRecord.STATUS_BEFORE_RUN)
+
     def after_operation_done(self, result: OperationResult):
         """
         停止后的处理

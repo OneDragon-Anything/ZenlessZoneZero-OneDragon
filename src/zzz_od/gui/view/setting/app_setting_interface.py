@@ -15,6 +15,7 @@ class AppSettingInterface(PivotNavigatorInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
+        self.z_resource_download_interface: ZResourceDownloadInterface | None = None
         PivotNavigatorInterface.__init__(self, object_name='app_setting_interface', parent=parent,
                                          nav_text_cn='设置', nav_icon=FluentIcon.SETTING)
 
@@ -25,7 +26,8 @@ class AppSettingInterface(PivotNavigatorInterface):
         """
         self.add_sub_interface(SettingGameInterface(ctx=self.ctx))
         self.add_sub_interface(SettingOverlayInterface(ctx=self.ctx))
-        self.add_sub_interface(ZResourceDownloadInterface(ctx=self.ctx))
+        self.z_resource_download_interface = ZResourceDownloadInterface(ctx=self.ctx)
+        self.add_sub_interface(self.z_resource_download_interface)
 
         self.add_sub_interface(SettingEnvInterface(ctx=self.ctx))
         self.add_sub_interface(SettingPushInterface(ctx=self.ctx))
