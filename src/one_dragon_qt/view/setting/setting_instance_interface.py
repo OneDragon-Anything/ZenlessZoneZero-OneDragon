@@ -418,7 +418,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def _on_client_type_changed(self, index, value) -> None:
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
-        self.ctx.init_by_config()
+        # 更新控制器窗口标题以匹配新的客户端类型
+        self.ctx.on_switch_instance()
 
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(

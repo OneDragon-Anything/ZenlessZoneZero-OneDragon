@@ -102,6 +102,9 @@ class ZContext(OneDragonContext):
             if prop in self.__dict__:
                 del self.__dict__[prop]
 
+        # 更新 controller 的窗口标题（client_type 可能已在设置界面中变更）
+        self.on_switch_instance()
+
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
         if (
