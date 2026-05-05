@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -51,7 +50,7 @@ class SuibianTempleBooBox(ZOperation):
         self.max_refresh_count: int = 50  # 最大刷新次数限制
 
         self.done_bangboo_pos: list[Rect] = []  # 已经选择过的邦布位置 点击刷新后重置/购买后需要删除
-        self.current_bangboo_pos: Optional[Rect] = None  # 当前选择的邦布位置
+        self.current_bangboo_pos: Rect | None = None  # 当前选择的邦布位置
         self.current_bangboo_price: str = ''  # 当前选择的邦布的价格 购买后/点击刷新后 重置
 
     @operation_node(name='前往邦巢', is_start_node=True, node_max_retry_times=5)
@@ -232,10 +231,17 @@ class SuibianTempleBooBox(ZOperation):
     @operation_node(name='处理购买动画')
     def handle_purchase_animation(self) -> OperationRoundResult:
         """处理购买流程：点击跳过按钮，然后检测确认按钮"""
+        result = self.round_by_find_area(self.last_screenshot, '随便观-邦巢', '标题-无法聘用')
+        if result.is_success:
+            result = self.round_by_find_and_click_area(self.last_screenshot, '随便观-邦巢', '取消', success_wait=1)
+            if result.is_success:
+                log.info("派驻邦布持有数量已达上限，停止邦巢购买")
+                return self.round_success(status='持有上限')
+
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
         # 检测是否出现"获得"界面，说明跳过成功
-        if any('获得' in text for text in ocr_result_map.keys()):
+        if any('获得' in text for text in ocr_result_map):
             # 检测到"获得"界面，寻找确认按钮
             word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['确认'])
             if word == '确认' and mrl.max is not None:
@@ -243,7 +249,7 @@ class SuibianTempleBooBox(ZOperation):
                 return self.round_wait(status='确认后继续检查邦布', wait=2)
 
         # 检测是否已经返回邦巢界面（通过聘用按钮判断）
-        if any('聘用' in text for text in ocr_result_map.keys()):
+        if any('聘用' in text for text in ocr_result_map):
             return self.round_success(status='已返回邦巢界面')
 
         self.ctx.controller.click(
@@ -268,6 +274,7 @@ class SuibianTempleBooBox(ZOperation):
         return self.round_retry(status='未找到返回按钮', wait=1)
 
     @node_from(from_name='检查邦布', status='次数用尽')
+    @node_from(from_name='处理购买动画', status='持有上限')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
@@ -283,7 +290,7 @@ class SuibianTempleBooBox(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx

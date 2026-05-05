@@ -136,6 +136,38 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._ocr_param: OnnxOcrParam = ocr_param
         self._model = None
         self._loading: bool = False
+        self.overlay_debug_bus = None
+
+    @staticmethod
+    def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
+        """
+        Convert OCR detector quadrilateral points to an axis-aligned rectangle.
+
+        Some models return rotated polygons; using only point[0]/point[1]/point[3]
+        can produce shifted overlay boxes. We normalize to min/max bounds.
+        """
+        if anchor_position is None:
+            return None
+
+        try:
+            xs: list[int] = []
+            ys: list[int] = []
+            for point in anchor_position:
+                if point is None or len(point) < 2:
+                    continue
+                xs.append(int(round(float(point[0]))))
+                ys.append(int(round(float(point[1]))))
+
+            if len(xs) == 0 or len(ys) == 0:
+                return None
+
+            x1 = min(xs)
+            y1 = min(ys)
+            x2 = max(xs)
+            y2 = max(ys)
+            return x1, y1, max(1, x2 - x1), max(1, y2 - y1)
+        except Exception:
+            return None
 
     def init_model(
             self,
@@ -223,7 +255,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             tmp = ocr_utils.merge_ocr_result_to_single_line(ocr_map, join_space=False)
             return tmp
 
-    def run_ocr(self, image: MatLike, threshold: float = 0,
+    def run_ocr(self, image: MatLike, threshold: float | None = 0,
                 merge_line_distance: float = -1) -> dict[str, MatchResultList]:
         """
         对图片进行OCR 返回所有匹配结果
@@ -257,18 +289,29 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             anchor_score = anchor[1][1]
             if anchor_score < threshold:
                 continue
+            rect = self._rect_from_anchor(anchor_position)
+            if rect is None:
+                continue
             if anchor_text not in result_map:
                 result_map[anchor_text] = MatchResultList(only_best=False)
-            result_map[anchor_text].append(MatchResult(anchor_score,
-                                                       anchor_position[0][0],
-                                                       anchor_position[0][1],
-                                                       anchor_position[1][0] - anchor_position[0][0],
-                                                       anchor_position[3][1] - anchor_position[0][1],
-                                                       data=anchor_text))
+            result_map[anchor_text].append(
+                MatchResult(
+                    anchor_score,
+                    rect[0],
+                    rect[1],
+                    rect[2],
+                    rect[3],
+                    data=anchor_text,
+                )
+            )
 
         if merge_line_distance != -1:
             result_map = ocr_utils.merge_ocr_result_to_multiple_line(result_map, join_space=True,
                                                                      merge_line_distance=merge_line_distance)
+
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        self._emit_overlay_vision(result_map)
+        self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
@@ -309,7 +352,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             same_word: bool = False,
             ignore_case: bool = True,
             lcs_percent: float = -1,
-            merge_line_distance: float = -1
+            merge_line_distance: float = -1,
     ) -> dict[str, MatchResultList]:
         """
         在图片中查找关键词 返回所有词对应的位置
@@ -345,8 +388,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
         return {key: all_match_result[key] for key in match_key if key in all_match_result}
 
-    def ocr(self, image: MatLike, threshold: float = 0,
-            merge_line_distance: float = -1) -> list[OcrMatchResult]:
+    def ocr(
+            self,
+            image: MatLike,
+            threshold: float = 0,
+            merge_line_distance: float = -1,
+    ) -> list[OcrMatchResult]:
         """
         对图片进行OCR 返回所有识别结果
 
@@ -374,23 +421,132 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             anchor_score = anchor[1][1]
             if anchor_score < threshold:
                 continue
+            rect = self._rect_from_anchor(anchor_position)
+            if rect is None:
+                continue
 
             result = OcrMatchResult(
                 anchor_score,
-                anchor_position[0][0],
-                anchor_position[0][1],
-                anchor_position[1][0] - anchor_position[0][0],
-                anchor_position[3][1] - anchor_position[0][1],
+                rect[0],
+                rect[1],
+                rect[2],
+                rect[3],
                 data=anchor_text)
             ocr_result_list.append(result)
 
         if merge_line_distance != -1:
             pass  # TODO
 
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
+        self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
+
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
         return ocr_result_list
+
+    def _emit_overlay_vision(
+        self,
+        result_map: dict[str, MatchResultList],
+    ) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or not result_map:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        ox, oy = bus.crop_offset
+        pushed = 0
+        max_items = 60
+        for text, match_list in result_map.items():
+            if match_list is None:
+                continue
+            for match in match_list.arr:
+                if pushed >= max_items:
+                    return
+                label = str(text or "").strip()
+                if len(label) > 32:
+                    label = label[:29] + "..."
+                bus.add_vision(
+                    VisionDrawItem(
+                        source="ocr",
+                        label=label,
+                        x1=match.x + ox,
+                        y1=match.y + oy,
+                        x2=match.x + match.w + ox,
+                        y2=match.y + match.h + oy,
+                        score=match.confidence,
+                        color="#ff6ac1",
+                        ttl_seconds=1.4,
+                    )
+                )
+                pushed += 1
+
+    def _emit_overlay_vision_from_ocr_results(
+        self,
+        ocr_results: list[OcrMatchResult],
+    ) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or not ocr_results:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        offset_x, offset_y = bus.crop_offset
+        for i, result in enumerate(ocr_results[:60]):
+            label = str(result.data or "").strip()
+            if len(label) > 32:
+                label = label[:29] + "..."
+            bus.add_vision(
+                VisionDrawItem(
+                    source="ocr",
+                    label=label,
+                    x1=result.x + offset_x,
+                    y1=result.y + offset_y,
+                    x2=result.x + result.w + offset_x,
+                    y2=result.y + result.h + offset_y,
+                    score=result.confidence,
+                    color="#ff6ac1",
+                    ttl_seconds=1.4,
+                )
+            )
+
+    def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import (
+                PerfMetricSample,
+                TimelineItem,
+            )
+        except Exception:
+            return
+        bus.add_performance(
+            PerfMetricSample(
+                metric="ocr_ms",
+                value=float(elapsed_ms),
+                unit="ms",
+                ttl_seconds=20.0,
+                meta={"text_items": item_count},
+            )
+        )
+        bus.add_timeline(
+            TimelineItem(
+                category="vision",
+                title="ocr",
+                detail=f"{item_count} items / {elapsed_ms:.1f}ms",
+                level="DEBUG",
+                ttl_seconds=15.0,
+            )
+        )
 
 
 def __debug():

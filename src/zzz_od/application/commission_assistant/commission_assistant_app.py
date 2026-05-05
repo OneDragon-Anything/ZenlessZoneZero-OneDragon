@@ -401,8 +401,7 @@ class CommissionAssistantApp(ZApplication):
     def on_finishing(self) -> OperationRoundResult:
         # 判断当前指令
         area = self.ctx.screen_loader.get_area('钓鱼', '指令文本区域')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         ocr_result_list = list(ocr_result_map.keys())
 
         target_command_list = [

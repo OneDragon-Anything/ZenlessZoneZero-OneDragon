@@ -145,10 +145,9 @@ class CombatSimulation(ZOperation):
 
         else:
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
-            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
             target_point: Point | None = None
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
             ocr_word_list = []
             mrl_list = []
             for ocr_result, mrl in ocr_result_map.items():

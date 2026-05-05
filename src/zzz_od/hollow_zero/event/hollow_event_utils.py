@@ -1,6 +1,6 @@
 import difflib
 import time
-from typing import Optional, List
+from typing import List, Optional
 
 import cv2
 from cv2.typing import MatLike
@@ -16,7 +16,10 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event.event_ocr_result_handler import EventOcrResultHandler
-from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent, HallowZeroEvent
+from zzz_od.hollow_zero.game_data.hollow_zero_event import (
+    HallowZeroEvent,
+    HollowZeroSpecialEvent,
+)
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -257,8 +260,7 @@ def check_bottom_choose(ctx: ZContext, screen: MatLike) -> str | None:
     - 邦布选择
     """
     area = ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
-    part = cv2_utils.crop_image_only(screen, area.rect)
-    ocr_result_map = ctx.ocr.run_ocr(part)
+    ocr_result_map = ctx.ocr.crop_and_run_ocr(screen, area.rect)
 
     event_list = [
         HollowZeroSpecialEvent.RESONIUM_CHOOSE.value,
@@ -285,8 +287,7 @@ def check_bottom_remove(ctx: ZContext, screen: MatLike) -> str | None:
     - 侵蚀症状
     """
     area = ctx.screen_loader.get_area('零号空洞-事件', '底部-清除列表')
-    part = cv2_utils.crop_image_only(screen, area.rect)
-    ocr_result_map = ctx.ocr.run_ocr(part)
+    ocr_result_map = ctx.ocr.crop_and_run_ocr(screen, area.rect)
 
     event = HollowZeroSpecialEvent.CORRUPTION_REMOVE.value
     for ocr_result in ocr_result_map.keys():

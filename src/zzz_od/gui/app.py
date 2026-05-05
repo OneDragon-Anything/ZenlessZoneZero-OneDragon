@@ -8,6 +8,7 @@ try:
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
     from one_dragon.utils.i18_utils import gt
+    from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
     from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
@@ -82,6 +83,10 @@ try:
             self._launch_timer.setSingleShot(True)
             self._launch_timer.timeout.connect(self._after_app_launch)
             self._launch_timer.start(2000)  # 2秒后发送，确保UI完全渲染
+
+            self.overlay_manager = OverlayManager.create(self.ctx, parent=self)
+            if self.overlay_manager is not None:
+                self.overlay_manager.start()
 
         # 继承初始化函数
         def init_window(self):
@@ -222,6 +227,21 @@ try:
             """窗口关闭事件"""
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
+
+            if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
+                self.overlay_manager.shutdown()
+
+            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+                import time
+                session_duration = time.time() - self._app_start_time
+
+                # 跟踪应用关闭
+                self.ctx.telemetry.track_ui_interaction('main_window', 'close', {
+                    'session_duration': session_duration
+                })
+
+                # 强制刷新遥测队列，确保关闭事件被发送
+                self.ctx.telemetry.flush()
 
             # 调用父类的关闭事件
             super().closeEvent(event)
