@@ -21,7 +21,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class EnterGame(ZOperation):
     def __init__(self, ctx: ZContext, switch: bool = False):
-        ZOperation.__init__(self, ctx, op_name=gt("进入游戏"))
+        ZOperation.__init__(self, ctx, op_name=gt("进入游戏"), need_check_game_win=False)
 
         self.force_login: bool = (
             self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
