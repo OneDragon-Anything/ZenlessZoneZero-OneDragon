@@ -349,8 +349,8 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget.add_widget(self.restore_charge_opt)
 
         # 自动识别实战模拟室双倍活动开关
-        self.do_double_reward_event_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='实战模拟室双倍活动',
-                                                            content='有活动时自动添加100体力代理人经验任务')
+        self.do_double_reward_event_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='实战模拟室-双倍活动',
+                                                            content='有活动时自动添加对应的实战模拟室任务')
         self.do_double_reward_event_opt.value_changed.connect(self.on_do_double_reward_event_opt_changed)
         self.content_widget.add_widget(self.do_double_reward_event_opt)
         self.double_reward_event_config_card = ChargePlanCard(self.ctx, idx=-1, plan=ChargePlanItem(), config=None,
