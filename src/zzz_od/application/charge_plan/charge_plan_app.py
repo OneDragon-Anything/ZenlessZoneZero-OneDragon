@@ -105,22 +105,15 @@ class ChargePlanApp(ZApplication):
         if times_left == 0 or digit % 10 != 5:
             return self.round_success('无双倍活动')
         # 识别出错
-        if times_left > 10:
+        if times_left > 5:
             return self.round_retry('双倍活动识别出错', wait=1)
 
         temp_plan = self.config.double_reward_event_config
+        temp_plan.is_temp_plan = True
 
-        # todo 这样写可以正常使用
-        #  但是会使每次运行之后多一条已完成的体力计划
-        #  不过倒是没什么影响请了就可以
+        # times_left = 1
         temp_plan.card_num = str(times_left)
         self.config.plan_list.insert(0, temp_plan)
-
-        # 测试用
-        # temp_plan.card_num = '1'  # todo test, 每次打一个这样一天能测5次
-        #
-        # # 执行双倍体力计划, todo 不能把ctx传进去否则会覆盖自己的体力计划
-        # run_temp_plan(self.ctx, temp_plan)
 
         return self.round_success()
 

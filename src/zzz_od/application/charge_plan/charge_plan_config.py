@@ -39,6 +39,7 @@ class ChargePlanItem:
             predefined_team_idx: int = -1,
             notorious_hunt_buff_num: int = 1,
             plan_id: str | None = None,
+            is_temp_plan: bool = False,
     ):
         self.tab_name: str = tab_name
         self.category_name: str = category_name
@@ -49,6 +50,7 @@ class ChargePlanItem:
         self.run_times: int = run_times
         self.plan_times: int = plan_times
         self.card_num: str = card_num  # 实战模拟室的卡片数量
+        self.is_temp_plan: bool = is_temp_plan  # 是否为临时计划 (不计入历史记录)
 
         self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
         self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
@@ -122,6 +124,8 @@ class ChargePlanConfig(ApplicationConfig):
         new_history_list = []
 
         for plan_item in self.plan_list:
+            if plan_item.is_temp_plan:
+                continue
             plan_data = plan_item.to_dict()
 
             new_history_list.append(plan_data.copy())
