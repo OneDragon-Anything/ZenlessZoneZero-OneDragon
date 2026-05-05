@@ -55,10 +55,12 @@ uv run --env-file .env pytest zzz-od-test/
 
 可以通过创建硬链接到各个编程工具所需位置
 
-- Qwen Coder - `New-Item -ItemType HardLink -Path "QWEN.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Lingma Rules - `New-Item -ItemType HardLink -Path ".lingma/rules/project_rule.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Gemini CLI - `New-Item -ItemType HardLink -Path "GEMINI.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Claude Code - `New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "docs/develop/spec/agent_guidelines.md"`
+> 以下命令请在仓库根目录执行。
+
+- Qwen Coder - `New-Item -ItemType HardLink -Path "QWEN.md" -Target "AGENTS.md"`
+- Lingma Rules - `New-Item -ItemType HardLink -Path ".lingma/rules/project_rule.md" -Target "AGENTS.md"`
+- Gemini CLI - `New-Item -ItemType HardLink -Path "GEMINI.md" -Target "AGENTS.md"`
+- Claude Code - `New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"`
 
 
 ### 推荐MCP
@@ -93,7 +95,7 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 
 ### 3.3.集成启动器（RuntimeLauncher）
 
-> 详细设计文档见 [runtime-launcher.md](one_dragon/runtime-launcher.md)
+> 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)
 
 #### 架构概述
 

@@ -120,15 +120,15 @@ def find_area_in_screen_binary(
     elif area.is_template_area:
         # 裁剪区域
         rect = area.rect
-        part = cv2_utils.crop_image_only(binary_screen, rect)
 
         # 使用二值化模板匹配
-        mrl = ctx.tm.match_template_binary(
-            part,
+        mrl = ctx.tm.crop_and_match_template_binary(
+            binary_screen,
+            rect,
             area.template_sub_dir,
             area.template_id,
             threshold=area.template_match_threshold,
-            binary_threshold=binary_threshold
+            binary_threshold=binary_threshold,
         )
         find = mrl.max is not None
 
@@ -171,10 +171,9 @@ def find_area_in_screen(
                 break
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
@@ -202,16 +201,14 @@ def find_template_coord_in_area(
     if area is None or not area.is_template_area:
         return None
 
-    # 裁剪出指定区域
-    part = cv2_utils.crop_image_only(screen, area.rect)
-
     # 在裁剪区域内进行模板匹配
-    mrl = ctx.tm.match_template(
-        part,
+    mrl = ctx.tm.crop_and_match_template(
+        screen,
+        area.rect,
         area.template_sub_dir,
         area.template_id,
         threshold=area.template_match_threshold,
-        only_best=True
+        only_best=True,
     )
 
     if mrl.max is None:
@@ -272,10 +269,9 @@ def find_and_click_area(
         return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
 

@@ -1,7 +1,9 @@
+import time
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.application.world_patrol.operation.world_patrol_run_route import (
@@ -122,30 +124,56 @@ class WorldPatrolApp(ZApplication):
             self.route_idx += 1
             return self.round_wait(status=f'跳过已完成路线 {route.full_id}')
 
-        op = WorldPatrolRunRoute(self.ctx, route)
-        result = op.execute()
-
         def _is_stuck_over_limit_status(status: object) -> bool:
             return isinstance(status, str) and '重启当前路线' in status
 
         route_finished = False
         fail_status = None
+        retry_times = self.config.route_retry_times
+        attempt_idx = 0
 
-        if result.success:
-            route_finished = True
-        elif _is_stuck_over_limit_status(result.status):
-            # 二次尝试（从头）
-            retry_op = WorldPatrolRunRoute(self.ctx, route, is_restarted=True)
-            retry_result = retry_op.execute()
-            if retry_result.success:
+        while True:
+            op = WorldPatrolRunRoute(self.ctx, route, is_restarted=attempt_idx > 0)
+            result = op.execute()
+
+            if result.success:
                 route_finished = True
-            elif _is_stuck_over_limit_status(retry_result.status):
+                break
+
+            if result.status == WorldPatrolRunRoute.STATUS_UI_DISAPPEARED:
+                action = self.config.ui_disappear_action
+                if action == WorldPatrolConfig.UI_DISAPPEAR_SILENT_FAIL:
+                    self._stop_route_actions()
+                    return self.round_fail(status=f'{WorldPatrolRunRoute.STATUS_UI_DISAPPEARED} {route.full_id}')
+
+                restart_result = self._restart_game_for_ui_disappeared()
+                if restart_result.is_fail:
+                    return restart_result
+
+                if action == WorldPatrolConfig.UI_DISAPPEAR_RESTART_RETRY and attempt_idx < retry_times:
+                    attempt_idx += 1
+                    continue
+
+                self.route_idx += 1
+                if action == WorldPatrolConfig.UI_DISAPPEAR_RESTART_RETRY:
+                    return self.round_wait(status=f'界面消失重试耗尽，已重开游戏并跳过路线 {route.full_id}')
+                return self.round_wait(status=f'界面消失已重开游戏并跳过路线 {route.full_id}')
+
+            if _is_stuck_over_limit_status(result.status):
+                if attempt_idx < retry_times:
+                    attempt_idx += 1
+                    continue
+
                 route_finished = False
-                fail_status = '重启后再次卡住'
-            else:
-                fail_status = retry_result.status
-        else:
+                fail_status = (
+                    f'重试后仍卡住: {result.status}'
+                    if attempt_idx > 0
+                    else result.status
+                )
+                break
+
             fail_status = result.status
+            break
 
         if route_finished:
             self.run_record.add_record(route.full_id)
@@ -154,6 +182,24 @@ class WorldPatrolApp(ZApplication):
         else:
             self.route_idx += 1
             return self.round_wait(status=f'路线失败 {fail_status} {route.full_id}')
+
+    def _stop_route_actions(self) -> None:
+        self.ctx.auto_battle_context.stop_auto_battle()
+        self.ctx.controller.stop_moving_forward()
+
+    def _restart_game_for_ui_disappeared(self) -> OperationRoundResult:
+        if self.op_to_enter_game is None:
+            return self.round_fail(status='未提供打开游戏方式')
+
+        self._stop_route_actions()
+        self.ctx.controller.close_game()
+        time.sleep(5)
+
+        enter_result = self.op_to_enter_game.execute()
+        if not enter_result.success:
+            return self.round_fail(status=f'重开游戏失败 {enter_result.status}')
+
+        return self.round_success(status='重开游戏成功')
 
 
 def __debug():

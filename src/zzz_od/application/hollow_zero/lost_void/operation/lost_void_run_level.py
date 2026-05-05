@@ -385,8 +385,7 @@ class LostVoidRunLevel(ZOperation):
             time.sleep(0.5)
             self.screenshot()  # 重新截图
             area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
-            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
             current_interact_target = None
             for ocr_result in ocr_result_map.keys():
                 target = match_interact_target(self.ctx, ocr_result)
