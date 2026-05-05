@@ -30,7 +30,7 @@ jobs:
           }
 
           function extractSectionValue(body, label) {
-            const sectionRegex = new RegExp(`^### ${escapeRegExp(label)}\\s*\\n+([\\s\\S]*?)(?=\\n### |$)`, 'm');
+            const sectionRegex = new RegExp(`(?:^|\\r?\\n)### ${escapeRegExp(label)}\\s*\\r?\\n+([\\s\\S]*?)(?=\\r?\\n### |$)`);
             const match = body.match(sectionRegex);
             if (!match) {
               return '';
