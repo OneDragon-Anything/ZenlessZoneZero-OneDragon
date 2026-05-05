@@ -84,7 +84,7 @@ class ChargePlanItem:
             return 60
         return 0  # 未知类型，在副本内检查
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | int]:
         return {
             'tab_name': self.tab_name,
             'category_name': self.category_name,

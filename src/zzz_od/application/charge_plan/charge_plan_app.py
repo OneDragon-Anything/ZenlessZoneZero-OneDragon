@@ -67,7 +67,7 @@ class ChargePlanApp(ZApplication):
 
     @node_from(from_name='开始体力计划', status='查看双倍活动')
     @operation_node(name='查看双倍活动')
-    def check_double_reward_event(self):
+    def check_double_reward_event(self) -> OperationRoundResult:
         """
         实战模拟室的每日双倍总数都是5次, 刷盘子的2次暂不考虑. 理由:
         1. 如果没抽角色, 体力没事干的时候就去屯金盘收益最高, 此时体力计划能顺便覆盖盘子双倍
@@ -77,7 +77,7 @@ class ChargePlanApp(ZApplication):
         """
 
         # 跳转双倍活动界面
-        result1 = self.round_by_goto_screen(screen_name=f'快捷手册-训练')
+        result1 = self.round_by_goto_screen(screen_name='快捷手册-训练')
         if not result1.is_success:
             return result1
 
