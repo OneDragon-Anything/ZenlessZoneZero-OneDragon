@@ -32,6 +32,7 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
+from zzz_od.operation.input_utils import wake_mouse_at
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
@@ -277,6 +278,9 @@ class CoffeeApp(ZApplication):
             return self.round_success(result.status)
 
         # 这个点击很怪 需要多点几次
+        # 点击前甩动一下激活鼠标
+        skip_area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
+        wake_mouse_at(self.ctx.controller, skip_area.center)
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
