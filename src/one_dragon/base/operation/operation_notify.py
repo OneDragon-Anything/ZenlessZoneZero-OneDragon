@@ -205,7 +205,8 @@ def send_node_notify(
     发送节点级通知，并收集到通知池中。
 
     始终收集消息到通知池中（用于合并通知和最后一张图片）。
-    ALL 等级时逐条立即发送；MERGE 等级时仅收集，但节点失败时也立即发送。
+    ALL 等级时逐条立即发送；MERGE 等级时仅收集。
+    显式开启“节点失败立即通知”且当前节点失败时，额外推送单条通知。
 
     Args:
         operation: Operation 实例
@@ -215,13 +216,12 @@ def send_node_notify(
     """
     pool = operation.ctx.run_context.notify_pool
     notify_level = _get_notify_level(operation)
-    is_fail = round_result.is_fail
+    current_fail = round_result.is_fail
     notify_on_error = operation.ctx.notify_config.notify_on_error
 
-    # 节点通知等级 OFF 且 (没有勾选 '节点失败立即通知' 或者 节点没失败)
-    if notify_level < NotifyLevel.APP and not (notify_on_error and is_fail):
-        return
-    if current_node is None:
+    should_collect_notify = notify_level >= NotifyLevel.APP
+
+    if not should_collect_notify or current_node is None:
         return
 
     # 初始化通知列表
@@ -229,7 +229,7 @@ def send_node_notify(
     next_notify_list: list[NodeNotifyDesc] = []
 
     # 检查当前节点通知列表
-    if current_node is not None and current_node.op_method is not None:
+    if current_node.op_method is not None:
         current_notify_list = getattr(current_node.op_method, 'operation_notify_annotation', [])
 
     # 检查下一节点通知列表
@@ -243,9 +243,9 @@ def send_node_notify(
     for desc in current_notify_list:
         if desc.when == NotifyTiming.PREVIOUS_DONE:
             continue
-        if desc.when == NotifyTiming.CURRENT_SUCCESS and is_fail:
+        if desc.when == NotifyTiming.CURRENT_SUCCESS and current_fail:
             continue
-        if desc.when == NotifyTiming.CURRENT_FAIL and not is_fail:
+        if desc.when == NotifyTiming.CURRENT_FAIL and not current_fail:
             continue
         all_notifications.append(desc)
 
@@ -279,7 +279,7 @@ def send_node_notify(
     app_name = gt(app_name)
     node_name = gt(current_node.cn)
 
-    result = gt('失败') if is_fail else gt('成功')
+    result = gt('失败') if current_fail else gt('成功')
 
     message = (f"{gt('任务')}「{app_name}」"
                f"{gt('节点')}「{node_name}」\n"
@@ -297,8 +297,11 @@ def send_node_notify(
     # 收集到通知池
     pool.add(content=message, image=image)
 
-    # ALL 等级时逐条发送；(勾选 '节点失败立即通知' || MERGE 等级) 时且但失败时也立即发送
-    if notify_level == NotifyLevel.ALL or (is_fail and (notify_on_error or (notify_level == NotifyLevel.MERGE))):
+    should_send_all_nodes = notify_level == NotifyLevel.ALL
+    should_send_fail_notify = current_fail and notify_on_error
+    should_send_now = should_send_all_nodes or should_send_fail_notify
+
+    if should_send_now:
         operation.ctx.push_service.push_async(
             title=operation.ctx.notify_config.title,
             content=message,

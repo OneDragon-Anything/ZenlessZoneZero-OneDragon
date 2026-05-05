@@ -11,7 +11,9 @@ from qfluentwidgets import (
 from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
 
 
 class NotifyDialog(MessageBoxBase):
