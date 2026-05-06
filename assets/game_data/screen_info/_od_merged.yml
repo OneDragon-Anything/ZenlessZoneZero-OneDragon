@@ -2741,7 +2741,6 @@
     lcs_percent: null
     template_sub_dir: enter_game
     template_id: bilibili_switch_account
-    # 1080p的图比2k的图大, 这里把1080p的图缩小一点同事降低阈值以达到同时识别1080p和2k分辨率图像
     template_match_threshold: 0.5
     color_range: null
     goto_list: []
@@ -6354,7 +6353,7 @@
     - 1696
     - 319
     - 1858
-    - 400
+    - 415
     text: ''
     lcs_percent: 0.1
     template_sub_dir: normal_world
