@@ -1,3 +1,14 @@
+"auto_lock_interval": 5
+"check_agent_interval":
+- 0.4
+- 0.6
+"check_chain_interval":
+- 0.9
+- 1.1
+"check_dodge_interval": 0.02
+"check_quick_interval":
+- 0.9
+- 1.1
 "scenes":
 - "handlers":
   - "states": "![自定义-动作不打断, 0, 999]{1, 1} & [闪避识别-黄光, 0, 0.5]"

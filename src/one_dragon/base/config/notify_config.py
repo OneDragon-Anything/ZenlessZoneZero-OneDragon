@@ -39,6 +39,14 @@ class NotifyConfig(YamlConfig):
     def enable_before_notify(self, new_value: bool) -> None:
         self.update('enable_before_notify', new_value)
 
+    @property
+    def notify_on_error(self) -> bool:
+        return self.get('notify_on_error', True)
+
+    @notify_on_error.setter
+    def notify_on_error(self, new_value: bool) -> None:
+        self.update('notify_on_error', new_value)
+
     def get_app_notify_level(self, app_id: str) -> int:
         """
         获取指定 app_id 的通知等级

@@ -22,7 +22,7 @@ class PreFlightCheckDialog(MessageBoxBase):
         self.viewLayout.addSpacing(4)
 
         for issue in issues:
-            item = BodyLabel(f' ⚠ {issue}')
+            item = BodyLabel(f'{issue}')
             item.setWordWrap(True)
             self.viewLayout.addWidget(item)
 
