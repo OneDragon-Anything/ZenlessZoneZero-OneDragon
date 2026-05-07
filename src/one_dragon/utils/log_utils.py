@@ -7,7 +7,7 @@ from one_dragon.utils import os_utils
 
 
 class SafeTimedRotatingFileHandler(TimedRotatingFileHandler):
-    def doRollover(self):
+    def doRollover(self) -> None:
         try:
             super().doRollover()
         except PermissionError:
