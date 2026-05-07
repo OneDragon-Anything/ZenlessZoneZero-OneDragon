@@ -1,8 +1,24 @@
 import logging
 import os
+import time
 from logging.handlers import TimedRotatingFileHandler
 
 from one_dragon.utils import os_utils
+
+
+class SafeTimedRotatingFileHandler(TimedRotatingFileHandler):
+    def doRollover(self):
+        try:
+            super().doRollover()
+        except PermissionError:
+            if self.stream is None:
+                self.stream = self._open()
+
+            current_time = int(time.time())
+            rollover_at = self.computeRollover(current_time)
+            while rollover_at <= current_time:
+                rollover_at += self.interval
+            self.rolloverAt = rollover_at
 
 
 def get_logger():
@@ -13,7 +29,7 @@ def get_logger():
     formatter = logging.Formatter('[%(asctime)s.%(msecs)03d] [%(filename)s %(lineno)d] [%(levelname)s]: %(message)s', '%H:%M:%S')
 
     log_file_path = os.path.join(os_utils.get_path_under_work_dir('.log'), 'log.txt')
-    archive_handler = TimedRotatingFileHandler(log_file_path, when='midnight', interval=1, backupCount=3, encoding='utf-8')
+    archive_handler = SafeTimedRotatingFileHandler(log_file_path, when='midnight', interval=1, backupCount=3, encoding='utf-8')
     archive_handler.setLevel(logging.INFO)
     archive_handler.setFormatter(formatter)
     logger.addHandler(archive_handler)
