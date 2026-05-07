@@ -18,10 +18,7 @@ from qfluentwidgets import (
     ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import (
-    ClientTypeEnum,
-    GameRegionEnum,
-)
+from one_dragon.base.config.game_account_config import ClientTypeEnum, GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -48,6 +45,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 
 class InstanceSettingCard(MultiPushSettingCard):
+
     changed = Signal(OneDragonInstance)
     active = Signal(int)
     login = Signal(int)
@@ -62,12 +60,15 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
+        run_idx = 0
         target_idx = 0
-        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
+        for opt_enum in RunInOneDragonApp:
             opt = opt_enum.value
             self.run_opt.addItem(text=opt.label, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
+
+            run_idx += 1
         self.run_opt.setCurrentIndex(target_idx)
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
@@ -88,7 +89,7 @@ class InstanceSettingCard(MultiPushSettingCard):
                 self.login_btn,
                 self.delete_btn,
             ],
-            title=f"{self.instance.idx:02d}",
+            title="%02d" % self.instance.idx,
             icon=FluentIcon.PEOPLE,
         )
         self.update_title()
@@ -97,7 +98,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         """
         更新显示文本
         """
-        title = f"{self.instance.idx:02d}"
+        title = "%02d" % self.instance.idx
         if self.instance.active:
             title += " " + gt("当前")
         self.setTitle(title)
@@ -131,6 +132,7 @@ class InstanceSettingCard(MultiPushSettingCard):
 
 
 class SettingInstanceInterface(VerticalScrollInterface):
+
     def __init__(
         self, ctx: OneDragonContext, show_login_btn: bool = False, parent=None
     ):
@@ -159,7 +161,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def _get_ma_pwd(self):
         _encoded = "QlYxcTJKUXpyRW1B"
-        return base64.b64decode(_encoded).decode("utf-8")
+        return base64.b64decode(_encoded).decode('utf-8')
+
 
     def _is_ma_protection_active(self) -> bool:
         try:
@@ -170,18 +173,17 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return True
 
     def _verify_ma_password(self) -> bool:
+
         # Base64 encoded strings
-        _title = base64.b64decode("5a+G56CB6aqM6K+B").decode("utf-8")
-        _content = base64.b64decode(
-            "5re75Yqg6LaF6L+HNeS4qui0puaIt+mcgOimgeWvhueggemqjOivgQ=="
-        ).decode("utf-8")
+        _title = base64.b64decode("5a+G56CB6aqM6K+B").decode('utf-8')
+        _content = base64.b64decode("5re75Yqg6LaF6L+HNeS4qui0puaIt+mcgOimgeWvhueggemqjOivgQ==").decode('utf-8')
         _mb = MessageBox(gt(_title), gt(_content), self)
         _mb.yesButton.setText(gt("确定"))
         _mb.cancelButton.setText(gt("取消"))
 
         _le = LineEdit()
         # Base64 encoded placeholder text
-        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode("utf-8")
+        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8')
         _le.setPlaceholderText(gt(_placeholder))
         _le.setEchoMode(LineEdit.EchoMode.Password)
         _mb.textLayout.addWidget(_le)
@@ -196,19 +198,17 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return True
             else:
                 # Base64 encoded error messages
-                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode("utf-8")
-                _error_content = base64.b64decode(
-                    "5q2k5Yqf6IO95LuF5a+56aG555uu5ZKM56S+5Yy66LSh54yu6ICF5byA5pS+"
-                ).decode("utf-8")
-                _law_text = base64.b64decode("5pmu5rOV").decode("utf-8")
+                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8')
+                _error_content = base64.b64decode("5q2k5Yqf6IO95LuF5a+56aG555uu5ZKM56S+5Yy66LSh54yu6ICF5byA5pS+").decode('utf-8')
+                _law_text = base64.b64decode("5pmu5rOV").decode('utf-8')
                 _d = Dialog(gt(_error_title), gt(_error_content), self)
                 _d.yesButton.setText(gt(_law_text))
                 _d.cancelButton.setText(gt("取消"))
                 # Base64 encoded URL
-                _url = base64.b64decode(
-                    "aHR0cHM6Ly93d3cuYmlsaWJpbGkuY29tL3ZpZGVvL0JWMXEySlF6ckVtQQ=="
-                ).decode("utf-8")
-                _d.yesButton.clicked.connect(lambda: webbrowser.open(_url))
+                _url = base64.b64decode("aHR0cHM6Ly93d3cuYmlsaWJpbGkuY29tL3ZpZGVvL0JWMXEySlF6ckVtQQ==").decode('utf-8')
+                _d.yesButton.clicked.connect(
+                    lambda: webbrowser.open(_url)
+                )
                 _d.exec()
                 return False
         return False
@@ -247,10 +247,10 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
         self.client_type_opt.init_with_adapter(
-            self.ctx.game_account_config.get_prop_adapter("client_type")
+            self.ctx.game_account_config.get_prop_adapter('client_type')
         )
         self.prefer_bangbang_points_opt.init_with_adapter(
-            self.ctx.game_account_config.get_prop_adapter("prefer_bangbang_points")
+            self.ctx.game_account_config.get_prop_adapter('prefer_bangbang_points')
         )
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(
@@ -297,15 +297,15 @@ class SettingInstanceInterface(VerticalScrollInterface):
         instance_settings_group = SettingCardGroup(gt("当前账户设置"))
 
         self.client_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title="游戏客户端", options_enum=ClientTypeEnum
+            icon=FluentIcon.GAME, title='游戏客户端', options_enum=ClientTypeEnum
         )
         self.client_type_opt.value_changed.connect(self._on_client_type_changed)
         instance_settings_group.addSettingCard(self.client_type_opt)
 
         self.prefer_bangbang_points_opt = SwitchSettingCard(
             icon=FluentIcon.SPEED_HIGH,
-            title="邦邦点快速队列",
-            content="云游戏排队时优先使用邦邦点快速队列",
+            title='邦邦点快速队列',
+            content='云游戏排队时优先使用邦邦点快速队列',
         )
         instance_settings_group.addSettingCard(self.prefer_bangbang_points_opt)
 
@@ -324,14 +324,10 @@ class SettingInstanceInterface(VerticalScrollInterface):
             icon=FluentIcon.FIT_PAGE,
             title="自定义窗口标题",
             extra_btn=self.custom_win_title_input,
-            password_hash=base64.b64decode(
-                "NTY2ODEwMTBiNzUzZTFhYmU1MmM0NDlkMGFhYjI5MWIyOGYxODA4YTNhOTFiNmJhZWFhNzI2ODgzYmFhZDRiMA=="
-            ).decode("utf-8"),
+            password_hash=base64.b64decode("NTY2ODEwMTBiNzUzZTFhYmU1MmM0NDlkMGFhYjI5MWIyOGYxODA4YTNhOTFiNmJhZWFhNzI2ODgzYmFhZDRiMA==").decode('utf-8'),
         )
         self.custom_win_title_opt.value_changed.connect(self._update_custom_win_title)
-        self.custom_win_title_input.editingFinished.connect(
-            self._update_custom_win_title
-        )
+        self.custom_win_title_input.editingFinished.connect(self._update_custom_win_title)
         instance_settings_group.addSettingCard(self.custom_win_title_opt)
 
         self.game_region_opt = ComboBoxSettingCard(
@@ -355,10 +351,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
-        self.help_bilibili_opt = HelpCard(
-            title="B服使用提示",
-            content="B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。",
-        )
+        self.help_bilibili_opt = HelpCard(title='B服使用提示',
+                                          content='B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。')
         instance_settings_group.addSettingCard(self.help_bilibili_opt)
 
         self.bilibili_account_name = TextSettingCard(

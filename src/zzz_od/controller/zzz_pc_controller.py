@@ -14,23 +14,22 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
 class ZPcController(PcControllerBase):
+
     def __init__(
-        self,
-        game_config: GameConfig,
-        win_title: str,
-        screenshot_method: str,
-        standard_width: int = 1920,
-        standard_height: int = 1080,
-    ):
-        PcControllerBase.__init__(
             self,
-            screenshot_method=screenshot_method,
-            standard_width=standard_width,
-            standard_height=standard_height,
-        )
+            game_config: GameConfig,
+            win_title: str,
+            screenshot_method: str,
+            standard_width: int = 1920,
+            standard_height: int = 1080
+    ):
+        PcControllerBase.__init__(self,
+                                  screenshot_method=screenshot_method,
+                                  standard_width=standard_width,
+                                  standard_height=standard_height)
         self.set_window_title(win_title)
         self.game_config: GameConfig = game_config
-        self.action_keys = self.game_config.get_action_keys("keyboard")
+        self.action_keys = self.game_config.get_action_keys('keyboard')
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
         self.mouse_flash_duration: float = game_config.mouse_flash_duration
 
@@ -52,14 +51,14 @@ class ZPcController(PcControllerBase):
 
         try:
             subprocess.run(
-                ["taskkill", "/F", "/PID", str(pid.value)],
+                ['taskkill', '/F', '/PID', str(pid.value)],
                 check=True,
                 capture_output=True,
                 text=True,
             )
-            log.info("关闭游戏成功 PID=%d", pid.value)
+            log.info('关闭游戏成功 PID=%d', pid.value)
         except Exception:
-            log.error("关闭游戏失败 PID=%d，尝试关闭窗口", pid.value, exc_info=True)
+            log.error('关闭游戏失败 PID=%d，尝试关闭窗口', pid.value, exc_info=True)
             PcControllerBase.close_game(self)
 
     def init_before_context_run(self) -> bool:
@@ -83,30 +82,24 @@ class ZPcController(PcControllerBase):
             screen,
             pos=[rect.x1, rect.y1, rect.width, rect.height],
             color=game_const.YOLO_DEFAULT_COLOR,
-            new_image=True,
+            new_image=True
         )
 
     def enable_keyboard(self):
         PcControllerBase.enable_keyboard(self)
-        self.action_keys = self.game_config.get_action_keys("keyboard")
+        self.action_keys = self.game_config.get_action_keys('keyboard')
 
     def enable_xbox(self):
         PcControllerBase.enable_xbox(self)
-        self.action_keys = self.game_config.get_action_keys("xbox")
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys("xbox")
+        self.action_keys = self.game_config.get_action_keys('xbox')
+        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
 
     def enable_ds4(self):
         PcControllerBase.enable_ds4(self)
-        self.action_keys = self.game_config.get_action_keys("ds4")
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys("ds4")
+        self.action_keys = self.game_config.get_action_keys('ds4')
+        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('ds4')
 
-    def _action_btn(
-        self,
-        key: str,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def _action_btn(self, key: str, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """通用按键动作：按下/释放/点按"""
         if press:
             self.btn_press(key, press_time)
@@ -115,140 +108,65 @@ class ZPcController(PcControllerBase):
         else:
             self.btn_tap(key)
 
-    def dodge(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def dodge(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """闪避"""
-        self._action_btn(self.action_keys["dodge"], press, press_time, release)
+        self._action_btn(self.action_keys['dodge'], press, press_time, release)
 
-    def switch_next(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def switch_next(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """切换角色-下一个"""
-        self._action_btn(self.action_keys["switch_next"], press, press_time, release)
+        self._action_btn(self.action_keys['switch_next'], press, press_time, release)
 
-    def switch_prev(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def switch_prev(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """切换角色-上一个"""
-        self._action_btn(self.action_keys["switch_prev"], press, press_time, release)
+        self._action_btn(self.action_keys['switch_prev'], press, press_time, release)
 
-    def normal_attack(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """普通攻击"""
-        self._action_btn(self.action_keys["normal_attack"], press, press_time, release)
+        self._action_btn(self.action_keys['normal_attack'], press, press_time, release)
 
-    def special_attack(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def special_attack(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """特殊攻击"""
-        self._action_btn(self.action_keys["special_attack"], press, press_time, release)
+        self._action_btn(self.action_keys['special_attack'], press, press_time, release)
 
-    def ultimate(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def ultimate(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """终结技"""
-        self._action_btn(self.action_keys["ultimate"], press, press_time, release)
+        self._action_btn(self.action_keys['ultimate'], press, press_time, release)
 
-    def chain_left(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def chain_left(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """连携技-左"""
-        self._action_btn(self.action_keys["chain_left"], press, press_time, release)
+        self._action_btn(self.action_keys['chain_left'], press, press_time, release)
 
-    def chain_right(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def chain_right(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """连携技-右"""
-        self._action_btn(self.action_keys["chain_right"], press, press_time, release)
+        self._action_btn(self.action_keys['chain_right'], press, press_time, release)
 
-    def move_w(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def move_w(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """向前移动"""
-        self._action_btn(self.action_keys["move_w"], press, press_time, release)
+        self._action_btn(self.action_keys['move_w'], press, press_time, release)
 
-    def move_s(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def move_s(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """向后移动"""
-        self._action_btn(self.action_keys["move_s"], press, press_time, release)
+        self._action_btn(self.action_keys['move_s'], press, press_time, release)
 
-    def move_a(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def move_a(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """向左移动"""
-        self._action_btn(self.action_keys["move_a"], press, press_time, release)
+        self._action_btn(self.action_keys['move_a'], press, press_time, release)
 
-    def move_d(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def move_d(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """向右移动"""
-        self._action_btn(self.action_keys["move_d"], press, press_time, release)
+        self._action_btn(self.action_keys['move_d'], press, press_time, release)
 
-    def interact(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def interact(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """交互"""
-        self._action_btn(self.action_keys["interact"], press, press_time, release)
+        self._action_btn(self.action_keys['interact'], press, press_time, release)
 
-    def lock(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def lock(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """锁定敌人"""
-        self._action_btn(self.action_keys["lock"], press, press_time, release)
+        self._action_btn(self.action_keys['lock'], press, press_time, release)
 
-    def chain_cancel(
-        self,
-        press: bool = False,
-        press_time: float | None = None,
-        release: bool = False,
-    ) -> None:
+    def chain_cancel(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """取消连携"""
-        self._action_btn(self.action_keys["chain_cancel"], press, press_time, release)
+        self._action_btn(self.action_keys['chain_cancel'], press, press_time, release)
 
     def start_moving_forward(self) -> None:
         """

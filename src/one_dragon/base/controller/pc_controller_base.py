@@ -31,17 +31,16 @@ from one_dragon.utils.log_utils import log
 
 
 class PcControllerBase(ControllerBase):
+
     MOUSEEVENTF_MOVE = 0x0001
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
     MOUSEEVENTF_ABSOLUTE = 0x8000
 
-    def __init__(
-        self,
-        screenshot_method: str,
-        standard_width: int = 1920,
-        standard_height: int = 1080,
-    ):
+    def __init__(self,
+                 screenshot_method: str,
+                 standard_width: int = 1920,
+                 standard_height: int = 1080):
         ControllerBase.__init__(self)
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
@@ -52,14 +51,12 @@ class PcControllerBase(ControllerBase):
         self.ds4_controller: Ds4ButtonController | None = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
-        self.screenshot_controller: PcScreenshotController = PcScreenshotController(
-            self.game_win, standard_width, standard_height
-        )
+        self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
         self.background_mode: bool = False
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
-        self._game_input_mode: str = "keyboard_mouse"  # 游戏当前识别的输入设备
+        self._game_input_mode: str = 'keyboard_mouse'  # 游戏当前识别的输入设备
 
     def init_game_win(self) -> bool:
         """
@@ -150,21 +147,18 @@ class PcControllerBase(ControllerBase):
             return
         try:
             win.close()
-            log.info("关闭游戏成功")
+            log.info('关闭游戏成功')
         except Exception:
-            log.error("关闭游戏失败", exc_info=True)
+            log.error('关闭游戏失败', exc_info=True)
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
             # 确保截图器已初始化
-            if (
-                not independent
-                and self.screenshot_controller.active_strategy_name is None
-            ):
+            if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)
             return self.screenshot_controller.get_screenshot(independent)
         else:
-            raise RuntimeError("游戏窗口未就绪")
+            raise RuntimeError('游戏窗口未就绪')
 
     def enable_foreground_mode(self) -> None:
         """
@@ -173,11 +167,11 @@ class PcControllerBase(ControllerBase):
         - 按键操作 → 键盘 (pynput)
         """
         self.background_mode = False
-        self._game_input_mode = "keyboard_mouse"
+        self._game_input_mode = 'keyboard_mouse'
         self.enable_keyboard()
-        log.info("已启用前台模式: pyautogui 点击 + 键盘")
+        log.info('已启用前台模式: pyautogui 点击 + 键盘')
 
-    def enable_background_mode(self, gamepad_type: str = "xbox") -> None:
+    def enable_background_mode(self, gamepad_type: str = 'xbox') -> None:
         """
         启用后台模式:
         - 鼠标点击 → PostMessage (WM_ACTIVATE + PostMessage)
@@ -189,19 +183,19 @@ class PcControllerBase(ControllerBase):
             gamepad_type: 'xbox' 或 'ds4'
         """
         if not pc_button_utils.is_vgamepad_installed():
-            log.error("启用后台模式失败: 未检测到 vgamepad/ViGEmBus")
+            log.error('启用后台模式失败: 未检测到 vgamepad/ViGEmBus')
             self.background_mode = False
-            self._game_input_mode = "keyboard_mouse"
+            self._game_input_mode = 'keyboard_mouse'
             self.enable_keyboard()
             return
 
         self.background_mode = True
-        if gamepad_type == "ds4":
+        if gamepad_type == 'ds4':
             self.enable_ds4()
-            log.info("已启用后台模式: PostMessage 点击 + DS4 手柄")
+            log.info('已启用后台模式: PostMessage 点击 + DS4 手柄')
         else:
             self.enable_xbox()
-            log.info("已启用后台模式: PostMessage 点击 + Xbox 手柄")
+            log.info('已启用后台模式: PostMessage 点击 + Xbox 手柄')
 
     def _ensure_mouse_mode(self) -> bool:
         """确保游戏处于键鼠输入模式。
@@ -209,7 +203,7 @@ class PcControllerBase(ControllerBase):
         游戏使用 Raw Input 检测设备类型，只有窗口在前台时才处理鼠标输入。
         因此需要极短暂地将游戏窗口切到前台、发送鼠标移动、再切回。
         """
-        if self._game_input_mode == "keyboard_mouse":
+        if self._game_input_mode == 'keyboard_mouse':
             return True
 
         hwnd = self.game_win.get_hwnd()
@@ -232,23 +226,23 @@ class PcControllerBase(ControllerBase):
             with contextlib.suppress(Exception):
                 win32gui.SetForegroundWindow(prev_hwnd)
         time.sleep(0.1)
-        self._game_input_mode = "keyboard_mouse"
+        self._game_input_mode = 'keyboard_mouse'
 
         return True
 
     def _ensure_gamepad_mode(self) -> None:
         """确保游戏处于手柄输入模式。若当前为键鼠模式，先发一次手柄按键让游戏切换。"""
-        if self._game_input_mode == "gamepad":
+        if self._game_input_mode == 'gamepad':
             return
         self.btn_controller.tap(self._get_switch_gamepad_key())
         time.sleep(0.1)
-        self._game_input_mode = "gamepad"
+        self._game_input_mode = 'gamepad'
 
     def _get_switch_gamepad_key(self) -> str:
         """获取用于切换到手柄模式的按键（使用右摇杆上推，最不易产生副作用）。"""
         if isinstance(self.btn_controller, Ds4ButtonController):
-            return "ds4_rs_up"
-        return "xbox_rs_up"
+            return 'ds4_rs_up'
+        return 'xbox_rs_up'
 
     def _send_activate(self) -> bool:
         """发送 WM_ACTIVATE(WA_ACTIVE) 到游戏窗口。
@@ -261,14 +255,14 @@ class PcControllerBase(ControllerBase):
         """
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
-            log.error("游戏窗口未就绪，无法发送 WM_ACTIVATE")
+            log.error('游戏窗口未就绪，无法发送 WM_ACTIVATE')
             return False
         try:
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
             time.sleep(0.01)
             return True
         except Exception:
-            log.error("发送 WM_ACTIVATE 失败", exc_info=True)
+            log.error('发送 WM_ACTIVATE 失败', exc_info=True)
             return False
 
     def _set_cursor_to(self, hwnd: int, cx: int, cy: int) -> None:
@@ -276,13 +270,7 @@ class PcControllerBase(ControllerBase):
         screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
         win32api.SetCursorPos((screen_x, screen_y))
 
-    def click(
-        self,
-        pos: Point = None,
-        press_time: float = 0,
-        pc_alt: bool = False,
-        gamepad_key: str | None = None,
-    ) -> bool:
+    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False, gamepad_key: str | None = None) -> bool:
         """点击位置。
 
         Args:
@@ -301,9 +289,8 @@ class PcControllerBase(ControllerBase):
 
         return self._foreground_click(pos, press_time, pc_alt)
 
-    def _foreground_click(
-        self, pos: Point | None, press_time: float = 0, pc_alt: bool = False
-    ) -> bool:
+
+    def _foreground_click(self, pos: Point | None, press_time: float = 0, pc_alt: bool = False) -> bool:
         """前台点击：通过 pyautogui 点击，可选 ALT 解锁光标。
 
         Args:
@@ -318,7 +305,7 @@ class PcControllerBase(ControllerBase):
         if pos is not None:
             click_pos: Point = self.game_win.game2win_pos(pos)
             if click_pos is None:
-                log.error("点击非游戏窗口区域 (%s)", pos)
+                log.error('点击非游戏窗口区域 (%s)', pos)
                 return False
         else:
             click_pos = get_current_mouse_pos()
@@ -349,7 +336,7 @@ class PcControllerBase(ControllerBase):
 
         raw_keys = self.gamepad_action_keys.get(gamepad_key, [])
         if not raw_keys:
-            log.error(f"后台模式: 未找到动作 {gamepad_key} 的手柄键映射")
+            log.error(f'后台模式: 未找到动作 {gamepad_key} 的手柄键映射')
             return False
 
         self._ensure_gamepad_mode()
@@ -362,10 +349,7 @@ class PcControllerBase(ControllerBase):
                 self.btn_controller.tap_combo(raw_keys)
             return True
         except KeyError:
-            log.error(
-                f"后台模式: 动作 {gamepad_key} 包含未注册手柄键 {raw_keys}",
-                exc_info=True,
-            )
+            log.error(f'后台模式: 动作 {gamepad_key} 包含未注册手柄键 {raw_keys}', exc_info=True)
             return False
 
     def _background_click(self, pos: Point | None, press_time: float = 0) -> bool:
@@ -379,18 +363,18 @@ class PcControllerBase(ControllerBase):
             是否成功
         """
         if not self._ensure_mouse_mode():
-            log.error("无法切到键鼠模式，后台点击失败")
+            log.error('无法切到键鼠模式，后台点击失败')
             return False
 
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
-            log.error("游戏窗口未就绪，无法后台点击")
+            log.error('游戏窗口未就绪，无法后台点击')
             return False
 
         if pos is not None:
             scaled_pos = self.game_win.get_scaled_game_pos(pos)
             if scaled_pos is None:
-                log.error("点击非游戏窗口区域 (%s)", pos)
+                log.error('点击非游戏窗口区域 (%s)', pos)
                 return False
             self._set_cursor_to(hwnd, int(scaled_pos.x), int(scaled_pos.y))
             time.sleep(0.01)
@@ -408,7 +392,7 @@ class PcControllerBase(ControllerBase):
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
             return True
         except Exception:
-            log.error("后台点击失败", exc_info=True)
+            log.error('后台点击失败', exc_info=True)
             return False
 
     def drag_to(self, start: Point, end: Point, duration: float = 0.5) -> None:
@@ -434,12 +418,12 @@ class PcControllerBase(ControllerBase):
         """
         from_pos = self.game_win.game2win_pos(start)
         if from_pos is None:
-            log.error("拖拽起点不在游戏窗口区域 (%s)", start)
+            log.error('拖拽起点不在游戏窗口区域 (%s)', start)
             return
 
         to_pos = self.game_win.game2win_pos(end)
         if to_pos is None:
-            log.error("拖拽终点不在游戏窗口区域 (%s)", end)
+            log.error('拖拽终点不在游戏窗口区域 (%s)', end)
             return
         drag_mouse(from_pos, to_pos, duration=duration)
 
@@ -455,25 +439,25 @@ class PcControllerBase(ControllerBase):
             是否成功
         """
         if not self._ensure_mouse_mode():
-            log.error("无法切到键鼠模式，后台拖拽失败")
+            log.error('无法切到键鼠模式，后台拖拽失败')
             return
 
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
-            log.error("游戏窗口未就绪，无法后台拖拽")
+            log.error('游戏窗口未就绪，无法后台拖拽')
             return
 
         # 转换起点坐标
         scaled_start = self.game_win.get_scaled_game_pos(start)
         if scaled_start is None:
-            log.error("拖拽起点不在游戏窗口区域 (%s)", start)
+            log.error('拖拽起点不在游戏窗口区域 (%s)', start)
             return
         sx, sy = int(scaled_start.x), int(scaled_start.y)
 
         # 转换终点坐标
         scaled_end = self.game_win.get_scaled_game_pos(end)
         if scaled_end is None:
-            log.error("拖拽终点不在游戏窗口区域 (%s)", end)
+            log.error('拖拽终点不在游戏窗口区域 (%s)', end)
             return
         ex, ey = int(scaled_end.x), int(scaled_end.y)
 
@@ -499,7 +483,7 @@ class PcControllerBase(ControllerBase):
             # 松开
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
         except Exception:
-            log.error("后台拖拽失败", exc_info=True)
+            log.error('后台拖拽失败', exc_info=True)
 
     def scroll(self, down: int, pos: Point = None) -> None:
         """向下滚动。
@@ -512,7 +496,7 @@ class PcControllerBase(ControllerBase):
             pos = get_current_mouse_pos()
         win_pos = self.game_win.game2win_pos(pos)
         if win_pos is None:
-            log.error("滚动位置不在游戏窗口区域 (%s)", pos)
+            log.error('滚动位置不在游戏窗口区域 (%s)', pos)
             return
         win_scroll(down, win_pos)
 
@@ -535,6 +519,7 @@ class PcControllerBase(ControllerBase):
     @property
     def center_point(self) -> Point:
         return Point(self.standard_width // 2, self.standard_height // 2)
+
 
 
 def win_click(pos: Point = None, press_time: float = 0, primary: bool = True):
