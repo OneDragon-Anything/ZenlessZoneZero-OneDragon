@@ -2,19 +2,21 @@ import json
 import os
 import re
 import time
-from typing import Any
+from typing import Any, Optional
 
 import cv2
 from cv2.typing import MatLike
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
+from zzz_od.application.inventory_scan.parser.base_parser import BaseParser
 
 
-class AgentParser:
+class AgentParser(BaseParser):
     """代理人数据解析器"""
 
-    def __init__(self):
+    def __init__(self, ctx: Any = None):
+        super().__init__(ctx)
         self.agent_counter = 0
         self.scanned_agent_keys = set()  # 记录已扫描的角色key，用于去重
         # 异常数据保存目录
@@ -22,6 +24,25 @@ class AgentParser:
         os.makedirs(self.error_dir, exist_ok=True)
         # 延迟加载翻译服务
         self._translation_service = None
+
+    def parse(self, ocr_items: list[dict[str, Any]], *args, **kwargs) -> Optional[dict]:
+        """
+        解析OCR结果（实现BaseParser接口）
+        
+        Args:
+            ocr_items: OCR识别结果列表
+            *args: 额外的位置参数
+            **kwargs: 额外的关键字参数（如 screenshot）
+        
+        Returns:
+            解析后的字典数据，如果解析失败返回 None
+        """
+        screenshot = kwargs.get("screenshot")
+        return self.parse_ocr_result(ocr_items, screenshot)
+
+    def get_supported_type(self) -> str:
+        """获取解析器支持的类型"""
+        return "agent"
 
     @property
     def translation_service(self):

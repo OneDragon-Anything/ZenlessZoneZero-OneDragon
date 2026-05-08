@@ -7,9 +7,10 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils import os_utils
 from zzz_od.application.inventory_scan.InventoryDataProcessor import InventoryDataProcessor
 from zzz_od.game_data.drive_disk import MAX_LEVELS
+from zzz_od.application.inventory_scan.parser.base_parser import BaseParser
 
 
-class DriveDiskParser:
+class DriveDiskParser(BaseParser):
     """驱动盘属性解析器，根据OCR结果生成JSON数据"""
 
     # 主属性映射（主属性都是百分比，需要加下划线后缀）
@@ -76,14 +77,15 @@ class DriveDiskParser:
         # OCR常见错误识别
         '昇常精通': 'anomProf',  # "异常精通"的OCR错误
         # 属性伤害加成（新增）
-        '火': 'fire_dmg_',
-        '冰': 'ice_dmg_',
-        '电': 'electric_dmg_',
+        '火属性': 'fire_dmg_',
+        '冰属性': 'ice_dmg_',
+        '电属性': 'electric_dmg_',
         '以太': 'ether_dmg_',
         '物理': 'physical_dmg_',
     }
 
-    def __init__(self):
+    def __init__(self, ctx: Any = None):
+        super().__init__(ctx)
         self.disc_counter = 0
         # 初始化翻译服务
         from zzz_od.application.inventory_scan.translation_service import TranslationService
@@ -95,6 +97,26 @@ class DriveDiskParser:
         # 异常数据保存目录
         self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
         os.makedirs(self.error_dir, exist_ok=True)
+
+    def parse(self, ocr_texts: List[Dict[str, Any]], *args, **kwargs) -> Optional[Dict]:
+        """
+        解析OCR结果（实现BaseParser接口）
+        
+        Args:
+            ocr_texts: OCR识别结果列表
+            *args: 额外的位置参数
+            **kwargs: 额外的关键字参数（如 screenshot, index）
+        
+        Returns:
+            解析后的字典数据，如果解析失败返回 None
+        """
+        screenshot = kwargs.get("screenshot")
+        index = kwargs.get("index", 0)
+        return self.parse_ocr_result(ocr_texts, screenshot, index)
+
+    def get_supported_type(self) -> str:
+        """获取解析器支持的类型"""
+        return "drive_disk"
 
     def parse_ocr_result(self, ocr_texts: List[Dict[str, Any]], screenshot=None, index: int = 0) -> Optional[Dict]:
         """
