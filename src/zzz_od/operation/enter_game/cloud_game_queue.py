@@ -54,13 +54,19 @@ class CloudGameQueue(ZOperation):
         return self.round_retry(status="未知画面", wait=1)
 
     @node_from(from_name="画面识别", status="国服PC云-开始游戏")
-    @operation_node(name="国服PC云-插队或排队")
+    @operation_node(name="国服PC云-插队或排队", node_max_retry_times=10)
     def cn_pc_cloud_start_or_queue(self) -> OperationRoundResult:
         """
         国服PC云-插队或排队
         :return:
         """
         screen = self.last_screenshot
+        enter_game_result = self.round_by_find_area(
+            screen, "打开游戏", "点击进入游戏"
+        )
+        if enter_game_result.is_success:
+            return self.round_success(status=enter_game_result.status, wait=1)
+
         result_bang = self.round_by_find_area(
             screen, "云游戏", "国服PC云-邦邦点快速队列"
         )
@@ -126,7 +132,7 @@ class CloudGameQueue(ZOperation):
         if enter_game_result.is_success:
             return self.round_success(status="点击进入游戏", wait=1)
         else:
-            return self.round_wait(status="等待排队", wait=10)
+            return self.round_wait(status="等待排队", wait=5)
 
     @node_from(from_name="国服PC云-排队", status="等待排队")
     @operation_node(name="国服PC云-排队中转")
