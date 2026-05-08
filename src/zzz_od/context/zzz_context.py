@@ -128,7 +128,6 @@ class ZContext(OneDragonContext):
             from zzz_od.controller.zzz_pc_controller import ZPcController
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
-                win_title=win_title,
                 screenshot_method=self.env_config.screenshot_method,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
