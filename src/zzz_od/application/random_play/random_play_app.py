@@ -10,10 +10,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
-from one_dragon.base.operation.operation_round_result import (
-    OperationRoundResult,
-    OperationRoundResultEnum,
-)
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -59,9 +56,16 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
+        self._retransported: bool = False
 
+    @node_from(from_name='等待经营画面加载', success=False, status='未找到 经营状况')
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
+        if self.previous_node.name == '等待经营画面加载':
+            if self._retransported:
+                return self.round_fail('重传送后仍未找到经营状况')
+            self._retransported = True
+
         op = Transport(self.ctx, '录像店', '柜台')
         return self.round_by_op_result(op.execute())
 
