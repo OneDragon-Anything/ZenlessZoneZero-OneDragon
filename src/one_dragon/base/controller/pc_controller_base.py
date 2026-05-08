@@ -35,6 +35,7 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_MOVE = 0x0001
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_VIRTUALDESK = 0x4000
     MOUSEEVENTF_ABSOLUTE = 0x8000
 
     def __init__(self,
@@ -582,16 +583,26 @@ def drag_mouse(
         screen_width: 屏幕宽度，如果不提供则使用系统默认
         screen_height: 屏幕高度，如果不提供则使用系统默认
     """
-    if screen_width is None:
-        screen_width = ctypes.windll.user32.GetSystemMetrics(0)
-    if screen_height is None:
-        screen_height = ctypes.windll.user32.GetSystemMetrics(1)
+    user32 = ctypes.windll.user32
+    use_virtual_desktop = screen_width is None or screen_height is None
+    if use_virtual_desktop:
+        screen_left = user32.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+        screen_top = user32.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+        screen_width = user32.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
+        screen_height = user32.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
+    else:
+        screen_left = 0
+        screen_top = 0
+
+    screen_width = max(screen_width, 1)
+    screen_height = max(screen_height, 1)
+
     # 将鼠标移动到起始位置
     pyautogui.moveTo(start.x, start.y)
     time.sleep(0.05)  # 短暂延时确保移动完成
 
     # 按下鼠标左键
-    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
     time.sleep(0.05)
 
     # 计算每步的延迟时间和移动距离
@@ -604,13 +615,16 @@ def drag_mouse(
         current_x = start.x + dx * (i + 1)
         current_y = start.y + dy * (i + 1)
 
-        # 转换为绝对坐标（0-65535）
-        abs_x = int(current_x * 65535 / screen_width)
-        abs_y = int(current_y * 65535 / screen_height)
+        # 转换为绝对坐标（0-65535），多屏时使用虚拟桌面原点。
+        abs_x = _to_absolute_mouse_pos(current_x, screen_left, screen_width)
+        abs_y = _to_absolute_mouse_pos(current_y, screen_top, screen_height)
 
         # 移动鼠标
-        ctypes.windll.user32.mouse_event(
-            PcControllerBase.MOUSEEVENTF_MOVE | PcControllerBase.MOUSEEVENTF_ABSOLUTE,
+        move_flag = PcControllerBase.MOUSEEVENTF_MOVE | PcControllerBase.MOUSEEVENTF_ABSOLUTE
+        if use_virtual_desktop:
+            move_flag |= PcControllerBase.MOUSEEVENTF_VIRTUALDESK
+        user32.mouse_event(
+            move_flag,
             abs_x,
             abs_y,
             0,
@@ -620,7 +634,16 @@ def drag_mouse(
         time.sleep(step_delay)
 
     # 松开鼠标左键
-    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+
+
+def _to_absolute_mouse_pos(pos: float, screen_origin: int, screen_size: int) -> int:
+    """将桌面坐标转换为 Windows 绝对鼠标坐标。"""
+    if screen_size <= 1:
+        return 0
+
+    absolute_pos = int((pos - screen_origin) * 65535 / (screen_size - 1))
+    return min(max(absolute_pos, 0), 65535)
 
 
 def get_current_mouse_pos() -> Point:
