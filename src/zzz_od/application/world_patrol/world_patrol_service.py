@@ -50,8 +50,15 @@ class WorldPatrolService:
 
         # 缓存小地图区域
         self._mini_map_rect: Rect | None = None
+        self._mini_map_screen_name: str | None = None
         # 缓存时间戳
         self._mini_map_cache_time: float = 0
+
+    def get_mini_map_area_screen_name(self) -> str:
+        """根据当前大世界类型返回小地图区域配置。"""
+        if self.ctx.screen_loader.current_screen_name == '大世界-普通':
+            return '大世界-普通'
+        return '大世界-勘域'
 
     def cut_mini_map(self, screen: MatLike) -> MiniMapWrapper:
         """
@@ -65,23 +72,31 @@ class WorldPatrolService:
         Returns:
             MiniMapWrapper: 小地图图片
         """
+        # 大世界普通和勘域的小地图位置不同，按当前已识别的大世界类型取区域。
+        mini_map_screen_name = self.get_mini_map_area_screen_name()
+
         # 如果缓存存在且未过期，直接使用
         if self._mini_map_rect is not None:
             current_time = time.time()
-            if current_time - self._mini_map_cache_time < self.MINI_MAP_CACHE_EXPIRE:
+            # 缓存框只在同一类大世界内复用，避免普通/勘域切换后串用旧坐标。
+            if (
+                self._mini_map_screen_name == mini_map_screen_name
+                and current_time - self._mini_map_cache_time < self.MINI_MAP_CACHE_EXPIRE
+            ):
                 rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
                 return MiniMapWrapper(rgb)
             else:
-                # 缓存过期，清除缓存
-                log.info(f'[小地图] 缓存已过期（{current_time - self._mini_map_cache_time:.1f}秒），重新匹配')
+                # 缓存过期或画面类型变化，清除缓存
+                log.info(f'[小地图] 缓存已失效（{current_time - self._mini_map_cache_time:.1f}秒），重新匹配')
                 self._mini_map_rect = None
+                self._mini_map_screen_name = None
 
         # 获取小地图的默认宽高（从配置中获取）
-        default_area = self.ctx.screen_loader.get_area('大世界', '小地图')
+        default_area = self.ctx.screen_loader.get_area(mini_map_screen_name, '小地图')
         mini_map_width = default_area.rect.width
         mini_map_height = default_area.rect.height
 
-        # 使用模板匹配定位"地图"
+        # 使用模板匹配定位"地图"；模板区域统一复用"大世界/地图"
         map_result = find_template_coord_in_area(self.ctx, screen, '大世界', '地图')
 
         if map_result is not None:
@@ -97,8 +112,9 @@ class WorldPatrolService:
                 mini_map_y + mini_map_height
             )
 
-            # 记录缓存时间
+            # 记录缓存时间和对应画面类型，供下次判断是否可复用。
             self._mini_map_cache_time = time.time()
+            self._mini_map_screen_name = mini_map_screen_name
 
             log.info(f'[小地图] 刷新小地图坐标缓存: ({self._mini_map_rect.x1}, {self._mini_map_rect.y1}) - ({self._mini_map_rect.x2}, {self._mini_map_rect.y2})')
 
