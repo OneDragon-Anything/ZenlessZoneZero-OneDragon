@@ -3,10 +3,10 @@ from collections.abc import Callable
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.zzz_operation_mixin import ZOperationMixin, ZZZCloudMixin
+from zzz_od.operation.zzz_operation_mixin import ZOperationMixin
 
 
-class ZOperation(ZZZCloudMixin, ZOperationMixin, Operation):
+class ZOperation(ZOperationMixin, Operation):
     def __init__(self, ctx: ZContext,
                  node_max_retry_times: int = 3,
                  op_name: str = '',

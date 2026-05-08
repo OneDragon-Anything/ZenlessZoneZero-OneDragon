@@ -6,10 +6,10 @@ from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.zzz_operation_mixin import ZOperationMixin, ZZZCloudMixin
+from zzz_od.operation.zzz_operation_mixin import ZOperationMixin
 
 
-class ZApplication(ZZZCloudMixin, ZOperationMixin, Application):
+class ZApplication(ZOperationMixin, Application):
     def __init__(self, ctx: ZContext, app_id: str,
                  node_max_retry_times: int = 1,
                  op_name: str | None = None,
