@@ -5,6 +5,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -42,13 +43,15 @@ class TransportBy3dMap(ZOperation):
     @node_from(from_name='初始回到大世界')
     @operation_node(name='打开地图')
     def open_map(self) -> OperationRoundResult:
-        current_screen = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['3D地图'])
+        current_screen = screen_utils.get_match_screen_name(self.ctx, self.last_screenshot, screen_name_list=['3D地图'])
         if current_screen == '3D地图':
+            self.ctx.screen_loader.update_current_screen_name(current_screen)
             return self.round_success()
 
         mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
         if mini_map.play_mask_found:
-            self.round_by_click_area('大世界', '小地图')
+            mini_map_screen_name = self.ctx.world_patrol_service.get_mini_map_area_screen_name()
+            self.round_by_click_area(mini_map_screen_name, '小地图')
             return self.round_wait(status='点击打开地图', wait=1)
         else:
             return self.round_retry(status='未发现地图', wait=1)
