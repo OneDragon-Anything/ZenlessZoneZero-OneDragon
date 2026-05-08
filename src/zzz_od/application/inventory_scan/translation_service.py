@@ -19,6 +19,12 @@ class TranslationService:
         self.agent_yaml_path = os_utils.get_path_under_work_dir(
             "assets", "game_data", "agent", "_od_merged.yml"
         )
+        self.drive_disk_dir = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "drive_disk"
+        )
+        self.engine_weapon_dir = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "engine_weapon"
+        )
         self.translation_dict: dict | None = None
 
         self.special_name_mapping = {
@@ -30,6 +36,9 @@ class TranslationService:
             "異常": "异常",
             "昇常精通": "异常精通",
             "昇常掌控": "异常掌控",
+            # 驱动盘名称繁体/异体字修正
+            "流光詠叹": "流光咏叹",
+            "詠叹": "咏叹",
         }
 
         self._load_dict()
@@ -43,8 +52,10 @@ class TranslationService:
         self._load_agent_yaml()
 
         if not self.translation_dict:
-            log.warning("未找到任何翻译字典，使用空字典")
             self.translation_dict = {"character": {}, "weapon": {}, "equipment": {}}
+
+        self._load_drive_disk_data()
+        self._load_engine_weapon_data()
 
     def _load_agent_yaml(self) -> None:
         """从 agent/_od_merged.yml 加载角色名称映射"""
@@ -78,6 +89,70 @@ class TranslationService:
 
         except Exception as e:
             log.error(f"加载 agent YAML 失败: {e}")
+
+    def _load_drive_disk_data(self) -> None:
+        """从 drive_disk 目录加载驱动盘名称映射"""
+        try:
+            if not os.path.exists(self.drive_disk_dir):
+                log.warning(f"驱动盘数据目录不存在: {self.drive_disk_dir}")
+                return
+
+            disk_count = 0
+            for filename in os.listdir(self.drive_disk_dir):
+                if filename.endswith(".yml"):
+                    file_path = os.path.join(self.drive_disk_dir, filename)
+                    try:
+                        with open(file_path, encoding="utf-8") as f:
+                            disk_data = safe_load(f)
+                            if disk_data:
+                                set_name = disk_data.get("set_name")
+                                code = disk_data.get("code")
+                                if set_name and code:
+                                    self.translation_dict["equipment"][set_name] = {
+                                        "CHS": set_name,
+                                        "EN": code,
+                                    }
+                                    disk_count += 1
+                    except Exception as e:
+                        log.error(f"加载驱动盘文件失败 {filename}: {e}")
+
+            if disk_count > 0:
+                log.info(f"从驱动盘目录加载了 {disk_count} 个驱动盘翻译")
+
+        except Exception as e:
+            log.error(f"加载驱动盘数据失败: {e}")
+
+    def _load_engine_weapon_data(self) -> None:
+        """从 engine_weapon 目录加载音擎（武器）名称映射"""
+        try:
+            if not os.path.exists(self.engine_weapon_dir):
+                log.warning(f"音擎数据目录不存在: {self.engine_weapon_dir}")
+                return
+
+            weapon_count = 0
+            for filename in os.listdir(self.engine_weapon_dir):
+                if filename.endswith(".yml"):
+                    file_path = os.path.join(self.engine_weapon_dir, filename)
+                    try:
+                        with open(file_path, encoding="utf-8") as f:
+                            weapon_data = safe_load(f)
+                            if weapon_data:
+                                weapon_name = weapon_data.get("weapon_name")
+                                code = weapon_data.get("code")
+                                if weapon_name and code:
+                                    self.translation_dict["weapon"][weapon_name] = {
+                                        "CHS": weapon_name,
+                                        "EN": code,
+                                    }
+                                    weapon_count += 1
+                    except Exception as e:
+                        log.error(f"加载音擎文件失败 {filename}: {e}")
+
+            if weapon_count > 0:
+                log.info(f"从音擎目录加载了 {weapon_count} 个音擎翻译")
+
+        except Exception as e:
+            log.error(f"加载音擎数据失败: {e}")
 
     def _try_load_dict(self, path: str, type_name: str) -> bool:
         """尝试加载字典"""

@@ -18,13 +18,11 @@ from zzz_od.application.inventory_scan.special_scan.special_scan_app import Spec
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-import os
 import json
+import os
 import time
+
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
-import requests
-from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
-import requests
 
 
 class InventoryScanApp(ZApplication):
@@ -41,10 +39,6 @@ class InventoryScanApp(ZApplication):
         
         # 初始化并更新翻译字典
         # self._update_translation_dict()
-
-    def _get_scan_agent_option(self) -> str:
-        """获取扫描代理人选项（运行时从 context 获取最新值）"""
-        return getattr(self.ctx, '_inventory_scan_agent_option', None)
 
     def _get_scan_agent_option(self) -> str:
         """获取扫描代理人选项（运行时从 context 获取最新值）"""

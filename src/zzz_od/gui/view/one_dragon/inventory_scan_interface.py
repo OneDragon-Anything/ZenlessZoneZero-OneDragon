@@ -63,7 +63,6 @@ class ReportLoader(QThread):
 
     def run(self):
         try:
-            # 加载报告文件
             report_files = {}
             for file_name in os.listdir(self.data_file_path):
                 if "_data" in file_name and file_name.endswith(".json"):
@@ -72,56 +71,119 @@ class ReportLoader(QThread):
                         self.data_file_path, file_name
                     )
 
-            # 加载翻译文件
-            translation_dict = {}
-            translation_file_path = os.path.join(
-                self.wiki_file_path, "zzz_translation.json"
-            )
-            if os.path.exists(translation_file_path):
-                with open(translation_file_path, encoding="utf-8") as f:
-                    translation_data = json.load(f)
-                    translation_dict = translation_data.get("character", {})
+            translation_dict = self._load_translation_dict()
 
             self.finished.emit(report_files, translation_dict)
         except Exception as e:
             self.error.emit(str(e))
 
+    def _load_translation_dict(self) -> dict:
+        """加载完整的翻译字典，包括角色、驱动盘和音擎"""
+        translation_dict = {"character": {}, "equipment": {}, "weapon": {}}
 
-class ReportLoader(QThread):
-    """报告加载子线程"""
+        translation_file_path = os.path.join(
+            self.wiki_file_path, "zzz_translation.json"
+        )
+        if os.path.exists(translation_file_path):
+            with open(translation_file_path, encoding="utf-8") as f:
+                translation_data = json.load(f)
+                translation_dict["character"] = translation_data.get("character", {})
+                translation_dict["equipment"] = translation_data.get("equipment", {})
+                translation_dict["weapon"] = translation_data.get("weapon", {})
 
-    finished = Signal(dict, dict)  # 传递报告文件和翻译字典
-    error = Signal(str)
+        self._load_agent_yaml(translation_dict)
+        self._load_drive_disk_data(translation_dict)
+        self._load_engine_weapon_data(translation_dict)
 
-    def __init__(self, data_file_path, wiki_file_path):
-        super().__init__()
-        self.data_file_path = data_file_path
-        self.wiki_file_path = wiki_file_path
+        return translation_dict
 
-    def run(self):
-        try:
-            # 加载报告文件
-            report_files = {}
-            for file_name in os.listdir(self.data_file_path):
-                if "_data" in file_name and file_name.endswith(".json"):
-                    agent_name = file_name.split("_data")[0]
-                    report_files[agent_name] = os.path.join(
-                        self.data_file_path, file_name
-                    )
+    def _load_agent_yaml(self, translation_dict: dict) -> None:
+        """从 agent/_od_merged.yml 加载角色名称映射"""
+        agent_yaml_path = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "agent", "_od_merged.yml"
+        )
+        if not os.path.exists(agent_yaml_path):
+            return
 
-            # 加载翻译文件
-            translation_dict = {}
-            translation_file_path = os.path.join(
-                self.wiki_file_path, "zzz_translation.json"
-            )
-            if os.path.exists(translation_file_path):
-                with open(translation_file_path, encoding="utf-8") as f:
-                    translation_data = json.load(f)
-                    translation_dict = translation_data.get("character", {})
+        with open(agent_yaml_path, encoding="utf-8") as f:
+            agents_data = safe_load(f)
+            if not agents_data:
+                return
 
-            self.finished.emit(report_files, translation_dict)
-        except Exception as e:
-            self.error.emit(str(e))
+            for agent in agents_data:
+                code = agent.get("code")
+                agent_name = agent.get("agent_name")
+                if code and agent_name:
+                    translation_dict["character"][agent_name] = {
+                        "CHS": agent_name,
+                        "EN": code,
+                    }
+                    translation_dict["character"][code] = {
+                        "CHS": agent_name,
+                        "EN": code,
+                    }
+
+    def _load_drive_disk_data(self, translation_dict: dict) -> None:
+        """从 drive_disk 目录加载驱动盘名称映射"""
+        drive_disk_dir = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "drive_disk"
+        )
+        if not os.path.exists(drive_disk_dir):
+            return
+
+        for filename in os.listdir(drive_disk_dir):
+            if filename.endswith(".yml"):
+                file_path = os.path.join(drive_disk_dir, filename)
+                try:
+                    with open(file_path, encoding="utf-8") as f:
+                        disk_data = safe_load(f)
+                        if disk_data:
+                            set_name = disk_data.get("set_name")
+                            code = disk_data.get("code")
+                            if set_name and code:
+                                translation_dict["equipment"][set_name] = {
+                                    "CHS": set_name,
+                                    "EN": code,
+                                }
+                                translation_dict["equipment"][code] = {
+                                    "CHS": set_name,
+                                    "EN": code,
+                                }
+                except Exception:
+                    pass
+
+    def _load_engine_weapon_data(self, translation_dict: dict) -> None:
+        """从 engine_weapon 目录加载音擎名称映射"""
+        engine_weapon_dir = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "engine_weapon"
+        )
+        if not os.path.exists(engine_weapon_dir):
+            return
+
+        for filename in os.listdir(engine_weapon_dir):
+            if filename.endswith(".yml"):
+                file_path = os.path.join(engine_weapon_dir, filename)
+                try:
+                    with open(file_path, encoding="utf-8") as f:
+                        weapon_data = safe_load(f)
+                        if weapon_data:
+                            weapon_name = weapon_data.get("weapon_name")
+                            code = weapon_data.get("code")
+                            if weapon_name and code:
+                                translation_dict["weapon"][weapon_name] = {
+                                    "CHS": weapon_name,
+                                    "EN": code,
+                                }
+                                translation_dict["weapon"][code] = {
+                                    "CHS": weapon_name,
+                                    "EN": code,
+                                }
+                                translation_dict["weapon"][code.replace(' ', '')] = {
+                                    "CHS": weapon_name,
+                                    "EN": code,
+                                }
+                except Exception:
+                    pass
 
 
 class InventoryScanInterface(AppRunInterface):
@@ -158,43 +220,6 @@ class InventoryScanInterface(AppRunInterface):
             nav_icon=FluentIcon.SEARCH,
             parent=parent,
         )
-
-    def get_widget_at_top(self) -> QWidget:
-        """构建顶部内容区域，包含模式切换和配置"""
-        top = Column()
-
-        # SegmentedWidget 模式切换
-        self.mode_segment = SegmentedWidget()
-        self.mode_segment.addItem(
-            routeKey=self.MODE_PRE_SCAN,
-            text=self.MODE_PRE_SCAN,
-            onClick=lambda: self._apply_mode(self.MODE_PRE_SCAN),
-        )
-        self.mode_segment.addItem(
-            routeKey=self.MODE_SPECIAL_SCAN,
-            text=self.MODE_SPECIAL_SCAN,
-            onClick=lambda: self._apply_mode(self.MODE_SPECIAL_SCAN),
-        )
-        top.add_widget(self.mode_segment)
-
-        # 配置区域 QStackedWidget（高度跟随当前页面）
-        self.mode_stacked = QStackedWidget()
-        self.pre_scan_page = self._build_pre_scan_page()
-        self.special_scan_page = self._build_special_scan_page()
-        self.mode_stacked.addWidget(self.pre_scan_page)
-        self.mode_stacked.addWidget(self.special_scan_page)
-        self.mode_stacked.currentChanged.connect(self._on_stacked_page_changed)
-        top.add_widget(self.mode_stacked)
-
-        # 默认选择预扫描模式
-        self.mode_segment.setCurrentItem(self.MODE_PRE_SCAN)
-        # 初始化时触发一次页面切换事件，确保QStackedWidget高度正确设置
-        self._on_stacked_page_changed(0)
-
-        return top
-
-    def _update_agent_options(self) -> None:
-        """更新特定扫描的代理人选项"""
 
     def get_widget_at_top(self) -> QWidget:
         """构建顶部内容区域，包含模式切换和配置"""
@@ -847,10 +872,10 @@ class InventoryScanInterface(AppRunInterface):
         from qfluentwidgets import PushButton
 
         for agent_name in report_files:
-            # 映射为中文名称
             chs_name = agent_name
-            if agent_name in translation_dict:
-                chs_name = translation_dict[agent_name].get("CHS", agent_name)
+            character_dict = translation_dict.get("character", {})
+            if agent_name in character_dict:
+                chs_name = character_dict[agent_name].get("CHS", agent_name)
             btn = PushButton(text=chs_name)
             btn.setFixedSize(100, 60)
             btn.clicked.connect(lambda checked, name=agent_name: on_agent_clicked(name))
@@ -927,6 +952,7 @@ class InventoryScanInterface(AppRunInterface):
                     score_ceiling,
                     char_weight,
                     agent_name,
+                    trans_dict,
                 ):
                     def handler():
                         """显示驱动盘详细计算信息"""
@@ -977,12 +1003,14 @@ class InventoryScanInterface(AppRunInterface):
                                 weight_items = list(char_weight.items())
                                 for key, value in weight_items:
                                     if value > 0:
-                                        detail_text += f"  {key}: {value:.1f}\n"
+                                        detail_text += f"  {key}: {value:.2f}\n"
                             else:
                                 detail_text += "\n角色权重参考: 未加载\n"
                         else:
-                            # 已装备驱动盘
-                            detail_text = f"驱动盘: {disc_data.get('setKey', '未知')}\n"
+                            set_key = disc_data.get('setKey', '未知')
+                            equipment_dict = trans_dict.get("equipment", {})
+                            set_key_chs = equipment_dict.get(set_key, {}).get("CHS", set_key)
+                            detail_text = f"驱动盘: {set_key_chs}\n"
                             detail_text += f"位置: {position}号位\n"
                             detail_text += f"等级: {disc_data.get('level', 0)}\n"
                             detail_text += (
@@ -998,10 +1026,10 @@ class InventoryScanInterface(AppRunInterface):
                             # 1-3号位主词条不参与计算
                             if 1 <= position <= 3:
                                 detail_text += (
-                                    f"主词条得分: {main_scr:.1f} (不参与计算)\n\n"
+                                    f"主词条得分: {main_scr:.2f} (不参与计算)\n\n"
                                 )
                             else:
-                                detail_text += f"主词条得分: {main_scr:.1f}\n\n"
+                                detail_text += f"主词条得分: {main_scr:.2f}\n\n"
 
                             # 副词条信息
                             detail_text += "副词条:\n"
@@ -1019,14 +1047,14 @@ class InventoryScanInterface(AppRunInterface):
                                         else 0
                                     )
                                     sub_score = substat_weight * substat_upgrades
-                                    detail_text += f"  {substat_key}+{substat_upgrades}: {sub_score:.1f}\n"
+                                    detail_text += f"  {substat_key}+{substat_upgrades}: {sub_score:.2f}\n"
                             else:
                                 detail_text += "  无\n"
 
                             # 总得分
-                            detail_text += f"\n总得分: {total_scr:.1f}\n"
-                            detail_text += f"得分上限: {score_ceiling:.1f}\n"
-                            detail_text += f"相对得分: {relative_score:.1f}\n"
+                            detail_text += f"\n总得分: {total_scr:.2f}\n"
+                            detail_text += f"得分上限: {score_ceiling:.2f}\n"
+                            detail_text += f"相对得分: {relative_score:.2f}\n"
 
                             # 角色权重信息
                             if char_weight:
@@ -1035,7 +1063,7 @@ class InventoryScanInterface(AppRunInterface):
                                 weight_items = list(char_weight.items())
                                 for key, value in weight_items:
                                     if value > 0:
-                                        detail_text += f"  {key}: {value:.1f}\n"
+                                        detail_text += f"  {key}: {value:.2f}\n"
                             else:
                                 detail_text += "\n角色权重参考: 未加载\n"
 
@@ -1064,13 +1092,13 @@ class InventoryScanInterface(AppRunInterface):
                         pass
 
                 if disc:
-                    # 已装备驱动盘
                     set_key = disc.get("setKey", "未知")
+                    equipment_dict = translation_dict.get("equipment", {})
+                    set_key_chs = equipment_dict.get(set_key, {}).get("CHS", set_key)
                     rarity = disc.get("rarity", "未知")
                     level = disc.get("level", 0)
 
-                    # 驱动盘名称(等级|品级)
-                    name_text_label.setText(f"{set_key}({level}|{rarity})")
+                    name_text_label.setText(f"{set_key_chs}({level}|{rarity})")
 
                     # 计算得分
                     main_score = 0
@@ -1115,6 +1143,7 @@ class InventoryScanInterface(AppRunInterface):
                             score_ceiling,
                             character_weight,
                             agent_name,
+                            translation_dict,
                         )
                     )
 
@@ -1163,6 +1192,7 @@ class InventoryScanInterface(AppRunInterface):
                             0,
                             character_weight,
                             agent_name,
+                            translation_dict,
                         )
                     )
 
@@ -1180,8 +1210,9 @@ class InventoryScanInterface(AppRunInterface):
 
             # 获取中文名称
             chs_name = agent_name
-            if agent_name in translation_dict:
-                chs_name = translation_dict[agent_name].get("CHS", agent_name)
+            character_dict = translation_dict.get("character", {})
+            if agent_name in character_dict:
+                chs_name = character_dict[agent_name].get("CHS", agent_name)
 
             report_file_path = report_files[agent_name]
             try:
@@ -1277,7 +1308,9 @@ class InventoryScanInterface(AppRunInterface):
                                 and report["equippedWengine"]
                             ):
                                 engine = report["equippedWengine"]
-                                engine_name = engine.get("key", "未知")
+                                engine_key = engine.get("key", "未知")
+                                weapon_dict = translation_dict.get("weapon", {})
+                                engine_name = weapon_dict.get(engine_key, {}).get("CHS", engine_key)
                                 engine_level = engine.get("level", 0)
                                 equipment_info.append(
                                     f"- 音擎: {engine_name} (等级: {engine_level})"
@@ -1302,7 +1335,9 @@ class InventoryScanInterface(AppRunInterface):
                     engine_info = []
                     if "equippedWengine" in report:
                         engine = report["equippedWengine"]
-                        engine_name = engine.get("key", "未知")
+                        engine_key = engine.get("key", "未知")
+                        weapon_dict = translation_dict.get("weapon", {})
+                        engine_name = weapon_dict.get(engine_key, {}).get("CHS", engine_key)
                         engine_level = engine.get("level", 0)
                         engine_modification = engine.get("modification", 0)
                         engine_promotion = engine.get("promotion", 0)

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 from one_dragon.utils.yaml_utils import safe_load
 from zzz_od.game_data.drive_disk import (
     MAX_DISK_SCORE,
@@ -43,7 +44,7 @@ class InventoryDataProcessor:
                             {"file_path": str(file_path), "key": key, "data": data}
                         )
             except Exception as e:
-                print(f"加载文件 {file_path} 失败: {e}")
+                log.error(f"加载文件 {file_path} 失败: {e}", exc_info=True)
 
         return inventory_files
 
@@ -58,7 +59,7 @@ class InventoryDataProcessor:
                 self._agent_data_cache = {agent["code"]: agent for agent in agents}
                 return self._agent_data_cache
         except Exception as e:
-            print(f"加载角色数据YAML文件失败: {e}")
+            log.error(f"加载角色数据YAML文件失败: {e}", exc_info=True)
             return {}
 
     def load_character_weight(self, key: str) -> dict[str, float] | None:
@@ -67,12 +68,12 @@ class InventoryDataProcessor:
         agent_info = agent_data.get(key)
 
         if agent_info is None:
-            print(f"未在YAML中找到角色 {key}")
+            log.warning(f"未在YAML中找到角色 {key}")
             return None
 
         weight = agent_info.get("weight")
         if weight is None:
-            print(f"角色 {key} 没有配置权重")
+            log.warning(f"角色 {key} 没有配置权重")
             return None
 
         return weight
@@ -83,7 +84,7 @@ class InventoryDataProcessor:
             with open(slot_mapping_file, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"加载槽位映射文件失败: {e}")
+            log.error(f"加载槽位映射文件失败: {e}", exc_info=True)
             return {}
 
     def convert_drive_disc_stats_to_chinese(self, drive_discs, slot_mapping):
@@ -367,11 +368,11 @@ class InventoryDataProcessor:
         """处理库存数据"""
         # 1. 加载inventory_data目录下的JSON文件
         inventory_files = self.load_inventory_data_files(inventory_data_dir)
-        print(f"找到 {len(inventory_files)} 个库存数据文件")
+        log.info(f"找到 {len(inventory_files)} 个库存数据文件")
 
         # 2. 加载槽位映射
         slot_mapping = self.load_slot_mapping(slot_mapping_file)
-        print(f"加载了 {len(slot_mapping)} 个槽位映射")
+        log.info(f"加载了 {len(slot_mapping)} 个槽位映射")
 
         # 3. 处理每个角色数据
         processed_results = []
@@ -381,10 +382,10 @@ class InventoryDataProcessor:
             # 检查对应的权重配置文件是否存在
             character_weight = self.load_character_weight(key)
             if character_weight is None:
-                print(f"跳过角色 {key}：未找到权重配置文件")
+                log.info(f"跳过角色 {key}：未找到权重配置文件")
                 continue
 
-            print(f"\n处理角色: {key}")
+            log.info(f"处理角色: {key}")
 
             # 转换驱动盘词条为中文
             equipped_discs = inventory_file["data"].get("equippedDiscs", {})
@@ -422,44 +423,41 @@ class InventoryDataProcessor:
             }
             processed_results.append(result)
 
-            # 打印转换结果
-            print(f"  驱动盘数量: {len(converted_discs)}")
+            log.debug(f"驱动盘数量: {len(converted_discs)}")
             for slot_key, disc_data in converted_discs.items():
-                print(f"  {slot_key}号位: {disc_data.get('setKey', '未知')}")
-                print(
-                    f"    主词条: {disc_data.get('mainStatKey', '')} -> {disc_data.get('mainStatKeyChinese', '未知')}"
+                log.debug(f"{slot_key}号位: {disc_data.get('setKey', '未知')}")
+                log.debug(
+                    f"  主词条: {disc_data.get('mainStatKey', '')} -> {disc_data.get('mainStatKeyChinese', '未知')}"
                 )
-                print(f"    副词条数量: {len(disc_data.get('substats', []))}")
+                log.debug(f"  副词条数量: {len(disc_data.get('substats', []))}")
                 for substat in disc_data.get("substats", []):
-                    print(
-                        f"      {substat.get('key', '')} -> {substat.get('keyChinese', '未知')} (升级次数: {substat.get('upgrades', 0)})"
+                    log.debug(
+                        f"    {substat.get('key', '')} -> {substat.get('keyChinese', '未知')} (升级次数: {substat.get('upgrades', 0)})"
                     )
 
-            # 打印最优配置
-            print("\n  最优配置:")
+            log.debug("最优配置:")
             for slot_key, config in optimal_configs.items():
-                print(f"  {slot_key}号位:")
-                print(f"    主词条: {config['mainStatKey']}")
-                print(f"    得分: {config.get('score', 0):.2f}")
-                print("    副词条:")
+                log.debug(f"{slot_key}号位:")
+                log.debug(f"  主词条: {config['mainStatKey']}")
+                log.debug(f"  得分: {config.get('score', 0):.2f}")
+                log.debug("  副词条:")
                 for substat in config["substats"]:
-                    print(f"      {substat['key']} (升级次数: {substat['upgrades']})")
-                print(f"    最大等级: {config['maxLevel']}")
-                print(f"    最大副词条数: {config['maxSubstats']}")
-                print(f"    总升级次数: {config['totalUpgrades']}")
+                    log.debug(f"    {substat['key']} (升级次数: {substat['upgrades']})")
+                log.debug(f"  最大等级: {config['maxLevel']}")
+                log.debug(f"  最大副词条数: {config['maxSubstats']}")
+                log.debug(f"  总升级次数: {config['totalUpgrades']}")
 
-            # 打印实际得分
-            print("\n  实际得分:")
+            log.debug("实际得分:")
             for slot_key, score_data in actual_scores.items():
-                print(f"  {slot_key}号位:")
-                print(f"    主词条得分: {score_data['mainStatScore']:.2f}")
-                print(f"    副词条得分: {score_data['substatScore']:.2f}")
-                print(f"    总得分: {score_data['totalScore']:.2f}")
-                print(f"    相对得分: {score_data.get('relativeScore', '未知'):.2f}")
-                print("    有效副词条:")
+                log.debug(f"{slot_key}号位:")
+                log.debug(f"  主词条得分: {score_data['mainStatScore']:.2f}")
+                log.debug(f"  副词条得分: {score_data['substatScore']:.2f}")
+                log.debug(f"  总得分: {score_data['totalScore']:.2f}")
+                log.debug(f"  相对得分: {score_data.get('relativeScore', '未知'):.2f}")
+                log.debug("  有效副词条:")
                 for substat in score_data["validSubstats"]:
-                    print(
-                        f"      {substat['key']} (升级次数: {substat['upgrades']}, 权重: {substat['weight']:.2f}, 得分: {substat['score']:.2f})"
+                    log.debug(
+                        f"    {substat['key']} (升级次数: {substat['upgrades']}, 权重: {substat['weight']:.2f}, 得分: {substat['score']:.2f})"
                     )
 
         return processed_results

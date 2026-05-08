@@ -6,6 +6,7 @@ from typing import Optional, Dict, List, Any
 from one_dragon.utils.log_utils import log
 from one_dragon.utils import os_utils
 from zzz_od.application.inventory_scan.InventoryDataProcessor import InventoryDataProcessor
+from zzz_od.game_data.drive_disk import MAX_LEVELS
 
 
 class DriveDiskParser:
@@ -169,7 +170,7 @@ class DriveDiskParser:
             rarity = 'S'  # 默认S级
             if max_level > 0:
                 # 查找匹配的品级
-                for r, max_lvl in InventoryDataProcessor.MAX_LEVELS.items():
+                for r, max_lvl in MAX_LEVELS.items():
                     if max_level == max_lvl:
                         rarity = r
                         break
