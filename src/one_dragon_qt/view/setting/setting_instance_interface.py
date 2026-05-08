@@ -39,7 +39,6 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -60,15 +59,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
-        run_idx = 0
         target_idx = 0
-        for opt_enum in RunInOneDragonApp:
+        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
             self.run_opt.addItem(text=opt.label, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
-
-            run_idx += 1
         self.run_opt.setCurrentIndex(target_idx)
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
@@ -89,7 +85,7 @@ class InstanceSettingCard(MultiPushSettingCard):
                 self.login_btn,
                 self.delete_btn,
             ],
-            title="%02d" % self.instance.idx,
+            title=f"{self.instance.idx:02d}",
             icon=FluentIcon.PEOPLE,
         )
         self.update_title()
@@ -98,7 +94,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         """
         更新显示文本
         """
-        title = "%02d" % self.instance.idx
+        title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
         self.setTitle(title)
@@ -249,9 +245,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.client_type_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter('client_type')
         )
-        self.prefer_bangbang_points_opt.init_with_adapter(
-            self.ctx.game_account_config.get_prop_adapter('prefer_bangbang_points')
-        )
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("use_custom_win_title")
@@ -301,13 +294,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         self.client_type_opt.value_changed.connect(self._on_client_type_changed)
         instance_settings_group.addSettingCard(self.client_type_opt)
-
-        self.prefer_bangbang_points_opt = SwitchSettingCard(
-            icon=FluentIcon.SPEED_HIGH,
-            title='邦邦点快速队列',
-            content='云游戏排队时优先使用邦邦点快速队列',
-        )
-        instance_settings_group.addSettingCard(self.prefer_bangbang_points_opt)
 
         self.game_path_opt = PushSettingCard(
             icon=FluentIcon.FOLDER, title="游戏路径", text="选择"
