@@ -86,15 +86,42 @@
 
 | 组件 | 职责 |
 |------|------|
+| `BaseParser` | 解析器抽象基类，定义统一接口 |
 | `OcrWorker` | OCR 工作线程，管理任务队列和并行处理 |
 | `TranslationService` | 翻译服务，提供模糊匹配和繁简转换 |
-| `AgentNameParser` | 代理人名称解析器 |
 | `AgentParser` | 代理人详细信息解析器 |
 | `DriveDiskParser` | 驱动盘解析器 |
 | `WengineParser` | 音擎解析器 |
+| `InventoryDataProcessor` | 数据处理核心，计算驱动盘得分 |
+| `ReportLoader` | 报告加载子线程，异步加载翻译字典 |
 
-### 6. 迭代方向
+### 6. 解析器架构
 
-- 增加音擎详细属性扫描
-- 优化模糊匹配算法提高识别准确率
-- 支持批量扫描多个代理人
+所有解析器继承 `BaseParser` 抽象基类，提供统一的接口规范：
+
+```python
+class BaseParser(ABC):
+    @abstractmethod
+    def parse(self, ocr_result, *args, **kwargs) -> Optional[dict]: ...
+
+    @abstractmethod
+    def get_supported_type(self) -> str: ...
+
+    def preprocess(self, text: str) -> str: ...
+    def postprocess(self, result: dict) -> dict: ...
+```
+
+**解析器类型映射**：
+
+| 解析器 | 类型标识 | 说明 |
+|--------|----------|------|
+| `AgentParser` | `agent` | 代理人详细信息解析 |
+| `DriveDiskParser` | `drive_disk` | 驱动盘属性解析 |
+| `WengineParser` | `wengine` | 音擎属性解析 |
+
+### 7. 迭代方向
+
+- [x] 增加音擎详细属性扫描
+- [x] 优化模糊匹配算法提高识别准确率
+- [ ] 支持批量扫描多个代理人
+- [ ] 增加驱动盘最优搭配推荐
