@@ -1,5 +1,6 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
@@ -25,6 +26,7 @@ class Deploy(ZOperation):
         )
 
     @node_from(from_name='出战')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='出战确认')
     def check_level(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '通用-出战', '标题-驱动盘数量已达到可拥有上限')
@@ -39,13 +41,10 @@ class Deploy(ZOperation):
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
+        if self.node_retry_times == self.node_max_retry_times - 1:
+            # 这里返回成功, 从而不发送失败通知
+            return self.round_success('无需确认', wait=1)
         return self.round_retry('无需确认', wait=1)
-
-    @node_from(from_name='出战确认')
-    @node_from(from_name='出战确认', success=False, status='无需确认')
-    @operation_node(name='进入成功')
-    def finish(self) -> OperationRoundResult:
-        return self.round_success()
 
 
 def __debug():
