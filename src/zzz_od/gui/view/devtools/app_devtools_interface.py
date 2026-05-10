@@ -17,17 +17,20 @@ from zzz_od.gui.view.devtools.agent_template_generator_interface import (
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
     DevtoolsScreenshotHelperInterface,
 )
+from zzz_od.gui.view.devtools.intel_manage_interface import IntelManageInterface
 from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
 
 
 class AppDevtoolsInterface(PivotNavigatorInterface):
-
-    def __init__(self,
-                 ctx: ZContext,
-                 parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
-        PivotNavigatorInterface.__init__(self, object_name='app_devtools_interface', parent=parent,
-                                         nav_text_cn='开发工具', nav_icon=FluentIcon.DEVELOPER_TOOLS)
+        PivotNavigatorInterface.__init__(
+            self,
+            object_name="app_devtools_interface",
+            parent=parent,
+            nav_text_cn="开发工具",
+            nav_icon=FluentIcon.DEVELOPER_TOOLS,
+        )
 
     def create_sub_interface(self):
         """
@@ -40,3 +43,4 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))
+        self.add_sub_interface(IntelManageInterface(self.ctx))
