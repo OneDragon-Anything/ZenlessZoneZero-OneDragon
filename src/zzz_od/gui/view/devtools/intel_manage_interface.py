@@ -6,6 +6,8 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from one_dragon.utils.log_utils import log
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
@@ -418,9 +420,13 @@ class IntelManageInterface(VerticalScrollInterface):
         self.agent_info_layout.setContentsMargins(8, 8, 8, 8)
         self.agent_info_layout.setSpacing(12)
 
-        # 左侧列：比较公式配置 + 基础信息表格
-        left_column = QWidget()
-        left_layout = QVBoxLayout(left_column)
+        # 左侧列：比较公式配置 + 基础信息表格（自动高度适应）
+        self.left_column = QWidget()
+        self.left_column.setObjectName("agent_left_column")
+        self.left_column.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+        left_layout = QVBoxLayout(self.left_column)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(12)
 
@@ -429,7 +435,10 @@ class IntelManageInterface(VerticalScrollInterface):
         formula_card.setStyleSheet("border: none;")  # 使用样式表隐藏卡片边框
         formula_layout = QVBoxLayout(formula_card)
         formula_layout.setContentsMargins(4, 4, 4, 4)  # 进一步减小内边距
-        formula_layout.setSpacing(4)  # 进一步减小控件间距
+        formula_layout.setSpacing(5)  # 精确设置5px间距（表格与按钮之间）
+
+        # 设置最小高度确保表格和按钮完全显示
+        formula_card.setMinimumHeight(240)
 
         # 可用的权重选项（排除小属性，添加'无'选项）
         self.available_weight_options = [
@@ -447,14 +456,23 @@ class IntelManageInterface(VerticalScrollInterface):
         headers = ["优先级", "可选词条1", "可选词条2", "可选词条3"]
         self.formula_table.setHorizontalHeaderLabels(headers)
 
-        # 设置列宽
-        self.formula_table.setColumnWidth(0, 70)  # 优先级列
-        self.formula_table.setColumnWidth(1, 120)  # 可选词条1
-        self.formula_table.setColumnWidth(2, 120)  # 可选词条2
-        self.formula_table.setColumnWidth(3, 120)  # 可选词条3
+        # 自动分配列宽：优先级列固定，可选词条列均分剩余空间
+        self.formula_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Fixed
+        )
+        self.formula_table.setColumnWidth(0, 60)
+        for i in range(1, 4):
+            self.formula_table.horizontalHeader().setSectionResizeMode(
+                i, QHeaderView.ResizeMode.Stretch
+            )
 
         # 隐藏默认的行号列（垂直表头）
         self.formula_table.verticalHeader().setVisible(False)
+
+        # 自动适应高度
+        self.formula_table.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
 
         # 初始化表格内容（所有值初始化为'无'）
         self.formula_combos = []  # 存储所有下拉框，结构: [[row0_combo1, row0_combo2, row0_combo3], ...]
@@ -498,37 +516,49 @@ class IntelManageInterface(VerticalScrollInterface):
 
         left_layout.addWidget(formula_card)
 
-        # 音擎设定表格（优化高度，减少留白）
+        # 音擎设定（1行3列表格，与权重优先级表格配置一致）
+        sound_engine_card = SimpleCardWidget()
+        sound_engine_card.setStyleSheet("border: none;")
+        sound_engine_layout = QVBoxLayout(sound_engine_card)
+        sound_engine_layout.setContentsMargins(4, 4, 4, 4)
+        sound_engine_layout.setSpacing(5)
+
+        engine_weapon_data = self._load_engine_weapon_data()
+        self.sound_engine_options = ["无"] + [
+            w.get("weapon_name", "") for w in engine_weapon_data if w.get("weapon_name")
+        ]
+
         self.sound_engine_table = TableWidget()
         self.sound_engine_table.setBorderVisible(True)
         self.sound_engine_table.setBorderRadius(8)
         self.sound_engine_table.setColumnCount(3)
         self.sound_engine_table.setRowCount(1)
 
-        # 设置表头
-        headers = ["最优音擎设定", "次优音擎设定", "第三优音擎设定"]
+        headers = ["最优音擎", "次优音擎", "第三优音擎"]
         self.sound_engine_table.setHorizontalHeaderLabels(headers)
+        self.sound_engine_table.horizontalHeader().setVisible(True)
+        self.sound_engine_table.verticalHeader().setVisible(False)
 
-        # 设置列宽，三列均匀分配
-        for i in range(3):
-            self.sound_engine_table.horizontalHeader().setSectionResizeMode(
-                i, QHeaderView.ResizeMode.Stretch
-            )
-
-        # 优化表格高度：设置紧凑布局，减少留白
-        self.sound_engine_table.setRowHeight(0, 26)  # 紧凑行高
-        self.sound_engine_table.verticalHeader().setVisible(False)  # 隐藏垂直表头
-        self.sound_engine_table.horizontalHeader().setFixedHeight(
-            24
-        )  # 减小水平表头高度
         self.sound_engine_table.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )  # 高度固定
-        self.sound_engine_table.setFixedHeight(
-            56
-        )  # 设置固定总高度（表头24 + 行26 + 边框等）
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
 
-        left_layout.addWidget(self.sound_engine_table)
+        self.sound_engine_combos = []
+        default_values = [["无", "无", "无"]]
+
+        for col in range(3):
+            combo = EditableComboBox()
+            combo.addItems(self.sound_engine_options)
+            combo.setCurrentText(default_values[0][col])
+            combo.currentTextChanged.connect(
+                partial(self._on_sound_engine_combo_changed, col)
+            )
+            self.sound_engine_table.setCellWidget(0, col, combo)
+            self.sound_engine_combos.append(combo)
+
+        sound_engine_layout.addWidget(self.sound_engine_table)
+
+        left_layout.addWidget(sound_engine_card)
 
         # 基础信息表格
         self.basic_info_table = TableWidget()
@@ -536,12 +566,10 @@ class IntelManageInterface(VerticalScrollInterface):
         self.basic_info_table.setBorderRadius(8)
         self.basic_info_table.setWordWrap(True)
         self.basic_info_table.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
-        self.basic_info_table.verticalHeader().setVisible(False)  # 隐藏垂直表头列
-        self.basic_info_table.horizontalHeader().setVisible(
-            False
-        )  # 隐藏水平表头（列名行）
+        self.basic_info_table.verticalHeader().setVisible(False)
+        self.basic_info_table.horizontalHeader().setVisible(False)
         left_layout.addWidget(self.basic_info_table)
 
         # 权重配置表格（右侧卡片）
@@ -554,7 +582,7 @@ class IntelManageInterface(VerticalScrollInterface):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
 
-        self.agent_info_layout.addWidget(left_column)
+        self.agent_info_layout.addWidget(self.left_column)
         self.agent_info_layout.addWidget(self.weight_table)
 
         layout.addWidget(self.agent_info_card)
@@ -590,6 +618,28 @@ class IntelManageInterface(VerticalScrollInterface):
                         combo.setCurrentText("无")
                         combo.blockSignals(False)
         # 新选择的词条不重复时，不需要更新其他下拉框，保持原有选择不变
+
+    def _on_sound_engine_combo_changed(self, col: int, text: str) -> None:
+        """音擎下拉框内容改变时的去重处理（与权重优先级表格去重逻辑一致）"""
+        if text == "无":
+            return
+
+        table_selected = set()
+        for i, combo in enumerate(self.sound_engine_combos):
+            if i == col:
+                continue
+            item = combo.currentText()
+            if item != "无":
+                table_selected.add(item)
+
+        if text in table_selected:
+            for i, combo in enumerate(self.sound_engine_combos):
+                if i == col:
+                    continue
+                if combo.currentText() == text:
+                    combo.blockSignals(True)
+                    combo.setCurrentText("无")
+                    combo.blockSignals(False)
 
     def _set_enum_combo_value(
         self, combo_box, enum_class, enum_value: str, fallback_value: str
@@ -679,7 +729,7 @@ class IntelManageInterface(VerticalScrollInterface):
         """显示代理人基础信息"""
         self.basic_info_table.clear()
         self.basic_info_table.setColumnCount(2)
-        self.basic_info_table.setRowCount(5)
+        self.basic_info_table.setRowCount(4)
 
         headers = ["属性", "值"]
         self.basic_info_table.setHorizontalHeaderLabels(headers)
@@ -721,37 +771,30 @@ class IntelManageInterface(VerticalScrollInterface):
         )
 
         # 设置表格内容
-        # 代理人名称
-        item_label = QTableWidgetItem("代理人名称")
-        item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        self.basic_info_table.setItem(0, 0, item_label)
-        item_value = QTableWidgetItem(agent_info.get("agent_name", ""))
-        self.basic_info_table.setItem(0, 1, item_value)
-
         # 角色类型（下拉框）
         item_label = QTableWidgetItem("角色类型")
         item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        self.basic_info_table.setItem(1, 0, item_label)
-        self.basic_info_table.setCellWidget(1, 1, self.agent_type_combo)
+        self.basic_info_table.setItem(0, 0, item_label)
+        self.basic_info_table.setCellWidget(0, 1, self.agent_type_combo)
 
         # 属性类型（下拉框）
         item_label = QTableWidgetItem("属性类型")
         item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        self.basic_info_table.setItem(2, 0, item_label)
-        self.basic_info_table.setCellWidget(2, 1, self.dmg_type_combo)
+        self.basic_info_table.setItem(1, 0, item_label)
+        self.basic_info_table.setCellWidget(1, 1, self.dmg_type_combo)
 
         # 稀有度（下拉框）
         item_label = QTableWidgetItem("稀有度")
         item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        self.basic_info_table.setItem(3, 0, item_label)
-        self.basic_info_table.setCellWidget(3, 1, self.rare_type_combo)
+        self.basic_info_table.setItem(2, 0, item_label)
+        self.basic_info_table.setCellWidget(2, 1, self.rare_type_combo)
 
         # code
         item_label = QTableWidgetItem("code")
         item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        self.basic_info_table.setItem(4, 0, item_label)
+        self.basic_info_table.setItem(3, 0, item_label)
         item_value = QTableWidgetItem(agent_info.get("code", ""))
-        self.basic_info_table.setItem(4, 1, item_value)
+        self.basic_info_table.setItem(3, 1, item_value)
 
         # 设置列宽：第一列固定宽度，第二列拉伸填充剩余空间
         self.basic_info_table.setColumnWidth(0, 120)
@@ -1356,9 +1399,7 @@ class IntelManageInterface(VerticalScrollInterface):
                 if key_item and value_item:
                     key = key_item.text()
                     value = value_item.text()
-                    if key == "代理人名称":
-                        agent_data["agent_name"] = value
-                    elif key == "code":
+                    if key == "code":
                         agent_data["code"] = value
 
         # 读取权重配置表格数据
