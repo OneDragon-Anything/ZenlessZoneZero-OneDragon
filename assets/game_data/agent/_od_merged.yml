@@ -411,7 +411,7 @@
 - agent_name: 叶瞬光
   agent_type: ATTACK
   code: ye_shunguang
-  dmg_type: 凛刃
+  dmg_type: PHYSICAL
   rare_type: S
 - agent_name: 伊德海莉·墨菲
   agent_type: RUPTURE

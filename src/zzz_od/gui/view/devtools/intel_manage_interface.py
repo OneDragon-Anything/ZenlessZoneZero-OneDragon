@@ -38,6 +38,8 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import yaml_utils
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.os_utils import get_resource_path
+from one_dragon_qt.utils.layout_utils import Margins
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
@@ -420,25 +422,16 @@ class IntelManageInterface(VerticalScrollInterface):
         self.agent_info_layout.setContentsMargins(8, 8, 8, 8)
         self.agent_info_layout.setSpacing(12)
 
-        # 左侧列：比较公式配置 + 基础信息表格（自动高度适应）
-        self.left_column = QWidget()
-        self.left_column.setObjectName("agent_left_column")
+        # 左侧列：比较公式配置 + 基础信息表格（使用Column类实现卡片布局）
+        self.left_column = Column(spacing=12, margins=Margins(0, 0, 0, 0))
+        self.left_column.setMinimumWidth(400)
         self.left_column.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
-        left_layout = QVBoxLayout(self.left_column)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(12)
 
-        # 比较公式配置区域
-        formula_card = SimpleCardWidget()
-        formula_card.setStyleSheet("border: none;")  # 使用样式表隐藏卡片边框
-        formula_layout = QVBoxLayout(formula_card)
-        formula_layout.setContentsMargins(4, 4, 4, 4)  # 进一步减小内边距
-        formula_layout.setSpacing(5)  # 精确设置5px间距（表格与按钮之间）
-
-        # 设置最小高度确保表格和按钮完全显示
-        formula_card.setMinimumHeight(240)
+        # 比较公式配置区域（使用Column简化嵌套）
+        formula_layout = Column(spacing=5, margins=Margins(4, 4, 4, 4))
+        formula_layout.setMinimumHeight(240)
 
         # 可用的权重选项（排除小属性，添加'无'选项）
         self.available_weight_options = [
@@ -506,22 +499,18 @@ class IntelManageInterface(VerticalScrollInterface):
 
             self.formula_combos.append(row_combos)
 
-        # 将表格添加到布局（关键步骤！之前缺失）
-        formula_layout.addWidget(self.formula_table)
+        # 将表格添加到布局
+        formula_layout.add_widget(self.formula_table)
 
-        # 一键生成按钮（使用 PrimaryPushButton，与 agent_template_generator_interface.py 保持一致）
+        # 一键生成按钮
         self.btn_generate_weight = PrimaryPushButton(FluentIcon.PLAY, "一键生成权重")
         self.btn_generate_weight.clicked.connect(self._on_generate_weight_clicked)
-        formula_layout.addWidget(self.btn_generate_weight)
+        formula_layout.add_widget(self.btn_generate_weight)
 
-        left_layout.addWidget(formula_card)
+        self.left_column.add_widget(formula_layout)
 
         # 音擎设定（1行3列表格，与权重优先级表格配置一致）
-        sound_engine_card = SimpleCardWidget()
-        sound_engine_card.setStyleSheet("border: none;")
-        sound_engine_layout = QVBoxLayout(sound_engine_card)
-        sound_engine_layout.setContentsMargins(4, 4, 4, 4)
-        sound_engine_layout.setSpacing(5)
+        sound_engine_layout = Column(spacing=5, margins=Margins(4, 4, 4, 4))
 
         engine_weapon_data = self._load_engine_weapon_data()
         self.sound_engine_options = ["无"] + [
@@ -538,6 +527,12 @@ class IntelManageInterface(VerticalScrollInterface):
         self.sound_engine_table.setHorizontalHeaderLabels(headers)
         self.sound_engine_table.horizontalHeader().setVisible(True)
         self.sound_engine_table.verticalHeader().setVisible(False)
+
+        # 自动分配列宽：三列平分总宽度
+        for i in range(3):
+            self.sound_engine_table.horizontalHeader().setSectionResizeMode(
+                i, QHeaderView.ResizeMode.Stretch
+            )
 
         self.sound_engine_table.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
@@ -556,9 +551,9 @@ class IntelManageInterface(VerticalScrollInterface):
             self.sound_engine_table.setCellWidget(0, col, combo)
             self.sound_engine_combos.append(combo)
 
-        sound_engine_layout.addWidget(self.sound_engine_table)
+        sound_engine_layout.add_widget(self.sound_engine_table)
 
-        left_layout.addWidget(sound_engine_card)
+        self.left_column.add_widget(sound_engine_layout)
 
         # 基础信息表格
         self.basic_info_table = TableWidget()
@@ -570,17 +565,16 @@ class IntelManageInterface(VerticalScrollInterface):
         )
         self.basic_info_table.verticalHeader().setVisible(False)
         self.basic_info_table.horizontalHeader().setVisible(False)
-        left_layout.addWidget(self.basic_info_table)
+        self.left_column.add_widget(self.basic_info_table)
+
+        self.left_column.add_stretch(1)
 
         # 权重配置表格（右侧卡片）
         self.weight_table = TableWidget()
         self.weight_table.setBorderVisible(True)
         self.weight_table.setBorderRadius(8)
         self.weight_table.setWordWrap(True)
-        self.weight_table.setMinimumWidth(400)  # 设置最小宽度，允许自适应扩展
-        self.weight_table.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
+        self.weight_table.setFixedWidth(350)
 
         self.agent_info_layout.addWidget(self.left_column)
         self.agent_info_layout.addWidget(self.weight_table)
