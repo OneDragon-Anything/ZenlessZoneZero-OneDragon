@@ -74,6 +74,8 @@
 | 数据类型 | 来源文件 | 说明 |
 |---------|---------|------|
 | 角色翻译 | `assets/game_data/agent/_od_merged.yml` | 角色中文名与代码的映射 |
+| 驱动盘翻译 | `assets/game_data/drive_disk/_od_merged.yml` | 驱动盘名称与代码的映射 |
+| 音擎翻译 | `assets/game_data/engine_weapon/_od_merged.yml` | 音擎名称与代码的映射 |
 | 画面定义 | `assets/game_data/screen_info/_od_merged.yml` | 界面区域和导航路径 |
 | 扫描结果 | `.debug/inventory_data/` | 输出的 JSON 数据文件 |
 
@@ -124,4 +126,12 @@ class BaseParser(ABC):
 - [x] 增加音擎详细属性扫描
 - [x] 优化模糊匹配算法提高识别准确率
 - [ ] 支持批量扫描多个代理人
+- [ ] 增加驱动盘最优搭配推荐
+
+## 信息管理
+此模块为代理人自动培养的子模块之一，负责管理游戏中的代理人基础配置、资源信息等。
+
+### 迭代方向
+- [x] 增加代理人基础配置扫描
+- [ ] 将项目中的驱动盘配置文件接入此系统
 - [ ] 增加驱动盘最优搭配推荐

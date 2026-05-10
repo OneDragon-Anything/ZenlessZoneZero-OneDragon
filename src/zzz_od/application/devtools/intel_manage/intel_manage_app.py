@@ -269,7 +269,7 @@ class IntelManageApp(ZApplication):
                         else:
                             data["agent_type_cn"] = data.get("agent_type", "")
 
-                        if "dmg_type" in data and data["d_type"] in dmg_type_mapping:
+                        if "dmg_type" in data and data["dmg_type"] in dmg_type_mapping:
                             data["dmg_type_cn"] = dmg_type_mapping[data["dmg_type"]]
                         else:
                             data["dmg_type_cn"] = data.get("dmg_type", "")

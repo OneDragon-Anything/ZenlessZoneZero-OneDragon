@@ -1026,8 +1026,17 @@ class IntelManageInterface(VerticalScrollInterface):
                 with open(file_path, encoding="utf-8") as f:
                     yml_data = yaml_utils.safe_load(f)
                     if yml_data:
-                        parsed = parser(yml_data)
-                        data.append(parsed)
+                        # 检查数据类型：合并文件是列表，单独文件是字典
+                        if isinstance(yml_data, list):
+                            # 合并文件格式：遍历列表中的每个元素
+                            for item in yml_data:
+                                if isinstance(item, dict):
+                                    parsed = parser(item)
+                                    data.append(parsed)
+                        else:
+                            # 单独文件格式：直接解析
+                            parsed = parser(yml_data)
+                            data.append(parsed)
             except OSError as e:
                 log.error(f"Failed to read file {file_path}: {e}")
             except Exception as e:
