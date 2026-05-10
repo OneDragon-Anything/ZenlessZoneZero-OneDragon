@@ -71,11 +71,8 @@ class WorldPatrolService:
             rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
             return MiniMapWrapper(rgb), self._mini_map_rect
 
-        # 小地图区域只维护在"大世界"；无缓存时先动态匹配位置，失败才使用静态框兜底。
-        mini_map_area_screen_name = '大世界'
-
-        # 获取小地图的默认宽高（从配置中获取）
-        default_area = self.ctx.screen_loader.get_area(mini_map_area_screen_name, '小地图')
+        # 获取小地图静态配置，用于动态框尺寸和兜底裁剪。
+        default_area = self.ctx.screen_loader.get_area('大世界', '小地图')
         mini_map_width = default_area.rect.width
         mini_map_height = default_area.rect.height
 
