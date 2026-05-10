@@ -941,26 +941,29 @@ class IntelManageInterface(VerticalScrollInterface):
         )
 
     def _load_drive_disk_data(self, force_reload: bool = False) -> list[dict]:
-        """加载驱动盘数据（带缓存）"""
-        # 如果已有缓存且不需要强制刷新，直接返回
+        """加载驱动盘数据（委托给后端服务）"""
         if not force_reload and self._cached_drive_disk_data is not None:
             return self._cached_drive_disk_data
 
-        def parse_disk_info(disk_info: dict) -> dict:
-            return {
-                "id": 0,
-                "set_name": disk_info.get("set_name", ""),
-                "mission_type_name": disk_info.get("mission_type_name", ""),
-                "code": disk_info.get("code", ""),
-            }
+        app = self._get_intel_manage_app()
+        if app:
+            if force_reload:
+                app.reload_drive_disk(from_separated_files=True)
+            else:
+                app.reload_drive_disk()
 
-        data = self._load_yml_data(parse_disk_info, "assets", "game_data", "drive_disk")
-        for idx, item in enumerate(data):
-            item["id"] = idx + 1
+            data = []
+            for idx, disk in enumerate(app.drive_disk_list):
+                data.append({
+                    "id": idx + 1,
+                    "set_name": disk.set_name,
+                    "mission_type_name": disk.mission_type_name,
+                    "code": disk.code,
+                })
 
-        # 更新缓存
-        self._cached_drive_disk_data = data
-        return data
+            self._cached_drive_disk_data = data
+            return data
+        return []
 
     def _build_sound_engine_page(self) -> QWidget:
         """构建音擎信息管理页面"""
@@ -978,28 +981,29 @@ class IntelManageInterface(VerticalScrollInterface):
         )
 
     def _load_engine_weapon_data(self, force_reload: bool = False) -> list[dict]:
-        """加载音擎数据（带缓存）"""
-        # 如果已有缓存且不需要强制刷新，直接返回
+        """加载音擎数据（委托给后端服务）"""
         if not force_reload and self._cached_engine_weapon_data is not None:
             return self._cached_engine_weapon_data
 
-        def parse_weapon_info(weapon_info: dict) -> dict:
-            return {
-                "id": 0,
-                "weapon_name": weapon_info.get("weapon_name", ""),
-                "rarity": weapon_info.get("rarity", ""),
-                "code": weapon_info.get("code", ""),
-            }
+        app = self._get_intel_manage_app()
+        if app:
+            if force_reload:
+                app.reload_engine_weapon(from_separated_files=True)
+            else:
+                app.reload_engine_weapon()
 
-        data = self._load_yml_data(
-            parse_weapon_info, "assets", "game_data", "engine_weapon"
-        )
-        for idx, item in enumerate(data):
-            item["id"] = idx + 1
+            data = []
+            for idx, weapon in enumerate(app.engine_weapon_list):
+                data.append({
+                    "id": idx + 1,
+                    "weapon_name": weapon.weapon_name,
+                    "rarity": weapon.rarity,
+                    "code": weapon.code,
+                })
 
-        # 更新缓存
-        self._cached_engine_weapon_data = data
-        return data
+            self._cached_engine_weapon_data = data
+            return data
+        return []
 
     def _load_yml_data(self, parser: callable, *path_parts: str) -> list[dict]:
         """
