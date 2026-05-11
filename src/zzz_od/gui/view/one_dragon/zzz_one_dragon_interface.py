@@ -4,6 +4,7 @@ from one_dragon_qt.widgets.page_stack_wrapper import PageStackWrapper
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.view.one_dragon.back_to_world_interface import BackToWorldInterface
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanInterface
 from zzz_od.gui.view.one_dragon.inventory_scan_interface import (
     InventoryScanInterface,
@@ -35,6 +36,7 @@ class ZOneDragonInterface(PivotNavigatorInterface):
             sub_interface=ZOneDragonRunInterface(self.ctx),
             enable_page_stack=True,
         )
+        self.add_sub_interface(BackToWorldInterface(self.ctx))
         self.add_sub_interface(ChargePlanInterface(self.ctx))
         self.add_sub_interface(PredefinedTeamInterface(self.ctx))
         self.add_sub_interface(MouseSensitivityCheckerInterface(self.ctx))

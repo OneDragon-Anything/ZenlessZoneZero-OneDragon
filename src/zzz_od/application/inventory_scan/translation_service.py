@@ -387,6 +387,27 @@ class TranslationService:
         if code and name:
             self.translation_dict["weapon"][name] = {"CHS": name, "EN": code}
 
+    def correct_text(self, text: str) -> str:
+        """
+        修正文本（繁简转换、OCR错误修正）
+        
+        Args:
+            text: 原始文本
+            
+        Returns:
+            修正后的文本
+        """
+        if not text:
+            return text
+        
+        # 应用特殊名称映射
+        corrected = text
+        for wrong, right in self.special_name_mapping.items():
+            if wrong in corrected:
+                corrected = corrected.replace(wrong, right)
+        
+        return corrected
+
     def translate_character(self, name: str, target_lang: str = "EN") -> str:
         """翻译角色名称"""
         return self._translate("character", name, target_lang)
