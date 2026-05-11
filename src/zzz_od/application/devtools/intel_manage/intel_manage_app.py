@@ -57,6 +57,14 @@ class AgentData:
     def weight(self, value: dict):
         self._data["weight"] = value
 
+    @property
+    def recommend_engine_weapon(self) -> list:
+        return self._data.get("recommend_engine_weapon", [])
+
+    @recommend_engine_weapon.setter
+    def recommend_engine_weapon(self, value: list):
+        self._data["recommend_engine_weapon"] = value
+
     def to_dict(self) -> dict:
         """转换为字典形式，用于保存（排除派生字段）"""
         data = dict(self._data)

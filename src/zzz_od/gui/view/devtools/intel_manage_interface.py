@@ -541,9 +541,12 @@ class IntelManageInterface(VerticalScrollInterface):
         self.sound_engine_combos = []
         default_values = [["无", "无", "无"]]
 
+        # 将音擎选项转换为 ConfigItem 列表，以便使用 set_items() 方法启用自动补全
+        sound_engine_items = [ConfigItem(opt) for opt in self.sound_engine_options]
+
         for col in range(3):
             combo = EditableComboBox()
-            combo.addItems(self.sound_engine_options)
+            combo.set_items(sound_engine_items)
             combo.setCurrentText(default_values[0][col])
             combo.currentTextChanged.connect(
                 partial(self._on_sound_engine_combo_changed, col)
@@ -704,6 +707,26 @@ class IntelManageInterface(VerticalScrollInterface):
 
         # 显示权重配置
         self._show_weight_info(agent_info)
+
+        # 显示音擎配置
+        self._show_sound_engine_info(agent_info)
+
+    def _show_sound_engine_info(self, agent_info: dict) -> None:
+        """显示代理人音擎配置"""
+        sound_engine_data = agent_info.get("recommend_engine_weapon", [])
+
+        # 重置所有下拉框为'无'
+        for combo in self.sound_engine_combos:
+            combo.blockSignals(True)
+            combo.setCurrentText("无")
+            combo.blockSignals(False)
+
+        # 设置音擎配置值
+        for idx, weapon_name in enumerate(sound_engine_data[:3]):
+            if idx < len(self.sound_engine_combos):
+                self.sound_engine_combos[idx].blockSignals(True)
+                self.sound_engine_combos[idx].setCurrentText(weapon_name)
+                self.sound_engine_combos[idx].blockSignals(False)
 
     def _reset_formula_table(self) -> None:
         """重置权重优先级表格的所有值为'无'"""
@@ -1411,6 +1434,17 @@ class IntelManageInterface(VerticalScrollInterface):
 
         if weight_data:
             agent_data["weight"] = weight_data
+
+        # 读取音擎配置表格数据
+        sound_engine_data = []
+        if hasattr(self, "sound_engine_combos"):
+            for combo in self.sound_engine_combos:
+                value = combo.currentText()
+                if value and value != "无":
+                    sound_engine_data.append(value)
+
+        if sound_engine_data:
+            agent_data["recommend_engine_weapon"] = sound_engine_data
 
         # 更新内存中的代理人数据（合并完整数据）
         merged_agent_data = dict(self.agent_data[agent_name])

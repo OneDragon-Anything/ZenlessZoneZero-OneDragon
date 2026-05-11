@@ -293,6 +293,10 @@
   code: soldier_11
   dmg_type: FIRE
   rare_type: S
+  recommend_engine_weapon:
+  - 硫磺石
+  - 加农转子
+  - 街头巨星
   weight:
     以太伤害加成: 0.0
     冰属性伤害加成: 0.0
