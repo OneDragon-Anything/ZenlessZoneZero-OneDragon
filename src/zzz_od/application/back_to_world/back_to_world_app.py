@@ -46,7 +46,7 @@ class BackToWorldApp(ZApplication):
         return self.round_by_op_result(op.execute())
     
     @node_from(from_name='返回大世界')
-    @operation_node(name='导航到代理人-信息')
+    @operation_node(name='导航到特定代理人')
     def navigate_to_agent_info(self) -> OperationRoundResult:
         """
         导航到代理人-信息画面
