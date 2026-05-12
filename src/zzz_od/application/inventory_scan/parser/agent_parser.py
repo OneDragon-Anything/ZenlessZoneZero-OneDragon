@@ -2,21 +2,20 @@ import json
 import os
 import re
 import time
-from typing import Any, Optional
+from typing import Any
 
 import cv2
 from cv2.typing import MatLike
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.application.inventory_scan.parser.base_parser import BaseParser
 
 
-class AgentParser(BaseParser):
+class AgentParser:
     """代理人数据解析器"""
 
     def __init__(self, ctx: Any = None):
-        super().__init__(ctx)
+        self.ctx = ctx
         self.agent_counter = 0
         self.scanned_agent_keys = set()  # 记录已扫描的角色key，用于去重
         # 异常数据保存目录
@@ -25,10 +24,10 @@ class AgentParser(BaseParser):
         # 延迟加载翻译服务
         self._translation_service = None
 
-    def parse(self, ocr_items: list[dict[str, Any]], *args, **kwargs) -> Optional[dict]:
+    def parse(self, ocr_items: list[dict[str, Any]], *args, **kwargs) -> dict | None:
         """
-        解析OCR结果（实现BaseParser接口）
-        
+        解析OCR结果
+
         Args:
             ocr_items: OCR识别结果列表
             *args: 额外的位置参数

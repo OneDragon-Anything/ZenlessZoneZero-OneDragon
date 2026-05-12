@@ -1,10 +1,11 @@
 from typing import List, Dict, Optional
 from cv2.typing import MatLike
 from one_dragon.utils.log_utils import log
+from zzz_od.game_data.parsers import IAgentNameParser
 from .agent_parser import AgentParser
 
 
-class AgentNameParser:
+class AgentNameParser(IAgentNameParser):
     """只解析角色名称的解析器"""
 
     def __init__(self):
@@ -56,3 +57,8 @@ class AgentNameParser:
         except Exception as e:
             log.error(f"解析代理人名称失败: {e}", exc_info=True)
             return None
+
+    def reset(self) -> None:
+        """重置解析器状态"""
+        self.scanned_agent_keys.clear()
+        self.agent_counter = 0

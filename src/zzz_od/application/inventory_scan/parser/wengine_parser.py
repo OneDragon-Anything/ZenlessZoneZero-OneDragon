@@ -1,23 +1,25 @@
-import re
 import json
 import os
+import re
 import time
-from typing import Optional, Dict, List, Any
+from typing import Any
+
 import cv2
 from cv2.typing import MatLike
 
-from one_dragon.utils.log_utils import log
 from one_dragon.utils import os_utils
-from zzz_od.application.inventory_scan.parser.base_parser import BaseParser
+from one_dragon.utils.log_utils import log
 
 
-class WengineParser(BaseParser):
+class WengineParser:
     """音擎属性解析器"""
 
     def __init__(self, ctx: Any = None):
-        super().__init__(ctx)
+        self.ctx = ctx
         self.wengine_counter = 0
-        from zzz_od.application.inventory_scan.translation_service import TranslationService
+        from zzz_od.application.inventory_scan.translation_service import (
+            TranslationService,
+        )
         self.translation_service = TranslationService()
         # from zzz_od.application.inventory_scan.utils.agent_icon_matcher import AgentIconMatcher
         # self.icon_matcher = AgentIconMatcher()
@@ -25,10 +27,10 @@ class WengineParser(BaseParser):
         self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
         os.makedirs(self.error_dir, exist_ok=True)
 
-    def parse(self, ocr_items: List[Dict[str, Any]], *args, **kwargs) -> Optional[Dict]:
+    def parse(self, ocr_items: list[dict[str, Any]], *args, **kwargs) -> dict | None:
         """
-        解析OCR结果（实现BaseParser接口）
-        
+        解析OCR结果
+
         Args:
             ocr_items: OCR识别结果列表
             *args: 额外的位置参数
@@ -44,7 +46,7 @@ class WengineParser(BaseParser):
         """获取解析器支持的类型"""
         return "wengine"
 
-    def parse_ocr_result(self, ocr_items: List[Dict[str, Any]], screenshot: MatLike) -> Optional[Dict]:
+    def parse_ocr_result(self, ocr_items: list[dict[str, Any]], screenshot: MatLike) -> dict | None:
         """
         解析OCR结果生成音擎JSON数据
 
@@ -93,7 +95,7 @@ class WengineParser(BaseParser):
                 self._save_error(screenshot, f"解析异常: {e}", ocr_items)
             return None
 
-    def _save_error(self, screenshot: MatLike, error_msg: str, ocr_results: List[Dict]) -> None:
+    def _save_error(self, screenshot: MatLike, error_msg: str, ocr_results: list[dict]) -> None:
         """
         保存错误截图和相关信息
 
@@ -129,7 +131,7 @@ class WengineParser(BaseParser):
         except Exception as e:
             log.error(f"保存错误信息失败: {e}", exc_info=True)
 
-    def _parse_wengine_name(self, texts: List[str]) -> str:
+    def _parse_wengine_name(self, texts: list[str]) -> str:
         """解析音擎名称"""
         # 音擎名称通常是第一个文本
         wengine_name = texts[0] if texts else 'Unknown'
@@ -142,7 +144,7 @@ class WengineParser(BaseParser):
 
         return wengine_key
 
-    def _parse_level_and_promotion(self, texts: List[str]) -> tuple[int, int]:
+    def _parse_level_and_promotion(self, texts: list[str]) -> tuple[int, int]:
         """
         解析等级和突破等级
         从"等级A/B"中提取：level=A, promotion=B/10-1
@@ -198,7 +200,7 @@ class WengineParser(BaseParser):
 
         return modification
 
-    def generate_export_json(self, wengines: List[Dict]) -> str:
+    def generate_export_json(self, wengines: list[dict]) -> str:
         """生成导出的JSON字符串"""
         import json
         export_data = {

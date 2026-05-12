@@ -1,16 +1,16 @@
 import json
-import re
 import os
+import re
+from typing import Any
+
 import cv2
-from typing import Optional, Dict, List, Any
-from one_dragon.utils.log_utils import log
+
 from one_dragon.utils import os_utils
-from zzz_od.application.inventory_scan.InventoryDataProcessor import InventoryDataProcessor
+from one_dragon.utils.log_utils import log
 from zzz_od.game_data.drive_disk import MAX_LEVELS
-from zzz_od.application.inventory_scan.parser.base_parser import BaseParser
 
 
-class DriveDiskParser(BaseParser):
+class DriveDiskParser:
     """驱动盘属性解析器，根据OCR结果生成JSON数据"""
 
     # 主属性映射（主属性都是百分比，需要加下划线后缀）
@@ -85,10 +85,12 @@ class DriveDiskParser(BaseParser):
     }
 
     def __init__(self, ctx: Any = None):
-        super().__init__(ctx)
+        self.ctx = ctx
         self.disc_counter = 0
         # 初始化翻译服务
-        from zzz_od.application.inventory_scan.translation_service import TranslationService
+        from zzz_od.application.inventory_scan.translation_service import (
+            TranslationService,
+        )
         self.translation_service = TranslationService()
         # 初始化头像匹配器(弃用)
         # from zzz_od.application.inventory_scan.utils.agent_icon_matcher import AgentIconMatcher
@@ -98,10 +100,10 @@ class DriveDiskParser(BaseParser):
         self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
         os.makedirs(self.error_dir, exist_ok=True)
 
-    def parse(self, ocr_texts: List[Dict[str, Any]], *args, **kwargs) -> Optional[Dict]:
+    def parse(self, ocr_texts: list[dict[str, Any]], *args, **kwargs) -> dict | None:
         """
-        解析OCR结果（实现BaseParser接口）
-        
+        解析OCR结果
+
         Args:
             ocr_texts: OCR识别结果列表
             *args: 额外的位置参数
@@ -118,7 +120,7 @@ class DriveDiskParser(BaseParser):
         """获取解析器支持的类型"""
         return "drive_disk"
 
-    def parse_ocr_result(self, ocr_texts: List[Dict[str, Any]], screenshot=None, index: int = 0) -> Optional[Dict]:
+    def parse_ocr_result(self, ocr_texts: list[dict[str, Any]], screenshot=None, index: int = 0) -> dict | None:
         """
         解析OCR结果生成驱动盘JSON数据
 
@@ -219,7 +221,7 @@ class DriveDiskParser(BaseParser):
                 self._save_error_data(screenshot, ocr_texts, texts if 'texts' in locals() else [], 0, [], index, str(e))
             return None
 
-    def _parse_set_name(self, texts: List[str]) -> str:
+    def _parse_set_name(self, texts: list[str]) -> str:
         """解析套装名称"""
         # 找到包含[数字]的文本，提取套装名称
         set_name = None
@@ -244,7 +246,7 @@ class DriveDiskParser(BaseParser):
 
         return set_key
 
-    def _parse_slot(self, texts: List[str]) -> str:
+    def _parse_slot(self, texts: list[str]) -> str:
         """解析装备位置"""
         for text in texts:
             match = re.search(r'\[(\d)\]', text)
@@ -255,7 +257,7 @@ class DriveDiskParser(BaseParser):
                 return text.strip()
         return '1'
 
-    def _parse_level(self, texts: List[str]) -> tuple[int, int]:
+    def _parse_level(self, texts: list[str]) -> tuple[int, int]:
         """解析等级和等级上限"""
         for text in texts:
             # 匹配中文格式: 等级15/15
@@ -276,7 +278,7 @@ class DriveDiskParser(BaseParser):
                 return int(match.group(1)), 0
         return 0, 0
 
-    def _parse_main_stat(self, texts: List[str], slot_key: str) -> tuple[str, Optional[float]]:
+    def _parse_main_stat(self, texts: list[str], slot_key: str) -> tuple[str, float | None]:
         """
         解析主属性
         位置1-3：固定值（无下划线）- HP, ATK, DEF
@@ -324,7 +326,7 @@ class DriveDiskParser(BaseParser):
 
         return main_stat_key, main_stat_value
 
-    def _parse_substats(self, ocr_items: List[Dict], main_stat_key: str) -> List[Dict]:
+    def _parse_substats(self, ocr_items: list[dict], main_stat_key: str) -> list[dict]:
         """
         解析副属性
         副属性不能和主属性重复！需要过滤掉主属性
@@ -458,7 +460,7 @@ class DriveDiskParser(BaseParser):
 
         return substats
 
-    def _parse_substats_by_index(self, ocr_items: List[Dict], main_stat_key: str) -> List[Dict]:
+    def _parse_substats_by_index(self, ocr_items: list[dict], main_stat_key: str) -> list[dict]:
         """
         解析副属性
         副属性不能和主属性重复！需要过滤掉主属性
@@ -568,8 +570,8 @@ class DriveDiskParser(BaseParser):
 
         return substats
 
-    def _save_error_data(self, screenshot, ocr_texts: List[Dict], texts: List[str],
-                         level: int, substats: List[Dict], index: int, error_msg: str):
+    def _save_error_data(self, screenshot, ocr_texts: list[dict], texts: list[str],
+                         level: int, substats: list[dict], index: int, error_msg: str):
         """
         保存异常数据到文件
 
@@ -615,7 +617,7 @@ class DriveDiskParser(BaseParser):
         except Exception as e:
             log.error(f"保存异常数据失败: {e}")
 
-    def _sort_ocr_items(self, ocr_items: List[Dict]) -> List[Dict]:
+    def _sort_ocr_items(self, ocr_items: list[dict]) -> list[dict]:
         """
         对OCR结果进行排序：从上到下，同一行从左到右
         """
@@ -663,7 +665,7 @@ class DriveDiskParser(BaseParser):
 
         return sorted_items
 
-    def generate_export_json(self, discs: List[Dict]) -> str:
+    def generate_export_json(self, discs: list[dict]) -> str:
         """
         生成导出的JSON字符串
 
@@ -686,8 +688,8 @@ class DriveDiskParser(BaseParser):
 
 def test_ocr_first_image():
     """测试OCR第一个驱动盘图片"""
-    import sys
     import os
+    import sys
 
     # 设置启动路径
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
@@ -696,6 +698,7 @@ def test_ocr_first_image():
         sys.path.insert(0, src_path)
 
     import cv2
+
     from one_dragon.utils import os_utils
     from zzz_od.context.zzz_context import ZContext
 
@@ -729,9 +732,7 @@ def test_ocr_first_image():
         return
 
     for idx, item in enumerate(ocr_result):
-        if isinstance(item, str):
-            print(f"{idx}: {item}")
-        elif isinstance(item, dict):
+        if isinstance(item, str) or isinstance(item, dict):
             print(f"{idx}: {item}")
         else:
             text = item.text if hasattr(item, 'text') else str(item)

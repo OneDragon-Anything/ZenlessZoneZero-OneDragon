@@ -1,24 +1,23 @@
 import difflib
 import json
 import os
-import threading
 from pathlib import Path
 from typing import Optional
 
 from yaml import safe_dump, safe_load
 
+from one_dragon.base.config.yaml_data_set_loader import YamlDataSetLoader
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
 
 class TranslationService:
     """
-    翻译服务（采用 ScreenLoader 模式）
+    翻译服务
     
     核心特性：
-    - 三模式加载：from_memory -> from_separated_files -> merged_file
+    - 整合三个 YamlDataSetLoader 分别管理角色、驱动盘、音擎数据
     - 内存映射缓存：_id_2_xxx 字典存储原始数据
-    - 线程安全：使用 RLock 保证并发安全
     - 优先读取合并文件以减少 IO 操作
     """
 
@@ -26,28 +25,6 @@ class TranslationService:
     MERGED_FILE_NAME: str = "_od_merged.yml"
 
     def __init__(self):
-        # Agent 配置
-        self.agent_yml_dir = os_utils.get_path_under_work_dir(
-            "assets", "game_data", "agent"
-        )
-        self.agent_merged_path = os.path.join(self.agent_yml_dir, self.MERGED_FILE_NAME)
-
-        # 驱动盘配置
-        self.drive_disk_yml_dir = os_utils.get_path_under_work_dir(
-            "assets", "game_data", "drive_disk"
-        )
-        self.drive_disk_merged_path = os.path.join(
-            self.drive_disk_yml_dir, self.MERGED_FILE_NAME
-        )
-
-        # 音擎配置
-        self.engine_weapon_yml_dir = os_utils.get_path_under_work_dir(
-            "assets", "game_data", "engine_weapon"
-        )
-        self.engine_weapon_merged_path = os.path.join(
-            self.engine_weapon_yml_dir, self.MERGED_FILE_NAME
-        )
-
         # 用户翻译字典（优先级最高）
         self.user_dict_path = os.path.join(
             os_utils.get_path_under_work_dir("assets", "wiki_data"),
@@ -57,19 +34,16 @@ class TranslationService:
         # 翻译字典（最终用于翻译）
         self.translation_dict: dict[str, dict] = {}
 
-        # 内存映射（参考 ScreenLoader 的 _id_2_screen 模式）
-        self._id_2_agent: dict[str, dict] = {}
-        self._id_2_drive_disk: dict[str, dict] = {}
-        self._id_2_engine_weapon: dict[str, dict] = {}
-
-        # 锁（线程安全，参考 ScreenLoader）
-        self._load_lock = threading.RLock()
+        # 数据集加载器
+        self.agent_loader = self._create_agent_loader()
+        self.drive_disk_loader = self._create_drive_disk_loader()
+        self.engine_weapon_loader = self._create_engine_weapon_loader()
 
         # 特殊名称映射（繁简转换、OCR错误修正）
         self.special_name_mapping = {
             "賽斯": "赛斯",
-            "賽斯・洛威尔": "赛斯",
-            "赛斯・洛威尔": "赛斯",
+            "賽斯·洛威尔": "赛斯",
+            "赛斯·洛威尔": "赛斯",
             "搖摆": "摇摆",
             "昇常": "异常",
             "異常": "异常",
@@ -82,55 +56,171 @@ class TranslationService:
         # 初始化加载
         self._load_dict()
 
+    def _create_agent_loader(self) -> 'YamlDataSetLoader[dict]':
+        """创建角色数据加载器"""
+        service = self
+
+        class AgentLoader(YamlDataSetLoader[dict]):
+            def _extract_primary_key(self, data: dict) -> str:
+                return data.get("code", data["agent_name"].lower().replace(" ", "_"))
+
+            def _extract_name_key(self, data: dict) -> str:
+                return data.get("agent_name", "")
+
+            def _convert_to_object(self, data: dict) -> dict:
+                return data
+
+            def _validate_data(self, data: dict) -> bool:
+                return isinstance(data, dict) and "agent_name" in data
+
+            def _load_from_memory(self) -> None:
+                super()._load_from_memory()
+                service._add_agent_to_dict_all()
+
+            def _load_from_separated_files(self) -> None:
+                super()._load_from_separated_files()
+                service._add_agent_to_dict_all()
+
+            def _load_from_merged_or_separated(self) -> None:
+                super()._load_from_merged_or_separated()
+                service._add_agent_to_dict_all()
+
+        return AgentLoader("agent")
+
+    def _create_drive_disk_loader(self) -> 'YamlDataSetLoader[dict]':
+        """创建驱动盘数据加载器"""
+        service = self
+
+        class DriveDiskLoader(YamlDataSetLoader[dict]):
+            def _extract_primary_key(self, data: dict) -> str:
+                return data.get("code", data["set_name"].lower().replace(" ", "_"))
+
+            def _extract_name_key(self, data: dict) -> str:
+                return data.get("set_name", "")
+
+            def _convert_to_object(self, data: dict) -> dict:
+                return data
+
+            def _validate_data(self, data: dict) -> bool:
+                return isinstance(data, dict) and "set_name" in data
+
+            def _load_from_memory(self) -> None:
+                super()._load_from_memory()
+                service._add_drive_disk_to_dict_all()
+
+            def _load_from_separated_files(self) -> None:
+                super()._load_from_separated_files()
+                service._add_drive_disk_to_dict_all()
+
+            def _load_from_merged_or_separated(self) -> None:
+                super()._load_from_merged_or_separated()
+                service._add_drive_disk_to_dict_all()
+
+        return DriveDiskLoader("drive_disk")
+
+    def _create_engine_weapon_loader(self) -> 'YamlDataSetLoader[dict]':
+        """创建音擎数据加载器"""
+        service = self
+
+        class EngineWeaponLoader(YamlDataSetLoader[dict]):
+            def _extract_primary_key(self, data: dict) -> str:
+                return data.get("code", data["weapon_name"].lower().replace(" ", "_"))
+
+            def _extract_name_key(self, data: dict) -> str:
+                return data.get("weapon_name", "")
+
+            def _convert_to_object(self, data: dict) -> dict:
+                return data
+
+            def _validate_data(self, data: dict) -> bool:
+                return isinstance(data, dict) and "weapon_name" in data
+
+            def _load_from_memory(self) -> None:
+                super()._load_from_memory()
+                service._add_engine_weapon_to_dict_all()
+
+            def _load_from_separated_files(self) -> None:
+                super()._load_from_separated_files()
+                service._add_engine_weapon_to_dict_all()
+
+            def _load_from_merged_or_separated(self) -> None:
+                super()._load_from_merged_or_separated()
+                service._add_engine_weapon_to_dict_all()
+
+        return EngineWeaponLoader("engine_weapon")
+
     def _load_dict(self) -> None:
         """
-        加载翻译字典（参考 ScreenLoader 的 reload 方法）
+        加载翻译字典
         
         加载优先级：
         1. 用户翻译字典（外部 wiki_data）
         2. 合并文件（_od_merged.yml）
         3. 单独文件（各 .yml 文件）
         """
-        with self._load_lock:
-            # 优先尝试加载用户翻译字典
-            if self._try_load_user_dict():
-                return
+        # 优先尝试加载用户翻译字典
+        if self._try_load_user_dict():
+            return
 
-            log.warning("未找到用户翻译字典，从游戏数据目录加载")
-            
-            # 初始化空字典
-            self.translation_dict = {"character": {}, "weapon": {}, "equipment": {}}
+        log.warning("未找到用户翻译字典，从游戏数据目录加载")
+        
+        # 初始化空字典
+        self.translation_dict = {"character": {}, "weapon": {}, "equipment": {}}
 
-            # 加载各类数据（采用 ScreenLoader 三模式的默认模式）
-            self._load_agent_data()
-            self._load_drive_disk_data()
-            self._load_engine_weapon_data()
+        # 加载各类数据（采用 YamlDataSetLoader 三模式的默认模式）
+        self.agent_loader.load()
+        self.drive_disk_loader.load()
+        self.engine_weapon_loader.load()
 
     def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
         """
-        重新加载翻译字典（参考 ScreenLoader 的 reload 方法）
+        重新加载翻译字典
 
         Args:
             from_memory: 是否从内存缓存加载
             from_separated_files: 是否从单独文件加载
         """
-        with self._load_lock:
-            self.translation_dict = {"character": {}, "weapon": {}, "equipment": {}}
-            
-            # 清空内存映射
-            self._id_2_agent.clear()
-            self._id_2_drive_disk.clear()
-            self._id_2_engine_weapon.clear()
+        self.translation_dict = {"character": {}, "weapon": {}, "equipment": {}}
 
-            # 重新加载各类数据
-            self._load_agent_data(from_memory, from_separated_files)
-            self._load_drive_disk_data(from_memory, from_separated_files)
-            self._load_engine_weapon_data(from_memory, from_separated_files)
+        # 重新加载各类数据
+        self.agent_loader.load(from_memory, from_separated_files)
+        self.drive_disk_loader.load(from_memory, from_separated_files)
+        self.engine_weapon_loader.load(from_memory, from_separated_files)
 
-            log.info(f"TranslationService reloaded | "
-                     f"角色: {len(self.translation_dict['character'])} | "
-                     f"驱动盘: {len(self.translation_dict['equipment'])} | "
-                     f"音擎: {len(self.translation_dict['weapon'])}")
+        log.info(f"TranslationService reloaded | "
+                 f"角色: {len(self.translation_dict['character'])} | "
+                 f"驱动盘: {len(self.translation_dict['equipment'])} | "
+                 f"音擎: {len(self.translation_dict['weapon'])}")
+
+    @property
+    def _id_2_agent(self) -> dict:
+        """兼容旧代码：代理 _id_2_agent 访问"""
+        return self.agent_loader._id_2_data
+
+    @property
+    def _id_2_drive_disk(self) -> dict:
+        """兼容旧代码：代理 _id_2_drive_disk 访问"""
+        return self.drive_disk_loader._id_2_data
+
+    @property
+    def _id_2_engine_weapon(self) -> dict:
+        """兼容旧代码：代理 _id_2_engine_weapon 访问"""
+        return self.engine_weapon_loader._id_2_data
+
+    def _add_agent_to_dict_all(self) -> None:
+        """将所有角色数据添加到翻译字典"""
+        for data in self.agent_loader.get_all():
+            self._add_agent_to_dict(data)
+
+    def _add_drive_disk_to_dict_all(self) -> None:
+        """将所有驱动盘数据添加到翻译字典"""
+        for data in self.drive_disk_loader.get_all():
+            self._add_drive_disk_to_dict(data)
+
+    def _add_engine_weapon_to_dict_all(self) -> None:
+        """将所有音擎数据添加到翻译字典"""
+        for data in self.engine_weapon_loader.get_all():
+            self._add_engine_weapon_to_dict(data)
 
     def _try_load_user_dict(self) -> bool:
         """
@@ -169,202 +259,7 @@ class TranslationService:
             log.error(f"加载用户翻译字典失败: {e}")
             return False
 
-    def _load_agent_data(
-        self, from_memory: bool = False, from_separated_files: bool = False
-    ) -> None:
-        """
-        加载角色数据（参考 ScreenLoader 的 reload 方法）
 
-        Args:
-            from_memory: 是否从内存缓存加载
-            from_separated_files: 是否从单独文件加载
-        """
-        if from_memory:
-            # 模式1：从内存缓存加载（最快）
-            for data in self._id_2_agent.values():
-                self._add_agent_to_dict(data)
-            return
-
-        elif from_separated_files:
-            # 模式2：从单独文件加载
-            self._id_2_agent.clear()
-            self._load_from_separated_files(
-                self.agent_yml_dir,
-                "agent_name",
-                self._id_2_agent,
-                self._add_agent_to_dict
-            )
-            return
-
-        else:
-            # 模式3：优先从合并文件加载（默认）
-            self._id_2_agent.clear()
-            merge_file = Path(self.agent_merged_path)
-
-            if merge_file.exists():
-                # 从合并文件加载
-                try:
-                    with open(merge_file, "r", encoding="utf-8") as f:
-                        yaml_data = safe_load(f)
-                    
-                    if isinstance(yaml_data, list):
-                        for data in yaml_data:
-                            if isinstance(data, dict) and "agent_name" in data:
-                                self._add_agent_to_dict(data)
-                                code = data.get("code", data["agent_name"].lower().replace(" ", "_"))
-                                self._id_2_agent[code] = data
-                    
-                    log.info(f"从角色合并文件加载了 {len(self.translation_dict['character'])} 条记录")
-                    return
-                except Exception as e:
-                    log.error(f"加载角色合并文件失败: {e}")
-
-            # 回退到单独文件（参考 ScreenLoader 的回退机制）
-            log.warning("角色合并文件不存在，回退到单独文件")
-            self._load_from_separated_files(
-                self.agent_yml_dir,
-                "agent_name",
-                self._id_2_agent,
-                self._add_agent_to_dict
-            )
-
-    def _load_drive_disk_data(
-        self, from_memory: bool = False, from_separated_files: bool = False
-    ) -> None:
-        """加载驱动盘数据"""
-        if from_memory:
-            for data in self._id_2_drive_disk.values():
-                self._add_drive_disk_to_dict(data)
-            return
-
-        elif from_separated_files:
-            self._id_2_drive_disk.clear()
-            self._load_from_separated_files(
-                self.drive_disk_yml_dir,
-                "set_name",
-                self._id_2_drive_disk,
-                self._add_drive_disk_to_dict
-            )
-            return
-
-        else:
-            self._id_2_drive_disk.clear()
-            merge_file = Path(self.drive_disk_merged_path)
-
-            if merge_file.exists():
-                try:
-                    with open(merge_file, "r", encoding="utf-8") as f:
-                        yaml_data = safe_load(f)
-                    
-                    if isinstance(yaml_data, list):
-                        for data in yaml_data:
-                            if isinstance(data, dict) and "set_name" in data:
-                                self._add_drive_disk_to_dict(data)
-                                code = data.get("code", data["set_name"].lower().replace(" ", "_"))
-                                self._id_2_drive_disk[code] = data
-                    
-                    log.info(f"从驱动盘合并文件加载了 {len(self.translation_dict['equipment'])} 条记录")
-                    return
-                except Exception as e:
-                    log.error(f"加载驱动盘合并文件失败: {e}")
-
-            log.warning("驱动盘合并文件不存在，回退到单独文件")
-            self._load_from_separated_files(
-                self.drive_disk_yml_dir,
-                "set_name",
-                self._id_2_drive_disk,
-                self._add_drive_disk_to_dict
-            )
-
-    def _load_engine_weapon_data(
-        self, from_memory: bool = False, from_separated_files: bool = False
-    ) -> None:
-        """加载音擎数据"""
-        if from_memory:
-            for data in self._id_2_engine_weapon.values():
-                self._add_engine_weapon_to_dict(data)
-            return
-
-        elif from_separated_files:
-            self._id_2_engine_weapon.clear()
-            self._load_from_separated_files(
-                self.engine_weapon_yml_dir,
-                "weapon_name",
-                self._id_2_engine_weapon,
-                self._add_engine_weapon_to_dict
-            )
-            return
-
-        else:
-            self._id_2_engine_weapon.clear()
-            merge_file = Path(self.engine_weapon_merged_path)
-
-            if merge_file.exists():
-                try:
-                    with open(merge_file, "r", encoding="utf-8") as f:
-                        yaml_data = safe_load(f)
-                    
-                    if isinstance(yaml_data, list):
-                        for data in yaml_data:
-                            if isinstance(data, dict) and "weapon_name" in data:
-                                self._add_engine_weapon_to_dict(data)
-                                code = data.get("code", data["weapon_name"].lower().replace(" ", "_"))
-                                self._id_2_engine_weapon[code] = data
-                    
-                    log.info(f"从音擎合并文件加载了 {len(self.translation_dict['weapon'])} 条记录")
-                    return
-                except Exception as e:
-                    log.error(f"加载音擎合并文件失败: {e}")
-
-            log.warning("音擎合并文件不存在，回退到单独文件")
-            self._load_from_separated_files(
-                self.engine_weapon_yml_dir,
-                "weapon_name",
-                self._id_2_engine_weapon,
-                self._add_engine_weapon_to_dict
-            )
-
-    def _load_from_separated_files(
-        self,
-        dir_path: str,
-        name_key: str,
-        id_map: dict,
-        add_func
-    ) -> None:
-        """
-        从单独文件加载数据（参考 ScreenLoader 的 from_separated_files 模式）
-
-        Args:
-            dir_path: 目录路径
-            name_key: 名称字段键
-            id_map: 内存映射字典
-            add_func: 添加到翻译字典的函数
-        """
-        dir_path = Path(dir_path)
-        if not dir_path.exists():
-            log.warning(f"目录不存在: {dir_path}")
-            return
-
-        for yml_file in dir_path.glob("*.yml"):
-            if yml_file.name.startswith("_"):
-                continue
-
-            try:
-                with open(yml_file, "r", encoding="utf-8") as f:
-                    data = safe_load(f)
-            except Exception as e:
-                log.error(f"读取文件失败 {yml_file}: {e}")
-                continue
-
-            if not isinstance(data, dict) or name_key not in data:
-                continue
-
-            # 添加到翻译字典
-            add_func(data)
-
-            # 添加到内存映射
-            code = data.get("code", data[name_key].lower().replace(" ", "_"))
-            id_map[code] = data
 
     def _add_agent_to_dict(self, data: dict) -> None:
         """将角色数据添加到翻译字典"""
@@ -419,6 +314,21 @@ class TranslationService:
     def translate_equipment(self, name: str, target_lang: str = "EN") -> str:
         """翻译驱动盘名称"""
         return self._translate("equipment", name, target_lang)
+
+    def get_drive_disk_name_by_code(self, code: str) -> str:
+        """
+        根据驱动盘代码获取中文名称
+        
+        Args:
+            code: 驱动盘英文代码
+            
+        Returns:
+            驱动盘中文名称，未找到则返回原代码
+        """
+        data = self._id_2_drive_disk.get(code)
+        if data:
+            return data.get("set_name", code)
+        return code
 
     def _translate(self, category: str, name: str, target_lang: str) -> str:
         """
