@@ -11,7 +11,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils
+from one_dragon.utils import cal_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.random_play import random_play_const
@@ -56,26 +56,32 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
-        self._retransported: bool = False
 
-    @node_from(from_name='等待经营画面加载', success=False, status='未找到 经营状况')
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
-        if self.previous_node.name == '等待经营画面加载':
-            if self._retransported:
-                return self.round_fail('重传送后仍未找到经营状况')
-            self._retransported = True
-
         op = Transport(self.ctx, '录像店', '柜台')
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='移动交互')
+    @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 往前移动一下 方便交互
+        传送之后 先将视角转向正东 再往前移动一下 方便交互
         :return:
         """
+        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+        if not mini_map.play_mask_found:
+            return self.round_retry(status='未识别到小地图', wait=1)
+
+        current_angle = mini_map.view_angle
+        if current_angle is None:
+            return self.round_retry(status='识别朝向失败', wait=1)
+
+        angle_diff = cal_utils.angle_delta(current_angle, 0)
+        if abs(angle_diff) > 2.0:
+            self.ctx.controller.turn_by_angle_diff(angle_diff)
+            return self.round_retry(status='转向正东', wait=0.5)
+
         self.ctx.controller.move_w(press=True, press_time=1, release=True)
         time.sleep(1)
 
@@ -395,6 +401,7 @@ class RandomPlayApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     app = RandomPlayApp(ctx)
     app.execute()
 
