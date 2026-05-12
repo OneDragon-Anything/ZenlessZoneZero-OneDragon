@@ -143,6 +143,15 @@ class BackToWorldApp(ZApplication):
         
         return self.round_fail(f'未找到目标代理人: {self.selected_agent_code}，已超过最大循环次数')
 
+    @node_from(from_name='导航到特定代理人')
+    @operation_node(name='导航到代理人装备详细')
+    def navigate_to_agent_equipment_detail(self) -> OperationRoundResult:
+        """
+        导航到代理人-装备详细画面
+        :return:
+        """
+        return self.round_by_goto_screen(screen_name='代理人-装备详细')
+
 
 def __debug():
     """
