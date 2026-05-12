@@ -394,7 +394,7 @@ class PcControllerBase(ControllerBase):
             log.error('后台点击失败', exc_info=True)
             return False
 
-    def drag_to(self, start: Point, end: Point, duration: float = 0.5) -> None:
+    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5) -> None:
         """按住拖拽。
 
         Args:
@@ -402,6 +402,9 @@ class PcControllerBase(ControllerBase):
             start: 拖拽开始点
             duration: 拖拽持续时间
         """
+        if start is None:
+            start = get_current_mouse_pos()
+
         if self.background_mode:
             return self._background_drag(start, end, duration)
 
@@ -484,7 +487,7 @@ class PcControllerBase(ControllerBase):
         except Exception:
             log.error('后台拖拽失败', exc_info=True)
 
-    def scroll(self, down: int, pos: Point = None) -> None:
+    def scroll(self, down: int, pos: Point | None = None) -> None:
         """向下滚动。
 
         Args:
