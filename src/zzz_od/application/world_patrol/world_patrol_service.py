@@ -10,12 +10,21 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen.screen_utils import find_template_coord_in_area
-from one_dragon.utils import os_utils, cv2_utils, cal_utils, yaml_utils
+from one_dragon.utils import cal_utils, cv2_utils, os_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
-from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea, WorldPatrolEntry, WorldPatrolLargeMap, \
-    road_mask_path, icon_yaml_path, WorldPatrolLargeMapIcon
-from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute, WorldPatrolOpType
+from zzz_od.application.world_patrol.world_patrol_area import (
+    WorldPatrolArea,
+    WorldPatrolEntry,
+    WorldPatrolLargeMap,
+    WorldPatrolLargeMapIcon,
+    icon_yaml_path,
+    road_mask_path,
+)
+from zzz_od.application.world_patrol.world_patrol_route import (
+    WorldPatrolOpType,
+    WorldPatrolRoute,
+)
 from zzz_od.application.world_patrol.world_patrol_route_list import WorldPatrolRouteList
 from zzz_od.context.zzz_context import ZContext
 

@@ -10,7 +10,10 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea, WorldPatrolLargeMapIcon
+from zzz_od.application.world_patrol.world_patrol_area import (
+    WorldPatrolArea,
+    WorldPatrolLargeMapIcon,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
