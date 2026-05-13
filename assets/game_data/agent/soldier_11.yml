@@ -3,6 +3,10 @@ agent_type: ATTACK
 code: soldier_11
 dmg_type: FIRE
 rare_type: S
+recommend_engine_weapon:
+- 硫磺石
+- 加农转子
+- 街头巨星
 weight:
   生命值: 0.0
   攻击力: 0.75
@@ -23,7 +27,3 @@ weight:
   小生命: 0.0
   小防御: 0.0
   穿透值: 0.25
-recommend_engine_weapon:
-- 硫磺石
-- 加农转子
-- 街头巨星

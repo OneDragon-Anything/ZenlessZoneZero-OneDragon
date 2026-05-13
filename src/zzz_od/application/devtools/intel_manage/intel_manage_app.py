@@ -377,6 +377,20 @@ class IntelManageApp(ZApplication):
         else:
             self._agent_last_modified_time = 0.0
 
+    def _update_drive_disk_modified_time(self) -> None:
+        drive_disk_dir = Path(self.drive_disk_yml_dir)
+        if drive_disk_dir.exists():
+            self._drive_disk_last_modified_time = self._get_latest_mtime(drive_disk_dir)
+        else:
+            self._drive_disk_last_modified_time = 0.0
+
+    def _update_engine_weapon_modified_time(self) -> None:
+        engine_weapon_dir = Path(self.engine_weapon_yml_dir)
+        if engine_weapon_dir.exists():
+            self._engine_weapon_last_modified_time = self._get_latest_mtime(engine_weapon_dir)
+        else:
+            self._engine_weapon_last_modified_time = 0.0
+
     def reload_drive_disk(
         self, from_memory: bool = False, from_separated_files: bool = False
     ) -> None:
@@ -448,8 +462,238 @@ class IntelManageApp(ZApplication):
             return False
 
     def update_from_separated_files(self) -> None:
+        """从分离文件加载所有数据并保存到合并文件"""
         self.reload(from_separated_files=True)
         self.agent_loader.save_to_merge_file()
+        self.drive_disk_loader.save_to_merge_file()
+        self.engine_weapon_loader.save_to_merge_file()
+
+    def save_drive_disk(self, disk_data: dict, reload_after_save: bool = True) -> bool:
+        """
+        保存驱动盘数据到 yml 文件（单个保存）
+        
+        Args:
+            disk_data: 驱动盘数据字典
+            reload_after_save: 保存后是否重新加载
+            
+        Returns:
+            bool: 是否保存成功
+        """
+        try:
+            disk_dir = Path(self.drive_disk_yml_dir)
+            disk_dir.mkdir(parents=True, exist_ok=True)
+            
+            code = disk_data.get('code', '')
+            if not code:
+                code = disk_data.get('set_name', '').lower().replace(' ', '_')
+            
+            file_path = disk_dir / f'{code}.yml'
+            
+            yaml_op = YamlOperator(str(file_path))
+            yaml_op.data = disk_data
+            yaml_op.save()
+            
+            # 更新内存缓存
+            disk_obj = DriveDiskData(disk_data)
+            self.drive_disk_loader.update_data(disk_obj, disk_data)
+            
+            # 立即保存合并文件（单个保存时）
+            self.drive_disk_loader.save_to_merge_file()
+            
+            log.info(f'Saved drive disk data to: {file_path}')
+            
+            if reload_after_save:
+                self.reload_drive_disk(from_memory=True)
+            
+            return True
+        except (OSError, yaml.YAMLError) as e:
+            log.error(f'Failed to save drive disk data: {e}')
+            return False
+    
+    def save_drive_disk_batch(self, disk_data_list: list[dict], reload_after_save: bool = True) -> int:
+        """
+        批量保存驱动盘数据（优化：只在最后保存一次合并文件）
+        
+        Args:
+            disk_data_list: 驱动盘数据字典列表
+            reload_after_save: 保存后是否重新加载
+            
+        Returns:
+            int: 成功保存的数量
+        """
+        if not disk_data_list:
+            log.warning("No drive disk data to save")
+            return 0
+        
+        success_count = 0
+        disk_dir = Path(self.drive_disk_yml_dir)
+        disk_dir.mkdir(parents=True, exist_ok=True)
+        
+        saved_files = []  # 记录已保存的文件，用于回滚
+        
+        try:
+            # 先保存所有分离文件
+            for disk_data in disk_data_list:
+                try:
+                    code = disk_data.get('code', '')
+                    if not code:
+                        code = disk_data.get('set_name', '').lower().replace(' ', '_')
+                    
+                    if not code:
+                        log.warning("Skipping drive disk with no code or set_name")
+                        continue
+                    
+                    file_path = disk_dir / f'{code}.yml'
+                    
+                    yaml_op = YamlOperator(str(file_path))
+                    yaml_op.data = disk_data
+                    yaml_op.save()
+                    
+                    saved_files.append(file_path)
+                    
+                    # 更新内存缓存
+                    disk_obj = DriveDiskData(disk_data)
+                    self.drive_disk_loader.update_data(disk_obj, disk_data)
+                    
+                    success_count += 1
+                    log.info(f'Saved drive disk data to: {file_path}')
+                except (OSError, yaml.YAMLError) as e:
+                    log.error(f'Failed to save drive disk data: {e}')
+                    continue
+            
+            # 最后统一保存合并文件（避免反复读写）
+            if success_count > 0:
+                try:
+                    self.drive_disk_loader.save_to_merge_file()
+                except Exception as e:
+                    log.error(f'Failed to save merged file: {e}')
+                    # 合并文件保存失败，但分离文件已保存，不算完全失败
+                    # 不回滚，因为分离文件已经保存成功
+                
+                if reload_after_save:
+                    try:
+                        self.reload_drive_disk(from_memory=True)
+                    except Exception as e:
+                        log.error(f'Failed to reload drive disk: {e}')
+                        # 重新加载失败不影响保存结果
+            
+            return success_count
+        except Exception as e:
+            log.error(f'Batch save drive disk failed: {e}', exc_info=True)
+            return 0
+    
+    def save_engine_weapon(self, weapon_data: dict, reload_after_save: bool = True) -> bool:
+        """
+        保存音擎数据到 yml 文件（单个保存）
+        
+        Args:
+            weapon_data: 音擎数据字典
+            reload_after_save: 保存后是否重新加载
+            
+        Returns:
+            bool: 是否保存成功
+        """
+        try:
+            weapon_dir = Path(self.engine_weapon_yml_dir)
+            weapon_dir.mkdir(parents=True, exist_ok=True)
+            
+            code = weapon_data.get('code', '')
+            if not code:
+                code = weapon_data.get('weapon_name', '').lower().replace(' ', '_')
+            
+            file_path = weapon_dir / f'{code}.yml'
+            
+            yaml_op = YamlOperator(str(file_path))
+            yaml_op.data = weapon_data
+            yaml_op.save()
+            
+            # 更新内存缓存
+            weapon_obj = EngineWeaponData(weapon_data)
+            self.engine_weapon_loader.update_data(weapon_obj, weapon_data)
+            
+            # 立即保存合并文件（单个保存时）
+            self.engine_weapon_loader.save_to_merge_file()
+            
+            log.info(f'Saved engine weapon data to: {file_path}')
+            
+            if reload_after_save:
+                self.reload_engine_weapon(from_memory=True)
+            
+            return True
+        except (OSError, yaml.YAMLError) as e:
+            log.error(f'Failed to save engine weapon data: {e}')
+            return False
+    
+    def save_engine_weapon_batch(self, weapon_data_list: list[dict], reload_after_save: bool = True) -> int:
+        """
+        批量保存音擎数据（优化：只在最后保存一次合并文件）
+        
+        Args:
+            weapon_data_list: 音擎数据字典列表
+            reload_after_save: 保存后是否重新加载
+            
+        Returns:
+            int: 成功保存的数量
+        """
+        if not weapon_data_list:
+            log.warning("No engine weapon data to save")
+            return 0
+        
+        success_count = 0
+        weapon_dir = Path(self.engine_weapon_yml_dir)
+        weapon_dir.mkdir(parents=True, exist_ok=True)
+        
+        saved_files = []  # 记录已保存的文件，用于回滚
+        
+        try:
+            # 先保存所有分离文件
+            for weapon_data in weapon_data_list:
+                try:
+                    code = weapon_data.get('code', '')
+                    if not code:
+                        code = weapon_data.get('weapon_name', '').lower().replace(' ', '_')
+                    
+                    if not code:
+                        log.warning("Skipping engine weapon with no code or weapon_name")
+                        continue
+                    
+                    file_path = weapon_dir / f'{code}.yml'
+                    
+                    yaml_op = YamlOperator(str(file_path))
+                    yaml_op.data = weapon_data
+                    yaml_op.save()
+                    
+                    saved_files.append(file_path)
+                    
+                    # 更新内存缓存
+                    weapon_obj = EngineWeaponData(weapon_data)
+                    self.engine_weapon_loader.update_data(weapon_obj, weapon_data)
+                    
+                    success_count += 1
+                    log.info(f'Saved engine weapon data to: {file_path}')
+                except (OSError, yaml.YAMLError) as e:
+                    log.error(f'Failed to save engine weapon data: {e}')
+                    continue
+            
+            # 最后统一保存合并文件（避免反复读写）
+            if success_count > 0:
+                try:
+                    self.engine_weapon_loader.save_to_merge_file()
+                except Exception as e:
+                    log.error(f'Failed to save merged file: {e}')
+                    # 合并文件保存失败，但分离文件已保存，不算完全失败
+                
+                if reload_after_save:
+                    try:
+                        self.reload_engine_weapon(from_memory=True)
+                    except Exception as e:
+                        log.error(f'Failed to reload engine weapon: {e}')
+                        # 重新加载失败不影响保存结果
+            
+            return success_count
+        except Exception as e:
+            log.error(f'Batch save engine weapon failed: {e}', exc_info=True)
+            return 0
 
     def get_cache_stats(self) -> dict:
         total = self._cache_hits + self._cache_misses

@@ -150,7 +150,7 @@ class YamlDataSetLoader(ABC, Generic[T]):
         """从内存缓存加载数据"""
         for data_item in self._id_2_data.values():
             self.data_list.append(data_item)
-            name_key = self._extract_name_key(data_item)
+            name_key = self._extract_name_key_from_object(data_item)
             if name_key:
                 self.data_map[name_key] = data_item
 
@@ -324,46 +324,78 @@ class YamlDataSetLoader(ABC, Generic[T]):
                 self.data_map[name_key] = data_item
 
             # 更新列表
+            found = False
             for i, item in enumerate(self._data_list):
                 item_name_key = self._extract_name_key_from_object(item)
                 if item_name_key == name_key:
                     self._data_list[i] = data_item
+                    found = True
                     break
+            
+            # 如果没有找到，则添加到列表
+            if not found:
+                self._data_list.append(data_item)
 
     def save_to_merge_file(self) -> None:
         """
-        将所有数据保存到合并文件
+        将所有数据保存到合并文件（优化：使用原子操作和文件锁）
         """
         merge_file = Path(self.merge_file_path)
         temp_file = merge_file.with_suffix(".tmp")
+        
+        # 使用 RLock 确保线程安全
+        with self._load_lock:
+            try:
+                merge_file.parent.mkdir(parents=True, exist_ok=True)
 
-        try:
-            merge_file.parent.mkdir(parents=True, exist_ok=True)
+                all_data = []
+                # 从 _id_2_data 获取所有数据，确保保存完整的数据集
+                for data_item in self._id_2_data.values():
+                    try:
+                        if hasattr(data_item, 'to_dict'):
+                            all_data.append(data_item.to_dict())
+                        elif hasattr(data_item, '_data'):
+                            all_data.append(data_item._data)
+                        elif isinstance(data_item, dict):
+                            all_data.append(data_item)
+                    except Exception as e:
+                        log.warning(f"Failed to convert data item: {e}")
+                        continue
 
-            all_data = []
-            for data_item in self.data_list:
-                try:
-                    if hasattr(data_item, 'to_dict'):
-                        all_data.append(data_item.to_dict())
-                    elif hasattr(data_item, '_data'):
-                        all_data.append(data_item._data)
-                    elif isinstance(data_item, dict):
-                        all_data.append(data_item)
-                except Exception as e:
-                    log.warning(f"Failed to convert data item: {e}")
-                    continue
+                # 如果没有任何数据，不要清空文件，直接返回
+                if not all_data:
+                    log.warning(f"No data to save for merged file: {merge_file}")
+                    return
 
-            with open(temp_file, "w", encoding="utf-8") as f:
-                yaml.dump(all_data, f, allow_unicode=True, indent=2)
+                # 先写入临时文件
+                with open(temp_file, "w", encoding="utf-8") as f:
+                    yaml.dump(all_data, f, allow_unicode=True, indent=2)
+                    f.flush()  # 确保数据写入磁盘
 
-            temp_file.replace(merge_file)
-            log.debug(f"Saved merged data to: {merge_file} ({len(all_data)} items)")
+                # 使用原子替换操作
+                # Windows 上 replace() 是原子的，但可能需要重试
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        temp_file.replace(merge_file)
+                        log.debug(f"Saved merged data to: {merge_file} ({len(all_data)} items)")
+                        break
+                    except PermissionError as e:
+                        if attempt < max_retries - 1:
+                            log.warning(f"Retry {attempt + 1}/{max_retries} for replacing merge file: {e}")
+                            import time
+                            time.sleep(0.1)  # 等待 100ms 后重试
+                        else:
+                            raise
 
-        except Exception as e:
-            log.error(f"Failed to save merged file: {e}")
-            self._cleanup_temp_file(temp_file)
-        finally:
-            self._cleanup_temp_file(temp_file)
+            except Exception as e:
+                log.error(f"Failed to save merged file: {e}")
+                # 清理临时文件
+                self._cleanup_temp_file(temp_file)
+                raise
+            finally:
+                # 确保清理临时文件（如果还存在）
+                self._cleanup_temp_file(temp_file)
 
     def _cleanup_temp_file(self, temp_file: Path) -> None:
         """

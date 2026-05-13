@@ -258,6 +258,10 @@
   code: seed
   dmg_type: ELECTRIC
   rare_type: S
+  recommend_engine_weapon:
+  - 机巧心种
+  - 心弦夜响
+  - 牺牲洁纯
   weight:
     以太伤害加成: 0.0
     冰属性伤害加成: 0.0

@@ -3,6 +3,10 @@ agent_type: ATTACK
 code: seed
 dmg_type: ELECTRIC
 rare_type: S
+recommend_engine_weapon:
+- 机巧心种
+- 心弦夜响
+- 牺牲洁纯
 weight:
   生命值: 0.0
   攻击力: 0.75

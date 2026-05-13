@@ -1382,14 +1382,23 @@ class IntelManageInterface(VerticalScrollInterface):
         self._update_search_options()
 
     def _on_save_clicked(self) -> None:
-        """保存代理人数据到yml文件"""
+        """保存当前页面数据到 yml 文件"""
         current_page = self.mode_stacked.currentWidget()
-        if current_page != self.agent_page:
+        
+        # 判断当前页面类型并调用相应的保存方法
+        if current_page == self.agent_page:
+            self._save_agent_data()
+        elif current_page == self.drive_disk_page:
+            self._save_drive_disk_data()
+        elif current_page == self.sound_engine_page:
+            self._save_engine_weapon_data()
+        else:
             self.show_info_bar(
-                "提示", "请切换到代理人信息管理页面", icon=InfoBarIcon.WARNING
+                "提示", "未知页面", icon=InfoBarIcon.WARNING
             )
-            return
-
+    
+    def _save_agent_data(self) -> None:
+        """保存代理人数据"""
         agent_name = self.search_combo.currentText()
         if not agent_name or agent_name not in self.agent_data:
             self.show_info_bar(
@@ -1476,6 +1485,128 @@ class IntelManageInterface(VerticalScrollInterface):
         else:
             self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
 
+    def _save_drive_disk_data(self) -> None:
+        """保存驱动盘数据（使用批量保存优化）"""
+        # 获取当前表格数据
+        table_widget = self.drive_disk_page.findChild(TableWidget)
+        if not table_widget:
+            self.show_info_bar("错误", "未找到驱动盘表格", icon=InfoBarIcon.ERROR)
+            return
+        
+        # 遍历表格收集所有数据
+        drive_disk_list = []
+        for row_idx in range(table_widget.rowCount()):
+            disk_data = {}
+            
+            # 获取驱动盘名称
+            name_item = table_widget.item(row_idx, 1)
+            if name_item and name_item.text():
+                disk_data['set_name'] = name_item.text()
+            
+            # 获取任务类型
+            type_item = table_widget.item(row_idx, 2)
+            if type_item and type_item.text():
+                disk_data['mission_type_name'] = type_item.text()
+            
+            # 获取 code
+            code_item = table_widget.item(row_idx, 3)
+            if code_item and code_item.text():
+                disk_data['code'] = code_item.text()
+            
+            if disk_data.get('set_name') and disk_data.get('code'):
+                drive_disk_list.append(disk_data)
+        
+        if not drive_disk_list:
+            self.show_info_bar("警告", "没有可保存的驱动盘数据", icon=InfoBarIcon.WARNING)
+            return
+        
+        # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 使用批量保存方法
+                success_count = app.save_drive_disk_batch(drive_disk_list, reload_after_save=True)
+                
+                # 清除界面缓存
+                self._cached_drive_disk_data = None
+                
+                if success_count > 0:
+                    self.show_info_bar(
+                        "成功", f"已保存 {success_count} 个驱动盘数据", icon=InfoBarIcon.SUCCESS
+                    )
+                else:
+                    self.show_info_bar("失败", "保存失败，请检查日志", icon=InfoBarIcon.ERROR)
+            except Exception as e:
+                log.error(f"保存驱动盘数据失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败", 
+                    f"保存失败：{str(e)[:100]}", 
+                    icon=InfoBarIcon.ERROR
+                )
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
+    
+    def _save_engine_weapon_data(self) -> None:
+        """保存音擎数据（使用批量保存优化）"""
+        # 获取当前表格数据
+        table_widget = self.sound_engine_page.findChild(TableWidget)
+        if not table_widget:
+            self.show_info_bar("错误", "未找到音擎表格", icon=InfoBarIcon.ERROR)
+            return
+        
+        # 遍历表格收集所有数据
+        engine_weapon_list = []
+        for row_idx in range(table_widget.rowCount()):
+            weapon_data = {}
+            
+            # 获取音擎名称
+            name_item = table_widget.item(row_idx, 1)
+            if name_item and name_item.text():
+                weapon_data['weapon_name'] = name_item.text()
+            
+            # 获取稀有度
+            rarity_item = table_widget.item(row_idx, 2)
+            if rarity_item and rarity_item.text():
+                weapon_data['rarity'] = rarity_item.text()
+            
+            # 获取 code
+            code_item = table_widget.item(row_idx, 3)
+            if code_item and code_item.text():
+                weapon_data['code'] = code_item.text()
+            
+            if weapon_data.get('weapon_name') and weapon_data.get('code'):
+                engine_weapon_list.append(weapon_data)
+        
+        if not engine_weapon_list:
+            self.show_info_bar("警告", "没有可保存的音擎数据", icon=InfoBarIcon.WARNING)
+            return
+        
+        # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 使用批量保存方法
+                success_count = app.save_engine_weapon_batch(engine_weapon_list, reload_after_save=True)
+                
+                # 清除界面缓存
+                self._cached_engine_weapon_data = None
+                
+                if success_count > 0:
+                    self.show_info_bar(
+                        "成功", f"已保存 {success_count} 个音擎数据", icon=InfoBarIcon.SUCCESS
+                    )
+                else:
+                    self.show_info_bar("失败", "保存失败，请检查日志", icon=InfoBarIcon.ERROR)
+            except Exception as e:
+                log.error(f"保存音擎数据失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败", 
+                    f"保存失败：{str(e)[:100]}", 
+                    icon=InfoBarIcon.ERROR
+                )
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
+
     def _on_merge_clicked(self) -> None:
         """更新合并配置文件（从分离文件加载并合并到 _od_merged.yml）"""
         app = self._get_intel_manage_app()
@@ -1484,8 +1615,12 @@ class IntelManageInterface(VerticalScrollInterface):
                 # 从分离文件加载并保存到合并文件
                 app.update_from_separated_files()
 
-                # 刷新界面缓存并更新 agent_data
+                # 刷新界面缓存
                 self._cached_agent_data = None
+                self._cached_drive_disk_data = None
+                self._cached_engine_weapon_data = None
+                
+                # 重新加载所有数据
                 self.agent_data = self._load_agent_data()
 
                 # 更新搜索选项
@@ -1497,7 +1632,11 @@ class IntelManageInterface(VerticalScrollInterface):
             except Exception as e:
                 from one_dragon.utils.log_utils import log
 
-                log.error(f"合并配置文件失败: {e}")
-                self.show_info_bar("失败", "合并配置文件失败", icon=InfoBarIcon.ERROR)
+                log.error(f"合并配置文件失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败", 
+                    f"合并配置文件失败：{str(e)[:100]}", 
+                    icon=InfoBarIcon.ERROR
+                )
         else:
             self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
