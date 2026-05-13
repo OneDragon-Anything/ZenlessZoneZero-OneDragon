@@ -6,8 +6,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
-from one_dragon.utils.log_utils import log
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
@@ -62,26 +60,10 @@ from zzz_od.game_data.drive_disk import (
     get_weight_key_order,
 )
 
-# 全局缓存属性映射
-_slot_mapping: dict[str, str] | None = None
-
 
 def _get_slot_mapping() -> dict[str, str]:
-    """获取属性映射字典（从 slot_Mapping.json 加载）"""
-    global _slot_mapping
-    if _slot_mapping is None:
-        mapping_path = Path(
-            get_resource_path("src", "zzz_od", "game_data", "slot_Mapping.json")
-        )
-        try:
-            with open(mapping_path, encoding="utf-8") as f:
-                _slot_mapping = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            from one_dragon.utils.log_utils import log
-
-            log.error(f"属性映射文件加载失败: {e}")
-            _slot_mapping = {}
-    return _slot_mapping
+    """获取属性映射字典"""
+    return SLOT_MAPPING
 
 
 def _get_weight_order() -> list[str]:
@@ -124,7 +106,7 @@ class WeightConfigDialog(QDialog):
 
     @classmethod
     def get_weight_options(cls) -> list[str]:
-        """从 slot_Mapping.json 获取权重选项列表"""
+        """获取权重选项列表"""
         return _get_weight_order()
 
     @property
@@ -823,10 +805,10 @@ class IntelManageInterface(VerticalScrollInterface):
         )
 
     def _show_weight_info(self, agent_info: dict) -> None:
-        """显示代理人权重配置（显示所有 slot_Mapping.json 中的选项）"""
+        """显示代理人权重配置（显示所有权重选项）"""
         weight_data = agent_info.get("weight", {})
 
-        # 获取所有 slot_Mapping.json 中的权重选项（不根据属性类型过滤）
+        # 获取所有权重选项（不根据属性类型过滤）
         weight_order = _get_weight_order()
 
         self.weight_table.clear()
@@ -949,7 +931,7 @@ class IntelManageInterface(VerticalScrollInterface):
             new_name = f"新代理人{counter}"
             counter += 1
 
-        # 从 slot_Mapping.json 获取所有权重项，并初始化为 0
+        # 获取所有权重项，并初始化为 0
         weight_order = _get_weight_order()
         default_weight = dict.fromkeys(weight_order, 0)
 
@@ -1384,7 +1366,7 @@ class IntelManageInterface(VerticalScrollInterface):
     def _on_save_clicked(self) -> None:
         """保存当前页面数据到 yml 文件"""
         current_page = self.mode_stacked.currentWidget()
-        
+
         # 判断当前页面类型并调用相应的保存方法
         if current_page == self.agent_page:
             self._save_agent_data()
@@ -1396,7 +1378,7 @@ class IntelManageInterface(VerticalScrollInterface):
             self.show_info_bar(
                 "提示", "未知页面", icon=InfoBarIcon.WARNING
             )
-    
+
     def _save_agent_data(self) -> None:
         """保存代理人数据"""
         agent_name = self.search_combo.currentText()
@@ -1492,44 +1474,44 @@ class IntelManageInterface(VerticalScrollInterface):
         if not table_widget:
             self.show_info_bar("错误", "未找到驱动盘表格", icon=InfoBarIcon.ERROR)
             return
-        
+
         # 遍历表格收集所有数据
         drive_disk_list = []
         for row_idx in range(table_widget.rowCount()):
             disk_data = {}
-            
+
             # 获取驱动盘名称
             name_item = table_widget.item(row_idx, 1)
             if name_item and name_item.text():
                 disk_data['set_name'] = name_item.text()
-            
+
             # 获取任务类型
             type_item = table_widget.item(row_idx, 2)
             if type_item and type_item.text():
                 disk_data['mission_type_name'] = type_item.text()
-            
+
             # 获取 code
             code_item = table_widget.item(row_idx, 3)
             if code_item and code_item.text():
                 disk_data['code'] = code_item.text()
-            
+
             if disk_data.get('set_name') and disk_data.get('code'):
                 drive_disk_list.append(disk_data)
-        
+
         if not drive_disk_list:
             self.show_info_bar("警告", "没有可保存的驱动盘数据", icon=InfoBarIcon.WARNING)
             return
-        
+
         # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
         app = self._get_intel_manage_app()
         if app:
             try:
                 # 使用批量保存方法
                 success_count = app.save_drive_disk_batch(drive_disk_list, reload_after_save=True)
-                
+
                 # 清除界面缓存
                 self._cached_drive_disk_data = None
-                
+
                 if success_count > 0:
                     self.show_info_bar(
                         "成功", f"已保存 {success_count} 个驱动盘数据", icon=InfoBarIcon.SUCCESS
@@ -1539,13 +1521,13 @@ class IntelManageInterface(VerticalScrollInterface):
             except Exception as e:
                 log.error(f"保存驱动盘数据失败：{e}", exc_info=True)
                 self.show_info_bar(
-                    "失败", 
-                    f"保存失败：{str(e)[:100]}", 
+                    "失败",
+                    f"保存失败：{str(e)[:100]}",
                     icon=InfoBarIcon.ERROR
                 )
         else:
             self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
-    
+
     def _save_engine_weapon_data(self) -> None:
         """保存音擎数据（使用批量保存优化）"""
         # 获取当前表格数据
@@ -1553,44 +1535,44 @@ class IntelManageInterface(VerticalScrollInterface):
         if not table_widget:
             self.show_info_bar("错误", "未找到音擎表格", icon=InfoBarIcon.ERROR)
             return
-        
+
         # 遍历表格收集所有数据
         engine_weapon_list = []
         for row_idx in range(table_widget.rowCount()):
             weapon_data = {}
-            
+
             # 获取音擎名称
             name_item = table_widget.item(row_idx, 1)
             if name_item and name_item.text():
                 weapon_data['weapon_name'] = name_item.text()
-            
+
             # 获取稀有度
             rarity_item = table_widget.item(row_idx, 2)
             if rarity_item and rarity_item.text():
                 weapon_data['rarity'] = rarity_item.text()
-            
+
             # 获取 code
             code_item = table_widget.item(row_idx, 3)
             if code_item and code_item.text():
                 weapon_data['code'] = code_item.text()
-            
+
             if weapon_data.get('weapon_name') and weapon_data.get('code'):
                 engine_weapon_list.append(weapon_data)
-        
+
         if not engine_weapon_list:
             self.show_info_bar("警告", "没有可保存的音擎数据", icon=InfoBarIcon.WARNING)
             return
-        
+
         # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
         app = self._get_intel_manage_app()
         if app:
             try:
                 # 使用批量保存方法
                 success_count = app.save_engine_weapon_batch(engine_weapon_list, reload_after_save=True)
-                
+
                 # 清除界面缓存
                 self._cached_engine_weapon_data = None
-                
+
                 if success_count > 0:
                     self.show_info_bar(
                         "成功", f"已保存 {success_count} 个音擎数据", icon=InfoBarIcon.SUCCESS
@@ -1600,8 +1582,8 @@ class IntelManageInterface(VerticalScrollInterface):
             except Exception as e:
                 log.error(f"保存音擎数据失败：{e}", exc_info=True)
                 self.show_info_bar(
-                    "失败", 
-                    f"保存失败：{str(e)[:100]}", 
+                    "失败",
+                    f"保存失败：{str(e)[:100]}",
                     icon=InfoBarIcon.ERROR
                 )
         else:
@@ -1619,7 +1601,7 @@ class IntelManageInterface(VerticalScrollInterface):
                 self._cached_agent_data = None
                 self._cached_drive_disk_data = None
                 self._cached_engine_weapon_data = None
-                
+
                 # 重新加载所有数据
                 self.agent_data = self._load_agent_data()
 
@@ -1634,8 +1616,8 @@ class IntelManageInterface(VerticalScrollInterface):
 
                 log.error(f"合并配置文件失败：{e}", exc_info=True)
                 self.show_info_bar(
-                    "失败", 
-                    f"合并配置文件失败：{str(e)[:100]}", 
+                    "失败",
+                    f"合并配置文件失败：{str(e)[:100]}",
                     icon=InfoBarIcon.ERROR
                 )
         else:

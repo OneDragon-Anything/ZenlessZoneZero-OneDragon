@@ -1,11 +1,12 @@
-from typing import List, Dict, Optional
+
 from cv2.typing import MatLike
+
 from one_dragon.utils.log_utils import log
-from zzz_od.game_data.parsers import IAgentNameParser
+
 from .agent_parser import AgentParser
 
 
-class AgentNameParser(IAgentNameParser):
+class AgentNameParser:
     """只解析角色名称的解析器"""
 
     def __init__(self):
@@ -15,8 +16,8 @@ class AgentNameParser(IAgentNameParser):
         self.agent_counter = 0
 
     def parse_ocr_result(
-        self, ocr_items: List[Dict], screenshot: Optional[MatLike] = None
-    ) -> Optional[Dict]:
+        self, ocr_items: list[dict], screenshot: MatLike | None = None
+    ) -> dict | None:
         """
         解析OCR结果，只返回角色名称
 

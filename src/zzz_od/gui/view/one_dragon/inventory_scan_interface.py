@@ -455,8 +455,6 @@ class InventoryScanInterface(AppRunInterface):
             SubtitleLabel,
         )
 
-        from one_dragon.utils import os_utils
-
         # 导入InventoryDataProcessor类和os_utils模块
         from zzz_od.application.inventory_scan.InventoryDataProcessor import (
             InventoryDataProcessor,
@@ -849,13 +847,11 @@ class InventoryScanInterface(AppRunInterface):
         selected_agent = None
         agent_buttons = []
 
-        # 创建InventoryDataProcessor实例
+        # 创建 InventoryDataProcessor 实例
         processor = InventoryDataProcessor()
-        # 加载槽位映射
-        slot_mapping_file = os_utils.get_path_under_work_dir(
-            "src", "zzz_od", "game_data", "slot_Mapping.json"
-        )
-        slot_mapping = processor.load_slot_mapping(slot_mapping_file)
+        # 使用 drive_disk 模块中的 SLOT_MAPPING
+        from zzz_od.game_data.drive_disk import SLOT_MAPPING
+        slot_mapping = SLOT_MAPPING
 
         # 使用子线程加载的翻译字典
 

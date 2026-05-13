@@ -1,4 +1,6 @@
+import json
 import time
+from pathlib import Path
 
 import cv2
 
@@ -9,16 +11,18 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.back_to_world import back_to_world_const
+from zzz_od.application.inventory_scan.InventoryDataProcessor import (
+    InventoryDataProcessor,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.parsers import IAgentNameParser
 from zzz_od.game_data.game_data_service import GameDataService
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
 class BackToWorldApp(ZApplication):
 
-    def __init__(self, ctx: ZContext, agent_name_parser: IAgentNameParser | None = None):
+    def __init__(self, ctx: ZContext, agent_name_parser=None):
         """
         返回大世界应用
         将游戏从任何状态智能返回到大世界（普通世界）
@@ -35,32 +39,65 @@ class BackToWorldApp(ZApplication):
         )
         self.selected_agent_code = getattr(self.ctx, '_back_to_world_agent_code', None)
         self.selected_drive_disk_set = getattr(self.ctx, '_back_to_world_drive_disk_set', None)
-        self.agent_name_parser = self._get_default_parser() if agent_name_parser is None else agent_name_parser
+        if agent_name_parser is not None:
+            self.agent_name_parser = agent_name_parser
+        else:
+            from zzz_od.application.inventory_scan.parser.agent_name_parser import (
+                AgentNameParser,
+            )
+            self.agent_name_parser = AgentNameParser()
         self.game_data_service = GameDataService()
-        log.info(f"返回大世界应用初始化：选择的代理人={self.selected_agent_code}, 选择的驱动盘套装={self.selected_drive_disk_set}")
 
-    def _get_default_parser(self) -> IAgentNameParser:
-        """获取默认的代理人名称解析器"""
+        # 初始化 DriveDiskParser 用于 OCR 识别
         try:
-            from zzz_od.application.inventory_scan.parser.agent_name_parser import AgentNameParser
-            return AgentNameParser()
-        except ImportError:
-            log.warning("无法导入 AgentNameParser，将无法解析代理人名称")
-            # 返回一个简单的占位实现
-            class DummyParser(IAgentNameParser):
-                def parse_ocr_result(self, ocr_items, screenshot=None):
-                    return None
+            from zzz_od.application.inventory_scan.parser.drive_disk_parser import (
+                DriveDiskParser,
+            )
+            self.drive_disk_parser = DriveDiskParser()
+            log.info("DriveDiskParser 初始化成功")
+        except ImportError as e:
+            raise RuntimeError('DriveDiskParser 未初始化') from e
 
-                def reset(self):
-                    pass
-            return DummyParser()
+        # 初始化 OcrWorker 用于并行 OCR 识别（参考 drive_disk_enhance 的实现）
+        try:
+            from zzz_od.application.inventory_scan.ocr_worker import OcrWorker
+            self.ocr_worker = OcrWorker(ctx)
+            self.ocr_worker.start()
+            log.info("OcrWorker 初始化并启动成功")
+        except ImportError as e:
+            raise RuntimeError('OcrWorker 未初始化，无法进行 OCR 识别') from e
 
-    def handle_init(self) -> None:
-        """
-        执行前的初始化 由子类实现
-        注意初始化要全面 方便一个指令重复使用
-        """
-        pass
+        # 初始化 InventoryDataProcessor（用于驱动盘评分）
+        self._inventory_processor = InventoryDataProcessor()
+
+        # 预加载代理人权重配置（用于驱动盘评分）
+        self._character_weight = None
+        if self.selected_agent_code:
+            try:
+                self._character_weight = self._inventory_processor.load_character_weight(self.selected_agent_code)
+                if not self._character_weight:
+                    raise RuntimeError(f'代理人 {self.selected_agent_code} 的权重配置为空')
+                log.info(f"已预加载代理人 {self.selected_agent_code} 的权重配置")
+            except Exception as e:
+                raise RuntimeError(f'代理人 {self.selected_agent_code} 的权重配置加载失败') from e
+        else:
+            raise RuntimeError('未选择代理人')
+
+        # 预加载屏幕区域配置
+        try:
+            self._drive_disk_list_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '驱动盘列表')
+            self._drive_disk_detail_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '驱动盘详细信息')
+            log.info("驱动盘区域配置加载成功")
+        except Exception as e:
+            raise RuntimeError('驱动盘区域配置加载失败') from e
+
+        # 预加载流水线
+        self._drive_disk_pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格 - 代理人 - 装备详细')
+        if not self._drive_disk_pipeline:
+            raise RuntimeError('驱动盘方格检测流水线加载失败')
+        log.info("驱动盘方格检测流水线加载成功")
+
+        log.info(f"返回大世界应用初始化完成：代理人={self.selected_agent_code}, 驱动盘套装={self.selected_drive_disk_set}")
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
@@ -75,16 +112,12 @@ class BackToWorldApp(ZApplication):
     @operation_node(name='导航到特定代理人')
     def navigate_to_agent_info(self) -> OperationRoundResult:
         """
-        导航到代理人-信息画面
+        导航到代理人 - 信息画面
         :return:
         """
-        result = self.round_by_goto_screen(screen_name='代理人-信息')
+        result = self.round_by_goto_screen(screen_name='代理人 - 信息')
         if not result.is_success:
             return result
-
-        if not self.selected_agent_code:
-            log.info("未选择代理人，停留在代理人-信息界面")
-            return self.round_success('已导航到代理人-信息界面')
 
         return self._navigate_to_specific_agent()
 
@@ -165,7 +198,7 @@ class BackToWorldApp(ZApplication):
         return self.round_by_goto_screen(screen_name='代理人-装备详细')
 
     @node_from(from_name='导航到特定代理人装备详细')
-    @operation_node(name='执行套装筛选')
+    @operation_node(name='执行驱动盘套装筛选')
     def execute_set_filter(self) -> OperationRoundResult:
         """
         执行套装筛选操作
@@ -173,31 +206,30 @@ class BackToWorldApp(ZApplication):
 
         :return:
         """
-        if not self.selected_drive_disk_set:
-            log.info("未选择驱动盘套装，跳过筛选")
-            return self.round_success('未选择套装')
-
-        log.info(f"开始执行套装筛选，目标是: {self.selected_drive_disk_set}")
+        log.info(f"开始执行套装筛选，目标是：{self.selected_drive_disk_set}")
 
         # 将英文代码转换为中文名称
         target_set_name = self._get_set_name_by_code(self.selected_drive_disk_set)
-        log.info(f"转换后的中文名称: {target_set_name}")
+        log.info(f"转换后的中文名称：{target_set_name}")
 
-        try:
-            filter_area = self.ctx.screen_loader.get_area('代理人-装备详细', '筛选')
-            reset_area = self.ctx.screen_loader.get_area('筛选', '重置')
-            set_select_area = self.ctx.screen_loader.get_area('筛选', '套装选择')
-            confirm_area = self.ctx.screen_loader.get_area('套装筛选', '确认筛选')
-        except Exception as e:
-            log.error(f"获取筛选区域失败: {e}")
-            return self.round_fail(f'获取筛选区域失败: {e}')
+        filter_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '筛选')
+        reset_area = self.ctx.screen_loader.get_area('筛选', '重置')
+        s_rarity_area = self.ctx.screen_loader.get_area('筛选', 'S')
+        set_select_area = self.ctx.screen_loader.get_area('筛选', '套装选择')
+        confirm_area = self.ctx.screen_loader.get_area('套装筛选', '确认筛选')
 
         log.info("点击筛选按钮")
         self.ctx.controller.click(filter_area.rect.center)
         time.sleep(0.5)
 
+        #进入筛选画面
+
         log.info("点击重置按钮")
         self.ctx.controller.click(reset_area.rect.center)
+        time.sleep(0.3)
+
+        log.info("点击 S 使筛选后的驱动盘只保留S品级的")
+        self.ctx.controller.click(s_rarity_area.rect.center)
         time.sleep(0.3)
 
         log.info("点击套装选择按钮")
@@ -272,126 +304,217 @@ class BackToWorldApp(ZApplication):
         log.info("套装筛选完成")
         return self.round_success('套装筛选完成')
 
-    @node_from(from_name='执行套装筛选')
-    @operation_node(name='检测驱动盘方格并滚动至底部')
-    def detect_drive_disk_grid_and_scroll_to_bottom(self) -> OperationRoundResult:
+    @node_from(from_name='执行驱动盘套装筛选')
+    @operation_node(name='获取所有驱动盘信息并保存')
+    def capture_all_drive_disk_info(self) -> OperationRoundResult:
         """
-        检测驱动盘方格，如果最后一行有4个驱动盘则滚动直至触底
+        获取所有驱动盘的完整信息并保存为 JSON 文件
 
-        使用流水线配置文件进行图像处理：
-        - assets/image_analysis_pipelines/驱动盘方格-代理人-装备详细.yml
-        - assets/image_analysis_pipelines/驱动盘进度条-代理人-装备详细.yml
+        简化策略：
+        1. 获取初始屏幕所有驱动盘数据
+        2. 检测是否触底（统一使用进度条检测）
+        3. 如果未触底则滚动一次，获取新显示的一行
+        4. 重复 2-3 直到触底，保存所有数据为 JSON
 
         :return:
         """
-        log.info("开始检测驱动盘方格并滚动至底部")
+        log.info("开始获取所有驱动盘信息（简化版：统一使用进度条检测触底）")
 
-        pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格-代理人-装备详细')
-        if pipeline is None:
-            log.error("无法加载驱动盘方格检测流水线")
-            return self.round_fail('无法加载驱动盘方格检测流水线')
+        # 步骤 1: 获取初始屏幕所有驱动盘（在循环外执行一次）
+        log.info("步骤 1: 获取初始屏幕所有驱动盘")
+        screen = self.screenshot()
 
-        try:
-            drive_disk_list_area = self.ctx.screen_loader.get_area('代理人-装备详细', '驱动盘列表')
-        except Exception as e:
-            log.error(f"获取驱动盘列表区域失败: {e}")
-            return self.round_fail('获取驱动盘列表区域失败')
+        context = self._drive_disk_pipeline.execute(screen, service=self.ctx.cv_service)
 
-        max_scroll_iterations = 100
-        scroll_iteration = 0
+        filtered_contours = context.contours
+        if not filtered_contours:
+            log.warning("未检测到驱动盘方格")
+            return self.round_success('未检测到驱动盘方格', data={'captured_count': 0, 'scroll_count': 0})
 
-        while scroll_iteration < max_scroll_iterations:
-            scroll_iteration += 1
-            log.info(f"第 {scroll_iteration} 次检测驱动盘方格")
+        # 获取所有驱动盘中心点
+        all_grids = []
+        for contour in filtered_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            absolute_x = x + self._drive_disk_list_area.rect.x1
+            absolute_y = y + self._drive_disk_list_area.rect.y1
+            grid_center = Point(absolute_x + w / 2, absolute_y + h / 2)
+            all_grids.append(grid_center)
 
-            screen = self.screenshot()
-            if screen is None:
-                log.error("截图失败，无法获取屏幕画面")
-                return self.round_fail('截图失败')
+        # 整理为二维网格
+        grid_rows = self._sort_grids(all_grids)
+        if not grid_rows:
+            log.warning("网格整理后为空")
+            return self.round_success('网格整理后为空', data={'captured_count': 0, 'scroll_count': 0})
 
-            context = pipeline.execute(screen, service=self.ctx.cv_service)
-            if not context.success:
-                log.error(f"流水线执行失败: {context.error_str}")
-                return self.round_fail(f'流水线执行失败: {context.error_str}')
+        log.info(f"初始屏幕检测到 {len(grid_rows)} 行，共 {len(all_grids)} 个驱动盘")
 
-            filtered_contours = context.contours
-            if not filtered_contours:
-                log.warning("未检测到驱动盘方格")
-                return self.round_success('未检测到驱动盘方格', data={'last_row_has_four': False, 'total_grids': 0, 'is_bottom': True})
+        # 步骤 1.5: 逐个捕获初始屏幕所有驱动盘（点击后立即截图并提交 OCR）
+        log.info("步骤 1.5: 逐个捕获初始屏幕所有驱动盘（点击后立即提交 OCR）")
 
-            log.info(f"检测到 {len(filtered_contours)} 个驱动盘方格")
+        for _row_idx, row in enumerate(grid_rows):
+            for _col_idx, grid_point in enumerate(row):
+                self.ctx.controller.click(grid_point)
+                time.sleep(0.2)
 
-            all_grids = []
-            for contour in filtered_contours:
-                x, y, w, h = cv2.boundingRect(contour)
-                absolute_x = x + drive_disk_list_area.rect.x1
-                absolute_y = y + drive_disk_list_area.rect.y1
-                grid_center = Point(absolute_x + w / 2, absolute_y + h / 2)
-                all_grids.append(grid_center)
+                screen = self.screenshot()
+                cropped_image = cv2_utils.crop_image_only(screen, self._drive_disk_detail_area.rect)
+                self.ocr_worker.submit('disc', cropped_image, self.drive_disk_parser)
 
-            grid_rows = self._sort_grids(all_grids)
+        log.info("初始屏幕捕获完成")
 
-            last_row_has_four = False
-            if grid_rows:
+        # 步骤 2: 检测是否触底（统一使用进度条检测）
+        has_progress_bar = self._detect_progress_bar(screen)
+
+        if has_progress_bar:
+            log.info("检测到进度条，已触底，所有驱动盘已显示在屏幕上")
+            # 直接跳到保存步骤
+            scroll_iteration = 0
+        else:
+            log.info("未检测到进度条，开始滚动捕获")
+
+            # 进入滚动循环
+            max_scroll_iterations = 100
+            scroll_iteration = 0
+
+            while scroll_iteration < max_scroll_iterations:
+                scroll_iteration += 1
+                log.info(f"=== 第 {scroll_iteration} 次滚动循环 ===")
+
                 last_row = grid_rows[-1]
-                last_row_has_four = len(last_row) == 4
-                log.info(f"最后一行驱动盘数量: {len(last_row)}, 是否为4个: {last_row_has_four}")
+                target = last_row[0]
+                log.info(f"点击最后一行第一个驱动盘触发滚动：({target.x}, {target.y})")
+                self.ctx.controller.scroll(1, target)
+                time.sleep(0.5)
 
-            if last_row_has_four:
-                log.info("最后一行有4个驱动盘，检测进度条判断是否触底")
-                log.info(f"当前网格位置信息: 共{len(grid_rows)}行, 最后一行={len(grid_rows[-1]) if grid_rows else 0}个")
-                for i, row in enumerate(grid_rows):
-                    log.debug(f"行 {i}: {len(row)} 个驱动盘")
+                log.info("滚动完成，检测新显示的行")
+                screen_after_scroll = self.screenshot()
 
-                has_progress_bar = self._detect_progress_bar(screen)
+                context_after_scroll = self._drive_disk_pipeline.execute(screen_after_scroll, service=self.ctx.cv_service)
+
+                filtered_contours_after = context_after_scroll.contours
+                if not filtered_contours_after:
+                    log.warning("滚动后未检测到驱动盘方格")
+                    break
+
+                all_grids_after = []
+                for contour in filtered_contours_after:
+                    x, y, w, h = cv2.boundingRect(contour)
+                    absolute_x = x + self._drive_disk_list_area.rect.x1
+                    absolute_y = y + self._drive_disk_list_area.rect.y1
+                    grid_center = Point(absolute_x + w / 2, absolute_y + h / 2)
+                    all_grids_after.append(grid_center)
+
+                grid_rows_after = self._sort_grids(all_grids_after)
+                if not grid_rows_after:
+                    log.warning("滚动后网格整理为空")
+                    break
+
+                log.info(f"滚动后检测到 {len(grid_rows_after)} 行驱动盘")
+
+                new_row_index = len(grid_rows_after) - 1
+                new_last_row = grid_rows_after[-1]
+
+                log.info(f"采集新显示的第 {new_row_index + 1} 行，共 {len(new_last_row)} 个驱动盘")
+
+                for _col_idx, grid_point in enumerate(new_last_row):
+                    self.ctx.controller.click(grid_point)
+                    time.sleep(0.2)
+
+                    screen = self.screenshot()
+                    cropped_image = cv2_utils.crop_image_only(screen, self._drive_disk_detail_area.rect)
+                    self.ocr_worker.submit('disc', cropped_image, self.drive_disk_parser)
+
+                log.info(f"本轮捕获完成（新显示的第 {new_row_index + 1} 行）")
+
+                # 步骤 5: 检测是否触底
+                has_progress_bar = self._detect_progress_bar(screen_after_scroll)
 
                 if has_progress_bar:
                     log.info("检测到进度条，已触底")
-                    return self.round_success(
-                        '已触底',
-                        data={
-                            'last_row_has_four': True,
-                            'total_grids': len(filtered_contours),
-                            'row_count': len(grid_rows),
-                            'last_row_count': len(grid_rows[-1]) if grid_rows else 0,
-                            'is_bottom': True,
-                            'scroll_count': scroll_iteration
-                        }
-                    )
-                else:
-                    log.info("未检测到进度条，触发滚动")
-                    target = grid_rows[-1][0]
-                    log.info(f"点击最后一行第一个驱动盘触发滚动: ({target.x}, {target.y})")
-                    log.info(f"驱动盘列表区域: ({drive_disk_list_area.rect.x1}, {drive_disk_list_area.rect.y1}, {drive_disk_list_area.rect.x2}, {drive_disk_list_area.rect.y2})")
-                    log.info(f"点击前画面中驱动盘网格: {len(all_grids)} 个")
+                    break
 
-                    for i, grid in enumerate(grid_rows[-1]):
-                        log.info(f"最后一行驱动盘 {i}: ({grid.x}, {grid.y})")
 
-                    log.info(f"执行滚动操作，位置: ({target.x}, {target.y})")
-                    self.ctx.controller.scroll(1, target)
-                    log.info("滚动操作已发送，等待滚动完成")
-                    time.sleep(0.5)
-            else:
-                log.info("最后一行不足4个驱动盘，已触底")
-                return self.round_success(
-                    '已触底',
-                    data={
-                        'last_row_has_four': False,
-                        'total_grids': len(filtered_contours),
-                        'row_count': len(grid_rows),
-                        'last_row_count': len(grid_rows[-1]) if grid_rows else 0,
-                        'is_bottom': True,
-                        'scroll_count': scroll_iteration
-                    }
+        # 统计结果
+        self.ocr_worker.wait_complete()
+
+        # 收集结果并添加评分（使用初始化时加载的权重配置）
+        all_drive_disks = []
+        scored_count = 0
+        skipped_count = 0
+
+        for scanned_disc in self.ocr_worker.scanned_discs:
+            # 检查驱动盘套装是否与用户选择的一致
+            disc_set_key = scanned_disc.get('setKey', '')
+            should_score = True
+
+            if self.selected_drive_disk_set and disc_set_key != self.selected_drive_disk_set:
+                # 套装不一致，跳过评分
+                should_score = False
+                skipped_count += 1
+                log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - 套装 {disc_set_key} 与选择的 {self.selected_drive_disk_set} 不一致，跳过评分")
+
+            # 计算驱动盘评分
+            if should_score:
+                from zzz_od.game_data.drive_disk import MAX_DISK_SCORE, SLOT_MAPPING
+
+                slot_key = scanned_disc.get('slotKey', '1')
+                scanned_disc['position'] = int(slot_key) if slot_key.isdigit() else 1
+
+                score_result = self._inventory_processor.calculate_actual_disc_score(
+                    scanned_disc, self._character_weight, SLOT_MAPPING
                 )
 
-        log.warning(f"已达到最大滚动次数 {max_scroll_iterations}，停止滚动")
+                scanned_disc['score'] = {
+                    'relativeScore': round(score_result['relativeScore'], 2),
+                    'totalScore': round(score_result['totalScore'], 2),
+                    'mainStatScore': round(score_result['mainStatScore'], 2),
+                    'substatScore': round(score_result['substatScore'], 2),
+                    'maxScore': round(score_result['score_ceiling'], 2),
+                    'validSubstats': score_result['validSubstats']
+                }
+
+                scored_count += 1
+                log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 相对得分 {scanned_disc['score']['relativeScore']:.2f}/{MAX_DISK_SCORE}")
+            else:
+                scanned_disc['score'] = None
+                log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 已跳过")
+
+            all_drive_disks.append(scanned_disc)
+
+        self.ocr_worker.reset()
+        captured_count = len(all_drive_disks)
+        log.info("=== 捕获完成 ===")
+        log.info(f"成功捕获 {captured_count} 个驱动盘信息")
+        if scored_count > 0:
+            log.info(f"已评分 {scored_count} 个驱动盘（套装：{self.selected_drive_disk_set}）")
+        if skipped_count > 0:
+            log.info(f"已跳过 {skipped_count} 个驱动盘（套装不一致）")
+
+        # 保存到 JSON 文件
+        output_file = None
+        if captured_count > 0:
+            try:
+                from one_dragon.utils.os_utils import get_path_under_work_dir
+                output_dir = Path(get_path_under_work_dir('debug', 'drive_disks'))
+                output_dir.mkdir(parents=True, exist_ok=True)
+
+                timestamp = time.strftime('%Y%m%d_%H%M%S')
+                output_file = output_dir / f'drive_disks_{timestamp}.json'
+
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(all_drive_disks, f, ensure_ascii=False, indent=2)
+
+                log.info(f"驱动盘信息已保存到：{output_file}")
+
+            except Exception as e:
+                log.error(f"保存 JSON 文件失败：{e}", exc_info=True)
+
         return self.round_success(
-            '达到最大滚动次数',
+            '已捕获所有驱动盘信息',
             data={
-                'is_bottom': False,
-                'scroll_count': scroll_iteration
+                'captured_count': captured_count,
+                'scroll_count': scroll_iteration,
+                'output_file': str(output_file) if output_file else None
             }
         )
 

@@ -10,6 +10,7 @@ from zzz_od.game_data.drive_disk import (
     MAX_LEVELS,
     MAX_SUB_PROPERTIES,
     SLOT_MAIN_POOLS,
+    SLOT_MAPPING,
     SUB_STATS_POOL,
 )
 
@@ -78,16 +79,7 @@ class InventoryDataProcessor:
 
         return weight
 
-    def load_slot_mapping(self, slot_mapping_file):
-        """加载槽位映射配置"""
-        try:
-            with open(slot_mapping_file, encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            log.error(f"加载槽位映射文件失败: {e}", exc_info=True)
-            return {}
-
-    def convert_drive_disc_stats_to_chinese(self, drive_discs, slot_mapping):
+    def convert_drive_disc_stats_to_chinese(self, drive_discs, slot_mapping=SLOT_MAPPING):
         """将驱动盘的词条名转换为中文"""
         converted_discs = {}
 
@@ -294,7 +286,9 @@ class InventoryDataProcessor:
 
         return best_config
 
-    def calculate_actual_disc_score(self, disc_data, character_weight, slot_mapping):
+    def calculate_actual_disc_score(
+        self, disc_data, character_weight, slot_mapping=SLOT_MAPPING
+    ):
         """计算驱动盘的实际得分
 
         Args:
@@ -363,18 +357,14 @@ class InventoryDataProcessor:
         }
 
     def process_inventory_data(
-        self, inventory_data_dir: str, slot_mapping_file: str
+        self, inventory_data_dir: str
     ) -> list[dict[str, Any]]:
         """处理库存数据"""
-        # 1. 加载inventory_data目录下的JSON文件
+        # 1. 加载 inventory_data 目录下的 JSON 文件
         inventory_files = self.load_inventory_data_files(inventory_data_dir)
         log.info(f"找到 {len(inventory_files)} 个库存数据文件")
 
-        # 2. 加载槽位映射
-        slot_mapping = self.load_slot_mapping(slot_mapping_file)
-        log.info(f"加载了 {len(slot_mapping)} 个槽位映射")
-
-        # 3. 处理每个角色数据
+        # 2. 处理每个角色数据
         processed_results = []
         for inventory_file in inventory_files:
             key = inventory_file["key"]
@@ -389,9 +379,7 @@ class InventoryDataProcessor:
 
             # 转换驱动盘词条为中文
             equipped_discs = inventory_file["data"].get("equippedDiscs", {})
-            converted_discs = self.convert_drive_disc_stats_to_chinese(
-                equipped_discs, slot_mapping
-            )
+            converted_discs = self.convert_drive_disc_stats_to_chinese(equipped_discs)
 
             # 计算每个驱动盘的最优配置
             optimal_configs = {}
@@ -409,7 +397,7 @@ class InventoryDataProcessor:
                 disc_data_with_position = disc_data.copy()
                 disc_data_with_position["position"] = int(slot_key)
                 actual_scores[slot_key] = self.calculate_actual_disc_score(
-                    disc_data_with_position, character_weight, slot_mapping
+                    disc_data_with_position, character_weight
                 )
 
             # 构建处理结果
@@ -467,16 +455,13 @@ class InventoryDataProcessor:
         inventory_data_dir = os_utils.get_path_under_work_dir(
             ".debug", "inventory_data"
         )
-        slot_mapping_file = os_utils.get_path_under_work_dir(
-            "src", "zzz_od", "game_data", "slot_Mapping.json"
-        )
 
         print("=" * 60)
         print("开始处理库存数据")
         print("=" * 60)
 
         # 处理库存数据
-        results = self.process_inventory_data(inventory_data_dir, slot_mapping_file)
+        results = self.process_inventory_data(inventory_data_dir)
 
         print("\n" + "=" * 60)
         print(f"处理完成！共处理 {len(results)} 个角色")
