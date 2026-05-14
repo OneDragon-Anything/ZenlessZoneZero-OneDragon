@@ -110,10 +110,10 @@ area_list:
 - area_name: 玩法引导
   id_mark: false
   pc_rect:
-  - 433
+  - 342
   - 213
   - 565
-  - 264
+  - 285
 - area_name: 按钮-短信-关闭
   id_mark: false
   pc_rect:
