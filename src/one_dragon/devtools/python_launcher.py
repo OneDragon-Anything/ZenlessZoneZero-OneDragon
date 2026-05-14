@@ -81,8 +81,14 @@ def execute_python_script(ctx: OneDragonEnvContext, app_path, no_windows: bool, 
         sys.exit(1)
 
     uv_path = ctx.env_config.uv_path
+    app_module_parts = app_path.copy()
+    module_name = app_module_parts[-1]
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    app_module_parts[-1] = module_name
+    app_module = '.'.join(app_module_parts)
     # 构建 uv run 命令参数
-    run_args = ['run', '--frozen', app_script_path]
+    run_args = ['run', '--frozen', '-m', app_module]
     if args:
         run_args.extend(args)
         print_message(f"传递参数：{' '.join(args)}", "INFO")
