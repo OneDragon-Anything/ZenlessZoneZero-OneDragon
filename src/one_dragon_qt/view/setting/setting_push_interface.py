@@ -5,7 +5,6 @@ from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, Set
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.push.curl_generator import CurlGenerator
 from one_dragon.base.push.push_channel_config import (
     FieldTypeEnum,
@@ -42,7 +41,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 class SettingPushInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonContext, parent=None):
+    def __init__(self, ctx, parent=None):
 
         VerticalScrollInterface.__init__(
             self,
@@ -51,7 +50,7 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_text_cn='通知设置',
             nav_icon=FluentIcon.MESSAGE
         )
-        self.ctx: OneDragonContext = ctx
+        self.ctx = ctx
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -106,6 +105,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         channel_group = ExpandSettingCardGroup(icon=FluentIcon.MESSAGE, title='通知方式')
         channel_group.addHeaderWidget(self.notification_method_opt.combo_box)
+        channel_group.setExpand(True)
         content_widget.add_widget(channel_group)
 
         # 预创建特殊卡片（稍后按渠道分配）

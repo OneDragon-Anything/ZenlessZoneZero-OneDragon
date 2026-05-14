@@ -162,31 +162,3 @@ class CustomConfig(YamlConfig):
         """
         color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
         self.update('global_theme_color', color_str)
-
-    @property
-    def theme_color_banner_path(self) -> str:
-        """
-        当前主题色对应的背景图片路径
-        """
-        return self.get('theme_color_banner_path', '')
-
-    @theme_color_banner_path.setter
-    def theme_color_banner_path(self, new_value: str) -> None:
-        """
-        当前主题色对应的背景图片路径
-        """
-        self.update('theme_color_banner_path', new_value)
-
-    @property
-    def theme_color_banner_mtime(self) -> float:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        return self.get('theme_color_banner_mtime', 0.0)
-
-    @theme_color_banner_mtime.setter
-    def theme_color_banner_mtime(self, new_value: float) -> None:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        self.update('theme_color_banner_mtime', new_value)

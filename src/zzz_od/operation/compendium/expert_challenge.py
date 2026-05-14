@@ -3,10 +3,9 @@ from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
@@ -15,8 +14,6 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
 )
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
@@ -42,10 +39,7 @@ class ExpertChallenge(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
-                gt('专业挑战室', 'game'),
-                gt(plan.mission_type_name, 'game')
-            )
+            op_name=f"{gt('专业挑战室', 'game')} {gt(plan.mission_type_name, 'game')}"
         )
         self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
@@ -77,11 +71,11 @@ class ExpertChallenge(ZOperation):
             return self.round_success()
 
     @node_from(from_name='关闭燃竭模式')
-    @node_from(from_name='恢复电量', status='恢复电量成功')
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if result.is_success:
             return self.round_success(status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -104,8 +98,7 @@ class ExpertChallenge(ZOperation):
         if not self.config.is_restore_charge_enabled:
             return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -173,7 +166,10 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
+        op = ChooseNextOrFinishAfterBattle(
+            self.ctx,
+            self.plan.plan_times > self.plan.run_times,
+        )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)

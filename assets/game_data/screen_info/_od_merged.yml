@@ -1444,6 +1444,20 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 标题-驱动盘数量已达到可拥有上限
+    id_mark: false
+    pc_rect:
+    - 720
+    - 500
+    - 1210
+    - 555
+    text: 驱动盘数量已达到可拥有上限
+    lcs_percent: 0.7
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: common_screen
   screen_name: 画面-通用
   pc_alt: false
@@ -2590,14 +2604,28 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: B服-登陆
+  - area_name: B服-登录
+    id_mark: false
+    pc_rect:
+    - 839
+    - 555
+    - 1080
+    - 664
+    text: 登录
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: B服新-手机号登录
     id_mark: false
     pc_rect:
     - 839
     - 626
     - 1080
     - 664
-    text: 登录
+    text: 登录/注册
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -2658,6 +2686,76 @@
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: B服新-隐私政策提示
+    id_mark: false
+    pc_rect:
+    - 739
+    - 380
+    - 1180
+    - 480
+    text: bilibili游戏隐私政策提示
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: B服新-同意隐私政策
+    id_mark: false
+    pc_rect:
+    - 930
+    - 560
+    - 1100
+    - 708
+    text: 同意
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: B服新-登录记录
+    id_mark: false
+    pc_rect:
+    - 739
+    - 380
+    - 1180
+    - 470
+    text: 登录记录
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: B服新-切换账号
+    id_mark: false
+    pc_rect:
+    - 1000
+    - 350
+    - 1200
+    - 550
+    text: ''
+    lcs_percent: null
+    template_sub_dir: enter_game
+    template_id: bilibili_switch_account
+    template_match_threshold: 0.5
+    color_range: null
+    goto_list: []
+  - area_name: B服新-账号列表
+    id_mark: false
+    pc_rect:
+    - 739
+    - 500
+    - 1180
+    - 840
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 标题-退出登录
@@ -2923,6 +3021,20 @@
     lcs_percent: 0.5
     template_sub_dir: enter_game
     template_id: annual_reward
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 国服-返回按钮
+    id_mark: false
+    pc_rect:
+    - 538
+    - 222
+    - 575
+    - 265
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -4772,7 +4884,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-悬赏委托
-    id_mark: false
+    id_mark: true
     pc_rect:
     - 1181
     - 19
@@ -4828,7 +4940,7 @@
     color_range: null
     goto_list: []
   - area_name: 区域-矩阵行动
-    id_mark: true
+    id_mark: false
     pc_rect:
     - 745
     - 233
@@ -4870,7 +4982,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-常规
-    id_mark: false
+    id_mark: true
     pc_rect:
     - 1616
     - 19
@@ -4905,6 +5017,20 @@
     - 1613
     - 362
     text: 特遣调查
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-周期
+    id_mark: false
+    pc_rect:
+    - 1453
+    - 26
+    - 1567
+    - 72
+    text: 周期
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -5253,6 +5379,20 @@
     color_range: null
     goto_list: []
     gamepad_key: menu
+  - area_name: 标识-BOSS血条
+    id_mark: false
+    pc_rect:
+    - 1620
+    - 16
+    - 1720
+    - 106
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: battle
+    template_id: boss_life
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 区域-对话内容
     id_mark: false
     pc_rect:
@@ -5632,6 +5772,20 @@
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 协战代理人属性
+    id_mark: false
+    pc_rect:
+    - 1300
+    - 400
+    - 1374
+    - 434
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
 - screen_id: menu
@@ -6199,7 +6353,7 @@
     - 1696
     - 319
     - 1858
-    - 400
+    - 415
     text: ''
     lcs_percent: 0.1
     template_sub_dir: normal_world
@@ -6208,6 +6362,21 @@
     color_range: null
     goto_list: []
     gamepad_key: map
+  - area_name: 小地图
+    id_mark: false
+    pc_rect:
+    - 1565
+    - 200
+    - 1775
+    - 410
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+    gamepad_key: minimap
   - area_name: 快捷手册
     id_mark: false
     pc_rect:
@@ -6266,21 +6435,6 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 小地图
-    id_mark: false
-    pc_rect:
-    - 1574
-    - 183
-    - 1784
-    - 393
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-    gamepad_key: minimap
   - area_name: 对话框确认
     id_mark: false
     pc_rect:
@@ -6401,8 +6555,8 @@
     - 117
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: normal_world
-    template_id: function_menu_investigation
+    template_sub_dir: normal_world_investigation
+    template_id: function_menu
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -6459,10 +6613,10 @@
   - area_name: 剩余次数
     id_mark: false
     pc_rect:
-    - 384
-    - 996
-    - 406
-    - 1025
+    - 1516
+    - 1018
+    - 1538
+    - 1043
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -6781,6 +6935,20 @@
     lcs_percent: 0.5
     template_sub_dir: battle
     template_id: boss_life
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 深度追猎-信息
+    id_mark: false
+    pc_rect:
+    - 1480
+    - 675
+    - 1525
+    - 720
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: notorious_hunt
+    template_id: info
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -7128,20 +7296,6 @@
   screen_name: 恢复电量
   pc_alt: false
   area_list:
-  - area_name: 标题
-    id_mark: true
-    pc_rect:
-    - 824
-    - 348
-    - 1076
-    - 390
-    text: 恢复电量
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 类型
     id_mark: false
     pc_rect:
@@ -7163,7 +7317,7 @@
     - 650
     - 1200
     - 800
-    text: ''
+    text: 确认
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -7206,6 +7360,48 @@
     - 1020
     - 472
     text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-恢复电量
+    id_mark: true
+    pc_rect:
+    - 824
+    - 348
+    - 1076
+    - 390
+    text: 恢复电量
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-快捷使用
+    id_mark: false
+    pc_rect:
+    - 584
+    - 300
+    - 727
+    - 353
+    text: 快捷使用
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-获得
+    id_mark: false
+    pc_rect:
+    - 860
+    - 386
+    - 1060
+    - 456
+    text: 获得
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -8372,6 +8568,34 @@
     - 785
     - 575
     text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 标题-无法聘用
+    id_mark: false
+    pc_rect:
+    - 721
+    - 436
+    - 1195
+    - 566
+    text: 无法聘用
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 取消
+    id_mark: false
+    pc_rect:
+    - 657
+    - 586
+    - 955
+    - 692
+    text: 取消
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''

@@ -24,6 +24,17 @@ class NotoriousHuntBuffEnum(Enum):
     BUFF_3 = ConfigItem('第三个BUFF', 3)
 
 
+class NotoriousHuntWeekdayEnum(Enum):
+
+    MONDAY = ConfigItem('周一', 1)
+    TUESDAY = ConfigItem('周二', 2)
+    WEDNESDAY = ConfigItem('周三', 3)
+    THURSDAY = ConfigItem('周四', 4)
+    FRIDAY = ConfigItem('周五', 5)
+    SATURDAY = ConfigItem('周六', 6)
+    SUNDAY = ConfigItem('周日', 7)
+
+
 class NotoriousHuntConfig(ApplicationConfig):
 
     def __init__(self, instance_idx: int, group_id: str):
@@ -54,6 +65,14 @@ class NotoriousHuntConfig(ApplicationConfig):
                 if plan.mission_type_name not in existed_missions:
                     self.plan_list.append(plan)
 
+    @property
+    def weekly_challenge_start_weekday(self) -> int:
+        return self.data.get('weekly_challenge_start_weekday', 1)
+
+    @weekly_challenge_start_weekday.setter
+    def weekly_challenge_start_weekday(self, new_value: int) -> None:
+        self.update('weekly_challenge_start_weekday', new_value)
+
     def _get_default_plan(self) -> list[ChargePlanItem]:
         """
         默认的周本计划
@@ -70,11 +89,8 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
 
-    def save(self):
-        self.data = {}
+    def save(self) -> None:
         plan_list = []
-        self.data['plan_list'] = plan_list
-
         for plan_item in self.plan_list:
             plan_list.append({
                 'tab_name': plan_item.tab_name,
@@ -88,6 +104,7 @@ class NotoriousHuntConfig(ApplicationConfig):
                 'plan_times': plan_item.plan_times,
                 'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
             })
+        self.data['plan_list'] = plan_list
 
         YamlConfig.save(self)
 

@@ -96,7 +96,11 @@ class ZContext(OneDragonContext):
         if self.game_account_config.use_custom_win_title:
             return self.game_account_config.custom_win_title
         from one_dragon.base.config.game_account_config import GameRegionEnum
-        return '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+        if self.game_account_config.game_region == GameRegionEnum.CN.value.value \
+                or self.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            return '绝区零'
+        else:
+            return 'ZenlessZoneZero'
 
     def on_switch_instance(self) -> None:
         """
@@ -144,14 +148,3 @@ class ZContext(OneDragonContext):
         AutoBattleOperator.after_app_shutdown()
 
         OneDragonContext.after_app_shutdown(self)
-
-    @cached_property
-    def shared_dialog_manager(self):
-        """
-        获取共享的Dialog管理器
-
-        Returns:
-            SharedDialogManager: 共享的Dialog管理器
-        """
-        from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
-        return SharedDialogManager(self)

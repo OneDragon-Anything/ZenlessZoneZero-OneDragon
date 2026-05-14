@@ -6,13 +6,14 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class WorldPatrolSettingInterface(VerticalScrollInterface):
+class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext):
         super().__init__(
@@ -35,13 +36,13 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         )
 
         self.ctx: ZContext = ctx
-        self.group_id: str = application_const.DEFAULT_GROUP_ID
         self.config: WorldPatrolConfig | None = None
         self.run_record: WorldPatrolRunRecord | None = None
 
     def get_content_widget(self) -> QWidget:
         widget = QWidget(self)
         col_layout = QHBoxLayout(widget)
+        col_layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(col_layout)
 
         # 将左侧和右侧的 widget 添加到主布局中，并均分空间
@@ -54,14 +55,29 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         # 创建左侧的垂直布局容器
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
-        self.help_opt = HelpCard(url='',
-                                 content='使用此功能前，建议勘域编队中要有一名合适的行走位')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/world_patrol.html')
         layout.addWidget(self.help_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.SEARCH, title='自动战斗')
         layout.addWidget(self.auto_battle_opt)
+
+        self.ui_disappear_seconds_opt = SpinBoxSettingCard(
+            icon=FluentIcon.STOP_WATCH,
+            title='界面消失预警时间',
+            content='UI完全消失持续到该秒数后判定为卡电梯',
+            maximum=999,
+        )
+        layout.addWidget(self.ui_disappear_seconds_opt)
+
+        self.ui_disappear_action_opt = ComboBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title='界面消失处理方式',
+            content='判定为疑似卡电梯后的处理方式',
+        )
+        layout.addWidget(self.ui_disappear_action_opt)
 
         layout.addStretch(1)
         return widget
@@ -70,6 +86,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         # 创建右侧的垂直布局容器
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
         self.run_record_opt = PushSettingCard(
@@ -82,6 +99,13 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
 
         self.route_list_opt = ComboBoxSettingCard(icon=FluentIcon.SEARCH, title='路线名单')
         layout.addWidget(self.route_list_opt)
+
+        self.route_retry_times_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SYNC,
+            title='单条路线重试上限',
+            content='任何原因卡住的最多重试次数，超限后跳过该条小路线',
+        )
+        layout.addWidget(self.route_retry_times_opt)
 
         layout.addStretch(1)
         return widget
@@ -113,12 +137,21 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
         self.auto_battle_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle'))
 
+        self.ui_disappear_action_opt.set_options_by_list(
+            [
+                ConfigItem('静默失败', WorldPatrolConfig.UI_DISAPPEAR_SILENT_FAIL),
+                ConfigItem('重开游戏并跳过路线', WorldPatrolConfig.UI_DISAPPEAR_RESTART_SKIP),
+                ConfigItem('重开游戏并重试路线', WorldPatrolConfig.UI_DISAPPEAR_RESTART_RETRY),
+            ]
+        )
+        self.ui_disappear_action_opt.init_with_adapter(get_prop_adapter(self.config, 'ui_disappear_action'))
+        self.ui_disappear_seconds_opt.init_with_adapter(get_prop_adapter(self.config, 'ui_disappear_seconds'))
+
+        self.route_retry_times_opt.init_with_adapter(get_prop_adapter(self.config, 'route_retry_times'))
+
     def _on_reset_record_clicked(self) -> None:
         if self.run_record is None:
             log.warning('运行记录未初始化')
             return
         self.run_record.reset_record()
         log.info('已重置记录')
-
-    def set_group_id(self, group_id: str) -> None:
-        self.group_id = group_id

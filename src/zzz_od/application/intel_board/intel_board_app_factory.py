@@ -25,11 +25,7 @@ if TYPE_CHECKING:
 class IntelBoardAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=intel_board_const.APP_ID,
-            app_name=intel_board_const.APP_NAME,
-        )
+        ApplicationFactory.__init__(self, intel_board_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

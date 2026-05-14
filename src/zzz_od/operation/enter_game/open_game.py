@@ -42,30 +42,10 @@ class OpenGame(Operation):
         command = f'{command} & exit"'
         log.info('命令行指令 %s', command)
 
-        try:
-            # 若启动器使用了进程组管理，使用 CREATE_BREAKAWAY_FROM_JOB 可使子进程从jobobject中逃离， 避免OneDragon-Launcher.exe退出后，游戏被杀死
-            subprocess.Popen(
-                command,
-                creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
-            )
+        # 若启动器使用了进程组管理，使用 CREATE_BREAKAWAY_FROM_JOB 可使子进程从jobobject中逃离， 避免OneDragon-Launcher.exe退出后，游戏被杀死
+        subprocess.Popen(
+            command,
+            creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
+        )
 
-            # 埋点：游戏启动事件
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                self.ctx.telemetry.track_custom_event('game_launched', {
-                    'launch_method': 'auto_launch',
-                    'has_launch_arguments': self.ctx.game_config.launch_argument,
-                    'screen_size': self.ctx.game_config.screen_size if hasattr(self.ctx.game_config, 'screen_size') else 'unknown',
-                    'full_screen': self.ctx.game_config.full_screen if hasattr(self.ctx.game_config, 'full_screen') else False,
-                    'event_category': 'game_lifecycle'
-                })
-
-            return self.round_success(wait=5)
-        except Exception as e:
-            # 埋点：游戏启动失败事件
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                self.ctx.telemetry.track_custom_event('game_launch_failed', {
-                    'launch_method': 'auto_launch',
-                    'error_type': type(e).__name__,
-                    'event_category': 'game_lifecycle'
-                })
-            raise
+        return self.round_success(wait=5)

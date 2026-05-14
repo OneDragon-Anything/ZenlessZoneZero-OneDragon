@@ -7,7 +7,7 @@ from one_dragon.utils.log_utils import log
 
 class CompendiumTab:
 
-    def __init__(self, tab_name: str, category_list: list = None):
+    def __init__(self, tab_name: str, category_list: list | None = None):
         self.tab_name: str = tab_name
         self.category_list: list[CompendiumCategory] = []
         if category_list is not None:
@@ -19,7 +19,7 @@ class CompendiumTab:
 
 class CompendiumCategory:
 
-    def __init__(self, category_name: str, mission_type_list: list = None):
+    def __init__(self, category_name: str, mission_type_list: list | None = None):
         self.tab: CompendiumTab | None = None
         self.category_name: str = category_name
         self.mission_type_list: list[CompendiumMissionType] = []
@@ -36,7 +36,7 @@ class CompendiumCategory:
 class CompendiumMissionType:
 
     def __init__(self, mission_type_name: str, mission_type_name_display: str | None = None,
-                 mission_list: list = None, alias_list: list[str] = None):
+                 mission_list: list | None = None, alias_list: list[str] | None = None):
         self.category: CompendiumCategory | None = None
         self.mission_type_name: str = mission_type_name
         self.mission_type_name_display: str = mission_type_name
@@ -71,7 +71,7 @@ class CompendiumMission:
 
 class CompendiumData:
 
-    def __init__(self, tab_list: list = None):
+    def __init__(self, tab_list: list | None = None):
         self.tab_list: list[CompendiumTab] = []
         if tab_list is not None:
             for tab_item in tab_list:
@@ -87,10 +87,10 @@ class Coffee:
                  mission: CompendiumMission | None,
                  extra: bool = False):
         self.coffee_name: str = coffee_name
-        self.tab: CompendiumTab = tab
-        self.category: CompendiumCategory = category
-        self.mission_type: CompendiumMissionType = mission_type
-        self.mission: CompendiumMission = mission
+        self.tab: CompendiumTab | None = tab
+        self.category: CompendiumCategory | None = category
+        self.mission_type: CompendiumMissionType | None = mission_type
+        self.mission: CompendiumMission | None = mission
         self.extra: bool = extra  # 可额外喝 不占用次数的
 
     @property
@@ -171,7 +171,7 @@ class CompendiumService:
         return None
 
     def get_mission_type_list_data(self, tab_name: str, category_name: str) -> list[CompendiumMissionType]:
-        category: CompendiumCategory = self.get_category_data(tab_name, category_name)
+        category = self.get_category_data(tab_name, category_name)
         if category is not None:
             return category.mission_type_list
         else:
@@ -206,18 +206,14 @@ class CompendiumService:
 
         category_list = self.get_category_list_data('训练')
         for category_item in category_list:
+            label = category_item.category_name
+            if category_item.category_name == '恶名狩猎':
+                # 普通恶名狩猎走独立 app，体力计划里只保留深度追猎入口。
+                label = f'{category_item.category_name} 深度追猎'
             category_config_list.append(ConfigItem(
-                label=category_item.category_name,
+                label=label,
                 value=category_item.category_name
             ))
-
-        category_list = self.get_category_list_data('训练')
-        for category_item in category_list:
-            if category_item.category_name == '恶名狩猎':
-                category_config_list.append(ConfigItem(
-                    label=f'{category_item.category_name} 深度追猎',
-                    value=category_item.category_name
-                ))
 
         return category_config_list
 

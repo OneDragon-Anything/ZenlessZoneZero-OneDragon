@@ -1,51 +1,49 @@
+import copy
 import os
-import sys
-from typing import Optional
 
 import yaml
 
 from one_dragon.utils import yaml_utils
 from one_dragon.utils.log_utils import log
 
-cached_yaml_data: dict[str, tuple[float, dict]] = {}
+cached_yaml_data: dict[str, tuple[float, dict | list]] = {}
 
 
-def get_temp_config_path(file_path: str) -> str:
-    """
-    优先检查PyInstaller运行时的_MEIPASS目录下是否有对应的yml文件
-    有则返回该路径，否则返回原路径
-    """
-    if hasattr(sys, '_MEIPASS'):
-        mei_path = os.path.join(sys._MEIPASS, 'config', os.path.basename(file_path))
-        if os.path.exists(mei_path):
-            return mei_path
-    return file_path
-
-def read_cache_or_load(file_path: str):
+def read_cache_or_load(file_path: str) -> dict | list:
     cached = cached_yaml_data.get(file_path)
     last_modify = os.path.getmtime(file_path)
     if cached is not None and cached[0] == last_modify:
-        return cached[1]
+        return copy.deepcopy(cached[1])
 
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, encoding="utf-8") as file:
         log.debug(f"加载yaml: {file_path}")
         data = yaml_utils.safe_load(file)
+        if data is None:
+            data = {}
+        if not isinstance(data, dict | list):
+            raise TypeError(f"YAML root must be a dict or list: {file_path}")
         cached_yaml_data[file_path] = (last_modify, data)
-        return data
+        return copy.deepcopy(data)
+
+
+def invalidate_cache(file_path: str | None) -> None:
+    if file_path is None:
+        return
+    cached_yaml_data.pop(file_path, None)
 
 
 class YamlOperator:
 
-    def __init__(self, file_path: Optional[str] = None):
+    def __init__(self, file_path: str | None = None):
         """
         yml文件的操作器
         :param file_path: yml文件的路径。不传入时认为是mock，用于测试。
         """
 
-        self.file_path: str = get_temp_config_path(file_path) if file_path else None
+        self.file_path: str | None = file_path
         """yml文件的路径"""
 
-        self.data: dict = {}
+        self.data: dict | list = {}
         """存放数据的地方"""
 
         self.__read_from_file()
@@ -66,15 +64,13 @@ class YamlOperator:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return
 
-        if self.data is None:
-            self.data = {}
-
     def save(self):
         if self.file_path is None:
             return
 
         with open(self.file_path, 'w', encoding='utf-8') as file:
             yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+        invalidate_cache(self.file_path)
 
     def save_diy(self, text: str):
         """
@@ -87,12 +83,15 @@ class YamlOperator:
 
         with open(self.file_path, "w", encoding="utf-8") as file:
             file.write(text)
+        invalidate_cache(self.file_path)
 
     def get(self, prop: str, value=None):
+        if not isinstance(self.data, dict):
+            return value
         return self.data.get(prop, value)
 
     def update(self, key: str, value, save: bool = True):
-        if self.data is None:
+        if not isinstance(self.data, dict):
             self.data = {}
         if key in self.data and not isinstance(value, list) and self.data[key] == value:
             return
@@ -105,8 +104,11 @@ class YamlOperator:
         删除配置文件
         :return:
         """
+        if self.file_path is None:
+            return
         if os.path.exists(self.file_path):
             os.remove(self.file_path)
+            invalidate_cache(self.file_path)
 
     @property
     def is_file_exists(self) -> bool:

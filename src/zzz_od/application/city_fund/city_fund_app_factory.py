@@ -16,13 +16,7 @@ if TYPE_CHECKING:
 class CityFundAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=city_fund_const.APP_ID,
-            app_name=city_fund_const.APP_NAME,
-            default_group=city_fund_const.DEFAULT_GROUP,
-            need_notify=city_fund_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, city_fund_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

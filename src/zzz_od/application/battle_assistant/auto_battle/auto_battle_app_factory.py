@@ -16,13 +16,7 @@ if TYPE_CHECKING:
 class AutoBattleAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=auto_battle_const.APP_ID,
-            app_name=auto_battle_const.APP_NAME,
-            default_group=auto_battle_const.DEFAULT_GROUP,
-            need_notify=auto_battle_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, auto_battle_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

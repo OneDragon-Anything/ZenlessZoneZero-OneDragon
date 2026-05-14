@@ -20,3 +20,6 @@ sys.path.insert(0, str(_src))
 #       修改 KEEP_TREES 新增不同顶层包前缀时，需同步更新此处。
 import one_dragon
 one_dragon.__path__.append(str(_src / "one_dragon"))
+
+import one_dragon.launcher
+one_dragon.launcher.__path__.append(str(_src / "one_dragon" / "launcher"))

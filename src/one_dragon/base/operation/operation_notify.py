@@ -5,6 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.notify_config import NotifyLevel
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 
@@ -67,6 +68,11 @@ def _get_notify_level(operation: Operation) -> int:
 def send_application_notify(app: Application, status: bool | None) -> None:
     """向外部推送应用运行状态通知。
 
+    各通知等级的结束通知行为：
+        - APP: 发送结束通知，附带池中最后一张截图
+        - ALL: 发送结束通知，不附图（节点截图已逐条发送）
+        - MERGE: 将结束消息与池中节点消息合并发送
+
     Args:
         app: Application 实例
         status: True=成功, False=失败, None=开始
@@ -79,24 +85,46 @@ def send_application_notify(app: Application, status: bool | None) -> None:
     if status is None and not app.ctx.notify_config.enable_before_notify:
         return
 
-    # 确定状态和图片来源
+    # 确定状态文本
     if status is True:
-        status = gt('成功')
+        status_text = gt('成功')
     elif status is False:
-        status = gt('失败')
+        status_text = gt('失败')
     else:  # status is None
-        status = gt('开始')
+        status_text = gt('开始')
 
     # 构建消息
     _, app_name = _get_app_info(app)
     app_name = gt(app_name)
-    message = f"{gt('任务')}「{app_name}」{gt('运行')}{status}"
+    message = f"{gt('任务')}「{app_name}」{gt('运行')}{status_text}"
 
-    # 异步推送
-    app.ctx.push_service.push_async(
-        title=app.ctx.notify_config.title,
-        content=message,
-    )
+    if status is None:
+        # 开始通知 - 直接推送
+        app.ctx.push_service.push_async(
+            title=app.ctx.notify_config.title,
+            content=message,
+        )
+        return
+
+    # 结束通知
+    pool = app.ctx.run_context.notify_pool
+    notify_level = _get_notify_level(app)
+
+    if notify_level == NotifyLevel.MERGE and len(pool) > 0:
+        # 合并模式: 将结束消息放在开头，与池中消息合并送出
+        items = [NotifyPoolItem(content=message), *pool.items]
+        app.ctx.push_service.push_merged_async(
+            title=app.ctx.notify_config.title,
+            items=items,
+        )
+    else:
+        # 普通模式: 发送结束通知，APP 级别附带最后一张截图
+        image = pool.last_image if notify_level == NotifyLevel.APP else None
+        app.ctx.push_service.push_async(
+            title=app.ctx.notify_config.title,
+            content=message,
+            image=image,
+        )
 
 
 class NodeNotifyDesc:
@@ -174,7 +202,11 @@ def send_node_notify(
     next_node: OperationNode | None = None
 ):
     """
-    发送节点级通知
+    发送节点级通知，并收集到通知池中。
+
+    始终收集消息到通知池中（用于合并通知和最后一张图片）。
+    ALL 等级时逐条立即发送；MERGE 等级时仅收集。
+    显式开启“节点失败立即通知”且当前节点失败时，额外推送单条通知。
 
     Args:
         operation: Operation 实例
@@ -182,7 +214,14 @@ def send_node_notify(
         current_node: 当前正在执行的节点
         next_node: 下一个要执行的节点
     """
-    if _get_notify_level(operation) < NotifyLevel.ALL or current_node is None:
+    pool = operation.ctx.run_context.notify_pool
+    notify_level = _get_notify_level(operation)
+    current_fail = round_result.is_fail
+    notify_on_error = operation.ctx.notify_config.notify_on_error
+
+    should_collect_notify = notify_level >= NotifyLevel.APP
+
+    if not should_collect_notify or current_node is None:
         return
 
     # 初始化通知列表
@@ -190,7 +229,7 @@ def send_node_notify(
     next_notify_list: list[NodeNotifyDesc] = []
 
     # 检查当前节点通知列表
-    if current_node is not None and current_node.op_method is not None:
+    if current_node.op_method is not None:
         current_notify_list = getattr(current_node.op_method, 'operation_notify_annotation', [])
 
     # 检查下一节点通知列表
@@ -199,15 +238,14 @@ def send_node_notify(
 
     # 合并所有需要处理的通知
     all_notifications: list[NodeNotifyDesc] = []
-    is_success = round_result.is_success
 
     # 收集当前节点的非 PREVIOUS_DONE 通知
     for desc in current_notify_list:
         if desc.when == NotifyTiming.PREVIOUS_DONE:
             continue
-        if desc.when == NotifyTiming.CURRENT_SUCCESS and is_success is not True:
+        if desc.when == NotifyTiming.CURRENT_SUCCESS and current_fail:
             continue
-        if desc.when == NotifyTiming.CURRENT_FAIL and is_success is not False:
+        if desc.when == NotifyTiming.CURRENT_FAIL and not current_fail:
             continue
         all_notifications.append(desc)
 
@@ -241,7 +279,7 @@ def send_node_notify(
     app_name = gt(app_name)
     node_name = gt(current_node.cn)
 
-    result = gt('成功') if is_success else gt('失败')
+    result = gt('失败') if current_fail else gt('成功')
 
     message = (f"{gt('任务')}「{app_name}」"
                f"{gt('节点')}「{node_name}」\n"
@@ -254,9 +292,18 @@ def send_node_notify(
     if custom_message:
         message += custom_message
 
-    # 异步推送
-    operation.ctx.push_service.push_async(
-        title=operation.ctx.notify_config.title,
-        content=message,
-        image=operation.last_screenshot if send_image else None,
-    )
+    image = operation.last_screenshot if send_image else None
+
+    # 收集到通知池
+    pool.add(content=message, image=image)
+
+    should_send_all_nodes = notify_level == NotifyLevel.ALL
+    should_send_fail_notify = current_fail and notify_on_error
+    should_send_now = should_send_all_nodes or should_send_fail_notify
+
+    if should_send_now:
+        operation.ctx.push_service.push_async(
+            title=operation.ctx.notify_config.title,
+            content=message,
+            image=image,
+        )

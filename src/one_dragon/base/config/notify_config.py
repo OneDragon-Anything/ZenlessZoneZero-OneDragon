@@ -5,6 +5,7 @@ class NotifyLevel:
     OFF = 0
     APP = 1
     ALL = 2
+    MERGE = 3
 
 
 class NotifyConfig(YamlConfig):
@@ -38,12 +39,21 @@ class NotifyConfig(YamlConfig):
     def enable_before_notify(self, new_value: bool) -> None:
         self.update('enable_before_notify', new_value)
 
+    @property
+    def notify_on_error(self) -> bool:
+        return self.get('notify_on_error', True)
+
+    @notify_on_error.setter
+    def notify_on_error(self, new_value: bool) -> None:
+        self.update('notify_on_error', new_value)
+
     def get_app_notify_level(self, app_id: str) -> int:
         """
         获取指定 app_id 的通知等级
         0: 关闭
         1: 仅应用
-        2: 全部（应用和节点）
+        2: 全部（应用和节点，逐条发送）
+        3: 合并（应用和节点，合并发送）
         """
         if not app_id:
             return NotifyLevel.ALL

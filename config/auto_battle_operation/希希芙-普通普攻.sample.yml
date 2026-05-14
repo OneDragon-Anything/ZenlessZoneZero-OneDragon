@@ -1,0 +1,12 @@
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.2
+    repeat: 10
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "按键-普通攻击"
+    post_delay: 0.2
+    repeat: 30
+  - op_name: "设置状态"
+    state: "自定义-希希芙-毒素"
+    add: 2

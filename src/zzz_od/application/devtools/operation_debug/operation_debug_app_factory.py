@@ -19,13 +19,7 @@ if TYPE_CHECKING:
 class OperationDebugAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=operation_debug_const.APP_ID,
-            app_name=operation_debug_const.APP_NAME,
-            default_group=operation_debug_const.DEFAULT_GROUP,
-            need_notify=operation_debug_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, operation_debug_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

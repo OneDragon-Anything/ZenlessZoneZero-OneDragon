@@ -11,8 +11,8 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -23,6 +23,7 @@ from one_dragon_qt.widgets.horizontal_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
     MultiPushSettingCard,
@@ -292,7 +293,7 @@ class ChargePlanCard(DraggableListItem):
         self.init_plan_times_input()
 
 
-class ChargePlanInterface(VerticalScrollInterface):
+class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -309,8 +310,15 @@ class ChargePlanInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
-        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
+        self.help_opt = HelpCard(
+            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
+            title='体力计划说明',
+            content='合理安排每日体力消耗，支持自定义优先级和循环执行',
+        )
+        self.content_widget.add_widget(self.help_opt)
+
+        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮')
+        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，当前计划因体力不足或次数限制无法继续时，会依次尝试后续计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
@@ -356,7 +364,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.config = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.update_plan_list_display()
@@ -371,26 +379,21 @@ class ChargePlanInterface(VerticalScrollInterface):
     def update_plan_list_display(self):
         plan_list = self.config.plan_list
 
-        if len(plan_list) > len(self.card_list):
-            # 需要添加新的卡片
-            while len(self.card_list) < len(plan_list):
-                idx = len(self.card_list)
-                card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx],
-                                      config=self.config)
-                card.changed.connect(self._on_plan_item_changed)
-                card.delete.connect(self._on_plan_item_deleted)
-                card.move_top.connect(self._on_plan_item_move_top)
+        # 清空原来的卡片再创建新的卡片, 以防止部分信息未更新
+        self.drag_list.clear()
+        self.card_list.clear()
+        idx = 0
+        while idx < len(plan_list):
+            card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx],
+                                  config=self.config)
+            card.changed.connect(self._on_plan_item_changed)
+            card.delete.connect(self._on_plan_item_deleted)
+            card.move_top.connect(self._on_plan_item_move_top)
 
-                self.card_list.append(card)
-                # 使用 DraggableList 的 add_list_item 方法直接添加 ChargePlanCard
-                self.drag_list.add_list_item(card)
-
-        elif len(plan_list) < len(self.card_list):
-            # 需要移除多余的卡片
-            while len(self.card_list) > len(plan_list):
-                card = self.card_list[-1]
-                self.drag_list.remove_item(len(self.card_list) - 1)
-                self.card_list.pop(-1)
+            self.card_list.append(card)
+            # 使用 DraggableList 的 add_list_item 方法直接添加 ChargePlanCard
+            self.drag_list.add_list_item(card)
+            idx += 1
 
         # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):

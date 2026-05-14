@@ -25,7 +25,7 @@ class AppWindowBase(PhosWindow):
         # 设置窗口标题
         self.setWindowTitle(win_title)
         if app_icon is not None:
-            app_icon_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), app_icon)
+            app_icon_path = os_utils.get_resource_path('assets', 'ui', app_icon)
             self.setWindowIcon(QIcon(app_icon_path))
 
         # 创建启动页面
@@ -38,6 +38,7 @@ class AppWindowBase(PhosWindow):
         # 在创建其他子页面前先显示主界面
         self.show()
 
+        self.stackedWidget.beforeCurrentChanged.connect(self._on_before_interface_changed)
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
         self.create_sub_interface()
 
@@ -72,6 +73,12 @@ class AppWindowBase(PhosWindow):
     def init_window(self):
         self.resize(960, 820)
         self.move(100, 100)
+
+    def _on_before_interface_changed(self, old_idx: int, new_idx: int) -> None:
+        """切换前通知旧页面，确保视觉状态在切换之前恢复。"""
+        old_widget = self.stackedWidget.widget(old_idx)
+        if isinstance(old_widget, BaseInterface):
+            old_widget.on_interface_leave()
 
     def init_interface_on_shown(self, index: int) -> None:
         """

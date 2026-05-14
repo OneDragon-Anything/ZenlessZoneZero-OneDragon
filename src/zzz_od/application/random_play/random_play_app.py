@@ -10,11 +10,8 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
-from one_dragon.base.operation.operation_round_result import (
-    OperationRoundResult,
-    OperationRoundResultEnum,
-)
-from one_dragon.utils import cv2_utils
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cal_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.random_play import random_play_const
@@ -66,12 +63,25 @@ class RandomPlayApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='移动交互')
+    @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 往前移动一下 方便交互
+        传送之后 先将视角转向正东 再往前移动一下 方便交互
         :return:
         """
+        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+        if not mini_map.play_mask_found:
+            return self.round_retry(status='未识别到小地图', wait=1)
+
+        current_angle = mini_map.view_angle
+        if current_angle is None:
+            return self.round_retry(status='识别朝向失败', wait=1)
+
+        angle_diff = cal_utils.angle_delta(current_angle, 0)
+        if abs(angle_diff) > 2.0:
+            self.ctx.controller.turn_by_angle_diff(angle_diff)
+            return self.round_retry(status='转向正东', wait=0.5)
+
         self.ctx.controller.move_w(press=True, press_time=1, release=True)
         time.sleep(1)
 
@@ -296,8 +306,7 @@ class RandomPlayApp(ZApplication):
         :return:
         """
         area = self.ctx.screen_loader.get_area('影像店营业', '主题筛选')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_results = self.ctx.ocr.run_ocr(part)
+        ocr_results = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
 
         target_list = [gt(i, 'game') for i in self._all_video_themes]
         current_target = self._need_video_themes[self._current_idx - 1]
@@ -392,6 +401,7 @@ class RandomPlayApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     app = RandomPlayApp(ctx)
     app.execute()
 

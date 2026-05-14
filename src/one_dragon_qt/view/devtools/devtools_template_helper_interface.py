@@ -21,7 +21,6 @@ from qfluentwidgets import (
     PushButton,
     SingleDirectionScrollArea,
     TableWidget,
-    TeachingTip,
     TeachingTipTailPosition,
     ToolButton,
 )
@@ -45,6 +44,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.teaching_tip import TeachingTip
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 

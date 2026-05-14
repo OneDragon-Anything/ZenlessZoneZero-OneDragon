@@ -1,0 +1,21 @@
+name: Common - Set Build Timestamp
+
+on:
+  workflow_call:
+    outputs:
+      build_timestamp:
+        description: Formatted build timestamp
+        value: ${{ jobs.set-timestamp.outputs.build_timestamp }}
+
+jobs:
+  set-timestamp:
+    runs-on: ubuntu-latest
+    outputs:
+      build_timestamp: ${{ steps.generate.outputs.build_timestamp }}
+    steps:
+      - name: Generate timestamp
+        id: generate
+        shell: bash
+        run: |
+          timestamp="$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')"
+          echo "build_timestamp=$timestamp" >> "$GITHUB_OUTPUT"

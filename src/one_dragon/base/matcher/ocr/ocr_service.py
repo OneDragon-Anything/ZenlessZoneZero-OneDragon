@@ -36,7 +36,7 @@ class OcrService:
     - 全图识别后，识别得到的文本无法按选定区域进行精准切割。
       - 例如 [图标]真实文本，会将图标错误识别成某些文本拼在一起，无法通过选择区域精准识别真实文本部分.
     """
-    
+
     def __init__(
         self,
         ocr_matcher: OcrMatcher,
@@ -44,7 +44,7 @@ class OcrService:
     ):
         """
         初始化OCR服务
-        
+
         Args:
             ocr_matcher: OCR匹配器实例
             max_cache_size: 最大缓存条目数
@@ -81,17 +81,17 @@ class OcrService:
         """
         应用颜色过滤，最后返回RGB格式的黑白图，用于OCR。
         不返回原图颜色是因为，如果使用黑色过滤，最后得到会是一个全黑的图片，无法进行识别。
-        
+
         Args:
             image: 输入图片
             color_range: 颜色范围 [[lower], [upper]]
-            
+
         Returns:
             过滤后的图片
         """
         if color_range is None:
             return image
-        
+
         # 应用颜色范围过滤
         mask = cv2.inRange(image, np.array(color_range[0]), np.array(color_range[1]))
         return cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
@@ -174,7 +174,16 @@ class OcrService:
             # 执行OCR
             if crop_first and rect is not None:
                 crop_image, crop_rect = cv2_utils.crop_image(processed_image, rect)
-                ocr_result_list = self.ocr_matcher.ocr(crop_image, threshold, merge_line_distance)
+                bus = getattr(self.ocr_matcher, 'overlay_debug_bus', None)
+                if bus is not None:
+                    bus.set_crop_offset(crop_rect.x1, crop_rect.y1)
+                ocr_result_list = self.ocr_matcher.ocr(
+                    crop_image,
+                    threshold,
+                    merge_line_distance,
+                )
+                if bus is not None:
+                    bus.reset_crop_offset()
                 for ocr_result in ocr_result_list:
                     ocr_result.add_offset(crop_rect.left_top)
             else:
