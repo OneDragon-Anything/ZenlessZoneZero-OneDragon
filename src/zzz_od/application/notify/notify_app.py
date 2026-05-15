@@ -32,7 +32,7 @@ class NotifyApp(ZApplication):
         message = self.format_message()
 
         self.ctx.push_service.push(
-            title=gt(self.ctx.notify_config.title),
+            title=self.ctx.notify_config.title,
             content=message,
             image=self.last_screenshot
         )
