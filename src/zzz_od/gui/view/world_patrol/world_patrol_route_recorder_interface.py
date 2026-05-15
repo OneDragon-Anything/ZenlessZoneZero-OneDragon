@@ -1,31 +1,48 @@
 import cv2
-from PySide6.QtCore import Signal, QThread
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSpinBox
 from cv2.typing import MatLike
+from PySide6.QtCore import QThread, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum, OneDragonContext
+from one_dragon.base.operation.one_dragon_context import (
+    ContextKeyboardEventEnum,
+    OneDragonContext,
+)
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.click_image_label import ClickImageLabel
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.image_viewer_widget import ImageViewerWidget
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.devtools.large_map_recorder import large_map_recorder_utils
-from zzz_od.application.devtools.large_map_recorder.large_map_recorder_wrapper import LargeMapSnapshot, MiniMapSnapshot
-from zzz_od.application.world_patrol.operation.world_patrol_run_route import WorldPatrolRunRoute
-from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolEntry, WorldPatrolArea, \
-    WorldPatrolLargeMapIcon, WorldPatrolLargeMap
+from zzz_od.application.devtools.large_map_recorder.large_map_recorder_wrapper import (
+    LargeMapSnapshot,
+    MiniMapSnapshot,
+)
+from zzz_od.application.world_patrol.operation.world_patrol_run_route import (
+    WorldPatrolRunRoute,
+)
+from zzz_od.application.world_patrol.world_patrol_area import (
+    WorldPatrolArea,
+    WorldPatrolEntry,
+    WorldPatrolLargeMap,
+    WorldPatrolLargeMapIcon,
+)
 from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute
 from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.world_patrol.route_operation_editor_dialog import RouteOperationEditorDialog
+from zzz_od.gui.view.world_patrol.route_operation_editor_dialog import (
+    RouteOperationEditorDialog,
+)
 
 
 class DebugRouteRunner(QThread):
@@ -43,7 +60,7 @@ class DebugRouteRunner(QThread):
         try:
             self.ctx.run_context.start_running()
             self.op.execute()
-        except Exception as e:
+        except Exception:
             log.error('调试异常', exc_info=True)
         finally:
             self.ctx.run_context.stop_running()
@@ -125,15 +142,15 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.route_row)
 
-        self.new_route_btn = PushButton(text='新增')
+        self.new_route_btn = PushButton(text=gt('新增'))
         self.new_route_btn.clicked.connect(self.on_new_route_btn_clicked)
-        self.save_route_btn = PushButton(text='保存')
+        self.save_route_btn = PushButton(text=gt('保存'))
         self.save_route_btn.clicked.connect(self.on_save_route_btn_clicked)
-        self.delete_route_btn = PushButton(text='删除')
+        self.delete_route_btn = PushButton(text=gt('删除'))
         self.delete_route_btn.clicked.connect(self.on_delete_route_btn_clicked)
-        self.cancel_route_btn = PushButton(text='取消')
+        self.cancel_route_btn = PushButton(text=gt('取消'))
         self.cancel_route_btn.clicked.connect(self.on_cancel_route_btn_clicked)
-        self.edit_operations_btn = PushButton(text='编辑操作')
+        self.edit_operations_btn = PushButton(text=gt('编辑操作'))
         self.edit_operations_btn.clicked.connect(self.on_edit_operations_btn_clicked)
         self.rout_opt_row = MultiPushSettingCard(
             icon=FluentIcon.SAVE, title='编辑',
@@ -157,11 +174,11 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.tp_opt)
 
-        self.screenshot_btn = PushButton(text='截图(1)')
+        self.screenshot_btn = PushButton(text=gt('截图(1)'))
         self.screenshot_btn.clicked.connect(self.on_screenshot_btn_clicked)
-        self.add_move_btn = PushButton(text='添加移动(4)')
+        self.add_move_btn = PushButton(text=gt('添加移动(4)'))
         self.add_move_btn.clicked.connect(self.on_add_move_btn_clicked)
-        self.undo_move_btn = PushButton(text='回退(5)')
+        self.undo_move_btn = PushButton(text=gt('回退(5)'))
         self.undo_move_btn.clicked.connect(self.on_undo_move_btn_clicked)
         self.pos_opt_row = MultiPushSettingCard(
             icon=FluentIcon.ROBOT, title='操作',
@@ -177,7 +194,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.debug_start_input.setMinimum(0)
         self.debug_start_input.setValue(0)
         self.debug_start_input.setMinimumWidth(80)
-        self.debug_route_btn = PushButton(text='调试')
+        self.debug_route_btn = PushButton(text=gt('调试'))
         self.debug_route_btn.clicked.connect(self.on_debug_route_btn_clicked)
         self.debug_row = MultiPushSettingCard(
             icon=FluentIcon.ROBOT, title='调试',
@@ -562,7 +579,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
             self.chosen_route.add_move_operation(self.mini_map_pos_mr.center)
             self._update_large_map_display()
         else:
-            log.info(f'[计算坐标] 当前计算坐标失败')
+            log.info('[计算坐标] 当前计算坐标失败')
 
         self._update_btn_display()
 
@@ -644,8 +661,6 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         if self.chosen_route is None:
             return
         self.ctx.world_patrol_service.load_data()
-        if self.debug_runner.op is not None:
-            self.debug_runner.op
 
         self.debug_runner.op = WorldPatrolRunRoute(self.ctx, self.chosen_route,
                                                    start_idx=self.debug_start_input.value())

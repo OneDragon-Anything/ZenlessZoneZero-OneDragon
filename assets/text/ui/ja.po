@@ -1,0 +1,2831 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ja\n"
+
+# ZZZ-OD
+msgid "ZenlessZoneZero"
+msgstr "ゼンレスゾーンゼロ"
+
+# ZZZ-OD UI
+msgid "ZenlessZoneZero-OneDragon"
+msgstr "ゼンレスゾーンゼロ OneDragon"
+
+msgid "ZenlessZoneZero-OneDragon-installer"
+msgstr "ゼンレスゾーンゼロ OneDragon インストーラー"
+
+# 基础界面
+msgid "设置"
+msgstr "設定"
+
+msgid "语言"
+msgstr "言語"
+
+msgid "语言切换"
+msgstr "言語切り替え"
+
+msgid "语言切换成功，需要重启应用程序以生效"
+msgstr "言語を切り替えました。反映するにはアプリケーションを再起動してください。"
+
+msgid "界面语言"
+msgstr "UI言語"
+
+msgid "外观"
+msgstr "外観"
+
+msgid "当前账户设置"
+msgstr "現在のアカウント設定"
+
+msgid "游戏基础"
+msgstr "ゲーム基本設定"
+
+msgid "游戏按键"
+msgstr "ゲームキー"
+
+msgid "手柄按键"
+msgstr "ゲームパッドキー"
+
+msgid "脚本按键"
+msgstr "スクリプトキー"
+
+msgid "启动参数"
+msgstr "起動パラメータ"
+
+msgid "代理人皮肤"
+msgstr "エージェント衣装"
+
+# 按钮和操作
+msgid "开"
+msgstr "オン"
+
+msgid "关"
+msgstr "オフ"
+
+msgid "请按键"
+msgstr "キーを押してください"
+
+msgid "启动一条龙"
+msgstr "OneDragonを起動"
+
+msgid "开始运行"
+msgstr "実行開始"
+
+msgid "停止运行"
+msgstr "実行停止"
+
+msgid "游戏截图"
+msgstr "ゲームスクリーンショット"
+
+msgid "确认"
+msgstr "確認"
+
+msgid "取消"
+msgstr "キャンセル"
+
+msgid "浏览"
+msgstr "参照"
+
+msgid "选择"
+msgstr "選択"
+
+msgid "重置"
+msgstr "リセット"
+
+msgid "删除"
+msgstr "削除"
+
+msgid "保存"
+msgstr "保存"
+
+msgid "确定"
+msgstr "OK"
+
+msgid "运行记录"
+msgstr "実行記録"
+
+msgid "挑战配置"
+msgstr "挑戦設定"
+
+# 游戏相关
+msgid "游戏路径"
+msgstr "ゲームパス"
+
+msgid "游戏区服"
+msgstr "ゲームサーバー"
+
+msgid "账号"
+msgstr "アカウント"
+
+msgid "密码"
+msgstr "パスワード"
+
+msgid "输入方式"
+msgstr "入力方式"
+
+msgid "切换HDR状态"
+msgstr "HDR状態を切り替え"
+
+msgid "启用HDR"
+msgstr "HDRを有効化"
+
+msgid "禁用HDR"
+msgstr "HDRを無効化"
+
+msgid "窗口尺寸"
+msgstr "ウィンドウサイズ"
+
+msgid "全屏"
+msgstr "フルスクリーン"
+
+msgid "无边框窗口"
+msgstr "ボーダーレスウィンドウ"
+
+msgid "显示器序号"
+msgstr "モニター番号"
+
+msgid "高级参数"
+msgstr "詳細パラメータ"
+
+# 按键设置
+msgid "普通攻击"
+msgstr "通常攻撃"
+
+msgid "闪避"
+msgstr "回避"
+
+msgid "角色切换-下一个"
+msgstr "キャラクター切替 - 次"
+
+msgid "角色切换-上一个"
+msgstr "キャラクター切替 - 前"
+
+msgid "特殊攻击"
+msgstr "特殊攻撃"
+
+msgid "终结技"
+msgstr "終結スキル"
+
+msgid "交互"
+msgstr "インタラクト"
+
+msgid "连携技-左"
+msgstr "連携スキル - 左"
+
+msgid "连携技-右"
+msgstr "連携スキル - 右"
+
+msgid "连携技-取消"
+msgstr "連携スキル - キャンセル"
+
+msgid "移动-前"
+msgstr "移動 - 前"
+
+msgid "移动-后"
+msgstr "移動 - 後"
+
+msgid "移动-左"
+msgstr "移動 - 左"
+
+msgid "移动-右"
+msgstr "移動 - 右"
+
+msgid "锁定敌人"
+msgstr "敵をロックオン"
+
+# 手柄设置
+msgid "手柄类型"
+msgstr "ゲームパッド種類"
+
+msgid "单次按键持续时间(秒)"
+msgstr "単発キー押下時間（秒）"
+
+# 界面主题
+msgid "界面主题"
+msgstr "UIテーマ"
+
+msgid "主页公告"
+msgstr "ホーム画面のお知らせ"
+
+msgid "版本海报"
+msgstr "バージョンポスター"
+
+msgid "静态背景"
+msgstr "静止背景"
+
+msgid "动态背景"
+msgstr "動的背景"
+
+msgid "自定义主页背景"
+msgstr "ホーム画面背景をカスタム"
+
+# 导航标签
+msgid "仪表盘"
+msgstr "ダッシュボード"
+
+msgid "一条龙"
+msgstr "OneDragon"
+
+msgid "游戏设置"
+msgstr "ゲーム設定"
+
+msgid "其他设置"
+msgstr "その他設定"
+
+msgid "式舆防卫战"
+msgstr "式輿防衛戦"
+
+msgid "预备编队"
+msgstr "プリセット編成"
+
+msgid "恶名狩猎计划"
+msgstr "要警戒狩り計画"
+
+msgid "杂项任务"
+msgstr "その他タスク"
+
+msgid "咖啡计划"
+msgstr "コーヒープラン"
+
+msgid "源配置"
+msgstr "ソース設定"
+
+# 功能相关
+msgid "吃拉面"
+msgstr "ラーメンを食べる"
+
+msgid "模拟按键"
+msgstr "キー入力をシミュレート"
+
+msgid "等待大世界画面"
+msgstr "大世界画面を待機"
+
+msgid "传送"
+msgstr "テレポート"
+
+msgid "前往菜单"
+msgstr "メニューへ移動"
+
+msgid "进入 HDD 副本"
+msgstr "HDD依頼に入る"
+
+msgid "开始街机游戏"
+msgstr "アーケードゲームを開始"
+
+msgid "进入游戏"
+msgstr "ゲームに入る"
+
+msgid "切换账号"
+msgstr "アカウント切替"
+
+msgid "打开游戏"
+msgstr "ゲームを開く"
+
+msgid "打开并登录游戏"
+msgstr "ゲームを開いてログイン"
+
+msgid "禁用HDR"
+msgstr "HDRを無効化"
+
+msgid "恢复HDR"
+msgstr "HDRを復元"
+
+msgid "蛇对蛇自杀"
+msgstr "Snake vs Snake 自滅"
+
+msgid "选择预备编队"
+msgstr "プリセット編成を選択"
+
+msgid "选择分类"
+msgstr "カテゴリを選択"
+
+msgid "选择Tab"
+msgstr "タブを選択"
+
+msgid "打开快捷手册"
+msgstr "クイック手帳を開く"
+
+msgid "返回大世界"
+msgstr "大世界に戻る"
+
+msgid "开始录制"
+msgstr "録画開始"
+
+# 游戏设置
+msgid "使用默认队伍名称出现错选时 可更改名字解决"
+msgstr "デフォルトのチーム名で誤選択が起きる場合は、名前を変更すると解決できます"
+
+msgid "本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突"
+msgstr "このページのエージェントはゲームアシスタントで自動認識できます。設定は式輿防衛戦で編成選択の競合を避けるためにのみ使用されます。"
+
+msgid "！设置皮肤以正常使用自动战斗功能 ！"
+msgstr "！自動戦闘を正常に使うには衣装を設定してください！"
+
+msgid "切换 HDR 状态"
+msgstr "HDR状態を切り替え"
+
+msgid "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
+msgstr "手動でゲームを起動する場合にのみ影響します。OneDragonで起動する場合はHDRが自動で無効化されます。"
+
+msgid "窗口尺寸"
+msgstr "ウィンドウサイズ"
+
+# 代理人设置
+msgid "妮可"
+msgstr "ニコ"
+
+msgid "艾莲"
+msgstr "エレン"
+
+msgid "耀嘉音"
+msgstr "アストラ・ヤオ"
+
+msgid "仪玄"
+msgstr "儀玄"
+
+msgid "匹配所有可能的皮肤"
+msgstr "可能なすべての衣装にマッチ"
+
+# 其他设置
+msgid "影像店代理人-1"
+msgstr "ビデオ屋エージェント-1"
+
+msgid "影像店代理人-2"
+msgstr "ビデオ屋エージェント-2"
+
+msgid "驱动盘拆解等级"
+msgstr "ドライバディスク分解レベル"
+
+msgid "全部已弃置"
+msgstr "すべて破棄済み"
+
+msgid "剧变节点 重置运行记录"
+msgstr "激変ノード 実行記録をリセット"
+
+# 资源下载相关
+msgid "资源下载"
+msgstr "リソースダウンロード"
+
+msgid "下载说明"
+msgstr "ダウンロード説明"
+
+msgid "下载失败时 请尝试到「脚本环境」更改网络代理"
+msgstr "ダウンロードに失敗する場合は、「スクリプト環境」でネットワークプロキシを変更してみてください"
+
+msgid "OCR识别"
+msgstr "OCR認識"
+
+msgid "闪光识别"
+msgstr "閃光認識"
+
+msgid "空洞格子识别"
+msgstr "ホロウマス認識"
+
+msgid "迷失之地识别"
+msgstr "迷いの地認識"
+
+# 咖啡和体力计划
+msgid "咖啡选择"
+msgstr "コーヒー選択"
+
+msgid "喝后挑战"
+msgstr "飲んだ後の挑戦"
+
+msgid "体力计划外的数量"
+msgstr "バッテリー計画外の数"
+
+msgid "自动战斗"
+msgstr "自動戦闘"
+
+msgid "结束后运行体力计划"
+msgstr "終了後にバッテリー計画を実行"
+
+# 调试相关
+msgid "指令配置"
+msgstr "コマンド設定"
+
+msgid "循环指令"
+msgstr "ループコマンド"
+
+msgid "调试"
+msgstr "デバッグ"
+
+# 通知设置
+msgid "自定义通知标题"
+msgstr "通知タイトルをカスタム"
+
+msgid "通知中附带图片"
+msgstr "通知に画像を添付"
+
+msgid "测试通知"
+msgstr "通知テスト"
+
+msgid "通知方式"
+msgstr "通知方法"
+
+msgid "邮箱服务选择"
+msgstr "メールサービス選択"
+
+# 空洞零
+msgid "挑战副本"
+msgstr "ステージに挑戦"
+
+msgid "每周进入次数"
+msgstr "週間入場回数"
+
+msgid "每天进入次数"
+msgstr "日次入場回数"
+
+msgid "配置名称"
+msgstr "設定名"
+
+msgid "银行UP编队"
+msgstr "銀行UP編成"
+
+msgid "邦布商人策略"
+msgstr "ボンプ商人戦略"
+
+msgid "买齐买净"
+msgstr "すべて購入して空にする"
+
+msgid "血量阈值"
+msgstr "HPしきい値"
+
+msgid "识别鸣徽关键词"
+msgstr "レゾブレムのキーワードを認識"
+
+msgid "第一优先级刷新次数"
+msgstr "第1優先リフレッシュ回数"
+
+msgid "第二优先级刷新次数"
+msgstr "第2優先リフレッシュ回数"
+
+# 提示信息
+msgid "当前"
+msgstr "現在"
+
+msgid "选择你的 ZenlessZoneZero.exe"
+msgstr "ZenlessZoneZero.exeを選択してください"
+
+msgid "我知道了"
+msgstr "了解しました"
+
+msgid "请选择安装路径"
+msgstr "インストール先を選択してください"
+
+msgid "选择安装路径..."
+msgstr "インストール先を選択..."
+
+msgid "配置源"
+msgstr "設定ソース"
+
+msgid "地区选择"
+msgstr "地域選択"
+
+msgid "确认配置"
+msgstr "設定を確認"
+
+msgid "代码仓库"
+msgstr "コードリポジトリ"
+
+msgid "环境下载源"
+msgstr "環境ダウンロード元"
+
+msgid "Python下载源"
+msgstr "Pythonダウンロード元"
+
+msgid "Pip源"
+msgstr "Pipソース"
+
+msgid "代理类型"
+msgstr "プロキシ種類"
+
+msgid "代理地址"
+msgstr "プロキシアドレス"
+
+# 欢迎对话框
+msgid "欢迎使用绝区零一条龙"
+msgstr "ゼンレスゾーンゼロ OneDragonへようこそ"
+
+msgid "欢迎使用一条龙"
+msgstr "OneDragonへようこそ"
+
+# 下载和安装相关
+msgid "未选择模型"
+msgstr "モデルが選択されていません"
+
+msgid "检查中"
+msgstr "確認中"
+
+msgid "已下载"
+msgstr "ダウンロード済み"
+
+msgid "下载中"
+msgstr "ダウンロード中"
+
+msgid "未选择"
+msgstr "未選択"
+
+msgid "请选择一条配置进行下载。"
+msgstr "ダウンロードする設定を選択してください。"
+
+msgid "错误"
+msgstr "エラー"
+
+msgid "下载链接无法构建，战斗 ID 为 None"
+msgstr "ダウンロードリンクを生成できません。battle IDがNoneです"
+
+msgid "成功"
+msgstr "成功"
+
+msgid "文件已下载并保存到"
+msgstr "ファイルをダウンロードして保存しました:"
+
+msgid "下载失败"
+msgstr "ダウンロード失敗"
+
+msgid "下载过程中出错"
+msgstr "ダウンロード中にエラーが発生しました"
+
+msgid "状态检查中..."
+msgstr "状態を確認中..."
+
+msgid "未选择图片"
+msgstr "画像が選択されていません"
+
+# 密码相关对话框
+msgid "嘻嘻~"
+msgstr "ふふ~"
+
+msgid "密码不对哦~"
+msgstr "パスワードが違います~"
+
+msgid "再试试吧"
+msgstr "もう一度試してください"
+
+msgid "使用此功能需要密码哦~"
+msgstr "この機能を使うにはパスワードが必要です~"
+
+# 欢迎对话框按钮
+msgid "快速开始"
+msgstr "クイックスタート"
+
+msgid "自助排障"
+msgstr "セルフトラブルシューティング"
+
+msgid "开源地址"
+msgstr "オープンソース"
+
+# 计划相关
+msgid "已运行次数"
+msgstr "実行済み回数"
+
+msgid "计划次数"
+msgstr "予定回数"
+
+# 账户操作
+msgid "启用"
+msgstr "有効化"
+
+msgid "登录"
+msgstr "ログイン"
+
+msgid "账户列表"
+msgstr "アカウント一覧"
+
+msgid "新增"
+msgstr "新規追加"
+
+# 运行状态
+msgid "上次运行"
+msgstr "前回実行"
+
+# Git 和代码同步相关
+msgid "未配置Git"
+msgstr "Git未設定"
+
+msgid "未同步代码"
+msgstr "コード未同期"
+
+msgid "当前分支"
+msgstr "現在のブランチ"
+
+msgid "建议分支"
+msgstr "推奨ブランチ"
+
+msgid "不自动同步"
+msgstr "自動同期しない"
+
+msgid "已同步代码"
+msgstr "コード同期済み"
+
+msgid "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
+msgstr "更新後はスクリプトの再起動が必要です。実行できない場合は、インストーラーで実行依存関係を更新するか、インストーラー自体を更新してください。"
+
+# 安装相关
+msgid "安装指南"
+msgstr "インストールガイド"
+
+# 环境设置相关
+msgid "基础"
+msgstr "基本"
+
+msgid "调试模式"
+msgstr "デバッグモード"
+
+msgid "正常无需开启"
+msgstr "通常は有効化不要です"
+
+msgid "复制截图到剪贴板"
+msgstr "スクリーンショットをクリップボードにコピー"
+
+msgid "按下截图按键时，自动将截图复制到剪贴板"
+msgstr "スクリーンショットキーを押したとき、自動でスクリーンショットをクリップボードにコピーします"
+
+msgid "Git相关"
+msgstr "Git関連"
+
+# 语言切换相关
+msgid "语言已切换成功"
+msgstr "言語を切り替えました"
+
+msgid "提示"
+msgstr "通知"
+
+msgid "立即重启"
+msgstr "今すぐ再起動"
+
+msgid "稍后重启"
+msgstr "後で再起動"
+
+# 推送设置占位符文本
+msgid "会把推送最终结果通知到这个地址上"
+msgstr "最終的なプッシュ結果をこの宛先へ通知します"
+
+msgid "好友令牌或用户ID"
+msgstr "Friend TokenまたはUser ID"
+
+msgid "微信公众号：好友令牌；企业微信：用户ID"
+msgstr "WeChat公式アカウント: Friend Token、企業WeChat: User ID"
+
+msgid "用户令牌"
+msgstr "User Token"
+
+msgid "请输入用户令牌"
+msgstr "User Tokenを入力してください"
+
+msgid "消息接收者"
+msgstr "メッセージ受信者"
+
+msgid "请输入消息接收者"
+msgstr "メッセージ受信者を入力してください"
+
+msgid "调用版本"
+msgstr "APIバージョン"
+
+msgid "可选"
+msgstr "任意"
+
+msgid "请输入 Qmsg 酱的 QMSG_KEY"
+msgstr "QmsgのQMSG_KEYを入力してください"
+
+msgid "请输入 Qmsg 酱的 QMSG_TYPE"
+msgstr "QmsgのQMSG_TYPEを入力してください"
+
+msgid "企业微信代理地址"
+msgstr "企業WeChatプロキシアドレス"
+
+# 账户设置相关
+msgid "游戏区服"
+msgstr "ゲームサーバー"
+
+msgid "所有信息都明文保存在本地"
+msgstr "すべての情報はローカルに平文で保存されます"
+
+msgid "请自行妥善管理"
+msgstr "ご自身で適切に管理してください"
+
+# 主题和外观设置
+msgid "界面主题"
+msgstr "UIテーマ"
+
+msgid "版本活动海报持续整个版本"
+msgstr "バージョンイベントポスターはバージョン期間中表示されます"
+
+msgid "关闭后仅用本地图片"
+msgstr "無効にするとローカル画像のみを使用します"
+
+msgid "自定义主页背景"
+msgstr "ホーム画面背景をカスタム"
+
+msgid "设置后重启脚本生效"
+msgstr "反映するにはスクリプトを再起動してください"
+
+msgid "B服用户名"
+msgstr "B服ユーザー名"
+
+msgid "GPU运算"
+msgstr "GPU演算"
+
+msgid "GitHub主页右上角点一个星星是最简单直接的"
+msgstr "GitHubホーム右上のスターを押すのが一番簡単で直接的な応援です"
+
+msgid "HEAD 不存在且未开启强制更新"
+msgstr "HEADが存在せず、強制更新も有効ではありません"
+
+msgid "Overlay 不可用"
+msgstr "Overlayは使用できません"
+
+msgid "Overlay 基础"
+msgstr "Overlay基本設定"
+
+msgid "Overlay 面板位置已重置"
+msgstr "Overlayパネルの位置をリセットしました"
+
+msgid "PC 点击需 Alt"
+msgstr "PCクリックにAltが必要"
+
+msgid "Python 安装失败"
+msgstr "Pythonのインストールに失敗しました"
+
+msgid "Python 安装成功"
+msgstr "Pythonをインストールしました"
+
+msgid "Python相关"
+msgstr "Python関連"
+
+msgid "patched 文件后缀"
+msgstr "patchedファイルの接尾辞"
+
+msgid "pip源"
+msgstr "pipソース"
+
+msgid "⚠ 已跳过此步骤"
+msgstr "⚠ この手順をスキップしました"
+
+msgid "✓ 安装完成"
+msgstr "✓ インストール完了"
+
+msgid "✓ 已满足所有条件"
+msgstr "✓ すべての条件を満たしています"
+
+msgid "✗ 安装失败"
+msgstr "✗ インストール失敗"
+
+msgid "一条龙安装向导"
+msgstr "OneDragonインストールウィザード"
+
+msgid "一步可达时前往"
+msgstr "1歩で到達できる場合は向かう"
+
+msgid "一键安装"
+msgstr "ワンクリックインストール"
+
+msgid "一键生成"
+msgstr "ワンクリック生成"
+
+msgid "上一步"
+msgstr "前へ"
+
+msgid "下一步"
+msgstr "次へ"
+
+msgid "下载"
+msgstr "ダウンロード"
+
+msgid "下载失败 请尝试更改网络代理"
+msgstr "ダウンロードに失敗しました。ネットワークプロキシを変更してみてください"
+
+msgid "下载完成"
+msgstr "ダウンロード完了"
+
+msgid "下载已取消"
+msgstr "ダウンロードをキャンセルしました"
+
+msgid "与远程分支不一致"
+msgstr "リモートブランチと一致していません"
+
+msgid "个人代理"
+msgstr "個人プロキシ"
+
+msgid "个人代理地址"
+msgstr "個人プロキシアドレス"
+
+msgid "主页背景类型"
+msgstr "ホーム画面背景タイプ"
+
+msgid "仅应用"
+msgstr "適用のみ"
+
+msgid "仍然继续"
+msgstr "このまま続行"
+
+msgid "代理设置"
+msgstr "プロキシ設定"
+
+msgid "代码同步失败"
+msgstr "コード同期に失敗しました"
+
+msgid "代码同步完成"
+msgstr "コード同期が完了しました"
+
+msgid "代码已是最新"
+msgstr "コードは最新です"
+
+msgid "代码已更新，重启以应用更改"
+msgstr "コードを更新しました。変更を適用するには再起動してください"
+
+msgid "代码更新失败"
+msgstr "コード更新に失敗しました"
+
+msgid "代码源"
+msgstr "コードソース"
+
+msgid "以下配置项未就绪，可能影响正常运行："
+msgstr "次の設定項目が未準備のため、正常な実行に影響する可能性があります:"
+
+msgid "任务"
+msgstr "タスク"
+
+msgid "传送点"
+msgstr "テレポート地点"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "使用说明"
+msgstr "使い方"
+
+msgid "保存截图按键"
+msgstr "スクリーンショットキーを保存"
+
+msgid "保存掩码"
+msgstr "マスクを保存"
+
+msgid "保存操作"
+msgstr "操作を保存"
+
+msgid "保存模板"
+msgstr "テンプレートを保存"
+
+msgid "保存配置"
+msgstr "設定を保存"
+
+msgid "值"
+msgstr "値"
+
+msgid "停止"
+msgstr "停止"
+
+msgid "克隆仓库成功"
+msgstr "リポジトリのクローンに成功しました"
+
+msgid "免费代理"
+msgstr "無料プロキシ"
+
+msgid "免费代理地址"
+msgstr "無料プロキシアドレス"
+
+msgid "兑换码"
+msgstr "交換コード"
+
+msgid "兑换码已存在"
+msgstr "交換コードはすでに存在します"
+
+msgid "全部模板已生成"
+msgstr "すべてのテンプレートを生成しました"
+
+msgid "共享配置"
+msgstr "共有設定"
+
+msgid "关闭"
+msgstr "閉じる"
+
+msgid "内容"
+msgstr "内容"
+
+msgid "出战"
+msgstr "出撃"
+
+msgid "切换到目标分支"
+msgstr "対象ブランチへ切り替え"
+
+msgid "切换到目标分支失败"
+msgstr "対象ブランチへの切り替えに失敗しました"
+
+msgid "切换视图"
+msgstr "表示を切り替え"
+
+msgid "创建环境失败"
+msgstr "環境の作成に失敗しました"
+
+msgid "创建虚拟环境失败"
+msgstr "仮想環境の作成に失敗しました"
+
+msgid "创建虚拟环境成功"
+msgstr "仮想環境を作成しました"
+
+msgid "初始化本地 Git 仓库"
+msgstr "ローカルGitリポジトリを初期化"
+
+msgid "初始化本地 Git 仓库失败"
+msgstr "ローカルGitリポジトリの初期化に失敗しました"
+
+msgid "删除步骤"
+msgstr "手順を削除"
+
+msgid "前往"
+msgstr "移動"
+
+msgid "前往社区"
+msgstr "コミュニティへ"
+
+msgid "前往配置"
+msgstr "設定へ"
+
+msgid "加载"
+msgstr "読み込み"
+
+msgid "加载失败"
+msgstr "読み込みに失敗しました"
+
+msgid "区域"
+msgstr "エリア"
+
+msgid "区域选择"
+msgstr "エリア選択"
+
+msgid "单应用通知"
+msgstr "単一アプリ通知"
+
+msgid "历史记录"
+msgstr "履歴"
+
+msgid "原图"
+msgstr "元画像"
+
+msgid "原始启动器"
+msgstr "元のランチャー"
+
+msgid "原始图像"
+msgstr "元画像"
+
+msgid "参数设置"
+msgstr "パラメータ設定"
+
+msgid "发生了一个未知错误"
+msgstr "不明なエラーが発生しました"
+
+msgid "取消中"
+msgstr "キャンセル中"
+
+msgid "另存为"
+msgstr "名前を付けて保存"
+
+msgid "另存为失败"
+msgstr "名前を付けて保存に失敗しました"
+
+msgid "可下载"
+msgstr "ダウンロード可能"
+
+msgid "可选安装或配置"
+msgstr "任意のインストールまたは設定"
+
+msgid "同步远程代码"
+msgstr "リモートコードを同期"
+
+msgid "同步远程分支"
+msgstr "リモートブランチを同期"
+
+msgid "名单选择"
+msgstr "リスト選択"
+
+msgid "名称"
+msgstr "名前"
+
+msgid "后台手柄类型"
+msgstr "バックグラウンドゲームパッド種類"
+
+msgid "后台模式（测试版）"
+msgstr "バックグラウンドモード（ベータ）"
+
+msgid "启动器"
+msgstr "ランチャー"
+
+msgid "启动程序"
+msgstr "起動プログラム"
+
+msgid "启用 HDR"
+msgstr "HDRを有効化"
+
+msgid "启用 Overlay"
+msgstr "Overlayを有効化"
+
+msgid "启用视觉层"
+msgstr "視覚レイヤーを有効化"
+
+msgid "商店-使用血量购买"
+msgstr "ショップ - HPを使って購入"
+
+msgid "商店-使用金币购买"
+msgstr "ショップ - コインを使って購入"
+
+msgid "回滚"
+msgstr "ロールバック"
+
+msgid "回滚失败"
+msgstr "ロールバックに失敗しました"
+
+msgid "图像加载"
+msgstr "画像読み込み"
+
+msgid "图像匹配"
+msgstr "画像マッチング"
+
+msgid "图标匹配阈值"
+msgstr "アイコン一致しきい値"
+
+msgid "在线配置"
+msgstr "オンライン設定"
+
+msgid "地图传送"
+msgstr "マップテレポート"
+
+msgid "复制方法"
+msgstr "メソッドをコピー"
+
+msgid "失败"
+msgstr "失敗"
+
+msgid "失败模板"
+msgstr "失敗テンプレート"
+
+msgid "如果喜欢本项目，你也可以为作者赞助一点维护费用~"
+msgstr "このプロジェクトを気に入ったら、作者の保守費用を少し支援することもできます~"
+
+msgid "安装 Python 失败 请尝试到「设置」更改 Python 下载源"
+msgstr "Pythonのインストールに失敗しました。「設定」でPythonダウンロード元を変更してみてください"
+
+msgid "安装 UV 失败"
+msgstr "UVのインストールに失敗しました"
+
+msgid "安装 UV 成功"
+msgstr "UVをインストールしました"
+
+msgid "安装中"
+msgstr "インストール中"
+
+msgid "安装启动器失败"
+msgstr "ランチャーのインストールに失敗しました"
+
+msgid "安装启动器成功"
+msgstr "ランチャーをインストールしました"
+
+msgid "安装失败"
+msgstr "インストール失敗"
+
+msgid "安装失败！"
+msgstr "インストールに失敗しました！"
+
+msgid "安装失败！已自动打开排障文档"
+msgstr "インストールに失敗しました！トラブルシューティング文書を開きました"
+
+msgid "安装完成！"
+msgstr "インストール完了！"
+
+msgid "安装成功"
+msgstr "インストール成功"
+
+msgid "安装日志"
+msgstr "インストールログ"
+
+msgid "安装进度"
+msgstr "インストール進捗"
+
+msgid "完成"
+msgstr "完了"
+
+msgid "完成次数"
+msgstr "完了回数"
+
+msgid "官网"
+msgstr "公式サイト"
+
+msgid "对话点击间隔(秒)"
+msgstr "会話クリック間隔（秒）"
+
+msgid "对话选项优先级"
+msgstr "会話選択肢の優先度"
+
+msgid "寻路方式"
+msgstr "経路探索方式"
+
+msgid "导入模板区域"
+msgstr "テンプレートエリアをインポート"
+
+msgid "已保存"
+msgstr "保存しました"
+
+msgid "已删除"
+msgstr "削除しました"
+
+msgid "已存在，是否覆盖？"
+msgstr "すでに存在します。上書きしますか？"
+
+msgid "已安装"
+msgstr "インストール済み"
+
+msgid "已将方法代码复制到剪贴板"
+msgstr "メソッドコードをクリップボードにコピーしました"
+
+msgid "已经安装了 UV"
+msgstr "UVはすでにインストールされています"
+
+msgid "已选择"
+msgstr "選択済み"
+
+msgid "已选择区域"
+msgstr "選択済みエリア"
+
+msgid "已重置"
+msgstr "リセットしました"
+
+msgid "帮助文档"
+msgstr "ヘルプ文書"
+
+msgid "应用"
+msgstr "適用"
+
+msgid "建议版本"
+msgstr "推奨バージョン"
+
+msgid "开发工具"
+msgstr "開発ツール"
+
+msgid "开始"
+msgstr "開始"
+
+msgid "开始下载"
+msgstr "ダウンロード開始"
+
+msgid "开始前通知"
+msgstr "開始前通知"
+
+msgid "开始安装"
+msgstr "インストール開始"
+
+msgid "弹出表格"
+msgstr "表をポップアウト"
+
+msgid "强制更新"
+msgstr "強制更新"
+
+msgid "强制更新失败"
+msgstr "強制更新に失敗しました"
+
+msgid "当前代码有修改 请自行处理或开启强制更新"
+msgstr "現在のコードに変更があります。手動で処理するか強制更新を有効にしてください"
+
+msgid "当前图像"
+msgstr "現在の画像"
+
+msgid "当前版本"
+msgstr "現在のバージョン"
+
+msgid "当前状态"
+msgstr "現在の状態"
+
+msgid "当期UP代理人"
+msgstr "現在のUPエージェント"
+
+msgid "形状"
+msgstr "形状"
+
+msgid "循环执行"
+msgstr "ループ実行"
+
+msgid "快捷手册"
+msgstr "クイック手帳"
+
+msgid "快进更新失败"
+msgstr "早送り更新に失敗しました"
+
+msgid "性能分析"
+msgstr "性能分析"
+
+msgid "性能指标"
+msgstr "性能指標"
+
+msgid "总耗时"
+msgstr "総所要時間"
+
+msgid "恢复"
+msgstr "復元"
+
+msgid "恢复电量"
+msgstr "バッテリーを回復"
+
+msgid "您确定要删除流水线"
+msgstr "パイプラインを削除してもよろしいですか"
+
+msgid "我们匿名收集你的信息用于改进我们的产品，感谢您的参与！"
+msgstr "製品改善のため匿名情報を収集します。ご協力ありがとうございます！"
+
+msgid "截图"
+msgstr "スクリーンショット"
+
+msgid "截图方法"
+msgstr "スクリーンショット方式"
+
+msgid "截图读取失败"
+msgstr "スクリーンショットの読み込みに失敗しました"
+
+msgid "截图间隔 (秒)"
+msgstr "スクリーンショット間隔（秒）"
+
+msgid "截图间隔(秒)"
+msgstr "スクリーンショット間隔（秒）"
+
+msgid "手动调整"
+msgstr "手動調整"
+
+msgid "打开图片"
+msgstr "画像を開く"
+
+msgid "打开图片文件"
+msgstr "画像ファイルを開く"
+
+msgid "执行"
+msgstr "実行"
+
+msgid "执行应用组"
+msgstr "アプリグループを実行"
+
+msgid "执行颜色过滤"
+msgstr "色フィルターを実行"
+
+msgid "找不到"
+msgstr "見つかりません"
+
+msgid "拆解等级"
+msgstr "分解レベル"
+
+msgid "拼接方向"
+msgstr "結合方向"
+
+msgid "持续时间(秒)"
+msgstr "継続時間（秒）"
+
+msgid "按键前截图"
+msgstr "キー入力前スクリーンショット"
+
+msgid "按键设置"
+msgstr "キー設定"
+
+msgid "插入变量"
+msgstr "変数を挿入"
+
+msgid "搜索"
+msgstr "検索"
+
+msgid "撤回"
+msgstr "取り消し"
+
+msgid "撤销"
+msgstr "元に戻す"
+
+msgid "操作"
+msgstr "操作"
+
+msgid "操作方式"
+msgstr "操作方式"
+
+msgid "操控方式"
+msgstr "操作方式"
+
+msgid "数据错误"
+msgstr "データエラー"
+
+msgid "文件不存在"
+msgstr "ファイルが存在しません"
+
+msgid "文件已存在"
+msgstr "ファイルはすでに存在します"
+
+msgid "文件已成功删除"
+msgstr "ファイルを削除しました"
+
+msgid "文字颜色"
+msgstr "文字色"
+
+msgid "新建"
+msgstr "新規作成"
+
+msgid "无可用模板"
+msgstr "利用可能なテンプレートがありません"
+
+msgid "无法获取 Python 版本"
+msgstr "Pythonバージョンを取得できません"
+
+msgid "无法获取 UV 版本"
+msgstr "UVバージョンを取得できません"
+
+msgid "无法连接服务器"
+msgstr "サーバーに接続できません"
+
+msgid "日志显示"
+msgstr "ログ表示"
+
+msgid "日志最大行数"
+msgstr "ログ最大行数"
+
+msgid "日志过期秒数"
+msgstr "ログ期限（秒）"
+
+msgid "时间"
+msgstr "時間"
+
+msgid "暂停"
+msgstr "一時停止"
+
+msgid "暂停中"
+msgstr "一時停止中"
+
+msgid "更新完成"
+msgstr "更新完了"
+
+msgid "更新本地代码成功"
+msgstr "ローカルコードを更新しました"
+
+msgid "服务器返回的数据格式不正确"
+msgstr "サーバーが返したデータ形式が正しくありません"
+
+msgid "服务异常"
+msgstr "サービス異常"
+
+msgid "未安装"
+msgstr "未インストール"
+
+msgid "未安装。可选择你自己的 uv.exe"
+msgstr "未インストール。自分のuv.exeを選択できます"
+
+msgid "未安装。可选择手动创建"
+msgstr "未インストール。手動作成を選択できます"
+
+msgid "未开启代码自动更新，跳过"
+msgstr "コード自動更新が有効ではないためスキップします"
+
+msgid "未知"
+msgstr "不明"
+
+msgid "未知错误"
+msgstr "不明なエラー"
+
+msgid "未配置 UV"
+msgstr "UV未設定"
+
+msgid "本地代码已是最新"
+msgstr "ローカルコードは最新です"
+
+msgid "本地代码有修改且无法快进更新，请手动处理后再更新"
+msgstr "ローカルコードに変更があり早送り更新できません。手動で処理してから更新してください"
+
+msgid "本地配置"
+msgstr "ローカル設定"
+
+msgid "查看指南"
+msgstr "ガイドを見る"
+
+msgid "核对当前仓库"
+msgstr "現在のリポジトリを確認"
+
+msgid "检查中..."
+msgstr "確認中..."
+
+msgid "检查工作区状态"
+msgstr "作業ツリー状態を確認"
+
+msgid "检查运行环境兼容性"
+msgstr "実行環境の互換性を確認"
+
+msgid "检测当前 Python 版本"
+msgstr "現在のPythonバージョンを検出"
+
+msgid "检测当前 UV 版本"
+msgstr "現在のUVバージョンを検出"
+
+msgid "为指定角色生成6个头像模板"
+msgstr "指定キャラクターの头像テンプレートを6個生成"
+
+msgid "仅购买优先级"
+msgstr "購入優先度のみ"
+
+msgid "代理人模板生成"
+msgstr "エージェントテンプレート生成"
+
+msgid "优先选择NEW!藏品"
+msgstr "NEW!収集品を優先選択"
+
+msgid "优先途经点"
+msgstr "優先経由点"
+
+msgid "使用合并配置文件"
+msgstr "結合設定ファイルを使用"
+
+msgid "使用图标计算坐标"
+msgstr "アイコンで座標を計算"
+
+msgid "保存 patched 合成图"
+msgstr "patched合成画像を保存"
+
+msgid "全部（合并）"
+msgstr "すべて（結合）"
+
+msgid "全部（逐条）"
+msgstr "すべて（個別）"
+
+msgid "删除体力计划"
+msgstr "バッテリー計画を削除"
+
+msgid "制造中"
+msgstr "製造中"
+
+msgid "制造坊-最大下拉次数"
+msgstr "製造工房 - 最大スクロール回数"
+
+msgid "刷取目标"
+msgstr "周回対象"
+
+msgid "刷满经验"
+msgstr "経験値を最大まで稼ぐ"
+
+msgid "剧情模式"
+msgstr "ストーリーモード"
+
+msgid "区域类型优先级"
+msgstr "エリアタイプ優先度"
+
+msgid "区域表格编辑"
+msgstr "エリア表編集"
+
+msgid "单条路线重试上限"
+msgstr "単一ルートの再試行上限"
+
+msgid "反向抠图"
+msgstr "反転切り抜き"
+
+msgid "只购买第一优先级"
+msgstr "第1優先度のみ購入"
+
+msgid "只购买第二优先级"
+msgstr "第2優先度のみ購入"
+
+msgid "合并操作"
+msgstr "操作を結合"
+
+msgid "周期增益"
+msgstr "周期バフ"
+
+msgid "售卖中"
+msgstr "販売中"
+
+msgid "处理选项"
+msgstr "選択肢を処理"
+
+msgid "奖励优先级"
+msgstr "報酬優先度"
+
+msgid "好物铺购买"
+msgstr "好物ショップ購入"
+
+msgid "如何让AI打得更好？"
+msgstr "AIにより良く戦わせるには？"
+
+msgid "完整模板"
+msgstr "完全テンプレート"
+
+msgid "官方社区"
+msgstr "公式コミュニティ"
+
+msgid "小地图朝向检测"
+msgstr "ミニマップ方位検出"
+
+msgid "微调"
+msgstr "微調整"
+
+msgid "恶名狩猎（周期挑战）开始日"
+msgstr "要警戒狩り（定期挑戦）開始日"
+
+msgid "战斗中-重新开始"
+msgstr "戦闘中 - 再開"
+
+msgid "战斗中退出"
+msgstr "戦闘中に退出"
+
+msgid "战斗后选择"
+msgstr "戦闘後の選択"
+
+msgid "战斗配置"
+msgstr "戦闘設定"
+
+msgid "新增体力计划"
+msgstr "バッテリー計画を追加"
+
+msgid "显示 CV Pipeline"
+msgstr "CV Pipelineを表示"
+
+msgid "显示 OCR"
+msgstr "OCRを表示"
+
+msgid "显示 Template"
+msgstr "Templateを表示"
+
+msgid "显示 YOLO"
+msgstr "YOLOを表示"
+
+msgid "显示决策链路面板"
+msgstr "判断経路パネルを表示"
+
+msgid "显示性能面板"
+msgstr "性能パネルを表示"
+
+msgid "显示日志面板"
+msgstr "ログパネルを表示"
+
+msgid "显示时间轴面板"
+msgstr "タイムラインパネルを表示"
+
+msgid "显示状态面板"
+msgstr "状態パネルを表示"
+
+msgid "显隐热键主键"
+msgstr "表示切替ホットキー主キー"
+
+msgid "更新合并配置文件"
+msgstr "結合設定ファイルを更新"
+
+msgid "框选模式"
+msgstr "範囲選択モード"
+
+msgid "检测到已存在的环境压缩包，正在解压..."
+msgstr "既存の環境アーカイブを検出しました。展開中..."
+
+msgid "检测当前代码分支"
+msgstr "現在のコードブランチを検出"
+
+msgid "检测当前代码是否最新"
+msgstr "現在のコードが最新か確認"
+
+msgid "检测当前代码是否有修改"
+msgstr "現在のコードに変更があるか確認"
+
+msgid "检测当前代码状态失败"
+msgstr "現在のコード状態の検出に失敗しました"
+
+msgid "模式:"
+msgstr "モード:"
+
+msgid "模式选择"
+msgstr "モード選択"
+
+msgid "模板ID"
+msgstr "テンプレートID"
+
+msgid "模板保存失败"
+msgstr "テンプレートの保存に失敗しました"
+
+msgid "模板原图"
+msgstr "テンプレート元画像"
+
+msgid "模板名称"
+msgstr "テンプレート名"
+
+msgid "模板抠图"
+msgstr "テンプレート切り抜き"
+
+msgid "模板掩码"
+msgstr "テンプレートマスク"
+
+msgid "横"
+msgstr "横"
+
+msgid "横移"
+msgstr "横移動"
+
+msgid "正在下载"
+msgstr "ダウンロード中"
+
+msgid "正在使用 UV 创建虚拟环境..."
+msgstr "UVで仮想環境を作成中..."
+
+msgid "正在使用 UV 安装依赖..."
+msgstr "UVで依存関係をインストール中..."
+
+msgid "正在安装 UV..."
+msgstr "UVをインストール中..."
+
+msgid "正在安装..."
+msgstr "インストール中..."
+
+msgid "正在检查代码更新..."
+msgstr "コード更新を確認中..."
+
+msgid "正在检查版本..."
+msgstr "バージョンを確認中..."
+
+msgid "正在检查环境同步状态..."
+msgstr "環境同期状態を確認中..."
+
+msgid "正在清理旧文件"
+msgstr "古いファイルをクリーンアップ中"
+
+msgid "正在解压"
+msgstr "展開中"
+
+msgid "此操作无法撤销。"
+msgstr "この操作は元に戻せません。"
+
+msgid "每周基础次数"
+msgstr "週間基本回数"
+
+msgid "每日次数"
+msgstr "日次回数"
+
+msgid "没有可用的图像进行分析"
+msgstr "分析可能な画像がありません"
+
+msgid "没法访问GitHub可以查看帮助文档"
+msgstr "GitHubにアクセスできない場合はヘルプ文書を確認してください"
+
+msgid "派遣-副本优先级"
+msgstr "派遣 - ダンジョン優先度"
+
+msgid "派遣-时长"
+msgstr "派遣 - 時間"
+
+msgid "流水线"
+msgstr "パイプライン"
+
+msgid "流水线保存失败"
+msgstr "パイプラインの保存に失敗しました"
+
+msgid "流水线已另存为"
+msgstr "パイプラインを名前を付けて保存しました"
+
+msgid "流水线已重命名为"
+msgstr "パイプライン名を変更しました:"
+
+msgid "测试推送通知"
+msgstr "プッシュ通知をテスト"
+
+msgid "测试通知方式"
+msgstr "通知方法をテスト"
+
+msgid "测速失败"
+msgstr "速度測定に失敗しました"
+
+msgid "添加应用"
+msgstr "アプリを追加"
+
+msgid "添加步骤"
+msgstr "手順を追加"
+
+msgid "添加路线"
+msgstr "ルートを追加"
+
+msgid "清除点位"
+msgstr "ポイントをクリア"
+
+msgid "清除选择"
+msgstr "選択をクリア"
+
+msgid "游历中"
+msgstr "探索中"
+
+msgid "游戏截图失败"
+msgstr "ゲームスクリーンショットに失敗しました"
+
+msgid "源"
+msgstr "ソース"
+
+msgid "点位"
+msgstr "ポイント"
+
+msgid "点击后自动追加移动"
+msgstr "クリック後に移動を自動追加"
+
+msgid "点击模式"
+msgstr "クリックモード"
+
+msgid "状态"
+msgstr "状態"
+
+msgid "状态值"
+msgstr "状態値"
+
+msgid "状态刷新间隔(ms)"
+msgstr "状態更新間隔（ms）"
+
+msgid "环境已同步"
+msgstr "環境は同期済みです"
+
+msgid "环境未同步，请点击默认安装更新"
+msgstr "環境が同期されていません。デフォルトインストールで更新してください"
+
+msgid "生成 cURL 命令"
+msgstr "cURLコマンドを生成"
+
+msgid "画面"
+msgstr "画面"
+
+msgid "画面信息"
+msgstr "画面情報"
+
+msgid "界面消失处理方式"
+msgstr "画面消失時の処理方式"
+
+msgid "界面消失预警时间"
+msgstr "画面消失の警告時間"
+
+msgid "目标版本"
+msgstr "対象バージョン"
+
+msgid "目标版本的运行环境与当前不兼容"
+msgstr "対象バージョンの実行環境は現在の環境と互換性がありません"
+
+msgid "目标配队"
+msgstr "対象編成"
+
+msgid "矩阵行动 - 手动选择代理人"
+msgstr "マトリックス行動 - エージェントを手動選択"
+
+msgid "确认删除"
+msgstr "削除確認"
+
+msgid "移动"
+msgstr "移動"
+
+msgid "空闲"
+msgstr "待機中"
+
+msgid "窗口跟随间隔(ms)"
+msgstr "ウィンドウ追従間隔（ms）"
+
+msgid "系统版本低于 Windows 10 2004，Overlay 已禁用"
+msgstr "Windows 10 2004未満のため、Overlayは無効化されています"
+
+msgid "纵"
+msgstr "縦"
+
+msgid "纵移"
+msgstr "縦移動"
+
+msgid "终结技一好就放"
+msgstr "終結スキルが溜まり次第使用"
+
+msgid "结束后"
+msgstr "終了後"
+
+msgid "继续"
+msgstr "続行"
+
+msgid "编辑"
+msgstr "編集"
+
+msgid "缩放"
+msgstr "ズーム"
+
+msgid "缩放比例:"
+msgstr "ズーム倍率:"
+
+msgid "网络代理"
+msgstr "ネットワークプロキシ"
+
+msgid "网络代理设置"
+msgstr "ネットワークプロキシ設定"
+
+msgid "网络相关"
+msgstr "ネットワーク関連"
+
+msgid "背景图片"
+msgstr "背景画像"
+
+msgid "自动战斗开关"
+msgstr "自動戦闘スイッチ"
+
+msgid "自动托管"
+msgstr "自動操作"
+
+msgid "自动更新"
+msgstr "自動更新"
+
+msgid "自动测速选择"
+msgstr "自動速度測定で選択"
+
+msgid "自动生成掩码"
+msgstr "マスクを自動生成"
+
+msgid "自动获取免费代理地址"
+msgstr "無料プロキシアドレスを自動取得"
+
+msgid "自动闪避"
+msgstr "自動回避"
+
+msgid "自动闪避开关"
+msgstr "自動回避スイッチ"
+
+msgid "自定义主题色"
+msgstr "テーマ色をカスタム"
+
+msgid "自定义分支"
+msgstr "ブランチをカスタム"
+
+msgid "自定义安装"
+msgstr "カスタムインストール"
+
+msgid "自定义窗口标题"
+msgstr "ウィンドウタイトルをカスタム"
+
+msgid "色彩通道"
+msgstr "カラーチャンネル"
+
+msgid "节点"
+msgstr "ノード"
+
+msgid "节点失败立即通知"
+msgstr "ノード失敗時に即時通知"
+
+msgid "获取"
+msgstr "取得"
+
+msgid "获取commit"
+msgstr "commitを取得"
+
+msgid "获取commit总数"
+msgstr "commit総数を取得"
+
+msgid "获取本地提交信息失败"
+msgstr "ローカルコミット情報の取得に失敗しました"
+
+msgid "获取系统环境变量中的 UV"
+msgstr "システム環境変数のUVを取得"
+
+msgid "获取远程代码"
+msgstr "リモートコードを取得"
+
+msgid "获取远程代码失败"
+msgstr "リモートコードの取得に失敗しました"
+
+msgid "获取远程代码成功"
+msgstr "リモートコードを取得しました"
+
+msgid "获取远程提交信息失败"
+msgstr "リモートコミット情報の取得に失敗しました"
+
+msgid "藏品第一优先级"
+msgstr "収集品第1優先度"
+
+msgid "藏品第二优先级 (无刷新时考虑)"
+msgstr "収集品第2優先度（更新しない場合に考慮）"
+
+msgid "裁剪失败，请检查模板配置"
+msgstr "切り抜きに失敗しました。テンプレート設定を確認してください"
+
+msgid "视觉层 X 偏移"
+msgstr "視覚レイヤー Xオフセット"
+
+msgid "视觉层 X 缩放"
+msgstr "視覚レイヤー Xスケール"
+
+msgid "视觉层 Y 偏移"
+msgstr "視覚レイヤー Yオフセット"
+
+msgid "视觉层 Y 缩放"
+msgstr "視覚レイヤー Yスケール"
+
+msgid "视觉绘制"
+msgstr "視覚描画"
+
+msgid "角色坐标"
+msgstr "キャラクター座標"
+
+msgid "解压失败"
+msgstr "展開に失敗しました"
+
+msgid "解压失败 准备重试"
+msgstr "展開に失敗しました。再試行します"
+
+msgid "解压成功"
+msgstr "展開しました"
+
+msgid "解压环境包成功，正在安装运行依赖..."
+msgstr "環境パッケージを展開しました。実行依存関係をインストール中..."
+
+msgid "解析提交ID失败"
+msgstr "コミットIDの解析に失敗しました"
+
+msgid "触发秒数"
+msgstr "発動秒数"
+
+msgid "请先打开一张图片"
+msgstr "先に画像を開いてください"
+
+msgid "请先输入角色ID"
+msgstr "先にキャラクターIDを入力してください"
+
+msgid "请先选择一个流水线"
+msgstr "先にパイプラインを選択してください"
+
+msgid "请先选择截图或游戏截图"
+msgstr "先にスクリーンショットまたはゲームスクリーンショットを選択してください"
+
+msgid "请确保手动创建的虚拟环境目录为"
+msgstr "手動作成した仮想環境ディレクトリが次であることを確認してください"
+
+msgid "请输入 JSON 格式的请求体"
+msgstr "JSON形式のリクエスト本文を入力してください"
+
+msgid "请输入兑换码"
+msgstr "交換コードを入力してください"
+
+msgid "复制"
+msgstr "コピー"
+
+msgid "禁用 HDR"
+msgstr "HDRを無効化"
+
+msgid "请输入流水线名称"
+msgstr "パイプライン名を入力してください"
+
+msgid "请选择主题色"
+msgstr "テーマ色を選択してください"
+
+msgid "调查战略"
+msgstr "調査戦略"
+
+msgid "调试按钮"
+msgstr "デバッグボタン"
+
+msgid "路线"
+msgstr "ルート"
+
+msgid "路线名单"
+msgstr "ルート一覧"
+
+msgid "跳过此步骤"
+msgstr "この手順をスキップ"
+
+msgid "跳过计划"
+msgstr "計画をスキップ"
+
+msgid "输入代理人英文名"
+msgstr "エージェントの英語名を入力"
+
+msgid "输入关键字进行搜索..."
+msgstr "キーワードを入力して検索..."
+
+msgid "输入状态关键词过滤..."
+msgstr "状態キーワードを入力して絞り込み..."
+
+msgid "过期日期"
+msgstr "有効期限"
+
+msgid "运行"
+msgstr "実行"
+
+msgid "运行中"
+msgstr "実行中"
+
+msgid "运行依赖安装失败"
+msgstr "実行依存関係のインストールに失敗しました"
+
+msgid "运行依赖安装成功"
+msgstr "実行依存関係をインストールしました"
+
+msgid "运行前检查"
+msgstr "実行前チェック"
+
+msgid "运行实例"
+msgstr "実行インスタンス"
+
+msgid "运行环境"
+msgstr "実行環境"
+
+msgid "运行设置"
+msgstr "実行設定"
+
+msgid "运行路线"
+msgstr "実行ルート"
+
+msgid "返回"
+msgstr "戻る"
+
+msgid "这是一条测试消息"
+msgstr "これはテストメッセージです"
+
+msgid "进行测速"
+msgstr "速度測定を実行"
+
+msgid "远程分支不存在"
+msgstr "リモートブランチが存在しません"
+
+msgid "追新模式"
+msgstr "最新追従モード"
+
+msgid "适应窗口"
+msgstr "ウィンドウに合わせる"
+
+msgid "选择你的"
+msgstr "選択してください:"
+
+msgid "选择区域"
+msgstr "エリアを選択"
+
+msgid "选择区域: 未选择"
+msgstr "エリアを選択: 未選択"
+
+msgid "选择图片"
+msgstr "画像を選択"
+
+msgid "选择图片文件"
+msgstr "画像ファイルを選択"
+
+msgid "选择已有"
+msgstr "既存から選択"
+
+msgid "选择或新建流水线"
+msgstr "パイプラインを選択または新規作成"
+
+msgid "选择截图"
+msgstr "スクリーンショットを選択"
+
+msgid "选择最优"
+msgstr "最適なものを選択"
+
+msgid "选择模板配置文件"
+msgstr "テンプレート設定ファイルを選択"
+
+msgid "选择路径"
+msgstr "パスを選択"
+
+msgid "选项优先级"
+msgstr "選択肢の優先度"
+
+msgid "逐条 = 每个节点单独推送；合并 = 所有节点合并推送"
+msgstr "個別 = 各ノードを個別にプッシュ、結合 = すべてのノードをまとめてプッシュ"
+
+msgid "通知设置"
+msgstr "通知設定"
+
+msgid "避免途经点"
+msgstr "回避する経由点"
+
+msgid "邦巢-最低购买价格"
+msgstr "邦巢 - 最低購入価格"
+
+msgid "邦巢-购买"
+msgstr "邦巢 - 購入"
+
+msgid "部分失败"
+msgstr "一部失敗"
+
+msgid "重叠比例"
+msgstr "重なり率"
+
+msgid "重命名"
+msgstr "名前を変更"
+
+msgid "重置到远程提交失败"
+msgstr "リモートコミットへのリセットに失敗しました"
+
+msgid "重置进度"
+msgstr "進捗をリセット"
+
+msgid "重置面板位置"
+msgstr "パネル位置をリセット"
+
+msgid "键"
+msgstr "キー"
+
+msgid "闪切时长（秒）"
+msgstr "クイックスワップ時間（秒）"
+
+msgid "闪避方式"
+msgstr "回避方式"
+
+msgid "闪避检测"
+msgstr "回避検出"
+
+msgid "防截图保护"
+msgstr "スクリーンショット保護"
+
+msgid "集成启动器"
+msgstr "統合ランチャー"
+
+msgid "需下载"
+msgstr "ダウンロードが必要"
+
+msgid "需更新"
+msgstr "更新が必要"
+
+msgid "需要安装或配置"
+msgstr "インストールまたは設定が必要"
+
+msgid "面板与刷新"
+msgstr "パネルと更新"
+
+msgid "面板字体大小"
+msgstr "パネル文字サイズ"
+
+msgid "面板编辑模式"
+msgstr "パネル編集モード"
+
+msgid "面板透明度(%)"
+msgstr "パネル透明度（%）"
+
+msgid "顺序调整"
+msgstr "順序調整"
+
+msgid "预备编队识别"
+msgstr "プリセット編成認識"
+
+msgid "颜色上限"
+msgstr "色の上限"
+
+msgid "颜色下限"
+msgstr "色の下限"
+
+msgid "颜色空间"
+msgstr "色空間"
+
+msgid "额外刷取"
+msgstr "追加周回"
+
+msgid "额外刷取方式"
+msgstr "追加周回方式"
+
+msgid "饮茶仙"
+msgstr "饮茶仙"
+
+msgid "饮茶仙-委托刷新"
+msgstr "饮茶仙 - 依頼更新"
+
+msgid "首次运行，正在同步代码仓库..."
+msgstr "初回実行のため、コードリポジトリを同期中..."
+
+msgid "默认显示"
+msgstr "デフォルト表示"
+
+msgid "鼠标点击坐标"
+msgstr "マウスクリック座標"
+
+msgid "使用说明 · 功能介绍"
+msgstr "使い方・機能紹介"
+
+msgid "源码 · 反馈 · Star⭐"
+msgstr "ソース・フィードバック・Star⭐"
+
+msgid "遇到问题？点这里找答案"
+msgstr "問題が起きたらここで解決策を探せます"
+
+msgid "官方频道"
+msgstr "公式チャンネル"
+
+msgid "加入官方交流频道"
+msgstr "公式交流チャンネルに参加"
+
+msgid "代码已是最新版本"
+msgstr "コードは最新バージョンです"
+
+msgid "有新版本啦"
+msgstr "新しいバージョンがあります"
+
+msgid "稍安勿躁~"
+msgstr "少しお待ちください~"
+
+msgid "有新模型啦"
+msgstr "新しいモデルがあります"
+
+msgid "有新启动器啦"
+msgstr "新しいランチャーがあります"
+
+msgid "到[设置-资源下载]更新吧~"
+msgstr "[設定 - リソースダウンロード]で更新してください~"
+
+msgid "项待配置"
+msgstr "項目が未設定"
+
+msgid "启动器版本"
+msgstr "ランチャーバージョン"
+
+msgid "代码版本"
+msgstr "コードバージョン"
+
+msgid "问题反馈"
+msgstr "問題を報告"
+
+msgid "安装器版本"
+msgstr "インストーラーバージョン"
+
+msgid "程序版本"
+msgstr "プログラムバージョン"
+
+msgid "已复制版本号"
+msgstr "バージョン番号をコピーしました"
+
+msgid "图标编辑器"
+msgstr "アイコンエディター"
+
+msgid "图标名称"
+msgstr "アイコン名"
+
+msgid "X坐标"
+msgstr "X座標"
+
+msgid "Y坐标"
+msgstr "Y座標"
+
+msgid "传送X"
+msgstr "テレポートX"
+
+msgid "传送Y"
+msgstr "テレポートY"
+
+msgid "提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标"
+msgstr "ヒント: 表の行をクリックすると、メインウィンドウのマップ上で対応するアイコン位置を強調表示します。行を選択するとテレポート座標の設定やアイコン削除ができます。"
+
+msgid "设置传送坐标"
+msgstr "テレポート座標を設定"
+
+msgid "将主窗口当前计算坐标设置为选中图标的传送坐标"
+msgstr "メインウィンドウで現在計算された座標を、選択中アイコンのテレポート座標に設定します"
+
+msgid "删除图标"
+msgstr "アイコンを削除"
+
+msgid "删除选中的图标"
+msgstr "選択したアイコンを削除"
+
+msgid "保存图标名称修改"
+msgstr "アイコン名の変更を保存"
+
+msgid "取消修改并关闭"
+msgstr "変更をキャンセルして閉じる"
+
+msgid "确定要删除图标"
+msgstr "アイコンを削除してもよろしいですか"
+
+msgid "吗？"
+msgstr "か？"
+
+msgid "B服为选择已有登录记录的用户进行登录，需要先手动登录游戏"
+msgstr "B服は既存のログイン記録を選んでログインするため、先に手動でゲームへログインする必要があります"
+
+msgid "Hex 颜色，例如 #f2f2f2"
+msgstr "Hexカラー。例: #f2f2f2"
+
+msgid "UI完全消失持续到该秒数后判定为卡电梯"
+msgstr "UIが完全に消えた状態がこの秒数続くと、エレベーター詰まりと判定します"
+
+msgid "一条龙运行通知"
+msgstr "OneDragon実行通知"
+
+msgid "一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力"
+msgstr "通常は既定値0.02で十分です。PCが重い場合は、まずゲームを30FPS・低画質にしてAI用の処理性能を確保してください"
+
+msgid "不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效"
+msgstr "コードに詳しくない場合は有効にしてください。スクリプトを最新へ更新し、あなたのコード変更は上書きしますが、設定は無効になりません"
+
+msgid "不断重复指令 确保可以连贯执行"
+msgstr "コマンドを繰り返し、連続して実行できることを確認します"
+
+msgid "仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。"
+msgstr "自動戦闘にのみ影響します。ゲームパッドを使う場合は、先に仮想ゲームパッド依存関係をインストールしてください。"
+
+msgid "从开始日起才会自动调度周期挑战。当日未完成会顺延到次日，直到当周完成/过期"
+msgstr "開始日以降に周期挑戦を自動スケジュールします。当日未完了の場合は、当週の完了または期限切れまで翌日に繰り越します"
+
+msgid "任何原因卡住的最多重试次数，超限后跳过该条小路线"
+msgstr "何らかの理由で詰まった場合の最大再試行回数です。上限を超えるとその小ルートをスキップします"
+
+msgid "优先选择未满级的调查战略，开启后将禁用下方的调查战略选项"
+msgstr "未最大レベルの調査戦略を優先します。有効にすると下の調査戦略オプションは無効になります"
+
+msgid "使用 WDA_EXCLUDEFROMCAPTURE 隐藏 Overlay"
+msgstr "WDA_EXCLUDEFROMCAPTUREを使ってOverlayを隠します"
+
+msgid "使用exe启动时，自动检测并更新代码"
+msgstr "exe起動時にコードを自動検出して更新します"
+
+msgid "保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片"
+msgstr "元のスクリーンショットとクリップボード動作を維持し、Overlayを重ねた画像を追加で出力します"
+
+msgid "停止正在运行的应用，不能恢复"
+msgstr "実行中のアプリを停止します。再開はできません"
+
+msgid "先看说明 再使用与提问"
+msgstr "先に説明を読んでから使用・質問してください"
+
+msgid "免费代理仅能加速工具和模型下载，无法加速代码同步"
+msgstr "無料プロキシはツールとモデルのダウンロードのみ高速化できます。コード同期は高速化できません"
+
+msgid "全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。"
+msgstr "全編成共通では、チームに合わせて専用編成を自動マッチします。問題があれば報告してください。"
+
+msgid "关闭用于调试模板文件 正常开启即可"
+msgstr "テンプレートファイルのデバッグ時に無効化します。通常は有効のままで問題ありません"
+
+msgid "分摊到每天运行"
+msgstr "毎日に分散して実行します"
+
+msgid "判定为疑似卡电梯后的处理方式"
+msgstr "エレベーター詰まり疑いと判定した後の処理方式"
+
+msgid "刷新多少次数内 只购买第一优先级内的藏品"
+msgstr "指定回数の更新までは第1優先度の収集品のみ購入します"
+
+msgid "刷新多少次数内 只购买第二优先级内的藏品"
+msgstr "指定回数の更新までは第2優先度の収集品のみ購入します"
+
+msgid "发送测试消息验证通知配置"
+msgstr "テストメッセージを送信して通知設定を検証します"
+
+msgid "可选择从第几步开始, 0代表需要传送，1代表已完成第1步"
+msgstr "何手目から開始するか選択できます。0はテレポートが必要、1は第1手順完了済みを意味します"
+
+msgid "后台模式切换键鼠输入时的前台停留时长，过小可能切换失败"
+msgstr "バックグラウンドモードでキーボード/マウス入力に切り替える際の前面滞在時間です。短すぎると切り替えに失敗する可能性があります"
+
+msgid "启动后 Overlay 是否默认可见"
+msgstr "起動後にOverlayを既定で表示するかどうか"
+
+msgid "启用后可通过 Ctrl+Alt+O 切换显隐"
+msgstr "有効にするとCtrl+Alt+Oで表示/非表示を切り替えられます"
+
+msgid "启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用"
+msgstr "有効にするとゲーム内の自動運営で随便观関連タスクを選択します。随便观レベル35以降で使用できます"
+
+msgid "咖啡店在体力计划后运行可开启"
+msgstr "喫茶店をバッテリー計画の後に実行する場合に有効化できます"
+
+msgid "国内无法访问GitHub则选择Gitee"
+msgstr "中国国内でGitHubにアクセスできない場合はGiteeを選択してください"
+
+msgid "图片左上角为(0, 0)"
+msgstr "画像左上を(0, 0)とします"
+
+msgid "在 config/auto_battle_operation 文件夹"
+msgstr "config/auto_battle_operationフォルダー内"
+
+msgid "填写游戏中切换B服账号时显示的用户名"
+msgstr "ゲーム内でB服アカウントを切り替える際に表示されるユーザー名を入力します"
+
+msgid "如果你不知道这是做什么的 请不要填写"
+msgstr "用途が分からない場合は入力しないでください"
+
+msgid "完成基础次数后，继续刷取"
+msgstr "基本回数の完了後も周回を続けます"
+
+msgid "完整通关，用于完成委托任务"
+msgstr "完全クリアします。依頼タスクの完了に使用します"
+
+msgid "将空洞分摊到每天运行"
+msgstr "ホロウを毎日に分散して実行します"
+
+msgid "开启后可拖拽调整位置，并可在日志窗调整字体/透明度"
+msgstr "有効にするとドラッグで位置を調整でき、ログウィンドウでフォント/透明度を調整できます"
+
+msgid "开启后可自定义主题色"
+msgstr "有効にするとテーマ色をカスタムできます"
+
+msgid "开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮"
+msgstr "有効にすると、すべての計画が予定回数に達した後、実行済み回数をリセットして次の周回を開始します"
+
+msgid "开启后，当前计划因体力不足或次数限制无法继续时，会依次尝试后续计划"
+msgstr "有効にすると、現在の計画がバッテリー不足や回数制限で続行できない場合、後続の計画を順に試します"
+
+msgid "开启时截图按键之前的画面，关闭时截图按键之后的画面"
+msgstr "有効時はキー入力前の画面を、無効時はキー入力後の画面を撮影します"
+
+msgid "开始、暂停、恢复某个应用"
+msgstr "アプリの開始、一時停止、再開を行います"
+
+msgid "想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭"
+msgstr "買い物せず高速周回したい場合や、アチーブメント「ホロウ金融大亨」を狙う場合は無効にします"
+
+msgid "手动更改yml文件后 需要触发更新生效"
+msgstr "ymlファイルを手動変更した後は、更新を実行すると反映されます"
+
+msgid "按下后，保存 持续时间(秒) 内的截图，用于捕捉漏判"
+msgstr "押下後、継続時間（秒）内のスクリーンショットを保存し、誤判定の捕捉に使います"
+
+msgid "按优先级将剩余小队派遣"
+msgstr "優先度に従って残りのチームを派遣します"
+
+msgid "按照自动战斗配置 选择角色位置"
+msgstr "自動戦闘設定に従ってキャラクター位置を選択します"
+
+msgid "按键后，进入/退出自动战斗"
+msgstr "キー押下後、自動戦闘に入る/終了します"
+
+msgid "按键后，进入/退出自动闪避"
+msgstr "キー押下後、自動回避に入る/終了します"
+
+msgid "无法计算朝向时截图"
+msgstr "方位を計算できない場合にスクリーンショットを撮ります"
+
+msgid "显示 YOLO/OCR/Template/CV 绘制结果"
+msgstr "YOLO/OCR/Template/CVの描画結果を表示します"
+
+msgid "更新"
+msgstr "更新"
+
+msgid "最高优先级 但不保证识别正确"
+msgstr "最優先ですが、認識の正確性は保証されません"
+
+msgid "每周第1次 优先选择包含当期UP的编队"
+msgstr "週1回目は現在のUPを含む編成を優先します"
+
+msgid "游戏画面掉帧的话 可以不启用"
+msgstr "ゲーム画面のフレーム落ちがある場合は無効でも構いません"
+
+msgid "点击大地图可更新坐标"
+msgstr "大マップをクリックすると座標を更新できます"
+
+msgid "用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中"
+msgstr "開発やバグ報告用です。UIDは自動でマスクされ、.debug/images/フォルダーに保存されます"
+
+msgid "用于开发，部分应用开始调试"
+msgstr "開発用です。一部アプリのデバッグ開始に使います"
+
+msgid "用于校正识别框上下偏移（像素）"
+msgstr "認識枠の上下オフセット（ピクセル）を補正します"
+
+msgid "用于校正识别框左右偏移（像素）"
+msgstr "認識枠の左右オフセット（ピクセル）を補正します"
+
+msgid "练度低情况下 仅建议绝境武备开启"
+msgstr "育成度が低い場合は、絶境武備でのみ有効化することを推奨します"
+
+msgid "组合键固定 Ctrl+Alt，主键可自定义"
+msgstr "修飾キーはCtrl+Alt固定、主キーはカスタムできます"
+
+msgid "终结技无视时机立刻释放"
+msgstr "終結スキルをタイミングに関係なく即使用します"
+
+msgid "脚本识别黄光红光时，自动截图，用于捕捉误判"
+msgstr "スクリプトが黄光/赤光を認識したときに自動でスクリーンショットを撮り、誤判定の捕捉に使います"
+
+msgid "自动刷新购买S级别邦布。随便观25级后可用。"
+msgstr "自動更新してS級ボンプを購入します。随便观レベル25以降で使用できます。"
+
+msgid "自动购买好物铺中的指定商品"
+msgstr "好物ショップの指定商品を自動購入します"
+
+msgid "自行调整，过小可能按键被吞，过大可能影响操作"
+msgstr "必要に応じて調整してください。小さすぎるとキー入力が欠落し、大きすぎると操作に影響する可能性があります"
+
+msgid "获取失败时 可前往 https://ghproxy.link/ 查看自行更新"
+msgstr "取得に失敗した場合は https://ghproxy.link/ を確認して手動更新できます"
+
+msgid "血量 ≥ x% 时 才会进行购买"
+msgstr "HPがx%以上のときのみ購入します"
+
+msgid "调整图标识别的匹配阈值，默认0.7"
+msgstr "アイコン認識の一致しきい値を調整します。既定値は0.7です"
+
+msgid "调整大地图的，只有第一次需要"
+msgstr "大マップ用の調整です。初回のみ必要です"
+
+msgid "跳过底部的低级商品"
+msgstr "下部の低級商品をスキップします"
+
+msgid "选择主页显示的背景"
+msgstr "ホーム画面に表示する背景を選択します"
+
+msgid "选择副本"
+msgstr "ダンジョンを選択"
+
+msgid "选择后自动填充相关配置"
+msgstr "選択後、関連設定を自動入力します"
+
+msgid "选择空洞及难度等级"
+msgstr "ホロウと難易度を選択"
+
+msgid "选择角色、鸣徽和事件"
+msgstr "キャラクター、レゾブレム、イベントを選択"
+
+msgid "选择路线起始传送点"
+msgstr "ルート開始地点のテレポート地点を選択"
+
+msgid "邦布商人购买时只购买符合优先级的"
+msgstr "ボンプ商人で購入するとき、優先度に合うものだけを購入します"
+
+msgid "重置 Overlay 面板到默认位置与尺寸"
+msgstr "Overlayパネルを既定の位置とサイズへリセットします"
+
+msgid "重置记录"
+msgstr "記録をリセット"
+
+msgid "需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）"
+msgstr "下の枠でエージェントを設定する必要があります。試用キャラクターも使用できます（マトリックス行動では既定編成を保存できません）"
+
+msgid "预备编队使用游戏内配队时生效"
+msgstr "プリセット編成でゲーム内編成を使用する場合に有効です"
+
+msgid "额外刷取时，选择何时退出"
+msgstr "追加周回時にいつ退出するかを選択します"
+
+msgid "默认 _patched"
+msgstr "既定値 _patched"
+
+msgid "默认配置复制后可修改"
+msgstr "既定設定はコピー後に変更できます"
+
+msgid "删除已完成"
+msgstr "完了済みを削除"
+
+msgid "删除所有"
+msgstr "すべて削除"
+
+msgid "是否删除所有已完成的体力计划？"
+msgstr "完了済みのバッテリー計画をすべて削除しますか？"
+
+msgid "是否删除所有体力计划？"
+msgstr "すべてのバッテリー計画を削除しますか？"
+
+msgid "警告"
+msgstr "警告"
+
+msgid "测试当前方式"
+msgstr "現在の方式をテスト"
+
+msgid "测试全部"
+msgstr "すべてテスト"
+
+msgid "PowerShell 风格"
+msgstr "PowerShell形式"
+
+msgid "Unix 风格"
+msgstr "Unix形式"
+
+msgid "编辑路线操作"
+msgstr "ルート操作を編集"
+
+msgid "序号"
+msgstr "番号"
+
+msgid "操作类型"
+msgstr "操作タイプ"
+
+msgid "数据1"
+msgstr "データ1"
+
+msgid "数据2"
+msgstr "データ2"
+
+msgid "添加操作"
+msgstr "操作を追加"
+
+msgid "删除选中"
+msgstr "選択項目を削除"
+
+msgid "上移"
+msgstr "上へ移動"
+
+msgid "下移"
+msgstr "下へ移動"
+
+msgid "第"
+msgstr "第"
+
+msgid "个操作的数据不完整"
+msgstr "個目の操作データが不完全です"
+
+msgid "个操作的坐标数据必须是数字"
+msgstr "個目の操作の座標データは数値である必要があります"
+
+msgid "确定要删除第"
+msgstr "第"
+
+msgid "个操作吗？"
+msgstr "個目の操作を削除しますか？"
+
+msgid "添加整个区域"
+msgstr "エリア全体を追加"
+
+msgid "添加单条路线"
+msgstr "単一ルートを追加"
+
+msgid "移除"
+msgstr "削除"
+
+msgid "路线列表"
+msgstr "ルートリスト"
+
+msgid "当前区域可用路线"
+msgstr "現在のエリアで利用可能なルート"
+
+msgid "步"
+msgstr "歩"
+
+msgid "新建路线列表"
+msgstr "ルートリストを新規作成"
+
+msgid "请输入列表名称:"
+msgstr "リスト名を入力してください:"
+
+msgid "当前区域没有可用路线"
+msgstr "現在のエリアに利用可能なルートはありません"
+
+msgid "编辑操作"
+msgstr "操作を編集"
+
+msgid "截图(1)"
+msgstr "スクリーンショット(1)"
+
+msgid "添加移动(4)"
+msgstr "移動を追加(4)"
+
+msgid "回退(5)"
+msgstr "戻す(5)"
+
+msgid "定位(2)"
+msgstr "位置決定(2)"
+
+msgid "重叠(3)"
+msgstr "重ね合わせ(3)"
+
+msgid "合并(4)"
+msgstr "結合(4)"
+
+msgid "回退"
+msgstr "戻す"
+
+msgid "编辑图标"
+msgstr "アイコンを編集"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "保存路线列表失败"
+msgstr "ルートリストの保存に失敗しました"
+
+msgid "删除路线列表失败"
+msgstr "ルートリストの削除に失敗しました"
+
+msgid "此操作不可撤销。"
+msgstr "この操作は元に戻せません。"
+msgid "游戏助手"
+msgstr "ゲームアシスタント"
+
+msgid "绝区零"
+msgstr "ゼンレスゾーンゼロ"
+
+msgid "绝区零 一条龙"
+msgstr "ゼンレスゾーンゼロ OneDragon"
+
+msgid "欢迎使用绝区零一条龙"
+msgstr "ゼンレスゾーンゼロ OneDragonへようこそ"
+
+msgid "应用运行"
+msgstr "アプリ実行"
+
+msgid "画中画"
+msgstr "ピクチャーインピクチャー"
+
+msgid "点赞"
+msgstr "いいね"
+
+msgid "代码同步"
+msgstr "コード同期"
+
+msgid "账户管理"
+msgstr "アカウント管理"
+
+msgid "一条龙运行"
+msgstr "OneDragon実行"
+
+msgid "体力计划"
+msgstr "バッテリー計画"
+
+msgid "灵敏度校准"
+msgstr "感度キャリブレーション"
+
+msgid "体力刷本"
+msgstr "バッテリー消費"
+
+msgid "体力副本"
+msgstr "バッテリー消費"
+
+msgid "丽都城事"
+msgstr "新エリー都の街歩き"
+
+msgid "咖啡店"
+msgstr "喫茶店"
+
+msgid "驱动盘拆解"
+msgstr "ドライバディスク分解"
+
+msgid "邮件"
+msgstr "メール"
+
+msgid "活跃度奖励"
+msgstr "活躍度報酬"
+
+msgid "迷失之地"
+msgstr "迷いの地"
+
+msgid "枯萎之都"
+msgstr "枯渇の都"
+
+msgid "情报板"
+msgstr "情報ボード"
+
+msgid "真·拿命验收"
+msgstr "真・命がけ検収"
+
+msgid "通知"
+msgstr "通知"
+
+msgid "录像店营业"
+msgstr "ビデオ屋営業"
+
+msgid "全部实例"
+msgstr "全インスタンス"
+
+msgid "仅运行当前"
+msgstr "現在のみ実行"
+
+msgid "无"
+msgstr "なし"
+
+msgid "关闭游戏"
+msgstr "ゲームを終了"
+
+msgid "关机"
+msgstr "シャットダウン"
+
+msgid "点此查看指南"
+msgstr "ガイドを表示"
+
+msgid "点击查看指南"
+msgstr "ガイドを表示"
+
+msgid "鸣徽"
+msgstr "レゾブレム"
+
+msgid "零号空洞"
+msgstr "零号ホロウ"
+
+msgid "体力计划说明"
+msgstr "バッテリー計画の説明"
+
+msgid "合理安排每日体力消耗，支持自定义优先级和循环执行"
+msgstr "毎日のバッテリー消費を計画し、優先度のカスタムとループ実行に対応します"
+
+msgid "游戏内配队"
+msgstr "ゲーム内編成"
+
+msgid "点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动"
+msgstr "「開始」を押すと、視点操作に使うマウス/ゲームパッドの方向転換感度を自動調整します"
+
+msgid "丽都周纪 (领奖励)"
+msgstr "麗都週紀（報酬受取）"
+
+msgid "丽都城募"
+msgstr "麗都基金"
+
+msgid "刮刮卡"
+msgstr "スクラッチカード"
+
+msgid "卦象集录"
+msgstr "卦象集録"
+
+msgid "委托助手"
+msgstr "依頼アシスタント"
+
+msgid "恶名狩猎"
+msgstr "要警戒狩り"
+
+msgid "指令调试"
+msgstr "コマンドデバッグ"
+
+msgid "锄大地"
+msgstr "フィールド周回"
+
+msgid "闪避助手"
+msgstr "回避アシスタント"
+
+msgid "闪避截图"
+msgstr "回避スクリーンショット"
+
+msgid "随便观"
+msgstr "随便观"
+
+msgid "预备编队角色识别"
+msgstr "プリセット編成キャラ認識"
+
+msgid "鼠标灵敏度检测"
+msgstr "マウス感度検出"
+

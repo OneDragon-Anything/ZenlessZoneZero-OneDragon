@@ -6,16 +6,20 @@ from one_dragon.utils import os_utils
 
 _gt = {}
 _default_lang = 'zh'
+_model_lang = {}
 
 
 def detect_language():
     """自动检测系统语言"""
     try:
         system_locale = locale.getdefaultlocale()[0]
-        if system_locale and system_locale.startswith('zh'):
-            return 'zh'
-        else:
-            return 'en'
+        if system_locale:
+            system_language = system_locale.lower()
+            if system_language.startswith('zh'):
+                return 'zh'
+            if system_language.startswith('ja'):
+                return 'ja'
+        return 'en'
     except Exception:
         return 'zh'
 
@@ -50,7 +54,7 @@ def gt(msg: str | None, model: str = 'ui', lang: str | None = None) -> str:
     if msg is None or len(msg) == 0:
         return ''
     if lang is None:
-        lang = _default_lang
+        lang = _model_lang.get(model, _default_lang)
     if model not in _gt:
         _gt[model] = {}
     if lang not in _gt[model]:
@@ -70,13 +74,22 @@ def coalesce_gt(msg: str | None, default: str, model: str = 'ui', lang: str | No
     :return:
     """
     if lang is None:
-        lang = _default_lang
+        lang = _model_lang.get(model, _default_lang)
     return gt(msg if msg is not None else default, model, lang)
 
 
 def update_default_lang(lang: str):
     global _default_lang
     _default_lang = lang
+
+
+def update_model_lang(model: str, lang: str | None):
+    if lang:
+        _model_lang[model] = lang
+
+
+def get_model_lang(model: str) -> str:
+    return _model_lang.get(model, _default_lang)
 
 
 def get_default_lang() -> str:

@@ -1,0 +1,543 @@
+#
+msgid ""
+msgstr ""
+"Language: ja\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "不宜久留"
+msgstr "長居は無用"
+
+msgid "专业挑战室"
+msgstr "エキスパート挑戦"
+
+msgid "丢弃鸣徽"
+msgstr "レゾブレムを破棄"
+
+msgid "交换鸣徽"
+msgstr "レゾブレムを交換"
+
+msgid "关键进展"
+msgstr "重要進展"
+
+msgid "出战"
+msgstr "出撃"
+
+msgid "制造"
+msgstr "製造"
+
+msgid "制造派驻"
+msgstr "製造派遣"
+
+msgid "前往"
+msgstr "向かう"
+
+msgid "区域巡防"
+msgstr "区域防衛"
+
+msgid "及时补给"
+msgstr "即時補給"
+
+msgid "售卖铺"
+msgstr "売店"
+
+msgid "好物铺"
+msgstr "好物ショップ"
+
+msgid "实战模拟室"
+msgstr "模擬実戦"
+
+msgid "已选择"
+msgstr "選択済み"
+
+msgid "式舆防卫战"
+msgstr "式輿防衛戦"
+
+msgid "德丰大押"
+msgstr "徳豊質屋"
+
+msgid "快捷手册"
+msgstr "クイック手帳"
+
+msgid "恶名狩猎"
+msgstr "要警戒狩り"
+
+msgid "恶名狩猎战斗"
+msgstr "要警戒狩り戦闘"
+
+msgid "有同流派武备"
+msgstr "同流派の武装あり"
+
+msgid "正确时机点击按键上鱼"
+msgstr "正しいタイミングでキーを押して釣り上げる"
+
+msgid "清除侵蚀症状"
+msgstr "侵食症状を解除"
+
+msgid "游历"
+msgstr "探索"
+
+msgid "点击按键抛竿"
+msgstr "キーを押して投げる"
+
+msgid "确定"
+msgstr "確定"
+
+msgid "确认鸣徽"
+msgstr "レゾブレムを確認"
+
+msgid "离开空洞"
+msgstr "ホロウを離脱"
+
+msgid "空洞操作器"
+msgstr "ホロウ操作端末"
+
+msgid "等待上鱼"
+msgstr "魚が掛かるまで待機"
+
+msgid "自动托管"
+msgstr "自動操作"
+
+msgid "购买"
+msgstr "購入"
+
+msgid "连点"
+msgstr "連打"
+
+msgid "选择"
+msgstr "選択"
+
+msgid "选择副本类型"
+msgstr "ステージ種別を選択"
+
+msgid "选择鸣徽"
+msgstr "レゾブレムを選択"
+
+msgid "邦巢"
+msgstr "ボンプの巣"
+
+msgid "邦布商人"
+msgstr "ボンプ商人"
+
+msgid "长按"
+msgstr "長押し"
+
+msgid "随便观"
+msgstr "適当観"
+
+msgid "随便观-游历派遣"
+msgstr "随便观 - 探索派遣"
+
+msgid "饮茶仙"
+msgstr "飲茶仙"
+
+msgid "齿轮硬币不足"
+msgstr "ギアコインが不足しています"
+
+msgid "NEW!"
+msgstr "NEW!"
+
+msgid "作战"
+msgstr "作戦"
+
+msgid "迷失之地"
+msgstr "迷いの地"
+
+msgid "鸣徽"
+msgstr "レゾブレム"
+
+msgid "零号空洞"
+msgstr "零号ホロウ"
+
+msgid "确认"
+msgstr "確認"
+
+msgid "更多"
+msgstr "もっと見る"
+
+msgid "登出"
+msgstr "ログアウト"
+
+msgid "菜单"
+msgstr "メニュー"
+
+msgid "自动"
+msgstr "自動"
+
+msgid "跳过"
+msgstr "スキップ"
+
+msgid "重置"
+msgstr "リセット"
+
+msgid "获得"
+msgstr "獲得"
+
+msgid "目标"
+msgstr "目標"
+
+msgid "进入商店"
+msgstr "ショップに入る"
+
+msgid "交易"
+msgstr "取引"
+
+msgid "丢弃"
+msgstr "破棄"
+
+msgid "清除"
+msgstr "解除"
+
+msgid "交换"
+msgstr "交換"
+
+msgid "催化"
+msgstr "触媒"
+
+msgid "降低压力值"
+msgstr "ストレス値を下げる"
+
+msgid "血汗交易"
+msgstr "血汗取引"
+
+msgid "特价折扣"
+msgstr "特価割引"
+
+msgid "鸣徽交易"
+msgstr "レゾブレム取引"
+
+msgid "接替小队成员"
+msgstr "チームメンバーと交代"
+
+msgid "只是来看刮刮卡和报纸"
+msgstr "スクラッチカードと新聞を見に来ただけ"
+
+msgid "叫醒他"
+msgstr "彼を起こす"
+
+msgid "叫醒嗷呜"
+msgstr "アウを起こす"
+
+msgid "兑换码"
+msgstr "交換コード"
+
+msgid "兑换确认"
+msgstr "交換確認"
+
+msgid "开始托管"
+msgstr "自動操作を開始"
+
+msgid "委托代行中"
+msgstr "依頼代行中"
+
+msgid "接取失败"
+msgstr "受注失敗"
+
+msgid "周期内可获取"
+msgstr "周期内に獲得可能"
+
+msgid "预备出战"
+msgstr "出撃準備"
+
+msgid "预备编队"
+msgstr "編成準備"
+
+msgid "邻里街坊"
+msgstr "近隣住民"
+
+msgid "经营购置"
+msgstr "経営購入"
+
+msgid "街机模式"
+msgstr "アーケードモード"
+
+msgid "情报板"
+msgstr "情報ボード"
+
+msgid "丽都城募"
+msgstr "麗都城募"
+
+msgid "日常"
+msgstr "日常"
+
+msgid "训练"
+msgstr "訓練"
+
+msgid "剧变节点"
+msgstr "激変ノード"
+
+msgid "枯萎之都"
+msgstr "枯渇の都"
+
+msgid "旧都列车"
+msgstr "旧都列車"
+
+msgid "施工废墟"
+msgstr "工事廃墟"
+
+msgid "巨厦遗骸"
+msgstr "高層遺跡"
+
+msgid "断层之谜"
+msgstr "断層の謎"
+
+msgid "调查专项"
+msgstr "調査専門項目"
+
+msgid "赏金专项"
+msgstr "賞金専門項目"
+
+msgid "基础材料"
+msgstr "基礎素材"
+
+msgid "代理人晋升"
+msgstr "エージェント昇格"
+
+msgid "代理人技能"
+msgstr "エージェントスキル"
+
+msgid "音擎改装"
+msgstr "音動機改造"
+
+msgid "音擎专项"
+msgstr "音動機専門項目"
+
+msgid "镀剂专项"
+msgstr "コーティング専門項目"
+
+msgid "代理人方案培养"
+msgstr "エージェント育成プラン"
+
+msgid "绳匠传奇"
+msgstr "プロキシ伝説"
+
+msgid "自定义模板"
+msgstr "カスタムテンプレート"
+
+msgid "自定义卡组1"
+msgstr "カスタムカードセット1"
+
+msgid "自定义卡组2"
+msgstr "カスタムカードセット2"
+
+msgid "自定义卡组3"
+msgstr "カスタムカードセット3"
+
+msgid "自定义卡组4"
+msgstr "カスタムカードセット4"
+
+msgid "自定义卡组5"
+msgstr "カスタムカードセット5"
+
+msgid "强攻演练"
+msgstr "強攻演習"
+
+msgid "击破演练"
+msgstr "撃破演習"
+
+msgid "异常演练"
+msgstr "異常演習"
+
+msgid "支援演练"
+msgstr "支援演習"
+
+msgid "防护演练"
+msgstr "防護演習"
+
+msgid "强攻极片试验"
+msgstr "強攻チップ試験"
+
+msgid "击破振膜试验"
+msgstr "撃破振動膜試験"
+
+msgid "异常磁体试验"
+msgstr "異常磁体試験"
+
+msgid "支援分频试验"
+msgstr "支援分周試験"
+
+msgid "防护音圈试验"
+msgstr "防護ボイスコイル試験"
+
+msgid "刚性测试"
+msgstr "剛性テスト"
+
+msgid "冰结测试"
+msgstr "氷結テスト"
+
+msgid "电流测试"
+msgstr "電流テスト"
+
+msgid "升温测试"
+msgstr "昇温テスト"
+
+msgid "共鸣测试"
+msgstr "共鳴テスト"
+
+msgid "命破演练"
+msgstr "命破演習"
+
+msgid "命破共鸣试验"
+msgstr "命破共鳴試験"
+
+msgid "战线肃清"
+msgstr "戦線粛清"
+
+msgid "特遣调查"
+msgstr "特殊作戦"
+
+msgid "矩阵行动"
+msgstr "マトリックス作戦"
+
+msgid "旧都列车-内部"
+msgstr "旧都列車-内部"
+
+msgid "旧都列车-前线"
+msgstr "旧都列車-前線"
+
+msgid "旧都列车-外围"
+msgstr "旧都列車-外周"
+
+msgid "旧都列车-核心"
+msgstr "旧都列車-中核"
+
+msgid "旧都列车-腹地"
+msgstr "旧都列車-腹地"
+
+msgid "施工废墟-内部"
+msgstr "工事廃墟-内部"
+
+msgid "施工废墟-前线"
+msgstr "工事廃墟-前線"
+
+msgid "施工废墟-核心"
+msgstr "工事廃墟-中核"
+
+msgid "施工废墟-腹地"
+msgstr "工事廃墟-腹地"
+
+msgid "巨厦遗骸-内部"
+msgstr "高層遺跡-内部"
+
+msgid "巨厦遗骸-核心"
+msgstr "高層遺跡-中核"
+
+msgid "巨厦遗骸-腹地"
+msgstr "高層遺跡-腹地"
+
+msgid "初生死路屠夫"
+msgstr "初生デッドエンドブッチャー"
+
+msgid "彷徨猎手"
+msgstr "彷徨うハンター"
+
+msgid "未知复合侵蚀体"
+msgstr "未知複合侵蝕体"
+
+msgid "汉斯·蓄能型"
+msgstr "ハンス・蓄能型"
+
+msgid "多佩冈亚·简"
+msgstr "ドペゴニア・ジェーン"
+
+msgid "冥宁芙·双子"
+msgstr "メーニンフ・ツインズ"
+
+msgid "恶名·杜拉罕"
+msgstr "悪名・デュラハン"
+
+msgid "恶名·装甲哈提"
+msgstr "悪名・装甲ハティ"
+
+msgid "牲鬼·凶魁愚者"
+msgstr "牲鬼・凶魁の愚者"
+
+msgid "牲鬼·卫律使者"
+msgstr "牲鬼・衛律の使者"
+
+msgid "牲鬼·布林格"
+msgstr "牲鬼・ブリンガー"
+
+msgid "秽息司祭"
+msgstr "穢息の司祭"
+
+msgid "秽息蚀者·阿瓦鲁斯"
+msgstr "穢息蝕者・アヴァルス"
+
+msgid "秽息行者·蝎骸"
+msgstr "穢息行者・サソリ骸"
+
+msgid "秽蚀·狛野真斗"
+msgstr "穢蝕・狛野真斗"
+
+msgid "祸首·通缉打手"
+msgstr "禍首・指名手配の打ち手"
+
+msgid "魇缚者·叶释渊"
+msgstr "ナイトメアバインダー・葉釈淵"
+
+msgid "魇缚者·???"
+msgstr "ナイトメアバインダー・???"
+
+msgid "猎血清道夫"
+msgstr "ブラッドハンター・スイーパー"
+
+msgid "蛮横力士"
+msgstr "乱暴な力士"
+
+msgid "色雷斯人"
+msgstr "トラキア人"
+
+msgid "伐木机"
+msgstr "伐採機"
+
+msgid "修者纪行"
+msgstr "修者紀行"
+
+msgid "口舌与刀兵"
+msgstr "舌戦と刃"
+
+msgid "伏龙与战车"
+msgstr "伏龍と戦車"
+
+msgid "怪兽与怪客"
+msgstr "怪物と怪客"
+
+msgid "怪兽二重奏"
+msgstr "怪物デュエット"
+
+msgid "恶拳与凶枪"
+msgstr "悪拳と凶銃"
+
+msgid "游侠与守卫"
+msgstr "遊侠と守衛"
+
+msgid "猎人与忠犬"
+msgstr "ハンターと忠犬"
+
+msgid "猎手与凶兽"
+msgstr "狩人と凶獣"
+
+msgid "疯子与追随者"
+msgstr "狂人と追随者"
+
+msgid "铁律与狂徒"
+msgstr "鉄律と狂徒"
+
+msgid "锐牙与钝斧"
+msgstr "鋭牙と鈍斧"
+
+msgid "诡步与重壁"
+msgstr "怪歩と重壁"
+
+msgid "高塔与巨炮"
+msgstr "高塔と巨砲"
+
+msgid "「提丰·重击者型」"
+msgstr "「テューポーン・重撃型」"
+
+msgid "「霸主侵蚀体·庞培」"
+msgstr "「覇主侵蝕体・ポンペイ」"
+
+msgid "??"
+msgstr "GO"

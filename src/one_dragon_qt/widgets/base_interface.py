@@ -70,8 +70,8 @@ class BaseInterface(QWidget):
         """
         return InfoBar.new(
             icon=icon,
-            title=title,
-            content=content,
+            title=gt(title),
+            content=gt(content),
             orient=orient,
             isClosable=is_closable,
             duration=duration,
