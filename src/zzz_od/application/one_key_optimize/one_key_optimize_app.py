@@ -889,11 +889,11 @@ class OneKeyOptimizeApp(ZApplication):
 def __debug():
     """
     调试函数
-    用于测试返回大世界应用
+    用于测试一键调优应用
     """
     ctx = ZContext()
     ctx.init_by_config()
-    app = BackToWorldApp(ctx)
+    app = OneKeyOptimizeApp(ctx)
     app.execute()
 
 

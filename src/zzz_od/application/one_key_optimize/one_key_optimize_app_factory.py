@@ -9,6 +9,9 @@ from zzz_od.application.one_key_optimize import one_key_optimize_const
 from zzz_od.application.one_key_optimize.one_key_optimize_app import OneKeyOptimizeApp
 from zzz_od.application.one_key_optimize.one_key_optimize_run_record import OneKeyOptimizeRunRecord
 
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
+
 
 class OneKeyOptimizeAppFactory(ApplicationFactory):
 
