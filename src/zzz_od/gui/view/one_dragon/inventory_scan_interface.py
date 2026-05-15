@@ -39,6 +39,7 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.yaml_utils import safe_load
 from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.widgets.agent_combo_box_helper import agent_combo_box_helper
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -257,60 +258,8 @@ class InventoryScanInterface(AppRunInterface):
 
     def _update_agent_options(self) -> None:
         """更新特定扫描的代理人选项"""
-        agent_names_file_path = os.path.join(self.data_file_path, "agent_names.json")
-        options = []
-        try:
-            agents_with_weight = set()
-            agent_name_dict = {}
-            yaml_path = os_utils.get_path_under_work_dir(
-                "assets", "game_data", "agent", "_od_merged.yml"
-            )
-            log.info(
-                f"[DEBUG] YAML路径: {yaml_path},是否存在: {os.path.exists(yaml_path)}"
-            )
-            if os.path.exists(yaml_path):
-                with open(yaml_path, encoding="utf-8") as f:
-                    agents_data = safe_load(f)
-                    log.info(f"[DEBUG] YAML中共有 {len(agents_data)} 个代理人")
-                    for agent in agents_data:
-                        code = agent.get("code")
-                        if code:
-                            agent_name_dict[code] = agent.get("agent_name", code)
-                        if "weight" in agent and agent["weight"] is not None and code:
-                            agents_with_weight.add(code)
-                    log.info(f"[DEBUG] agent_name_dict: {agent_name_dict}")
-                    log.info(f"[DEBUG] agents_with_weight: {agents_with_weight}")
-
-            log.info(
-                f"[DEBUG] agent_names_file_path: {agent_names_file_path},是否存在: {os.path.exists(agent_names_file_path)}"
-            )
-            with open(agent_names_file_path, encoding="utf-8") as f:
-                agent_names = json.load(f)
-                log.info(f"[DEBUG] agent_names: {agent_names}")
-                for code in agent_names:
-                    if code in agents_with_weight:
-                        if code in agent_name_dict:
-                            chs_name = agent_name_dict[code]
-                        else:
-                            chs_name = code
-                    else:
-                        if code in agent_name_dict:
-                            chs_name = f"{agent_name_dict[code]} (权重配置缺失)"
-                        else:
-                            chs_name = f"{code} (未定义)"
-                    log.info(f"[DEBUG] code={code}, chs_name={chs_name}")
-                    options.append(ConfigItem(chs_name, code))
-        except FileNotFoundError:
-            log.info(
-                f"文件 {agent_names_file_path} 不存在，请先执行预扫描生成代理人列表"
-            )
-        except json.JSONDecodeError:
-            log.error(f"文件 {agent_names_file_path} 或翻译文件格式错误")
-        except Exception as e:
-            log.error(f"更新代理人选项失败: {e}")
-        # 更新下拉框选项
         if hasattr(self, "scan_agent_opt"):
-            self.scan_agent_opt.set_options_by_list(options)
+            agent_combo_box_helper.update_agent_options_from_scan(self.scan_agent_opt)
 
     def on_interface_shown(self) -> None:
         """在界面显示时调用"""
@@ -1102,17 +1051,14 @@ class InventoryScanInterface(AppRunInterface):
                     total_score = 0
 
                     if character_weight:
-                        # 添加position字段用于评分
-                        disc_with_position = disc.copy()
-                        disc_with_position["position"] = int(disc_key)
-                        # 计算实际得分
-                        score_data = processor.calculate_actual_disc_score(
-                            disc_with_position, character_weight, slot_mapping
+                        # 使用便捷方法计算评分
+                        score_data = processor.calculate_disc_score_formatted(
+                            disc, character_weight, slot_mapping
                         )
                         main_score = score_data["mainStatScore"]
                         total_score = score_data["totalScore"]
                         relative_score = score_data.get("relativeScore", 0)
-                        score_ceiling = score_data.get("score_ceiling", 0)
+                        score_ceiling = score_data.get("maxScore", 0)
                         # 为每个原始副词条计算得分
                         substats = disc.get("substats", [])
                         for j, substat in enumerate(substats[:4]):

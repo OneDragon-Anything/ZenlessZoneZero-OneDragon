@@ -53,6 +53,128 @@ class SlotTypeCnEnum(Enum):
     PEN = "穿透值"
 
 
+def get_small_to_large_mapping() -> dict[str, str]:
+    """
+    获取小属性到大属性的映射字典（基于枚举动态生成）
+
+    Returns:
+        小属性到对应大属性的映射字典（小属性权重为对应大属性的1/3）
+    """
+    mapping = {}
+
+    # 遍历 SlotTypeCnEnum 枚举
+    for member in SlotTypeCnEnum:
+        enum_name = member.name
+        enum_value = member.value
+
+        # 识别小属性：枚举名称不包含下划线且值不包含下划线
+        # 小属性：ATK, HP, DEF, PEN
+        # 大属性：ATK_, HP_, DEF_, PEN_
+        if '_' not in enum_name and '_' not in enum_value:
+            # 寻找对应的大属性
+            large_enum_name = enum_name + '_'
+            try:
+                large_member = SlotTypeCnEnum[large_enum_name]
+                mapping[enum_value] = large_member.value
+            except KeyError:
+                # 如果没有对应的大属性，跳过
+                continue
+
+    return mapping
+
+
+def get_slot_main_pools() -> dict[int, list[str]]:
+    """
+    获取每个部位的主词条可选池（基于枚举动态生成）
+
+    Returns:
+        每个部位的主词条可选池（部位编号: 词条列表）
+    """
+    pools = {}
+
+    # 部位1-3：只有小属性
+    pools[1] = [SlotTypeCnEnum.HP.value]  # 小生命
+    pools[2] = [SlotTypeCnEnum.ATK.value]  # 小攻击
+    pools[3] = [SlotTypeCnEnum.DEF.value]  # 小防御
+
+    # 部位4：基础属性 + 暴击相关 + 异常精通
+    pools[4] = [
+        SlotTypeCnEnum.ATK_.value,    # 攻击力
+        SlotTypeCnEnum.HP_.value,    # 生命值
+        SlotTypeCnEnum.DEF_.value,    # 防御力
+        SlotTypeCnEnum.CRIT_.value,   # 暴击率
+        SlotTypeCnEnum.CRIT_DMG_.value, # 暴击伤害
+        SlotTypeCnEnum.ANOM_PROF.value, # 异常精通
+    ]
+
+    # 部位5：基础属性 + 所有伤害类型
+    pools[5] = [
+        SlotTypeCnEnum.ATK_.value,      # 攻击力
+        SlotTypeCnEnum.HP_.value,      # 生命值
+        SlotTypeCnEnum.DEF_.value,      # 防御力
+        SlotTypeCnEnum.PEN_.value,      # 穿透率
+        SlotTypeCnEnum.FIRE_DMG_.value,      # 火属性伤害加成
+        SlotTypeCnEnum.ICE_DMG_.value,       # 冰属性伤害加成
+        SlotTypeCnEnum.ELECTRIC_DMG_.value,  # 电属性伤害加成
+        SlotTypeCnEnum.ETHER_DMG_.value,     # 以太伤害加成
+        SlotTypeCnEnum.PHYSICAL_DMG_.value,  # 物理伤害加成
+    ]
+
+    # 部位6：基础属性 + 特殊属性
+    pools[6] = [
+        SlotTypeCnEnum.ATK_.value,         # 攻击力
+        SlotTypeCnEnum.HP_.value,          # 生命值
+        SlotTypeCnEnum.DEF_.value,         # 防御力
+        SlotTypeCnEnum.ANOM_MAS_.value,   # 异常掌控
+        SlotTypeCnEnum.IMPACT.value,      # 冲击力
+        SlotTypeCnEnum.ENERGY_REGEN_.value, # 能量自动回复
+    ]
+
+    return pools
+
+
+def get_sub_stats_pool() -> list[str]:
+    """
+    获取副词条可选池（基于枚举动态生成）
+
+    Returns:
+        副词条可选池列表
+    """
+    pool = []
+
+    # 基础属性
+    pool.extend([
+        SlotTypeCnEnum.HP_.value,      # 生命值
+        SlotTypeCnEnum.ATK_.value,      # 攻击力
+        SlotTypeCnEnum.DEF_.value,      # 防御力
+    ])
+
+    # 暴击相关
+    pool.extend([
+        SlotTypeCnEnum.CRIT_.value,     # 暴击率
+        SlotTypeCnEnum.CRIT_DMG_.value,  # 暴击伤害
+    ])
+
+    # 异常精通（只包含异常精通，不包含异常掌控）
+    pool.extend([
+        SlotTypeCnEnum.ANOM_PROF.value,  # 异常精通
+    ])
+
+    # 其他属性
+    pool.extend([
+        SlotTypeCnEnum.PEN.value,       # 穿透值
+    ])
+
+    # 小属性
+    pool.extend([
+        SlotTypeCnEnum.HP.value,        # 小生命
+        SlotTypeCnEnum.ATK.value,        # 小攻击
+        SlotTypeCnEnum.DEF.value,        # 小防御
+    ])
+
+    return pool
+
+
 def get_slot_type_cn(slot_type: str) -> str:
     """
     根据槽位类型获取中文名称
@@ -106,17 +228,7 @@ SLOT_MAPPING = get_slot_mapping()
 """槽位类型到中文名称的映射字典（快捷访问）"""
 
 
-def get_weight_key_order() -> list:
-    """
-    获取权重项的键顺序（按照枚举定义的顺序）
-
-    Returns:
-        权重键顺序列表
-    """
-    return [member.value for member in SlotTypeEnum]
-
-
-# dmg_type 到元素伤害加成键的映射
+# 角色类型伤害到词条英文标识的映射
 DMG_TYPE_TO_DMG_BONUS_KEY = {
     "ELECTRIC": "electric_dmg_",
     "ICE": "ice_dmg_",
@@ -126,38 +238,15 @@ DMG_TYPE_TO_DMG_BONUS_KEY = {
 }
 """伤害类型到伤害加成键的映射字典"""
 
-DEFAULT_DMG_BONUS_KEY: str = "physical_dmg_"
-"""默认伤害加成键（当无法匹配时使用）"""
 
 
-# 属性分组配置
-BASE_KEY_ORDER = [
-    "hp_",
-    "atk_",
-    "def_",
-    "pen_",
-    "impact",
-    "crit_",
-    "crit_dmg_",
-]
-"""基础属性键顺序（不包含元素伤害加成）"""
-
-OTHER_KEY_ORDER = ["anomMas_", "anomProf", "energyRegen_", "atk", "hp", "def", "pen"]
-"""其他属性键顺序"""
 
 
-# 排除选项配置（用于下拉框等场景）
-EXCLUDED_OPTIONS = {"穿透值", "小防御", "小生命", "小攻击"}
-"""排除的选项集合（中文名称）"""
 
 
-# 小属性到大属性的映射（用于权重计算）
-SMALL_TO_LARGE_MAP = {
-    "小攻击": "攻击力",
-    "小生命": "生命值",
-    "小防御": "防御力",
-    "穿透值": "穿透率",
-}
+
+# 小属性到大属性的映射（用于权重计算，基于枚举动态生成）
+SMALL_TO_LARGE_MAP = get_small_to_large_mapping()
 """小属性到对应大属性的映射字典（小属性权重为对应大属性的1/3）"""
 
 SMALL_ATTRIBUTE_WEIGHT_RATIO: float = 1 / 3
@@ -170,38 +259,8 @@ QUALITY_WEIGHTS = {"S": 1, "A": 0.67, "B": 0.33}
 MAX_DISK_SCORE = 100
 """单个驱动盘的理论最高分数"""
 
-SLOT_MAIN_POOLS = {
-    1: ["小生命"],
-    2: ["小攻击"],
-    3: ["小防御"],
-    4: [
-        "攻击力",
-        "生命值",
-        "防御力",
-        "暴击率",
-        "暴击伤害",
-        "异常精通",
-    ],
-    5: [
-        "攻击力",
-        "生命值",
-        "防御力",
-        "穿透率",
-        "火属性伤害加成",
-        "冰属性伤害加成",
-        "电属性伤害加成",
-        "以太伤害加成",
-        "物理伤害加成",
-    ],
-    6: [
-        "攻击力",
-        "生命值",
-        "防御力",
-        "异常掌控",
-        "冲击力",
-        "能量自动回复",
-    ],
-}
+# 每个部位的主词条可选池（基于枚举动态生成）
+SLOT_MAIN_POOLS = get_slot_main_pools()
 """每个部位的主词条可选池"""
 
 MAIN_STAT_GAIN = {
@@ -225,18 +284,8 @@ MAIN_STAT_GAIN = {
 }
 """主词条的增益系数"""
 
-SUB_STATS_POOL = [
-    "生命值",
-    "攻击力",
-    "防御力",
-    "暴击率",
-    "暴击伤害",
-    "异常精通",
-    "穿透值",
-    "小生命",
-    "小攻击",
-    "小防御",
-]
+# 副词条可选池（基于枚举动态生成）
+SUB_STATS_POOL = get_sub_stats_pool()
 """副词条可选池"""
 
 MAX_LEVELS = {"S": 15, "A": 12, "B": 9}

@@ -49,15 +49,10 @@ from zzz_od.application.devtools.intel_manage.intel_manage_config import (
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentTypeEnum, DmgTypeEnum, RareTypeEnum
 from zzz_od.game_data.drive_disk import (
-    BASE_KEY_ORDER,
-    DEFAULT_DMG_BONUS_KEY,
-    DMG_TYPE_TO_DMG_BONUS_KEY,
-    EXCLUDED_OPTIONS,
-    OTHER_KEY_ORDER,
     SLOT_MAPPING,
     SMALL_ATTRIBUTE_WEIGHT_RATIO,
     SMALL_TO_LARGE_MAP,
-    get_weight_key_order,
+    get_all_slot_types,
 )
 
 
@@ -68,26 +63,14 @@ def _get_slot_mapping() -> dict[str, str]:
 
 def _get_weight_order() -> list[str]:
     """从 drive_disk 配置获取权重项顺序（按照枚举定义的顺序）"""
-    weight_key_order = get_weight_key_order()
+    weight_key_order = get_all_slot_types()
     return [SLOT_MAPPING.get(key, key) for key in weight_key_order]
 
 
-def _get_dmg_bonus_key(dmg_type: str) -> str:
-    """根据 dmg_type 获取对应的元素伤害加成键"""
-    return DMG_TYPE_TO_DMG_BONUS_KEY.get(dmg_type, DEFAULT_DMG_BONUS_KEY)
 
 
-def _get_weight_order_for_agent(dmg_type: str) -> list[str]:
-    """根据 agent 的 dmg_type 获取权重项顺序（只包含对应元素的伤害加成）"""
-    mapping = _get_slot_mapping()
 
-    # 获取对应元素的伤害加成键
-    dmg_bonus_key = _get_dmg_bonus_key(dmg_type)
 
-    # 组合：基础属性 + 对应元素伤害加成 + 其他属性
-    weight_key_order = BASE_KEY_ORDER + [dmg_bonus_key] + OTHER_KEY_ORDER
-
-    return [mapping.get(key, key) for key in weight_key_order]
 
 
 @dataclass
@@ -418,7 +401,7 @@ class IntelManageInterface(VerticalScrollInterface):
         # 可用的权重选项（排除小属性，添加'无'选项）
         self.available_weight_options = [
             "无"  # '无'选项不受联动筛选影响，可以重复使用
-        ] + [opt for opt in self.WEIGHT_OPTIONS if opt not in EXCLUDED_OPTIONS]
+        ] + [opt for opt in self.WEIGHT_OPTIONS if opt not in set(SMALL_TO_LARGE_MAP.keys())]
 
         # 4行4列表格
         self.formula_table = TableWidget()

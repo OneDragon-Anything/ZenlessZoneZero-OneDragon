@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum, find_area_in_screen
 from one_dragon.utils.log_utils import log
 from one_dragon.utils import cv2_utils, os_utils
+from one_dragon.utils.yaml_utils import safe_load
 from zzz_od.application.inventory_scan.parser.agent_parser import AgentParser
 from zzz_od.application.inventory_scan.parser.agent_name_parser import AgentNameParser
 from zzz_od.application.inventory_scan.pre_scan import pre_scan_const
@@ -96,19 +97,79 @@ class PreScanApp(ZApplication):
                 log.info("代理人未解锁，结束扫描")
                 break
         self.ocr_worker.wait_complete()
-        agent_keys= [agent['key'] for agent in self.ocr_worker.scanned_agents]
+        agent_keys = [agent['key'] for agent in self.ocr_worker.scanned_agents]
         self.ocr_worker.reset()
+        
+        # 加载权重配置并标记未配置权重的代理人
+        agent_keys_with_weight_info = self._mark_agents_without_weight(agent_keys)
+        
         try:
             # 确保目录存在
             os.makedirs(self.data_file_path, exist_ok=True)
             # 使用 os.path.join 拼接路径
             json_file_path = os.path.join(self.data_file_path, 'agent_names.json')
             with open(json_file_path, 'w', encoding='utf-8') as f:
-                json.dump(agent_keys, f, ensure_ascii=False, indent=4)
+                json.dump(agent_keys_with_weight_info, f, ensure_ascii=False, indent=4)
         except Exception as e:
             log.error(f"写代理人名称到JSON文件失败: {e}")
             return self.round_fail(f'写代理人名称到JSON文件失败: {e}')  
-        return self.round_success('代理人扫描完成并写入JSON文件')  
+        return self.round_success('代理人扫描完成并写入JSON文件')
+    
+    def _mark_agents_without_weight(self, agent_keys: list[str]) -> list[dict]:
+        """
+        检查代理人权重配置，标记未配置权重的代理人
+        
+        返回格式:
+        [
+            {
+                "code": "agent_code",
+                "name": "代理人名称",
+                "has_weight": true/false,
+                "display_name": "显示名称（含标记）"
+            }
+        ]
+        """
+        # 加载代理人YAML配置
+        agent_yaml_path = os_utils.get_path_under_work_dir(
+            "assets", "game_data", "agent", "_od_merged.yml"
+        )
+        
+        agent_name_dict = {}
+        agents_with_weight = set()
+        
+        if os.path.exists(agent_yaml_path):
+            with open(agent_yaml_path, encoding="utf-8") as f:
+                agents_data = safe_load(f)
+                if agents_data:
+                    for agent in agents_data:
+                        code = agent.get("code")
+                        agent_name = agent.get("agent_name")
+                        if code:
+                            agent_name_dict[code] = agent_name if agent_name else code
+                            if "weight" in agent and agent["weight"] is not None:
+                                agents_with_weight.add(code)
+        
+        # 构建带权重标记的代理人列表
+        result = []
+        for code in agent_keys:
+            name = agent_name_dict.get(code, code)
+            has_weight = code in agents_with_weight
+            
+            if has_weight:
+                display_name = name
+            else:
+                display_name = f"{name} (权重配置缺失)"
+            
+            result.append({
+                "code": code,
+                "name": name,
+                "has_weight": has_weight,
+                "display_name": display_name
+            })
+            
+            log.info(f"代理人 {code} ({name}) - 权重配置: {'已配置' if has_weight else '缺失'}")
+        
+        return result  
 
     def execute(self) -> OperationResult:
         """执行预扫描"""

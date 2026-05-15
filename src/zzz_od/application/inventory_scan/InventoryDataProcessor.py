@@ -356,6 +356,55 @@ class InventoryDataProcessor:
             "validSubstats": valid_substats,
         }
 
+    def calculate_disc_score_formatted(
+        self,
+        disc_data: dict[str, Any],
+        character_weight: dict[str, float],
+        slot_mapping: dict[str, str] | None = None,
+        round_digits: int = 2,
+    ) -> dict[str, Any]:
+        """
+        计算驱动盘评分并返回格式化结果（便捷方法）
+
+        封装了 calculate_actual_disc_score 方法，自动处理 position 字段和结果格式化
+
+        Args:
+            disc_data: 驱动盘数据，需包含 slotKey 或 position 字段
+            character_weight: 角色权重配置
+            slot_mapping: 槽位映射配置，默认使用 SLOT_MAPPING
+            round_digits: 保留小数位数，默认 2
+
+        Returns:
+            格式化后的评分字典，包含：
+            - relativeScore: 相对得分
+            - totalScore: 总得分
+            - mainStatScore: 主词条得分
+            - substatScore: 副词条得分
+            - maxScore: 最大得分上限
+            - validSubstats: 有效副词条列表
+        """
+        if slot_mapping is None:
+            slot_mapping = SLOT_MAPPING
+
+        disc_data_copy = disc_data.copy()
+
+        if "position" not in disc_data_copy:
+            slot_key = disc_data.get("slotKey", "1")
+            disc_data_copy["position"] = int(slot_key) if str(slot_key).isdigit() else 1
+
+        score_result = self.calculate_actual_disc_score(
+            disc_data_copy, character_weight, slot_mapping
+        )
+
+        return {
+            "relativeScore": round(score_result["relativeScore"], round_digits),
+            "totalScore": round(score_result["totalScore"], round_digits),
+            "mainStatScore": round(score_result["mainStatScore"], round_digits),
+            "substatScore": round(score_result["substatScore"], round_digits),
+            "maxScore": round(score_result["score_ceiling"], round_digits),
+            "validSubstats": score_result["validSubstats"],
+        }
+
     def process_inventory_data(
         self, inventory_data_dir: str
     ) -> list[dict[str, Any]]:

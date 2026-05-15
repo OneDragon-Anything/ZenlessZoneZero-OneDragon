@@ -500,23 +500,11 @@ class OneKeyOptimizeApp(ZApplication):
 
             # 计算驱动盘评分
             if should_score:
-                from zzz_od.game_data.drive_disk import MAX_DISK_SCORE, SLOT_MAPPING
+                from zzz_od.game_data.drive_disk import MAX_DISK_SCORE
 
-                slot_key = scanned_disc.get('slotKey', '1')
-                scanned_disc['position'] = int(slot_key) if slot_key.isdigit() else 1
-
-                score_result = self._inventory_processor.calculate_actual_disc_score(
-                    scanned_disc, self._character_weight, SLOT_MAPPING
+                scanned_disc['score'] = self._inventory_processor.calculate_disc_score_formatted(
+                    scanned_disc, self._character_weight
                 )
-
-                scanned_disc['score'] = {
-                    'relativeScore': round(score_result['relativeScore'], 2),
-                    'totalScore': round(score_result['totalScore'], 2),
-                    'mainStatScore': round(score_result['mainStatScore'], 2),
-                    'substatScore': round(score_result['substatScore'], 2),
-                    'maxScore': round(score_result['score_ceiling'], 2),
-                    'validSubstats': score_result['validSubstats']
-                }
 
                 scored_count += 1
                 log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 相对得分 {scanned_disc['score']['relativeScore']:.2f}/{MAX_DISK_SCORE}")
