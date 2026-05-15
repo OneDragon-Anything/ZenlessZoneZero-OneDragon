@@ -79,9 +79,9 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.proxy_input_opt)
 
-        self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
+        self.test_current_btn = PushButton(text=gt('测试当前方式'), icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
-        self.test_all_btn = PushButton(text='测试全部', icon=FluentIcon.SEND_FILL, parent=self)
+        self.test_all_btn = PushButton(text=gt('测试全部'), icon=FluentIcon.SEND_FILL, parent=self)
         self.test_all_btn.clicked.connect(self._send_test_all_message)
 
         self.test_notification_card = MultiPushSettingCard(
@@ -109,9 +109,9 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_widget(channel_group)
 
         # 预创建特殊卡片（稍后按渠道分配）
-        self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
+        self.pwsh_curl_btn = PushButton(text=gt('PowerShell 风格'))
         self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
-        self.unix_curl_btn = PushButton(text='Unix 风格')
+        self.unix_curl_btn = PushButton(text=gt('Unix 风格'))
         self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
@@ -237,6 +237,7 @@ class SettingPushInterface(VerticalScrollInterface):
             ok, msg = self.ctx.push_service.push(
                 title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
                 channel_id=test_method,
             )
             if not ok:
@@ -255,6 +256,7 @@ class SettingPushInterface(VerticalScrollInterface):
             ok, msg = self.ctx.push_service.push(
                 title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
             )
             if not ok:
                 self._show_error_message(msg)
@@ -264,6 +266,27 @@ class SettingPushInterface(VerticalScrollInterface):
             self._show_error_message(str(e))
         except Exception as e:
             self._show_error_message(f"测试推送失败: {str(e)}")
+
+    def _get_test_screenshot(self):
+        if not self.ctx.push_service.push_config.send_image:
+            return None
+
+        try:
+            if self.ctx.controller is None:
+                self.ctx.init_controller()
+
+            if self.ctx.controller is None:
+                return None
+
+            if not self.ctx.controller.is_game_window_ready:
+                if not self.ctx.controller.init_game_win():
+                    return None
+
+            _, screen = self.ctx.controller.screenshot(independent=True)
+        except Exception:
+            return None
+
+        return screen
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))
@@ -385,8 +408,8 @@ class SettingPushInterface(VerticalScrollInterface):
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
         InfoBar.success(
-            title='成功',
-            content=message,
+            title=gt('成功'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=3000,
@@ -396,8 +419,8 @@ class SettingPushInterface(VerticalScrollInterface):
     def _show_error_message(self, message: str):
         """显示错误消息提示"""
         InfoBar.error(
-            title='错误',
-            content=message,
+            title=gt('错误'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=5000,
