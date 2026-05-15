@@ -69,6 +69,7 @@ class NotifyDialog(MessageBoxBase):
             label = BodyLabel(gt(app_name), self)
             combo = ComboBox(self)
             combo.addItem(gt('关闭'), userData=NotifyLevel.OFF)
+            combo.addItem(gt('仅错误'), userData=NotifyLevel.ONLY_ERROR)
             combo.addItem(gt('仅应用'), userData=NotifyLevel.APP)
             combo.addItem(gt('全部（逐条）'), userData=NotifyLevel.ALL)
             combo.addItem(gt('全部（合并）'), userData=NotifyLevel.MERGE)
