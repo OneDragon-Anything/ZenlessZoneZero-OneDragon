@@ -219,7 +219,7 @@ def send_node_notify(
     current_fail = round_result.is_fail
     notify_on_error = operation.ctx.notify_config.notify_on_error
 
-    should_collect_notify = notify_level >= NotifyLevel.APP
+    should_collect_notify = (notify_on_error and current_fail) or (notify_level >= NotifyLevel.APP)
 
     if not should_collect_notify or current_node is None:
         return
