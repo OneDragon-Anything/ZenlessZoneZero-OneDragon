@@ -203,7 +203,7 @@ class Webhook(PushChannel):
     @staticmethod
     def _is_discord_webhook(url: str) -> bool:
         parsed = urllib.parse.urlparse(url)
-        host = parsed.netloc.lower()
+        host = (parsed.hostname or "").lower()
         path = parsed.path.lower()
         return (
             host in ("discord.com", "discordapp.com", "ptb.discord.com", "canary.discord.com")

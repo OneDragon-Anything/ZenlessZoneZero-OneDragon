@@ -272,20 +272,17 @@ class SettingPushInterface(VerticalScrollInterface):
         if not self.ctx.push_service.push_config.send_image:
             return None
 
-        try:
-            if self.ctx.controller is None:
-                self.ctx.init_controller()
+        if self.ctx.controller is None:
+            self.ctx.init_controller()
 
-            if self.ctx.controller is None:
+        if self.ctx.controller is None:
+            return None
+
+        if not self.ctx.controller.is_game_window_ready:
+            if not self.ctx.controller.init_game_win():
                 return None
 
-            if not self.ctx.controller.is_game_window_ready:
-                if not self.ctx.controller.init_game_win():
-                    return None
-
-            _, screen = self.ctx.controller.screenshot(independent=True)
-        except Exception:
-            return None
+        _, screen = self.ctx.controller.screenshot(independent=True)
 
         return screen
 
