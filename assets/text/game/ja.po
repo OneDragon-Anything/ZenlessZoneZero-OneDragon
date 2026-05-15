@@ -126,7 +126,7 @@ msgid "随便观"
 msgstr "適当観"
 
 msgid "随便观-游历派遣"
-msgstr "随便观 - 探索派遣"
+msgstr "適当観 - 探索派遣"
 
 msgid "饮茶仙"
 msgstr "飲茶仙"

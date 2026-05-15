@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.notify import notify_const
 from zzz_od.application.zzz_application import ZApplication
@@ -31,7 +32,7 @@ class NotifyApp(ZApplication):
         message = self.format_message()
 
         self.ctx.push_service.push(
-            title=self.ctx.notify_config.title,
+            title=gt(self.ctx.notify_config.title),
             content=message,
             image=self.last_screenshot
         )
@@ -61,29 +62,29 @@ class NotifyApp(ZApplication):
                 charge_power = run_record.get_estimated_charge_power()
                 if charge_power >= 0:
                     charge_power_text = (
-                        f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
+                        f'{gt("当前体力")}：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
                     )
             if run_record.run_status_under_now == AppRunRecord.STATUS_SUCCESS:
-                success.append(app_config.app_name)
+                success.append(gt(app_config.app_name))
             if run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
-                failure.append(app_config.app_name)
+                failure.append(gt(app_config.app_name))
                 self.exist_failure = True
 
-        parts = ["一条龙运行完成："]
+        parts = [f'{gt("一条龙运行完成")}：']
         if charge_power_text is not None:
             parts.append(charge_power_text)
         has_failure = bool(failure)
         has_success = bool(success)
 
         if has_failure:
-            parts.append(f"❌ 失败指令：{', '.join(failure)}")
+            parts.append(f'❌ {gt("失败指令")}：{", ".join(failure)}')
         elif has_success:
-            parts.append("全部成功✅")
+            parts.append(f'{gt("全部成功")}✅')
 
         if has_success:
-            parts.append(f"✅ 成功指令：{', '.join(success)}")
+            parts.append(f'✅ {gt("成功指令")}：{", ".join(success)}')
         elif not has_failure:
-            parts.append("全部失败❌")
+            parts.append(f'{gt("全部失败")}❌')
 
         return "\n".join(parts)
 
