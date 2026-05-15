@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import polib
 
@@ -12,13 +12,13 @@ def compile_lang(model: str, lang: str):
     :param lang: 语言 cn
     :return: None
     """
-    base_dir = os_utils.get_path_under_work_dir('assets', 'text')
-    po_file_path = os.path.join(base_dir, model, f'{lang}.po')
+    base_dir = Path(os_utils.get_path_under_work_dir('assets', 'text'))
+    po_file_path = base_dir / model / f'{lang}.po'
 
-    output_dir = os_utils.get_path_under_work_dir('assets', 'text', 'output', lang, 'LC_MESSAGES')
-    mo_file_path = os.path.join(output_dir, f'{model}.mo')
+    output_dir = Path(os_utils.get_path_under_work_dir('assets', 'text', 'output', lang, 'LC_MESSAGES'))
+    mo_file_path = output_dir / f'{model}.mo'
 
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     po = polib.pofile(po_file_path)
     po.save_as_mofile(mo_file_path)
 

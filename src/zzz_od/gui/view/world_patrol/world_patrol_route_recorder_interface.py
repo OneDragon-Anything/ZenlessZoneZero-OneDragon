@@ -62,6 +62,7 @@ class DebugRouteRunner(QThread):
             self.op.execute()
         except Exception:
             log.error('调试异常', exc_info=True)
+            raise
         finally:
             self.ctx.run_context.stop_running()
 

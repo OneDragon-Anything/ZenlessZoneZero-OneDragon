@@ -141,12 +141,14 @@ class CompendiumChooseMissionType(ZOperation):
             go_text_list = [
                 gt('前往', 'game'),
                 gt('传送', 'game'),
-                'GO',
                 '移動',
                 '転送',
                 '向かう',
             ]
-            if not any(str_utils.find_by_lcs(text, ocr_result, percent=0.5) for text in go_text_list):
+            normalized = ocr_result.strip().upper()
+            is_go_en = normalized == 'GO'
+            is_go_i18n = any(str_utils.find_by_lcs(text, ocr_result, percent=0.5) for text in go_text_list)
+            if not (is_go_en or is_go_i18n):
                 continue
             for mr in mrl:
                 go_point = go_rect.left_top + mr.center

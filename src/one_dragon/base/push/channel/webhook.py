@@ -135,7 +135,7 @@ class Webhook(PushChannel):
                 processed_body = processed_body.replace("$image", "").replace("{{image}}", "")
 
             # 处理图片变量
-            if not is_discord_webhook and "$image" in processed_body:
+            if not is_discord_webhook and ("$image" in processed_body or "{{image}}" in processed_body):
                 image_base64 = ""
                 if image is not None:  # image是MatLike，可能具有多个参数，此时if image会歧义
                     try:
@@ -147,7 +147,11 @@ class Webhook(PushChannel):
                         log.error(f"图片处理失败: {e}")
                         image_base64 = ""
 
-                processed_body = processed_body.replace("$image", image_base64)
+                processed_body = (
+                    processed_body
+                    .replace("$image", image_base64)
+                    .replace("{{image}}", image_base64)
+                )
 
             if is_discord_webhook and image is not None:
                 return self._push_discord_webhook(

@@ -1,5 +1,6 @@
 import json
 
+from cv2.typing import MatLike
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -267,7 +268,7 @@ class SettingPushInterface(VerticalScrollInterface):
         except Exception as e:
             self._show_error_message(f"测试推送失败: {str(e)}")
 
-    def _get_test_screenshot(self):
+    def _get_test_screenshot(self) -> MatLike | None:
         if not self.ctx.push_service.push_config.send_image:
             return None
 

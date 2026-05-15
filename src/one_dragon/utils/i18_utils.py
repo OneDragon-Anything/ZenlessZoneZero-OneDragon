@@ -12,7 +12,7 @@ _model_lang = {}
 def detect_language():
     """自动检测系统语言"""
     try:
-        system_locale = locale.getdefaultlocale()[0]
+        system_locale = locale.getlocale()[0]
         if system_locale:
             system_language = system_locale.lower()
             if system_language.startswith('zh'):
@@ -30,6 +30,7 @@ def detect_and_set_default_language():
     :return:
     """
     return update_default_lang(detect_language())
+
 
 def get_translations(model: str, lang: str):
     """
@@ -84,8 +85,10 @@ def update_default_lang(lang: str):
 
 
 def update_model_lang(model: str, lang: str | None):
-    if lang:
-        _model_lang[model] = lang
+    if lang is None:
+        _model_lang.pop(model, None)
+        return
+    _model_lang[model] = lang
 
 
 def get_model_lang(model: str) -> str:
