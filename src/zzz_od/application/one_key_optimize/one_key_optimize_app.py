@@ -99,16 +99,16 @@ class OneKeyOptimizeApp(ZApplication):
 
         log.info(f"一键调优应用初始化完成：代理人={self.selected_agent_code}, 驱动盘套装={self.selected_drive_disk_set}")
 
-    @operation_node(name='开始一键调优', is_start_node=True)
+    @operation_node(name='回到大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
         """
-        开始一键调优
+        回到大世界
         :return:
         """
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='开始一键调优')
+    @node_from(from_name='回到大世界')
     @operation_node(name='导航到特定代理人')
     def navigate_to_agent_info(self) -> OperationRoundResult:
         """
@@ -189,7 +189,7 @@ class OneKeyOptimizeApp(ZApplication):
         return self.round_fail(f'未找到目标代理人: {self.selected_agent_code}，已超过最大循环次数')
 
     @node_from(from_name='导航到特定代理人')
-    @operation_node(name='导航到特定代理人装备详细')
+    @operation_node(name='导航到特定代理人的装备详细')
     def navigate_to_agent_equipment_detail(self) -> OperationRoundResult:
         """
         导航到特定代理人-装备详细画面
@@ -197,7 +197,7 @@ class OneKeyOptimizeApp(ZApplication):
         """
         return self.round_by_goto_screen(screen_name='代理人-装备详细')
 
-    @node_from(from_name='导航到特定代理人装备详细')
+    @node_from(from_name='导航到特定代理人的装备详细')
     @operation_node(name='执行驱动盘套装筛选')
     def execute_set_filter(self) -> OperationRoundResult:
         """
@@ -366,7 +366,7 @@ class OneKeyOptimizeApp(ZApplication):
 
         :return:
         """
-        log.info("开始获取所有驱动盘信息（简化版：统一使用进度条检测触底）")
+        log.info("开始获取所有驱动盘信息")
 
         # 步骤 1: 获取初始屏幕所有驱动盘（在循环外执行一次）
         log.info("步骤 1: 获取初始屏幕所有驱动盘")
