@@ -217,9 +217,8 @@ def send_node_notify(
     pool = operation.ctx.run_context.notify_pool
     notify_level = _get_notify_level(operation)
     current_fail = round_result.is_fail
-    notify_on_error = operation.ctx.notify_config.notify_on_error
 
-    should_collect_notify = (notify_on_error and current_fail) or (notify_level >= NotifyLevel.APP)
+    should_collect_notify = (notify_level == NotifyLevel.ONLY_ERROR and current_fail) or (notify_level >= NotifyLevel.APP)
 
     if not should_collect_notify or current_node is None:
         return
@@ -298,7 +297,7 @@ def send_node_notify(
     pool.add(content=message, image=image)
 
     should_send_all_nodes = notify_level == NotifyLevel.ALL
-    should_send_fail_notify = current_fail and notify_on_error
+    should_send_fail_notify = current_fail and (operation.ctx.notify_config.notify_on_error or notify_level == NotifyLevel.ONLY_ERROR)
     should_send_now = should_send_all_nodes or should_send_fail_notify
 
     if should_send_now:

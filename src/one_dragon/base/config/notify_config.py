@@ -2,6 +2,7 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 
 class NotifyLevel:
+    ONLY_ERROR = -1
     OFF = 0
     APP = 1
     ALL = 2
