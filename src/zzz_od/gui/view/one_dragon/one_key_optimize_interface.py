@@ -12,13 +12,13 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from zzz_od.application.back_to_world import back_to_world_const
+from zzz_od.application.one_key_optimize import one_key_optimize_const
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.game_data_service import GameDataService
 
 
-class BackToWorldInterface(AppRunInterface):
-    """返回大世界界面"""
+class OneKeyOptimizeInterface(AppRunInterface):
+    """一键调优界面"""
 
     CACHE_EXPIRY_SECONDS: int = 300
 
@@ -28,9 +28,9 @@ class BackToWorldInterface(AppRunInterface):
         AppRunInterface.__init__(
             self,
             ctx=ctx,
-            app_id=back_to_world_const.APP_ID,
-            object_name="back_to_world_interface",
-            nav_text_cn="返回大世界",
+            app_id=one_key_optimize_const.APP_ID,
+            object_name="one_key_optimize_interface",
+            nav_text_cn="一键调优",
             nav_icon=FluentIcon.HOME,
             parent=parent,
         )
@@ -228,20 +228,20 @@ class BackToWorldInterface(AppRunInterface):
         # 保存选择的代理人代码
         if hasattr(self, "agent_select_opt") and self.agent_select_opt:
             selected_value = self.agent_select_opt.getValue()
-            self.ctx._back_to_world_agent_code = selected_value
-            log.info(f"返回大世界：选择的代理人: {selected_value}")
+            self.ctx._one_key_optimize_agent_code = selected_value
+            log.info(f"一键调优：选择的代理人: {selected_value}")
         else:
-            self.ctx._back_to_world_agent_code = None
-            log.info("返回大世界：未选择代理人")
+            self.ctx._one_key_optimize_agent_code = None
+            log.info("一键调优：未选择代理人")
 
         # 保存选择的驱动盘套装
         if hasattr(self, "drive_disk_set_opt") and self.drive_disk_set_opt:
             selected_set = self.drive_disk_set_opt.getValue()
-            self.ctx._back_to_world_drive_disk_set = selected_set
-            log.info(f"返回大世界：选择的驱动盘套装: {selected_set}")
+            self.ctx._one_key_optimize_drive_disk_set = selected_set
+            log.info(f"一键调优：选择的驱动盘套装: {selected_set}")
         else:
-            self.ctx._back_to_world_drive_disk_set = None
-            log.info("返回大世界：未选择驱动盘套装")
+            self.ctx._one_key_optimize_drive_disk_set = None
+            log.info("一键调优：未选择驱动盘套装")
 
         # 调用父类方法启动应用
         AppRunInterface._on_start_clicked(self)

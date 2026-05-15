@@ -10,7 +10,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.application.back_to_world import back_to_world_const
+from zzz_od.application.one_key_optimize import one_key_optimize_const
 from zzz_od.application.inventory_scan.InventoryDataProcessor import (
     InventoryDataProcessor,
 )
@@ -20,12 +20,12 @@ from zzz_od.game_data.game_data_service import GameDataService
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
-class BackToWorldApp(ZApplication):
+class OneKeyOptimizeApp(ZApplication):
 
     def __init__(self, ctx: ZContext, agent_name_parser=None):
         """
-        返回大世界应用
-        将游戏从任何状态智能返回到大世界（普通世界）
+        一键调优应用
+        自动查找并装备最大评分的驱动盘
 
         Args:
             ctx: ZContext 上下文
@@ -34,11 +34,11 @@ class BackToWorldApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id=back_to_world_const.APP_ID,
-            op_name=back_to_world_const.APP_NAME,
+            app_id=one_key_optimize_const.APP_ID,
+            op_name=one_key_optimize_const.APP_NAME,
         )
-        self.selected_agent_code = getattr(self.ctx, '_back_to_world_agent_code', None)
-        self.selected_drive_disk_set = getattr(self.ctx, '_back_to_world_drive_disk_set', None)
+        self.selected_agent_code = getattr(self.ctx, '_one_key_optimize_agent_code', None)
+        self.selected_drive_disk_set = getattr(self.ctx, '_one_key_optimize_drive_disk_set', None)
         if agent_name_parser is not None:
             self.agent_name_parser = agent_name_parser
         else:
@@ -85,37 +85,37 @@ class BackToWorldApp(ZApplication):
 
         # 预加载屏幕区域配置
         try:
-            self._drive_disk_list_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '驱动盘列表')
-            self._drive_disk_detail_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '驱动盘详细信息')
+            self._drive_disk_list_area = self.ctx.screen_loader.get_area('代理人-装备详细', '驱动盘列表')
+            self._drive_disk_detail_area = self.ctx.screen_loader.get_area('代理人-装备详细', '驱动盘详细信息')
             log.info("驱动盘区域配置加载成功")
         except Exception as e:
             raise RuntimeError('驱动盘区域配置加载失败') from e
 
         # 预加载流水线
-        self._drive_disk_pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格 - 代理人 - 装备详细')
+        self._drive_disk_pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格-代理人-装备详细')
         if not self._drive_disk_pipeline:
             raise RuntimeError('驱动盘方格检测流水线加载失败')
         log.info("驱动盘方格检测流水线加载成功")
 
-        log.info(f"返回大世界应用初始化完成：代理人={self.selected_agent_code}, 驱动盘套装={self.selected_drive_disk_set}")
+        log.info(f"一键调优应用初始化完成：代理人={self.selected_agent_code}, 驱动盘套装={self.selected_drive_disk_set}")
 
-    @operation_node(name='返回大世界', is_start_node=True)
+    @operation_node(name='开始一键调优', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
         """
-        返回大世界
+        开始一键调优
         :return:
         """
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='返回大世界')
+    @node_from(from_name='开始一键调优')
     @operation_node(name='导航到特定代理人')
     def navigate_to_agent_info(self) -> OperationRoundResult:
         """
-        导航到代理人 - 信息画面
+        导航到代理人-信息画面
         :return:
         """
-        result = self.round_by_goto_screen(screen_name='代理人 - 信息')
+        result = self.round_by_goto_screen(screen_name='代理人-信息')
         if not result.is_success:
             return result
 
@@ -212,11 +212,17 @@ class BackToWorldApp(ZApplication):
         target_set_name = self._get_set_name_by_code(self.selected_drive_disk_set)
         log.info(f"转换后的中文名称：{target_set_name}")
 
-        filter_area = self.ctx.screen_loader.get_area('代理人 - 装备详细', '筛选')
+        compare_area = self.ctx.screen_loader.get_area('代理人-装备详细', '对比')
+        filter_area = self.ctx.screen_loader.get_area('代理人-装备详细', '筛选')
         reset_area = self.ctx.screen_loader.get_area('筛选', '重置')
         s_rarity_area = self.ctx.screen_loader.get_area('筛选', 'S')
+        drive_disk_status_other_area = self.ctx.screen_loader.get_area('筛选', '驱动盘状态-其他')
         set_select_area = self.ctx.screen_loader.get_area('筛选', '套装选择')
         confirm_area = self.ctx.screen_loader.get_area('套装筛选', '确认筛选')
+
+        log.info(f"点击对比: {compare_area}")
+        self.ctx.controller.click(compare_area.rect.center)
+        time.sleep(0.3)
 
         log.info("点击筛选按钮")
         self.ctx.controller.click(filter_area.rect.center)
@@ -224,8 +230,50 @@ class BackToWorldApp(ZApplication):
 
         #进入筛选画面
 
+        #检查驱动盘筛选条件是否为:'获得顺序'
+        screen=self.screenshot()
+        # 获取驱动盘筛选条件区域
+        drive_disk_filter_condition_area = self.ctx.screen_loader.get_area('筛选', '驱动盘筛选条件')
+        # 使用 find_text_in_area 检查是否包含"获得顺序"
+        has_get_order = self.ctx.ocr_service.find_text_in_area(
+            image=screen,
+            rect=drive_disk_filter_condition_area.rect,
+            crop_first=True,
+            target_text='获得顺序',
+            threshold=0.6
+        )
+        if has_get_order:
+            log.info("驱动盘筛选条件已为'获得顺序'")
+        else:
+            log.warning("驱动盘筛选条件不是'获得顺序'")
+            self.ctx.controller.click(drive_disk_filter_condition_area.rect.center)
+            time.sleep(0.3)
+            #查找文本‘获得顺序’并点击
+            screen=self.screenshot()
+            # 获取驱动盘筛选条件列表区域
+            drive_disk_filter_condition_list_area = self.ctx.screen_loader.get_area('筛选', '驱动盘筛选条件列表')
+            # 使用OCR识别该区域文本
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+                rect=drive_disk_filter_condition_list_area.rect,
+                crop_first=True
+            )
+            # 查找"获得顺序"文本并点击
+            for ocr_result in ocr_result_list:
+                if '获得顺序' in ocr_result.data:
+                    log.info(f"找到'获得顺序'文本，点击位置: ({ocr_result.rect.center.x}, {ocr_result.rect.center.y})")
+                    self.ctx.controller.click(ocr_result.rect.center)
+                    time.sleep(0.3)
+                    break
+            else:
+                log.warning("在筛选条件列表中未找到'获得顺序'文本")
+
         log.info("点击重置按钮")
         self.ctx.controller.click(reset_area.rect.center)
+        time.sleep(0.3)
+
+        log.info("点击驱动盘状态-其他区域")
+        self.ctx.controller.click(drive_disk_status_other_area.rect.center)
         time.sleep(0.3)
 
         log.info("点击 S 使筛选后的驱动盘只保留S品级的")
@@ -380,10 +428,7 @@ class BackToWorldApp(ZApplication):
                 scroll_iteration += 1
                 log.info(f"=== 第 {scroll_iteration} 次滚动循环 ===")
 
-                last_row = grid_rows[-1]
-                target = last_row[0]
-                log.info(f"点击最后一行第一个驱动盘触发滚动：({target.x}, {target.y})")
-                self.ctx.controller.scroll(1, target)
+                self.ctx.controller.scroll(1)
                 time.sleep(0.5)
 
                 log.info("滚动完成，检测新显示的行")
@@ -475,11 +520,11 @@ class BackToWorldApp(ZApplication):
 
                 scored_count += 1
                 log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 相对得分 {scanned_disc['score']['relativeScore']:.2f}/{MAX_DISK_SCORE}")
+                
+                # 记录被评分驱动盘的信息
+                all_drive_disks.append(scanned_disc)
             else:
-                scanned_disc['score'] = None
-                log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 已跳过")
-
-            all_drive_disks.append(scanned_disc)
+                log.debug(f"[评分] {scanned_disc.get('id', 'Unknown')} - {disc_set_key} - 未评分（套装不一致）")
 
         self.ocr_worker.reset()
         captured_count = len(all_drive_disks)
@@ -490,16 +535,196 @@ class BackToWorldApp(ZApplication):
         if skipped_count > 0:
             log.info(f"已跳过 {skipped_count} 个驱动盘（套装不一致）")
 
+        # 输出被评分驱动盘的信息
+        # 直接从 all_drive_disks 中获取有效驱动盘信息
+        if all_drive_disks:
+            drive_ids = [int(disc.get('id', '0').replace('zzz_disc_', '')) for disc in all_drive_disks]
+            scores = [disc.get('score', {}).get('totalScore', 0) for disc in all_drive_disks]
+
+            # 1. 获取最大编号值
+            max_drive_id = max(drive_ids)
+
+            # 2. 获取最大评分驱动盘的值和对应的编号值以及基本信息
+            max_score_disc = max(all_drive_disks, key=lambda x: x.get('score', {}).get('totalScore', 0))
+            max_score_drive_id = int(max_score_disc.get('id', '0').replace('zzz_disc_', ''))
+            max_score_value = max_score_disc.get('score', {}).get('totalScore', 0)
+            
+            # 获取基本信息
+            set_key = max_score_disc.get('setKey', '未知')
+            rarity = max_score_disc.get('rarity', '未知')
+            level = max_score_disc.get('level', 0)
+            slot_key = max_score_disc.get('slotKey', '未知')
+            main_stat_key = max_score_disc.get('mainStatKey', '未知')
+            substats = max_score_disc.get('substats', [])
+            substat_info = ', '.join([f"{s.get('key')}({s.get('upgrades')}级)" for s in substats])
+
+            log.info(f"最大有效驱动盘ID：{max_drive_id}")
+            log.info(f"最大评分值对应的驱动盘ID：{max_score_drive_id}（评分为：{max_score_value})")
+            log.info(f"最大评分驱动盘基本信息 - 套装: {set_key}, 稀有度: {rarity}, 等级: {level}, 槽位: {slot_key}")
+            log.info(f"最大评分驱动盘词条信息 - 主词条: {main_stat_key}, 副词条: {substat_info}")
+            log.info(f"提取到的有效驱动盘ID列表：{drive_ids}")
+            log.info(f"提取到的有效驱动盘评分列表：{scores}")
+
+            # 3. 计算窗口滚动次数（从最大有效驱动盘ID到最大评分驱动盘ID）
+            def id_to_row(cell_id, cols=4):
+                return (cell_id - 1) // cols + 1
+
+            def id_to_col(cell_id, cols=4):
+                return (cell_id - 1) % cols + 1
+
+            cols = 4
+            window_rows = 5
+            total_rows = (max_drive_id + cols - 1) // cols
+
+            def valid_top(top):
+                return max(1, min(top, total_rows - window_rows + 1))
+
+            # 从最大ID位置滚动到最大评分ID位置
+            current_id = max_drive_id
+            target_id = max_score_drive_id
+
+            curr_row = id_to_row(current_id, cols)
+            target_row = id_to_row(target_id, cols)
+            target_col = id_to_col(target_id, cols)
+
+            init_win_top = valid_top(curr_row - window_rows // 2)
+            target_win_top = valid_top(target_row - window_rows // 2)
+
+            slide_times = init_win_top - target_win_top
+
+            log.info(f"窗口配置：{cols}列，窗口行数{window_rows}")
+            log.info(f"目标格子({target_id}号)所在位置：{target_row}行{target_col}列")
+            log.info(f"从ID {current_id} 滚动到 ID {target_id}")
+            log.info(f"初始窗口：{init_win_top}~{init_win_top+window_rows-1}行")
+            log.info(f"目标窗口：{target_win_top}~{target_win_top+window_rows-1}行")
+            direction = '向上' if slide_times > 0 else '向下' if slide_times < 0 else '无需滑动'
+            log.info(f"窗口需要滑动次数：{abs(slide_times)} 次 | 方向：{direction}")
+
+            # 根据方向执行滚动
+            scroll_direction = -1 if slide_times > 0 else 1 if slide_times < 0 else 0
+
+            for i in range(abs(slide_times)):
+                self.ctx.controller.scroll(scroll_direction)
+
+            time.sleep(1)
+            #在滑动完成后最大评分的驱动盘会显示在窗口中点击
+            log.info("滚动完成，点击最大评分的驱动盘")
+            screen_final = self.screenshot()
+
+            context_final = self._drive_disk_pipeline.execute(screen_final, service=self.ctx.cv_service)
+
+            filtered_contours_final = context_final.contours
+            if not filtered_contours_final:
+                log.warning("滚动后未检测到驱动盘方格")
+
+            all_grids_final = []
+            for contour in filtered_contours_final:
+                x, y, w, h = cv2.boundingRect(contour)
+                absolute_x = x + self._drive_disk_list_area.rect.x1
+                absolute_y = y + self._drive_disk_list_area.rect.y1
+                grid_center = Point(absolute_x + w / 2, absolute_y + h / 2)
+                all_grids_final.append(grid_center)
+
+            grid_rows_final = self._sort_grids(all_grids_final)
+            if not grid_rows_final:
+                log.warning("滚动后网格整理为空")
+
+            log.info(f"滚动后检测到 {len(grid_rows_final)} 行驱动盘")
+
+            # 根据目标行列号定位并点击最大评分的驱动盘
+            # 目标窗口行范围：target_win_top ~ target_win_top + window_rows - 1
+            # 目标格子位置：target_row行 target_col列
+            target_row_in_window = target_row - target_win_top + 1  # 在窗口中的相对行号（1-based）
+            
+            if 1 <= target_row_in_window <= len(grid_rows_final):
+                target_row_data = grid_rows_final[target_row_in_window - 1]  # 转换为0-based索引
+                if 1 <= target_col <= len(target_row_data):
+                    target_grid = target_row_data[target_col - 1]  # 转换为0-based索引
+                    log.info(f"点击最大评分驱动盘：第{target_row}行第{target_col}列，坐标({target_grid.x}, {target_grid.y})")
+                    self.ctx.controller.click(target_grid)
+                    time.sleep(0.3)
+                    
+                    # 调用 OCR 获取点击后驱动盘的实际信息
+                    screen_after_click = self.screenshot()
+                    cropped_image = cv2_utils.crop_image_only(screen_after_click, self._drive_disk_detail_area.rect)
+                    self.ocr_worker.submit('disc', cropped_image, self.drive_disk_parser)
+                    self.ocr_worker.wait_complete()
+                    
+                    # 获取识别结果
+                    actual_disc = None
+                    if self.ocr_worker.scanned_discs:
+                        actual_disc = self.ocr_worker.scanned_discs[-1].copy()  # 获取最后一个识别结果
+                    self.ocr_worker.reset()
+                    # 与预期的最大评分驱动盘信息进行比对
+                    if actual_disc:
+                        actual_set_key = actual_disc.get('setKey', '未知')
+                        actual_rarity = actual_disc.get('rarity', '未知')
+                        actual_level = actual_disc.get('level', 0)
+                        actual_slot_key = actual_disc.get('slotKey', '未知')
+                        actual_main_stat = actual_disc.get('mainStatKey', '未知')
+                        
+                        # 比对关键信息
+                        match = True
+                        if actual_set_key != set_key:
+                            log.error(f"套装不匹配：预期 {set_key}，实际 {actual_set_key}")
+                            match = False
+                        if actual_rarity != rarity:
+                            log.error(f"稀有度不匹配：预期 {rarity}，实际 {actual_rarity}")
+                            match = False
+                        if actual_level != level:
+                            log.error(f"等级不匹配：预期 {level}，实际 {actual_level}")
+                            match = False
+                        if actual_slot_key != slot_key:
+                            log.error(f"槽位不匹配：预期 {slot_key}，实际 {actual_slot_key}")
+                            match = False
+                        if actual_main_stat != main_stat_key:
+                            log.error(f"主词条不匹配：预期 {main_stat_key}，实际 {actual_main_stat}")
+                            match = False
+                            
+                        if match:
+                            log.info("驱动盘信息比对成功，当前点击的是正确的目标驱动盘")
+                            screen = self.screenshot()
+                            
+                            # 发送带有截图的通知
+                            notify_title = '驱动盘操作完成'
+                            notify_content = (f"已找到最大评分驱动盘\n"
+                                             f"ID: {max_score_drive_id}\n"
+                                             f"评分: {max_score_value}\n"
+                                             f"套装: {set_key}\n"
+                                             f"稀有度: {rarity}\n"
+                                             f"等级: {level}")
+                            
+                            self.ctx.push_service.push_async(
+                                title=notify_title,
+                                content=notify_content,
+                                image=screen
+                            )
+                        else:
+                            log.error("驱动盘信息比对失败，返回失败")
+                            return self.round_fail('驱动盘信息比对失败')
+                    else:
+                        log.error("未能识别点击后驱动盘的信息")
+                        return self.round_fail('驱动盘识别失败')
+                else:
+                    log.warning(f"目标列号{target_col}超出当前行范围（1~{len(target_row_data)}）")
+                    return self.round_fail('目标列号超出范围')
+            else:
+                log.warning(f"目标行号{target_row}不在窗口范围内（{target_win_top}~{target_win_top+window_rows-1}）")
+                return self.round_fail('目标行号不在窗口范围内')
+
+
+
         # 保存到 JSON 文件
         output_file = None
         if captured_count > 0:
             try:
                 from one_dragon.utils.os_utils import get_path_under_work_dir
-                output_dir = Path(get_path_under_work_dir('debug', 'drive_disks'))
+                output_dir = Path(get_path_under_work_dir('.debug', 'drive_disks'))
                 output_dir.mkdir(parents=True, exist_ok=True)
 
-                timestamp = time.strftime('%Y%m%d_%H%M%S')
-                output_file = output_dir / f'drive_disks_{timestamp}.json'
+                # 使用前端选择的驱动盘套装code作为文件名
+                set_code = self.selected_drive_disk_set if self.selected_drive_disk_set else 'all'
+                output_file = output_dir / f'drive_disks_{set_code}.json'
 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     json.dump(all_drive_disks, f, ensure_ascii=False, indent=2)

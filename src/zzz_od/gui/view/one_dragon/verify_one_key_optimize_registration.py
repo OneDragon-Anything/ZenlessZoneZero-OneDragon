@@ -1,5 +1,5 @@
 """
-验证返回大世界界面是否正确注册
+验证一键调优界面是否正确注册
 """
 import sys
 from pathlib import Path
@@ -14,16 +14,16 @@ def verify_interface():
     
     try:
         # 1. 验证界面类
-        from zzz_od.gui.view.one_dragon.back_to_world_interface import BackToWorldInterface
+        from zzz_od.gui.view.one_dragon.one_key_optimize_interface import OneKeyOptimizeInterface
         print(f"✓ 界面类导入成功")
-        print(f"  - 类名: {BackToWorldInterface.__name__}")
-        print(f"  - 基类: {BackToWorldInterface.__bases__[0].__name__}")
+        print(f"  - 类名: {OneKeyOptimizeInterface.__name__}")
+        print(f"  - 基类: {OneKeyOptimizeInterface.__bases__[0].__name__}")
         
         # 2. 验证常量
-        from zzz_od.application.back_to_world import back_to_world_const
+        from zzz_od.application.one_key_optimize import one_key_optimize_const
         print(f"✓ 常量模块导入成功")
-        print(f"  - APP_ID: {back_to_world_const.APP_ID}")
-        print(f"  - APP_NAME: {back_to_world_const.APP_NAME}")
+        print(f"  - APP_ID: {one_key_optimize_const.APP_ID}")
+        print(f"  - APP_NAME: {one_key_optimize_const.APP_NAME}")
         
         # 3. 验证主界面已注册
         from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
@@ -47,7 +47,7 @@ def verify_interface():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("返回大世界界面 - 注册验证")
+    print("一键调优界面 - 注册验证")
     print("=" * 60)
     
     success = verify_interface()
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         print("\n使用方法：")
         print("1. 启动 GUI 程序")
         print("2. 在左侧导航栏找到'一条龙'")
-        print("3. 在子页面中找到'返回大世界'")
+        print("3. 在子页面中找到'一键调优'")
         print("4. 点击运行按钮即可使用")
     else:
         print("⚠️  验证发现问题，请检查上述错误信息。")
