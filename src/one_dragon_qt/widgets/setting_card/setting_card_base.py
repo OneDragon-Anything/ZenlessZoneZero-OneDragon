@@ -64,14 +64,15 @@ class SettingCardBase(SettingCard):
     def setContent(self, content: str):
         """设置卡片内容"""
         if content is not None:
+            translated_content = gt(content)
             # 使用fontMetrics来计算文字是否超出最大宽度，如果超出则添加省略号
             font_metrics = self.contentLabel.fontMetrics()
             max_width = self.contentLabel.maximumWidth()
-            elided_text = font_metrics.elidedText(content, Qt.TextElideMode.ElideRight, max_width)
+            elided_text = font_metrics.elidedText(translated_content, Qt.TextElideMode.ElideRight, max_width)
             self.contentLabel.setText(elided_text)
             # 设置工具提示显示完整文本
-            if font_metrics.horizontalAdvance(content) > max_width:
-                self.contentLabel.setToolTip(content)
+            if font_metrics.horizontalAdvance(translated_content) > max_width:
+                self.contentLabel.setToolTip(translated_content)
             else:
                 self.contentLabel.setToolTip("")
         else:

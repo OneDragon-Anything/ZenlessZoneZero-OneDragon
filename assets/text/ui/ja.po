@@ -331,17 +331,161 @@ msgid "窗口尺寸"
 msgstr "ウィンドウサイズ"
 
 # 代理人设置
+msgid "安比"
+msgstr "アンビー"
+
+msgid "安东"
+msgstr "アンドー"
+
+msgid "本"
+msgstr "ベン"
+
+msgid "比利"
+msgstr "ビリー"
+
+msgid "可琳"
+msgstr "カリン"
+
 msgid "妮可"
 msgstr "ニコ"
 
 msgid "艾莲"
 msgstr "エレン"
 
+msgid "格莉丝"
+msgstr "グレース"
+
+msgid "珂蕾妲"
+msgstr "クレタ"
+
+msgid "露西"
+msgstr "ルーシー"
+
+msgid "莱卡恩"
+msgstr "ライカン"
+
+msgid "猫又"
+msgstr "猫又"
+
+msgid "派派"
+msgstr "パイパー"
+
+msgid "丽娜"
+msgstr "リナ"
+
+msgid "11号"
+msgstr "「11号」"
+
+msgid "苍角"
+msgstr "蒼角"
+
+msgid "朱鸢"
+msgstr "朱鳶"
+
+msgid "青衣"
+msgstr "青衣"
+
+msgid "简"
+msgstr "ジェーン"
+
+msgid "赛斯"
+msgstr "セス"
+
+msgid "凯撒"
+msgstr "シーザー"
+
+msgid "柏妮思"
+msgstr "バーニス"
+
+msgid "柳"
+msgstr "月城柳"
+
+msgid "莱特"
+msgstr "ライト"
+
+msgid "悠真"
+msgstr "浅羽悠真"
+
+msgid "雅"
+msgstr "星見雅"
+
 msgid "耀嘉音"
-msgstr "アストラ・ヤオ"
+msgstr "アストラ"
+
+msgid "伊芙琳"
+msgstr "イヴリン"
+
+msgid "零号安比"
+msgstr "0号・アンビー"
+
+msgid "波可娜"
+msgstr "プルクラ"
+
+msgid "扳机"
+msgstr "「トリガー」"
+
+msgid "薇薇安"
+msgstr "ビビアン"
+
+msgid "雨果"
+msgstr "ヒューゴ"
 
 msgid "仪玄"
 msgstr "儀玄"
+
+msgid "潘引壶"
+msgstr "潘引壺"
+
+msgid "橘福福"
+msgstr "橘福福"
+
+msgid "浮波柚叶"
+msgstr "浮波柚葉"
+
+msgid "爱丽丝"
+msgstr "アリス"
+
+msgid "席德"
+msgstr "「シード」"
+
+msgid "奥菲丝"
+msgstr "オルペウス"
+
+msgid "卢西娅"
+msgstr "リュシア"
+
+msgid "真斗"
+msgstr "狛野真斗"
+
+msgid "伊德海莉"
+msgstr "イドリー"
+
+msgid "琉音"
+msgstr "ダイアリン"
+
+msgid "般岳"
+msgstr "盤岳"
+
+msgid "照"
+msgstr "照"
+
+msgid "千夏"
+msgstr "千夏"
+
+msgid "叶瞬光"
+msgstr "葉瞬光"
+
+msgid "爱芮"
+msgstr "アリア"
+
+msgid "南宫羽"
+msgstr "南宮羽"
+
+msgid "希希芙"
+msgstr "シーシィア"
+
+msgid "普罗米娅"
+msgstr "プロメイア"
 
 msgid "匹配所有可能的皮肤"
 msgstr "可能なすべての衣装にマッチ"
@@ -2849,4 +2993,220 @@ msgstr "プリセット編成キャラ認識"
 
 msgid "鼠标灵敏度检测"
 msgstr "マウス感度検出"
+
+msgid "迷失之地配置"
+msgstr "迷いの地設定"
+
+msgid "挑战配置-迷"
+msgstr "挑戦設定 - 迷いの地"
+
+msgid "完成悬赏委托"
+msgstr "賞金依頼を完了"
+
+msgid "完成每周8000积分奖励"
+msgstr "週間8000ポイント報酬を完了します"
+
+msgid "刷满业绩点"
+msgstr "実績ポイントを上限まで稼ぐ"
+
+msgid "刷满每周业绩点"
+msgstr "週間実績ポイントを上限まで稼ぎます"
+
+msgid "刷满周期奖励"
+msgstr "周期報酬を上限まで稼ぐ"
+
+msgid "刷满每周丁尼"
+msgstr "週間ディニー報酬を上限まで稼ぎます"
+
+msgid "完成周计划次数"
+msgstr "週間計画回数を完了"
+
+msgid "完成配置的每周计划次数"
+msgstr "設定された週間計画回数を完了します"
+
+msgid "已完成悬赏委托 如错误可重置"
+msgstr "賞金依頼は完了済みです。誤りの場合はリセットできます"
+
+msgid "已完成刷取周期奖励 如错误可重置"
+msgstr "周期報酬の周回は完了済みです。誤りの場合はリセットできます"
+
+msgid "已完成刷取业绩 如错误可重置"
+msgstr "実績ポイント周回は完了済みです。誤りの場合はリセットできます"
+
+msgid "通关次数"
+msgstr "クリア回数"
+
+msgid "本日"
+msgstr "本日"
+
+msgid "本周"
+msgstr "今週"
+
+msgid "当前为默认配置，点击复制后可修改"
+msgstr "現在はデフォルト設定です。コピーすると編集できます"
+
+msgid "删除确认"
+msgstr "削除確認"
+
+msgid "即将删除该配置"
+msgstr "この設定を削除します"
+
+msgid "重置成功"
+msgstr "リセットしました"
+
+msgid "战线肃清"
+msgstr "戦線掃討"
+
+msgid "特遣调查"
+msgstr "特別派遣調査"
+
+msgid "矩阵行动"
+msgstr "マトリックス行動"
+
+msgid "默认-成就模式"
+msgstr "デフォルト-実績モード"
+
+msgid "自定义-"
+msgstr "カスタム-"
+
+msgid "入口"
+msgstr "入口"
+
+msgid "战斗-鸣徽"
+msgstr "戦闘-レゾブレム"
+
+msgid "战斗-武备"
+msgstr "戦闘-武備"
+
+msgid "战斗-硬币"
+msgstr "戦闘-コイン"
+
+msgid "挑战-无伤"
+msgstr "挑戦-無傷"
+
+msgid "挑战-限时"
+msgstr "挑戦-制限時間"
+
+msgid "挑战-收割"
+msgstr "挑戦-収穫"
+
+msgid "偶遇事件"
+msgstr "遭遇イベント"
+
+msgid "代价之间"
+msgstr "代価の間"
+
+msgid "休憩调息"
+msgstr "休憩調息"
+
+msgid "邦布商店"
+msgstr "ボンプショップ"
+
+msgid "挚交会谈"
+msgstr "親交会談"
+
+msgid "战斗-道中危机"
+msgstr "戦闘-道中危機"
+
+msgid "战斗-终结之役"
+msgstr "戦闘-終結戦"
+
+msgid "第一个"
+msgstr "1つ目"
+
+msgid "第二个"
+msgstr "2つ目"
+
+msgid "第三个"
+msgstr "3つ目"
+
+msgid "刷新0次"
+msgstr "更新0回"
+
+msgid "刷新1次(50硬币)"
+msgstr "更新1回（50コイン）"
+
+msgid "刷新2次(100硬币)"
+msgstr "更新2回（100コイン）"
+
+msgid "刷新3次(200硬币)"
+msgstr "更新3回（200コイン）"
+
+msgid "刷新4次(300硬币)"
+msgstr "更新4回（300コイン）"
+
+msgid "一直刷新"
+msgstr "常に更新"
+
+msgid "全配队通用"
+msgstr "全編成共通"
+
+msgid "鸣徽狂热战略"
+msgstr "レゾブレム狂熱戦略"
+
+msgid "攻其不备战略"
+msgstr "不意打ち戦略"
+
+msgid "抢占先机战略"
+msgstr "先手必勝戦略"
+
+msgid "迅刃连击战略"
+msgstr "迅刃連撃戦略"
+
+msgid "秘宝猎人战略"
+msgstr "秘宝ハンター戦略"
+
+msgid "全副武装战略"
+msgstr "完全武装戦略"
+
+msgid "经商友好战略"
+msgstr "商売友好戦略"
+
+msgid "养精蓄锐战略"
+msgstr "英気養成戦略"
+
+msgid "狡黠盗洞战略"
+msgstr "狡猾なホロウ盗掘戦略"
+
+msgid "固守阵线战略"
+msgstr "陣線固守戦略"
+
+msgid "舍生陷阵战略"
+msgstr "捨て身突撃戦略"
+
+msgid "呼朋引伴战略"
+msgstr "仲間招集戦略"
+
+msgid "专属配队-艾莲"
+msgstr "専用編成-エレン"
+
+msgid "专属配队-莱卡恩"
+msgstr "専用編成-ライカン"
+
+msgid "专属配队-莱特"
+msgstr "専用編成-ライト"
+
+msgid "击破站场-强攻速切"
+msgstr "撃破メイン-強攻クイックスワップ"
+
+msgid "异常站场-强攻速切"
+msgstr "異常メイン-強攻クイックスワップ"
+
+msgid "强攻站场-击破支援速切"
+msgstr "強攻メイン-撃破支援クイックスワップ"
+
+msgid "自动守护"
+msgstr "自動防衛"
+
+msgid "异常·击破"
+msgstr "異常・撃破"
+
+msgid "成就-空洞金融大亨"
+msgstr "実績-ホロウ金融王"
+
+msgid "终结"
+msgstr "終結"
+
+msgid "绝境"
+msgstr "窮地"
 
