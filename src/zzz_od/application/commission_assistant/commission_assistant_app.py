@@ -149,7 +149,7 @@ class CommissionAssistantApp(ZApplication):
             # 这种检测方式不会在中间为花色区域时抢鼠标导致需要暂停才能手动与游戏交互
             center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
             if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
-                self.ctx.controller.click(pos=center_area.left_top)
+                self.ctx.controller.click(press_time=0.001)
                 return self.round_wait(status='黑屏点击中间区域', wait=self.config.dialog_click_interval)
         elif self._click_dialog_options(self.last_screenshot, '中间选项区域',
                                         color_range=[[240, 240, 240], [255, 255, 255]]):
@@ -161,14 +161,14 @@ class CommissionAssistantApp(ZApplication):
         if with_dialog or (
                 self.check_main_story() and self.config.story_mode != StoryMode.SKIP.value.value):
             # 因为前面的检测也需要时间, 所以这里的点击需要尽可能快, 不然跳过效果在视觉上就慢了
-            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001)
+            self.ctx.controller.click(press_time=0.001)
             self.dialog_clicked = True
             return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
 
         # 对话框替换期间或者对话内容为 '......' 时是无法识别出内容的
         # 如果前几帧识别到对话框则需要继续点击屏幕, 但是不能一直点, 所以这里是retry
         if self.dialog_clicked:
-            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001)
+            self.ctx.controller.click(press_time=0.001)
             return self.round_retry(status='点击未知画面 (对话后)', wait=0.2)
         else:
             return self.round_retry(status='未知画面', wait=0.2)
