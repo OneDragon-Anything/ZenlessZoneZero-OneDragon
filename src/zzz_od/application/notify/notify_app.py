@@ -65,9 +65,9 @@ class NotifyApp(ZApplication):
                         f'{gt("当前体力")}：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
                     )
             if run_record.run_status_under_now == AppRunRecord.STATUS_SUCCESS:
-                success.append(gt(app_config.app_name))
+                success.append(app_config.app_name)
             if run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
-                failure.append(gt(app_config.app_name))
+                failure.append(app_config.app_name)
                 self.exist_failure = True
 
         parts = [f'{gt("一条龙运行完成")}：']

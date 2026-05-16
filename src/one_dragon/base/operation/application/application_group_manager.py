@@ -9,6 +9,7 @@ from one_dragon.base.operation.application.application_const import DEFAULT_GROU
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
 )
+from one_dragon.utils.i18_utils import gt
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -56,7 +57,7 @@ class ApplicationGroupManager:
             self._config_cache[key] = config
 
         for app in config.app_list:
-            app.app_name = self.ctx.run_context.get_application_name(app_id=app.app_id)
+            app.app_name = gt(self.ctx.run_context.get_application_name(app_id=app.app_id))
 
         return config
 
