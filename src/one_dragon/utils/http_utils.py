@@ -55,6 +55,9 @@ def download_file(download_url: str, save_file_path: str,
         if progress_callback is not None:
             progress_callback(0, msg)
 
+        if not download_url.startswith(('http://', 'https://')):
+            raise ValueError(f"不支持的下载协议：{download_url}")
+
         request = urllib.request.Request(download_url)
         with opener.open(request, timeout=60) as response, save_path.open('wb') as file:
             total_size = int(response.headers.get('Content-Length', '0') or 0)
