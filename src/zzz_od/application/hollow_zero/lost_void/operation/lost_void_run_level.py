@@ -486,7 +486,7 @@ class LostVoidRunLevel(ZOperation):
         center_area = self.ctx.screen_loader.get_area('委托助手', '中间选项区域')
         center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
         if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
-            self.ctx.controller.click(press_time=0.001)
+            self.ctx.controller.click()
             return self.round_wait(status='黑屏点击', wait=0.5)
 
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
