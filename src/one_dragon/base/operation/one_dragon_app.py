@@ -1,3 +1,5 @@
+import os
+import subprocess
 from typing import ClassVar, List, Optional
 
 from one_dragon.base.config.game_account_config import GameAccountConfig
@@ -42,6 +44,7 @@ class OneDragonApp(Application):
 
         self._last_account_config: GameAccountConfig | None = None
         self._last_controller: ControllerBase | None = None
+        self._last_game_path: str = ''
 
     def handle_init(self) -> None:
         """
@@ -88,6 +91,7 @@ class OneDragonApp(Application):
     def switch_instance(self) -> OperationRoundResult:
         self._last_account_config = self.ctx.game_account_config
         self._last_controller = self.ctx.controller
+        self._last_game_path = self.ctx.game_account_config.game_path
 
         self._instance_idx += 1
         if self._instance_idx >= len(self._instance_list):
@@ -105,16 +109,28 @@ class OneDragonApp(Application):
     @node_from(from_name='切换实例配置', status='游戏路径不同')
     @operation_node(name='关闭游戏', screenshot_before_round=False)
     def close_game(self) -> OperationRoundResult:
-        # 刷新窗口句柄, 避免旧缓存导致误判
-        if self._last_controller is None:
+        # 切换到不同路径的实例时，ctx.switch_instance() 已将 controller 的窗口标题
+        # 更新为新服务器的标题，_last_controller 无法再找到旧游戏窗口。
+        # 改用可执行文件名通过 taskkill 强制关闭旧进程。
+        if self._last_game_path:
+            exe_name = os.path.basename(self._last_game_path)
+            result = subprocess.run(
+                ['taskkill', '/F', '/IM', exe_name],
+                capture_output=True,
+            )
+            if result.returncode == 0:
+                log.info('关闭游戏成功: %s', exe_name)
+                log.info('等待游戏占用文件释放(10s)...')
+                return self.round_success(wait=10)
+            log.info('未找到游戏进程 %s，可能已关闭', exe_name)
             return self.round_success()
 
+        # 兜底：路径未保存时沿用旧逻辑
+        if self._last_controller is None:
+            return self.round_success()
         if self._last_controller.is_game_window_ready:
-            # 关闭游戏
             self._last_controller.close_game()
             return self.round_retry('检查是否关闭成功', wait=3)
-
-        # 有时候游戏关闭了, 游戏占用的配置等文件没关闭, 故需等一会
         log.info('等待游戏占用文件释放(10s)...')
         return self.round_success(wait=10)
 
