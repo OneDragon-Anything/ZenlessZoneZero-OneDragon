@@ -483,7 +483,7 @@ class LostVoidRunLevel(ZOperation):
             return talk_result
 
         # 对话后可能出现需要点击的黑屏 (如战斗区域被npc提前清理了)
-        center_area = self.ctx.screen_loader.get_area('委托助手', '中间选项区域')
+        center_area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '中间区域-识别黑屏')
         center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
         if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
             self.ctx.controller.click()
