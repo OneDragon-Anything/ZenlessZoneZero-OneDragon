@@ -473,6 +473,7 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_fail(op_result.status)
 
+        # 尝试对话
         talk_result = self.try_talk(self.last_screenshot)
         if talk_result is not None:
             # 对话的情况 说明交互到的不是下层入口 中途交互到其他内容了
@@ -480,6 +481,13 @@ class LostVoidRunLevel(ZOperation):
                 self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
 
             return talk_result
+
+        # 对话后可能出现需要点击的黑屏 (如战斗区域被npc提前清理了)
+        center_area = self.ctx.screen_loader.get_area('委托助手', '中间选项区域')
+        center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
+        if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
+            self.ctx.controller.click(press_time=0.001)
+            return self.round_wait(status='黑屏点击', wait=0.5)
 
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
             return self.round_success('迷失之地-大世界')
