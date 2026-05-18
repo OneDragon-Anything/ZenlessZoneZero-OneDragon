@@ -1,5 +1,6 @@
-import os
+import re
 import subprocess
+from pathlib import Path
 from typing import ClassVar, List, Optional
 
 from one_dragon.base.config.game_account_config import GameAccountConfig
@@ -113,7 +114,10 @@ class OneDragonApp(Application):
         # 更新为新服务器的标题，_last_controller 无法再找到旧游戏窗口。
         # 改用可执行文件名通过 taskkill 强制关闭旧进程。
         if self._last_game_path:
-            exe_name = os.path.basename(self._last_game_path)
+            exe_name = Path(self._last_game_path).name
+            if not exe_name or not re.fullmatch(r'[\w\-. ]+\.exe', exe_name, re.IGNORECASE):
+                log.warning('游戏路径无效，跳过关闭: %s', self._last_game_path)
+                return self.round_success()
             result = subprocess.run(
                 ['taskkill', '/F', '/IM', exe_name],
                 capture_output=True,
