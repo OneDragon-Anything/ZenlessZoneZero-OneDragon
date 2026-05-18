@@ -150,7 +150,7 @@ class CommissionAssistantApp(ZApplication):
             center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
             if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
                 self.ctx.controller.click(press_time=0.001)
-                return self.round_wait(status='黑屏点击中间区域', wait=self.config.dialog_click_interval)
+                return self.round_wait(status='黑屏点击', wait=self.config.dialog_click_interval)
         elif self._click_dialog_options(self.last_screenshot, '中间选项区域',
                                         color_range=[[240, 240, 240], [255, 255, 255]]):
             # 中间有白色的字, 一般是主线的中间选项
@@ -163,7 +163,7 @@ class CommissionAssistantApp(ZApplication):
             # 因为前面的检测也需要时间, 所以这里的点击需要尽可能快, 不然跳过效果在视觉上就慢了
             self.ctx.controller.click(press_time=0.001)
             self.dialog_clicked = True
-            return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
+            return self.round_wait(status='对话中点击', wait=self.config.dialog_click_interval)
 
         # 对话框替换期间或者对话内容为 '......' 时是无法识别出内容的
         # 如果前几帧识别到对话框则需要继续点击屏幕, 但是不能一直点, 所以这里是retry
