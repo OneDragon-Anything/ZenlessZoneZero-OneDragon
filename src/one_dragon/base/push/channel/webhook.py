@@ -8,10 +8,7 @@ import requests
 from cv2.typing import MatLike
 
 from one_dragon.base.push.push_channel import PushChannel
-from one_dragon.base.push.push_channel_config import (
-    FieldTypeEnum,
-    PushChannelConfigField,
-)
+from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.log_utils import log
 
 
@@ -125,17 +122,14 @@ class Webhook(PushChannel):
             processed_url = url
             for placeholder, value in replacements.items():
                 processed_url = processed_url.replace(placeholder, urllib.parse.quote_plus(str(value)))
-            is_discord_webhook = self._is_discord_webhook(processed_url)
 
             # 处理Body中的变量（不需要编码）
             processed_body = body
             for placeholder, value in replacements.items():
                 processed_body = processed_body.replace(placeholder, str(value).replace("\n", "\\n"))
-            if is_discord_webhook:
-                processed_body = processed_body.replace("$image", "").replace("{{image}}", "")
 
             # 处理图片变量
-            if not is_discord_webhook and ("$image" in processed_body or "{{image}}" in processed_body):
+            if "$image" in processed_body:
                 image_base64 = ""
                 if image is not None:  # image是MatLike，可能具有多个参数，此时if image会歧义
                     try:
@@ -147,19 +141,7 @@ class Webhook(PushChannel):
                         log.error(f"图片处理失败: {e}")
                         image_base64 = ""
 
-                processed_body = (
-                    processed_body
-                    .replace("$image", image_base64)
-                    .replace("{{image}}", image_base64)
-                )
-
-            if is_discord_webhook and image is not None:
-                return self._push_discord_webhook(
-                    processed_url=processed_url,
-                    processed_body=processed_body,
-                    image=image,
-                    proxies=proxies,
-                )
+                processed_body = processed_body.replace("$image", image_base64)
 
             # 解析请求头
             try:
@@ -199,99 +181,6 @@ class Webhook(PushChannel):
         except Exception as e:
             log.error("Webhook推送异常", exc_info=True)
             return False, f"Webhook推送异常: {str(e)}"
-
-    @staticmethod
-    def _is_discord_webhook(url: str) -> bool:
-        parsed = urllib.parse.urlparse(url)
-        host = (parsed.hostname or "").lower()
-        path = parsed.path.lower()
-        return (
-            host in ("discord.com", "discordapp.com", "ptb.discord.com", "canary.discord.com")
-            and path.startswith("/api/webhooks/")
-        )
-
-    def _push_discord_webhook(
-        self,
-        processed_url: str,
-        processed_body: str,
-        image: MatLike,
-        proxies: dict | None,
-    ) -> tuple[bool, str]:
-        payload = self._load_discord_payload(processed_body)
-        file_name = "screenshot.jpg"
-        payload = self._build_discord_screenshot_payload(payload, file_name)
-        image_bytes = self.image_to_bytes(image)
-        if image_bytes is None:
-            return False, "Discord Webhook image encode failed"
-
-        image_bytes.seek(0)
-        files = {"files[0]": (file_name, image_bytes, "image/jpeg")}
-        data = {"payload_json": json.dumps(payload, ensure_ascii=False)}
-
-        response = requests.post(
-            self._enable_discord_components(processed_url),
-            data=data,
-            files=files,
-            timeout=30,
-            proxies=proxies,
-        )
-        if not response.ok:
-            detail = response.text[:500]
-            log.error("Discord Webhook推送失败: %s %s", response.status_code, detail)
-            return False, f"Discord Webhook推送失败: {response.status_code} {detail}"
-
-        return True, f"Discord Webhook推送成功，状态码: {response.status_code}"
-
-    @staticmethod
-    def _load_discord_payload(processed_body: str) -> dict:
-        try:
-            payload = json.loads(processed_body)
-        except json.JSONDecodeError:
-            payload = {"content": processed_body}
-
-        if not isinstance(payload, dict):
-            payload = {"content": str(payload)}
-
-        payload.pop("image", None)
-
-        return payload
-
-    @staticmethod
-    def _build_discord_screenshot_payload(payload: dict, file_name: str) -> dict:
-        payload = dict(payload)
-        content = str(payload.pop("content", "") or "").strip()
-        text_component = {
-            "type": 10,
-            "content": content if content else "Screenshot",
-        }
-
-        payload["flags"] = int(payload.get("flags", 0)) | (1 << 15)
-        payload["attachments"] = [{"id": 0, "filename": file_name}]
-        payload["components"] = [
-            {
-                "type": 17,
-                "components": [
-                    {
-                        "type": 9,
-                        "components": [text_component],
-                        "accessory": {
-                            "type": 11,
-                            "media": {"url": f"attachment://{file_name}"},
-                            "description": "Screenshot",
-                        },
-                    }
-                ],
-            }
-        ]
-
-        return payload
-
-    @staticmethod
-    def _enable_discord_components(url: str) -> str:
-        parsed = urllib.parse.urlparse(url)
-        query = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
-        query["with_components"] = "true"
-        return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query)))
 
     def validate_config(self, config: dict[str, str]) -> tuple[bool, str]:
         """
