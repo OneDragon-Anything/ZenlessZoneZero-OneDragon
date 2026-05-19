@@ -1,0 +1,1607 @@
+import json
+from collections.abc import Callable
+from contextlib import suppress
+from dataclasses import dataclass
+from functools import partial
+from pathlib import Path
+from typing import Any
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QSizePolicy,
+    QStackedWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    FluentIcon,
+    InfoBarIcon,
+    PrimaryPushButton,
+    PushButton,
+    ScrollArea,
+    SegmentedWidget,
+    SimpleCardWidget,
+    TableWidget,
+    ToolButton,
+)
+
+from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils import yaml_utils
+from one_dragon.utils.log_utils import log
+from one_dragon.utils.os_utils import get_resource_path
+from one_dragon_qt.utils.layout_utils import Margins
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.row import Row
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.devtools.intel_manage.intel_manage_app import IntelManageApp
+from zzz_od.application.devtools.intel_manage.intel_manage_config import (
+    IntelManageConfig as Config,
+)
+from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data.agent import AgentTypeEnum, DmgTypeEnum, RareTypeEnum
+from zzz_od.game_data.drive_disk import (
+    SLOT_MAPPING,
+    SMALL_ATTRIBUTE_WEIGHT_RATIO,
+    SMALL_TO_LARGE_MAP,
+    get_all_slot_types,
+)
+
+
+def _get_slot_mapping() -> dict[str, str]:
+    """获取属性映射字典"""
+    return SLOT_MAPPING
+
+
+def _get_weight_order() -> list[str]:
+    """从 drive_disk 配置获取权重项顺序（按照枚举定义的顺序）"""
+    weight_key_order = get_all_slot_types()
+    return [SLOT_MAPPING.get(key, key) for key in weight_key_order]
+
+
+
+
+
+
+
+
+@dataclass
+class ColumnMeta:
+    """表格列元数据"""
+
+    display_name: str
+    attr_name: str | None = None
+    parser: Callable[[str], Any] | None = None
+    width: int | None = None
+    formatter: Callable[[Any], str] | None = None
+
+
+class WeightConfigDialog(QDialog):
+    """权重配置对话框"""
+
+    @classmethod
+    def get_weight_options(cls) -> list[str]:
+        """获取权重选项列表"""
+        return _get_weight_order()
+
+    @property
+    def WEIGHT_OPTIONS(self) -> list[str]:
+        """权重选项列表（动态从配置文件加载）"""
+        return self.get_weight_options()
+
+    def __init__(self, character_name: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"{character_name} - 权重配置")
+        self.setMinimumWidth(400)
+        self.setModal(True)
+
+        self.character_name = character_name
+        self.weight_values = {}
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        scroll_area = ScrollArea()
+        scroll_area.setWidgetResizable(True)
+        layout.addWidget(scroll_area, stretch=1)
+
+        form_widget = QWidget()
+        form_layout = QFormLayout(form_widget)
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        form_layout.setSpacing(8)
+
+        self.weight_inputs = {}
+        for option in self.WEIGHT_OPTIONS:
+            input_box = QLineEdit()
+            input_box.setPlaceholderText("0.0")
+            input_box.setValidator(self._create_float_validator())
+            self.weight_inputs[option] = input_box
+            form_layout.addRow(option, input_box)
+
+        scroll_area.setWidget(form_widget)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+
+        cancel_btn = PushButton("取消")
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
+
+        save_btn = PushButton("保存")
+        save_btn.clicked.connect(self._on_save)
+        btn_layout.addWidget(save_btn)
+
+        layout.addLayout(btn_layout)
+
+        self._load_existing_weights()
+
+    def _create_float_validator(self):
+        from PySide6.QtGui import QDoubleValidator
+
+        validator = QDoubleValidator(0.0, 1.0, 2)
+        validator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        return validator
+
+    def _load_existing_weights(self):
+        """加载已有的权重配置"""
+        weight_file = Path(get_resource_path("config", "character_weight.json"))
+        if weight_file.exists():
+            try:
+                with open(weight_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    if self.character_name in data:
+                        weights = data[self.character_name]
+                        for key, value in weights.items():
+                            if key in self.weight_inputs:
+                                self.weight_inputs[key].setText(str(value))
+            except Exception:
+                pass
+
+    def _on_save(self):
+        """保存权重配置（优化：原子写入，避免并发风险）"""
+        for option, input_box in self.weight_inputs.items():
+            try:
+                self.weight_values[option] = (
+                    float(input_box.text()) if input_box.text() else 0.0
+                )
+            except ValueError:
+                self.weight_values[option] = 0.0
+
+        weight_file = Path(get_resource_path("config", "character_weight.json"))
+        temp_file = weight_file.with_suffix(".tmp")
+        data = {}
+
+        # 读取现有数据
+        if weight_file.exists():
+            try:
+                with open(weight_file, encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+
+        data[self.character_name] = self.weight_values
+
+        try:
+            weight_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # 原子写入：先写临时文件，再替换原文件
+            with open(temp_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+            # 使用 replace 方法进行原子替换（Windows/Unix 均支持）
+            temp_file.replace(weight_file)
+
+        except OSError as e:
+            from one_dragon.utils.log_utils import log
+
+            log.error(f"保存权重配置失败: {e}")
+            from qfluentwidgets import MessageBox
+
+            MessageBox.warning(self, "保存失败", f"无法保存权重配置文件:\n{e}")
+
+            # 清理临时文件
+            if temp_file.exists():
+                temp_file.unlink(missing_ok=True)
+            return
+
+        self.accept()
+
+
+class IntelManageInterface(VerticalScrollInterface):
+    """信息管理界面，包含三个子页面：代理人信息、驱动盘信息、音擎信息管理"""
+
+    MODE_AGENT = "代理人信息管理"
+    MODE_DRIVE_DISK = "驱动盘信息管理"
+    MODE_SOUND_ENGINE = "音擎信息管理"
+
+    def __init__(self, ctx: ZContext, parent=None):
+        VerticalScrollInterface.__init__(
+            self,
+            content_widget=None,
+            object_name="intel_manage_interface",
+            parent=parent,
+            nav_text_cn="信息管理",
+            nav_icon=FluentIcon.DOCUMENT,
+        )
+
+        self.ctx: ZContext = ctx
+        self.mode_stacked: QStackedWidget | None = None
+        self.mode_segment: SegmentedWidget | None = None
+        self.agent_table_widget: TableWidget | None = None
+
+        # 从 WeightConfigDialog 获取权重选项（动态从配置文件加载）
+        self.WEIGHT_OPTIONS = WeightConfigDialog.get_weight_options()
+
+        # 页面数据缓存（优化：避免重复加载）
+        self._cached_drive_disk_data: list[dict] | None = None
+        self._cached_engine_weapon_data: list[dict] | None = None
+        self._cached_agent_data: dict[str, dict] | None = None
+
+    def get_content_widget(self) -> QWidget:
+        main_widget = QWidget()
+        main_layout = QVBoxLayout(main_widget)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(12)
+
+        header_card = self._init_header_card()
+        main_layout.addWidget(header_card)
+
+        page_content = self._init_page_content()
+        main_layout.addWidget(page_content, stretch=1)
+
+        return main_widget
+
+    def _init_header_card(self) -> QWidget:
+        """初始化顶部操作栏"""
+        card = SimpleCardWidget()
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(12)
+
+        # 左侧：标题区域（图标 + 标题 + 描述）
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(12)
+
+        # 图标
+        icon_label = QLabel()
+        icon_label.setPixmap(FluentIcon.DOCUMENT.icon().pixmap(20, 20))
+
+        # 文字区域
+        text_layout = QVBoxLayout()
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(2)
+
+        title_label = QLabel("信息管理")
+        title_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+
+        content_label = QLabel("管理和维护应用数据")
+        content_label.setStyleSheet("font-size: 12px; color: #6b7280;")
+
+        text_layout.addWidget(title_label)
+        text_layout.addWidget(content_label)
+
+        title_layout.addWidget(icon_label)
+        title_layout.addLayout(text_layout)
+        title_layout.addStretch(1)
+
+        # 搜索框（替换按钮位置）
+        self.search_combo = EditableComboBox()
+        self.search_combo.setPlaceholderText("输入关键字进行搜索...")
+        self.search_combo.setMinimumWidth(250)
+        self.search_combo.currentTextChanged.connect(self._filter_table)
+        title_layout.addWidget(self.search_combo)
+
+        layout.addLayout(title_layout)
+        layout.addStretch(1)
+
+        btn_row = Row(spacing=6)
+
+        self.add_btn = PushButton(text="新增", icon=FluentIcon.ADD)
+        self.add_btn.clicked.connect(self._on_add_clicked)
+        btn_row.add_widget(self.add_btn)
+
+        # 保存按钮（参考 agent_template_generator_interface.py）
+        self.save_btn = PrimaryPushButton(FluentIcon.SAVE, Config.BTN_SAVE_TEXT)
+        self.save_btn.clicked.connect(self._on_save_clicked)
+        btn_row.add_widget(self.save_btn)
+
+        # 更新合并配置文件按钮（参考屏幕管理的合并功能）
+        self.merge_btn = PushButton(FluentIcon.SYNC, Config.BTN_MERGE_TEXT)
+        self.merge_btn.clicked.connect(self._on_merge_clicked)
+        btn_row.add_widget(self.merge_btn)
+
+        layout.addWidget(btn_row)
+
+        return card
+
+    def _init_page_content(self) -> QWidget:
+        """初始化页面内容区域"""
+        card = SimpleCardWidget()
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        # 模式切换 SegmentedWidget
+        self.mode_segment = SegmentedWidget()
+        self.mode_segment.addItem(
+            routeKey=self.MODE_AGENT,
+            text=self.MODE_AGENT,
+            onClick=lambda: self._apply_mode(self.MODE_AGENT),
+        )
+        self.mode_segment.addItem(
+            routeKey=self.MODE_DRIVE_DISK,
+            text=self.MODE_DRIVE_DISK,
+            onClick=lambda: self._apply_mode(self.MODE_DRIVE_DISK),
+        )
+        self.mode_segment.addItem(
+            routeKey=self.MODE_SOUND_ENGINE,
+            text=self.MODE_SOUND_ENGINE,
+            onClick=lambda: self._apply_mode(self.MODE_SOUND_ENGINE),
+        )
+        layout.addWidget(self.mode_segment)
+
+        # 内容区域 QStackedWidget
+        self.mode_stacked = QStackedWidget()
+        self.agent_page = self._build_agent_page()
+        self.drive_disk_page = self._build_drive_disk_page()
+        self.sound_engine_page = self._build_sound_engine_page()
+
+        self.mode_stacked.addWidget(self.agent_page)
+        self.mode_stacked.addWidget(self.drive_disk_page)
+        self.mode_stacked.addWidget(self.sound_engine_page)
+        self.mode_stacked.currentChanged.connect(self._on_stacked_page_changed)
+
+        layout.addWidget(self.mode_stacked, stretch=1)
+
+        # 默认选中第一个页面
+        self.mode_segment.setCurrentItem(self.MODE_AGENT)
+
+        # 初始化搜索选项（必须在页面创建和选择之后）
+        self._update_search_options()
+
+        return card
+
+    def _build_agent_page(self) -> QWidget:
+        """构建代理人信息管理页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        # 加载代理人数据
+        self.agent_data = self._load_agent_data()
+
+        # 代理人信息卡片
+        self.agent_info_card = SimpleCardWidget()
+        # 修改为水平布局，让两个表格同行放置
+        self.agent_info_layout = QHBoxLayout(self.agent_info_card)
+        self.agent_info_layout.setContentsMargins(8, 8, 8, 8)
+        self.agent_info_layout.setSpacing(12)
+
+        # 左侧列：比较公式配置 + 基础信息表格（使用Column类实现卡片布局）
+        self.left_column = Column(spacing=12, margins=Margins(0, 0, 0, 0))
+        self.left_column.setMinimumWidth(400)
+        self.left_column.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+
+        # 比较公式配置区域（使用Column简化嵌套）
+        formula_layout = Column(spacing=5, margins=Margins(4, 4, 4, 4))
+        formula_layout.setMinimumHeight(240)
+
+        # 可用的权重选项（排除小属性，添加'无'选项）
+        self.available_weight_options = [
+            "无"  # '无'选项不受联动筛选影响，可以重复使用
+        ] + [opt for opt in self.WEIGHT_OPTIONS if opt not in set(SMALL_TO_LARGE_MAP.keys())]
+
+        # 4行4列表格
+        self.formula_table = TableWidget()
+        self.formula_table.setBorderVisible(True)
+        self.formula_table.setBorderRadius(8)
+        self.formula_table.setColumnCount(4)
+        self.formula_table.setRowCount(4)
+
+        # 设置表头
+        headers = ["优先级", "可选词条1", "可选词条2", "可选词条3"]
+        self.formula_table.setHorizontalHeaderLabels(headers)
+
+        # 自动分配列宽：优先级列固定，可选词条列均分剩余空间
+        self.formula_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Fixed
+        )
+        self.formula_table.setColumnWidth(0, 60)
+        for i in range(1, 4):
+            self.formula_table.horizontalHeader().setSectionResizeMode(
+                i, QHeaderView.ResizeMode.Stretch
+            )
+
+        # 隐藏默认的行号列（垂直表头）
+        self.formula_table.verticalHeader().setVisible(False)
+
+        # 自动适应高度
+        self.formula_table.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+
+        # 初始化表格内容（所有值初始化为'无'）
+        self.formula_combos = []  # 存储所有下拉框，结构: [[row0_combo1, row0_combo2, row0_combo3], ...]
+        default_values = [
+            ["无", "无", "无"],
+            ["无", "无", "无"],
+            ["无", "无", "无"],
+            ["无", "无", "无"],
+        ]
+
+        for row in range(4):
+            row_combos = []
+
+            # 优先级标签
+            priority_item = QTableWidgetItem(f"{row + 1}")
+            priority_item.setFlags(priority_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            priority_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.formula_table.setItem(row, 0, priority_item)
+
+            # 三个可选词条下拉框
+            for col in range(3):
+                combo = EditableComboBox()
+                combo.addItems(self.available_weight_options)
+                combo.setCurrentText(default_values[row][col])
+                # 绑定去重信号（使用 functools.partial 确保正确捕获循环变量）
+                combo.currentTextChanged.connect(
+                    partial(self._on_formula_combo_changed, row, col)
+                )
+                self.formula_table.setCellWidget(row, col + 1, combo)
+                row_combos.append(combo)
+
+            self.formula_combos.append(row_combos)
+
+        # 将表格添加到布局
+        formula_layout.add_widget(self.formula_table)
+
+        # 一键生成按钮
+        self.btn_generate_weight = PrimaryPushButton(FluentIcon.PLAY, "一键生成权重")
+        self.btn_generate_weight.clicked.connect(self._on_generate_weight_clicked)
+        formula_layout.add_widget(self.btn_generate_weight)
+
+        self.left_column.add_widget(formula_layout)
+
+        # 音擎设定（1行3列表格，与权重优先级表格配置一致）
+        sound_engine_layout = Column(spacing=5, margins=Margins(4, 4, 4, 4))
+
+        engine_weapon_data = self._load_engine_weapon_data()
+        self.sound_engine_options = ["无"] + [
+            w.get("weapon_name", "") for w in engine_weapon_data if w.get("weapon_name")
+        ]
+
+        self.sound_engine_table = TableWidget()
+        self.sound_engine_table.setBorderVisible(True)
+        self.sound_engine_table.setBorderRadius(8)
+        self.sound_engine_table.setColumnCount(3)
+        self.sound_engine_table.setRowCount(1)
+
+        headers = ["最优音擎", "次优音擎", "第三优音擎"]
+        self.sound_engine_table.setHorizontalHeaderLabels(headers)
+        self.sound_engine_table.horizontalHeader().setVisible(True)
+        self.sound_engine_table.verticalHeader().setVisible(False)
+
+        # 自动分配列宽：三列平分总宽度
+        for i in range(3):
+            self.sound_engine_table.horizontalHeader().setSectionResizeMode(
+                i, QHeaderView.ResizeMode.Stretch
+            )
+
+        self.sound_engine_table.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+
+        self.sound_engine_combos = []
+        default_values = [["无", "无", "无"]]
+
+        # 将音擎选项转换为 ConfigItem 列表，以便使用 set_items() 方法启用自动补全
+        sound_engine_items = [ConfigItem(opt) for opt in self.sound_engine_options]
+
+        for col in range(3):
+            combo = EditableComboBox()
+            combo.set_items(sound_engine_items)
+            combo.setCurrentText(default_values[0][col])
+            combo.currentTextChanged.connect(
+                partial(self._on_sound_engine_combo_changed, col)
+            )
+            self.sound_engine_table.setCellWidget(0, col, combo)
+            self.sound_engine_combos.append(combo)
+
+        sound_engine_layout.add_widget(self.sound_engine_table)
+
+        self.left_column.add_widget(sound_engine_layout)
+
+        # 基础信息表格
+        self.basic_info_table = TableWidget()
+        self.basic_info_table.setBorderVisible(True)
+        self.basic_info_table.setBorderRadius(8)
+        self.basic_info_table.setWordWrap(True)
+        self.basic_info_table.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+        self.basic_info_table.verticalHeader().setVisible(False)
+        self.basic_info_table.horizontalHeader().setVisible(False)
+        self.left_column.add_widget(self.basic_info_table)
+
+        self.left_column.add_stretch(1)
+
+        # 权重配置表格（右侧卡片）
+        self.weight_table = TableWidget()
+        self.weight_table.setBorderVisible(True)
+        self.weight_table.setBorderRadius(8)
+        self.weight_table.setWordWrap(True)
+        self.weight_table.setFixedWidth(350)
+
+        self.agent_info_layout.addWidget(self.left_column)
+        self.agent_info_layout.addWidget(self.weight_table)
+
+        layout.addWidget(self.agent_info_card)
+
+        return widget
+
+    def _on_formula_combo_changed(self, row: int, col: int, text: str) -> None:
+        """当公式下拉框内容改变时，更新其他下拉框的选项（去重机制）"""
+        # 如果选择的是'无'，不需要进行去重处理
+        if text == "无":
+            return
+
+        # 在整个表格范围内进行去重
+        # 收集整个表格中除当前单元格外已选择的非'无'词条
+        table_selected = set()
+        for r in range(4):
+            for c in range(3):
+                if r == row and c == col:
+                    continue  # 跳过当前正在修改的单元格
+                item = self.formula_combos[r][c].currentText()
+                if item != "无":
+                    table_selected.add(item)
+
+        # 如果新选择的词条与表格中其他单元格重复，需要将所有重复的单元格重置为'无'
+        if text in table_selected:
+            for r in range(4):
+                for c in range(3):
+                    if r == row and c == col:
+                        continue  # 跳过当前正在修改的单元格
+                    combo = self.formula_combos[r][c]
+                    if combo.currentText() == text:
+                        combo.blockSignals(True)
+                        combo.setCurrentText("无")
+                        combo.blockSignals(False)
+        # 新选择的词条不重复时，不需要更新其他下拉框，保持原有选择不变
+
+    def _on_sound_engine_combo_changed(self, col: int, text: str) -> None:
+        """音擎下拉框内容改变时的去重处理（与权重优先级表格去重逻辑一致）"""
+        if text == "无":
+            return
+
+        table_selected = set()
+        for i, combo in enumerate(self.sound_engine_combos):
+            if i == col:
+                continue
+            item = combo.currentText()
+            if item != "无":
+                table_selected.add(item)
+
+        if text in table_selected:
+            for i, combo in enumerate(self.sound_engine_combos):
+                if i == col:
+                    continue
+                if combo.currentText() == text:
+                    combo.blockSignals(True)
+                    combo.setCurrentText("无")
+                    combo.blockSignals(False)
+
+    def _set_enum_combo_value(
+        self, combo_box, enum_class, enum_value: str, fallback_value: str
+    ) -> None:
+        """设置下拉框的枚举值（安全处理，防止枚举转换异常）"""
+        if enum_value:
+            try:
+                if hasattr(enum_class, "from_name") and callable(enum_class.from_name):
+                    combo_box.setCurrentText(enum_class.from_name(enum_value).value)
+                else:
+                    combo_box.setCurrentText(fallback_value)
+            except (AttributeError, ValueError):
+                combo_box.setCurrentText(fallback_value)
+        else:
+            combo_box.setCurrentText(fallback_value)
+
+    def _load_agent_data(self, force_reload: bool = False) -> dict[str, dict]:
+        """加载所有代理人的yml数据（委托给App层）（优化：支持多种加载模式）"""
+        # 如果已有缓存且不需要强制刷新，直接返回
+        if not force_reload and self._cached_agent_data is not None:
+            return self._cached_agent_data
+
+        app = self._get_intel_manage_app()
+        if app:
+            # 使用新的 reload 方法（默认从合并文件加载，支持多种模式）
+            if force_reload:
+                app.reload(from_separated_files=True)
+            else:
+                app.reload()  # 默认从合并文件加载
+
+            # 转换为字典格式供界面使用
+            data = {agent.agent_name: agent.to_dict() for agent in app.agent_list}
+            self._cached_agent_data = data
+            return data
+        return {}
+
+    def _get_intel_manage_app(self) -> IntelManageApp | None:
+        """获取信息管理应用实例（通过应用实例管理机制）"""
+        from zzz_od.application.devtools.intel_manage import intel_manage_const
+
+        try:
+            return self.ctx.run_context.get_application(
+                app_id=intel_manage_const.APP_ID,
+                instance_idx=self.ctx.current_instance_idx,
+                group_id="",
+            )
+        except Exception:
+            from one_dragon.utils.log_utils import log
+
+            log.error("获取信息管理应用实例失败")
+            return None
+
+    def _on_agent_selected(self, agent_name: str) -> None:
+        """选择代理人时更新显示"""
+        if not agent_name or agent_name not in self.agent_data:
+            # 清空表格
+            self._clear_table(self.basic_info_table)
+            self._clear_table(self.weight_table)
+            return
+
+        agent_info = self.agent_data[agent_name]
+
+        # 重置权重优先级表格（切换代理人时重置）
+        self._reset_formula_table()
+
+        # 显示基础信息
+        self._show_basic_info(agent_info)
+
+        # 显示权重配置
+        self._show_weight_info(agent_info)
+
+        # 显示音擎配置
+        self._show_sound_engine_info(agent_info)
+
+    def _show_sound_engine_info(self, agent_info: dict) -> None:
+        """显示代理人音擎配置"""
+        sound_engine_data = agent_info.get("recommend_engine_weapon", [])
+
+        # 重置所有下拉框为'无'
+        for combo in self.sound_engine_combos:
+            combo.blockSignals(True)
+            combo.setCurrentText("无")
+            combo.blockSignals(False)
+
+        # 设置音擎配置值
+        for idx, weapon_name in enumerate(sound_engine_data[:3]):
+            if idx < len(self.sound_engine_combos):
+                self.sound_engine_combos[idx].blockSignals(True)
+                self.sound_engine_combos[idx].setCurrentText(weapon_name)
+                self.sound_engine_combos[idx].blockSignals(False)
+
+    def _reset_formula_table(self) -> None:
+        """重置权重优先级表格的所有值为'无'"""
+        for row in range(4):
+            for col in range(3):
+                combo = self.formula_combos[row][col]
+                combo.blockSignals(True)
+                combo.setCurrentText("无")
+                combo.blockSignals(False)
+
+    def _clear_table(self, table: TableWidget) -> None:
+        """清空表格"""
+        table.setRowCount(0)
+        table.setColumnCount(0)
+
+    def _show_basic_info(self, agent_info: dict) -> None:
+        """显示代理人基础信息"""
+        self.basic_info_table.clear()
+        self.basic_info_table.setColumnCount(2)
+        self.basic_info_table.setRowCount(4)
+
+        headers = ["属性", "值"]
+        self.basic_info_table.setHorizontalHeaderLabels(headers)
+
+        # 创建下拉框组件（使用 ComboBox，不可编辑）
+        # 角色类型下拉框
+        self.agent_type_combo = ComboBox()
+        agent_type_items = [ConfigItem(enum.value, enum.name) for enum in AgentTypeEnum]
+        self.agent_type_combo.set_items(agent_type_items)
+
+        # 属性类型下拉框
+        self.dmg_type_combo = ComboBox()
+        dmg_type_items = [ConfigItem(enum.value, enum.name) for enum in DmgTypeEnum]
+        self.dmg_type_combo.set_items(dmg_type_items)
+
+        # 稀有度下拉框
+        self.rare_type_combo = ComboBox()
+        rare_type_items = [ConfigItem(enum.value, enum.name) for enum in RareTypeEnum]
+        self.rare_type_combo.set_items(rare_type_items)
+
+        # 设置当前值（优先使用英文标识，回退到中文显示值）
+        self._set_enum_combo_value(
+            self.agent_type_combo,
+            AgentTypeEnum,
+            agent_info.get("agent_type", ""),
+            agent_info.get("agent_type_cn", ""),
+        )
+        self._set_enum_combo_value(
+            self.dmg_type_combo,
+            DmgTypeEnum,
+            agent_info.get("dmg_type", ""),
+            agent_info.get("dmg_type_cn", ""),
+        )
+        self._set_enum_combo_value(
+            self.rare_type_combo,
+            RareTypeEnum,
+            agent_info.get("rare_type", ""),
+            agent_info.get("rare_type", ""),
+        )
+
+        # 设置表格内容
+        # 角色类型（下拉框）
+        item_label = QTableWidgetItem("角色类型")
+        item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.basic_info_table.setItem(0, 0, item_label)
+        self.basic_info_table.setCellWidget(0, 1, self.agent_type_combo)
+
+        # 属性类型（下拉框）
+        item_label = QTableWidgetItem("属性类型")
+        item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.basic_info_table.setItem(1, 0, item_label)
+        self.basic_info_table.setCellWidget(1, 1, self.dmg_type_combo)
+
+        # 稀有度（下拉框）
+        item_label = QTableWidgetItem("稀有度")
+        item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.basic_info_table.setItem(2, 0, item_label)
+        self.basic_info_table.setCellWidget(2, 1, self.rare_type_combo)
+
+        # code
+        item_label = QTableWidgetItem("code")
+        item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        self.basic_info_table.setItem(3, 0, item_label)
+        item_value = QTableWidgetItem(agent_info.get("code", ""))
+        self.basic_info_table.setItem(3, 1, item_value)
+
+        # 设置列宽：第一列固定宽度，第二列拉伸填充剩余空间
+        self.basic_info_table.setColumnWidth(0, 120)
+        self.basic_info_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Fixed
+        )
+        self.basic_info_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
+
+    def _show_weight_info(self, agent_info: dict) -> None:
+        """显示代理人权重配置（显示所有权重选项）"""
+        weight_data = agent_info.get("weight", {})
+
+        # 获取所有权重选项（不根据属性类型过滤）
+        weight_order = _get_weight_order()
+
+        self.weight_table.clear()
+        self.weight_table.setColumnCount(2)
+        self.weight_table.setRowCount(len(weight_order))
+
+        # 显示表头
+        headers = ["属性", "权重值"]
+        self.weight_table.setHorizontalHeaderLabels(headers)
+
+        # 遍历所有权重项
+        for row_idx, attr_name in enumerate(weight_order):
+            # 属性列
+            item_label = QTableWidgetItem(attr_name)
+            item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.weight_table.setItem(row_idx, 0, item_label)
+
+            # 权重值列（未配置的显示"未配置权重"）
+            if attr_name in weight_data:
+                value = str(weight_data[attr_name])
+            else:
+                value = "未配置权重"
+
+            item_value = QTableWidgetItem(value)
+            if attr_name in weight_data:
+                item_value.setFlags(item_value.flags() | Qt.ItemFlag.ItemIsEditable)
+            else:
+                item_value.setFlags(item_value.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item_value.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.weight_table.setItem(row_idx, 1, item_value)
+
+        # 设置列宽：第一列固定宽度，第二列拉伸填充剩余空间
+        self.weight_table.setColumnWidth(0, 150)
+        self.weight_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Fixed
+        )
+        self.weight_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
+
+    def _on_generate_weight_clicked(self) -> None:
+        """一键生成权重按钮点击事件"""
+        # 获取当前选中的代理人
+        agent_name = self.search_combo.currentText()
+        if not agent_name or agent_name not in self.agent_data:
+            self.show_info_bar(
+                "提示", Config.MSG_WARN_SELECT_AGENT, icon=InfoBarIcon.WARNING
+            )
+            return
+
+        # 获取表格中的所有词条配置
+        # 优先级权重：1 -> 1.0, 2 -> 0.75, 3 -> 0.5, 4 -> 0.25
+        def get_weight_by_priority(priority: int) -> float:
+            return max(0.25, 1.0 - (priority - 1) * 0.25)
+
+        # 收集所有配置的词条及其优先级
+        attr_priority_map = {}
+        formula_description = []
+
+        for row in range(4):
+            priority = row + 1
+            row_weight = get_weight_by_priority(priority)
+
+            for col in range(3):
+                combo = self.formula_combos[row][col]
+                attr = combo.currentText()
+
+                if attr != "无":
+                    # 同一优先级内的词条都获得该优先级的完整分数
+                    attr_priority_map[attr] = row_weight
+
+            # 收集当前行的非空词条用于描述
+            row_items = [
+                self.formula_combos[row][col].currentText()
+                for col in range(3)
+                if self.formula_combos[row][col].currentText() != "无"
+            ]
+            if row_items:
+                formula_description.append(f"优先级{priority}: {', '.join(row_items)}")
+
+        # 根据优先级分配权重
+        generated_weight = {}
+        for attr in self.WEIGHT_OPTIONS:
+            generated_weight[attr] = attr_priority_map.get(attr, 0)
+
+        # 小属性权重为对应大属性的指定比例（保留两位小数）
+        for small_attr, large_attr in SMALL_TO_LARGE_MAP.items():
+            if large_attr in generated_weight and generated_weight[large_attr] > 0:
+                generated_weight[small_attr] = round(
+                    generated_weight[large_attr] * SMALL_ATTRIBUTE_WEIGHT_RATIO, 2
+                )
+
+        # 更新代理人数据
+        self.agent_data[agent_name]["weight"] = generated_weight
+
+        # 更新表格显示
+        self._on_agent_selected(agent_name)
+
+        # 显示成功提示
+        formula_str = (
+            "; ".join(formula_description) if formula_description else "未配置任何词条"
+        )
+        self.show_info_bar(
+            "成功",
+            f"权重已按优先级公式自动分配:\n{formula_str}",
+            icon=InfoBarIcon.SUCCESS,
+        )
+
+    def _on_weight_config_clicked(self, character_name: str) -> None:
+        """点击权重配置按钮"""
+        dialog = WeightConfigDialog(character_name, self.window())
+        dialog.exec()
+
+    def _create_new_agent(self) -> None:
+        """创建一个新的代理人信息"""
+        # 生成唯一的代理人名称
+        new_name = "新代理人"
+        counter = 1
+        while new_name in self.agent_data:
+            new_name = f"新代理人{counter}"
+            counter += 1
+
+        # 获取所有权重项，并初始化为 0
+        weight_order = _get_weight_order()
+        default_weight = dict.fromkeys(weight_order, 0)
+
+        # 设置默认值
+        default_weight["攻击力"] = 0.5
+        default_weight["暴击率"] = 0.25
+        default_weight["暴击伤害"] = 0.25
+        default_weight["能量自动回复"] = 0.5
+        default_weight["小攻击"] = 0.33
+
+        # 创建新代理人数据
+        new_agent = {
+            "agent_name": new_name,
+            "agent_type": "ATTACK",
+            "agent_type_cn": "强攻",
+            "dmg_type": "PHYSICAL",
+            "dmg_type_cn": "物理",
+            "rare_type": "A",
+            "weight": default_weight,
+        }
+
+        # 添加到代理人数据
+        self.agent_data[new_name] = new_agent
+
+        # 更新搜索下拉框选项
+        self._update_search_options()
+
+        # 在搜索框中选中新创建的代理人
+        self.search_combo.blockSignals(True)
+        self.search_combo.setCurrentText(new_name)
+        self.search_combo.blockSignals(False)
+
+        # 显示新代理人信息
+        self._on_agent_selected(new_name)
+
+    def _build_drive_disk_page(self) -> QWidget:
+        """构建驱动盘信息管理页面"""
+        # 从 yml 文件中读取驱动盘数据
+        drive_disk_data = self._load_drive_disk_data()
+
+        return self._build_table_page(
+            columns=[
+                ColumnMeta("ID", "id", lambda x: int(x) if x else 0),
+                ColumnMeta("驱动盘名称", "set_name", lambda x: x),
+                ColumnMeta("任务类型", "mission_type_name", lambda x: x),
+                ColumnMeta("code", "code", lambda x: x),
+            ],
+            data=drive_disk_data,
+        )
+
+    def _load_drive_disk_data(self, force_reload: bool = False) -> list[dict]:
+        """加载驱动盘数据（委托给后端服务）"""
+        if not force_reload and self._cached_drive_disk_data is not None:
+            return self._cached_drive_disk_data
+
+        app = self._get_intel_manage_app()
+        if app:
+            if force_reload:
+                app.reload_drive_disk(from_separated_files=True)
+            else:
+                app.reload_drive_disk()
+
+            data = []
+            for idx, disk in enumerate(app.drive_disk_list):
+                data.append({
+                    "id": idx + 1,
+                    "set_name": disk.set_name,
+                    "mission_type_name": disk.mission_type_name,
+                    "code": disk.code,
+                })
+
+            self._cached_drive_disk_data = data
+            return data
+        return []
+
+    def _build_sound_engine_page(self) -> QWidget:
+        """构建音擎信息管理页面"""
+        # 从 yml 文件中读取音擎数据
+        engine_weapon_data = self._load_engine_weapon_data()
+
+        return self._build_table_page(
+            columns=[
+                ColumnMeta("ID", "id", lambda x: int(x) if x else 0),
+                ColumnMeta("音擎名称", "weapon_name", lambda x: x),
+                ColumnMeta("稀有度", "rarity", lambda x: x),
+                ColumnMeta("code", "code", lambda x: x),
+            ],
+            data=engine_weapon_data,
+        )
+
+    def _load_engine_weapon_data(self, force_reload: bool = False) -> list[dict]:
+        """加载音擎数据（委托给后端服务）"""
+        if not force_reload and self._cached_engine_weapon_data is not None:
+            return self._cached_engine_weapon_data
+
+        app = self._get_intel_manage_app()
+        if app:
+            if force_reload:
+                app.reload_engine_weapon(from_separated_files=True)
+            else:
+                app.reload_engine_weapon()
+
+            data = []
+            for idx, weapon in enumerate(app.engine_weapon_list):
+                data.append({
+                    "id": idx + 1,
+                    "weapon_name": weapon.weapon_name,
+                    "rarity": weapon.rarity,
+                    "code": weapon.code,
+                })
+
+            self._cached_engine_weapon_data = data
+            return data
+        return []
+
+    def _load_yml_data(self, parser: callable, *path_parts: str) -> list[dict]:
+        """
+        通用的 YML 数据加载方法
+        :param path_parts: 资源路径的各个部分
+        :param parser: 数据解析函数，将 YML 数据转换为字典
+        :return: 解析后的数据列表
+        """
+        import os
+
+        data = []
+        data_dir = get_resource_path(*path_parts)
+
+        if not os.path.exists(data_dir):
+            log.warning(f"Data directory not found: {data_dir}")
+            return data
+
+        for filename in sorted(os.listdir(data_dir)):
+            if not filename.endswith(".yml"):
+                continue
+
+            file_path = os.path.join(data_dir, filename)
+            try:
+                with open(file_path, encoding="utf-8") as f:
+                    yml_data = yaml_utils.safe_load(f)
+                    if yml_data:
+                        # 检查数据类型：合并文件是列表，单独文件是字典
+                        if isinstance(yml_data, list):
+                            # 合并文件格式：遍历列表中的每个元素
+                            for item in yml_data:
+                                if isinstance(item, dict):
+                                    parsed = parser(item)
+                                    data.append(parsed)
+                        else:
+                            # 单独文件格式：直接解析
+                            parsed = parser(yml_data)
+                            data.append(parsed)
+            except OSError as e:
+                log.error(f"Failed to read file {file_path}: {e}")
+            except Exception as e:
+                log.error(f"Error parsing file {file_path}: {e}")
+
+        log.info(f"Loaded {len(data)} items from {data_dir}")
+        return data
+
+    def _build_table_page(self, columns: list[ColumnMeta], data: list[dict]) -> QWidget:
+        """构建通用表格页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        scroll_area = ScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        table_widget = TableWidget()
+        table_widget.setBorderVisible(True)
+        table_widget.setBorderRadius(8)
+        table_widget.setWordWrap(True)
+        table_widget.setColumnCount(len(columns))
+        table_widget.verticalHeader().hide()
+
+        headers = [col.display_name for col in columns]
+        table_widget.setHorizontalHeaderLabels(headers)
+
+        for idx, col in enumerate(columns):
+            if col.width is not None:
+                table_widget.setColumnWidth(idx, col.width)
+
+        for row_idx, row_data in enumerate(data):
+            table_widget.insertRow(row_idx)
+            for col_idx, col in enumerate(columns):
+                if col.display_name == "操作":
+                    action_btn = ToolButton(FluentIcon.EDIT)
+                    action_btn.setToolTip("编辑")
+                    table_widget.setCellWidget(row_idx, col_idx, action_btn)
+                else:
+                    value = row_data.get(col.attr_name, "")
+                    if col.formatter:
+                        value = col.formatter(value)
+                    item = QTableWidgetItem(str(value))
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                    table_widget.setItem(row_idx, col_idx, item)
+
+        # 自动调整列宽以适应内容
+        table_widget.resizeColumnsToContents()
+
+        scroll_area.setWidget(table_widget)
+        layout.addWidget(scroll_area)
+
+        return widget
+
+    def _apply_mode(self, mode: str) -> None:
+        """应用模式切换"""
+        if mode == self.MODE_AGENT:
+            self.mode_stacked.setCurrentWidget(self.agent_page)
+        elif mode == self.MODE_DRIVE_DISK:
+            self.mode_stacked.setCurrentWidget(self.drive_disk_page)
+        elif mode == self.MODE_SOUND_ENGINE:
+            self.mode_stacked.setCurrentWidget(self.sound_engine_page)
+
+    def _on_stacked_page_changed(self, index: int) -> None:
+        """切换页面时，调整 QStackedWidget 高度并更新搜索选项"""
+        for i in range(self.mode_stacked.count()):
+            w = self.mode_stacked.widget(i)
+            if i == index:
+                w.setSizePolicy(
+                    QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
+                )
+            else:
+                w.setSizePolicy(
+                    QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Ignored
+                )
+        self.mode_stacked.adjustSize()
+
+        # 页面切换时更新搜索选项
+        self._update_search_options()
+        # 清空搜索框内容但保留选项
+        self.search_combo.blockSignals(True)
+        self.search_combo.setCurrentIndex(-1)
+        self.search_combo.blockSignals(False)
+
+    def _on_add_clicked(self) -> None:
+        """添加新代理人信息或新行"""
+        current_page = self.mode_stacked.currentWidget()
+
+        # 如果是代理人页面，创建一个新的代理人信息
+        if current_page == self.agent_page:
+            self._create_new_agent()
+            return
+
+        if current_page is not None:
+            table_widget = current_page.findChild(TableWidget)
+            if table_widget is not None:
+                row_idx = table_widget.rowCount()
+                table_widget.insertRow(row_idx)
+
+                if self.mode_stacked.currentIndex() == 0:
+                    columns = [
+                        ColumnMeta("操作", width=80),
+                        ColumnMeta("权重配置", width=100),
+                        ColumnMeta("ID", "id"),
+                        ColumnMeta("代理人名称", "name"),
+                        ColumnMeta("属性", "attribute"),
+                        ColumnMeta("等级", "level"),
+                        ColumnMeta("好感度", "affection"),
+                        ColumnMeta("描述", "description"),
+                    ]
+                    for col_idx, col in enumerate(columns):
+                        if col.display_name == "操作":
+                            action_btn = ToolButton(FluentIcon.EDIT)
+                            action_btn.setToolTip("编辑")
+                            table_widget.setCellWidget(row_idx, col_idx, action_btn)
+                        elif col.display_name == "权重配置":
+                            weight_btn = PushButton("配置")
+                            weight_btn.setFixedWidth(80)
+                            weight_btn.clicked.connect(
+                                lambda _, idx=row_idx: self._on_new_agent_weight_config(
+                                    idx
+                                )
+                            )
+                            table_widget.setCellWidget(row_idx, col_idx, weight_btn)
+                        else:
+                            item = QTableWidgetItem("")
+                            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                            table_widget.setItem(row_idx, col_idx, item)
+                elif self.mode_stacked.currentIndex() == 1:
+                    # 驱动盘页面 - 与实际表格结构一致
+                    columns = [
+                        ColumnMeta("ID", "id"),
+                        ColumnMeta("驱动盘名称", "set_name"),
+                        ColumnMeta("任务类型", "mission_type_name"),
+                        ColumnMeta("code", "code"),
+                    ]
+                    for col_idx, _col in enumerate(columns):
+                        item = QTableWidgetItem("")
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                        table_widget.setItem(row_idx, col_idx, item)
+                else:
+                    # 音擎页面 - 与实际表格结构一致
+                    columns = [
+                        ColumnMeta("ID", "id"),
+                        ColumnMeta("音擎名称", "weapon_name"),
+                        ColumnMeta("稀有度", "rarity"),
+                        ColumnMeta("code", "code"),
+                    ]
+                    for col_idx, _col in enumerate(columns):
+                        item = QTableWidgetItem("")
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                        table_widget.setItem(row_idx, col_idx, item)
+
+    def _on_new_agent_weight_config(self, row_idx: int) -> None:
+        """新代理人的权重配置"""
+        if self.agent_table_widget is not None:
+            name_item = self.agent_table_widget.item(row_idx, 3)
+            name = name_item.text() if name_item else "新代理人"
+            dialog = WeightConfigDialog(name, self.window())
+            dialog.exec()
+
+    def _on_delete_clicked(self) -> None:
+        """删除选中行"""
+        current_page = self.mode_stacked.currentWidget()
+        if current_page is not None:
+            table_widget = current_page.findChild(TableWidget)
+            if table_widget is not None:
+                selected_rows = set()
+                for item in table_widget.selectedItems():
+                    selected_rows.add(item.row())
+
+                for row_idx in sorted(selected_rows, reverse=True):
+                    table_widget.removeRow(row_idx)
+
+    def _on_refresh_clicked(self) -> None:
+        """刷新表格数据"""
+        current_index = self.mode_stacked.currentIndex()
+        self.mode_stacked.removeWidget(self.mode_stacked.currentWidget())
+
+        if current_index == 0:
+            self.agent_page = self._build_agent_page()
+            self.mode_stacked.insertWidget(0, self.agent_page)
+        elif current_index == 1:
+            self.drive_disk_page = self._build_drive_disk_page()
+            self.mode_stacked.insertWidget(1, self.drive_disk_page)
+        else:
+            self.sound_engine_page = self._build_sound_engine_page()
+            self.mode_stacked.insertWidget(2, self.sound_engine_page)
+
+        self.mode_stacked.setCurrentIndex(current_index)
+
+    def _update_search_options(self) -> None:
+        """更新搜索下拉框的选项"""
+        current_page = self.mode_stacked.currentWidget()
+        if current_page is None:
+            return
+
+        # 如果是代理人页面，显示代理人列表
+        if current_page == self.agent_page:
+            if hasattr(self, "agent_data"):
+                items = [ConfigItem(name) for name in sorted(self.agent_data.keys())]
+                self.search_combo.set_items(items)
+            return
+
+        # 如果是驱动盘页面，显示驱动盘名称列表
+        if current_page == self.drive_disk_page:
+            drive_disk_data = self._load_drive_disk_data()
+            items = [ConfigItem(disk["set_name"]) for disk in drive_disk_data]
+            self.search_combo.set_items(items)
+            return
+
+        # 如果是音擎页面，显示音擎名称列表
+        if current_page == self.sound_engine_page:
+            engine_weapon_data = self._load_engine_weapon_data()
+            items = [ConfigItem(weapon["weapon_name"]) for weapon in engine_weapon_data]
+            self.search_combo.set_items(items)
+            return
+
+        table_widget = current_page.findChild(TableWidget)
+        if table_widget is None:
+            return
+
+        # 收集所有表格中的文本作为搜索选项（其他页面）
+        options = []
+        for row_idx in range(table_widget.rowCount()):
+            row_texts = []
+            for col_idx in range(table_widget.columnCount()):
+                item = table_widget.item(row_idx, col_idx)
+                if item is not None and item.text():
+                    row_texts.append(item.text())
+            if row_texts:
+                # 使用第一列非操作列的文本作为选项显示
+                display_text = next((t for t in row_texts if t != "配置"), row_texts[0])
+                options.append(ConfigItem(display_text))
+
+        self.search_combo.set_items(options)
+
+    def _filter_table(self, text: str) -> None:
+        """根据搜索关键字过滤表格内容或选择代理人"""
+        current_page = self.mode_stacked.currentWidget()
+        if current_page is None:
+            return
+
+        # 如果是代理人页面，显示选中的代理人信息
+        if current_page == self.agent_page:
+            if hasattr(self, "_on_agent_selected"):
+                self._on_agent_selected(text)
+            return
+
+        table_widget = current_page.findChild(TableWidget)
+        if table_widget is None:
+            return
+
+        for row_idx in range(table_widget.rowCount()):
+            match = False
+            for col_idx in range(table_widget.columnCount()):
+                item = table_widget.item(row_idx, col_idx)
+                if item is not None and text.lower() in item.text().lower():
+                    match = True
+                    break
+
+                # 检查单元格内的按钮文本（如权重配置按钮）
+                cell_widget = table_widget.cellWidget(row_idx, col_idx)
+                if cell_widget is not None:
+                    if hasattr(cell_widget, "text"):
+                        btn_text = cell_widget.text()
+                        if btn_text and text.lower() in btn_text.lower():
+                            match = True
+                            break
+
+            table_widget.showRow(row_idx) if match else table_widget.hideRow(row_idx)
+
+    def on_interface_shown(self) -> None:
+        """界面显示时触发"""
+        VerticalScrollInterface.on_interface_shown(self)
+        # 初始化搜索选项
+        self._update_search_options()
+
+    def _on_save_clicked(self) -> None:
+        """保存当前页面数据到 yml 文件"""
+        current_page = self.mode_stacked.currentWidget()
+
+        # 判断当前页面类型并调用相应的保存方法
+        if current_page == self.agent_page:
+            self._save_agent_data()
+        elif current_page == self.drive_disk_page:
+            self._save_drive_disk_data()
+        elif current_page == self.sound_engine_page:
+            self._save_engine_weapon_data()
+        else:
+            self.show_info_bar(
+                "提示", "未知页面", icon=InfoBarIcon.WARNING
+            )
+
+    def _save_agent_data(self) -> None:
+        """保存代理人数据"""
+        agent_name = self.search_combo.currentText()
+        if not agent_name or agent_name not in self.agent_data:
+            self.show_info_bar(
+                "提示", Config.MSG_WARN_SELECT_AGENT, icon=InfoBarIcon.WARNING
+            )
+            return
+
+        # 读取基础信息表格数据（UI层职责：数据收集）
+        agent_data = {}
+
+        # 从下拉框获取角色类型、属性类型和稀有度（使用 currentData() 获取英文标识）
+        if hasattr(self, "agent_type_combo"):
+            agent_data["agent_type"] = self.agent_type_combo.currentData() or ""
+        if hasattr(self, "dmg_type_combo"):
+            agent_data["dmg_type"] = self.dmg_type_combo.currentData() or ""
+        if hasattr(self, "rare_type_combo"):
+            agent_data["rare_type"] = self.rare_type_combo.currentData() or ""
+
+        # 从表格获取其他字段
+        if self.basic_info_table.rowCount() > 0:
+            for row_idx in range(self.basic_info_table.rowCount()):
+                key_item = self.basic_info_table.item(row_idx, 0)
+                value_item = self.basic_info_table.item(row_idx, 1)
+                if key_item and value_item:
+                    key = key_item.text()
+                    value = value_item.text()
+                    if key == "code":
+                        agent_data["code"] = value
+
+        # 读取权重配置表格数据
+        weight_data = {}
+        if self.weight_table.rowCount() > 0:
+            for row_idx in range(self.weight_table.rowCount()):
+                attr_item = self.weight_table.item(row_idx, 0)
+                value_item = self.weight_table.item(row_idx, 1)
+                if attr_item and value_item:
+                    attr_name = attr_item.text()
+                    value = value_item.text()
+                    if value and value != "未配置权重":
+                        with suppress(ValueError):
+                            weight_data[attr_name] = float(value)
+
+        if weight_data:
+            agent_data["weight"] = weight_data
+
+        # 读取音擎配置表格数据
+        sound_engine_data = []
+        if hasattr(self, "sound_engine_combos"):
+            for combo in self.sound_engine_combos:
+                value = combo.currentText()
+                if value and value != "无":
+                    sound_engine_data.append(value)
+
+        if sound_engine_data:
+            agent_data["recommend_engine_weapon"] = sound_engine_data
+
+        # 更新内存中的代理人数据（合并完整数据）
+        merged_agent_data = dict(self.agent_data[agent_name])
+        merged_agent_data.update(agent_data)
+        self.agent_data[agent_name] = merged_agent_data
+
+        # 调用 App 层保存数据（业务逻辑委托给 App 层）
+        app = self._get_intel_manage_app()
+        if app:
+            # 使用新的 save_agent API（接收 AgentData 对象）
+            from zzz_od.application.devtools.intel_manage.intel_manage_app import (
+                AgentData,
+            )
+
+            agent_obj = AgentData(merged_agent_data)
+            success = app.save_agent(agent_obj, reload_after_save=True)
+
+            if success:
+                self.show_info_bar("成功", "代理人数据已保存", icon=InfoBarIcon.SUCCESS)
+
+                # 清除界面层缓存（应用层缓存已由 save_agent 自动更新）
+                self._cached_agent_data = None
+
+                # 如果修改了 dmg_type，更新 WEIGHT_OPTIONS 和比较公式下拉框
+                if "dmg_type" in agent_data:
+                    self._on_agent_selected(agent_name)
+            else:
+                self.show_info_bar("失败", "保存失败", icon=InfoBarIcon.ERROR)
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
+
+    def _save_drive_disk_data(self) -> None:
+        """保存驱动盘数据（使用批量保存优化）"""
+        # 获取当前表格数据
+        table_widget = self.drive_disk_page.findChild(TableWidget)
+        if not table_widget:
+            self.show_info_bar("错误", "未找到驱动盘表格", icon=InfoBarIcon.ERROR)
+            return
+
+        # 遍历表格收集所有数据
+        drive_disk_list = []
+        for row_idx in range(table_widget.rowCount()):
+            disk_data = {}
+
+            # 获取驱动盘名称
+            name_item = table_widget.item(row_idx, 1)
+            if name_item and name_item.text():
+                disk_data['set_name'] = name_item.text()
+
+            # 获取任务类型
+            type_item = table_widget.item(row_idx, 2)
+            if type_item and type_item.text():
+                disk_data['mission_type_name'] = type_item.text()
+
+            # 获取 code
+            code_item = table_widget.item(row_idx, 3)
+            if code_item and code_item.text():
+                disk_data['code'] = code_item.text()
+
+            if disk_data.get('set_name') and disk_data.get('code'):
+                drive_disk_list.append(disk_data)
+
+        if not drive_disk_list:
+            self.show_info_bar("警告", "没有可保存的驱动盘数据", icon=InfoBarIcon.WARNING)
+            return
+
+        # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 使用批量保存方法
+                success_count = app.save_drive_disk_batch(drive_disk_list, reload_after_save=True)
+
+                # 清除界面缓存
+                self._cached_drive_disk_data = None
+
+                if success_count > 0:
+                    self.show_info_bar(
+                        "成功", f"已保存 {success_count} 个驱动盘数据", icon=InfoBarIcon.SUCCESS
+                    )
+                else:
+                    self.show_info_bar("失败", "保存失败，请检查日志", icon=InfoBarIcon.ERROR)
+            except Exception as e:
+                log.error(f"保存驱动盘数据失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败",
+                    f"保存失败：{str(e)[:100]}",
+                    icon=InfoBarIcon.ERROR
+                )
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
+
+    def _save_engine_weapon_data(self) -> None:
+        """保存音擎数据（使用批量保存优化）"""
+        # 获取当前表格数据
+        table_widget = self.sound_engine_page.findChild(TableWidget)
+        if not table_widget:
+            self.show_info_bar("错误", "未找到音擎表格", icon=InfoBarIcon.ERROR)
+            return
+
+        # 遍历表格收集所有数据
+        engine_weapon_list = []
+        for row_idx in range(table_widget.rowCount()):
+            weapon_data = {}
+
+            # 获取音擎名称
+            name_item = table_widget.item(row_idx, 1)
+            if name_item and name_item.text():
+                weapon_data['weapon_name'] = name_item.text()
+
+            # 获取稀有度
+            rarity_item = table_widget.item(row_idx, 2)
+            if rarity_item and rarity_item.text():
+                weapon_data['rarity'] = rarity_item.text()
+
+            # 获取 code
+            code_item = table_widget.item(row_idx, 3)
+            if code_item and code_item.text():
+                weapon_data['code'] = code_item.text()
+
+            if weapon_data.get('weapon_name') and weapon_data.get('code'):
+                engine_weapon_list.append(weapon_data)
+
+        if not engine_weapon_list:
+            self.show_info_bar("警告", "没有可保存的音擎数据", icon=InfoBarIcon.WARNING)
+            return
+
+        # 调用 App 层批量保存数据（优化：只在最后保存一次合并文件）
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 使用批量保存方法
+                success_count = app.save_engine_weapon_batch(engine_weapon_list, reload_after_save=True)
+
+                # 清除界面缓存
+                self._cached_engine_weapon_data = None
+
+                if success_count > 0:
+                    self.show_info_bar(
+                        "成功", f"已保存 {success_count} 个音擎数据", icon=InfoBarIcon.SUCCESS
+                    )
+                else:
+                    self.show_info_bar("失败", "保存失败，请检查日志", icon=InfoBarIcon.ERROR)
+            except Exception as e:
+                log.error(f"保存音擎数据失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败",
+                    f"保存失败：{str(e)[:100]}",
+                    icon=InfoBarIcon.ERROR
+                )
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
+
+    def _on_merge_clicked(self) -> None:
+        """更新合并配置文件（从分离文件加载并合并到 _od_merged.yml）"""
+        app = self._get_intel_manage_app()
+        if app:
+            try:
+                # 从分离文件加载并保存到合并文件
+                app.update_from_separated_files()
+
+                # 刷新界面缓存
+                self._cached_agent_data = None
+                self._cached_drive_disk_data = None
+                self._cached_engine_weapon_data = None
+
+                # 重新加载所有数据
+                self.agent_data = self._load_agent_data()
+
+                # 更新搜索选项
+                self._update_search_options()
+
+                self.show_info_bar(
+                    "成功", "合并配置文件已更新", icon=InfoBarIcon.SUCCESS
+                )
+            except Exception as e:
+                from one_dragon.utils.log_utils import log
+
+                log.error(f"合并配置文件失败：{e}", exc_info=True)
+                self.show_info_bar(
+                    "失败",
+                    f"合并配置文件失败：{str(e)[:100]}",
+                    icon=InfoBarIcon.ERROR
+                )
+        else:
+            self.show_info_bar("失败", "无法获取应用实例", icon=InfoBarIcon.ERROR)
