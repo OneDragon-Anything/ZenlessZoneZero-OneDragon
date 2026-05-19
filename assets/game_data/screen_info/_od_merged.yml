@@ -4872,6 +4872,13 @@
     - 245
     - 1365
     - 770
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
+    color_range: null
+    goto_list: []
 - screen_id: lost_void_entry
   screen_name: 迷失之地-入口
   pc_alt: false

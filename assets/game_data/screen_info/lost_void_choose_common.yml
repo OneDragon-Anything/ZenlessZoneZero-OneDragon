@@ -142,3 +142,10 @@ area_list:
   - 245
   - 1365
   - 770
+  text: ''
+  lcs_percent: null
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: null
+  color_range: null
+  goto_list: []
