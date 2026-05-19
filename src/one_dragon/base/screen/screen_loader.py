@@ -104,6 +104,10 @@ class ScreenContext:
                     continue
 
                 screen_info = ScreenInfo(data)
+                if screen_info.screen_id in self._id_2_screen:
+                    log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
+                    continue
+
                 self.screen_info_list.append(screen_info)
                 self.screen_info_map[screen_info.screen_name] = screen_info
                 self._id_2_screen[screen_info.screen_id] = screen_info
@@ -125,6 +129,10 @@ class ScreenContext:
                     log.warning(f"合并画面配置中存在非字典条目，已跳过: {file_path}")
                     continue
                 screen_info = ScreenInfo(data)
+                if screen_info.screen_id in self._id_2_screen:
+                    log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
+                    continue
+
                 self.screen_info_list.append(screen_info)
                 self.screen_info_map[screen_info.screen_name] = screen_info
                 self._id_2_screen[screen_info.screen_id] = screen_info
@@ -169,6 +177,9 @@ class ScreenContext:
             screen_info = ScreenInfo(data)
             if screen_info.screen_name in self.screen_info_map:
                 log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
+                continue
+            if screen_info.screen_id in self._id_2_screen:
+                log.warning(f"插件画面ID冲突，已跳过: {screen_info.screen_id}")
                 continue
 
             self.screen_info_list.append(screen_info)
@@ -275,6 +286,8 @@ class ScreenContext:
         初始化画面间的跳转路径
         :return:
         """
+        self.screen_route_map.clear()
+
         # 先对任意两个画面之间做初始化
         for screen_1 in self.screen_info_list:
             self.screen_route_map[screen_1.screen_name] = {}

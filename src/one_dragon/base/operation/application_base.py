@@ -82,7 +82,16 @@ class Application(Operation):
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
-    def after_operation_done(self, result: OperationResult):
+    def execute(self) -> OperationResult:
+        """
+        执行应用，并确保异常路径也退出 screen scope。
+        """
+        try:
+            return Operation.execute(self)
+        finally:
+            self.ctx.screen_loader.exit_scope()
+
+    def after_operation_done(self, result: OperationResult) -> None:
         """
         停止后的处理
         :return:
