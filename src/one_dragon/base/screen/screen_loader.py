@@ -104,6 +104,9 @@ class ScreenContext:
                     continue
 
                 screen_info = ScreenInfo(data)
+                if screen_info.screen_name in self.screen_info_map:
+                    log.warning(f"画面名称冲突，已跳过: {screen_info.screen_name}")
+                    continue
                 if screen_info.screen_id in self._id_2_screen:
                     log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
                     continue
@@ -129,6 +132,9 @@ class ScreenContext:
                     log.warning(f"合并画面配置中存在非字典条目，已跳过: {file_path}")
                     continue
                 screen_info = ScreenInfo(data)
+                if screen_info.screen_name in self.screen_info_map:
+                    log.warning(f"画面名称冲突，已跳过: {screen_info.screen_name}")
+                    continue
                 if screen_info.screen_id in self._id_2_screen:
                     log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
                     continue
@@ -384,6 +390,8 @@ class ScreenContext:
         Args:
             app_id: 当前应用的唯一标识符（与 ScreenInfo.app_id 对应）
         """
+        self.exit_scope()
+
         if not self._global_screen_names:
             return  # 所有 screen 都没有 app_id，不启用 scope
 
