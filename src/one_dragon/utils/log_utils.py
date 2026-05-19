@@ -1,8 +1,8 @@
 import logging
-import os
 from contextlib import suppress
 from dataclasses import dataclass
 from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
 from one_dragon.utils import os_utils
 
@@ -139,12 +139,13 @@ def get_log_file_path(log_file_path: str | None = None, default_name: str = 'log
     configured = (log_file_path or '').strip()
     if not configured:
         configured = default_name
-    if os.path.isabs(configured):
-        return configured
-    return os.path.join(os_utils.get_path_under_work_dir('.log'), configured)
+    path = Path(configured)
+    if path.is_absolute():
+        return str(path)
+    return str(Path(os_utils.get_path_under_work_dir('.log')) / path)
 
 
-def get_logger():
+def get_logger() -> logging.Logger:
     """获取框架默认 logger。
 
     若尚未初始化，则按默认配置初始化一次；若已经存在框架默认 handler，则直接复用。
