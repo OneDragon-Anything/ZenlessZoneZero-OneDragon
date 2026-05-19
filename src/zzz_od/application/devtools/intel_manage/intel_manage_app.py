@@ -413,6 +413,11 @@ class IntelManageApp(ZApplication):
     def save_agent(self, agent_data: AgentData, reload_after_save: bool = True) -> bool:
         with self._agent_save_lock:
             try:
+                # 关键修复：如果内存缓存为空，先从分离文件加载所有数据
+                if len(self.agent_loader._id_2_data) == 0:
+                    log.warning(f"_id_2_data is empty when saving agent! Reloading from separated files...")
+                    self.agent_loader.load(from_separated_files=True)
+                
                 agent_dir = Path(self.agent_yml_dir)
                 agent_dir.mkdir(parents=True, exist_ok=True)
 

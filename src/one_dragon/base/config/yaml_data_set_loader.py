@@ -350,7 +350,7 @@ class YamlDataSetLoader(ABC, Generic[T]):
 
                 all_data = []
                 # 从 _id_2_data 获取所有数据，确保保存完整的数据集
-                for data_item in self._id_2_data.values():
+                for key, data_item in self._id_2_data.items():
                     try:
                         if hasattr(data_item, 'to_dict'):
                             all_data.append(data_item.to_dict())
@@ -359,10 +359,29 @@ class YamlDataSetLoader(ABC, Generic[T]):
                         elif isinstance(data_item, dict):
                             all_data.append(data_item)
                     except Exception as e:
-                        log.warning(f"Failed to convert data item: {e}")
+                        log.warning(f"Failed to convert data item {key}: {e}")
                         continue
 
-                # 如果没有任何数据，不要清空文件，直接返回
+                # 如果没有任何数据，先尝试从分离文件加载
+                if not all_data:
+                    log.warning(f"No data in memory cache, trying to load from separated files first")
+                    self._load_from_separated_files()
+                    
+                    # 重新收集数据
+                    all_data = []
+                    for key, data_item in self._id_2_data.items():
+                        try:
+                            if hasattr(data_item, 'to_dict'):
+                                all_data.append(data_item.to_dict())
+                            elif hasattr(data_item, '_data'):
+                                all_data.append(data_item._data)
+                            elif isinstance(data_item, dict):
+                                all_data.append(data_item)
+                        except Exception as e:
+                            log.warning(f"Failed to convert data item {key}: {e}")
+                            continue
+
+                # 如果仍然没有数据，不要清空文件，直接返回
                 if not all_data:
                     log.warning(f"No data to save for merged file: {merge_file}")
                     return

@@ -1,9 +1,225 @@
-- code: '[Identity] Inflection'
+- code: Angel in the Shell
+  rarity: S
+  weapon_name: 壳中之灵
+- code: Bashful Demon
+  rarity: A
+  weapon_name: 含羞恶面
+- code: Bellicose Blaze
+  rarity: S
+  weapon_name: 嚣枪喧焰
+- code: Big Cylinder
+  rarity: A
+  weapon_name: 比格气缸
+- code: Blazing Laurel
+  rarity: S
+  weapon_name: 焰心桂冠
+- code: Box Cutter
+  rarity: A
+  weapon_name: 裁纸刀
+- code: Bunny Band
+  rarity: A
+  weapon_name: 兔能环
+- code: Cannon Rotor
+  rarity: A
+  weapon_name: 加农转子
+- code: Cauldron of Clarity
+  rarity: A
+  weapon_name: 青漪灵鼎
+- code: Cloudcleave Radiance
+  rarity: S
+  weapon_name: 云霓孤光
+- code: Cordis Germina
+  rarity: S
+  weapon_name: 机巧心种
+- code: Deep Sea Visitor
+  rarity: S
+  weapon_name: 深海访客
+- code: Demara Battery Mark II
+  rarity: A
+  weapon_name: 德玛拉电池Ⅱ型
+- code: Dreamlit Hearth
+  rarity: S
+  weapon_name: 铸梦炉歌
+- code: Drill Rig - Red Axis
+  rarity: A
+  weapon_name: 旋钻机-赤轴
+- code: Electro-Lip Gloss
+  rarity: A
+  weapon_name: 触电唇彩
+- code: Elegant Vanity
+  rarity: S
+  weapon_name: 玲珑妆匣
+- code: Flamemaker Shaker
+  rarity: S
+  weapon_name: 灼心摇壶
+- code: Flight of Fancy
+  rarity: S
+  weapon_name: 飞鸟星梦
+- code: Fusion Compiler
+  rarity: S
+  weapon_name: 嵌合编译器
+- code: Gilded Blossom
+  rarity: A
+  weapon_name: 鎏金花信
+- code: Grill O'Wisp
+  rarity: A
+  weapon_name: 燔火胧夜
+- code: Hailstorm Shrine
+  rarity: S
+  weapon_name: 霰落星殿
+- code: Half-Sugar Bunny
+  rarity: S
+  weapon_name: 半糖雪兔
+- code: Heartstring Nocturne
+  rarity: S
+  weapon_name: 心弦夜响
+- code: Hellfire Gears
+  rarity: S
+  weapon_name: 燃狱齿轮
+- code: Housekeeper
+  rarity: A
+  weapon_name: 家政员
+- code: Ice-Jade Teapot
+  rarity: S
+  weapon_name: 玉壶青冰
+- code: Kaboom the Cannon
+  rarity: A
+  weapon_name: 好斗的阿炮
+- code: Kraken's Cradle
+  rarity: S
+  weapon_name: 海妖摇篮
+- code: Marcato Desire
+  rarity: A
+  weapon_name: 强音热望
+- code: Metanukimorphosis
+  rarity: S
+  weapon_name: 狸法七变化
+- code: Myriad Eclipse
+  rarity: S
+  weapon_name: 千面日陨
+- code: Neon Fantasies
+  rarity: S
+  weapon_name: 霓虹妄想
+- code: Original Transmorpher
+  rarity: A
+  weapon_name: 正版变身器
+- code: Peacekeeper - Specialized
+  rarity: A
+  weapon_name: 维序者-特化型
+- code: Practiced Perfection
+  rarity: S
+  weapon_name: 十方锻星
+- code: Precious Fossilized Core
+  rarity: A
+  weapon_name: 贵重骨核
+- code: Puzzle Sphere
+  rarity: A
+  weapon_name: 幻变魔方
+- code: Qingming Birdcage
+  rarity: S
+  weapon_name: 青溟笼舍
+- code: Radiowave Journey
+  rarity: A
+  weapon_name: 电波漫步
+- code: Rainforest Gourmet
+  rarity: A
+  weapon_name: 雨林饕客
+- code: Reel Projector
+  rarity: A
+  weapon_name: 光影刻刀
+- code: Riot Suppressor Mark VI
+  rarity: S
+  weapon_name: 防暴者Ⅵ型
+- code: Roaring Fur-nace
+  rarity: S
+  weapon_name: 福虓炉炉
+- code: Roaring Ride
+  rarity: A
+  weapon_name: 轰鸣座驾
+- code: Serpentine Seeker
+  rarity: S
+  weapon_name: 鳞齿寻踪
+- code: Severed Innocence
+  rarity: S
+  weapon_name: 牺牲洁纯
+- code: Sharpened Stinger
+  rarity: S
+  weapon_name: 淬锋钳刺
+- code: Six Shooter
+  rarity: A
+  weapon_name: 左轮转子
+- code: Slice of Time
+  rarity: A
+  weapon_name: 时光切片
+- code: Spectral Gaze
+  rarity: S
+  weapon_name: 索魂影眸
+- code: Spring Embrace
+  rarity: A
+  weapon_name: 春日融融
+- code: Starlight Engine Replica
+  rarity: A
+  weapon_name: 仿制星徽引擎
+- code: Starlight Engine
+  rarity: A
+  weapon_name: 星徽引擎
+- code: Steam Oven
+  rarity: A
+  weapon_name: 人为刀俎
+- code: Steel Cushion
+  rarity: S
+  weapon_name: 钢铁肉垫
+- code: Street Superstar
+  rarity: A
+  weapon_name: 街头巨星
+- code: The Brimstone
+  rarity: S
+  weapon_name: 硫磺石
+- code: The Restrained
+  rarity: S
+  weapon_name: 拘缚者
+- code: The Vault
+  rarity: A
+  weapon_name: 聚宝箱
+- code: Thoughtbop
+  rarity: S
+  weapon_name: 思络成歌
+- code: Timeweaver
+  rarity: S
+  weapon_name: 时流贤者
+- code: Tremor Trigram Vessel
+  rarity: A
+  weapon_name: 震元奇枢
+- code: Tusks of Fury
+  rarity: S
+  weapon_name: 奔袭獠牙
+- code: Unfettered Game Ball
+  rarity: A
+  weapon_name: 逍遥游球
+- code: Weeping Cradle
+  rarity: S
+  weapon_name: 啜泣摇篮
+- code: Weeping Gemini
+  rarity: A
+  weapon_name: 双生泣星
+- code: Wrathful Vajra
+  rarity: S
+  weapon_name: 怒目金刚
+- code: Yesterday Calls
+  rarity: S
+  weapon_name: 昨夜来电
+- code: Zanshin Herb Case
+  rarity: S
+  weapon_name: 残心青囊
+- code: '[Cinder] Cobalt'
   rarity: B
-  weapon_name: 「恒等式」-变格
+  weapon_name: 「灰烬」-钴蓝
 - code: '[Identity] Base'
   rarity: B
   weapon_name: 「恒等式」-本格
+- code: '[Identity] Inflection'
+  rarity: B
+  weapon_name: 「恒等式」-变格
 - code: '[Lunar] Decrescent'
   rarity: B
   weapon_name: 「月相」-晦
@@ -13,6 +229,15 @@
 - code: '[Lunar] Pleniluna'
   rarity: B
   weapon_name: 「月相」-望
+- code: '[Magnetic Storm] Alpha'
+  rarity: B
+  weapon_name: 「电磁暴」-壹式
+- code: '[Magnetic Storm] Bravo'
+  rarity: B
+  weapon_name: 「电磁暴」-贰式
+- code: '[Magnetic Storm] Charlie'
+  rarity: B
+  weapon_name: 「电磁暴」-叁式
 - code: '[Reverb] Mark I'
   rarity: B
   weapon_name: 「残响」-Ⅰ型
@@ -22,237 +247,12 @@
 - code: '[Reverb] Mark III'
   rarity: B
   weapon_name: 「残响」-Ⅲ型
-- code: '[Vortex] Hatchet'
-  rarity: B
-  weapon_name: 「湍流」-斧型
 - code: '[Vortex] Arrow'
   rarity: B
   weapon_name: 「湍流」-矢型
+- code: '[Vortex] Hatchet'
+  rarity: B
+  weapon_name: 「湍流」-斧型
 - code: '[Vortex] Revolver'
   rarity: B
   weapon_name: 「湍流」-铳型
-- code: '[Cinder] Cobalt'
-  rarity: B
-  weapon_name: 「灰烬」-钴蓝
-- code: '[Magnetic Storm] Charlie'
-  rarity: B
-  weapon_name: 「电磁暴」-叁式
-- code: '[Magnetic Storm] Alpha'
-  rarity: B
-  weapon_name: 「电磁暴」-壹式
-- code: '[Magnetic Storm] Bravo'
-  rarity: B
-  weapon_name: 「电磁暴」-贰式
-- code: Cloudcleave Radiance
-  rarity: S
-  weapon_name: 云霓孤光
-- code: Steam Oven
-  rarity: A
-  weapon_name: 人为刀俎
-- code: Starlight Engine Replica
-  rarity: A
-  weapon_name: 仿制星徽引擎
-- code: Reel Projector
-  rarity: A
-  weapon_name: 光影刻刀
-- code: Bunny Band
-  rarity: A
-  weapon_name: 兔能环
-- code: Cannon Rotor
-  rarity: A
-  weapon_name: 加农转子
-- code: Practiced Perfection
-  rarity: S
-  weapon_name: 十方锻星
-- code: Myriad Eclipse
-  rarity: S
-  weapon_name: 千面日陨
-- code: Half-Sugar Bunny
-  rarity: S
-  weapon_name: 半糖雪兔
-- code: Weeping Gemini
-  rarity: A
-  weapon_name: 双生泣星
-- code: Bashful Demon
-  rarity: A
-  weapon_name: 含羞恶面
-- code: Weeping Cradle
-  rarity: S
-  weapon_name: 啜泣摇篮
-- code: Bellicose Blaze
-  rarity: S
-  weapon_name: 嚣枪喧焰
-- code: Angel in the Shell
-  rarity: S
-  weapon_name: 壳中之灵
-- code: Tusks of Fury
-  rarity: S
-  weapon_name: 奔袭獠牙
-- code: Kaboom the Cannon
-  rarity: A
-  weapon_name: 好斗的阿炮
-- code: Housekeeper
-  rarity: A
-  weapon_name: 家政员
-- code: Fusion Compiler
-  rarity: S
-  weapon_name: 嵌合编译器
-- code: Six Shooter
-  rarity: A
-  weapon_name: 左轮转子
-- code: Puzzle Sphere
-  rarity: A
-  weapon_name: 幻变魔方
-- code: Marcato Desire
-  rarity: A
-  weapon_name: 强音热望
-- code: Demara Battery Mark II
-  rarity: A
-  weapon_name: 德玛拉电池Ⅱ型
-- code: Heartstring Nocturne
-  rarity: S
-  weapon_name: 心弦夜响
-- code: Wrathful Vajra
-  rarity: S
-  weapon_name: 怒目金刚
-- code: Thoughtbop
-  rarity: S
-  weapon_name: 思络成歌
-- code: The Restrained
-  rarity: S
-  weapon_name: 拘缚者
-- code: Drill Rig - Red Axis
-  rarity: A
-  weapon_name: 旋钻机-赤轴
-- code: Slice of Time
-  rarity: A
-  weapon_name: 时光切片
-- code: Timeweaver
-  rarity: S
-  weapon_name: 时流贤者
-- code: Starlight Engine
-  rarity: A
-  weapon_name: 星徽引擎
-- code: Spring Embrace
-  rarity: A
-  weapon_name: 春日融融
-- code: Yesterday Calls
-  rarity: S
-  weapon_name: 昨夜来电
-- code: Cordis Germina
-  rarity: S
-  weapon_name: 机巧心种
-- code: Original Transmorpher
-  rarity: A
-  weapon_name: 正版变身器
-- code: Zanshin Herb Case
-  rarity: S
-  weapon_name: 残心青囊
-- code: Big Cylinder
-  rarity: A
-  weapon_name: 比格气缸
-- code: Kraken's Cradle
-  rarity: S
-  weapon_name: 海妖摇篮
-- code: Sharpened Stinger
-  rarity: S
-  weapon_name: 淬锋钳刺
-- code: Deep Sea Visitor
-  rarity: S
-  weapon_name: 深海访客
-- code: Flamemaker Shaker
-  rarity: S
-  weapon_name: 灼心摇壶
-- code: Blazing Laurel
-  rarity: S
-  weapon_name: 焰心桂冠
-- code: Hellfire Gears
-  rarity: S
-  weapon_name: 燃狱齿轮
-- code: Grill O'Wisp
-  rarity: A
-  weapon_name: 燔火胧夜
-- code: Severed Innocence
-  rarity: S
-  weapon_name: 牺牲洁纯
-- code: Metanukimorphosis
-  rarity: S
-  weapon_name: 狸法七变化
-- code: Ice-Jade Teapot
-  rarity: S
-  weapon_name: 玉壶青冰
-- code: Elegant Vanity
-  rarity: S
-  weapon_name: 玲珑妆匣
-- code: Radiowave Journey
-  rarity: A
-  weapon_name: 电波漫步
-- code: The Brimstone
-  rarity: S
-  weapon_name: 硫磺石
-- code: Roaring Fur-nace
-  rarity: S
-  weapon_name: 福虓炉炉
-- code: Spectral Gaze
-  rarity: S
-  weapon_name: 索魂影眸
-- code: Peacekeeper - Specialized
-  rarity: A
-  weapon_name: 维序者-特化型
-- code: The Vault
-  rarity: A
-  weapon_name: 聚宝箱
-- code: Street Superstar
-  rarity: A
-  weapon_name: 街头巨星
-- code: Box Cutter
-  rarity: A
-  weapon_name: 裁纸刀
-- code: Electro-Lip Gloss
-  rarity: A
-  weapon_name: 触电唇彩
-- code: Precious Fossilized Core
-  rarity: A
-  weapon_name: 贵重骨核
-- code: Roaring Ride
-  rarity: A
-  weapon_name: 轰鸣座驾
-- code: Unfettered Game Ball
-  rarity: A
-  weapon_name: 逍遥游球
-- code: Gilded Blossom
-  rarity: A
-  weapon_name: 鎏金花信
-- code: Steel Cushion
-  rarity: S
-  weapon_name: 钢铁肉垫
-- code: Dreamlit Hearth
-  rarity: S
-  weapon_name: 铸梦炉歌
-- code: Riot Suppressor Mark VI
-  rarity: S
-  weapon_name: 防暴者Ⅵ型
-- code: Rainforest Gourmet
-  rarity: A
-  weapon_name: 雨林饕客
-- code: Tremor Trigram Vessel
-  rarity: A
-  weapon_name: 震元奇枢
-- code: Neon Fantasies
-  rarity: S
-  weapon_name: 霓虹妄想
-- code: Hailstorm Shrine
-  rarity: S
-  weapon_name: 霰落星殿
-- code: Qingming Birdcage
-  rarity: S
-  weapon_name: 青溟笼舍
-- code: Cauldron of Clarity
-  rarity: A
-  weapon_name: 青漪灵鼎
-- code: Flight of Fancy
-  rarity: S
-  weapon_name: 飞鸟星梦
-- code: Serpentine Seeker
-  rarity: S
-  weapon_name: 鳞齿寻踪

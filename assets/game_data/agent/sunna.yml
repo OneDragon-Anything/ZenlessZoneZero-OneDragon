@@ -1,8 +1,8 @@
 agent_name: 千夏
 agent_type: SUPPORT
+code: sunna
 dmg_type: PHYSICAL
 rare_type: S
-code: sunna
 weight:
   生命值: 0.0
   攻击力: 1.0
