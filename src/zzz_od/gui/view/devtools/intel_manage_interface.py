@@ -771,11 +771,13 @@ class IntelManageInterface(VerticalScrollInterface):
         self.basic_info_table.setItem(2, 0, item_label)
         self.basic_info_table.setCellWidget(2, 1, self.rare_type_combo)
 
-        # code
+        # code（唯一标识符，只读）
         item_label = QTableWidgetItem("code")
         item_label.setFlags(item_label.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.basic_info_table.setItem(3, 0, item_label)
         item_value = QTableWidgetItem(agent_info.get("code", ""))
+        item_value.setFlags(item_value.flags() & ~Qt.ItemFlag.ItemIsEditable)  # 只读
+        item_value.setForeground(Qt.GlobalColor.gray)  # 灰色显示
         self.basic_info_table.setItem(3, 1, item_value)
 
         # 设置列宽：第一列固定宽度，第二列拉伸填充剩余空间
@@ -1111,7 +1113,13 @@ class IntelManageInterface(VerticalScrollInterface):
                     if col.formatter:
                         value = col.formatter(value)
                     item = QTableWidgetItem(str(value))
-                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                    # code 列禁止编辑（唯一标识符）
+                    if col.attr_name != "code":
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                    else:
+                        # code 列为只读
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        item.setForeground(Qt.GlobalColor.gray)  # 设置为灰色表示只读
                     table_widget.setItem(row_idx, col_idx, item)
 
         # 自动调整列宽以适应内容
