@@ -1,4 +1,6 @@
+import tempfile
 import time
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -28,6 +30,7 @@ def download_file(download_url: str, save_file_path: str,
     last_log_time = time.time()
     save_path = Path(save_file_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: Path | None = None
 
     def log_download_progress(downloaded_bytes: int, total_size: int) -> None:
         nonlocal last_log_time
@@ -55,26 +58,37 @@ def download_file(download_url: str, save_file_path: str,
         if progress_callback is not None:
             progress_callback(0, msg)
 
-        if not download_url.startswith(('http://', 'https://')):
+        url = urllib.parse.urlparse(download_url)
+        if url.scheme not in ('http', 'https'):
             raise ValueError(f"不支持的下载协议：{download_url}")
 
         request = urllib.request.Request(download_url)
-        with opener.open(request, timeout=60) as response, save_path.open('wb') as file:
+        with opener.open(request, timeout=60) as response:
             total_size = int(response.headers.get('Content-Length', '0') or 0)
             downloaded_bytes = 0
             chunk_size = 1024 * 64
 
-            while True:
-                if progress_signal is not None and progress_signal.get('signal') == 'cancel':
-                    raise DownloadCancelledError("下载已取消")
+            with tempfile.NamedTemporaryFile('wb', dir=save_path.parent, delete=False) as file:
+                temp_path = Path(file.name)
+                while True:
+                    if progress_signal is not None and progress_signal.get('signal') == 'cancel':
+                        raise DownloadCancelledError("下载已取消")
 
-                chunk = response.read(chunk_size)
-                if not chunk:
-                    break
+                    chunk = response.read(chunk_size)
+                    if not chunk:
+                        break
 
-                file.write(chunk)
-                downloaded_bytes += len(chunk)
-                log_download_progress(downloaded_bytes, total_size)
+                    file.write(chunk)
+                    downloaded_bytes += len(chunk)
+                    log_download_progress(downloaded_bytes, total_size)
+
+            if total_size > 0 and downloaded_bytes != total_size:
+                raise DownloadIncompleteError(
+                    f"下载不完整：{downloaded_bytes}/{total_size} bytes"
+                )
+
+            temp_path.replace(save_path)
+            temp_path = None
 
         msg = f"{gt('下载完成')} {save_file_path}"
         log.info(msg)
@@ -82,19 +96,26 @@ def download_file(download_url: str, save_file_path: str,
             progress_callback(1, msg)
         return True
     except DownloadCancelledError:
-        save_path.unlink(missing_ok=True)
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
         msg = f"{gt('下载已取消')}"
         log.info(msg)
         if progress_callback is not None:
             progress_callback(0, msg)
         return False
     except Exception as e:
-        save_path.unlink(missing_ok=True)
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
         msg = f"{gt('下载失败')} {e}"
         if progress_callback is not None:
             progress_callback(0, msg)
         log.error(msg, exc_info=True)
         return False
 
+
 class DownloadCancelledError(Exception):
+    pass
+
+
+class DownloadIncompleteError(Exception):
     pass
