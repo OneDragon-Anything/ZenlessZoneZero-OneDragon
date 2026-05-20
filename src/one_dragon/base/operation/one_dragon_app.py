@@ -1,6 +1,3 @@
-import re
-import subprocess
-from pathlib import Path
 from typing import ClassVar, List, Optional
 
 from one_dragon.base.config.game_account_config import GameAccountConfig
@@ -43,9 +40,7 @@ class OneDragonApp(Application):
         self._instance_start_idx: int = 0  # 最初开始的实例下标
         self._op_to_switch_account: Operation = op_to_switch_account  # 切换账号的op
 
-        self._last_account_config: GameAccountConfig | None = None
         self._last_controller: ControllerBase | None = None
-        self._last_game_path: str = ''
 
     def handle_init(self) -> None:
         """
@@ -90,46 +85,27 @@ class OneDragonApp(Application):
     @node_from(from_name='运行应用组')
     @operation_node(name='切换实例配置', screenshot_before_round=False)
     def switch_instance(self) -> OperationRoundResult:
-        self._last_account_config = self.ctx.game_account_config
-        self._last_controller = self.ctx.controller
-        self._last_game_path = self.ctx.game_account_config.game_path
+        next_idx = self._instance_idx + 1
+        if next_idx >= len(self._instance_list):
+            next_idx = 0
+        next_instance = self._instance_list[next_idx]
 
-        self._instance_idx += 1
-        if self._instance_idx >= len(self._instance_list):
-            self._instance_idx = 0
-        self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
-        log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
+        current_game_path = self.ctx.game_account_config.game_path
+        next_game_path = GameAccountConfig(next_instance.idx).game_path
 
-        if (self._last_account_config is not None
-            and self._last_account_config.game_path != self.ctx.game_account_config.game_path
-        ):
+        if current_game_path and next_game_path and current_game_path != next_game_path:
+            self._last_controller = self.ctx.controller
+            self._instance_idx = next_idx
             return self.round_success(status='游戏路径不同')
 
+        self._instance_idx = next_idx
+        self.ctx.switch_instance(next_instance.idx)
+        log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
         return self.round_success()
 
     @node_from(from_name='切换实例配置', status='游戏路径不同')
     @operation_node(name='关闭游戏', screenshot_before_round=False)
     def close_game(self) -> OperationRoundResult:
-        # 切换到不同路径的实例时，ctx.switch_instance() 已将 controller 的窗口标题
-        # 更新为新服务器的标题，_last_controller 无法再找到旧游戏窗口。
-        # 改用可执行文件名通过 taskkill 强制关闭旧进程。
-        if self._last_game_path:
-            exe_name = Path(self._last_game_path).name
-            if not exe_name or not re.fullmatch(r'[\w\-. ]+\.exe', exe_name, re.IGNORECASE):
-                log.warning('游戏路径无效，跳过关闭: %s', self._last_game_path)
-                return self.round_success()
-            result = subprocess.run(
-                ['taskkill', '/F', '/IM', exe_name],
-                capture_output=True,
-            )
-            if result.returncode == 0:
-                log.info('关闭游戏成功: %s', exe_name)
-                log.info('等待游戏占用文件释放(10s)...')
-                return self.round_success(wait=10)
-            log.info('未找到游戏进程 %s，可能已关闭', exe_name)
-            return self.round_success()
-
-        # 兜底：路径未保存时沿用旧逻辑
         if self._last_controller is None:
             return self.round_success()
         if self._last_controller.is_game_window_ready:
@@ -152,10 +128,11 @@ class OneDragonApp(Application):
     @node_from(from_name='关闭游戏')
     @operation_node(name='切换账号重新打开游戏', screenshot_before_round=False)
     def after_close_game(self) -> OperationRoundResult:
+        self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
+        log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
         if self.op_to_enter_game is None:
             return self.round_fail('未提供打开游戏方式')
-        else:
-            return self.round_by_op_result(self.op_to_enter_game.execute())
+        return self.round_by_op_result(self.op_to_enter_game.execute())
 
     @node_from(from_name='切换账号')
     @node_from(from_name='切换账号重新打开游戏')
