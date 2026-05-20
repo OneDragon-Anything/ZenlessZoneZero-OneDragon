@@ -67,7 +67,7 @@ class CoffeeApp(ZApplication):
         self.chosen_coffee: Coffee | None = None  # 选择的咖啡
         self.charge_plan: ChargePlanItem | None = None  # 咖啡模拟生成的挑战计划
         self.had_coffee_list: set[str] = set()  # 已经喝过的咖啡
-        self.turn_compensator = AngleTurnCompensator(self.ctx.controller)
+        self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
 
     def handle_init(self) -> None:
         """
@@ -75,9 +75,16 @@ class CoffeeApp(ZApplication):
         注意初始化要全面 方便一个指令重复使用
         """
         self.turn_compensator.reset()
+        self.retried_transport: bool = False
 
+    @node_from(from_name='等待咖啡店加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
+        if self.previous_node.name == '等待咖啡店加载':
+            if self.retried_transport:
+                return self.round_fail(status='等待咖啡店加载失败，重传送超限')
+            self.retried_transport = True
+
         op = Transport(self.ctx, '六分街', '咖啡店', wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
