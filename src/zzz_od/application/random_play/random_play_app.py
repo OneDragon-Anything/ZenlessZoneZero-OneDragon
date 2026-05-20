@@ -57,10 +57,17 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
-        self.turn_compensator = AngleTurnCompensator(self.ctx.controller)
+        self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
+        self.retried_transport: bool = False
 
+    @node_from(from_name='等待经营画面加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
+        if self.previous_node.name == '等待经营画面加载':
+            if self.retried_transport:
+                return self.round_fail(status='等待经营画面加载失败，重传送超限')
+            self.retried_transport = True
+
         op = Transport(self.ctx, '录像店', '柜台')
         return self.round_by_op_result(op.execute())
 
