@@ -174,6 +174,9 @@ class WorldPatrolRunRoute(ZOperation):
             # 起点坐标缺失，视为配置错误
             log.error('未找到初始坐标，请检查路线配置')
             return self.round_fail(status='路线或开始下标有误')
+        # 静止切人会让角色向前冲一小段，先切完最佳行走位，再记录路线起点
+        self.ctx.controller.stop_moving_forward()
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.current_pos = start_pos
         self.route_start_pos = start_pos  # 记录起点
         self.ctx.controller.turn_vertical_by_distance(300)
@@ -234,8 +237,10 @@ class WorldPatrolRunRoute(ZOperation):
         if (not self.backtrack_active) and cal_utils.distance_between(self.current_pos, target_pos) < self.REACH_DISTANCE:
             self.current_idx += 1
             if is_next_move:
-                # 到达途径点后，切换到最佳行走位
-                auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
+                # 到达途径点后，点刹，用于校准
+                self.ctx.controller.stop_moving_forward()
+                time.sleep(0.01)
+                self.ctx.controller.start_moving_forward()
             # 到达目标点后，重置脱困计数
             if self.pos_stuck_attempts > 0:
                 log.info('已到达目标点，重置脱困计数')
