@@ -730,7 +730,7 @@ class LostVoidRunLevel(ZOperation):
 
                 if not no_in_battle:
                     area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
-                    if self.ctx.model_config.ocr_gpu:
+                    if self.ctx.model_config.ocr_use_gpu:
                         f = gpu_executor.submit(
                             screen_utils.find_by_ocr,
                             ctx=self.ctx,
@@ -776,7 +776,7 @@ class LostVoidRunLevel(ZOperation):
                     '迷失之地-挑战结果',
                     '迷失之地-战斗失败'
                 ]
-                if self.ctx.model_config.ocr_gpu:
+                if self.ctx.model_config.ocr_use_gpu:
                     f = gpu_executor.submit(
                         self.check_and_update_current_screen,
                         screen=self.last_screenshot,
@@ -788,7 +788,7 @@ class LostVoidRunLevel(ZOperation):
 
                 # 以下情况会出现确认对话框
                 # 1. 所有战术棱镜均已升级
-                if self.ctx.model_config.ocr_gpu:
+                if self.ctx.model_config.ocr_use_gpu:
                     f = gpu_executor.submit(
                         self.round_by_find_and_click_area,
                         screen=self.last_screenshot,
