@@ -1,5 +1,4 @@
 import difflib
-import time
 from typing import ClassVar
 
 from cv2.typing import MatLike
@@ -11,7 +10,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cal_utils, cv2_utils
+from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.random_play import random_play_const
@@ -25,6 +24,7 @@ from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
+from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
 
 
 class RandomPlayApp(ZApplication):
@@ -79,25 +79,12 @@ class RandomPlayApp(ZApplication):
         传送之后 先将视角转向正东 再往前移动一下 方便交互
         :return:
         """
-        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
-        if not mini_map.play_mask_found:
-            return self.round_retry(status='未识别到小地图', wait=1)
-
-        current_angle = mini_map.view_angle
-        if current_angle is None:
-            return self.round_retry(status='识别朝向失败', wait=1)
-
-        angle_diff = cal_utils.angle_delta(current_angle, 0)
-        if abs(angle_diff) > 2.0:
-            self.turn_compensator.turn_from_angle(current_angle, angle_diff)
-            return self.round_retry(status='转向正东', wait=0.5)
-
-        self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
-
-        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-
-        return self.round_success()
+        return turn_to_angle_and_interact(
+            self,
+            self.turn_compensator,
+            target_angle=0,
+            turn_status='转向正东',
+        )
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待经营画面加载')
