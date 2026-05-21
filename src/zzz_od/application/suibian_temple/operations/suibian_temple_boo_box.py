@@ -1,6 +1,8 @@
 import time
 from typing import TYPE_CHECKING, cast
 
+from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
+from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.ocr import ocr_utils
@@ -15,6 +17,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import (
     BangbooPrice,
     SuibianTempleConfig,
 )
+from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -260,10 +263,17 @@ class SuibianTempleBooBox(ZOperation):
         result = self.round_by_ocr(self.last_screenshot, '跳过', area=skip_area)
         if result.is_success:
             controller = cast('ZPcController', self.ctx.controller)
-            controller.btn_tap('esc')
+            skip_key = 'esc'
+            if controller.background_mode:
+                skip_key = (
+                    Ds4ButtonEnum.CIRCLE.value.value
+                    if self.ctx.game_config.background_gamepad_type == GamepadTypeEnum.DS4.value.value
+                    else XboxButtonEnum.B.value.value
+                )
+            controller.btn_tap(skip_key)
             result = self.round_by_ocr(self.screenshot(), '跳过', area=skip_area)
             if result.is_success:
-                controller.btn_tap('esc')
+                controller.btn_tap(skip_key)
             return self.round_wait(status='点击跳过', wait=0.5)
 
         return self.round_retry(status='未找到或未跳过', wait=0.5)

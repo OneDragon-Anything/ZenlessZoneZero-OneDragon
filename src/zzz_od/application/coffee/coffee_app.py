@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
 import cv2
 import numpy as np
 
+from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
+from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
@@ -26,6 +28,7 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeConfig,
 )
 from zzz_od.application.zzz_application import ZApplication
+from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -283,11 +286,18 @@ class CoffeeApp(ZApplication):
         result = self.round_by_ocr(self.last_screenshot, '跳过', area=skip_area)
         if result.is_success:
             controller = cast('ZPcController', self.ctx.controller)
-            controller.btn_tap('esc')
+            skip_key = 'esc'
+            if controller.background_mode:
+                skip_key = (
+                    Ds4ButtonEnum.CIRCLE.value.value
+                    if self.ctx.game_config.background_gamepad_type == GamepadTypeEnum.DS4.value.value
+                    else XboxButtonEnum.B.value.value
+                )
+            controller.btn_tap(skip_key)
             result = self.round_by_ocr(self.screenshot(), '跳过', area=skip_area)
             if result.is_success:
-                controller.btn_tap('esc')
-            return self.round_wait('按ESC跳过', wait=0.5)
+                controller.btn_tap(skip_key)
+            return self.round_wait('按键跳过', wait=0.5)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:
