@@ -1,7 +1,6 @@
 import argparse
 import time
 
-from one_dragon.utils.log_utils import log
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
@@ -66,6 +65,7 @@ class ONNXPaddleOcr(TextSystem):
                     return cls_res
                 return ocr_res
         except Exception:
+            from one_dragon.utils.log_utils import log
             log.error('OCR推理出错', exc_info=True)
             try:
                 from one_dragon.utils import debug_utils

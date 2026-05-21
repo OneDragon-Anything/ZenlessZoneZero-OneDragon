@@ -1,6 +1,8 @@
 import onnxruntime
+
 from one_dragon.utils import gpu_executor
 from one_dragon.utils.log_utils import log
+
 
 class PredictBase(object):
     def __init__(self):
