@@ -24,8 +24,8 @@ from zzz_od.application.world_patrol.world_patrol_route import (
 )
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.controller.turn_compensation import AngleTurnCompensator
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
 from zzz_od.operation.zzz_operation import ZOperation
 
 

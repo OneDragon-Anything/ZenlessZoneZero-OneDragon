@@ -21,10 +21,10 @@ from zzz_od.application.random_play.random_play_config import (
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.controller.turn_compensation import AngleTurnCompensator
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
 
 
 class RandomPlayApp(ZApplication):

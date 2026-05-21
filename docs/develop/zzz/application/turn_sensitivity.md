@@ -101,7 +101,7 @@ controller.move_mouse_relative(dx, dy)
 
 锄大地不是“只看 `turn_dx`”。
 
-它会先根据当前位置和目标点算出 `angle_diff`，然后通过 `controller/turn_compensation.py` 里的 `AngleTurnCompensator` 引入运行时自适应比例，再交给控制器做角度转向。
+它会先根据当前位置和目标点算出 `angle_diff`，然后通过 `operation/turning/turn_compensation.py` 里的 `AngleTurnCompensator` 引入运行时自适应比例，再交给控制器做角度转向。
 
 因此锄大地的前台转向效果由两部分共同决定：
 
