@@ -49,6 +49,7 @@ if not getattr(sys, 'frozen', False):
     import string
     import subprocess
     import sys
+    import tempfile
     import threading
     import time
     import traceback
