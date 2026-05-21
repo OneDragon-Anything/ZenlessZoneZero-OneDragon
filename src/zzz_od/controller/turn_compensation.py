@@ -72,13 +72,16 @@ class AngleTurnCompensator:
         """计算实际朝向变化，必要时展开跨 180 度的最短角。
 
         angle_delta 返回 [-180, 180] 的最短角；例如从 0 度转到 185 度会返回 -175。
-        只有接近掉头的命令才展开反向观测，小转向反向时保留反号让 learn 跳过。
+        只有命令和观测变化都接近 ±180 度时才展开反向观测，小转向反向时保留反号让 learn 跳过。
         """
         observed_angle_change = cal_utils.angle_delta(source_angle, current_angle)
         if observed_angle_change * effective_angle_diff >= 0:
             return observed_angle_change
 
-        if abs(effective_angle_diff) < self._MIN_ANGLE_FOR_REVERSE_UNFOLD:
+        if (
+            abs(effective_angle_diff) < self._MIN_ANGLE_FOR_REVERSE_UNFOLD
+            or abs(observed_angle_change) < self._MIN_ANGLE_FOR_REVERSE_UNFOLD
+        ):
             return observed_angle_change
         if effective_angle_diff > 0:
             return observed_angle_change + 360
