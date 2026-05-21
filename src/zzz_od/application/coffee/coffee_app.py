@@ -1,6 +1,6 @@
 import difflib
 import time
-from typing import ClassVar, List, Optional
+from typing import TYPE_CHECKING, ClassVar, List, Optional, cast
 
 import cv2
 import numpy as np
@@ -34,6 +34,9 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.wait_normal_world import WaitNormalWorld
+
+if TYPE_CHECKING:
+    from zzz_od.controller.zzz_pc_controller import ZPcController
 
 
 class CoffeeApp(ZApplication):
@@ -276,10 +279,15 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        # 这个点击很怪 需要多点几次
-        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
+        skip_area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
+        result = self.round_by_ocr(self.last_screenshot, '跳过', area=skip_area)
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            controller = cast('ZPcController', self.ctx.controller)
+            controller.btn_tap('esc')
+            result = self.round_by_ocr(self.screenshot(), '跳过', area=skip_area)
+            if result.is_success:
+                controller.btn_tap('esc')
+            return self.round_wait('按ESC跳过', wait=0.5)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:

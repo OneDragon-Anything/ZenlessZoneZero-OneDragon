@@ -1,4 +1,5 @@
 import time
+from typing import TYPE_CHECKING, cast
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -16,6 +17,9 @@ from zzz_od.application.suibian_temple.suibian_temple_config import (
 )
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
+
+if TYPE_CHECKING:
+    from zzz_od.controller.zzz_pc_controller import ZPcController
 
 
 class SuibianTempleBooBox(ZOperation):
@@ -252,11 +256,17 @@ class SuibianTempleBooBox(ZOperation):
         if any('聘用' in text for text in ocr_result_map):
             return self.round_success(status='已返回邦巢界面')
 
-        self.ctx.controller.click(
-            pos=self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过').center,
-            press_time=0.5,  # 长按一点
-        )
-        return self.round_wait(status='点击跳过', wait=0.5)
+        skip_area = self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过')
+        result = self.round_by_ocr(self.last_screenshot, '跳过', area=skip_area)
+        if result.is_success:
+            controller = cast('ZPcController', self.ctx.controller)
+            controller.btn_tap('esc')
+            result = self.round_by_ocr(self.screenshot(), '跳过', area=skip_area)
+            if result.is_success:
+                controller.btn_tap('esc')
+            return self.round_wait(status='点击跳过', wait=0.5)
+
+        return self.round_retry(status='未找到或未跳过', wait=0.5)
 
     @node_from(from_name='处理购买动画', status='点击跳过')
     @operation_node(name='返回界面')
