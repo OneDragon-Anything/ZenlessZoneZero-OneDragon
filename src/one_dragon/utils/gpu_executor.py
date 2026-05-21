@@ -1,10 +1,10 @@
 import threading
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Callable, TypeVar
+from typing import TypeVar
 
-from one_dragon.utils.log_utils import log
 from one_dragon.utils import thread_utils
+from one_dragon.utils.log_utils import log
 
 T = TypeVar("T")
 _THREAD_PREFIX = "od_gpu"

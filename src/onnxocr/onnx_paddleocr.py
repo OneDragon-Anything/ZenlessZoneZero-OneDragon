@@ -1,10 +1,10 @@
 import argparse
 import time
 
+from one_dragon.utils.log_utils import log
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
-from one_dragon.utils.log_utils import log
 
 
 class ONNXPaddleOcr(TextSystem):
