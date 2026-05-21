@@ -22,6 +22,10 @@ class AngleTurnCompensator:
     def reset(self) -> None:
         """清空补偿比例和上一轮转向样本。"""
         self.scale = 1.0
+        self.clear_pending_sample()
+
+    def clear_pending_sample(self) -> None:
+        """清空上一轮尚未学习的转向样本，保留补偿比例。"""
         self.last_source_angle = None
         self.last_effective_angle_diff = None
 

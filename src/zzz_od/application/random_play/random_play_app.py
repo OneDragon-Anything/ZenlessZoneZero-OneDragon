@@ -68,6 +68,7 @@ class RandomPlayApp(ZApplication):
                 return self.round_fail(status='等待经营画面加载失败，重传送超限')
             self.retried_transport = True
 
+        self.turn_compensator.clear_pending_sample()
         op = Transport(self.ctx, '录像店', '柜台')
         return self.round_by_op_result(op.execute())
 

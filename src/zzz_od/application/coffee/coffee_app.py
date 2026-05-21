@@ -85,6 +85,7 @@ class CoffeeApp(ZApplication):
                 return self.round_fail(status='等待咖啡店加载失败，重传送超限')
             self.retried_transport = True
 
+        self.turn_compensator.clear_pending_sample()
         op = Transport(self.ctx, '六分街', '咖啡店', wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
