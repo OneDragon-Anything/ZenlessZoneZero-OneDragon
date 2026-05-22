@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -39,7 +38,28 @@ class NotifyConfig(YamlConfig):
         YamlConfig.__init__(self, 'notify', instance_idx=instance_idx)
         self.app_map = app_map.copy()
         self._migrate_legacy_config()
-        self._generate_dynamic_properties()
+
+    def __getattr__(self, name: str) -> dict[str, str]:
+        """
+        按 app_map 动态解析应用通知配置。
+        """
+        app_map = self.__dict__.get('app_map')
+        if isinstance(app_map, dict) and name in app_map:
+            return {
+                'lifecycle': self.get_app_lifecycle_mode(name),
+                'detail': self.get_app_detail_mode(name),
+            }
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """
+        按 app_map 动态写入应用通知配置，避免把动态字段挂到类级别。
+        """
+        app_map = self.__dict__.get('app_map')
+        if isinstance(app_map, dict) and name in app_map:
+            self._set_app_modes(name, value)
+            return
+        object.__setattr__(self, name, value)
 
     @property
     def title(self) -> str:
@@ -154,38 +174,26 @@ class NotifyConfig(YamlConfig):
                 result[app_id] = app_setting.copy()
         return result
 
-    def _generate_dynamic_properties(self) -> None:
-        # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
-        for app_id in self.app_map:
-            def create_getter(name: str) -> Callable[[NotifyConfig], dict[str, str]]:
-                def getter(self: NotifyConfig) -> dict[str, str]:
-                    return {
-                        'lifecycle': self.get_app_lifecycle_mode(name),
-                        'detail': self.get_app_detail_mode(name),
-                    }
-                return getter
+    def _set_app_modes(self, app_id: str, value: object) -> None:
+        """
+        写入动态应用通知配置。
+        """
+        if isinstance(value, dict):
+            lifecycle = self._normalize_lifecycle_mode(
+                value.get('lifecycle', self.get_app_lifecycle_mode(app_id))
+            )
+            detail = self._normalize_detail_mode(
+                value.get('detail', self.get_app_detail_mode(app_id))
+            )
+        else:
+            lifecycle, detail = self._legacy_level_to_modes(int(value))
 
-            def create_setter(name: str) -> Callable[[NotifyConfig, dict[str, str] | int], None]:
-                def setter(self: NotifyConfig, new_value: dict[str, str] | int) -> None:
-                    if isinstance(new_value, dict):
-                        lifecycle = self._normalize_lifecycle_mode(
-                            new_value.get('lifecycle', self.get_app_lifecycle_mode(name))
-                        )
-                        detail = self._normalize_detail_mode(
-                            new_value.get('detail', self.get_app_detail_mode(name))
-                        )
-                    else:
-                        lifecycle, detail = self._legacy_level_to_modes(new_value)
-                    setting = self._copy_app_settings()
-                    setting[name] = {
-                        'lifecycle': lifecycle,
-                        'detail': detail,
-                    }
-                    self.update('applications', setting)
-                return setter
-
-            prop = property(create_getter(app_id), create_setter(app_id))
-            setattr(self.__class__, app_id, prop)
+        setting = self._copy_app_settings()
+        setting[app_id] = {
+            'lifecycle': lifecycle,
+            'detail': detail,
+        }
+        self.update('applications', setting)
 
     def _normalize_lifecycle_mode(self, value: object) -> str:
         """
