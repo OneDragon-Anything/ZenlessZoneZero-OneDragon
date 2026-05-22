@@ -2506,6 +2506,48 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 进入游戏点击后状态
+    id_mark: false
+    pc_rect:
+    - 700
+    - 820
+    - 1220
+    - 1032
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏数据更新提示
+    id_mark: false
+    pc_rect:
+    - 760
+    - 520
+    - 1160
+    - 590
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏数据更新-确定
+    id_mark: false
+    pc_rect:
+    - 820
+    - 610
+    - 1120
+    - 700
+    text: 确定
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 国服-账号密码
     id_mark: false
     pc_rect:

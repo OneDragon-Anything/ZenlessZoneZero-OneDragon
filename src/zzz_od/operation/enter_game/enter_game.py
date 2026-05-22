@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -13,7 +13,10 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
@@ -21,6 +24,8 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 
 class EnterGame(ZOperation):
+
+    STATUS_GAME_DATA_UPDATED: ClassVar[str] = '游戏数据已更新'
 
     def __init__(self, ctx: ZContext, switch: bool = False):
         ZOperation.__init__(self, ctx,
@@ -35,23 +40,30 @@ class EnterGame(ZOperation):
             self.force_login = True
 
         self.already_login: bool = False  # 是否已经登录了
+        self.after_second_enter_click: bool = False  # 是否已经完成加载配置后的第二次进入游戏点击
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
 
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
+        self.after_second_enter_click = False
         self.interact_ignore_word_list.clear()
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
     @node_from(from_name='B服新-选择登录过的账号')
     @node_from(from_name='国际服-换服')
+    @node_from(from_name='进入游戏后操作', status=STATUS_GAME_DATA_UPDATED)
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
         # self.screenshot()
         # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
+
+        data_updated_result = self.check_game_data_updated(self.last_screenshot, back_to_check_screen=False)
+        if data_updated_result is not None:
+            return data_updated_result
 
         login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
@@ -69,7 +81,7 @@ class EnterGame(ZOperation):
 
         return self.round_retry(status='未知画面', wait=1)
 
-    def check_login_related(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def check_login_related(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断登陆相关的出现内容
         :param screen: 游戏画面
@@ -100,6 +112,7 @@ class EnterGame(ZOperation):
         else:
             result = self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
+                self.after_second_enter_click = False
                 return self.round_success(result.status, wait=5)
 
         result = self.round_by_find_and_click_area(screen, '打开游戏', '国服-账号密码')
@@ -130,7 +143,7 @@ class EnterGame(ZOperation):
 
         return None
 
-    def check_screen_intl(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def check_screen_intl(self, screen: MatLike) -> OperationRoundResult | None:
         result = self.round_by_find_area(screen, '打开游戏', '国际服-点击登录')
         if result.is_success:
             time.sleep(2)  # 已登录的状态也可能出现几秒“点击登录”
@@ -340,7 +353,89 @@ class EnterGame(ZOperation):
         screen = self.screenshot()
         return self.round_by_find_and_click_area(screen, '打开游戏', area_name, success_wait=1)
 
-    def check_screen_to_interact(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def check_after_first_enter_click(
+            self,
+            screen: MatLike,
+    ) -> OperationRoundResult | None:
+        """
+        判断第一次点击进入游戏之后的普通加载或更新分支。
+
+        Args:
+            screen: 游戏画面。
+
+        Returns:
+            有处理结果时返回对应结果，否则返回 None。
+        """
+        data_updated_result = self.check_game_data_updated(screen, back_to_check_screen=True)
+        if data_updated_result is not None:
+            return data_updated_result
+
+        result = self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ("点击进入游戏", OperationRoundResultEnum.WAIT),
+                ("加载配置数据中", OperationRoundResultEnum.WAIT),
+                ("登录游戏服务器中", OperationRoundResultEnum.WAIT),
+                ("登录成功", OperationRoundResultEnum.WAIT),
+                ("资源下载中", OperationRoundResultEnum.WAIT),
+            ],
+            screen=screen,
+            area=self.ctx.screen_loader.get_area('打开游戏', '进入游戏点击后状态'),
+            pre_delay=0,
+            wait_wait=1,
+            retry_wait=0,
+        )
+        if result.result == OperationRoundResultEnum.WAIT:
+            if result.status in ['点击进入游戏', '登录游戏服务器中', '登录成功']:
+                self.after_second_enter_click = True
+            return result
+
+        return None
+
+    def check_game_data_updated(
+            self,
+            screen: MatLike,
+            back_to_check_screen: bool,
+    ) -> OperationRoundResult | None:
+        """
+        处理资源更新完成后要求重新登录的提示。
+
+        Args:
+            screen: 游戏画面。
+            back_to_check_screen: 点击确认后是否回到画面识别节点。
+
+        Returns:
+            有处理结果时返回对应结果，否则返回 None。
+        """
+        message_result = self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                (EnterGame.STATUS_GAME_DATA_UPDATED, OperationRoundResultEnum.WAIT),
+            ],
+            screen=screen,
+            area=self.ctx.screen_loader.get_area('打开游戏', '游戏数据更新提示'),
+            pre_delay=0,
+            wait_wait=0,
+            retry_wait=0,
+        )
+        if message_result.result == OperationRoundResultEnum.RETRY:
+            return None
+
+        confirm_result = self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('确定', OperationRoundResultEnum.SUCCESS),
+            ],
+            screen=screen,
+            area=self.ctx.screen_loader.get_area('打开游戏', '游戏数据更新-确定'),
+            retry_wait=1,
+        )
+        if not confirm_result.is_success:
+            return confirm_result
+
+        self.after_second_enter_click = False
+        if back_to_check_screen:
+            return self.round_success(EnterGame.STATUS_GAME_DATA_UPDATED, wait=3)
+        return self.round_wait(EnterGame.STATUS_GAME_DATA_UPDATED, wait=3)
+
+    def check_screen_to_interact(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断画面 处理可能出现的需要交互的情况
         :param screen: 游戏画面
@@ -412,7 +507,7 @@ class EnterGame(ZOperation):
 
         return None
 
-    def match_login_error(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def match_login_error(self, screen: MatLike) -> OperationRoundResult | None:
         """
         识别登录可能出现的问题
         :param screen: 游戏画面
@@ -436,7 +531,7 @@ class EnterGame(ZOperation):
 
         return None
 
-    def is_in_big_world(self, screen: MatLike) -> Optional[OperationRoundResult]:
+    def is_in_big_world(self, screen: MatLike) -> OperationRoundResult | None:
         # 判定是否进入大世界
         world_screens = ['大世界-普通', '大世界-勘域']
         current_screen = self.check_and_update_current_screen(
@@ -450,6 +545,17 @@ class EnterGame(ZOperation):
     @node_from(from_name='画面识别', status='点击进入游戏')
     @operation_node(name='进入游戏后操作', node_max_retry_times=15)
     def after_enter_game(self) -> OperationRoundResult:
+        # 第一次点击进入游戏后，普通加载和资源更新都在这里分流。
+        after_click_result = self.check_after_first_enter_click(self.last_screenshot)
+        if after_click_result is not None:
+            return after_click_result
+
+        if self.after_second_enter_click:
+            # 登录失败只会出现在加载配置后的第二次进入游戏点击之后。
+            login_error_result = self.match_login_error(self.last_screenshot)
+            if login_error_result is not None:
+                return login_error_result
+
         # 识别并点击弹窗
         interact_result = self.check_screen_to_interact(self.last_screenshot)
         if interact_result is not None:
