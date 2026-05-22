@@ -130,6 +130,8 @@ class OneDragonApp(Application):
     def after_close_game(self) -> OperationRoundResult:
         self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
         log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
+        if self._instance_idx == self._instance_start_idx:
+            return self.round_success()
         if self.op_to_enter_game is None:
             return self.round_fail('未提供打开游戏方式')
         return self.round_by_op_result(self.op_to_enter_game.execute())
