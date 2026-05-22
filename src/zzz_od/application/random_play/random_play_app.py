@@ -1,5 +1,4 @@
 import difflib
-import time
 from typing import ClassVar
 
 from cv2.typing import MatLike
@@ -10,10 +9,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
-from one_dragon.base.operation.operation_round_result import (
-    OperationRoundResult,
-    OperationRoundResultEnum,
-)
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -27,6 +23,8 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
+from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
 
 
 class RandomPlayApp(ZApplication):
@@ -59,25 +57,34 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
+        self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
+        self.retried_transport: bool = False
 
+    @node_from(from_name='等待经营画面加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
+        if self.previous_node.name == '等待经营画面加载':
+            if self.retried_transport:
+                return self.round_fail(status='等待经营画面加载失败，重传送超限')
+            self.retried_transport = True
+
+        self.turn_compensator.clear_pending_sample()
         op = Transport(self.ctx, '录像店', '柜台')
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='移动交互')
+    @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 往前移动一下 方便交互
+        传送之后 先将视角转向正东 再往前移动一下 方便交互
         :return:
         """
-        self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
-
-        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-
-        return self.round_success()
+        return turn_to_angle_and_interact(
+            self,
+            self.turn_compensator,
+            target_angle=0,
+            turn_status='转向正东',
+        )
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待经营画面加载')
@@ -391,6 +398,7 @@ class RandomPlayApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     app = RandomPlayApp(ctx)
     app.execute()
 

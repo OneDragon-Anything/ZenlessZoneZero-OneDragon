@@ -1,6 +1,6 @@
 import difflib
 import time
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -33,6 +33,8 @@ from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
+from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
 from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
@@ -63,19 +65,28 @@ class CoffeeApp(ZApplication):
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        self.chosen_coffee: Optional[Coffee] = None  # 选择的咖啡
-        self.charge_plan: Optional[ChargePlanItem] = None  # 咖啡模拟生成的挑战计划
+        self.chosen_coffee: Coffee | None = None  # 选择的咖啡
+        self.charge_plan: ChargePlanItem | None = None  # 咖啡模拟生成的挑战计划
         self.had_coffee_list: set[str] = set()  # 已经喝过的咖啡
+        self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
 
     def handle_init(self) -> None:
         """
         执行前的初始化 由子类实现
         注意初始化要全面 方便一个指令重复使用
         """
-        pass
+        self.turn_compensator.reset()
+        self.retried_transport: bool = False
 
+    @node_from(from_name='等待咖啡店加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
+        if self.previous_node.name == '等待咖啡店加载':
+            if self.retried_transport:
+                return self.round_fail(status='等待咖啡店加载失败，重传送超限')
+            self.retried_transport = True
+
+        self.turn_compensator.clear_pending_sample()
         op = Transport(self.ctx, '六分街', '咖啡店', wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
@@ -94,18 +105,18 @@ class CoffeeApp(ZApplication):
         return self.round_retry(status=result.status, wait=1)
 
     @node_from(from_name='等待大世界加载')
-    @operation_node(name='移动交互')
+    @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 往前移动一下 方便交互
+        传送之后先将视角转向正西，再往前移动一下方便交互
         :return:
         """
-        self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
-
-        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-
-        return self.round_success()
+        return turn_to_angle_and_interact(
+            self,
+            self.turn_compensator,
+            target_angle=180,
+            turn_status='转向正西',
+        )
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待咖啡店加载', node_max_retry_times=20)
@@ -132,8 +143,8 @@ class CoffeeApp(ZApplication):
         to_ocr = cv2.bitwise_and(part, part, mask=cv2_utils.dilate(mask, 5))
 
         ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
-        ocr_result_list: List[str] = []
-        mrl_list: List[MatchResultList] = []
+        ocr_result_list: list[str] = []
+        mrl_list: list[MatchResultList] = []
         for ocr_result, mrl in ocr_result_map.items():
             ocr_result_list.append(ocr_result)
             mrl_list.append(mrl)
@@ -171,7 +182,7 @@ class CoffeeApp(ZApplication):
 
         return self.round_retry(status='没找到目标咖啡', wait=1)
 
-    def _get_coffee_to_choose(self, day: int) -> List[str]:
+    def _get_coffee_to_choose(self, day: int) -> list[str]:
         """
         获取需要选择的咖啡名称列表
         :return:
@@ -334,7 +345,7 @@ class CoffeeApp(ZApplication):
         if self.chosen_coffee.without_benefit:
             return self.round_fail('没有增益的咖啡')
 
-        coffee_plan: Optional[ChargePlanItem] = None
+        coffee_plan: ChargePlanItem | None = None
         for plan in self.charge_plan_config.plan_list:
             if self._is_coffee_for_plan(self.chosen_coffee, plan):
                 coffee_plan = plan
