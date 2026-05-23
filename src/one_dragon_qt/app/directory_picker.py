@@ -95,7 +95,7 @@ class DirectoryPickerTranslator:
                 return 'zh'
             else:
                 return 'en'
-        except Exception:
+        except locale.Error:
             return 'zh'
 
 

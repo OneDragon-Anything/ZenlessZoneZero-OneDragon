@@ -1,4 +1,5 @@
 import difflib
+from typing import Any
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -126,7 +127,7 @@ class CompendiumChooseMissionType(ZOperation):
         self.ctx.controller.drag_to(start=start, end=end)
         return self.round_retry(status=f'找不到 {self.mission_type.mission_type_name}', wait=1)
 
-    def handle_go_button(self, screen, target_point: Point) -> OperationRoundResult:
+    def handle_go_button(self, screen: Any, target_point: Point) -> OperationRoundResult:
         """
         处理前往按钮点击逻辑
         """

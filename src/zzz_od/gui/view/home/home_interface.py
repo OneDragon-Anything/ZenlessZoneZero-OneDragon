@@ -635,7 +635,7 @@ class HomeInterface(BaseInterface):
         if self._ready:
             self.start_button.setText(gt('启动一条龙'))
         else:
-            self.start_button.setText(f"{len(issues)} {gt('项待配置')} ")
+            self.start_button.setText(gt('{count}项待配置').format(count=len(issues)))
 
     def _find_widget_by_name(self, name: str) -> QWidget | None:
         stacked = self.main_window.stackedWidget

@@ -6,10 +6,10 @@ from one_dragon.utils import os_utils
 
 _gt = {}
 _default_lang = 'zh'
-_model_lang = {}
+_model_lang: dict[str, str] = {}
 
 
-def detect_language():
+def detect_language() -> str:
     """自动检测系统语言"""
     try:
         system_locale = locale.getlocale()[0]
@@ -20,11 +20,11 @@ def detect_language():
             if system_language.startswith('ja'):
                 return 'ja'
         return 'en'
-    except Exception:
+    except locale.Error:
         return 'zh'
 
 
-def detect_and_set_default_language():
+def detect_and_set_default_language() -> None:
     """
     检测系统语言并设置为默认语言
     :return:
@@ -79,12 +79,12 @@ def coalesce_gt(msg: str | None, default: str, model: str = 'ui', lang: str | No
     return gt(msg if msg is not None else default, model, lang)
 
 
-def update_default_lang(lang: str):
+def update_default_lang(lang: str) -> None:
     global _default_lang
     _default_lang = lang
 
 
-def update_model_lang(model: str, lang: str | None):
+def update_model_lang(model: str, lang: str | None) -> None:
     if lang is None:
         _model_lang.pop(model, None)
         return

@@ -358,6 +358,21 @@ msgstr "グレース"
 msgid "珂蕾妲"
 msgstr "クレタ"
 
+msgid "{count}项待配置"
+msgstr "{count}項目が未設定"
+
+msgid "确定要删除图标 \"{name}\" ({id}) 吗？\n此操作不可撤销。"
+msgstr "アイコン「{name}」（{id}）を削除しますか？\nこの操作は元に戻せません。"
+
+msgid "确定要删除第{index}个操作吗？"
+msgstr "{index}番目の操作を削除しますか？"
+
+msgid "第{index}个操作的数据不完整"
+msgstr "{index}番目の操作のデータが不完全です"
+
+msgid "第{index}个操作的坐标数据必须是数字"
+msgstr "{index}番目の操作の座標データは数値である必要があります"
+
 msgid "露西"
 msgstr "ルーシー"
 

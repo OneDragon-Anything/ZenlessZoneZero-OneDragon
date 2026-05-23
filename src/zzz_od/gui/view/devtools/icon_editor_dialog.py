@@ -199,7 +199,7 @@ class IconEditorDialog(QDialog):
         # 重新连接信号
         self.table.itemChanged.connect(self._on_item_changed)
 
-    def _on_selection_changed(self):
+    def _on_selection_changed(self) -> None:
         """处理选择变化"""
         selected_items = self.table.selectedItems()
         if selected_items:
@@ -212,14 +212,14 @@ class IconEditorDialog(QDialog):
             self.set_tp_pos_btn.setEnabled(False)  # 无选中行时禁用按钮
             self.delete_btn.setEnabled(False)  # 无选中行时禁用删除按钮
 
-    def _on_item_changed(self, item):
+    def _on_item_changed(self, item: QTableWidgetItem) -> None:
         """处理项目变化"""
         if item.column() == 0:  # 只有图标名称可以编辑
             row = item.row()
             if 0 <= row < len(self.current_icon_list):
                 self.current_icon_list[row].icon_name = item.text()
 
-    def _on_save_clicked(self):
+    def _on_save_clicked(self) -> None:
         """保存按钮点击"""
         self.icons_saved.emit(self.current_icon_list)
         self.accept()
@@ -236,7 +236,10 @@ class IconEditorDialog(QDialog):
             reply = QMessageBox.question(
                 self,
                 gt('确认删除'),
-                f'{gt("确定要删除图标")} "{icon.icon_name}" ({icon.template_id}) {gt("吗？")}\n{gt("此操作不可撤销。")}',
+                gt('确定要删除图标 "{name}" ({id}) 吗？\n此操作不可撤销。').format(
+                    name=icon.icon_name,
+                    id=icon.template_id,
+                ),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )

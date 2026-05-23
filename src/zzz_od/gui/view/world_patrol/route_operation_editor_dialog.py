@@ -169,7 +169,7 @@ class RouteOperationEditorDialog(QDialog):
             reply = QMessageBox.question(
                 self,
                 gt('确认删除'),
-                f'{gt("确定要删除第")}{current_row}{gt("个操作吗？")}',
+                gt('确定要删除第{index}个操作吗？').format(index=current_row),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply == QMessageBox.StandardButton.Yes:
@@ -201,14 +201,14 @@ class RouteOperationEditorDialog(QDialog):
         # 验证数据
         for i, op in enumerate(self.current_op_list):
             if len(op.data) < 2:
-                QMessageBox.warning(self, gt('数据错误'), f'{gt("第")}{i}{gt("个操作的数据不完整")}')
+                QMessageBox.warning(self, gt('数据错误'), gt('第{index}个操作的数据不完整').format(index=i))
                 return
             try:
                 # 验证坐标是否为数字
                 float(op.data[0])
                 float(op.data[1])
             except ValueError:
-                QMessageBox.warning(self, gt('数据错误'), f'{gt("第")}{i}{gt("个操作的坐标数据必须是数字")}')
+                QMessageBox.warning(self, gt('数据错误'), gt('第{index}个操作的坐标数据必须是数字').format(index=i))
                 return
 
         self.operations_updated.emit(self.current_op_list)

@@ -5,7 +5,7 @@ import polib
 from one_dragon.utils import os_utils
 
 
-def compile_lang(model: str, lang: str):
+def compile_lang(model: str, lang: str) -> None:
     """
     将特定语言的文件编译成mo文件
     :param model: 模块 不同模块的多语言文本区分
@@ -23,7 +23,7 @@ def compile_lang(model: str, lang: str):
     po.save_as_mofile(mo_file_path)
 
 
-def compile_po_files():
+def compile_po_files() -> None:
     """
     将不同语言的po文件编译成mo
     :return:
