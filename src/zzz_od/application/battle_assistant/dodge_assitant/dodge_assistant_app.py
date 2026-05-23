@@ -25,7 +25,7 @@ class DodgeAssistantApp(ZApplication):
             op_name=dodge_assistant_const.APP_NAME,
         )
 
-    def handle_init(self) -> None:
+    def handle_application_init(self) -> None:
         """
         执行前的初始化 由子类实现
         注意初始化要全面 方便一个指令重复使用
