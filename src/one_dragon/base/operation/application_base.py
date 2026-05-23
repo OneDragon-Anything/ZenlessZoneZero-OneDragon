@@ -65,9 +65,6 @@ class Application(Operation):
         """
         Operation.handle_init(self)
 
-        # 进入 screen scope（基于 app_id 自动推导）
-        self.ctx.screen_loader.enter_scope(self.app_id)
-
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
@@ -86,6 +83,7 @@ class Application(Operation):
         """
         执行应用，并确保异常路径也退出 screen scope。
         """
+        self.ctx.screen_loader.enter_scope(self.app_id)
         try:
             return Operation.execute(self)
         finally:
@@ -97,9 +95,6 @@ class Application(Operation):
         :return:
         """
         Operation.after_operation_done(self, result)
-
-        # 退出 screen scope
-        self.ctx.screen_loader.exit_scope()
 
         self._update_record_after_stop(result)
 
