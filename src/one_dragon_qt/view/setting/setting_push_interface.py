@@ -1,5 +1,6 @@
 import json
 
+from cv2.typing import MatLike
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -237,6 +238,7 @@ class SettingPushInterface(VerticalScrollInterface):
             ok, msg = self.ctx.push_service.push(
                 title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
                 channel_id=test_method,
             )
             if not ok:
@@ -255,6 +257,7 @@ class SettingPushInterface(VerticalScrollInterface):
             ok, msg = self.ctx.push_service.push(
                 title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
             )
             if not ok:
                 self._show_error_message(msg)
@@ -264,6 +267,24 @@ class SettingPushInterface(VerticalScrollInterface):
             self._show_error_message(str(e))
         except Exception as e:
             self._show_error_message(f"测试推送失败: {str(e)}")
+
+    def _get_test_screenshot(self) -> MatLike | None:
+        if not self.ctx.push_service.push_config.send_image:
+            return None
+
+        if self.ctx.controller is None:
+            self.ctx.init_controller()
+
+        if self.ctx.controller is None:
+            return None
+
+        if not self.ctx.controller.is_game_window_ready:
+            if not self.ctx.controller.init_game_win():
+                return None
+
+        _, screen = self.ctx.controller.screenshot(independent=True)
+
+        return screen
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))
