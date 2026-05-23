@@ -138,7 +138,17 @@ class CompendiumChooseMissionType(ZOperation):
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
-            if not str_utils.find_by_lcs(gt('前往', 'game'), ocr_result, percent=0.5):
+            go_text_list = [
+                gt('前往', 'game'),
+                gt('传送', 'game'),
+                '移動',
+                '転送',
+                '向かう',
+            ]
+            normalized = ocr_result.strip().upper()
+            is_go_en = normalized == 'GO'
+            is_go_i18n = any(str_utils.find_by_lcs(text, ocr_result, percent=0.5) for text in go_text_list)
+            if not (is_go_en or is_go_i18n):
                 continue
             for mr in mrl:
                 go_point = go_rect.left_top + mr.center

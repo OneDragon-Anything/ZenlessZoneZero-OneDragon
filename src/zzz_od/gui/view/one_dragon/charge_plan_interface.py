@@ -329,12 +329,12 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
 
         self.remove_all_completed_btn = PushButton(
-            icon=FluentIcon.DELETE, text='删除已完成'
+            icon=FluentIcon.DELETE, text=gt('删除已完成')
         )
         self.remove_all_completed_btn.clicked.connect(self._on_remove_all_completed_clicked)
 
         self.remove_all_btn = PushButton(
-            icon=FluentIcon.DELETE, text='删除所有'
+            icon=FluentIcon.DELETE, text=gt('删除所有')
         )
         self.remove_all_btn.clicked.connect(self._on_remove_all_clicked)
 
@@ -419,10 +419,10 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.update_plan_list_display()
 
     def _on_remove_all_completed_clicked(self) -> None:
-        dialog = Dialog('警告', '是否删除所有已完成的体力计划？', self)
+        dialog = Dialog(gt('警告'), gt('是否删除所有已完成的体力计划？'), self)
         dialog.setTitleBarVisible(False)
-        dialog.yesButton.setText('确定')
-        dialog.cancelButton.setText('取消')
+        dialog.yesButton.setText(gt('确定'))
+        dialog.cancelButton.setText(gt('取消'))
         if dialog.exec():
             self.plan_list_backup = self.config.plan_list.copy()
             not_completed_plans = [plan for plan in self.config.plan_list
@@ -433,10 +433,10 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.update_plan_list_display()
 
     def _on_remove_all_clicked(self) -> None:
-        dialog = Dialog('警告', '是否删除所有体力计划？', self)
+        dialog = Dialog(gt('警告'), gt('是否删除所有体力计划？'), self)
         dialog.setTitleBarVisible(False)
-        dialog.yesButton.setText('确定')
-        dialog.cancelButton.setText('取消')
+        dialog.yesButton.setText(gt('确定'))
+        dialog.cancelButton.setText(gt('取消'))
         if dialog.exec():
             self.plan_list_backup = self.config.plan_list.copy()
             self.config.plan_list.clear()

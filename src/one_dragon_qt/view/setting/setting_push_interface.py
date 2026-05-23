@@ -79,9 +79,9 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.proxy_input_opt)
 
-        self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
+        self.test_current_btn = PushButton(text=gt('测试当前方式'), icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
-        self.test_all_btn = PushButton(text='测试全部', icon=FluentIcon.SEND_FILL, parent=self)
+        self.test_all_btn = PushButton(text=gt('测试全部'), icon=FluentIcon.SEND_FILL, parent=self)
         self.test_all_btn.clicked.connect(self._send_test_all_message)
 
         self.test_notification_card = MultiPushSettingCard(
@@ -109,9 +109,9 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_widget(channel_group)
 
         # 预创建特殊卡片（稍后按渠道分配）
-        self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
+        self.pwsh_curl_btn = PushButton(text=gt('PowerShell 风格'))
         self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
-        self.unix_curl_btn = PushButton(text='Unix 风格')
+        self.unix_curl_btn = PushButton(text=gt('Unix 风格'))
         self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
@@ -385,8 +385,8 @@ class SettingPushInterface(VerticalScrollInterface):
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
         InfoBar.success(
-            title='成功',
-            content=message,
+            title=gt('成功'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=3000,
@@ -396,8 +396,8 @@ class SettingPushInterface(VerticalScrollInterface):
     def _show_error_message(self, message: str):
         """显示错误消息提示"""
         InfoBar.error(
-            title='错误',
-            content=message,
+            title=gt('错误'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=5000,

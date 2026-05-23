@@ -2,32 +2,42 @@ import time
 
 import cv2
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
-from qfluentwidgets import FluentIcon, PushButton, SpinBox, DoubleSpinBox
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from qfluentwidgets import DoubleSpinBox, FluentIcon, PushButton, SpinBox
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
-from one_dragon.utils import cv2_utils, cal_utils
+from one_dragon.utils import cal_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.click_image_label import ClickImageLabel
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.image_viewer_widget import ImageViewerWidget
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard, MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.devtools.large_map_recorder import large_map_recorder_utils
-from zzz_od.application.devtools.large_map_recorder.large_map_recorder_wrapper import LargeMapSnapshot, MiniMapSnapshot
-from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolEntry, WorldPatrolArea, \
-    WorldPatrolLargeMapIcon, WorldPatrolLargeMap
+from zzz_od.application.devtools.large_map_recorder.large_map_recorder_wrapper import (
+    LargeMapSnapshot,
+    MiniMapSnapshot,
+)
+from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
+from zzz_od.application.world_patrol.world_patrol_area import (
+    WorldPatrolArea,
+    WorldPatrolEntry,
+    WorldPatrolLargeMap,
+    WorldPatrolLargeMapIcon,
+)
 from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.devtools.icon_editor_dialog import IconEditorDialog
-from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
 
 
 class LargeMapRecorderInterface(VerticalScrollInterface):
@@ -114,26 +124,26 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.area_opt)
 
-        self.load_btn = PushButton(text='加载')
+        self.load_btn = PushButton(text=gt('加载'))
         self.load_btn.clicked.connect(self.on_load_btn_clicked)
-        self.save_btn = PushButton(text='保存')
+        self.save_btn = PushButton(text=gt('保存'))
         self.save_btn.clicked.connect(self.on_save_btn_clicked)
-        self.delete_btn = PushButton(text='删除')
+        self.delete_btn = PushButton(text=gt('删除'))
         self.delete_btn.clicked.connect(self.on_delete_btn_clicked)
-        self.cancel_btn = PushButton(text='取消')
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self.on_cancel_btn_clicked)
 
-        self.screenshot_btn = PushButton(text='截图(1)')
+        self.screenshot_btn = PushButton(text=gt('截图(1)'))
         self.screenshot_btn.clicked.connect(self.on_screenshot_btn_clicked)
-        self.cal_pos_btn = PushButton(text='定位(2)')
+        self.cal_pos_btn = PushButton(text=gt('定位(2)'))
         self.cal_pos_btn.clicked.connect(self.on_cal_pos_btn_clicked)
-        self.overlap_btn = PushButton(text='重叠(3)')
+        self.overlap_btn = PushButton(text=gt('重叠(3)'))
         self.overlap_btn.clicked.connect(self.on_overlap_btn_clicked)
-        self.merge_btn = PushButton(text='合并(4)')
+        self.merge_btn = PushButton(text=gt('合并(4)'))
         self.merge_btn.clicked.connect(self.on_merge_btn_clicked)
-        self.back_btn = PushButton(text='回退')
+        self.back_btn = PushButton(text=gt('回退'))
         self.back_btn.clicked.connect(self.on_back_btn_clicked)
-        self.edit_icons_btn = PushButton(text='编辑图标')
+        self.edit_icons_btn = PushButton(text=gt('编辑图标'))
         self.edit_icons_btn.clicked.connect(self.on_edit_icons_btn_clicked)
         self.save_row = MultiLineSettingCard(
             icon=FluentIcon.SAVE, title='',
@@ -520,9 +530,7 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
 
     def _update_large_map_display(self) -> None:
         to_display = large_map_recorder_utils.get_large_map_display(self.ctx, self.large_map)
-        if self.large_map is None:
-            pass
-        elif self.overlap_mode == 0:
+        if self.large_map is None or self.overlap_mode == 0:
             pass
         elif self.mini_map_pos_mr is not None:
             mini_map = large_map_recorder_utils.get_mini_map_display(self.ctx, self.mini_map)
