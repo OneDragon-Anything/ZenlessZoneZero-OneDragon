@@ -49,12 +49,14 @@ class ScreenContext:
         self.screen_info_map: dict[str, ScreenInfo] = {}
         self._screen_area_map: dict[str, ScreenArea] = {}
         self._id_2_screen: dict[str, ScreenInfo] = {}
+        self._extra_screen_ids: set[str] = set()
+        self._extra_screen_file_path_map: dict[str, Path] = {}
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
         self.last_screen_name: str | None = None  # 上一个画面名字
         self.current_screen_name: str | None = None  # 当前的画面名字
 
-        # Screen scope management
+        # 屏幕作用域管理
         self._global_screen_names: set[str] = set()
         self._local_screen_names: set[str] = set()
         self._scoped: bool = False
@@ -81,6 +83,9 @@ class ScreenContext:
         self.screen_info_list.clear()
         self.screen_info_map.clear()
         self._screen_area_map.clear()
+        if not from_memory:
+            self._extra_screen_ids.clear()
+            self._extra_screen_file_path_map.clear()
 
         if from_memory:
             for screen_info in self._id_2_screen.values():
@@ -120,9 +125,13 @@ class ScreenContext:
         else:
             self._id_2_screen.clear()
             file_path = self.merge_yml_file_path
-            with file_path.open(encoding='utf-8') as file:
-                log.debug(f"加载yaml: {file_path}")
-                yaml_data = yaml_utils.safe_load(file)
+            if file_path.exists():
+                with file_path.open(encoding='utf-8') as file:
+                    log.debug(f"加载yaml: {file_path}")
+                    yaml_data = yaml_utils.safe_load(file)
+            else:
+                log.info(f"合并画面配置文件不存在，按空配置加载: {file_path}")
+                yaml_data = []
             if not isinstance(yaml_data, list):
                 if yaml_data is not None:
                     log.warning(f"合并画面配置格式错误，已忽略: {file_path}")
@@ -191,6 +200,8 @@ class ScreenContext:
             self.screen_info_list.append(screen_info)
             self.screen_info_map[screen_info.screen_name] = screen_info
             self._id_2_screen[screen_info.screen_id] = screen_info
+            self._extra_screen_ids.add(screen_info.screen_id)
+            self._extra_screen_file_path_map[screen_info.screen_id] = file_path
 
             for screen_area in screen_info.area_list:
                 self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
@@ -237,6 +248,10 @@ class ScreenContext:
         Args:
             screen_info: 画面信息
         """
+        if screen_info.old_screen_id in self._extra_screen_file_path_map:
+            self._save_extra_screen(screen_info)
+            return
+
         if screen_info.old_screen_id != screen_info.screen_id:
             self.delete_screen(screen_info.old_screen_id, save=False)
         self._id_2_screen[screen_info.screen_id] = screen_info
@@ -249,17 +264,48 @@ class ScreenContext:
             screen_id: 画面ID
             save: 是否触发保存
         """
+        extra_file_path = self._extra_screen_file_path_map.get(screen_id)
         if screen_id in self._id_2_screen:
             del self._id_2_screen[screen_id]
+            self._extra_screen_ids.discard(screen_id)
+            self._extra_screen_file_path_map.pop(screen_id, None)
 
-            file_path = self.get_yml_file_path(screen_id)
-            if file_path.exists():
-                file_path.unlink()
+            if extra_file_path is not None:
+                if extra_file_path.exists():
+                    extra_file_path.unlink()
+            else:
+                file_path = self.get_yml_file_path(screen_id)
+                if file_path.exists():
+                    file_path.unlink()
 
-        if save:
+        if save and extra_file_path is None:
             self.save(screen_id=screen_id)
         else:
             self.reload(from_memory=True)
+
+    def _save_extra_screen(self, screen_info: ScreenInfo) -> None:
+        """保存插件 screen 到原插件目录的独立 YAML。"""
+        old_screen_id = screen_info.old_screen_id
+        old_file_path = self._extra_screen_file_path_map[old_screen_id]
+        file_path = old_file_path
+
+        if old_screen_id != screen_info.screen_id:
+            self._id_2_screen.pop(old_screen_id, None)
+            self._extra_screen_ids.discard(old_screen_id)
+            self._extra_screen_file_path_map.pop(old_screen_id, None)
+            if old_file_path.exists():
+                old_file_path.unlink()
+            file_path = old_file_path.with_name(f'{screen_info.screen_id}.yml')
+
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with file_path.open('w', encoding='utf-8') as file:
+            yaml.safe_dump(screen_info.to_dict(), file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+        screen_info.old_screen_id = screen_info.screen_id
+        self._id_2_screen[screen_info.screen_id] = screen_info
+        self._extra_screen_ids.add(screen_info.screen_id)
+        self._extra_screen_file_path_map[screen_info.screen_id] = file_path
+        self.reload(from_memory=True)
 
     def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
         """
@@ -272,12 +318,16 @@ class ScreenContext:
         all_data = []
 
         # 保存到单个文件
-        for screen_info in self._id_2_screen.values():
+        target_screen_id = screen_id
+        for current_screen_id, screen_info in self._id_2_screen.items():
+            if current_screen_id in self._extra_screen_ids:
+                continue
+
             data = screen_info.to_dict()
             all_data.append(data)
 
-            if screen_id is not None and screen_id == screen_info.screen_id:
-                with self.get_yml_file_path(screen_id).open('w', encoding='utf-8') as file:
+            if target_screen_id is not None and target_screen_id == screen_info.screen_id:
+                with self.get_yml_file_path(target_screen_id).open('w', encoding='utf-8') as file:
                     yaml.safe_dump(data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         # 保存到合并文件
