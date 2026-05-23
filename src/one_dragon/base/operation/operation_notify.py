@@ -101,7 +101,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         cost = time.time() - app.operation_start_time
         m = int(cost // 60)
         s = int(cost % 60)
-        duration_text = gt(f"\n总耗时「{m}分{s}秒」")
+        duration_text = f"\n{gt('总耗时')}「{m}{gt('分')}{s}{gt('秒')}」"
 
     # 构建消息
     _, app_name = _get_app_info(app)
