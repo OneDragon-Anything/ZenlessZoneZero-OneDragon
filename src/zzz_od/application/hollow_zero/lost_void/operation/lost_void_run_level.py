@@ -42,6 +42,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 class LostVoidRunLevel(ZOperation):
     STATUS_NEXT_LEVEL: ClassVar[str] = '进入下层'
     STATUS_COMPLETE: ClassVar[str] = '通关'
+    STATUS_AGENT_DEAD: ClassVar[str] = '代理人阵亡'
 
     IT_BATTLE: ClassVar[str] = 'xxxx-战斗'
 
@@ -736,7 +737,7 @@ class LostVoidRunLevel(ZOperation):
 
                     if result == FindAreaResultEnum.TRUE:
                         self.ctx.auto_battle_context.stop_auto_battle()
-                        return self.round_fail(Operation.STATUS_AGENT_DEAD)
+                        return self.round_fail(self.STATUS_AGENT_DEAD)
 
                     area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
                     found = gpu_executor.execute_function(
@@ -863,7 +864,7 @@ class LostVoidRunLevel(ZOperation):
 
     @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
-    @node_from(from_name='战斗中', success=False, status=Operation.STATUS_AGENT_DEAD)
+    @node_from(from_name='战斗中', success=False, status=STATUS_AGENT_DEAD)
     @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='处理寻路失败或阵亡')
     def handle_find_target_fail(self) -> OperationRoundResult:
