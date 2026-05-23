@@ -9,6 +9,7 @@ from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QSizePolicy,
     QSpacerItem,
     QStackedWidget,
@@ -24,6 +25,9 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
@@ -361,6 +365,11 @@ class HomeInterface(BaseInterface):
         self._last_auto_check_time = 0
         self._auto_check_interval = 300  # 5分钟冷却时间
 
+        # 运行时间统计
+        self._home_run_start_time: float = 0
+        self._home_run_timer: QTimer | None = None
+        self._home_run_label: QLabel | None = None
+
         self._init_check_runners()
         self._init_ui()
 
@@ -411,8 +420,31 @@ class HomeInterface(BaseInterface):
         self.start_button.enterEvent = self._on_button_enter
         self.start_button.leaveEvent = self._on_button_leave
 
-        # 添加启动按钮到布局
-        h2_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        # 启动按钮 + 运行状态 统一容器
+        start_group = QWidget()
+        start_group_layout = QVBoxLayout(start_group)
+        start_group_layout.setContentsMargins(0, 0, 0, 0)
+        start_group_layout.setSpacing(4)
+        start_group_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
+
+        start_group_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        # 运行时间统计标签
+        self._home_run_label = QLabel()
+        self._home_run_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._home_run_label.setFixedHeight(20)
+        self._home_run_label.setVisible(False)
+        self._apply_run_label_style()
+        start_group_layout.addWidget(self._home_run_label)
+
+        # 运行计时器
+        self._home_run_start_time: float = 0
+        self._home_run_timer = QTimer(self)
+        self._home_run_timer.setInterval(1000)
+        self._home_run_timer.timeout.connect(self._home_update_run_timer)
+
+        # 添加启动按钮组到布局
+        h2_layout.addWidget(start_group, alignment=Qt.AlignmentFlag.AlignBottom)
 
         # 按钮组
         self.button_group = ButtonGroup(self.ctx)
@@ -532,6 +564,14 @@ class HomeInterface(BaseInterface):
         if self._banner_widget:
             self._banner_widget.resume_media()
 
+        # 监听运行状态变化，用于更新主页运行时间统计
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.START, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_run_state_changed)
+        # 首次显示时同步一次当前状态
+        self._sync_run_state_display()
+
         # 设置顶部边距为0，让海报覆盖标题栏；同时切换标题栏首页模式
         if self.main_window:
             if self._saved_area_margins is None:
@@ -586,6 +626,9 @@ class HomeInterface(BaseInterface):
     def on_interface_hidden(self) -> None:
         """界面隐藏时的清理工作"""
         super().on_interface_hidden()
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
+        if self._home_run_timer is not None:
+            self._home_run_timer.stop()
         if self._banner_widget:
             self._banner_widget.pause_media()
 
@@ -810,3 +853,61 @@ class HomeInterface(BaseInterface):
         self._black_icon = icon.icon(color=QColor(foreground))
         self._yellow_icon = icon.icon(color=QColor(r, g, b))
         self.start_button.setIcon(self._black_icon)
+
+    # ---------- 运行时间统计 ----------
+
+    def _apply_run_label_style(self) -> None:
+        """应用运行统计标签的半透明毛玻璃样式"""
+        if self._home_run_label is None:
+            return
+        self._home_run_label.setStyleSheet(
+            "background-color: rgba(0,0,0,90);"
+            "color: rgba(255,255,255,210);"
+            "border-radius: 10px;"
+            "padding: 1px 12px;"
+            "font-size: 12px;"
+        )
+
+    def _on_run_state_changed(self, _event=None) -> None:
+        """运行状态变化回调（由事件总线从后台线程触发，需切到主线程更新 UI）"""
+        QTimer.singleShot(0, self._sync_run_state_display)
+
+    def _sync_run_state_display(self) -> None:
+        """根据当前运行状态同步计时器与显示"""
+        if self._home_run_label is None or self._home_run_timer is None:
+            return
+
+        if self.ctx.run_context.is_context_running:
+            if self._home_run_start_time == 0:
+                self._home_run_start_time = time.time()
+            self._home_run_timer.start()
+            self._home_run_label.setVisible(True)
+            self._home_update_run_timer()
+        elif self.ctx.run_context.is_context_pause:
+            self._home_run_timer.stop()
+        else:
+            self._home_run_timer.stop()
+            if self._home_run_start_time > 0:
+                elapsed = time.time() - self._home_run_start_time
+                self._home_run_label.setText(f"上次运行  {_format_elapsed(elapsed)}")
+                self._home_run_label.setVisible(True)
+            self._home_run_start_time = 0
+
+    def _home_update_run_timer(self) -> None:
+        """定时刷新运行时间"""
+        if self._home_run_label is None:
+            return
+        if self._home_run_start_time > 0:
+            elapsed = time.time() - self._home_run_start_time
+            self._home_run_label.setText(f"运行中  {_format_elapsed(elapsed)}")
+
+
+def _format_elapsed(seconds: float) -> str:
+    """格式化运行耗时"""
+    total_seconds = int(seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    else:
+        return f"{minutes}:{secs:02d}"
