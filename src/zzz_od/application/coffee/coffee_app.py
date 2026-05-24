@@ -111,14 +111,17 @@ class CoffeeApp(ZApplication):
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后先将视角转向正西，再往前移动一下方便交互
+        六分街-咖啡店：转向正西后前移再交互
+        澄辉坪-汀曼咖啡：传送落点已正对柜台，直接交互
         :return:
         """
-        result = turn_to_angle(self, target_angle=180, turn_status='转向正西')
-        if not result.is_success:
-            return result
-        self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
+        if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:
+            result = turn_to_angle(self, target_angle=180, turn_status='转向正西')
+            if not result.is_success:
+                return result
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
+            time.sleep(1)
+
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
         return self.round_success()
 
