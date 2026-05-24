@@ -152,4 +152,4 @@ class OneDragonApp(Application):
         if result.success:
             import contextlib
             with contextlib.suppress(Exception):
-                self.ctx.dodge_stats.increment_one_dragon()
+                self.ctx.user_stats.increment_one_dragon()

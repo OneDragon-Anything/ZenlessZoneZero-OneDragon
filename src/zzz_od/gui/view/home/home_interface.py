@@ -42,6 +42,7 @@ from zzz_od.gui.dialog.pre_flight_check_dialog import (
     PreFlightCheckDialog,
     check_pre_flight,
 )
+from zzz_od.gui.widgets.stats_bar import StatsBar
 
 
 class ButtonGroup(QWidget):
@@ -396,10 +397,25 @@ class HomeInterface(BaseInterface):
 
         h2_layout.setContentsMargins(32, 32, 0, 32)
 
+        # 左侧容器：统计栏 + 公告卡片（垂直排列）
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+
+        # 统计栏
+        self._stats_bar = StatsBar(self.ctx.user_stats)
+        self._stats_bar.setFixedHeight(32)
+        self._stats_bar.setMinimumWidth(589)
+        left_layout.addWidget(self._stats_bar, alignment=Qt.AlignmentFlag.AlignBottom)
+
         # 公告卡片
         self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
         apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
-        h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
+        left_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        h2_layout.addWidget(left_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addStretch()
 
@@ -436,14 +452,6 @@ class HomeInterface(BaseInterface):
         self._home_run_label.setVisible(False)
         self._apply_run_label_style()
         start_group_layout.addWidget(self._home_run_label)
-
-        # 用户统计标签
-        self._home_stats_label = QLabel()
-        self._home_stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._home_stats_label.setFixedHeight(20)
-        self._apply_stats_label_style()
-        self._update_stats_text()
-        start_group_layout.addWidget(self._home_stats_label)
 
         # 运行计时器
         self._home_run_start_time: float = 0
@@ -579,7 +587,7 @@ class HomeInterface(BaseInterface):
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_run_state_changed)
         # 首次显示时同步一次当前状态
         self._sync_run_state_display()
-        self._update_stats_text()
+        self._stats_bar.refresh()
 
         # 设置顶部边距为0，让海报覆盖标题栏；同时切换标题栏首页模式
         if self.main_window:
@@ -877,31 +885,10 @@ class HomeInterface(BaseInterface):
             "font-size: 12px;"
         )
 
-    def _apply_stats_label_style(self) -> None:
-        """应用用户统计标签样式"""
-        if self._home_stats_label is None:
-            return
-        self._home_stats_label.setStyleSheet(
-            "color: rgba(255,219,41,200);"
-            "font-size: 12px;"
-            "font-weight: bold;"
-        )
-
-    def _update_stats_text(self) -> None:
-        """更新统计标签文本"""
-        if self._home_stats_label is None:
-            return
-        try:
-            od_count = self.ctx.dodge_stats.one_dragon_count
-            dodge_count = self.ctx.dodge_stats.dodge_count
-            self._home_stats_label.setText(f'已运行 {od_count} 次 · 已格挡 {dodge_count} 次')
-        except Exception:
-            self._home_stats_label.setText('')
-
     def _on_run_state_changed(self, _event=None) -> None:
         """运行状态变化回调（由事件总线从后台线程触发，需切到主线程更新 UI）"""
         QTimer.singleShot(0, self._sync_run_state_display)
-        QTimer.singleShot(0, self._update_stats_text)
+        QTimer.singleShot(0, self._stats_bar.refresh)
 
     def _sync_run_state_display(self) -> None:
         """根据当前运行状态同步计时器与显示"""

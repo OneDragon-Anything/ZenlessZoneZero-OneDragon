@@ -231,7 +231,7 @@ class AutoBattleDodgeContext:
             should_dodge = state_name is not None
             if should_dodge:
                 self.ctx.auto_battle_context.state_record_service.update_state(StateRecord(state_name, screenshot_time))
-                self.ctx.dodge_stats.increment_dodge()
+                self.ctx.user_stats.increment_dodge()
 
             return should_dodge
         except Exception:
