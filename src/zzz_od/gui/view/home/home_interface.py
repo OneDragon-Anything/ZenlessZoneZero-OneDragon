@@ -405,8 +405,6 @@ class HomeInterface(BaseInterface):
 
         # 统计栏
         self._stats_bar = StatsBar(self.ctx.user_stats)
-        self._stats_bar.setFixedHeight(32)
-        self._stats_bar.setMinimumWidth(589)
         left_layout.addWidget(self._stats_bar, alignment=Qt.AlignmentFlag.AlignBottom)
 
         # 公告卡片
