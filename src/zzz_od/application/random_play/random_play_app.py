@@ -80,14 +80,17 @@ class RandomPlayApp(ZApplication):
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 先将视角转向正东 再往前移动一下 方便交互
+        录像店-柜台：转向正东后前移再交互
+        澄辉坪-录像店营业点：传送落点已正对入口，直接交互
         :return:
         """
-        result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
-        if not result.is_success:
-            return result
-        self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
+        if self.config.transport_point == RandomPlayTransportPoint.POINT_1.value.value:
+            result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
+            if not result.is_success:
+                return result
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
+            time.sleep(1)
+
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
         return self.round_success()
 
