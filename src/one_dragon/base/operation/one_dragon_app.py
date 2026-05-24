@@ -148,3 +148,8 @@ class OneDragonApp(Application):
 
     def after_operation_done(self, result: OperationResult):
         Application.after_operation_done(self, result)
+        # 一条龙运行结束，递增运行计数
+        if result.success:
+            import contextlib
+            with contextlib.suppress(Exception):
+                self.ctx.dodge_stats.increment_one_dragon()
