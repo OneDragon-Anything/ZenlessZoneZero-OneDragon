@@ -3,6 +3,7 @@ from typing import ClassVar
 
 from cv2.typing import MatLike
 
+from one_dragon.base.config.config_item import get_config_item_from_enum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
@@ -17,6 +18,7 @@ from zzz_od.application.random_play import random_play_const
 from zzz_od.application.random_play.random_play_config import (
     RANDOM_AGENT_NAME,
     RandomPlayConfig,
+    RandomPlayTransportPoint,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -69,7 +71,8 @@ class RandomPlayApp(ZApplication):
             self.retried_transport = True
 
         self.turn_compensator.clear_pending_sample()
-        op = Transport(self.ctx, '录像店', '柜台')
+        item = get_config_item_from_enum(RandomPlayTransportPoint, self.config.transport_point)
+        op = Transport(self.ctx, item.area_name, item.tp_name)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')

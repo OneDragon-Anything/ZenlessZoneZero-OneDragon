@@ -1,7 +1,17 @@
 
+from enum import Enum
+
 from one_dragon.base.operation.application.application_config import ApplicationConfig
+from zzz_od.operation.transport import Transport
 
 RANDOM_AGENT_NAME = '随机'
+
+
+class RandomPlayTransportPoint(Enum):
+
+    POINT_1 = Transport.point_item('录像店', '柜台')
+    POINT_2 = Transport.point_item('澄辉坪', '录像店营业点')
+
 
 class RandomPlayConfig(ApplicationConfig):
 
@@ -12,6 +22,14 @@ class RandomPlayConfig(ApplicationConfig):
             instance_idx=instance_idx,
             group_id=group_id,
         )
+
+    @property
+    def transport_point(self) -> str:
+        return self.get('transport_point', RandomPlayTransportPoint.POINT_1.value.value)
+
+    @transport_point.setter
+    def transport_point(self, new_value: str) -> None:
+        self.update('transport_point', new_value)
 
     @property
     def agent_name_1(self) -> str:
