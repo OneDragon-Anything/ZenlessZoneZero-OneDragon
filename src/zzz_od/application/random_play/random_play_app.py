@@ -1,4 +1,5 @@
 import difflib
+import time
 from typing import ClassVar
 
 from cv2.typing import MatLike
@@ -26,7 +27,7 @@ from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
-from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
+from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 
 
 class RandomPlayApp(ZApplication):
@@ -82,12 +83,13 @@ class RandomPlayApp(ZApplication):
         传送之后 先将视角转向正东 再往前移动一下 方便交互
         :return:
         """
-        return turn_to_angle_and_interact(
-            self,
-            self.turn_compensator,
-            target_angle=0,
-            turn_status='转向正东',
-        )
+        result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
+        if not result.is_success:
+            return result
+        self.ctx.controller.move_w(press=True, press_time=1, release=True)
+        time.sleep(1)
+        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+        return self.round_success()
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待经营画面加载')

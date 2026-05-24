@@ -36,7 +36,7 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
-from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
+from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
@@ -114,12 +114,13 @@ class CoffeeApp(ZApplication):
         传送之后先将视角转向正西，再往前移动一下方便交互
         :return:
         """
-        return turn_to_angle_and_interact(
-            self,
-            self.turn_compensator,
-            target_angle=180,
-            turn_status='转向正西',
-        )
+        result = turn_to_angle(self, target_angle=180, turn_status='转向正西')
+        if not result.is_success:
+            return result
+        self.ctx.controller.move_w(press=True, press_time=1, release=True)
+        time.sleep(1)
+        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+        return self.round_success()
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待咖啡店加载', node_max_retry_times=20)
