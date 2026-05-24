@@ -34,7 +34,7 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
     def _update_dodge_count_text(self) -> None:
         if self._dodge_count_label is None:
             return
-        count = self.ctx.dodge_stats.dodge_count
+        count = self.ctx.user_stats.dodge_count
         self._dodge_count_label.setText(f'  一条龙已经为你格挡 {count} 次！  ')
 
     def on_interface_shown(self) -> None:

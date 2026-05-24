@@ -61,9 +61,14 @@ class ZContext(OneDragonContext):
         return WitheredDomainContext(self)
 
     @cached_property
+    def user_stats(self):
+        from zzz_od.config.dodge_stats_config import UserStatsConfig
+        return UserStatsConfig()
+
+    @property
     def dodge_stats(self):
-        from zzz_od.config.dodge_stats_config import DodgeStatsConfig
-        return DodgeStatsConfig()
+        """向后兼容旧引用，实际指向 user_stats"""
+        return self.user_stats
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -145,9 +150,9 @@ class ZContext(OneDragonContext):
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
 
-        # 持久化格挡统计
-        if hasattr(self, 'dodge_stats') and self.dodge_stats:
-            self.dodge_stats.save_stats()
+        # 持久化用户统计
+        if hasattr(self, 'user_stats') and self.user_stats:
+            self.user_stats.save_stats()
 
         # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
         self.withered_domain.after_app_shutdown()
