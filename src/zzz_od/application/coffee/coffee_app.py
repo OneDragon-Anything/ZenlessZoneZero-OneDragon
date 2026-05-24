@@ -5,6 +5,7 @@ from typing import ClassVar
 import cv2
 import numpy as np
 
+from one_dragon.base.config.config_item import get_config_item_from_enum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
@@ -24,6 +25,7 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeChallengeWay,
     CoffeeChooseWay,
     CoffeeConfig,
+    CoffeeTransportPoint,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -87,7 +89,8 @@ class CoffeeApp(ZApplication):
             self.retried_transport = True
 
         self.turn_compensator.clear_pending_sample()
-        op = Transport(self.ctx, '六分街', '咖啡店', wait_at_last=False)
+        item = get_config_item_from_enum(CoffeeTransportPoint, self.config.transport_point)
+        op = Transport(self.ctx, item.area_name, item.tp_name, wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')

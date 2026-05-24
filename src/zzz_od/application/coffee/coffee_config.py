@@ -3,6 +3,13 @@ from enum import Enum
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from zzz_od.operation.transport import Transport
+
+
+class CoffeeTransportPoint(Enum):
+
+    POINT_1 = Transport.point_item('六分街', '咖啡店')
+    POINT_2 = Transport.point_item('澄辉坪', '汀曼咖啡')
 
 
 class CoffeeChooseWay(Enum):
@@ -32,6 +39,14 @@ class CoffeeConfig(ApplicationConfig):
             app_id='coffee',
             group_id=group_id,
         )
+
+    @property
+    def transport_point(self) -> str:
+        return self.get('transport_point', CoffeeTransportPoint.POINT_1.value.value)
+
+    @transport_point.setter
+    def transport_point(self, new_value: str) -> None:
+        self.update('transport_point', new_value)
 
     @property
     def choose_way(self) -> str:
