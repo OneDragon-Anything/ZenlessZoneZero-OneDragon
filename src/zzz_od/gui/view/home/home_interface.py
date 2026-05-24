@@ -437,6 +437,14 @@ class HomeInterface(BaseInterface):
         self._apply_run_label_style()
         start_group_layout.addWidget(self._home_run_label)
 
+        # 用户统计标签
+        self._home_stats_label = QLabel()
+        self._home_stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._home_stats_label.setFixedHeight(20)
+        self._apply_stats_label_style()
+        self._update_stats_text()
+        start_group_layout.addWidget(self._home_stats_label)
+
         # 运行计时器
         self._home_run_start_time: float = 0
         self._home_run_timer = QTimer(self)
@@ -571,6 +579,7 @@ class HomeInterface(BaseInterface):
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_run_state_changed)
         # 首次显示时同步一次当前状态
         self._sync_run_state_display()
+        self._update_stats_text()
 
         # 设置顶部边距为0，让海报覆盖标题栏；同时切换标题栏首页模式
         if self.main_window:
@@ -868,9 +877,31 @@ class HomeInterface(BaseInterface):
             "font-size: 12px;"
         )
 
+    def _apply_stats_label_style(self) -> None:
+        """应用用户统计标签样式"""
+        if self._home_stats_label is None:
+            return
+        self._home_stats_label.setStyleSheet(
+            "color: rgba(255,219,41,200);"
+            "font-size: 12px;"
+            "font-weight: bold;"
+        )
+
+    def _update_stats_text(self) -> None:
+        """更新统计标签文本"""
+        if self._home_stats_label is None:
+            return
+        try:
+            od_count = self.ctx.dodge_stats.one_dragon_count
+            dodge_count = self.ctx.dodge_stats.dodge_count
+            self._home_stats_label.setText(f'已运行 {od_count} 次 · 已格挡 {dodge_count} 次')
+        except Exception:
+            self._home_stats_label.setText('')
+
     def _on_run_state_changed(self, _event=None) -> None:
         """运行状态变化回调（由事件总线从后台线程触发，需切到主线程更新 UI）"""
         QTimer.singleShot(0, self._sync_run_state_display)
+        QTimer.singleShot(0, self._update_stats_text)
 
     def _sync_run_state_display(self) -> None:
         """根据当前运行状态同步计时器与显示"""
