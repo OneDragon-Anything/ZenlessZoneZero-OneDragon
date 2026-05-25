@@ -18,6 +18,7 @@ from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
     DevtoolsScreenshotHelperInterface,
 )
 from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
+from zzz_od.gui.view.setting.setting_overlay_interface import SettingOverlayInterface
 
 
 class AppDevtoolsInterface(PivotNavigatorInterface):
@@ -40,3 +41,4 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))
+        self.add_sub_interface(SettingOverlayInterface(ctx=self.ctx))
