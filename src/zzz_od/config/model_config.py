@@ -17,6 +17,8 @@ _BACKUP_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-1130'
 
 _DEFAULT_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250921'
 _BACKUP_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250622'
+_TRAIN7_LOST_VOID_DET = 'yolo26n-736-lost-void-det-20260525-train7'
+_TRAIN8_LOST_VOID_DET = 'yolo26n-736-lost-void-det-20260525-train8'
 
 
 class ModelConfig(BasicModelConfig):
@@ -80,11 +82,15 @@ class ModelConfig(BasicModelConfig):
     @property
     def lost_void_det(self) -> str:
         """
-        迷失之地识别模型 只允许使用最新的两个模型
+        迷失之地识别模型 只允许使用已知的模型
         :return:
         """
+        valid = [
+            _DEFAULT_LOST_VOID_DET, _BACKUP_LOST_VOID_DET,
+            _TRAIN7_LOST_VOID_DET, _TRAIN8_LOST_VOID_DET,
+        ]
         current = self.get('lost_void_det', _DEFAULT_LOST_VOID_DET)
-        if current!= _DEFAULT_LOST_VOID_DET and current!= _BACKUP_LOST_VOID_DET:
+        if current not in valid:
             current = _DEFAULT_LOST_VOID_DET
             self.lost_void_det = _DEFAULT_LOST_VOID_DET
         return current

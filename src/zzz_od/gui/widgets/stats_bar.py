@@ -83,7 +83,6 @@ class StatsBarBackground(QWidget):
 class StatsBar(QWidget):
     """主页半透明统计卡片，多列网格展示陪伴数据"""
 
-    # 每行显示的列数
     COLS = 5
 
     def __init__(self, user_stats, parent: QWidget | None = None):
@@ -95,8 +94,9 @@ class StatsBar(QWidget):
 
     def _init_ui(self) -> None:
         self.setFixedWidth(589)
+        # 不设固定高度，让布局自动撑开
         self.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Maximum
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum
         )
 
         self._bg = StatsBarBackground(self)
@@ -138,6 +138,9 @@ class StatsBar(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 8, 12, 8)
         outer.setSpacing(4)
+        outer.setSizeConstraint(
+            QVBoxLayout.SizeConstraint.SetMinAndMaxSize
+        )
 
         dim_color = palette['dim'].name(QColor.NameFormat.HexArgb)
 
@@ -150,7 +153,6 @@ class StatsBar(QWidget):
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             outer.addWidget(placeholder)
             self._cleanups.append(placeholder)
-            self.setFixedHeight(36)
             return
 
         # 标题行
@@ -203,13 +205,10 @@ class StatsBar(QWidget):
 
         outer.addLayout(grid)
 
-        # 强制激活布局后设置固定高度
-        outer.activate()
-        self.setFixedHeight(outer.sizeHint().height() + 12)
-
     def refresh(self) -> None:
         """刷新统计数据"""
         self._build_items()
+        self.updateGeometry()
 
     def resizeEvent(self, event) -> None:
         if self._bg:
