@@ -810,6 +810,7 @@
     goto_list: []
 - screen_id: city_fund
   screen_name: 丽都城募
+  app_id: city_fund
   pc_alt: false
   area_list:
   - area_name: 成长任务
@@ -2429,6 +2430,7 @@
     goto_list: []
 - screen_id: email
   screen_name: 邮件
+  app_id: email
   pc_alt: false
   area_list:
   - area_name: 全部领取
@@ -4146,6 +4148,7 @@
     goto_list: []
 - screen_id: intel_board
   screen_name: 情报板
+  app_id: intel_board
   pc_alt: false
   area_list:
   - area_name: 点数兑换
@@ -6126,6 +6129,7 @@
     goto_list: []
 - screen_id: news_stand
   screen_name: 报刊亭
+  app_id: scratch_card
   pc_alt: false
   area_list:
   - area_name: 刮刮卡
@@ -7010,6 +7014,7 @@
     goto_list: []
 - screen_id: random_play
   screen_name: 影像店营业
+  app_id: random_play
   pc_alt: false
   area_list:
   - area_name: 昨日账本
@@ -7466,6 +7471,7 @@
     goto_list: []
 - screen_id: ridu_weekly
   screen_name: 丽都周纪
+  app_id: ridu_weekly
   pc_alt: false
   area_list:
   - area_name: 丽都周纪
@@ -9453,6 +9459,7 @@
     goto_list: []
 - screen_id: trigrams_collection
   screen_name: 卦象集录
+  app_id: trigrams_collection
   pc_alt: false
   area_list:
   - area_name: 区域-获取卦象

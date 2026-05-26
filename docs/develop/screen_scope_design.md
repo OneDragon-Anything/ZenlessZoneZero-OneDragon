@@ -170,10 +170,8 @@ class Application(Operation):
 
 ### 建议迁移顺序
 
-1. 迷失之地（14 screen，收益最大）
-2. 随便观（7 screen）
-3. 零号空洞（4 screen）
-4. 仓库系统（3 screen）
+实际业务 screen 的 local 化范围与分层迁移顺序见
+[screen_scope_rollout.md](screen_scope_rollout.md)。
 
 ## 8. 插件 Screen 加载
 
