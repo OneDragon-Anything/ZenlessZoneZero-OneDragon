@@ -1,5 +1,6 @@
 screen_id: lost_void_entry
 screen_name: 迷失之地-入口
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 按钮-更新弹窗-关闭

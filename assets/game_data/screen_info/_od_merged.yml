@@ -3395,6 +3395,7 @@
     goto_list: []
 - screen_id: hollow_zero_battle
   screen_name: 零号空洞-战斗
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 鸣徽-确定
@@ -3497,6 +3498,7 @@
     goto_list: []
 - screen_id: hollow_zero_entry
   screen_name: 零号空洞-入口
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 街区
@@ -3627,6 +3629,7 @@
     goto_list: []
 - screen_id: hollow_zero_event
   screen_name: 零号空洞-事件
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 事件文本
@@ -3995,6 +3998,7 @@
     goto_list: []
 - screen_id: hollow_zero_merchant
   screen_name: 零号空洞-商店
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 右上角-返回
@@ -4378,6 +4382,7 @@
     goto_list: []
 - screen_id: lostvoid_indexpanel
   screen_name: 迷失之地-藏品面板
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 返回按钮
@@ -4466,6 +4471,7 @@
     goto_list: []
 - screen_id: lostvoid_investigativeStrategy
   screen_name: 迷失之地-调查战略选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 战略等级
@@ -4484,6 +4490,7 @@
     goto_list: []
 - screen_id: lost_void_bangboo_store
   screen_name: 迷失之地-邦布商店
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 文本-详情
@@ -4662,6 +4669,7 @@
     goto_list: []
 - screen_id: lost_void_battle_fail
   screen_name: 迷失之地-战斗失败
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-撤退
@@ -4708,6 +4716,7 @@
     goto_list: []
 - screen_id: lost_void_battle_result
   screen_name: 迷失之地-挑战结果
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 标题-挑战结果
@@ -4782,6 +4791,7 @@
     goto_list: []
 - screen_id: lost_void_choose_common
   screen_name: 迷失之地-通用选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 文本-详情
@@ -4933,6 +4943,7 @@
     goto_list: []
 - screen_id: lost_void_entry
   screen_name: 迷失之地-入口
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-更新弹窗-关闭
@@ -5105,6 +5116,7 @@
     goto_list: []
 - screen_id: lost_void_entry_task_force
   screen_name: 迷失之地-特遣调查
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-街区
@@ -5195,6 +5207,7 @@
     goto_list: []
 - screen_id: lost_void_gear
   screen_name: 迷失之地-武备选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-携带
@@ -5283,6 +5296,7 @@
     goto_list: []
 - screen_id: lost_void_lottery
   screen_name: 迷失之地-抽奖机
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -5357,6 +5371,7 @@
     goto_list: []
 - screen_id: lost_void_normal_world
   screen_name: 迷失之地-大世界
+  app_id: lost_void
   pc_alt: true
   area_list:
   - area_name: 区域-文本提示
@@ -5531,6 +5546,7 @@
     goto_list: []
 - screen_id: lost_void_purge
   screen_name: 迷失之地-战线肃清
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 标题-战线肃清
@@ -5648,6 +5664,7 @@
     goto_list: []
 - screen_id: lost_void_route_change
   screen_name: 迷失之地-路径迭换
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -5726,6 +5743,7 @@
     goto_list: []
 - screen_id: matrix_action
   screen_name: 迷失之地-矩阵行动
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 预备编队
@@ -7623,6 +7641,7 @@
     goto_list: []
 - screen_id: shiyu_defense
   screen_name: 式舆防卫战
+  app_id: shiyu_defense
   pc_alt: false
   area_list:
   - area_name: 节点区域
@@ -8033,6 +8052,7 @@
     goto_list: []
 - screen_id: shiyu_defense_new
   screen_name: 新式舆防卫战
+  app_id: shiyu_defense
   pc_alt: false
   area_list:
   - area_name: 节点区域
