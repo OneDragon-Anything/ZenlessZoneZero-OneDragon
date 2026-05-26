@@ -1,5 +1,6 @@
 screen_id: lost_void_choose_common
 screen_name: 迷失之地-通用选择
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 文本-详情

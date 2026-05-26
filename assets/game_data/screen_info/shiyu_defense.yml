@@ -1,5 +1,6 @@
 screen_id: shiyu_defense
 screen_name: 式舆防卫战
+app_id: shiyu_defense
 pc_alt: false
 area_list:
 - area_name: 节点区域
