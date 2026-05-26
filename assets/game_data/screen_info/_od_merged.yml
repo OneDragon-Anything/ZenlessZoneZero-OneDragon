@@ -1,5 +1,6 @@
 - screen_id: 3d_map
   screen_name: 3D地图
+  app_id: world_patrol
   pc_alt: false
   area_list:
   - area_name: 按钮-快捷导航
@@ -899,6 +900,7 @@
     goto_list: []
 - screen_id: coffee_shop
   screen_name: 咖啡店
+  app_id: coffee
   pc_alt: false
   area_list:
   - area_name: 点单
@@ -1229,6 +1231,7 @@
     goto_list: []
 - screen_id: commission_assistant
   screen_name: 委托助手
+  app_id: commission_assistant
   pc_alt: false
   area_list:
   - area_name: 对话框标题
@@ -2286,6 +2289,7 @@
     goto_list: []
 - screen_id: drive_disc_dismantle
   screen_name: 仓库-驱动仓库-驱动盘拆解
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-驱动盘拆解
@@ -2976,6 +2980,7 @@
     goto_list: []
 - screen_id: fishing
   screen_name: 钓鱼
+  app_id: commission_assistant
   pc_alt: false
   area_list:
   - area_name: 指令文本区域
@@ -4111,6 +4116,7 @@
     goto_list: []
 - screen_id: inter_knot
   screen_name: 绳网
+  app_id: world_patrol
   pc_alt: false
   area_list:
   - area_name: 按钮-GO
@@ -4171,6 +4177,7 @@
     goto_list: []
 - screen_id: life_on_line
   screen_name: 真拿命验收
+  app_id: life_on_line
   pc_alt: false
   area_list:
   - area_name: 第二章间章
@@ -8128,6 +8135,7 @@
     goto_list: []
 - screen_id: storage_drive_disc
   screen_name: 仓库-驱动仓库
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-驱动仓库
@@ -8176,6 +8184,7 @@
     - 大世界-普通
 - screen_id: storage_wengine
   screen_name: 仓库-音擎仓库
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-音擎仓库
@@ -8238,6 +8247,7 @@
     - 仓库-驱动仓库
 - screen_id: suibian_temple_adventure
   screen_name: 随便观-游历
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-游历小队
@@ -8382,6 +8392,7 @@
     goto_list: []
 - screen_id: suibian_temple_boobox
   screen_name: 随便观-邦巢
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-跳过
@@ -8498,6 +8509,7 @@
     goto_list: []
 - screen_id: suibian_temple_craft
   screen_name: 随便观-制造坊
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 标题-制造坊
@@ -8699,6 +8711,7 @@
     goto_list: []
 - screen_id: suibian_temple_entry
   screen_name: 随便观-入口
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-邻里街坊
@@ -8815,6 +8828,7 @@
     goto_list: []
 - screen_id: suibian_temple_pawnshop
   screen_name: 随便观-德丰大押
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -8946,6 +8960,7 @@
     goto_list: []
 - screen_id: suibian_temple_sales_stall
   screen_name: 随便观-售卖铺
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 标题-售卖铺
@@ -9049,6 +9064,7 @@
     goto_list: []
 - screen_id: suibian_temple_yumchaxian
   screen_name: 随便观-饮茶仙
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-定期采办

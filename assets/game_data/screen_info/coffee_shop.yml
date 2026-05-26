@@ -1,5 +1,6 @@
 screen_id: coffee_shop
 screen_name: 咖啡店
+app_id: coffee
 pc_alt: false
 area_list:
 - area_name: 点单
