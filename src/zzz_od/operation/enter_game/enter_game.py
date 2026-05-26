@@ -26,6 +26,10 @@ from zzz_od.operation.zzz_operation import ZOperation
 class EnterGame(ZOperation):
 
     STATUS_GAME_DATA_UPDATED: ClassVar[str] = '游戏数据已更新'
+    STATUS_LOGIN_SUCCESS: ClassVar[str] = '登录成功'
+    STATUS_LOADING: ClassVar[str] = '加载中'
+    MAX_LOADING_SECONDS: ClassVar[float] = 180
+    MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
     def __init__(self, ctx: ZContext, switch: bool = False):
         ZOperation.__init__(self, ctx,
@@ -41,6 +45,7 @@ class EnterGame(ZOperation):
 
         self.already_login: bool = False  # 是否已经登录了
         self.after_second_enter_click: bool = False  # 是否已经完成加载配置后的第二次进入游戏点击
+        self.resource_download_start_time: float | None = None  # 资源下载开始时间
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
@@ -48,6 +53,7 @@ class EnterGame(ZOperation):
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
         self.after_second_enter_click = False
+        self.resource_download_start_time = None
         self.interact_ignore_word_list.clear()
 
     @node_from(from_name='国服-输入账号密码')
@@ -113,6 +119,7 @@ class EnterGame(ZOperation):
             result = self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
                 self.after_second_enter_click = False
+                self.resource_download_start_time = None
                 return self.round_success(result.status, wait=5)
 
         result = self.round_by_find_and_click_area(screen, '打开游戏', '国服-账号密码')
@@ -375,7 +382,7 @@ class EnterGame(ZOperation):
                 ("点击进入游戏", OperationRoundResultEnum.WAIT),
                 ("加载配置数据中", OperationRoundResultEnum.WAIT),
                 ("登录游戏服务器中", OperationRoundResultEnum.WAIT),
-                ("登录成功", OperationRoundResultEnum.WAIT),
+                (EnterGame.STATUS_LOGIN_SUCCESS, OperationRoundResultEnum.SUCCESS),
                 ("资源下载中", OperationRoundResultEnum.WAIT),
             ],
             screen=screen,
@@ -385,7 +392,14 @@ class EnterGame(ZOperation):
             retry_wait=0,
         )
         if result.result == OperationRoundResultEnum.WAIT:
+            if result.status == '资源下载中':
+                return self.wait_resource_download()
+            self.resource_download_start_time = None
             if result.status in ['点击进入游戏', '登录游戏服务器中', '登录成功']:
+                self.after_second_enter_click = True
+            return result
+        if result.is_success:
+            if result.status == EnterGame.STATUS_LOGIN_SUCCESS:
                 self.after_second_enter_click = True
             return result
 
@@ -431,6 +445,7 @@ class EnterGame(ZOperation):
             return confirm_result
 
         self.after_second_enter_click = False
+        self.resource_download_start_time = None
         if back_to_check_screen:
             return self.round_success(EnterGame.STATUS_GAME_DATA_UPDATED, wait=3)
         return self.round_wait(EnterGame.STATUS_GAME_DATA_UPDATED, wait=3)
@@ -542,6 +557,24 @@ class EnterGame(ZOperation):
             return self.round_success('大世界', wait=1)
         return None
 
+    def wait_resource_download(self) -> OperationRoundResult:
+        """
+        资源下载中时等待，超过上限后失败。
+
+        Returns:
+            等待或失败结果。
+        """
+        now = time.time()
+        if self.resource_download_start_time is None:
+            self.resource_download_start_time = now
+
+        downloading_seconds = now - self.resource_download_start_time
+        if downloading_seconds < EnterGame.MAX_RESOURCE_DOWNLOAD_SECONDS:
+            return OperationRoundResult(result=OperationRoundResultEnum.WAIT, status='资源下载中')
+
+        self.resource_download_start_time = None
+        return self.round_fail('资源下载超时')
+
     @node_from(from_name='画面识别', status='点击进入游戏')
     @operation_node(name='进入游戏后操作', node_max_retry_times=15)
     def after_enter_game(self) -> OperationRoundResult:
@@ -556,6 +589,40 @@ class EnterGame(ZOperation):
             if login_error_result is not None:
                 return login_error_result
 
+        return self.round_retry('进入游戏后等待', wait=1)
+
+    @node_from(from_name='进入游戏后操作', status=STATUS_LOGIN_SUCCESS)
+    @operation_node(name='识别加载中', node_max_retry_times=15)
+    def check_loading_after_login_success(self) -> OperationRoundResult:
+        """
+        登录成功后识别加载场景。
+
+        Returns:
+            识别到加载中时进入加载节点，否则交给框架重试。
+        """
+        result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
+        if result.is_success:
+            return self.round_success(EnterGame.STATUS_LOADING)
+        return self.round_retry('未识别到加载中', wait=1)
+
+    @node_from(from_name='识别加载中', status=STATUS_LOADING)
+    @operation_node(name='加载中', timeout_seconds=MAX_LOADING_SECONDS)
+    def wait_loading(self) -> OperationRoundResult:
+        """
+        等待加载场景结束。
+
+        Returns:
+            仍在加载时等待，加载标识消失后进入弹窗和大世界识别。
+        """
+        result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
+        if result.is_success:
+            return self.round_wait(result.status, wait=2)
+        return self.round_success('加载结束', wait=1)
+
+    @node_from(from_name='加载中')
+    @node_from(from_name='识别加载中', success=False)
+    @operation_node(name='识别弹窗和大世界', node_max_retry_times=15)
+    def check_interact_and_big_world(self) -> OperationRoundResult:
         # 识别并点击弹窗
         interact_result = self.check_screen_to_interact(self.last_screenshot)
         if interact_result is not None:
