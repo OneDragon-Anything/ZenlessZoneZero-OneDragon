@@ -12,7 +12,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 class LikeInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
+    def __init__(self, ctx: OneDragonEnvContext, parent: QWidget | None = None):
         VerticalScrollInterface.__init__(self, object_name='like_interface',
                                          parent=parent, content_widget=None,
                                          nav_text_cn='关于', nav_icon=FluentIcon.INFO)

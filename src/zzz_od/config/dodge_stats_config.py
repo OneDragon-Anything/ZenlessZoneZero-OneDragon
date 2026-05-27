@@ -98,7 +98,7 @@ class UserStatsConfig(YamlConfig):
 
     @property
     def app_counts(self) -> dict[str, int]:
-        return self.get('app_counts', {})
+        return dict(self.get('app_counts', {}))
 
     @app_counts.setter
     def app_counts(self, new_value: dict[str, int]) -> None:
@@ -107,7 +107,7 @@ class UserStatsConfig(YamlConfig):
     def increment_app(self, app_id: str) -> None:
         """线程安全地递增指定应用的运行计数"""
         with self._lock:
-            counts = self.app_counts
+            counts = dict(self.get('app_counts', {}))
             counts[app_id] = counts.get(app_id, 0) + 1
             self.update('app_counts', counts, save=False)
 

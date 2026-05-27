@@ -1,5 +1,4 @@
 try:
-    import os
     import subprocess
     import sys
 
@@ -236,7 +235,8 @@ try:
             game_path = self.ctx.game_account_config.game_path
             if not game_path:
                 return
-            exe_name = os.path.basename(game_path)
+            from pathlib import Path
+            exe_name = Path(game_path).name
             if not exe_name:
                 return
             try:
@@ -248,7 +248,7 @@ try:
                 output = result.stdout.decode('gbk', errors='replace')
                 if exe_name.lower() in output.lower():
                     self.ctx.user_stats.increment_game_play_minutes()
-            except Exception:
+            except (subprocess.SubprocessError, UnicodeDecodeError):
                 pass
 
         def closeEvent(self, event):

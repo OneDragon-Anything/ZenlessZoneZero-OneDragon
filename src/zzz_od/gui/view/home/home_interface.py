@@ -50,7 +50,7 @@ from zzz_od.gui.widgets.stats_bar import StatsBar
 class ButtonGroup(QWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
-    def __init__(self, ctx: ZContext, ai_chat_dialog, parent=None):
+    def __init__(self, ctx: ZContext, ai_chat_dialog: AiChatDialog | None, parent: QWidget | None = None):
         QWidget.__init__(self, parent=parent)
         self.ctx = ctx
         self._ai_chat_dialog = ai_chat_dialog
@@ -478,6 +478,7 @@ class HomeInterface(BaseInterface):
 
         # 运行计时器
         self._home_run_start_time: float = 0
+        self._home_run_elapsed: float = 0
         self._home_run_timer = QTimer(self)
         self._home_run_timer.setInterval(1000)
         self._home_run_timer.timeout.connect(self._home_update_run_timer)
@@ -934,20 +935,25 @@ class HomeInterface(BaseInterface):
             self._home_update_run_timer()
         elif self.ctx.run_context.is_context_pause:
             self._home_run_timer.stop()
+            if self._home_run_start_time > 0:
+                self._home_run_elapsed += time.time() - self._home_run_start_time
+                self._home_run_start_time = 0
         else:
             self._home_run_timer.stop()
             if self._home_run_start_time > 0:
-                elapsed = time.time() - self._home_run_start_time
-                self._home_run_label.setText(f"上次运行  {_format_elapsed(elapsed)}")
+                self._home_run_elapsed += time.time() - self._home_run_start_time
+                self._home_run_start_time = 0
+            if self._home_run_elapsed > 0:
+                self._home_run_label.setText(f"上次运行  {_format_elapsed(self._home_run_elapsed)}")
                 self._home_run_label.setVisible(True)
-            self._home_run_start_time = 0
+            self._home_run_elapsed = 0
 
     def _home_update_run_timer(self) -> None:
         """定时刷新运行时间"""
         if self._home_run_label is None:
             return
-        if self._home_run_start_time > 0:
-            elapsed = time.time() - self._home_run_start_time
+        elapsed = self._home_run_elapsed + (time.time() - self._home_run_start_time if self._home_run_start_time > 0 else 0)
+        if elapsed > 0:
             self._home_run_label.setText(f"运行中  {_format_elapsed(elapsed)}")
 
     # ---------- AI 助手 ----------

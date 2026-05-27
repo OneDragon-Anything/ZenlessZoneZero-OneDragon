@@ -150,6 +150,7 @@ class OneDragonApp(Application):
         Application.after_operation_done(self, result)
         # 一条龙运行结束，递增运行计数
         if result.success:
-            import contextlib
-            with contextlib.suppress(Exception):
+            try:
                 self.ctx.user_stats.increment_one_dragon()
+            except (AttributeError, RuntimeError) as e:
+                self.logger.warning(f'更新一条龙运行计数失败: {e}')

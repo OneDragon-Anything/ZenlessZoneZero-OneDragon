@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath
 from PySide6.QtWidgets import (
@@ -13,6 +17,9 @@ from one_dragon_qt.services.theme_manager import ThemeManager
 from zzz_od.config.dodge_stats_config import (
     STATS_DISPLAY_APPS,  # noqa: F401 - used by other modules
 )
+
+if TYPE_CHECKING:
+    from zzz_od.config.dodge_stats_config import UserStatsConfig
 
 # 所有可统计项目，按重要度排序
 STATS_ITEMS: list[tuple[str, str]] = [
@@ -93,7 +100,7 @@ class StatsBar(QWidget):
 
     COLS = 5
 
-    def __init__(self, user_stats, parent: QWidget | None = None):
+    def __init__(self, user_stats: UserStatsConfig, parent: QWidget | None = None):
         super().__init__(parent)
         self.user_stats = user_stats
         self._bg: StatsBarBackground | None = None
@@ -135,6 +142,12 @@ class StatsBar(QWidget):
         """构建卡片内容"""
         self._clear_layout()
         palette = _get_stats_bar_palette()
+
+        # 将主题色同步到背景层
+        if self._bg is not None:
+            self._bg.tint = palette['tint']
+            self._bg.border_color = palette['border']
+            self._bg.update()
 
         # 收集有数据的项目
         active: list[tuple[str, str, int]] = []

@@ -115,6 +115,7 @@ class AppRunInterface(VerticalScrollInterface):
 
         # 运行计时器
         self._run_start_time: float = 0
+        self._run_elapsed: float = 0
         self._run_timer = QTimer(self)
         self._run_timer.setInterval(1000)
         self._run_timer.timeout.connect(self._update_run_timer)
@@ -166,6 +167,8 @@ class AppRunInterface(VerticalScrollInterface):
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
         self.ctx.unlisten_all_event(self)
+        if hasattr(self, '_run_timer') and self._run_timer.isActive():
+            self._run_timer.stop()
 
     def _on_key_press(self, event: ContextEventItem) -> None:
         """
@@ -218,19 +221,23 @@ class AppRunInterface(VerticalScrollInterface):
             self._update_run_timer()
         elif self.ctx.run_context.is_context_pause:
             self._run_timer.stop()
+            if self._run_start_time > 0:
+                self._run_elapsed += time.time() - self._run_start_time
+                self._run_start_time = 0
         else:
             self._run_timer.stop()
             if self._run_start_time > 0:
-                elapsed = time.time() - self._run_start_time
-                self._run_timer_label.setText(self._format_elapsed(elapsed))
+                self._run_elapsed += time.time() - self._run_start_time
+                self._run_start_time = 0
+            if self._run_elapsed > 0:
+                self._run_timer_label.setText(self._format_elapsed(self._run_elapsed))
                 self._run_timer_label.setVisible(True)
-            self._run_start_time = 0
+            self._run_elapsed = 0
 
     def _update_run_timer(self) -> None:
         """定时更新运行时间显示"""
-        if self._run_start_time > 0:
-            elapsed = time.time() - self._run_start_time
-            self._run_timer_label.setText(self._format_elapsed(elapsed))
+        elapsed = self._run_elapsed + (time.time() - self._run_start_time if self._run_start_time > 0 else 0)
+        self._run_timer_label.setText(self._format_elapsed(elapsed))
 
     @staticmethod
     def _format_elapsed(seconds: float) -> str:

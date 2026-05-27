@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+if TYPE_CHECKING:
+    from zzz_od.config.dodge_stats_config import UserStatsConfig
 
 
 class ZContext(OneDragonContext):
@@ -61,12 +65,12 @@ class ZContext(OneDragonContext):
         return WitheredDomainContext(self)
 
     @cached_property
-    def user_stats(self):
+    def user_stats(self) -> UserStatsConfig:
         from zzz_od.config.dodge_stats_config import UserStatsConfig
         return UserStatsConfig()
 
     @property
-    def dodge_stats(self):
+    def dodge_stats(self) -> UserStatsConfig:
         """向后兼容旧引用，实际指向 user_stats"""
         return self.user_stats
 
@@ -151,7 +155,7 @@ class ZContext(OneDragonContext):
             self.telemetry.shutdown()
 
         # 持久化用户统计
-        if hasattr(self, 'user_stats') and self.user_stats:
+        if 'user_stats' in self.__dict__:
             self.user_stats.save_stats()
 
         # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
