@@ -314,19 +314,19 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='移动交互', status='对话点单')
     @operation_node(name='对话选咖啡', node_max_retry_times=20)
     def dialog_choose_coffee(self) -> OperationRoundResult:
-        """处理澄辉坪-汀曼咖啡交互后的专属点单对话框"""
+        """处理澄辉坪-汀曼咖啡交互后的专属点单对话框，对话框包含"明天再来"（无选项）即视作已喝过"""
+        if self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框-明天再来').is_success:
+            return self.round_success(status='已喝过', wait=1)
+
         day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
         to_choose_list = self._get_coffee_to_choose(day)
 
         area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
-        target_cn_list = [*to_choose_list, '暂时不用']
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list, area=area)
+        result = self.round_by_ocr_and_click_by_priority(to_choose_list, area=area)
         if result.is_success:
-            if result.status in self.ctx.compendium_service.name_2_coffee:
-                self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
-                self.had_coffee_list.add(result.status)
-                return self.round_success(status='已点单', wait=1)
-            return self.round_success(status=result.status, wait=1)
+            self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
+            self.had_coffee_list.add(result.status)
+            return self.round_success(status='已点单', wait=1)
         return self.round_retry(status='等待对话框', wait=1)
 
     @node_from(from_name='点单后跳过')
@@ -428,7 +428,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='不占用点单确认', status='不可贪杯确认')  # 已经喝过了
     @node_from(from_name='点单后跳过', status='不可贪杯确认')  # 已经喝过了
-    @node_from(from_name='对话选咖啡', status='暂时不用')  # 澄辉坪-汀曼咖啡：今天已喝过即结束
+    @node_from(from_name='对话选咖啡', status='已喝过')  # 澄辉坪-汀曼咖啡：剧情气泡 已喝过咖啡 BackToNormalWorld 兜底回大世界
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
