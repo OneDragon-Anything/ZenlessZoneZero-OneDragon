@@ -162,3 +162,32 @@ class CustomConfig(YamlConfig):
         """
         color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
         self.update('global_theme_color', color_str)
+
+    # ---------- AI 助手 ----------
+
+    @property
+    def ai_api_key(self) -> str:
+        """AI 助手 API Key"""
+        return self.get('ai_api_key', '')
+
+    @ai_api_key.setter
+    def ai_api_key(self, new_value: str) -> None:
+        self.update('ai_api_key', new_value)
+
+    @property
+    def ai_base_url(self) -> str:
+        """AI 助手 API Base URL"""
+        return self.get('ai_base_url', 'https://api.deepseek.com')
+
+    @ai_base_url.setter
+    def ai_base_url(self, new_value: str) -> None:
+        self.update('ai_base_url', new_value)
+
+    @property
+    def ai_model(self) -> str:
+        """AI 助手模型名称"""
+        return self.get('ai_model', 'deepseek-chat')
+
+    @ai_model.setter
+    def ai_model(self, new_value: str) -> None:
+        self.update('ai_model', new_value)
