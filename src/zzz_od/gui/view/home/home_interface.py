@@ -30,8 +30,6 @@ from one_dragon.base.operation.application.application_run_context import (
 )
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.services.ai_assistant_service import AiAssistantService
-from one_dragon_qt.services.ai_chat_dialog import AiChatDialog
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import get_foreground_color
 from one_dragon_qt.utils.layout_utils import apply_shadow
@@ -50,10 +48,9 @@ from zzz_od.gui.widgets.stats_bar import StatsBar
 class ButtonGroup(QWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
-    def __init__(self, ctx: ZContext, ai_chat_dialog: AiChatDialog | None, parent: QWidget | None = None):
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
         QWidget.__init__(self, parent=parent)
         self.ctx = ctx
-        self._ai_chat_dialog = ai_chat_dialog
 
         self.setFixedSize(70, 280)
 
@@ -113,18 +110,6 @@ class ButtonGroup(QWidget):
         layout.addWidget(chat_button)
         self.buttons.append(chat_button)
 
-        # 创建 AI 助手按钮
-        ai_button = IconButton(
-            FluentIcon.ROBOT.icon(color=QColor("#fff")),
-            tip_title="AI 助手",
-            tip_content="智能问答 · 配置建议",
-            isTooltip=True,
-        )
-        ai_button.setIconSize(QSize(30, 30))
-        ai_button.clicked.connect(self._on_ai_clicked)
-        layout.addWidget(ai_button)
-        self.buttons.append(ai_button)
-
 
     def open_home(self):
         """打开主页链接"""
@@ -141,12 +126,6 @@ class ButtonGroup(QWidget):
     def open_doc(self):
         """打开 腾讯文档 链接, 感谢历任薪王的付出 """
         QDesktopServices.openUrl(QUrl(self.ctx.project_config.doc_link))
-
-    def _on_ai_clicked(self) -> None:
-        """切换 AI 助手对话框"""
-        sender = self.sender()
-        if sender is not None and self._ai_chat_dialog is not None:
-            self._ai_chat_dialog.toggle(sender)
 
 
 class BaseThread(QThread):
@@ -487,16 +466,8 @@ class HomeInterface(BaseInterface):
         h2_layout.addWidget(start_group, alignment=Qt.AlignmentFlag.AlignBottom)
 
         # 按钮组
-        self._ai_service = AiAssistantService()
-        self._ai_chat_dialog = AiChatDialog(
-            self._ai_service, parent=self
-        )
-        self._ai_chat_dialog.send_message.connect(self._on_ai_send)
-
-        self.button_group = ButtonGroup(
-            self.ctx, self._ai_chat_dialog
-        )
-        self.button_group.setMaximumHeight(350)
+        self.button_group = ButtonGroup(self.ctx)
+        self.button_group.setMaximumHeight(320)
         self._apply_button_group_shadows()
         h2_layout.addWidget(self.button_group, alignment=Qt.AlignmentFlag.AlignVCenter)
 
@@ -956,25 +927,6 @@ class HomeInterface(BaseInterface):
         if elapsed > 0:
             self._home_run_label.setText(f"运行中  {_format_elapsed(elapsed)}")
 
-    # ---------- AI 助手 ----------
-
-    def _on_ai_send(self, message: str) -> None:
-        """处理 AI 助手消息发送"""
-        api_key = self.ctx.custom_config.ai_api_key
-        if not api_key:
-            self._ai_chat_dialog.on_error('请先在设置中配置 AI API Key')
-            return
-        base_url = self.ctx.custom_config.ai_base_url
-        model = self.ctx.custom_config.ai_model
-        self._ai_service.chat_stream(
-            user_message=message,
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            on_chunk=self._ai_chat_dialog.on_chunk,
-            on_done=self._ai_chat_dialog.on_done,
-            on_error=self._ai_chat_dialog.on_error,
-        )
 
 
 def _format_elapsed(seconds: float) -> str:
