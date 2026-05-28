@@ -112,7 +112,7 @@ class CoffeeApp(ZApplication):
     def move_and_interact(self) -> OperationRoundResult:
         """
         六分街-咖啡店：转向正西后前移再交互
-        澄辉坪-汀曼咖啡：传送落点已正对柜台，直接交互
+        澄辉坪-汀曼咖啡：传送落点已正对入口，直接交互 派发 status 走对话点单分支
         :return:
         """
         if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:
@@ -123,6 +123,9 @@ class CoffeeApp(ZApplication):
             time.sleep(1)
 
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+
+        if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
+            return self.round_success(status='对话点单')
         return self.round_success()
 
     @node_from(from_name='移动交互')
@@ -308,7 +311,26 @@ class CoffeeApp(ZApplication):
 
         return self.round_retry(result.status, wait=1)
 
+    @node_from(from_name='移动交互', status='对话点单')
+    @operation_node(name='对话选咖啡', node_max_retry_times=20)
+    def dialog_choose_coffee(self) -> OperationRoundResult:
+        """处理澄辉坪-汀曼咖啡交互后的专属点单对话框"""
+        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
+        to_choose_list = self._get_coffee_to_choose(day)
+
+        area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
+        target_cn_list = [*to_choose_list, '暂时不用']
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, area=area)
+        if result.is_success:
+            if result.status in self.ctx.compendium_service.name_2_coffee:
+                self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
+                self.had_coffee_list.add(result.status)
+                return self.round_success(status='已点单', wait=1)
+            return self.round_success(status=result.status, wait=1)
+        return self.round_retry(status='等待对话框', wait=1)
+
     @node_from(from_name='点单后跳过')
+    @node_from(from_name='对话选咖啡', status='已点单')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
@@ -406,6 +428,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='不占用点单确认', status='不可贪杯确认')  # 已经喝过了
     @node_from(from_name='点单后跳过', status='不可贪杯确认')  # 已经喝过了
+    @node_from(from_name='对话选咖啡', status='暂时不用')  # 澄辉坪-汀曼咖啡：今天已喝过即结束
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
