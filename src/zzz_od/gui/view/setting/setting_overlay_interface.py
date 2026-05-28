@@ -37,7 +37,7 @@ class SettingOverlayInterface(VerticalScrollInterface):
         super().__init__(
             content_widget=None,
             object_name="setting_overlay_interface",
-            nav_text_cn="Overlay",
+            nav_text_cn="画面覆盖",
             nav_icon=FluentIcon.VIEW,
             parent=parent,
         )

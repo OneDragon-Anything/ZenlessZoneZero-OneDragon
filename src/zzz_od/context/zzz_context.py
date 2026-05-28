@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+if TYPE_CHECKING:
+    from zzz_od.config.dodge_stats_config import UserStatsConfig
 
 
 class ZContext(OneDragonContext):
@@ -59,6 +63,16 @@ class ZContext(OneDragonContext):
             WitheredDomainContext,
         )
         return WitheredDomainContext(self)
+
+    @cached_property
+    def user_stats(self) -> UserStatsConfig:
+        from zzz_od.config.dodge_stats_config import UserStatsConfig
+        return UserStatsConfig()
+
+    @property
+    def dodge_stats(self) -> UserStatsConfig:
+        """向后兼容旧引用，实际指向 user_stats"""
+        return self.user_stats
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -139,6 +153,10 @@ class ZContext(OneDragonContext):
         """
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
+
+        # 持久化用户统计
+        if 'user_stats' in self.__dict__:
+            self.user_stats.save_stats()
 
         # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
         self.withered_domain.after_app_shutdown()

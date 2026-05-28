@@ -1,5 +1,3 @@
-import os
-
 from PySide6.QtGui import QImage, Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, HyperlinkCard, ImageLabel
@@ -14,10 +12,10 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 class LikeInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
+    def __init__(self, ctx: OneDragonEnvContext, parent: QWidget | None = None):
         VerticalScrollInterface.__init__(self, object_name='like_interface',
                                          parent=parent, content_widget=None,
-                                         nav_text_cn='点赞', nav_icon=FluentIcon.HEART)
+                                         nav_text_cn='关于', nav_icon=FluentIcon.INFO)
         self.ctx: OneDragonEnvContext = ctx
 
     def get_content_widget(self) -> QWidget:
@@ -33,23 +31,60 @@ class LikeInterface(VerticalScrollInterface):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        star_opt = HyperlinkCard(icon=FluentIcon.HOME, title='Star', text=gt('前往'),
-                                 content=gt('GitHub主页右上角点一个星星是最简单直接的'),
-                                 url=self.ctx.project_config.github_homepage)
-        star_opt.setFixedHeight(50)
-        left_layout.addWidget(star_opt)
+        # 官方站点
+        site_home = HyperlinkCard(
+            icon=FluentIcon.HOME, title='官方网站',
+            text=gt('前往'),
+            content=gt('一条龙官网，功能介绍与使用说明'),
+            url=self.ctx.project_config.home_page_link,
+        )
+        site_home.setFixedHeight(50)
+        left_layout.addWidget(site_home)
 
-        help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='访问GitHub指南', text=gt('前往'),
-                                 content=gt('没法访问GitHub可以查看帮助文档'),
-                                 url='https://one-dragon.com/other/zh/visit_github.html')
-        help_opt.setFixedHeight(50)
-        left_layout.addWidget(help_opt)
+        site_github = HyperlinkCard(
+            icon=FluentIcon.GITHUB, title='GitHub',
+            text=gt('前往'),
+            content=gt('源码仓库 · 反馈问题 · Star⭐'),
+            url=self.ctx.project_config.github_homepage,
+        )
+        site_github.setFixedHeight(50)
+        left_layout.addWidget(site_github)
 
-        cafe_opt = HyperlinkCard(icon=FluentIcon.CAFE, title='赞赏', text=gt('前往'),
-                                 content=gt('如果喜欢本项目，你也可以为作者赞助一点维护费用~'),
-                                 url='https://one-dragon.com/other/zh/like/like.html')
-        cafe_opt.setFixedHeight(50)
-        left_layout.addWidget(cafe_opt)
+        site_github_help = HyperlinkCard(
+            icon=FluentIcon.HELP, title='访问GitHub指南',
+            text=gt('前往'),
+            content=gt('没法访问GitHub可以查看帮助文档'),
+            url='https://one-dragon.com/other/zh/visit_github.html',
+        )
+        site_github_help.setFixedHeight(50)
+        left_layout.addWidget(site_github_help)
+
+        site_qq = HyperlinkCard(
+            icon=FluentIcon.CHAT, title='官方频道',
+            text=gt('加入'),
+            content=gt('QQ频道，交流讨论与获取最新动态'),
+            url=self.ctx.project_config.qq_link,
+        )
+        site_qq.setFixedHeight(50)
+        left_layout.addWidget(site_qq)
+
+        site_doc = HyperlinkCard(
+            icon=FluentIcon.LIBRARY, title='帮助文档',
+            text=gt('前往'),
+            content=gt('常见问题与详细配置说明'),
+            url=self.ctx.project_config.doc_link,
+        )
+        site_doc.setFixedHeight(50)
+        left_layout.addWidget(site_doc)
+
+        site_sponsor = HyperlinkCard(
+            icon=FluentIcon.CAFE, title='赞赏',
+            text=gt('前往'),
+            content=gt('如果喜欢本项目，你也可以为作者赞助一点维护费用~'),
+            url='https://one-dragon.com/other/zh/like/like.html',
+        )
+        site_sponsor.setFixedHeight(50)
+        left_layout.addWidget(site_sponsor)
 
         # 左侧图片和遥测说明容器
         left_content_widget = QWidget()

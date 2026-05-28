@@ -10,5 +10,6 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             self,
             ctx=ctx,
             parent=parent,
-            help_url='https://one-dragon.com/zzz/zh/feat_one_dragon/quickstart.html',
+            help_url='https://one-dragon.com/zzz/feat_one_dragon/quickstart.html',
         )
+

@@ -38,3 +38,11 @@ class ZApplication(Application):
     def handle_resume(self) -> None:
         self.ctx.controller.active_window()
         Application.handle_resume(self)
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        Application.after_operation_done(self, result)
+        if result.success:
+            try:
+                self.ctx.user_stats.increment_app(self.app_id)
+            except (AttributeError, RuntimeError) as e:
+                self.logger.warning(f'更新应用运行计数失败: {e}')
