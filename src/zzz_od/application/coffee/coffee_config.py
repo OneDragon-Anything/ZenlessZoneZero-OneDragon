@@ -16,6 +16,7 @@ class CoffeeChooseWay(Enum):
 
     PLAN_PRIORITY = ConfigItem('优先体力计划', desc='优先选择符合体力计划的咖啡，没有的时候选择汀曼特调')
     CUSTOM = ConfigItem('汀曼特调', desc='只选择汀曼特调')
+    ESPRESSO_ONLY = ConfigItem('浓缩咖啡', desc='只选择浓缩咖啡')
 
 
 class CoffeeChallengeWay(Enum):

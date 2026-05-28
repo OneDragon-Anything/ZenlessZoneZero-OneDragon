@@ -232,7 +232,10 @@ class CoffeeApp(ZApplication):
                         to_choose_list.append(coffee.coffee_name)
                         break
 
-        day_config_coffee = self.config.get_coffee_by_day(day)
+        if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
+            day_config_coffee = self.config.get_coffee_by_day(day)
+        else:
+            day_config_coffee = self.config.choose_way
         if day_config_coffee not in self.had_coffee_list:
             to_choose_list.append(day_config_coffee)
 
