@@ -95,26 +95,28 @@ class RandomPlayApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='等待经营画面加载')
+    @operation_node(name='等待经营画面加载', node_max_retry_times=20)
     def wait_run(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
-        if result.is_success:
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭',
-                                                     retry_wait=1)
-        # 看看经营状况，识别到就点击一下，保证在"经营状况"分支
-        # 因为二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况',
-                                                 retry_wait=1)
-
-    @node_from(from_name='等待经营画面加载')
-    @operation_node(name='识别营业状态')
-    def check_running(self) -> OperationRoundResult:
-        # 防止上一步跳过了昨日账本
+        # 每日首次。点完关闭按钮后回到本节点重判，防止昨日账本残影或未关闭
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
             self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭')
             return self.round_retry(wait=1)
+        # 识别到"经营状况"就点击一下以保证在该分支。二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
+        result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况')
+        if result.is_success:
+            return self.round_success()
+        # 澄辉坪-录像店营业点交互后的专属对话框。前面都没识别到说明被对话框挡住了，点击 "查看经营状况" 推进
+        area = self.ctx.screen_loader.get_area('影像店营业', '右侧选项区域')
+        result = self.round_by_ocr_and_click(self.last_screenshot, '查看经营状况', area=area)
+        if result.is_success:
+            return self.round_retry(status=result.status, wait=1)
 
+        return self.round_retry(status='等待经营画面', wait=1)
+
+    @node_from(from_name='等待经营画面加载')
+    @operation_node(name='识别营业状态')
+    def check_running(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '正在营业')
         if result.is_success:
             return self.round_success(RandomPlayApp.STATUS_ALREADY_RUNNING)
