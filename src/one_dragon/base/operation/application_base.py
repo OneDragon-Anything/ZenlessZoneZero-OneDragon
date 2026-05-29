@@ -81,7 +81,7 @@ class Application(Operation):
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
-    def after_operation_done(self, result: OperationResult) -> None:
+    def after_operation_done(self, result: OperationResult):
         """
         停止后的处理
         :return:
