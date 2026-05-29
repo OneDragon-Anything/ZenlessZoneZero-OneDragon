@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QHBoxLayout
-from typing import List
+from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 
 class HorizontalSettingCardGroup(QWidget):
     """水平布局的设置卡片组，用于在一行中显示多个设置卡片"""
 
-    def __init__(self, cards: List[QWidget] = None, spacing = 2, parent=None):
+    def __init__(
+        self,
+        cards: list[QWidget] | None = None,
+        spacing: int = 2,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent=parent)
 
         # 创建水平布局
@@ -23,13 +29,13 @@ class HorizontalSettingCardGroup(QWidget):
             for card in cards:
                 self.add_card(card)
 
-    def add_card(self, card: QWidget):
+    def add_card(self, card: QWidget) -> None:
         """添加设置卡片到布局中"""
         card.setParent(self)
         # 确保卡片垂直居中对齐
-        self.h_layout.addWidget(card, 0, Qt.AlignmentFlag.AlignTop)
+        self.h_layout.addWidget(card, 1, Qt.AlignmentFlag.AlignTop)
 
-    def add_cards(self, cards: List[QWidget]):
+    def add_cards(self, cards: list[QWidget]) -> None:
         """批量添加设置卡片"""
         for card in cards:
             self.add_card(card)
