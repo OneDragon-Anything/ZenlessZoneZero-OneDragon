@@ -2,7 +2,6 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.user_config import UserConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class TypeInputWay(Enum):
@@ -40,10 +39,6 @@ class BasicGameConfig(UserConfig):
     @type_input_way.setter
     def type_input_way(self, new_value: str):
         self.update('type_input_way', new_value)
-
-    @property
-    def type_input_way_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'type_input_way', TypeInputWay.CLIPBOARD.value.value)
 
     @property
     def hdr(self) -> bool:

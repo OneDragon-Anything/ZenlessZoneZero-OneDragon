@@ -2,9 +2,9 @@ from typing import Any, List, Optional
 
 from qfluentwidgets import ComboBox as qtComboBox
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBox(qtComboBox, AdapterInitMixin):
@@ -13,7 +13,7 @@ class ComboBox(qtComboBox, AdapterInitMixin):
         qtComboBox.__init__(self, parent)
         AdapterInitMixin.__init__(self)
 
-        self.adapter: Optional[YamlConfigAdapter] = None
+        self.adapter: Optional[ConfigAdapter] = None
 
         self.currentIndexChanged.connect(self._on_index_changed)
 
