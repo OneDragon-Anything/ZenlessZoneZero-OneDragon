@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
+from types import MappingProxyType
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -39,16 +41,16 @@ class NotifyConfig(YamlConfig):
         self.app_map = app_map.copy()
         self._migrate_legacy_config()
 
-    def __getattr__(self, name: str) -> dict[str, str]:
+    def __getattr__(self, name: str) -> Mapping[str, str]:
         """
         按 app_map 动态解析应用通知配置。
         """
         app_map = self.__dict__.get('app_map')
         if isinstance(app_map, dict) and name in app_map:
-            return {
+            return MappingProxyType({
                 'lifecycle': self.get_app_lifecycle_mode(name),
                 'detail': self.get_app_detail_mode(name),
-            }
+            })
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def __setattr__(self, name: str, value: object) -> None:
