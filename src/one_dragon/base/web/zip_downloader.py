@@ -60,8 +60,8 @@ class ZipDownloader(CommonDownloader):
                 log.warning('疑似压缩包损毁 重新下载')
                 continue
 
-        # 解压有可能失败 最后再判断一次文件是否已经存在了
-        return self.is_file_existed()
+        # 解压有可能失败 最后再判断一次解压产物是否已经存在
+        return CommonDownloader.is_file_existed(self)
 
     def unzip(self) -> bool:
         """

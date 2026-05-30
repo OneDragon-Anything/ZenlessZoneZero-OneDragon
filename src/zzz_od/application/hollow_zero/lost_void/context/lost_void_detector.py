@@ -1,9 +1,10 @@
-from typing import Optional, Union, List, Tuple, ClassVar
+from typing import ClassVar
 
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
-from one_dragon.yolo.yolo_utils import ZZZ_MODEL_DOWNLOAD_URL
+from one_dragon.yolo.yolo_utils import get_github_model_download_url
 from one_dragon.yolo.yolov8_onnx_det import Yolov8Detector
+from zzz_od.config.model_config import YOLO_RELEASE_TAG
 
 
 class LostVoidDetector(Yolov8Detector):
@@ -16,8 +17,8 @@ class LostVoidDetector(Yolov8Detector):
                  model_name: str,
                  backup_model_name: str,
                  gh_proxy: bool = True,
-                 gh_proxy_url: Optional[str] = None,
-                 personal_proxy: Optional[str] = None,
+                 gh_proxy_url: str | None = None,
+                 personal_proxy: str | None = None,
                  gpu: bool = False,
                  keep_result_seconds: float = 2
                  ):
@@ -33,7 +34,7 @@ class LostVoidDetector(Yolov8Detector):
             model_name=model_name,
             backup_model_name=backup_model_name,
             model_parent_dir_path=yolo_config_utils.get_model_category_dir('lost_void_det'),
-            model_download_url=ZZZ_MODEL_DOWNLOAD_URL,
+            model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
             gh_proxy=gh_proxy,
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,
@@ -41,7 +42,7 @@ class LostVoidDetector(Yolov8Detector):
             keep_result_seconds=keep_result_seconds
         )
 
-    def is_frame_with_all(self, frame_result: Optional[DetectFrameResult] = None) -> Tuple[bool, bool, bool]:
+    def is_frame_with_all(self, frame_result: DetectFrameResult | None = None) -> tuple[bool, bool, bool]:
         """
         判断某帧的识别结果里 是否存在 感叹号、距离、入口
         @param frame_result: 帧识别结果 不传入时使用最后一帧
@@ -65,8 +66,8 @@ class LostVoidDetector(Yolov8Detector):
 
         return with_interact, with_distance, with_entry
 
-    def is_frame_with(self, frame_result: Optional[DetectFrameResult] = None,
-                      target_type: Union[List[str], str] = None) -> bool:
+    def is_frame_with(self, frame_result: DetectFrameResult | None = None,
+                      target_type: list[str] | str = None) -> bool:
         """
         判断某帧的识别结果里 是否存在特定的类别
         @param frame_result: 帧识别结果 不传入时使用最后一帧
@@ -87,8 +88,8 @@ class LostVoidDetector(Yolov8Detector):
                 return True
         return False
 
-    def get_result_by_x(self, frame_result: Optional[DetectFrameResult] = None,
-                        target_type: str = None, by_max_x: bool = True) -> Optional[DetectObjectResult]:
+    def get_result_by_x(self, frame_result: DetectFrameResult | None = None,
+                        target_type: str = None, by_max_x: bool = True) -> DetectObjectResult | None:
         """
         获取某帧的识别结果里 特定类别的最右方结果
         @param frame_result: 帧识别结果 不传入时使用最后一帧
@@ -100,7 +101,7 @@ class LostVoidDetector(Yolov8Detector):
             frame_result = self.last_run_result
         if frame_result is None:
             return None
-        target: Optional[DetectObjectResult] = None
+        target: DetectObjectResult | None = None
         for result in frame_result.results:
             if result.detect_class.class_name == target_type:
                 if (target is None
