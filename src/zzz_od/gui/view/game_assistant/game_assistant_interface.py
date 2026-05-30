@@ -8,6 +8,7 @@ from zzz_od.gui.view.battle_assistant.battle_assistant_interface import (
 from zzz_od.gui.view.game_assistant.commission_assistant_interface import (
     CommissionAssistantRunInterface,
 )
+from zzz_od.gui.view.game_assistant.inventory_scan_interface import InventoryScanInterface
 
 
 class GameAssistantInterface(PivotNavigatorInterface):
@@ -21,7 +22,7 @@ class GameAssistantInterface(PivotNavigatorInterface):
         初始化游戏助手界面。
 
         :param ctx: 应用程序上下文，包含配置和状态信息。
-        :param parent: 父组件，默认为 None。
+n        :param parent: 父组件，默认为 None。
         """
         self.ctx: ZContext = ctx
         PivotNavigatorInterface.__init__(self, object_name='game_assistant_interface', parent=parent,
@@ -33,3 +34,4 @@ class GameAssistantInterface(PivotNavigatorInterface):
         """
         self.add_sub_interface(BattleAssistantInterface(self.ctx))
         self.add_sub_interface(CommissionAssistantRunInterface(self.ctx))
+        self.add_sub_interface(InventoryScanInterface(self.ctx))
