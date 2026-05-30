@@ -1,8 +1,10 @@
 import difflib
+import time
 from typing import ClassVar
 
 from cv2.typing import MatLike
 
+from one_dragon.base.config.config_item import get_config_item_from_enum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
@@ -17,6 +19,7 @@ from zzz_od.application.random_play import random_play_const
 from zzz_od.application.random_play.random_play_config import (
     RANDOM_AGENT_NAME,
     RandomPlayConfig,
+    RandomPlayTransportPoint,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -24,7 +27,7 @@ from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
-from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
+from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 
 
 class RandomPlayApp(ZApplication):
@@ -69,44 +72,51 @@ class RandomPlayApp(ZApplication):
             self.retried_transport = True
 
         self.turn_compensator.clear_pending_sample()
-        op = Transport(self.ctx, '录像店', '柜台')
+        item = get_config_item_from_enum(RandomPlayTransportPoint, self.config.transport_point)
+        op = Transport(self.ctx, item.area_name, item.tp_name)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后 先将视角转向正东 再往前移动一下 方便交互
+        录像店-柜台：转向正东后前移再交互
+        澄辉坪-录像店营业点：传送落点已正对入口，直接交互
         :return:
         """
-        return turn_to_angle_and_interact(
-            self,
-            self.turn_compensator,
-            target_angle=0,
-            turn_status='转向正东',
-        )
+        if self.config.transport_point == RandomPlayTransportPoint.POINT_1.value.value:
+            result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
+            if not result.is_success:
+                return result
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
+            time.sleep(1)
+
+        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+        return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='等待经营画面加载')
+    @operation_node(name='等待经营画面加载', node_max_retry_times=10)
     def wait_run(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
-        if result.is_success:
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭',
-                                                     retry_wait=1)
-        # 看看经营状况，识别到就点击一下，保证在"经营状况"分支
-        # 因为二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况',
-                                                 retry_wait=1)
-
-    @node_from(from_name='等待经营画面加载')
-    @operation_node(name='识别营业状态')
-    def check_running(self) -> OperationRoundResult:
-        # 防止上一步跳过了昨日账本
+        # 每日首次。点完关闭按钮后回到本节点重判，防止昨日账本残影或未关闭
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
             self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭')
             return self.round_retry(wait=1)
+        # 识别到"经营状况"就点击一下以保证在该分支。二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
+        result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况')
+        if result.is_success:
+            return self.round_success()
+        # 澄辉坪-录像店营业点交互后的专属对话框。前面都没识别到说明被对话框挡住了，点击 "查看经营状况" 推进
+        area = self.ctx.screen_loader.get_area('影像店营业', '右侧选项区域')
+        result = self.round_by_ocr_and_click(self.last_screenshot, '查看经营状况', area=area)
+        if result.is_success:
+            return self.round_retry(status=result.status, wait=1)
 
+        return self.round_retry(status='等待经营画面', wait=1)
+
+    @node_from(from_name='等待经营画面加载')
+    @operation_node(name='识别营业状态')
+    def check_running(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '正在营业')
         if result.is_success:
             return self.round_success(RandomPlayApp.STATUS_ALREADY_RUNNING)
