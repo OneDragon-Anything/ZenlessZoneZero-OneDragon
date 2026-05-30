@@ -44,12 +44,11 @@ class ScreenshotHelperApp(ZApplication):
         self.cache_max_count: int = 0  # 最大缓存数量
         self.is_saving_after_key: bool = False  # 是否正在保存按键后的截图
 
-    def handle_init(self) -> None:
+    def handle_application_init(self) -> None:
         """
         执行前的初始化 由子类实现
         注意初始化要全面 方便一个指令重复使用
         """
-        ZApplication.handle_init(self)
         length_second = self.config.length_second
         freq_second = self.config.frequency_second
         self.ctx.controller.screenshot_alive_seconds = length_second + 1
