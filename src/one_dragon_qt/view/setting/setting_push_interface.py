@@ -27,6 +27,7 @@ from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
 from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
     ExpandSettingCardGroup,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_value_setting_card import (
     KeyValueSettingCard,
 )
@@ -54,6 +55,13 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
+
+        self.help_opt = HelpCard(
+            url='https://one-dragon.com/zzz/zh/setting_notify.html',
+            title='设置说明',
+            content='配置运行通知的推送方式或渠道，所有已配置的渠道都会启用',
+        )
+        content_widget.add_widget(self.help_opt)
 
         self.title_opt = TextSettingCard(
             icon=FluentIcon.MESSAGE,
