@@ -34,6 +34,12 @@ class EnterGame(ZOperation):
         if switch:
             self.force_login = True
 
+        # 未配置账号密码时，无法主动切换账号，依赖游戏保存的登录状态直接进入
+        # switch=True 时前置流程已执行游戏内登出，不能跳过 force_login
+        cfg = self.ctx.game_account_config
+        if not switch and not cfg.account and not cfg.password and not cfg.bilibili_account_name:
+            self.force_login = False
+
         self.already_login: bool = False  # 是否已经登录了
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
