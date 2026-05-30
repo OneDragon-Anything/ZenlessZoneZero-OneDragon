@@ -91,10 +91,12 @@ PLUGIN_DESCRIPTION = "插件功能描述"
 # my_plugin_factory.py
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.context.zzz_context import ZContext
 
 from . import my_plugin_const
 from .my_plugin import MyPlugin
+from .my_plugin_config import MyPluginConfig
 
 
 class MyPluginFactory(ApplicationFactory):
@@ -102,8 +104,11 @@ class MyPluginFactory(ApplicationFactory):
         super().__init__(my_plugin_const)
         self.ctx = ctx
 
-    def create_application(self, instance_idx, group_id):
+    def create_application(self, instance_idx: int, group_id: str):
         return MyPlugin(self.ctx)
+
+    def create_config(self, instance_idx: int, group_id: str) -> ApplicationConfig:
+        return MyPluginConfig(instance_idx, group_id)
 ```
 
 ### 第三方插件特性
@@ -112,6 +117,43 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
+
+---
+
+## 应用配置
+
+需要用户配置的应用应继承 `ApplicationConfig`，并在工厂的 `create_config()` 中返回配置实例。
+
+```python
+# my_plugin_config.py
+
+from one_dragon.base.operation.application.application_config import ApplicationConfig
+
+from . import my_plugin_const
+
+
+class MyPluginConfig(ApplicationConfig):
+
+    def __init__(self, instance_idx: int, group_id: str) -> None:
+        ApplicationConfig.__init__(
+            self,
+            my_plugin_const.APP_ID,
+            instance_idx=instance_idx,
+            group_id=group_id,
+        )
+
+    @property
+    def enabled(self) -> bool:
+        return self.get('enabled', True)
+
+    @enabled.setter
+    def enabled(self, new_value: bool) -> None:
+        self.update('enabled', new_value)
+```
+
+`ApplicationConfig` 的维度是 `app_id + instance_idx + group_id`。同一个插件在不同账号、不同应用组中会有独立配置。
+
+配置最终由 SQLite 保存，插件代码不要直接读写 `config/config.db`，也不要直接使用 `SqliteConnection` 或 `UserConfigStorage`。
 
 ---
 
@@ -185,4 +227,5 @@ class MyContext(OneDragonContext):
 3. **const 必需字段**：`APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`
 4. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
 5. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
-6. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)
+6. **配置存储**：应用配置继承 `ApplicationConfig`，默认值写在 property 的 `get()` 中
+7. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)

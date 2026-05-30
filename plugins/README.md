@@ -82,24 +82,24 @@ PLUGIN_DESCRIPTION = "插件功能描述"
 # plugins/my_plugin/my_plugin_factory.py
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.context.zzz_context import ZContext  # ✅ 导入主程序模块
 
 from . import my_plugin_const      # ✅ 相对导入
+from .my_plugin_config import MyPluginConfig
 from .my_plugin import MyPlugin    # ✅ 相对导入
 
 
 class MyPluginFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
-        super().__init__(
-            app_id=my_plugin_const.APP_ID,
-            app_name=my_plugin_const.APP_NAME,
-            default_group=my_plugin_const.DEFAULT_GROUP,
-            need_notify=my_plugin_const.NEED_NOTIFY,
-        )
+        super().__init__(my_plugin_const)
         self.ctx = ctx
 
-    def create_application(self, instance_idx, group_id):
+    def create_application(self, instance_idx: int, group_id: str):
         return MyPlugin(self.ctx)
+
+    def create_config(self, instance_idx: int, group_id: str) -> ApplicationConfig:
+        return MyPluginConfig(instance_idx, group_id)
 ```
 
 ### 4. 实现应用逻辑
@@ -122,6 +122,39 @@ class MyPlugin(Application):
         return self.round_success()
 ```
 
+### 5. 添加应用配置（可选）
+
+如果插件需要保存用户配置，创建 `my_plugin_config.py` 并继承 `ApplicationConfig`：
+
+```python
+# plugins/my_plugin/my_plugin_config.py
+
+from one_dragon.base.operation.application.application_config import ApplicationConfig
+
+from . import my_plugin_const
+
+
+class MyPluginConfig(ApplicationConfig):
+
+    def __init__(self, instance_idx: int, group_id: str) -> None:
+        ApplicationConfig.__init__(
+            self,
+            my_plugin_const.APP_ID,
+            instance_idx=instance_idx,
+            group_id=group_id,
+        )
+
+    @property
+    def enabled(self) -> bool:
+        return self.get('enabled', True)
+
+    @enabled.setter
+    def enabled(self, new_value: bool) -> None:
+        self.update('enabled', new_value)
+```
+
+配置会保存到 SQLite。插件只需要继承 `ApplicationConfig` 并通过 `create_config()` 返回实例，不要直接访问 `config/config.db`。
+
 ## 注意事项
 
 1. **文件命名**：工厂文件必须以 `_factory.py` 结尾
@@ -131,3 +164,4 @@ class MyPlugin(Application):
 5. **备份**：此目录被 `.gitignore` 忽略，请自行备份
 6. **热重载**：刷新应用时会卸载整个插件包并重新加载
 7. **嵌套目录**：支持在插件包内任意深度放置 `_factory.py` 文件
+8. **配置默认值**：新增配置字段时，把默认值写在 property 的 `get()` 中

@@ -1,7 +1,5 @@
-import shutil
 from pathlib import Path
 
-from one_dragon.base.config.sqlite_operator import SQLITE_OPERATOR
 from one_dragon.base.config.user_config import UserConfig
 from one_dragon.utils import os_utils
 
@@ -25,8 +23,6 @@ class ApplicationConfig(UserConfig):
         # 需要从没有group_id的版本迁移过来 预计 2026-09-21 可以删除这段代码
         old_path = config_dir / f'{app_id}.yml'
         sqlite_key = f'{instance_idx % 10}/{group_id}/{app_id}'
-        if not SQLITE_OPERATOR.exists(sqlite_key) and not file_path.exists() and old_path.exists():
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(old_path, file_path)
+        UserConfig.prepare_legacy_yaml_alias(sqlite_key, file_path, old_path)
 
         UserConfig.__init__(self, app_id, instance_idx=instance_idx, sub_dir=[group_id])
