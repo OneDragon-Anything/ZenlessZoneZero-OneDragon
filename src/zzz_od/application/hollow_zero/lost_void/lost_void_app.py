@@ -927,6 +927,7 @@ class LostVoidApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.current_app_id = lost_void_const.APP_ID
     ctx.run_context.start_running()
     op = LostVoidApp(ctx, lost_void_debug=True, next_region_type = LostVoidRegionType.FRIENDLY_TALK)
     op.execute()
