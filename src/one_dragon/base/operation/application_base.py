@@ -64,6 +64,7 @@ class Application(Operation):
         运行前初始化
         """
         Operation.handle_init(self)
+
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
@@ -78,12 +79,23 @@ class Application(Operation):
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
-    def after_operation_done(self, result: OperationResult):
+    def execute(self) -> OperationResult:
+        """
+        执行应用，并确保异常路径也退出 screen scope。
+        """
+        self.ctx.screen_loader.enter_scope(self.app_id)
+        try:
+            return Operation.execute(self)
+        finally:
+            self.ctx.screen_loader.exit_scope()
+
+    def after_operation_done(self, result: OperationResult) -> None:
         """
         停止后的处理
         :return:
         """
         Operation.after_operation_done(self, result)
+
         self._update_record_after_stop(result)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):

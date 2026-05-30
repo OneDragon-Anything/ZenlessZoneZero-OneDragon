@@ -1,5 +1,6 @@
 screen_id: lostvoid_indexpanel
 screen_name: 迷失之地-藏品面板
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 返回按钮
