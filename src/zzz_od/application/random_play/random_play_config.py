@@ -2,15 +2,15 @@
 from enum import Enum
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from zzz_od.operation.transport import Transport
+from zzz_od.game_data.map_area import TransportPoint
 
 RANDOM_AGENT_NAME = '随机'
 
 
 class RandomPlayTransportPoint(Enum):
 
-    POINT_1 = Transport.point_item('录像店', '柜台')
-    POINT_2 = Transport.point_item('澄辉坪', '录像店营业点')
+    POINT_1 = TransportPoint('录像店', '柜台')
+    POINT_2 = TransportPoint('澄辉坪', '录像店营业点')
 
 
 class RandomPlayConfig(ApplicationConfig):

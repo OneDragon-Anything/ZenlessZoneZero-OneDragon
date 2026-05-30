@@ -3,13 +3,13 @@ from enum import Enum
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
-from zzz_od.operation.transport import Transport
+from zzz_od.game_data.map_area import TransportPoint
 
 
 class CoffeeTransportPoint(Enum):
 
-    POINT_1 = Transport.point_item('六分街', '咖啡店')
-    POINT_2 = Transport.point_item('澄辉坪', '汀曼咖啡')
+    POINT_1 = TransportPoint('六分街', '咖啡店')
+    POINT_2 = TransportPoint('澄辉坪', '汀曼咖啡')
 
 
 class CoffeeChooseWay(Enum):

@@ -2,7 +2,6 @@ from typing import ClassVar
 
 from cv2.typing import MatLike
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -17,19 +16,6 @@ from zzz_od.operation.zzz_operation import ZOperation
 class Transport(ZOperation):
 
     STATUS_NOT_IN_MAP: ClassVar[str] = '未在地图页面'
-
-    @staticmethod
-    def point_item(area_name: str, tp_name: str) -> ConfigItem:
-        """
-        构造携带 (area_name, tp_name) 的 ConfigItem 用于 enum 选项
-        :param area_name: 区域名
-        :param tp_name: 传送点名
-        :return:
-        """
-        item = ConfigItem(label=f'{area_name} - {tp_name}')
-        item.area_name = area_name
-        item.tp_name = tp_name
-        return item
 
     def __init__(self, ctx: ZContext, area_name: str, tp_name: str, wait_at_last: bool = True):
         """
