@@ -24,7 +24,8 @@ class EnterGame(ZOperation):
 
     def __init__(self, ctx: ZContext, switch: bool = False):
         ZOperation.__init__(self, ctx,
-                            op_name=gt('进入游戏')
+                            op_name=gt('进入游戏'),
+                            need_check_game_win=False
                             )
 
         self.force_login: bool = (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
@@ -35,6 +36,9 @@ class EnterGame(ZOperation):
             self.force_login = True
 
         self.already_login: bool = False  # 是否已经登录了
+        if self.ctx.game_account_config.is_cloud_game:
+            self.force_login = False
+            self.already_login = True
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本

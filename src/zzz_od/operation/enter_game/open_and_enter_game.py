@@ -22,6 +22,11 @@ class OpenAndEnterGame(Operation):
         打开游戏
         :return:
         """
+        if self.ctx.game_account_config.is_cloud_game:
+            self.ctx.controller.init_game_win()
+            if self.ctx.controller.is_game_window_ready:
+                return self.round_success()
+
         hdr_op = DisableAutoHDR(self.ctx)
         hdr_op.execute()
         op = OpenGame(self.ctx)
@@ -40,6 +45,16 @@ class OpenAndEnterGame(Operation):
             return self.round_retry(wait=1)
 
     @node_from(from_name='等待游戏打开')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
+    @operation_node(name='云游戏排队')
+    def cloud_queue(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.is_cloud_game:
+            from zzz_od.operation.enter_game.cloud_game_queue import CloudGameQueue
+            cloud_queue_op = CloudGameQueue(self.ctx)
+            return self.round_by_op_result(cloud_queue_op.execute())
+        return self.round_success()
+
+    @node_from(from_name='云游戏排队')
     @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:

@@ -91,16 +91,25 @@ class ZContext(OneDragonContext):
             if prop in self.__dict__:
                 del self.__dict__[prop]
 
+        # 更新 controller 的窗口标题（client_type 可能已在设置界面中变更）
+        self.on_switch_instance()
+
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
-        if self.game_account_config.use_custom_win_title:
+        if self.game_account_config.use_custom_win_title \
+                and self.game_account_config.custom_win_title.strip() != '':
             return self.game_account_config.custom_win_title
         from one_dragon.base.config.game_account_config import GameRegionEnum
-        if self.game_account_config.game_region == GameRegionEnum.CN.value.value \
-                or self.game_account_config.game_region == GameRegionEnum.CNB.value.value:
-            return '绝区零'
-        else:
-            return 'ZenlessZoneZero'
+        is_cn_region = self.game_account_config.game_region == GameRegionEnum.CN.value.value \
+                or self.game_account_config.game_region == GameRegionEnum.CNB.value.value
+        base_title = '绝区零' if is_cn_region else 'ZenlessZoneZero'
+
+        if self.game_account_config.is_cloud_game:
+            if is_cn_region:
+                return f'云·{base_title}'
+            return f'{base_title} · Cloud'
+
+        return base_title
 
     def on_switch_instance(self) -> None:
         """
@@ -111,6 +120,7 @@ class ZContext(OneDragonContext):
             self.controller.set_window_title(new_win_title)
 
     def init_controller(self) -> None:
+        win_title = self._get_win_title()
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.controller is not None:
@@ -122,8 +132,7 @@ class ZContext(OneDragonContext):
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
-            # 初始化窗口标题
-            self.controller.set_window_title(self._get_win_title())
+            self.controller.set_window_title(win_title)
 
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据

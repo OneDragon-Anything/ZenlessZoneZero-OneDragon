@@ -23,6 +23,7 @@ from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
     GamepadActionKeyCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
@@ -32,7 +33,6 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
     ControlMethodEnum,
@@ -66,11 +66,24 @@ class SettingGameInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.help_opt)
 
+        content_widget.add_widget(self._get_cloud_game_group())
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_key_settings_group())
         content_widget.add_stretch(1)
 
         return content_widget
+
+    def _get_cloud_game_group(self) -> QWidget:
+        cloud_game_group = SettingCardGroup(gt('云游戏设置'))
+
+        self.prefer_bangbang_points_opt = SwitchSettingCard(
+            icon=FluentIcon.SPEED_HIGH,
+            title='邦邦点快速队列',
+            content='云游戏排队时优先使用邦邦点快速队列',
+        )
+        cloud_game_group.addSettingCard(self.prefer_bangbang_points_opt)
+
+        return cloud_game_group
 
     def _get_basic_group(self) -> QWidget:
         basic_group = SettingCardGroup(gt('游戏基础'))
@@ -246,6 +259,9 @@ class SettingGameInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+        self.prefer_bangbang_points_opt.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter('prefer_bangbang_points')
+        )
 
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
