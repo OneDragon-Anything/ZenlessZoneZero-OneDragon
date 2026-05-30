@@ -23,7 +23,7 @@ class CommissionAssistantConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            commission_assistant_const.APP_ID,
+            app_id=commission_assistant_const.APP_ID,
             instance_idx=instance_idx,
             group_id=group_id,
         )

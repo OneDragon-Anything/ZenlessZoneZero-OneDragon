@@ -8,7 +8,7 @@ class RandomPlayConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            'random_play',
+            app_id='random_play',
             instance_idx=instance_idx,
             group_id=group_id,
         )

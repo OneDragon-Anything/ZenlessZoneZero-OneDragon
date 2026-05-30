@@ -16,7 +16,7 @@ class DriveDiscDismantleConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            'drive_disc_dismantle',
+            app_id='drive_disc_dismantle',
             instance_idx=instance_idx,
             group_id=group_id,
         )

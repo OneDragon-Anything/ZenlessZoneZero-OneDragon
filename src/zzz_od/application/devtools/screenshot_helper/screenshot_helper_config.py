@@ -6,7 +6,7 @@ class ScreenshotHelperConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            'screenshot_helper',
+            app_id='screenshot_helper',
             instance_idx=instance_idx,
             group_id=group_id,
         )

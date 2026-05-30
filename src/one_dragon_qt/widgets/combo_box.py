@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any
 
 from qfluentwidgets import ComboBox as qtComboBox
 
@@ -13,11 +13,11 @@ class ComboBox(qtComboBox, AdapterInitMixin):
         qtComboBox.__init__(self, parent)
         AdapterInitMixin.__init__(self)
 
-        self.adapter: Optional[ConfigAdapter] = None
+        self.adapter: ConfigAdapter | None = None
 
         self.currentIndexChanged.connect(self._on_index_changed)
 
-    def set_items(self, items: List[ConfigItem], target_value: Any = None) -> None:
+    def set_items(self, items: list[ConfigItem], target_value: Any = None) -> None:
         """
         更新选项
         且尽量复用原来的选项

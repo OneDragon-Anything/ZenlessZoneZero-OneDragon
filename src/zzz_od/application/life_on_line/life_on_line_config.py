@@ -7,7 +7,7 @@ class LifeOnLineConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            'life_on_line',
+            app_id='life_on_line',
             instance_idx=instance_idx,
             group_id=group_id,
         )

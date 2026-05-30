@@ -1,7 +1,6 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.user_config import UserConfig
 from one_dragon.utils import os_utils
@@ -22,7 +21,7 @@ class AppRunRecord(UserConfig):
 
     def __init__(
             self, app_id: str,
-            instance_idx: Optional[int] = None,
+            instance_idx: int | None = None,
             game_refresh_hour_offset: int = 0,
             record_period: AppRunRecordPeriod = AppRunRecordPeriod.DAILY
     ):

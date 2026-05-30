@@ -1,7 +1,12 @@
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.user_config import UserConfig
-from one_dragon.base.matcher.ocr.onnx_ocr_matcher import DEFAULT_OCR_MODEL_NAME, get_ocr_model_dir, \
-    get_ocr_download_url_github, get_ocr_download_url_gitee, get_final_file_list
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import (
+    DEFAULT_OCR_MODEL_NAME,
+    get_final_file_list,
+    get_ocr_download_url_gitee,
+    get_ocr_download_url_github,
+    get_ocr_model_dir,
+)
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 
 
