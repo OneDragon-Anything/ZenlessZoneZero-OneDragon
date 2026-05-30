@@ -95,7 +95,7 @@ class RandomPlayApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='等待经营画面加载', node_max_retry_times=20)
+    @operation_node(name='等待经营画面加载', node_max_retry_times=10)
     def wait_run(self) -> OperationRoundResult:
         # 每日首次。点完关闭按钮后回到本节点重判，防止昨日账本残影或未关闭
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
