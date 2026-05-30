@@ -35,6 +35,7 @@ if not getattr(sys, 'frozen', False):
     import os.path
     import platform
     import polib
+    import psutil
     import pyautogui
     import pyclipper
     import pyuac
@@ -56,6 +57,7 @@ if not getattr(sys, 'frozen', False):
     import urllib.parse
     import urllib.request
     import uuid
+    import uvicorn
     import vgamepad
     import warnings
     import webbrowser
@@ -76,10 +78,10 @@ if not getattr(sys, 'frozen', False):
     from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
-    from collections.abc import Callable
+    from collections.abc import AsyncIterator, Callable
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
-    from contextlib import suppress
+    from contextlib import asynccontextmanager, suppress
     from copy import deepcopy
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
@@ -96,6 +98,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
+    from mcp.server.fastmcp import FastMCP
     from mss import mss
     from mss.base import MSSBase
     from packaging import version
