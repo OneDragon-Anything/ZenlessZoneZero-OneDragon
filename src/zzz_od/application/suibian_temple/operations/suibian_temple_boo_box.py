@@ -15,6 +15,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import (
     SuibianTempleConfig,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.input_utils import wake_mouse_at
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -252,8 +253,11 @@ class SuibianTempleBooBox(ZOperation):
         if any('聘用' in text for text in ocr_result_map):
             return self.round_success(status='已返回邦巢界面')
 
+        skip_area = self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过')
+        # 点击前甩动一下激活鼠标
+        wake_mouse_at(self.ctx.controller, skip_area.center)
         self.ctx.controller.click(
-            pos=self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过').center,
+            pos=skip_area.center,
             press_time=0.5,  # 长按一点
         )
         return self.round_wait(status='点击跳过', wait=0.5)
