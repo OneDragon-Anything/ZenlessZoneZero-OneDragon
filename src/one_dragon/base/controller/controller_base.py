@@ -45,7 +45,8 @@ class ControllerBase:
         """
         return False
 
-    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False, gamepad_key: str | None = None) -> bool:
+    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False,
+              gamepad_key: str | None = None) -> bool:
         """
         点击位置
         :param pos: 点击位置 (x,y) 默认分辨率下的游戏窗口里的坐标
