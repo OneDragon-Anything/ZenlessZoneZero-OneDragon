@@ -2,14 +2,14 @@ from typing import Any
 
 from PySide6.QtCore import QTimer
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class AdapterInitMixin:
-    """为依赖 ``YamlConfigAdapter`` 的控件提供统一的初始化逻辑。"""
+    """为依赖 ``ConfigAdapter`` 的控件提供统一的初始化逻辑。"""
 
-    adapter: YamlConfigAdapter | None
+    adapter: ConfigAdapter | None
     _adapter_load_generation: int
 
     def __init__(self, *args, **kwargs) -> None:
@@ -19,7 +19,7 @@ class AdapterInitMixin:
         self.adapter = None
         self._adapter_load_generation = 0
 
-    def init_with_adapter(self, adapter: YamlConfigAdapter | None) -> None:
+    def init_with_adapter(self, adapter: ConfigAdapter | None) -> None:
         """绑定适配器并异步同步初始值。"""
         self.adapter = adapter
         self._adapter_load_generation += 1
@@ -42,7 +42,7 @@ class AdapterInitMixin:
         """当没有适配器时使用的默认值。"""
         return None
 
-    def _get_adapter_value(self, adapter: YamlConfigAdapter) -> Any:
+    def _get_adapter_value(self, adapter: ConfigAdapter) -> Any:
         return adapter.get_value()
 
     def _apply_adapter_value(self, value: Any) -> None:

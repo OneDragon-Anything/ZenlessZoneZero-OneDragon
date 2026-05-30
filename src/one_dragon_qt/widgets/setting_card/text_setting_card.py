@@ -6,10 +6,10 @@ from qfluentwidgets import LineEdit, ToolButton
 from typing import Union, Optional
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class TextSettingCard(SettingCardBase, AdapterInitMixin):
@@ -25,6 +25,7 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
                  margins: Margins = Margins(16, 16, 0, 16),
                  input_placeholder: Optional[str] = None,
                  input_max_width: int = 300,
+                 adapter: Optional[ConfigAdapter] = None,
                  is_password: bool = False,  # 控制是否为密码模式
                  parent=None):
 
@@ -44,6 +45,8 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
         self.line_edit.setMaximumWidth(input_max_width)
         self.line_edit.setPlaceholderText(gt(input_placeholder))
         self.line_edit.setClearButtonEnabled(True)
+
+        self.adapter = adapter
 
         # 设置密码模式
         if is_password:

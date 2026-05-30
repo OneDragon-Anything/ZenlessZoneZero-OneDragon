@@ -1,4 +1,4 @@
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from zzz_od.game_data.agent import Agent
 
 
@@ -13,10 +13,10 @@ class PredefinedTeamInfo:
         self.auto_battle: str = auto_battle  # 对应的自动战斗配置
 
 
-class TeamConfig(YamlConfig):
+class TeamConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'team', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'team', instance_idx=instance_idx)
 
     @property
     def team_list(self) -> list[PredefinedTeamInfo]:

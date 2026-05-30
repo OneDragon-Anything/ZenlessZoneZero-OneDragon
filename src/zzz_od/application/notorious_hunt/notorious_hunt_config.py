@@ -1,7 +1,6 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
@@ -106,7 +105,7 @@ class NotoriousHuntConfig(ApplicationConfig):
             })
         self.data['plan_list'] = plan_list
 
-        YamlConfig.save(self)
+        ApplicationConfig.save(self)
 
     def update_plan(self, idx: int, plan: ChargePlanItem) -> None:
         if idx < 0 or idx >= len(self.plan_list):

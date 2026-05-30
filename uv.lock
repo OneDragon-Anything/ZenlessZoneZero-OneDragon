@@ -163,6 +163,15 @@ wheels = [
 ]
 
 [[package]]
+name = "greenlet"
+version = "3.2.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/b8/704d753a5a45507a7aab61f18db9509302ed3d0a27ac7e0359ec2905b1a6/greenlet-3.2.4.tar.gz", hash = "sha256:0dca0d95ff849f9a364385f36ab49f50065d76964944638be9691e1832e9f86d", size = 188260, upload-time = "2025-08-07T13:24:33.51Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/0f/30aef242fcab550b0b3520b8e3561156857c94288f0332a79928c31a52cf/greenlet-3.2.4-cp311-cp311-win_amd64.whl", hash = "sha256:9c40adce87eaa9ddb593ccb0fa6a07caf34015a29bf8d344811665b573138db9", size = 299100, upload-time = "2025-08-07T13:44:12.287Z" },
+]
+
+[[package]]
 name = "humanfriendly"
 version = "10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -905,6 +914,21 @@ wheels = [
 ]
 
 [[package]]
+name = "sqlalchemy"
+version = "2.0.50"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "greenlet", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'WIN32' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'win32') or (platform_machine == 'amd64' and sys_platform == 'win32') or (platform_machine == 'ppc64le' and sys_platform == 'win32') or (platform_machine == 'win32' and sys_platform == 'win32') or (platform_machine == 'x86_64' and sys_platform == 'win32')" },
+    { name = "typing-extensions", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/da/6fbf010c8ebb347679d0d100b22fe9ba5e13fd04046c5df7280d2f0bf706/sqlalchemy-2.0.50.tar.gz", hash = "sha256:af5607d11ef90fd6a5c0549fe0045dce1663d427426bcfb506dcb5346a85a3b9", size = 9907424, upload-time = "2026-05-24T19:20:04.018Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/29/17c0003f2c0dfa6d1b97672475707e3ec5980db09defd7fa20beb6833bbd/sqlalchemy-2.0.50-cp311-cp311-win32.whl", hash = "sha256:e6e814658818fd165e749e3d8490ef16cc7f379a118c37ada8b0589ffbaaac22", size = 2120694, upload-time = "2026-05-24T20:08:09.237Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/18/280d00654cc19d1fccf236fa5070f6dd04b84dde6f1b2e637bde0ff340a7/sqlalchemy-2.0.50-cp311-cp311-win_amd64.whl", hash = "sha256:1c5f858fe79c9f5d8fda065c06186356acb7f8df3cd52dbd5ee3f200e4b144f5", size = 2145315, upload-time = "2026-05-24T20:08:10.952Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/10/f7220e9b784d295d241c86ed99aeb537f92afcd469a64861f2717e9bb077/sqlalchemy-2.0.50-py3-none-any.whl", hash = "sha256:92064363517a3ff8212b5a93b8c62876579d8dfd1ca5b561335f30152d884fa9", size = 1943861, upload-time = "2026-05-24T19:59:01.119Z" },
+]
+
+[[package]]
 name = "sympy"
 version = "1.13.0"
 source = { registry = "https://pypi.org/simple" }
@@ -985,6 +1009,7 @@ dependencies = [
     { name = "pyyaml", marker = "sys_platform == 'win32'" },
     { name = "shapely", marker = "sys_platform == 'win32'" },
     { name = "soundcard", marker = "sys_platform == 'win32'" },
+    { name = "sqlalchemy", marker = "sys_platform == 'win32'" },
 ]
 
 [package.dev-dependencies]
@@ -1018,6 +1043,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "soundcard", specifier = "==0.4.3" },
+    { name = "sqlalchemy", specifier = "==2.0.50" },
 ]
 
 [package.metadata.requires-dev]

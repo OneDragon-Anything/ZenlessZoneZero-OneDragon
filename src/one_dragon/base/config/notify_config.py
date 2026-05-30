@@ -1,4 +1,4 @@
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class NotifyLevel:
@@ -8,10 +8,10 @@ class NotifyLevel:
     MERGE = 3
 
 
-class NotifyConfig(YamlConfig):
+class NotifyConfig(UserConfig):
 
-    def __init__(self, instance_idx: int, app_map: dict[str, str]):
-        YamlConfig.__init__(self, 'notify', instance_idx=instance_idx)
+    def __init__(self, instance_idx: int, app_map: dict[str, str]) -> None:
+        UserConfig.__init__(self, 'notify', instance_idx=instance_idx)
         self.app_map = app_map.copy()
         self._generate_dynamic_properties()
 
@@ -60,7 +60,7 @@ class NotifyConfig(YamlConfig):
 
         return int(self.get(app_id, NotifyLevel.ALL))
 
-    def _generate_dynamic_properties(self):
+    def _generate_dynamic_properties(self) -> None:
         # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
         for app_id in self.app_map:
             def create_getter(name: str):

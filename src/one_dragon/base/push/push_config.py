@@ -1,7 +1,7 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 
 
@@ -11,10 +11,10 @@ class PushProxy(Enum):
     PERSONAL = ConfigItem(label="个人代理", value="PERSONAL", desc="沿用脚本环境的个人代理发送")
 
 
-class PushConfig(YamlConfig):
+class PushConfig(UserConfig):
 
-    def __init__(self):
-        YamlConfig.__init__(self, 'push')
+    def __init__(self) -> None:
+        UserConfig.__init__(self, 'push')
 
     @property
     def send_image(self) -> bool:

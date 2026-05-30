@@ -3,19 +3,18 @@ from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from enum import Enum
 from qfluentwidgets import FluentIconBase
 from qfluentwidgets import ToolTip
 from typing import Optional, List, Iterable
 from typing import Union
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
@@ -31,6 +30,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
                  tooltip: Optional[str] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None
                  ):
 
@@ -50,6 +50,8 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self.combo_box = ComboBox(self)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
+
+        self.adapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip

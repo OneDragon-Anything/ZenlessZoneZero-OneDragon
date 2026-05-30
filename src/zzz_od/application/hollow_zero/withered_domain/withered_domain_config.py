@@ -2,7 +2,6 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 
 
@@ -45,10 +44,6 @@ class WitheredDomainConfig(ApplicationConfig):
     @challenge_config.setter
     def challenge_config(self, new_value: str):
         self.update('challenge_config', new_value)
-
-    @property
-    def challenge_config_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'challenge_config', '默认-专属空洞-艾莲')
 
     @property
     def weekly_plan_times(self) -> int:

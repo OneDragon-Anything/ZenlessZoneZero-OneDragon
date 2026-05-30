@@ -2,17 +2,16 @@ from PySide6.QtCore import QObject
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from qfluentwidgets import PushButton
 from qfluentwidgets import SettingCard, FluentIconBase
 from typing import Union, Optional
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class KeyEventWorker(QObject):
@@ -36,6 +35,7 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -54,6 +54,8 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
         self.btn = PushButton(text='', parent=self)
         self.btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn.clicked.connect(self._on_btn_clicked)
+
+        self.adapter = adapter
 
         # 初始化监听器和键盘事件工作者
         self.button_listener = None  # 按键监听
