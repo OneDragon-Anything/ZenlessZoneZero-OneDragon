@@ -200,7 +200,6 @@ class AutoBattleContext:
         self._left_battle_time: float | None = None  # 最近一次离开战斗画面的时间 None表示尚未离开
 
         # 识别结果
-        self.last_check_in_battle: bool = False  # 是否在战斗画面 重置避免上一场遗留导致首帧被误判为刚离开战斗
         self.last_check_end_result: str | None = None  # 识别战斗结束的结果
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
