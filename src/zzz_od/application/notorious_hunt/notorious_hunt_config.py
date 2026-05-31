@@ -58,6 +58,14 @@ class NotoriousHuntConfig(ApplicationConfig):
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
         self.update('weekly_challenge_start_weekday', new_value)
 
+    @property
+    def loop(self) -> bool:
+        return self.get('loop', True)
+
+    @loop.setter
+    def loop(self, new_value: bool) -> None:
+        self.update('loop', new_value)
+
     def save(self) -> None:
         plan_list = []
         for plan_item in self.plan_list:
@@ -78,12 +86,6 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         YamlConfig.save(self)
 
-    def update_plan(self, idx: int, plan: ChargePlanItem) -> None:
-        if idx < 0 or idx >= len(self.plan_list):
-            return
-        self.plan_list[idx] = plan
-        self.save()
-
     def add_plan(self, plan: ChargePlanItem) -> None:
         self.plan_list.append(plan)
         self.save()
@@ -92,6 +94,12 @@ class NotoriousHuntConfig(ApplicationConfig):
         if idx < 0 or idx >= len(self.plan_list):
             return
         self.plan_list.pop(idx)
+        self.save()
+
+    def update_plan(self, idx: int, plan: ChargePlanItem) -> None:
+        if idx < 0 or idx >= len(self.plan_list):
+            return
+        self.plan_list[idx] = plan
         self.save()
 
     def move_top(self, idx: int) -> None:
