@@ -104,34 +104,71 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.save()
 
     def reset_plans(self) -> None:
+        """根据运行次数重置运行计划，仅未被 skipped 的计划项参与判定与扣减"""
         if len(self.plan_list) == 0:
+            return
+
+        eligible = [plan for plan in self.plan_list if not plan.skipped]
+        if len(eligible) == 0:
             return
 
         while True:
             all_finish: bool = True
-            for plan in self.plan_list:
+            for plan in eligible:
                 if plan.run_times < plan.plan_times:
                     all_finish = False
 
             if not all_finish:
                 break
 
-            for plan in self.plan_list:
+            for plan in eligible:
                 plan.run_times -= plan.plan_times
 
             self.save()
 
-    def get_next_plan(self) -> ChargePlanItem | None:
+    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
+        """
+        获取下一个未完成且未被跳过的计划。
+
+        Args:
+            last_tried_plan: 上次尝试的计划。为 None 时从列表开头查找；
+                否则从该计划之后的位置起查找，到列表末尾返回 None（不回卷）。
+        """
         if len(self.plan_list) == 0:
             return None
 
-        self.reset_plans()
+        start_index = 0
+        if last_tried_plan is not None:
+            # 定位上次尝试的计划，从其后一位开始查找
+            last_tried_index = -1
+            for i, plan in enumerate(self.plan_list):
+                if self._is_same_plan(plan, last_tried_plan):
+                    last_tried_index = i
+                    break
 
-        for plan in self.plan_list:
+            if last_tried_index != -1:
+                start_index = last_tried_index + 1
+                if start_index >= len(self.plan_list):
+                    return None
+            # 失配时 start_index 保持 0，回退为从开头查找
+
+        for i in range(start_index, len(self.plan_list)):
+            plan = self.plan_list[i]
+            if plan.skipped:
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
         return None
+
+    def all_plan_finished(self) -> bool:
+        """全部计划是否均已完成（跳过 skipped 的计划）"""
+        for plan in self.plan_list:
+            if plan.skipped:
+                continue
+            if plan.run_times < plan.plan_times:
+                return False
+        return True
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """
