@@ -110,8 +110,14 @@ class NotoriousHuntApp(ZApplication):
     def check_left_times(self) -> OperationRoundResult:
         if self.run_record.left_times == 0:
             return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
-        # 完成一次后复位游标，从头重新查找
-        self.last_tried_plan = None
+
+        if self.previous_node.is_success:
+            # 成功完成一次后复位游标，从头重新查找
+            self.last_tried_plan = None
+        else:
+            # 战斗失败：标记当前计划本轮跳过，避免在同一轮里反复死磕
+            self.next_plan.skipped = True
+            self.last_tried_plan = self.next_plan
         return self.round_success()
 
     @node_from(from_name='判断剩余次数', status=NotoriousHunt.STATUS_NO_LEFT_TIMES)
