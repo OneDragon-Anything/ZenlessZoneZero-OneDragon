@@ -72,6 +72,7 @@ class NotoriousHuntConfig(ApplicationConfig):
                 'run_times': plan_item.run_times,
                 'plan_times': plan_item.plan_times,
                 'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
+                'plan_id': plan_item.plan_id,
             })
         self.data['plan_list'] = plan_list
 
@@ -158,6 +159,12 @@ class NotoriousHuntConfig(ApplicationConfig):
         if x is None or y is None:
             return False
 
+        # 优先按 plan_id 比较：恶名狩猎计划项 mission_name 多为 None，
+        # 同副本类型的多条计划无法靠字段区分
+        if x.plan_id and y.plan_id:
+            return x.plan_id == y.plan_id
+
+        # 缺少 plan_id 的旧数据回退到字段比较
         return (x.tab_name == y.tab_name
                 and x.category_name == y.category_name
                 and x.mission_type_name == y.mission_type_name
