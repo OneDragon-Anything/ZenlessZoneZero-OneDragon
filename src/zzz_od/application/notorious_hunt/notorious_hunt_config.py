@@ -94,16 +94,6 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.plan_list.pop(idx)
         self.save()
 
-    def move_up(self, idx: int) -> None:
-        if idx <= 0 or idx >= len(self.plan_list):
-            return
-
-        tmp = self.plan_list[idx - 1]
-        self.plan_list[idx - 1] = self.plan_list[idx]
-        self.plan_list[idx] = tmp
-
-        self.save()
-
     def move_top(self, idx: int) -> None:
         """移动到顶部"""
         if idx <= 0 or idx >= len(self.plan_list):
