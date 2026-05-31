@@ -1,6 +1,14 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
+from qfluentwidgets import (
+    CaptionLabel,
+    FluentIcon,
+    LineEdit,
+    MessageBoxBase,
+    PrimaryPushButton,
+    SubtitleLabel,
+    ToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
@@ -233,28 +241,31 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.card_list: list[NotoriousHuntCard] = []
 
+        self.plus_btn = PrimaryPushButton(text=gt('新增'))
+        self.plus_btn.clicked.connect(self._on_add_clicked)
+        self.content_widget.add_widget(self.plus_btn, stretch=1)
+
         return self.content_widget
 
     def update_plan_list_display(self) -> None:
         plan_list = self.config.plan_list
 
-        if len(plan_list) > len(self.card_list):
-            while len(self.card_list) < len(plan_list):
-                idx = len(self.card_list)
-                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
-                card.changed.connect(self._on_plan_item_changed)
-                card.move_top.connect(self._on_plan_item_move_top)
+        # 清空原来的卡片再创建新的卡片, 以防止部分信息未更新
+        self.drag_list.clear()
+        self.card_list.clear()
+        idx = 0
+        while idx < len(plan_list):
+            card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
+            card.changed.connect(self._on_plan_item_changed)
+            card.delete.connect(self._on_plan_item_deleted)
+            card.move_top.connect(self._on_plan_item_move_top)
 
-                self.card_list.append(card)
-                self.drag_list.add_list_item(card)
-                card_layout = card.layout()
-                if card_layout is not None:
-                    card_layout.setContentsMargins(0, 4, 0, 4)
-
-        elif len(plan_list) < len(self.card_list):
-            while len(self.card_list) > len(plan_list):
-                self.drag_list.remove_item(len(self.card_list) - 1)
-                self.card_list.pop(-1)
+            self.card_list.append(card)
+            self.drag_list.add_list_item(card)
+            card_layout = card.layout()
+            if card_layout is not None:
+                card_layout.setContentsMargins(0, 4, 0, 4)
+            idx += 1
 
         for idx, plan in enumerate(plan_list):
             self.card_list[idx].update_item(plan, idx)
@@ -276,8 +287,18 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
+    def _on_add_clicked(self) -> None:
+        dialog = NotoriousHuntDialog(self.ctx, self.config, parent=self.window())
+        if dialog.exec():
+            self.config.add_plan(dialog.plan)
+            self.update_plan_list_display()
+
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)
+
+    def _on_plan_item_deleted(self, idx: int) -> None:
+        self.config.delete_plan(idx)
+        self.update_plan_list_display()
 
     def _on_plan_item_move_top(self, idx: int) -> None:
         self.config.move_top(idx)
@@ -297,3 +318,40 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         for idx, card in enumerate(self.card_list):
             card.update_item(card.data, idx)
+
+
+class NotoriousHuntDialog(MessageBoxBase):
+
+    def __init__(self, ctx: ZContext, config: NotoriousHuntConfig, parent=None):
+        self.ctx: ZContext = ctx
+        self.config: NotoriousHuntConfig = config
+
+        MessageBoxBase.__init__(self, parent)
+
+        self.yesButton.setText(gt('确定'))
+        self.cancelButton.setText(gt('取消'))
+
+        self.titleLabel = SubtitleLabel(text=gt('新增恶名狩猎计划'))
+        self.viewLayout.addWidget(self.titleLabel)
+
+        self.plan = ChargePlanItem(
+            tab_name='训练',
+            category_name='恶名狩猎',
+            mission_type_name='初生死路屠夫',
+            mission_name=None,
+            level='默认等级',
+            auto_battle_config='全配队通用',
+            run_times=0,
+            plan_times=1,
+            predefined_team_idx=-1,
+        )
+        self.card = NotoriousHuntCard(self.ctx, idx=-1, plan=self.plan)
+        # 对话框内仅配置计划，隐藏置顶与删除控件
+        self.card.move_top_btn.hide()
+        self.card.del_btn.hide()
+        self.viewLayout.addWidget(self.card)
+        self.viewLayout.addStretch(1)
+
+    def validate(self) -> bool:
+        """计划次数小于 1 时拒绝确认"""
+        return self.plan.plan_times >= 1
