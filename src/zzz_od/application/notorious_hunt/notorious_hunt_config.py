@@ -84,6 +84,16 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.plan_list[idx] = plan
         self.save()
 
+    def add_plan(self, plan: ChargePlanItem) -> None:
+        self.plan_list.append(plan)
+        self.save()
+
+    def delete_plan(self, idx: int) -> None:
+        if idx < 0 or idx >= len(self.plan_list):
+            return
+        self.plan_list.pop(idx)
+        self.save()
+
     def move_up(self, idx: int) -> None:
         if idx <= 0 or idx >= len(self.plan_list):
             return
