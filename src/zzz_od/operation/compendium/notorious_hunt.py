@@ -423,7 +423,7 @@ class NotoriousHunt(ZOperation):
             try_next = self.plan.plan_times > self.plan.run_times
         else:
             try_next = self.can_run_times > 0
-        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next)
+        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next, is_agent_plan=self.plan.is_agent_plan)
         result = op.execute()
         if result.status == '战斗结果-完成' and self.can_run_times > 0:
             # 可能是其他设备挑战了 没有剩余次数了
