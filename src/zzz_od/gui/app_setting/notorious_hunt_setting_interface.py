@@ -34,6 +34,7 @@ class NotoriousHuntCard(DraggableListItem):
 
     changed = Signal(int, ChargePlanItem)
     move_top = Signal(int)
+    delete = Signal(int)
 
     def __init__(self, ctx: ZContext, idx: int, plan: ChargePlanItem) -> None:
         self.ctx: ZContext = ctx
@@ -41,7 +42,6 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan: ChargePlanItem = plan
 
         self.mission_type_combo_box = ComboBox()
-        self.mission_type_combo_box.setDisabled(True)
         self.mission_type_combo_box.currentIndexChanged.connect(self._on_mission_type_changed)
 
         self.level_combo_box = ComboBox()
@@ -66,6 +66,8 @@ class NotoriousHuntCard(DraggableListItem):
 
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+        self.del_btn = ToolButton(FluentIcon.DELETE, None)
+        self.del_btn.clicked.connect(self._on_del_clicked)
 
         content_widget = MultiLineSettingCard(
             icon=FluentIcon.CALENDAR,
@@ -84,6 +86,7 @@ class NotoriousHuntCard(DraggableListItem):
                     plan_times_label,
                     self.plan_times_input,
                     self.move_top_btn,
+                    self.del_btn,
                 ]
             ]
         )
@@ -103,6 +106,9 @@ class NotoriousHuntCard(DraggableListItem):
 
     def _on_move_top_clicked(self) -> None:
         self.move_top.emit(self.idx)
+
+    def _on_del_clicked(self) -> None:
+        self.delete.emit(self.idx)
 
     def init_with_plan(self, plan: ChargePlanItem) -> None:
         """
