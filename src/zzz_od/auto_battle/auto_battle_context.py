@@ -62,12 +62,19 @@ class AutoBattleContext:
         self._check_end_interval: float | list[float] = 5
         self._check_distance_interval: float | list[float] = 5
 
+        # 离开战斗画面后加快结算识别：结算的"再来一次/完成"按钮固定在离开约4秒后才出现
+        # 故离开后先维持常规间隔，超过延迟时长再切到更短间隔密集识别，识别到即停手，避免攻击键误触再来一次
+        # 连携、终结技等短过场（时长 < 延迟）不会进入密集识别，避免无谓的 OCR 开销
+        self._left_battle_check_delay: float = 3.5  # 离开战斗后开始密集识别的延迟
+        self._left_battle_check_interval: float = 0.1  # 延迟之后的结束识别间隔
+
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
         self._last_check_quick_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
+        self._left_battle_time: float | None = None  # 最近一次离开战斗画面的时间 None表示尚未离开
 
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
@@ -190,6 +197,7 @@ class AutoBattleContext:
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
+        self._left_battle_time: float | None = None  # 最近一次离开战斗画面的时间 None表示尚未离开
 
         # 识别结果
         self.last_check_end_result: str | None = None  # 识别战斗结束的结果
@@ -525,9 +533,15 @@ class AutoBattleContext:
     ) -> bool:
         """
         识别战斗状态的总入口
+        根据当前是否在战斗画面，分发各类识别任务（闪避/角色/连携/战斗结束等）
         :return: 当前是否在战斗画面
         """
         in_battle = self.is_normal_attack_btn_available(screen)
+        # 维护离开战斗的时间：进入战斗清空，刚离开则记录，供结算识别提速判断
+        if in_battle:
+            self._left_battle_time = None
+        elif self.last_check_in_battle:
+            self._left_battle_time = screenshot_time
         self.last_check_in_battle = in_battle
 
         future_list: list[Future] = []
@@ -793,7 +807,12 @@ class AutoBattleContext:
             return
 
         try:
-            if screenshot_time - self._last_check_end_time < cal_utils.random_in_range(self._check_end_interval):
+            # 离开战斗画面超过延迟时长后（结算按钮约此时出现），改用更短间隔密集识别，尽快停手避免后台模式攻击键误触再来一次
+            check_interval = self._check_end_interval
+            if (self._left_battle_time is not None
+                    and screenshot_time - self._left_battle_time >= self._left_battle_check_delay):
+                check_interval = self._left_battle_check_interval
+            if screenshot_time - self._last_check_end_time < cal_utils.random_in_range(check_interval):
                 # 还没有达到识别间隔
                 return
             self._last_check_end_time = screenshot_time
