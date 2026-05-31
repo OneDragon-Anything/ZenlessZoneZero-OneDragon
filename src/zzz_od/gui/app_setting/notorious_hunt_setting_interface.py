@@ -17,12 +17,16 @@ from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
@@ -227,10 +231,19 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.weekly_challenge_start_weekday_opt = ComboBoxSettingCard(
             icon=FluentIcon.CALENDAR,
             title='恶名狩猎（周期挑战）开始日',
-            content='从开始日起才会自动调度周期挑战。当日未完成会顺延到次日，直到当周完成/过期',
+            content='从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束',
             options_enum=NotoriousHuntWeekdayEnum,
         )
-        self.content_widget.add_widget(self.weekly_challenge_start_weekday_opt)
+
+        self.loop_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC,
+            title='循环执行',
+            content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮',
+        )
+
+        self.content_widget.add_widget(
+            HorizontalSettingCardGroup([self.weekly_challenge_start_weekday_opt, self.loop_opt], spacing=6)
+        )
 
         self.drag_list = DraggableList()
         drag_list_layout = self.drag_list.layout()
@@ -282,6 +295,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.weekly_challenge_start_weekday_opt.init_with_adapter(
             get_prop_adapter(self.config, 'weekly_challenge_start_weekday')
         )
+        self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.update_plan_list_display()
 
     def on_interface_hidden(self) -> None:
