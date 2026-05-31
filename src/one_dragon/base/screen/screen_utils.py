@@ -175,6 +175,18 @@ def find_area_in_screen(
         mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
                                              threshold=area.template_match_threshold)
         find = mrl.max is not None
+    elif area.is_color_area:
+        if area.color_range is None or len(area.color_range) < 2:
+            return FindAreaResultEnum.FALSE
+        part = cv2_utils.crop_image_only(screen, area.rect)
+        mask = cv2_utils.filter_by_color(
+            part,
+            mode='rgb',
+            lower_rgb=area.color_range_lower,
+            upper_rgb=area.color_range_upper,
+        )
+        hit_percent = float((mask > 0).sum()) / float(mask.size) if mask.size > 0 else 0
+        find = hit_percent >= area.color_match_threshold
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 
