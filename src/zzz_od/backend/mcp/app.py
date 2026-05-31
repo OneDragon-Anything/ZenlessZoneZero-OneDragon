@@ -18,7 +18,7 @@ tool 写法（annotations / Field / 返回 / docstring）遵循
 
 import asyncio
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
@@ -26,6 +26,14 @@ from pydantic import Field
 
 from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext, _save_screenshot
+from zzz_od.backend.mcp.config_app import (
+    make_add_config_item,
+    make_delete_config_item,
+    make_describe_config,
+    make_get_config,
+    make_list_app_configs,
+    make_set_config,
+)
 from zzz_od.backend.mcp.prompts import (
     register_prompt_tools,
     register_prompts,
@@ -39,14 +47,6 @@ from zzz_od.backend.mcp.service_app import (
     make_run_one_dragon,
     make_run_operation,
     make_run_standalone_app,
-)
-from zzz_od.backend.mcp.config_app import (
-    make_add_config_item,
-    make_delete_config_item,
-    make_describe_config,
-    make_get_config,
-    make_list_app_configs,
-    make_set_config,
 )
 from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult, WindowStatus
 
@@ -207,16 +207,28 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
 
     @mcp.tool(annotations=ToolAnnotations(title="增改画面区域"))  # 操作类:改 screen_info(写 yml + reload)
     def upsert_screen_area(
-        screen_name: str, area_name: str,
+        screen_name: str,
+        area_name: str,
         pc_rect: Annotated[list[int], Field(description="area 矩形 [x1,y1,x2,y2],1080p 游戏坐标;模板 bbox 建议每边 +10px")],
-        text: str = '', lcs_percent: float = 0.5,
-        template_sub_dir: str = '', template_id: str = '', template_match_threshold: float = 0.7,
-        color_range: list[list[int]] | None = None, goto_list: list[str] | None = None,
-        id_mark: bool = False, gamepad_key: str | None = None,
+        area_type: Annotated[
+            Literal['none', 'text', 'template'] | None,
+            Field(description="区域类型；None 表示按旧字段安全推断"),
+        ] = None,
+        text: str = '',
+        lcs_percent: float = 0.5,
+        color_range: list[list[int]] | None = None,
+        template_sub_dir: str = '',
+        template_id: str = '',
+        template_match_threshold: float = 0.7,
+        goto_list: list[str] | None = None,
+        id_mark: bool = False,
+        gamepad_key: str | None = None,
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类,改 screen_info。
 
-        area_name 存在则整体更新,不存在则追加。校验:screen 存在、area_name 非空、pc_rect 合法、
+        area_name 存在则整体更新,不存在则追加。area_type 支持 none、text、template；
+        text 可不填写固定目标，用作动态 OCR 范围，color_range 仅用于文本识别前的颜色过滤。
+        校验:screen 存在、area_name 非空、pc_rect 合法、
         模板引用存在(template_id 非空时)。写回 yml 并 reload,下次 analyze_screen 即生效。无需游戏在线。
 
         Returns:
@@ -224,9 +236,19 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         """
         try:
             return backend.upsert_screen_area(
-                screen_name, area_name, pc_rect, text, lcs_percent,
-                template_sub_dir, template_id, template_match_threshold,
-                color_range, goto_list, id_mark, gamepad_key,
+                screen_name=screen_name,
+                area_name=area_name,
+                pc_rect=pc_rect,
+                text=text,
+                lcs_percent=lcs_percent,
+                template_sub_dir=template_sub_dir,
+                template_id=template_id,
+                template_match_threshold=template_match_threshold,
+                color_range=color_range,
+                goto_list=goto_list,
+                id_mark=id_mark,
+                gamepad_key=gamepad_key,
+                area_type=area_type,
             )
         except Exception as e:  # noqa: BLE001 工具层统一兜底
             return {'success': False, 'screen_name': screen_name, 'area_name': area_name,
