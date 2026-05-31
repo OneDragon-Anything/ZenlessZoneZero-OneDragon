@@ -47,23 +47,8 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         self.plan_list: list[ChargePlanItem] = []
 
-        if 'plan_list' in self.data:
-            for plan_item in self.data.get('plan_list', []):
-                old_plan = ChargePlanItem(**plan_item)
-                # 1.4版本 快捷手册中的TAB名称改动 在这里做检测兼容
-                if old_plan.tab_name == '挑战':
-                    old_plan.tab_name = '训练'
-                # 2.5版本 恶名狩猎从作战迁移到训练
-                if old_plan.tab_name == '作战' and old_plan.category_name == '恶名狩猎':
-                    old_plan.tab_name = '训练'
-                self.plan_list.append(old_plan)
-
-        existed_missions = [i.mission_type_name for i in self.plan_list]
-        default_list = self._get_default_plan()
-        if len(self.plan_list) < len(default_list):
-            for plan in default_list:
-                if plan.mission_type_name not in existed_missions:
-                    self.plan_list.append(plan)
+        for plan_item in self.data.get('plan_list', []):
+            self.plan_list.append(ChargePlanItem(**plan_item))
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
@@ -72,22 +57,6 @@ class NotoriousHuntConfig(ApplicationConfig):
     @weekly_challenge_start_weekday.setter
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
         self.update('weekly_challenge_start_weekday', new_value)
-
-    def _get_default_plan(self) -> list[ChargePlanItem]:
-        """
-        默认的周本计划
-        """
-        return [
-            ChargePlanItem('训练', '恶名狩猎', '初生死路屠夫', None),
-            ChargePlanItem('训练', '恶名狩猎', '未知复合侵蚀体', None),
-            ChargePlanItem('训练', '恶名狩猎', '冥宁芙·双子', None),
-            ChargePlanItem('训练', '恶名狩猎', '「霸主侵蚀体·庞培」', None),
-            ChargePlanItem('训练', '恶名狩猎', '牲鬼·布林格', None),
-            ChargePlanItem('训练', '恶名狩猎', '秽息司祭', None),
-            ChargePlanItem('训练', '恶名狩猎', '彷徨猎手', None),
-            ChargePlanItem('训练', '恶名狩猎', '魇缚者·叶释渊', None),
-            ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
-        ]
 
     def save(self) -> None:
         plan_list = []
