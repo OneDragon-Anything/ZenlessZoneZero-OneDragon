@@ -116,7 +116,7 @@ class NotoriousHuntConfig(ApplicationConfig):
         if len(self.plan_list) == 0:
             return
 
-        eligible = [plan for plan in self.plan_list if not plan.skipped]
+        eligible = [plan for plan in self.plan_list if not plan.skipped and plan.plan_times > 0]
         if len(eligible) == 0:
             return
 
