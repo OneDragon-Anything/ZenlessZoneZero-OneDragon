@@ -88,12 +88,10 @@ class OneDragonApp(Application):
         next_idx = self._instance_idx + 1
         if next_idx >= len(self._instance_list):
             next_idx = 0
+        current_instance = self._instance_list[self._instance_idx]
         next_instance = self._instance_list[next_idx]
 
-        current_game_path = self.ctx.game_account_config.game_path
-        next_game_path = GameAccountConfig(next_instance.idx).game_path
-
-        if current_game_path and next_game_path and current_game_path != next_game_path:
+        if GameAccountConfig.is_different_game_path(current_instance.idx, next_instance.idx):
             self._last_controller = self.ctx.controller
             self._instance_idx = next_idx
             return self.round_success(status='游戏路径不同')
