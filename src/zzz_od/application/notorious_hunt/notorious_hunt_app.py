@@ -14,6 +14,9 @@ from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 
@@ -61,7 +64,7 @@ class NotoriousHuntApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='开始恶名狩猎')
-    @node_from(from_name='跳过当前计划')
+    @node_from(from_name='跳过或结束计划')
     @node_from(from_name='判断剩余次数')
     @operation_node(name='查找下一条计划')
     def find_next_plan(self) -> OperationRoundResult:
@@ -91,9 +94,10 @@ class NotoriousHuntApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
-    @operation_node(name='跳过当前计划')
-    def skip_current_plan(self) -> OperationRoundResult:
-        # 代理人方案培养找不到副本时，标记本轮跳过并记录游标，回到查找下一条
+    @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
+    @operation_node(name='跳过或结束计划')
+    def skip_plan_or_finish(self) -> OperationRoundResult:
+        # 特训目标找不到代理人头像或已达成，提前跳过/结束
         self.next_plan.skipped = True
         self.last_tried_plan = self.next_plan
         return self.round_success()
