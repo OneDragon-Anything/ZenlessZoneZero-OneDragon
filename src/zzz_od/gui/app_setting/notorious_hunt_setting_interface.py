@@ -213,7 +213,7 @@ class NotoriousHuntCard(DraggableListItem):
 
 class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
-    def __init__(self, ctx: ZContext, parent=None):
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
         self.ctx: ZContext = ctx
 
         VerticalScrollInterface.__init__(
@@ -333,7 +333,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
 class NotoriousHuntDialog(MessageBoxBase):
 
-    def __init__(self, ctx: ZContext, config: NotoriousHuntConfig, parent=None):
+    def __init__(self, ctx: ZContext, config: NotoriousHuntConfig, parent: QWidget | None = None):
         self.ctx: ZContext = ctx
         self.config: NotoriousHuntConfig = config
 
@@ -362,7 +362,3 @@ class NotoriousHuntDialog(MessageBoxBase):
         self.card.del_btn.hide()
         self.viewLayout.addWidget(self.card)
         self.viewLayout.addStretch(1)
-
-    def validate(self) -> bool:
-        """计划次数小于 1 时拒绝确认"""
-        return self.plan.plan_times >= 1
