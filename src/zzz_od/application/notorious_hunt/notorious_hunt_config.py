@@ -52,7 +52,7 @@ class NotoriousHuntConfig(ApplicationConfig):
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
-        return self.data.get('weekly_challenge_start_weekday', 1)
+        return self.get('weekly_challenge_start_weekday', 1)
 
     @weekly_challenge_start_weekday.setter
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
