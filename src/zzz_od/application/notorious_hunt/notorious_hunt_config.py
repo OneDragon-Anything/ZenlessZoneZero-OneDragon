@@ -120,6 +120,7 @@ class NotoriousHuntConfig(ApplicationConfig):
         if len(eligible) == 0:
             return
 
+        modified: bool = False
         while True:
             all_finish: bool = True
             for plan in eligible:
@@ -132,6 +133,9 @@ class NotoriousHuntConfig(ApplicationConfig):
             for plan in eligible:
                 plan.run_times -= plan.plan_times
 
+            modified = True
+
+        if modified:
             self.save()
 
     def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
