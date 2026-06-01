@@ -20,6 +20,7 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
+from zzz_od.operation.exchange_ether_battery import ExchangeEtherBattery
 from zzz_od.operation.goto.goto_menu import GotoMenu
 from zzz_od.operation.restore_charge import RestoreCharge
 
@@ -51,10 +52,12 @@ class ChargePlanApp(ZApplication):
         self.required_charge: int = 0  # 需要的电量
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
+        self.ether_battery_exchange_checked: bool = False
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        self.ether_battery_exchange_checked = False
         for plan in self.config.plan_list:
             plan.skipped = False
         return self.round_success()
@@ -70,6 +73,28 @@ class ChargePlanApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='打开菜单')
+    @operation_node(name='兑换以太电池', save_status=True)
+    def exchange_ether_battery(self) -> OperationRoundResult:
+        if self.ether_battery_exchange_checked:
+            return self.round_success('已尝试')
+
+        self.ether_battery_exchange_checked = True
+        if not self.config.auto_exchange_ether_battery:
+            return self.round_success(ExchangeEtherBattery.STATUS_NOT_ENABLED)
+
+        op = ExchangeEtherBattery(self.ctx)
+        op_result = op.execute()
+        status = op_result.status or '兑换以太电池结束'
+        # 兑换失败不阻断体力计划，后续统一回到菜单继续识别电量。
+        return self.round_success(status=status)
+
+    @node_from(from_name='兑换以太电池')
+    @operation_node(name='兑换后返回菜单')
+    def goto_menu_after_exchange(self) -> OperationRoundResult:
+        op = GotoMenu(self.ctx)
+        return self.round_by_op_result(op.execute(), retry_on_fail=True)
+
+    @node_from(from_name='兑换后返回菜单')
     @operation_node(name='识别电量')
     def check_charge_power(self) -> OperationRoundResult:
         # 不能在快捷手册里面识别电量 因为每个人的备用电量不一样
