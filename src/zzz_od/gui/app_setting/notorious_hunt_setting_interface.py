@@ -280,9 +280,6 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
                 card_layout.setContentsMargins(0, 4, 0, 4)
             idx += 1
 
-        for idx, plan in enumerate(plan_list):
-            self.card_list[idx].update_item(plan, idx)
-
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
