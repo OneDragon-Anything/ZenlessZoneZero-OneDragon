@@ -74,10 +74,10 @@ class YamlOperator:
         if self.data is None:
             self.data = {}
 
-    def _ensure_write_path_ready(self) -> bool:
+    def _ensure_write_path_ready(self) -> str | None:
         write_path = self._get_write_path()
         if write_path is None:
-            return False
+            return None
 
         parent_dir = os.path.dirname(write_path)
         if parent_dir:
@@ -86,19 +86,15 @@ class YamlOperator:
         if self._copy_on_write_source_path is not None and not os.path.exists(write_path):
             shutil.copyfile(self._copy_on_write_source_path, write_path)
 
-        self._copy_on_write_source_path = None
-        return True
+        return write_path
 
     def _get_write_path(self) -> str | None:
         if self._copy_on_write_source_path is None:
             return self.file_path if self.file_path is not None else self._write_file_path
         return self._write_file_path if self._write_file_path is not None else self.file_path
 
-    def save(self):
-        if not self._ensure_write_path_ready():
-            return
-
-        write_path = self._get_write_path()
+    def save(self) -> None:
+        write_path = self._ensure_write_path_ready()
         if write_path is None:
             return
 
@@ -111,16 +107,15 @@ class YamlOperator:
             if hasattr(self, 'old_file_path'):
                 self.old_file_path = write_path
 
-    def save_diy(self, text: str):
+        self._copy_on_write_source_path = None
+
+    def save_diy(self, text: str) -> None:
         """
         按自定义的文本格式
         :param text: 自定义的文本
         :return:
         """
-        if not self._ensure_write_path_ready():
-            return
-
-        write_path = self._get_write_path()
+        write_path = self._ensure_write_path_ready()
         if write_path is None:
             return
 
@@ -132,6 +127,8 @@ class YamlOperator:
             self.file_path = write_path
             if hasattr(self, 'old_file_path'):
                 self.old_file_path = write_path
+
+        self._copy_on_write_source_path = None
 
     def get(self, prop: str, value=None):
         if not isinstance(self.data, dict):
