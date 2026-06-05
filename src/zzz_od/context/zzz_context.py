@@ -65,11 +65,6 @@ class ZContext(OneDragonContext):
         from zzz_od.config.dodge_stats_config import UserStatsConfig
         return UserStatsConfig()
 
-    @property
-    def dodge_stats(self):
-        """向后兼容旧引用，实际指向 user_stats"""
-        return self.user_stats
-
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
