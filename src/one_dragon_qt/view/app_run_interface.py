@@ -1,6 +1,8 @@
-from PySide6.QtCore import Qt, QThread, Signal
+import time
+
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     FluentIcon,
     FluentIconBase,
@@ -95,7 +97,27 @@ class AppRunInterface(VerticalScrollInterface):
         self.state_text = SubtitleLabel()
         self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
         self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        content_layout.addWidget(self.state_text)
+
+        # 状态行：状态文字 + 运行时间
+        state_row = QWidget()
+        state_layout = QHBoxLayout(state_row)
+        state_layout.setContentsMargins(0, 0, 0, 0)
+
+        state_layout.addWidget(self.state_text, stretch=1)
+
+        self._run_timer_label = QLabel()
+        self._run_timer_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._run_timer_label.setVisible(False)
+        self._run_timer_label.setStyleSheet("color: rgba(255,255,255,120); font-size: 13px; padding-right: 4px;")
+        state_layout.addWidget(self._run_timer_label)
+
+        content_layout.addWidget(state_row)
+
+        # 运行计时器
+        self._run_start_time: float = 0
+        self._run_timer = QTimer(self)
+        self._run_timer.setInterval(1000)
+        self._run_timer.timeout.connect(self._update_run_timer)
 
         # 按钮行
         btn_row_widget = QWidget()
@@ -184,6 +206,42 @@ class AppRunInterface(VerticalScrollInterface):
         self.start_btn.setText(f"{text} {self.ctx.key_start_running.upper()}")
         self.start_btn.setIcon(icon)
         self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
+        self._handle_run_timer_state()
+
+    def _handle_run_timer_state(self) -> None:
+        """根据运行状态管理计时器"""
+        if self.ctx.run_context.is_context_running:
+            if self._run_start_time == 0:
+                self._run_start_time = time.time()
+            self._run_timer.start()
+            self._run_timer_label.setVisible(True)
+            self._update_run_timer()
+        elif self.ctx.run_context.is_context_pause:
+            self._run_timer.stop()
+        else:
+            self._run_timer.stop()
+            if self._run_start_time > 0:
+                elapsed = time.time() - self._run_start_time
+                self._run_timer_label.setText(self._format_elapsed(elapsed))
+                self._run_timer_label.setVisible(True)
+            self._run_start_time = 0
+
+    def _update_run_timer(self) -> None:
+        """定时更新运行时间显示"""
+        if self._run_start_time > 0:
+            elapsed = time.time() - self._run_start_time
+            self._run_timer_label.setText(self._format_elapsed(elapsed))
+
+    @staticmethod
+    def _format_elapsed(seconds: float) -> str:
+        """格式化运行耗时"""
+        total_seconds = int(seconds)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+        if hours > 0:
+            return f"{hours:d}:{minutes:02d}:{secs:02d}"
+        else:
+            return f"{minutes:d}:{secs:02d}"
 
     def _on_start_clicked(self) -> None:
         if self.ctx.run_context.is_context_stop:

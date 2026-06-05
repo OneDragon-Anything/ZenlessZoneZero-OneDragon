@@ -146,5 +146,4 @@ class OneDragonApp(Application):
         else:
             return self.round_success(OneDragonApp.STATUS_NEXT)
 
-    def after_operation_done(self, result: OperationResult):
-        Application.after_operation_done(self, result)
+

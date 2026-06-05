@@ -1,4 +1,4 @@
-from one_dragon_qt.view.one_dragon.one_dragon_run_interface import OneDragonRunInterface
+﻿from one_dragon_qt.view.one_dragon.one_dragon_run_interface import OneDragonRunInterface
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -12,3 +12,5 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             parent=parent,
             help_url='https://one-dragon.com/zzz/zh/feat_one_dragon/quickstart.html',
         )
+
+

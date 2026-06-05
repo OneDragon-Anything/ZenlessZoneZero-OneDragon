@@ -1,5 +1,8 @@
+from contextlib import suppress
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.one_dragon_app import OneDragonApp
+from one_dragon.base.operation.operation_base import OperationResult
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
@@ -23,6 +26,13 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
             op_to_enter_game=op_to_enter_game,
             op_to_switch_account=op_to_switch_account,
         )
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        """一条龙运行结束，递增运行计数"""
+        super().after_operation_done(result)
+        if result.success:
+            with suppress(Exception):
+                self.ctx.user_stats.increment_one_dragon()
 
 
 def __debug():
