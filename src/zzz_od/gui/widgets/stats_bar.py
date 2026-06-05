@@ -9,7 +9,10 @@ from PySide6.QtWidgets import (
 )
 from qfluentwidgets import Theme, qconfig
 
-from zzz_od.config.dodge_stats_config import STATS_DISPLAY_APPS  # noqa: F401 - used by other modules
+from one_dragon_qt.services.theme_manager import ThemeManager
+from zzz_od.config.dodge_stats_config import (
+    STATS_DISPLAY_APPS,  # noqa: F401 - used by other modules
+)
 
 # 所有可统计项目，按重要度排序
 STATS_ITEMS: list[tuple[str, str]] = [
@@ -38,18 +41,23 @@ STATS_ITEMS: list[tuple[str, str]] = [
 
 
 def _get_stats_bar_palette() -> dict:
-    """返回统计栏的主题色配置"""
+    """返回统计栏的主题色配置，高亮色跟随全局主题色"""
+    theme_qcolor = ThemeManager.get_qcolor()
+    # 高亮色：主题色 + 适当透明度
+    hl_color = QColor(theme_qcolor)
+    hl_color.setAlpha(230)
+
     if qconfig.theme == Theme.DARK:
         return {
             'tint': QColor(18, 20, 30, 190),
-            'title': QColor(255, 219, 41, 220),
+            'title': hl_color,
             'number': QColor(255, 255, 255, 230),
             'dim': QColor(150, 150, 155, 140),
             'border': QColor(255, 255, 255, 25),
         }
     return {
         'tint': QColor(22, 24, 35, 195),
-        'title': QColor(255, 219, 41, 220),
+        'title': hl_color,
         'number': QColor(255, 255, 255, 230),
         'dim': QColor(150, 150, 155, 140),
         'border': QColor(255, 255, 255, 20),
@@ -145,7 +153,7 @@ class StatsBar(QWidget):
         dim_color = palette['dim'].name(QColor.NameFormat.HexArgb)
 
         if not active:
-            placeholder = QLabel('陪伴记录将在运行后显示')
+            placeholder = QLabel('一条龙已为您完成的内容将在运行后显示')
             placeholder.setFont(QFont("Microsoft YaHei", 9))
             placeholder.setStyleSheet(
                 f'color: {dim_color}; border: none;'
@@ -156,7 +164,7 @@ class StatsBar(QWidget):
             return
 
         # 标题行
-        title_label = QLabel('陪伴记录')
+        title_label = QLabel('一条龙已为您完成')
         title_label.setFont(
             QFont("Microsoft YaHei", 9, QFont.Weight.Bold)
         )
@@ -166,6 +174,33 @@ class StatsBar(QWidget):
         )
         outer.addWidget(title_label)
         self._cleanups.append(title_label)
+
+        # 副标题行：首次使用日期 + 游戏运行时间 + 电量消耗 + 总运行次数
+        subtitle_parts: list[str] = []
+        first_date = self.user_stats.first_use_date
+        if first_date:
+            subtitle_parts.append(f'自 {first_date}')
+        play_minutes = self.user_stats.game_play_minutes
+        if play_minutes > 0:
+            hours, mins = divmod(play_minutes, 60)
+            if hours > 0:
+                subtitle_parts.append(f'陪伴绝区零 {hours}小时{mins}分钟')
+            else:
+                subtitle_parts.append(f'陪伴绝区零 {mins}分钟')
+        charge_power = self.user_stats.total_charge_power
+        if charge_power > 0:
+            subtitle_parts.append(f'消耗 {charge_power} 电量')
+        total_runs = self.user_stats.total_run_count
+        if total_runs > 0:
+            subtitle_parts.append(f'共运行 {total_runs} 次')
+        if subtitle_parts:
+            subtitle_label = QLabel('  ·  '.join(subtitle_parts))
+            subtitle_label.setFont(QFont("Microsoft YaHei", 8))
+            subtitle_label.setStyleSheet(
+                f'color: {dim_color}; border: none;'
+            )
+            outer.addWidget(subtitle_label)
+            self._cleanups.append(subtitle_label)
 
         # 网格
         grid = QGridLayout()

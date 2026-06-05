@@ -381,6 +381,10 @@ class HomeInterface(BaseInterface):
         self._banner_widget = Banner(self.choose_banner_media())
         main_layout.addWidget(self._banner_widget)
 
+        # Banner 同步加载完成，立即将提取的主题色推送到 ThemeManager，
+        # 确保后续 StatsBar 等组件能获取到正确的主题色，而非兜底蓝色。
+        ThemeManager.set_theme_color(self._get_theme_color())
+
         v_layout = QVBoxLayout(self._banner_widget)
         # 边缘距离由子布局控制，避免与子布局叠加导致超过 16px
         v_layout.setContentsMargins(0, 0, 0, 0)
@@ -916,6 +920,7 @@ class HomeInterface(BaseInterface):
         if self._home_run_start_time > 0:
             elapsed = time.time() - self._home_run_start_time
             self._home_run_label.setText(f"运行中  {_format_elapsed(elapsed)}")
+
 
 
 def _format_elapsed(seconds: float) -> str:
