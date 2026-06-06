@@ -74,27 +74,37 @@ class YamlOperator:
         if self.data is None:
             self.data = {}
 
-    def _ensure_write_path_ready(self) -> str | None:
+    def _ensure_write_path_ready(self) -> bool:
         write_path = self._get_write_path()
         if write_path is None:
-            return None
+            return False
 
         parent_dir = os.path.dirname(write_path)
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
 
         if self._copy_on_write_source_path is not None and not os.path.exists(write_path):
-            shutil.copyfile(self._copy_on_write_source_path, write_path)
+            try:
+                shutil.copyfile(self._copy_on_write_source_path, write_path)
+            except FileNotFoundError:
+                log.error(
+                    f'复制配置文件失败 来源文件不存在 source={self._copy_on_write_source_path} write_path={write_path}'
+                )
+                return False
 
-        return write_path
+        self._copy_on_write_source_path = None
+        return True
 
     def _get_write_path(self) -> str | None:
         if self._copy_on_write_source_path is None:
             return self.file_path if self.file_path is not None else self._write_file_path
         return self._write_file_path if self._write_file_path is not None else self.file_path
 
-    def save(self) -> None:
-        write_path = self._ensure_write_path_ready()
+    def save(self):
+        if not self._ensure_write_path_ready():
+            return
+
+        write_path = self._get_write_path()
         if write_path is None:
             return
 
@@ -107,15 +117,16 @@ class YamlOperator:
             if hasattr(self, 'old_file_path'):
                 self.old_file_path = write_path
 
-        self._copy_on_write_source_path = None
-
-    def save_diy(self, text: str) -> None:
+    def save_diy(self, text: str):
         """
         按自定义的文本格式
         :param text: 自定义的文本
         :return:
         """
-        write_path = self._ensure_write_path_ready()
+        if not self._ensure_write_path_ready():
+            return
+
+        write_path = self._get_write_path()
         if write_path is None:
             return
 
@@ -128,8 +139,6 @@ class YamlOperator:
             if hasattr(self, 'old_file_path'):
                 self.old_file_path = write_path
 
-        self._copy_on_write_source_path = None
-
     def get(self, prop: str, value=None):
         if not isinstance(self.data, dict):
             return value
@@ -137,7 +146,8 @@ class YamlOperator:
 
     def update(self, key: str, value, save: bool = True):
         if not isinstance(self.data, dict):
-            self.data = {}
+            # 根节点为 list 是合法 YAML；keyed update 只适用于 dict。
+            return
         if key in self.data and not isinstance(value, list) and self.data[key] == value:
             return
         self.data[key] = value
