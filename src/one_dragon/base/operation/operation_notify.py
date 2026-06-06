@@ -59,25 +59,23 @@ def _is_notify_enabled(operation: Operation) -> bool:
     return operation.ctx.notify_config.enable_notify
 
 
-def _get_lifecycle_mode(operation: Operation) -> str:
+def _get_lifecycle_mode(operation: Operation, app_id: str) -> str:
     """
     获取应用生命周期通知模式。
     """
     if not _is_notify_enabled(operation):
         return NotifyLifecycleMode.OFF.value.value
 
-    app_id, _ = _get_app_info(operation)
     return operation.ctx.notify_config.get_app_lifecycle_mode(app_id)
 
 
-def _get_detail_mode(operation: Operation) -> str:
+def _get_detail_mode(operation: Operation, app_id: str) -> str:
     """
     获取节点细节通知模式。
     """
     if not _is_notify_enabled(operation):
         return NotifyDetailMode.OFF.value.value
 
-    app_id, _ = _get_app_info(operation)
     return operation.ctx.notify_config.get_app_detail_mode(app_id)
 
 
@@ -92,8 +90,9 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         app: Application 实例
         status: True=成功, False=失败, None=开始
     """
-    lifecycle_mode = _get_lifecycle_mode(app)
-    detail_mode = _get_detail_mode(app)
+    app_id = app.app_id
+    lifecycle_mode = _get_lifecycle_mode(app, app_id)
+    detail_mode = _get_detail_mode(app, app_id)
     if lifecycle_mode == NotifyLifecycleMode.OFF.value.value and detail_mode != NotifyDetailMode.MERGE.value.value:
         return
 
@@ -109,7 +108,10 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         status_text = gt('开始')
 
     # 构建消息
-    _, app_name = _get_app_info(app)
+    try:
+        app_name = app.ctx.run_context.get_application_name(app_id)
+    except Exception:
+        app_name = app.op_name
     app_name = gt(app_name)
     message = f"{gt('任务')}「{app_name}」{gt('运行')}{status_text}"
 
@@ -231,7 +233,15 @@ def send_node_notify(
         next_node: 下一个要执行的节点
     """
     pool = operation.ctx.run_context.notify_pool
-    detail_mode = _get_detail_mode(operation)
+    if not _is_notify_enabled(operation):
+        return
+
+    app_id, app_name = _get_app_info(operation)
+    detail_mode = (
+        NotifyDetailMode.ALL.value.value
+        if app_id is None
+        else operation.ctx.notify_config.get_app_detail_mode(app_id)
+    )
     current_fail = round_result.is_fail
 
     should_collect_notify = detail_mode != NotifyDetailMode.OFF.value.value
@@ -289,7 +299,6 @@ def send_node_notify(
             custom_message += f'\n{desc.custom_message}'
 
     # 构建消息内容
-    _, app_name = _get_app_info(operation)
     if app_name is None:
         app_name = operation.op_name
 

@@ -30,5 +30,6 @@ main 分支旧版配置使用应用 ID 对应的整数值：
 - `2` -> 应用通知按旧 `enable_before_notify` 映射，节点通知逐条
 - `3` -> 应用通知按旧 `enable_before_notify` 映射，节点通知合并
 
-旧字段保留在文件中作为兼容信息，新逻辑优先读取 `applications.<app_id>.lifecycle` 和
-`applications.<app_id>.detail`。
+旧字段保留在文件中作为迁移来源；迁移完成后，运行时只读取
+`applications.<app_id>.lifecycle` 和 `applications.<app_id>.detail`。
+框架内不再暴露旧版整数通知等级 API。
