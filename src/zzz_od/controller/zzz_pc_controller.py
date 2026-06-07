@@ -1,10 +1,13 @@
 import ctypes
+import subprocess
 import time
+from ctypes import wintypes
 
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import cv2_utils
+from one_dragon.utils.log_utils import log
 from zzz_od.config.game_config import GameConfig
 from zzz_od.const import game_const
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
@@ -32,6 +35,30 @@ class ZPcController(PcControllerBase):
         self.is_moving: bool = False  # 是否正在移动
         self.turn_dx: float = game_config.turn_dx
         self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
+
+    def close_game(self) -> None:
+        """通过窗口句柄找到进程并关闭游戏。"""
+        hwnd = self.game_win.get_hwnd()
+        if hwnd is None:
+            return
+
+        pid = wintypes.DWORD()
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value == 0:
+            PcControllerBase.close_game(self)
+            return
+
+        try:
+            subprocess.run(
+                ['taskkill', '/F', '/PID', str(pid.value)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            log.info('关闭游戏成功 PID=%d', pid.value)
+        except Exception:
+            log.error('关闭游戏失败 PID=%d，尝试关闭窗口', pid.value, exc_info=True)
+            PcControllerBase.close_game(self)
 
     def init_before_context_run(self) -> bool:
         """运行前根据配置启用后台/前台模式，刷新快照配置"""

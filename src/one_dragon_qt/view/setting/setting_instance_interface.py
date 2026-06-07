@@ -18,7 +18,7 @@ from qfluentwidgets import (
     ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum
+from one_dragon.base.config.game_account_config import ClientTypeEnum, GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -59,15 +59,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
-        run_idx = 0
         target_idx = 0
-        for opt_enum in RunInOneDragonApp:
+        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
             self.run_opt.addItem(text=opt.label, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
-
-            run_idx += 1
         self.run_opt.setCurrentIndex(target_idx)
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
@@ -88,7 +85,7 @@ class InstanceSettingCard(MultiPushSettingCard):
                 self.login_btn,
                 self.delete_btn,
             ],
-            title="%02d" % self.instance.idx,
+            title=f"{self.instance.idx:02d}",
             icon=FluentIcon.PEOPLE,
         )
         self.update_title()
@@ -97,7 +94,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         """
         更新显示文本
         """
-        title = "%02d" % self.instance.idx
+        title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
         self.setTitle(title)
@@ -245,6 +242,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
+        self.client_type_opt.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter('client_type')
+        )
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("use_custom_win_title")
@@ -288,6 +288,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def _get_instanceSettings_group(self) -> QWidget:
         instance_settings_group = SettingCardGroup(gt("当前账户设置"))
+
+        self.client_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='游戏客户端', options_enum=ClientTypeEnum
+        )
+        self.client_type_opt.value_changed.connect(self._on_client_type_changed)
+        instance_settings_group.addSettingCard(self.client_type_opt)
 
         self.game_path_opt = PushSettingCard(
             icon=FluentIcon.FOLDER, title="游戏路径", text="选择"
@@ -389,6 +395,11 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         self.ctx.one_dragon_config.delete_instance(idx)
         self._init_content_widget()
+
+    def _on_client_type_changed(self, index, value) -> None:
+        self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
+        # 更新控制器窗口标题以匹配新的客户端类型
+        self.ctx.on_switch_instance()
 
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(

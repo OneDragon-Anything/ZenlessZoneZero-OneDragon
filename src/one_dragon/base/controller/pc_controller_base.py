@@ -35,6 +35,8 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_MOVE = 0x0001
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_VIRTUALDESK = 0x4000
+    MOUSEEVENTF_ABSOLUTE = 0x8000
 
     def __init__(self,
                  screenshot_method: str,
@@ -563,16 +565,85 @@ def get_mouse_sensitivity():
     return speed.value
 
 
-def drag_mouse(start: Point, end: Point, duration: float = 0.5):
+def drag_mouse(
+    start: Point,
+    end: Point,
+    duration: float = 0.5,
+    steps: int = 20,
+    screen_width: int | None = None,
+    screen_height: int | None = None,
+) -> None:
     """按住鼠标左键进行画面拖动。
 
     Args:
         start: 原位置
         end: 拖动位置
         duration: 拖动鼠标到目标位置，持续秒数
+        steps: 拖拽步数，值越大拖拽越平滑
+        screen_width: 屏幕宽度，如果不提供则使用系统默认
+        screen_height: 屏幕高度，如果不提供则使用系统默认
     """
-    pyautogui.moveTo(start.x, start.y)  # 将鼠标移动到起始位置
-    pyautogui.dragTo(end.x, end.y, duration=duration)
+    user32 = ctypes.windll.user32
+    use_virtual_desktop = screen_width is None or screen_height is None
+    if use_virtual_desktop:
+        screen_left = user32.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+        screen_top = user32.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+        screen_width = user32.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
+        screen_height = user32.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
+    else:
+        screen_left = 0
+        screen_top = 0
+
+    screen_width = max(screen_width, 1)
+    screen_height = max(screen_height, 1)
+
+    # 将鼠标移动到起始位置
+    pyautogui.moveTo(start.x, start.y)
+    time.sleep(0.05)  # 短暂延时确保移动完成
+
+    # 按下鼠标左键
+    user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    time.sleep(0.05)
+
+    # 计算每步的延迟时间和移动距离
+    step_delay = duration / steps
+    dx = (end.x - start.x) / steps
+    dy = (end.y - start.y) / steps
+
+    # 逐步移动鼠标
+    for i in range(steps):
+        current_x = start.x + dx * (i + 1)
+        current_y = start.y + dy * (i + 1)
+
+        # 转换为绝对坐标（0-65535），多屏时使用虚拟桌面原点。
+        abs_x = _to_absolute_mouse_pos(current_x, screen_left, screen_width)
+        abs_y = _to_absolute_mouse_pos(current_y, screen_top, screen_height)
+
+        # 移动鼠标
+        move_flag = PcControllerBase.MOUSEEVENTF_MOVE | PcControllerBase.MOUSEEVENTF_ABSOLUTE
+        if use_virtual_desktop:
+            move_flag |= PcControllerBase.MOUSEEVENTF_VIRTUALDESK
+        user32.mouse_event(
+            move_flag,
+            abs_x,
+            abs_y,
+            0,
+            0,
+        )
+
+        time.sleep(step_delay)
+
+    # 松开鼠标左键
+    user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+
+
+def _to_absolute_mouse_pos(pos: float, screen_origin: int, screen_size: int) -> int:
+    """将桌面坐标转换为 Windows 绝对鼠标坐标。"""
+    if screen_size <= 1:
+        return 0
+
+    absolute_pos = int((pos - screen_origin) * 65535 / (screen_size - 1))
+    return min(max(absolute_pos, 0), 65535)
 
 
 def get_current_mouse_pos() -> Point:
