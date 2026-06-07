@@ -52,7 +52,7 @@ class CommissionAssistantApp(ZApplication):
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
 
-    def handle_init(self):
+    def handle_application_init(self) -> None:
         self._listen_btn()
 
     def _unlisten_btn(self) -> None:

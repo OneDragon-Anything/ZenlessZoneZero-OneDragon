@@ -64,6 +64,8 @@ class Application(Operation):
         运行前初始化
         """
         Operation.handle_init(self)
+        self.handle_application_init()
+
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
@@ -77,6 +79,14 @@ class Application(Operation):
             pool.max_images = 10 if notify_level >= NotifyLevel.ALL else 1
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
+
+    def handle_application_init(self) -> None:
+        """
+        应用自定义初始化。
+
+        应用子类应重写这个方法，不要重写 handle_init，避免跳过应用运行记录、通知和事件。
+        """
+        pass
 
     def after_operation_done(self, result: OperationResult):
         """
