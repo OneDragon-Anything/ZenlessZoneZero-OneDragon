@@ -315,6 +315,10 @@ class CoffeeApp(ZApplication):
     @operation_node(name='对话选咖啡', node_max_retry_times=20)
     def dialog_choose_coffee(self) -> OperationRoundResult:
         """处理澄辉坪-汀曼咖啡交互后的专属点单对话框，对话框包含"明天再来"（无选项）即视作已喝过"""
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
+        if not result.is_success:
+            return self.round_retry(status='等待对话框加载', wait=0.5)  # issue #2301
+
         if self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框-明天再来').is_success:
             return self.round_success(status='已喝过', wait=1)
 
