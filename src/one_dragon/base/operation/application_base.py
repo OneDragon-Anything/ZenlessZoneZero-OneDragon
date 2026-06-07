@@ -74,10 +74,7 @@ class Application(Operation):
             pool = self.ctx.run_context.notify_pool
             pool.clear()
             detail_mode = self.ctx.notify_config.get_app_detail_mode(self.app_id)
-            pool.max_images = (
-                10 if detail_mode in (NotifyDetailMode.ALL.value.value, NotifyDetailMode.MERGE.value.value)
-                else 1
-            )
+            pool.max_images = 10 if detail_mode == NotifyDetailMode.MERGE.value.value else 1
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
