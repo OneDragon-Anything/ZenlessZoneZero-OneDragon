@@ -47,8 +47,16 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         self.plan_list: list[ChargePlanItem] = []
 
+        migrated: bool = False
         for plan_item in self.data.get('plan_list', []):
+            tab_name = plan_item.get('tab_name')
+            category_name = plan_item.get('category_name')
+            if tab_name == '挑战' or (tab_name == '作战' and category_name == '恶名狩猎'):
+                plan_item['tab_name'] = '训练'
+                migrated = True
             self.plan_list.append(ChargePlanItem(**plan_item))
+        if migrated:
+            YamlConfig.save(self)
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
