@@ -194,6 +194,7 @@ class NotoriousHunt(ZOperation):
                     return self.round_retry('未识别到剩余次数', wait=0.5)
                 self.can_run_times = self.run_record.left_times
             else:
+                self.run_record.left_times = left_times
                 self.can_run_times = left_times
 
             log.info('恶名狩猎剩余奖励次数 %s', self.can_run_times)
