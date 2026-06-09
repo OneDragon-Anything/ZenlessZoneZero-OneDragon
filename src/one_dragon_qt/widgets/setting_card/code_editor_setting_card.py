@@ -25,6 +25,7 @@ from qfluentwidgets import (
     isDarkTheme,
 )
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.utils.layout_utils import IconSize, Margins
@@ -123,7 +124,6 @@ class LineNumberArea(QWidget):
         bottom = top + int(self.editor.blockBoundingRect(block).height())
         line_height = self.editor.fontMetrics().height()
 
-        y_offset = 0
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 # 创建BodyLabel显示行号
@@ -679,7 +679,8 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, JsonEditorMixin):
                  icon: str | QIcon | FluentIconBase, title: str, content: str | None = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 parent=None):
+                 adapter: ConfigAdapter | None = None,
+                 parent: QWidget | None = None):
 
         SettingCardBase.__init__(
             self,
@@ -693,6 +694,7 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, JsonEditorMixin):
         AdapterInitMixin.__init__(self)
 
         self.parent_widget = parent
+        self.adapter = adapter
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)
