@@ -4,7 +4,7 @@ from enum import Enum
 from typing import cast
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class NotifyLevel:
@@ -33,10 +33,10 @@ class NotifyDetailMode(Enum):
     MERGE = ConfigItem(label='合并', value='merge', desc='应用结束时合并发送节点细节')
 
 
-class NotifyConfig(YamlConfig):
+class NotifyConfig(UserConfig):
 
     def __init__(self, instance_idx: int, app_map: dict[str, str]) -> None:
-        YamlConfig.__init__(self, 'notify', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'notify', instance_idx=instance_idx)
         self.app_map = app_map.copy()
         self._migrate_legacy_config()
 

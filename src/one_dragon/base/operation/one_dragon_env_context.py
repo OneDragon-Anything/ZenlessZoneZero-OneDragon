@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
-from typing import Optional
 
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.ghproxy_service import GhProxyService
@@ -19,7 +19,8 @@ class OneDragonEnvContext:
         存项目和环境信息的
         安装器可以使用这个减少引入依赖
         """
-        self.installer_dir: Optional[str] = None
+        UserConfig.init_config_storage()
+        self.installer_dir: str | None = None
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -53,3 +54,4 @@ class OneDragonEnvContext:
         @return:
         """
         ONE_DRAGON_CONTEXT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
+        UserConfig.close_config_storage(checkpoint=True)

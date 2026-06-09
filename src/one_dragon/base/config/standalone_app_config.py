@@ -1,11 +1,11 @@
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class StandaloneAppConfig(YamlConfig):
+class StandaloneAppConfig(UserConfig):
     """独立应用运行界面的配置"""
 
-    def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'standalone_app', instance_idx=instance_idx)
+    def __init__(self, instance_idx: int) -> None:
+        UserConfig.__init__(self, 'standalone_app', instance_idx=instance_idx)
 
     @property
     def app_list(self) -> list[str]:
