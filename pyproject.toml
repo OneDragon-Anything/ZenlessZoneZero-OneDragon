@@ -18,6 +18,7 @@ dependencies = [
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
     "pygit2==1.19.0",
+    "sqlalchemy==2.0.50",
 ]
 
 [dependency-groups]
