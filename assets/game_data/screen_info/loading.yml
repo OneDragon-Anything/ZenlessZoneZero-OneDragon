@@ -1,16 +1,15 @@
-screen_id: trigrams_collection
-screen_name: 卦象集录
-app_id: trigrams_collection
+screen_id: loading
+screen_name: 加载中
 pc_alt: false
 area_list:
-- area_name: 区域-获取卦象
+- area_name: 加载中
   id_mark: false
   pc_rect:
-  - 1318
-  - 298
-  - 1650
-  - 640
-  text: ''
+  - 1161
+  - 724
+  - 1929
+  - 1055
+  text: NOW LOADING
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''

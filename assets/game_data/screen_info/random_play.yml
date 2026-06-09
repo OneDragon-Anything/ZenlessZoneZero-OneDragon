@@ -1,5 +1,6 @@
 screen_id: random_play
 screen_name: 影像店营业
+app_id: random_play
 pc_alt: false
 area_list:
 - area_name: 昨日账本
