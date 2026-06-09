@@ -47,16 +47,25 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         self.plan_list: list[ChargePlanItem] = []
 
-        migrated: bool = False
         for plan_item in self.data.get('plan_list', []):
-            tab_name = plan_item.get('tab_name')
-            category_name = plan_item.get('category_name')
-            if tab_name == '挑战' or (tab_name == '作战' and category_name == '恶名狩猎'):
-                plan_item['tab_name'] = '训练'
-                migrated = True
             self.plan_list.append(ChargePlanItem(**plan_item))
+
+        # 旧配置迁移，2026-09-21 可删除
+        self._migrate_legacy_config()
+
+    def _migrate_legacy_config(self) -> None:
+        """迁移旧配置，2026-09-21 可删除。"""
+        migrated: bool = False
+        for plan_item in self.plan_list:
+            if plan_item.tab_name == '挑战' or (
+                    plan_item.tab_name == '作战'
+                    and plan_item.category_name == '恶名狩猎'
+            ):
+                plan_item.tab_name = '训练'
+                migrated = True
+
         if migrated:
-            YamlConfig.save(self)
+            self.save()
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
