@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -30,6 +29,15 @@ class GameAccountConfig(YamlConfig):
 
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
+
+    @classmethod
+    def is_different_game_path(cls, current_idx: int, next_idx: int) -> bool:
+        """
+        判断两个实例配置的游戏路径是否不同
+        """
+        current_game_path = cls(current_idx).game_path
+        next_game_path = cls(next_idx).game_path
+        return bool(current_game_path and next_game_path and current_game_path != next_game_path)
 
     @property
     def platform(self) -> str:
