@@ -151,7 +151,7 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.mission_opt.init_with_adapter(get_prop_adapter(self.config, 'mission_name'))
 
         self._update_challenge_config_options()
-        self.challenge_config_opt.init_with_adapter(self.config.challenge_config_adapter)
+        self.challenge_config_opt.init_with_adapter(get_prop_adapter(self.config, 'challenge_config'))
 
         self._update_run_record_display()
 
