@@ -118,7 +118,7 @@ class EnterGame(ZOperation):
         else:
             result = self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
-                self.after_second_enter_click = self.already_login
+                self.after_second_enter_click = True
                 self.resource_download_start_time = None
                 return self.round_success(result.status, wait=5)
 
