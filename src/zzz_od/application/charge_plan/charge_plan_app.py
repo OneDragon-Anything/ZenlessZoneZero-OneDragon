@@ -52,14 +52,66 @@ class ChargePlanApp(ZApplication):
 
         self.charge_power: int = 0  # 剩余电量
         self.required_charge: int = 0  # 需要的电量
+        self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
+        self.temp_plan = None
         self.last_tried_plan = None
         for plan in self.config.plan_list:
             plan.skipped = False
+        return self.round_success()
+
+    @node_from(from_name='识别电量', status='查看双倍活动')
+    @operation_node(name='查看双倍活动')
+    def check_double_reward_event(self) -> OperationRoundResult:
+        """
+        实战模拟室的每日双倍总数都是5次, 刷盘子的2次暂不考虑. 理由:
+        1. 如果没抽角色, 体力没事干的时候就去屯金盘收益最高, 此时体力计划能顺便覆盖盘子双倍
+        2. 双倍盘子活动出现的时机一般在卡池开了之后几天, 此时如果抽了角色也差不多养好了要刷盘子了
+        3. 双倍基础材料活动都是在版本末期, 没事干的时候整一出双倍材料, 总不能没事干的时候一直刷基础材料吧.
+           这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
+        """
+
+        op = TransportByCompendium(self.ctx, '训练', '实战模拟室')
+        result1 = self.round_by_op_result(op.execute())
+        if not result1.is_success:
+            return result1
+
+        # 查看剩余几次的文字
+        result1 = self.round_by_find_area(
+            self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数'
+        )
+        if not result1.is_success:
+            return self.round_success('无双倍活动')
+        # ocr 检测剩余次数
+        area = self.ctx.screen_loader.get_area('快捷手册', '怪物卡双倍剩余次数')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+        digit = str_utils.get_positive_digits(ocr_result, None)
+        if digit is None:
+            return self.round_retry('双倍活动识别出错', wait=1)
+        times_left = digit // 10
+        if times_left == 0 or digit % 10 != 5:
+            return self.round_success('无双倍活动')
+        # 识别出错
+        if times_left > 5:
+            return self.round_retry('双倍活动识别出错', wait=1)
+
+        card_num = min(self.charge_power // 20, times_left)
+        if card_num <= 0:
+            self.temp_plan = None
+            return self.round_success('无双倍活动')
+
+        temp_plan = self.config.combat_simulation_double_reward_config
+        temp_plan.skipped = False
+        temp_plan.run_times = 1
+        temp_plan.plan_times = 1
+        temp_plan.card_num = str(card_num)
+
+        self.temp_plan = temp_plan
         return self.round_success()
 
     @node_from(from_name='挑战完成')
@@ -85,9 +137,13 @@ class ChargePlanApp(ZApplication):
 
         self.charge_power = digit
         self.run_record.record_current_charge_power(digit)
+        if self.config.double_reward:
+            return self.round_success('查看双倍活动')
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')
+    @node_from(from_name='查看双倍活动')
+    @node_from(from_name='查看双倍活动', success=False)
     @operation_node(name='查找并选择下一个可执行任务')
     def find_and_select_next_plan(self) -> OperationRoundResult:
         """
@@ -95,6 +151,10 @@ class ChargePlanApp(ZApplication):
         如果找到，更新 self.next_plan 并返回成功状态。
         如果找不到，返回计划完成状态。
         """
+        if self.temp_plan is not None:
+            self.current_plan = self.temp_plan
+            return self.round_success()
+
         # 检查是否所有计划都已完成
         if self.config.all_plan_finished():
             # 如果开启了循环模式且所有计划已完成，重置计划并继续
@@ -192,6 +252,8 @@ class ChargePlanApp(ZApplication):
         else:
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
+        if self.current_plan is self.temp_plan:
+            self.temp_plan = None
         return self.round_success()
 
     @node_from(from_name='实战模拟室', status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
@@ -208,25 +270,27 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan
-        is_blocked_by_left_times = self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
+        is_blocked_by_left_times = (
+            self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
+        )
         if self.config.skip_plan or is_agent_plan or is_blocked_by_left_times:
             # 标记当前计划为跳过，继续尝试下一个
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
+            if self.current_plan is self.temp_plan:
+                self.temp_plan = None
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划
             self.last_tried_plan = None
+            if self.current_plan is self.temp_plan:
+                self.temp_plan = None
             return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量', save_status=True)
     def restore_charge(self) -> OperationRoundResult:
-        op = RestoreCharge(
-            self.ctx,
-            self.required_charge,
-            is_menu=True
-        )
+        op = RestoreCharge(self.ctx, self.required_charge, is_menu=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='跳过或结束计划', status=STATUS_ROUND_FINISHED)
