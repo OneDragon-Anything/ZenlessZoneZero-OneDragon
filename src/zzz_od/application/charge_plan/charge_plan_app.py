@@ -105,7 +105,7 @@ class ChargePlanApp(ZApplication):
             self.temp_plan = None
             return self.round_success('无双倍活动')
 
-        temp_plan = self.config.double_reward_event_config
+        temp_plan = self.config.combat_simulation_double_reward_config
         temp_plan.skipped = False
         temp_plan.run_times = 1
         temp_plan.plan_times = 1
@@ -137,7 +137,7 @@ class ChargePlanApp(ZApplication):
 
         self.charge_power = digit
         self.run_record.record_current_charge_power(digit)
-        if self.config.do_double_reward_event:
+        if self.config.double_reward:
             return self.round_success('查看双倍活动')
         return self.round_success(f'剩余电量 {digit}')
 

@@ -302,21 +302,21 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('skip_plan', new_value)
 
     @property
-    def do_double_reward_event(self) -> bool:
-        return self.get('do_double_reward_event', False)
+    def double_reward(self) -> bool:
+        return self.get('double_reward', False)
 
-    @do_double_reward_event.setter
-    def do_double_reward_event(self, new_value: bool) -> None:
-        self.update('do_double_reward_event', new_value)
+    @double_reward.setter
+    def double_reward(self, new_value: bool) -> None:
+        self.update('double_reward', new_value)
 
     @property
-    def double_reward_event_config(self) -> ChargePlanItem:
-        data = self.get('double_reward_event_config', {})
+    def combat_simulation_double_reward_config(self) -> ChargePlanItem:
+        data = self.get('combat_simulation_double_reward_config', {})
         return ChargePlanItem.from_dict(data)
 
-    @double_reward_event_config.setter
-    def double_reward_event_config(self, new_value: ChargePlanItem) -> None:
-        self.update('double_reward_event_config', new_value.to_dict())
+    @combat_simulation_double_reward_config.setter
+    def combat_simulation_double_reward_config(self, new_value: ChargePlanItem) -> None:
+        self.update('combat_simulation_double_reward_config', new_value.to_dict())
 
     @property
     def restore_charge(self) -> str:
