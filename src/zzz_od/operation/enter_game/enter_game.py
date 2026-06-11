@@ -118,7 +118,7 @@ class EnterGame(ZOperation):
         else:
             result = self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
-                self.after_second_enter_click = False
+                self.after_second_enter_click = self.already_login
                 self.resource_download_start_time = None
                 return self.round_success(result.status, wait=5)
 
@@ -589,6 +589,14 @@ class EnterGame(ZOperation):
             if login_error_result is not None:
                 return login_error_result
 
+            loading_result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
+            if loading_result.is_success:
+                return self.round_success(EnterGame.STATUS_LOADING)
+
+            big_world_result = self.is_in_big_world(self.last_screenshot)
+            if big_world_result is not None:
+                return big_world_result
+
         return self.round_retry('进入游戏后等待', wait=1)
 
     @node_from(from_name='进入游戏后操作', status=STATUS_LOGIN_SUCCESS)
@@ -605,6 +613,7 @@ class EnterGame(ZOperation):
             return self.round_success(EnterGame.STATUS_LOADING)
         return self.round_retry('未识别到加载中', wait=1)
 
+    @node_from(from_name='进入游戏后操作', status=STATUS_LOADING)
     @node_from(from_name='识别加载中', status=STATUS_LOADING)
     @operation_node(name='加载中', timeout_seconds=MAX_LOADING_SECONDS)
     def wait_loading(self) -> OperationRoundResult:
