@@ -65,11 +65,30 @@ class YamlOperator:
             return
 
     def save(self):
+        """
+        将 yaml 写入文件.
+        写入之前先对比写入内容和文件内容是否一致, 不一致才写入
+        """
         if self.file_path is None:
             return
 
+        # 1. 先把要写入的内容转成字符串
+        new_content = yaml.dump(self.data, allow_unicode=True, sort_keys=False)
+
+        # 2. 尝试读取旧文件内容
+        old_content = None
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                old_content = file.read()
+        except FileNotFoundError:
+            # 文件不存在 → 必须写入
+            old_content = None
+
+        # 3. 只有内容不一致时才写入
+        if old_content == new_content:
+            return
         with open(self.file_path, 'w', encoding='utf-8') as file:
-            yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+            file.write(new_content)
         invalidate_cache(self.file_path)
 
     def save_diy(self, text: str):
