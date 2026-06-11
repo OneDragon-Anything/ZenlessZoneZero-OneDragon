@@ -15,8 +15,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class TransportByCompendium(ZOperation):
 
-    def __init__(self, ctx: ZContext, tab_name: str, category_name: str | None = None,
-                 mission_type_name: str | None = None):
+    def __init__(self, ctx: ZContext, tab_name: str, category_name: str, mission_type_name: str | None = None):
         """
         使用快捷手册传送 最后不会等待加载完毕
         :param ctx:
@@ -31,7 +30,7 @@ class TransportByCompendium(ZOperation):
         )
 
         self.tab_name: str = tab_name
-        self.category_name: str | None = category_name
+        self.category_name: str = category_name
         self.mission_type_name: str | None = mission_type_name
 
         if self.mission_type_name == '自定义模板':  # 没法直接传送到自定义
@@ -51,17 +50,12 @@ class TransportByCompendium(ZOperation):
     @node_from(from_name='快捷手册')
     @operation_node(name='选择分类')
     def choose_category(self) -> OperationRoundResult:
-        if self.category_name is None:
-            return self.round_success('无需选择分类')
         op = CompendiumChooseCategory(self.ctx, self.category_name)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='选择分类')
     @operation_node(name='选择副本分类')
     def choose_mission_type(self) -> OperationRoundResult:
-        if self.previous_node.status == '无需选择分类':
-            return self.round_success(status='无需选择副本')
-
         mission_type = self.ctx.compendium_service.get_mission_type_data(
             self.tab_name, self.category_name, self.mission_type_name or ''
         )
@@ -71,7 +65,6 @@ class TransportByCompendium(ZOperation):
             return self.round_by_op_result(op.execute())
 
         return self.round_success(status='无需选择副本')
-
 
 def __debug():
     ctx = ZContext()

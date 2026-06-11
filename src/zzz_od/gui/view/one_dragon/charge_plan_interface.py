@@ -97,9 +97,6 @@ class ChargePlanCard(DraggableListItem):
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
-        if plan.is_temp_plan:
-            title = '[临时计划] ' + title
-
         if not only_first_line:
             # 创建 MultiLineSettingCard 作为 content_widget
             content_widget = MultiLineSettingCard(
