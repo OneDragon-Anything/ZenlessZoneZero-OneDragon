@@ -89,10 +89,10 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_type_opt)
 
-        self.auto_update_opt = SwitchSettingCard(
+        self.auto_update_code_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
         )
-        code_group.addSettingCard(self.auto_update_opt)
+        code_group.addSettingCard(self.auto_update_code_opt)
 
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
@@ -202,7 +202,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
+        self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 

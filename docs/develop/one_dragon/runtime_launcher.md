@@ -100,7 +100,7 @@ LauncherBase          → 基础参数解析、run() 入口
 1. 记录当前 `sys.modules` 快照（用于后续清理）
 2. 延迟导入 `EnvConfig`、`GitService`、`ProjectConfig`（来自 `src/`）
 3. 判断是否首次运行（检查 `.git` 目录是否存在）
-4. 首次运行 → 克隆仓库；非首次 → 根据 `auto_update` 配置决定是否更新
+4. 首次运行 → 克隆仓库；非首次 → 根据 `auto_update_code` 配置决定是否更新
 5. 成功后清除同步过程中加载的模块（`del sys.modules[...]`），调用 `importlib.invalidate_caches()`
 6. 首次克隆失败 → 退出；后续更新失败 → 打日志继续运行
 
