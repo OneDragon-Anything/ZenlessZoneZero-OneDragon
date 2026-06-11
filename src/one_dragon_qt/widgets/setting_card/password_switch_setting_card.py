@@ -131,6 +131,7 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
             self._show_password_error_dialog()
             value = not value
             self.setValue(value, emit_signal=False)
+            return
 
         self._set_extra_button_enabled(value)
         if self.adapter is not None:
