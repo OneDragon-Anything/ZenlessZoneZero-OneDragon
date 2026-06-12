@@ -1,9 +1,65 @@
 import argparse
 import time
+from pathlib import Path
 
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
+
+PPOCRV6_MODEL_CONFIGS = {
+    "medium": {
+        "det_db_box_thresh": 0.45,
+        "rec_char_dict_path": "ppocrv6_dict.txt",
+    },
+    "small": {
+        "det_db_box_thresh": 0.45,
+        "rec_char_dict_path": "ppocrv6_dict.txt",
+    },
+    "tiny": {
+        "det_db_box_thresh": 0.4,
+        "rec_char_dict_path": "ppocrv6_tiny_dict.txt",
+    },
+}
+
+
+def _normalize_ppocrv6_size(model_name=None, model_size=None):
+    if model_size:
+        size = str(model_size).lower()
+    elif model_name:
+        normalized = str(model_name).lower()
+        size = next((name for name in PPOCRV6_MODEL_CONFIGS if name in normalized), None)
+    else:
+        size = None
+
+    if size not in PPOCRV6_MODEL_CONFIGS:
+        return None
+    return size
+
+
+def _build_ppocrv6_defaults(kwargs):
+    """为 PP-OCRv6 模型构建默认参数。如果不是 v6 模型则返回空字典，保证 v5 兼容。"""
+    model_name = kwargs.pop("ocr_model_name", None)
+    model_size = kwargs.pop("ocr_model_size", None)
+    size = _normalize_ppocrv6_size(model_name=model_name, model_size=model_size)
+    if not size:
+        return {}
+
+    model_root = Path(__file__).resolve().parent / "models" / "ppocrv6"
+    config = PPOCRV6_MODEL_CONFIGS[size]
+
+    defaults = {
+        "det_model_dir": str(model_root / size / "det" / "det.onnx"),
+        "rec_model_dir": str(model_root / size / "rec" / "rec.onnx"),
+        "rec_char_dict_path": str(model_root / config["rec_char_dict_path"]),
+        "rec_image_shape": "3, 48, 320",
+        "det_limit_side_len": 736,
+        "det_limit_type": "min",
+        "det_db_thresh": 0.2,
+        "det_db_box_thresh": config["det_db_box_thresh"],
+        "det_db_unclip_ratio": 1.4,
+        "det_db_max_candidates": 3000,
+    }
+    return {key: value for key, value in defaults.items() if key not in kwargs}
 
 
 class ONNXPaddleOcr(TextSystem):
@@ -20,10 +76,11 @@ class ONNXPaddleOcr(TextSystem):
             inference_args_dict[action.dest] = action.default
         params = argparse.Namespace(**inference_args_dict)
 
-        # params.rec_image_shape = "3, 32, 320"
+        model_defaults = _build_ppocrv6_defaults(kwargs)
         params.rec_image_shape = "3, 48, 320"
 
         # 根据传入的参数覆盖更新默认参数
+        params.__dict__.update(model_defaults)
         params.__dict__.update(**kwargs)
 
         # 初始化模型

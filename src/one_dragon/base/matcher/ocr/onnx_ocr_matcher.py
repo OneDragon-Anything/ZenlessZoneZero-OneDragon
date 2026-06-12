@@ -44,11 +44,12 @@ def get_final_file_list(ocr_model_name: str) -> list[str]:
     :return:
     """
     base_dir = get_ocr_model_dir(ocr_model_name)
+    dict_name = 'ppocrv6_dict.txt' if 'ppocrv6' in ocr_model_name else 'ppocrv5_dict.txt'
     return [
         os.path.join(base_dir, 'det.onnx'),
         os.path.join(base_dir, 'rec.onnx'),
         os.path.join(base_dir, 'cls.onnx'),
-        os.path.join(base_dir, 'ppocrv5_dict.txt'),
+        os.path.join(base_dir, dict_name),
         os.path.join(base_dir, 'simfang.ttf'),
     ]
 
@@ -65,14 +66,17 @@ class OnnxOcrParam:
             det_model_name: str = 'det.onnx',
             rec_model_name: str = 'rec.onnx',
             cls_model_name: str = 'cls.onnx',
-            dict_name: str = 'ppocrv5_dict.txt',
+            dict_name: Optional[str] = None,
             font_name: str = 'simfang.ttf',
             use_gpu: bool = False,
             use_angle_cls: bool = False,
             det_limit_side_len: float = 960.0,
+            ocr_model_size: str = "small",
     ):
         self.ocr_model_name: str = ocr_model_name
         self.models_dir: str = get_ocr_model_dir(ocr_model_name)
+        if dict_name is None:
+            dict_name = 'ppocrv6_dict.txt' if 'ppocrv6' in ocr_model_name else 'ppocrv5_dict.txt'
         # ===================================================================
         # I. 设备与性能 (Device & Performance)
         # ===================================================================
@@ -91,6 +95,7 @@ class OnnxOcrParam:
         # III. 核心功能开关 (Core Feature Switches)
         # ===================================================================
         self.use_angle_cls = use_angle_cls  # 是否加载并使用方向分类模型
+        self.ocr_model_size = ocr_model_size
 
         # ===================================================================
         # IV. 文字检测超参数 (Detection Hyperparameters)
@@ -108,6 +113,7 @@ class OnnxOcrParam:
             'vis_font_path': self.vis_font_path,
             'use_angle_cls': self.use_angle_cls,
             'det_limit_side_len': self.det_limit_side_len,
+            'ocr_model_size': self.ocr_model_size,
         }
 
 
