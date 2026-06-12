@@ -71,12 +71,16 @@ class ChargePlanItem:
             return 60
         return 0  # 未知类型，在副本内检查
 
-    def to_dict(self) -> dict[str, str | int | None]:
+    def to_dict(self, *, include_plan_id: bool = True) -> dict[str, str | int | None]:
         return {
             item.name: getattr(self, item.name)
             for item in fields(self)
             if item.metadata.get('persist', True)
+            and (include_plan_id or item.name != 'plan_id')
         }
+
+    def to_history_dict(self) -> dict[str, str | int | None]:
+        return self.to_dict(include_plan_id=False)
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ChargePlanItem':
@@ -105,8 +109,9 @@ class ChargePlanConfig(ApplicationConfig):
 
         for plan_item in self.plan_list:
             plan_data = plan_item.to_dict()
+            history_data = plan_item.to_history_dict()
 
-            new_history_list.append(plan_data.copy())
+            new_history_list.append(history_data)
             plan_list.append(plan_data)
 
         old_history_list = self.history_list
@@ -114,12 +119,12 @@ class ChargePlanConfig(ApplicationConfig):
             old_history = ChargePlanItem(**old_history_data)
             with_new = False
             for plan in self.plan_list:
-                if self._is_same_plan(plan, old_history):
+                if self._is_same_plan(plan, old_history, compare_plan_id=False):
                     with_new = True
                     break
 
             if not with_new:
-                new_history_list.append(old_history_data)
+                new_history_list.append(old_history.to_history_dict())
 
         self.data['plan_list'] = plan_list
         self.data['history_list'] = new_history_list
@@ -260,12 +265,18 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
-    def _is_same_plan(self, x: ChargePlanItem, y: ChargePlanItem) -> bool:
+    def _is_same_plan(
+        self, x: ChargePlanItem, y: ChargePlanItem, compare_plan_id: bool = True
+    ) -> bool:
         if x is None or y is None:
             return False
 
         # 如果两个计划都有ID，直接比较ID
-        if hasattr(x, 'plan_id') and hasattr(y, 'plan_id') and x.plan_id and y.plan_id:
+        if (compare_plan_id
+                and hasattr(x, 'plan_id')
+                and hasattr(y, 'plan_id')
+                and x.plan_id
+                and y.plan_id):
             return x.plan_id == y.plan_id
 
         # 向后兼容：如果没有ID，使用原有的比较方式
@@ -282,7 +293,7 @@ class ChargePlanConfig(ApplicationConfig):
         history_list = self.history_list
         for history_data in history_list:
             history = ChargePlanItem(**history_data)
-            if self._is_same_plan(history, plan):
+            if self._is_same_plan(history, plan, compare_plan_id=False):
                 return history
 
     @property
