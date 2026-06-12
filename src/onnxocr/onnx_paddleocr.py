@@ -2,10 +2,11 @@ import argparse
 import time
 from pathlib import Path
 
-from .logger import get_logger
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
+
+from .logger import get_logger
 
 log = get_logger("onnx_paddleocr")
 
@@ -55,12 +56,12 @@ def _build_ppocrv6_defaults(kwargs):
         "rec_model_dir": str(model_root / size / "rec" / "rec.onnx"),
         "rec_char_dict_path": str(model_root / config["rec_char_dict_path"]),
         "rec_image_shape": "3, 48, 320",
-        "det_limit_side_len": 736,
-        "det_limit_type": "min",
-        "det_db_thresh": 0.2,
+        "det_limit_side_len": 960,
+        "det_limit_type": "max",
+        "det_db_thresh": 0.3,
         "det_db_box_thresh": config["det_db_box_thresh"],
-        "det_db_unclip_ratio": 1.4,
-        "det_db_max_candidates": 3000,
+        "det_db_unclip_ratio": 1.5,
+        "det_db_max_candidates": 1000,
     }
     return {key: value for key, value in defaults.items() if key not in kwargs}
 
@@ -100,7 +101,7 @@ class ONNXPaddleOcr(TextSystem):
             if det and rec:
                 ocr_res = []
                 dt_boxes, rec_res = self.__call__(img, cls)
-                tmp_res = [[box.tolist(), res] for box, res in zip(dt_boxes, rec_res)]
+                tmp_res = [[box.tolist(), res] for box, res in zip(dt_boxes, rec_res, strict=False)]
                 ocr_res.append(tmp_res)
                 return ocr_res
             elif det and not rec:
@@ -172,7 +173,7 @@ def __debug():
     s = time.time()
     result = model.ocr(img)
     e = time.time()
-    print("total time: {:.3f}".format(e - s))
+    print(f"total time: {e - s:.3f}")
     print("result:", result)
     for box in result[0]:
         print(box)

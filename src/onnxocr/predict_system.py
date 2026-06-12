@@ -35,7 +35,6 @@ class TextSystem(object):
         self.crop_image_res_index += bbox_num
 
     def __call__(self, img, cls=True):
-        log.debug("OCR pipeline started, image shape: {}", img.shape)
         # 文字检测
         dt_boxes = self.text_detector(img)
 
@@ -71,7 +70,6 @@ class TextSystem(object):
                 filter_boxes.append(box)
                 filter_rec_res.append(rec_result)
 
-        log.debug("OCR pipeline done, {} regions detected, {} kept", len(dt_boxes), len(filter_boxes))
         return filter_boxes, filter_rec_res
 
 

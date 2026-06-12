@@ -1,7 +1,7 @@
-import cv2
-import copy
-import numpy as np
 import math
+
+import cv2
+import numpy as np
 
 from .cls_postprocess import ClsPostProcess
 from .logger import get_logger
@@ -78,7 +78,7 @@ class TextClassifier(PredictBase):
                 norm_img = norm_img[np.newaxis, :]
                 norm_img_batch.append(norm_img)
             norm_img_batch = np.concatenate(norm_img_batch)
-
+            norm_img_batch = norm_img_batch.copy()
             input_feed = self.get_input_feed(self.cls_input_name, norm_img_batch)
             outputs = self.run_onnx_session(
                 self.cls_onnx_session, self.cls_output_name, input_feed=input_feed

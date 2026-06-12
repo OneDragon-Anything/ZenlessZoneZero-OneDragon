@@ -1,7 +1,9 @@
 import time
+
 import numpy as np
-from .imaug import transform, create_operators
+
 from .db_postprocess import DBPostProcess
+from .imaug import create_operators, transform
 from .logger import get_logger
 from .predict_base import PredictBase
 
@@ -110,8 +112,8 @@ class TextDetector(PredictBase):
             return None, 0
         img = np.expand_dims(img, axis=0)
         shape_list = np.expand_dims(shape_list, axis=0)
+        img = img.copy()
 
-        input_feed = self.get_input_feed(self.det_input_name, img)
         t0 = time.time()
         outputs = self.run_onnx_session(self.det_onnx_session, self.det_output_name, input_feed=input_feed)
         log.debug("Detection inference time: {:.3f}s", time.time() - t0)

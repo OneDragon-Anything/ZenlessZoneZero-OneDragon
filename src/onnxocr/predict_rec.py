@@ -1,12 +1,12 @@
+import math
+
 import cv2
 import numpy as np
-import math
 from PIL import Image
 
-
-from .rec_postprocess import CTCLabelDecode
 from .logger import get_logger
 from .predict_base import PredictBase
+from .rec_postprocess import CTCLabelDecode
 
 log = get_logger("predict_rec")
 
@@ -61,7 +61,7 @@ class TextRecognizer(PredictBase):
             return resized_image
 
         assert imgC == img.shape[2]
-        imgW = int((imgH * max_wh_ratio))
+        imgW = int(imgH * max_wh_ratio)
 
         # w = self.rec_onnx_session.get_inputs()[0].shape[3:][0]
         # w = self.rec_onnx_session.get_inputs()[0].shape[3:][0]
@@ -220,7 +220,7 @@ class TextRecognizer(PredictBase):
     def resize_norm_img_spin(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # return padding_im
-        img = cv2.resize(img, tuple([100, 32]), cv2.INTER_CUBIC)
+        img = cv2.resize(img, (100, 32), cv2.INTER_CUBIC)
         img = np.array(img, np.float32)
         img = np.expand_dims(img, -1)
         img = img.transpose((2, 0, 1))
@@ -313,6 +313,7 @@ class TextRecognizer(PredictBase):
                 norm_img_batch.append(norm_img)
 
             norm_img_batch = np.concatenate(norm_img_batch)
+            norm_img_batch = norm_img_batch.copy()
             input_feed = self.get_input_feed(self.rec_input_name, norm_img_batch)
             outputs = self.run_onnx_session(
                 self.rec_onnx_session, self.rec_output_name, input_feed=input_feed
