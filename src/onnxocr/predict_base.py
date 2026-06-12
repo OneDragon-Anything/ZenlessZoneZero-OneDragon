@@ -9,7 +9,6 @@ class PredictBase(object):
         pass
 
     def get_onnx_session(self, model_dir, use_gpu, gpu_id=0):
-        log.debug("Getting ONNX session: {}, use_gpu={}, gpu_id={}", model_dir, use_gpu, gpu_id)
         return create_session(model_dir, use_gpu=use_gpu, gpu_id=gpu_id)
 
     def get_output_name(self, onnx_session):

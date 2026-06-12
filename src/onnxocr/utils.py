@@ -1,9 +1,10 @@
-import numpy as np
-import cv2
 import argparse
 import math
-from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
+
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 # 获取当前文件所在的目录
 module_dir = Path(__file__).resolve().parent
@@ -55,7 +56,7 @@ def get_rotate_crop_image(img, points):
 
 def get_minarea_rect_crop(img, points):
     bounding_box = cv2.minAreaRect(np.array(points).astype(np.int32))
-    points = sorted(list(cv2.boxPoints(bounding_box)), key=lambda x: x[0])
+    points = sorted(cv2.boxPoints(bounding_box), key=lambda x: x[0])
 
     index_a, index_b, index_c, index_d = 0, 1, 2, 3
     if points[1][1] > points[0][1]:
@@ -174,9 +175,9 @@ def text_visual(
                 count = 0
             count += 1
         if first_line:
-            new_txt = str(index) + ": " + txt + "   " + "%.3f" % (scores[idx])
+            new_txt = str(index) + ": " + txt + "   " + f"{scores[idx]:.3f}"
         else:
-            new_txt = "  " + txt + "  " + "%.3f" % (scores[idx])
+            new_txt = "  " + txt + "  " + f"{scores[idx]:.3f}"
         draw_txt.text((0, gap * count), new_txt, txt_color, font=font)
         # whether add new blank img or not
         if count >= img_h // gap - 1 and idx + 1 < len(texts):
@@ -270,15 +271,15 @@ def infer_args():
         type=str,
         default=str(module_dir / "models/ppocrv5/det.onnx"),
     )
-    parser.add_argument("--det_limit_side_len", type=float, default=736)
-    parser.add_argument("--det_limit_type", type=str, default="min")
+    parser.add_argument("--det_limit_side_len", type=float, default=960)
+    parser.add_argument("--det_limit_type", type=str, default="max")
     parser.add_argument("--det_box_type", type=str, default="quad")
 
     # DB parmas
-    parser.add_argument("--det_db_thresh", type=float, default=0.2)
-    parser.add_argument("--det_db_box_thresh", type=float, default=0.45)
-    parser.add_argument("--det_db_unclip_ratio", type=float, default=1.4)
-    parser.add_argument("--det_db_max_candidates", type=int, default=3000)
+    parser.add_argument("--det_db_thresh", type=float, default=0.3)
+    parser.add_argument("--det_db_box_thresh", type=float, default=0.6)
+    parser.add_argument("--det_db_unclip_ratio", type=float, default=1.5)
+    parser.add_argument("--det_db_max_candidates", type=int, default=1000)
     parser.add_argument("--max_batch_size", type=int, default=10)
     parser.add_argument("--use_dilation", type=str2bool, default=False)
     parser.add_argument("--det_db_score_mode", type=str, default="fast")
