@@ -1,7 +1,11 @@
 import numpy as np
 import cv2
-import sys
 import math
+from PIL import Image
+
+from .logger import get_logger
+
+log = get_logger("operators")
 
 
 class NormalizeImage(object):
@@ -10,7 +14,11 @@ class NormalizeImage(object):
 
     def __init__(self, scale=None, mean=None, std=None, order='chw', **kwargs):
         if isinstance(scale, str):
-            scale = eval(scale)
+            if '/' in scale:
+                parts = scale.split('/')
+                scale = float(parts[0]) / float(parts[1])
+            else:
+                scale = float(scale)
         self.scale = np.float32(scale if scale is not None else 1.0 / 255.0)
         mean = mean if mean is not None else [0.485, 0.456, 0.406]
         std = std if std is not None else [0.229, 0.224, 0.225]
@@ -21,7 +29,6 @@ class NormalizeImage(object):
 
     def __call__(self, data):
         img = data['image']
-        from PIL import Image
         if isinstance(img, Image.Image):
             img = np.array(img)
         assert isinstance(img,
@@ -130,9 +137,9 @@ class DetResizeForTest(object):
             if int(resize_w) <= 0 or int(resize_h) <= 0:
                 return None, (None, None)
             img = cv2.resize(img, (int(resize_w), int(resize_h)))
-        except:
-            print(img.shape, resize_w, resize_h)
-            sys.exit(0)
+        except Exception as e:
+            log.error("Image resize failed: shape={}, target=({},{}) error: {}", img.shape, resize_w, resize_h, e)
+            raise RuntimeError(f"Image resize failed: shape={img.shape}, target=({resize_w}, {resize_h})") from e
         ratio_h = resize_h / float(h)
         ratio_w = resize_w / float(w)
         return img, [ratio_h, ratio_w]

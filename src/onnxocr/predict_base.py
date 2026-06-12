@@ -1,25 +1,16 @@
-import onnxruntime
+from .inference_engine import create_session
+from .logger import get_logger
+
+log = get_logger("predict_base")
+
 
 class PredictBase(object):
     def __init__(self):
         pass
 
-    def get_onnx_session(self, model_dir, use_gpu):
-        availables = onnxruntime.get_available_providers()
-        if use_gpu:
-            if 'CUDAExecutionProvider' in availables:
-                providers = ['CUDAExecutionProvider']
-            elif 'DmlExecutionProvider' in availables:
-                providers = ['DmlExecutionProvider']
-            else:
-                providers = ['CPUExecutionProvider']
-        else:
-            providers = ['CPUExecutionProvider']
-
-        onnx_session = onnxruntime.InferenceSession(model_dir, providers=providers)
-
-        # print("providers:", onnxruntime.get_device())
-        return onnx_session
+    def get_onnx_session(self, model_dir, use_gpu, gpu_id=0):
+        log.debug("Getting ONNX session: {}, use_gpu={}, gpu_id={}", model_dir, use_gpu, gpu_id)
+        return create_session(model_dir, use_gpu=use_gpu, gpu_id=gpu_id)
 
     def get_output_name(self, onnx_session):
         """

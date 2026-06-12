@@ -1,10 +1,12 @@
 import os
 import cv2
-import copy
-import onnxocr.predict_det as predict_det
-import onnxocr.predict_cls as predict_cls
-import onnxocr.predict_rec as predict_rec
-from onnxocr.utils import get_rotate_crop_image, get_minarea_rect_crop
+from . import predict_det
+from . import predict_cls
+from . import predict_rec
+from .logger import get_logger
+from .utils import get_rotate_crop_image, get_minarea_rect_crop
+
+log = get_logger("predict_system")
 
 
 class TextSystem(object):
@@ -33,7 +35,7 @@ class TextSystem(object):
         self.crop_image_res_index += bbox_num
 
     def __call__(self, img, cls=True):
-        ori_im = img.copy()
+        log.debug("OCR pipeline started, image shape: {}", img.shape)
         # 文字检测
         dt_boxes = self.text_detector(img)
 
@@ -46,11 +48,11 @@ class TextSystem(object):
 
         # 图片裁剪
         for bno in range(len(dt_boxes)):
-            tmp_box = copy.deepcopy(dt_boxes[bno])
+            tmp_box = dt_boxes[bno]
             if self.args.det_box_type == "quad":
-                img_crop = get_rotate_crop_image(ori_im, tmp_box)
+                img_crop = get_rotate_crop_image(img, tmp_box)
             else:
-                img_crop = get_minarea_rect_crop(ori_im, tmp_box)
+                img_crop = get_minarea_rect_crop(img, tmp_box)
             img_crop_list.append(img_crop)
 
         # 方向分类
@@ -69,6 +71,7 @@ class TextSystem(object):
                 filter_boxes.append(box)
                 filter_rec_res.append(rec_result)
 
+        log.debug("OCR pipeline done, {} regions detected, {} kept", len(dt_boxes), len(filter_boxes))
         return filter_boxes, filter_rec_res
 
 
