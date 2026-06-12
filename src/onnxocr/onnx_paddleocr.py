@@ -2,9 +2,12 @@ import argparse
 import time
 from pathlib import Path
 
+from .logger import get_logger
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
+
+log = get_logger("onnx_paddleocr")
 
 PPOCRV6_MODEL_CONFIGS = {
     "medium": {
@@ -85,11 +88,12 @@ class ONNXPaddleOcr(TextSystem):
 
         # 初始化模型
         super().__init__(params)
+        log.info("OCR model initialized: det=True, cls={}, rec=True", self.use_angle_cls)
 
     def ocr(self, img, det=True, rec=True, cls=True) -> list:
-        if cls == True and self.use_angle_cls == False:
-            print(
-                "Since the angle classifier is not initialized, the angle classifier will not be uesd during the forward process"
+        if cls is True and self.use_angle_cls is False:
+            log.warning(
+                "Since the angle classifier is not initialized, the angle classifier will not be used during the forward process"
             )
 
         try:

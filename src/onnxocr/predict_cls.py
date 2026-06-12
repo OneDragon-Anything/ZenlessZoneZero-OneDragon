@@ -3,8 +3,12 @@ import copy
 import numpy as np
 import math
 
-from onnxocr.cls_postprocess import ClsPostProcess
-from onnxocr.predict_base import PredictBase
+from .cls_postprocess import ClsPostProcess
+from .logger import get_logger
+from .predict_base import PredictBase
+
+log = get_logger("predict_cls")
+
 
 class TextClassifier(PredictBase):
     def __init__(self, args):
@@ -14,9 +18,15 @@ class TextClassifier(PredictBase):
         self.postprocess_op = ClsPostProcess(label_list=args.label_list)
 
         # 初始化模型
-        self.cls_onnx_session = self.get_onnx_session(args.cls_model_dir, args.use_gpu)
+        self.cls_onnx_session = self.get_onnx_session(args.cls_model_dir, args.use_gpu, gpu_id=args.gpu_id)
         self.cls_input_name = self.get_input_name(self.cls_onnx_session)
         self.cls_output_name = self.get_output_name(self.cls_onnx_session)
+        log.info("Classification model loaded: {}", args.cls_model_dir)
+
+        # 预热模型，避免因为算子懒加载导致前几次推理耗时增加 2-10 倍
+        imgC, imgH, imgW = self.cls_image_shape
+        dummy = np.zeros((1, imgC, imgH, imgW), dtype=np.float32)
+        self.cls_onnx_session.run(self.cls_output_name, {self.cls_input_name[0]: dummy})
 
     def resize_norm_img(self, img):
         imgC, imgH, imgW = self.cls_image_shape
@@ -41,7 +51,7 @@ class TextClassifier(PredictBase):
         return padding_im
 
     def __call__(self, img_list):
-        img_list = copy.deepcopy(img_list)
+        img_list = list(img_list)
         img_num = len(img_list)
         # Calculate the aspect ratio of all text bars
         width_list = []
@@ -68,7 +78,6 @@ class TextClassifier(PredictBase):
                 norm_img = norm_img[np.newaxis, :]
                 norm_img_batch.append(norm_img)
             norm_img_batch = np.concatenate(norm_img_batch)
-            norm_img_batch = norm_img_batch.copy()
 
             input_feed = self.get_input_feed(self.cls_input_name, norm_img_batch)
             outputs = self.run_onnx_session(
