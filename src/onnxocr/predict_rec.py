@@ -1,11 +1,15 @@
+import math
+
 import cv2
 import numpy as np
-import math
 from PIL import Image
 
-
-from onnxocr.rec_postprocess import CTCLabelDecode
+from onnxocr.logger import get_logger
 from onnxocr.predict_base import PredictBase
+from onnxocr.rec_postprocess import CTCLabelDecode
+
+log = get_logger("predict_rec")
+
 
 class TextRecognizer(PredictBase):
     def __init__(self, args):
@@ -18,9 +22,15 @@ class TextRecognizer(PredictBase):
         )
 
         # 初始化模型
-        self.rec_onnx_session = self.get_onnx_session(args.rec_model_dir, args.use_gpu)
+        self.rec_onnx_session = self.get_onnx_session(args.rec_model_dir, args.use_gpu, gpu_id = args.gpu_id)
         self.rec_input_name = self.get_input_name(self.rec_onnx_session)
         self.rec_output_name = self.get_output_name(self.rec_onnx_session)
+        log.info("Recognition model loaded: {}", args.rec_model_dir)
+
+        # 预热模型，避免因为算子懒加载导致前几次推理耗时增加 2-10 倍
+        imgC, imgH, imgW = self.rec_image_shape[:3]
+        dummy = np.zeros((1, imgC, imgH, imgW), dtype=np.float32)
+        self.rec_onnx_session.run(self.rec_output_name, {self.rec_input_name[0]: dummy})
 
     def resize_norm_img(self, img, max_wh_ratio):
         imgC, imgH, imgW = self.rec_image_shape
@@ -51,7 +61,7 @@ class TextRecognizer(PredictBase):
             return resized_image
 
         assert imgC == img.shape[2]
-        imgW = int((imgH * max_wh_ratio))
+        imgW = int(imgH * max_wh_ratio)
 
         # w = self.rec_onnx_session.get_inputs()[0].shape[3:][0]
         # w = self.rec_onnx_session.get_inputs()[0].shape[3:][0]
@@ -210,7 +220,7 @@ class TextRecognizer(PredictBase):
     def resize_norm_img_spin(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # return padding_im
-        img = cv2.resize(img, tuple([100, 32]), cv2.INTER_CUBIC)
+        img = cv2.resize(img, (100, 32), cv2.INTER_CUBIC)
         img = np.array(img, np.float32)
         img = np.expand_dims(img, -1)
         img = img.transpose((2, 0, 1))
@@ -304,13 +314,6 @@ class TextRecognizer(PredictBase):
 
             norm_img_batch = np.concatenate(norm_img_batch)
             norm_img_batch = norm_img_batch.copy()
-
-            # img = img[:, :, ::-1].transpose(2, 0, 1)
-            # img = img[:, :, ::-1]
-            # img = img.transpose(2, 0, 1)
-            # img = img.astype(np.float32)
-            # img = np.expand_dims(img, axis=0)
-            # print(img.shape)
             input_feed = self.get_input_feed(self.rec_input_name, norm_img_batch)
             outputs = self.rec_onnx_session.run(
                 self.rec_output_name, input_feed=input_feed

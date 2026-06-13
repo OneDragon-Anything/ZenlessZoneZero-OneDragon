@@ -1,13 +1,15 @@
 import os
+
 import cv2
-import copy
-import onnxocr.predict_det as predict_det
-import onnxocr.predict_cls as predict_cls
-import onnxocr.predict_rec as predict_rec
-from onnxocr.utils import get_rotate_crop_image, get_minarea_rect_crop
+
+from onnxocr import predict_cls, predict_det, predict_rec
+from onnxocr.logger import get_logger
+from onnxocr.utils import get_minarea_rect_crop, get_rotate_crop_image
+
+log = get_logger("predict_system")
 
 
-class TextSystem(object):
+class TextSystem:
     def __init__(self, args):
         self.text_detector = predict_det.TextDetector(args)
         self.text_recognizer = predict_rec.TextRecognizer(args)
@@ -33,7 +35,6 @@ class TextSystem(object):
         self.crop_image_res_index += bbox_num
 
     def __call__(self, img, cls=True):
-        ori_im = img.copy()
         # 文字检测
         dt_boxes = self.text_detector(img)
 
@@ -46,11 +47,11 @@ class TextSystem(object):
 
         # 图片裁剪
         for bno in range(len(dt_boxes)):
-            tmp_box = copy.deepcopy(dt_boxes[bno])
+            tmp_box = dt_boxes[bno]
             if self.args.det_box_type == "quad":
-                img_crop = get_rotate_crop_image(ori_im, tmp_box)
+                img_crop = get_rotate_crop_image(img, tmp_box)
             else:
-                img_crop = get_minarea_rect_crop(ori_im, tmp_box)
+                img_crop = get_minarea_rect_crop(img, tmp_box)
             img_crop_list.append(img_crop)
 
         # 方向分类
@@ -63,7 +64,7 @@ class TextSystem(object):
         if self.args.save_crop_res:
             self.draw_crop_rec_res(self.args.crop_res_save_dir, img_crop_list, rec_res)
         filter_boxes, filter_rec_res = [], []
-        for box, rec_result in zip(dt_boxes, rec_res):
+        for box, rec_result in zip(dt_boxes, rec_res, strict=False):
             text, score = rec_result
             if score >= self.drop_score:
                 filter_boxes.append(box)
