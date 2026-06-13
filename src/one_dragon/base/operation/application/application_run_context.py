@@ -83,6 +83,7 @@ class ApplicationRunContext:
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
         self.current_application: Optional[Application] = None
+        self._last_stop_by_user: bool = False
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
@@ -301,6 +302,16 @@ class ApplicationRunContext:
         """
         return self._run_state == ApplicationRunContextStateEnum.PAUSE
 
+    @property
+    def is_last_stop_by_user(self) -> bool:
+        """
+        检查最近一次停止是否由用户主动触发。
+
+        Returns:
+            bool: 最近一次停止是否由停止按钮或停止快捷键触发。
+        """
+        return self._last_stop_by_user
+
     def start_running(self) -> bool:
         """
         开始运行。
@@ -319,6 +330,7 @@ class ApplicationRunContext:
             return False
 
         if self.ctx.controller.init_before_context_run():
+            self._last_stop_by_user = False
             self._run_state = ApplicationRunContextStateEnum.RUNNING
             self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.START, self._run_state
@@ -327,14 +339,18 @@ class ApplicationRunContext:
         else:
             return False
 
-    def stop_running(self):
+    def stop_running(self, by_user: bool = False) -> None:
         """
         停止运行。
 
         将上下文状态设置为停止，如果正在运行则先暂停，然后发送停止事件。
+
+        Args:
+            by_user: 是否由用户点击停止按钮或停止快捷键触发。
         """
         if self.is_context_stop:
             return
+        self._last_stop_by_user = by_user
         if self.is_context_running:  # 先触发暂停 让执行中的指令停止
             self.switch_context_pause_and_run()
         self._run_state = ApplicationRunContextStateEnum.STOP
@@ -421,7 +437,7 @@ class ApplicationRunContext:
             self.current_group_id = group_id
             self.current_application = app
 
-            op_result = app.execute()
+            app.execute()
         except Exception:
             log.error("运行应用 {} 失败", app_id)
         finally:

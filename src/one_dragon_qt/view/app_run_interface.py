@@ -192,7 +192,7 @@ class AppRunInterface(VerticalScrollInterface):
             self.ctx.run_context.switch_context_pause_and_run()
 
     def _on_stop_clicked(self) -> None:
-        self.ctx.run_context.stop_running()
+        self.ctx.run_context.stop_running(by_user=True)
 
 
 class SplitAppRunInterface(AppRunInterface):
