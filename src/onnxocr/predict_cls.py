@@ -1,14 +1,12 @@
-import math
-
 import cv2
 import numpy as np
+import math
 
-from .cls_postprocess import ClsPostProcess
-from .logger import get_logger
-from .predict_base import PredictBase
+from onnxocr.cls_postprocess import ClsPostProcess
+from onnxocr.logger import get_logger
+from onnxocr.predict_base import PredictBase
 
 log = get_logger("predict_cls")
-
 
 class TextClassifier(PredictBase):
     def __init__(self, args):
@@ -79,6 +77,7 @@ class TextClassifier(PredictBase):
                 norm_img_batch.append(norm_img)
             norm_img_batch = np.concatenate(norm_img_batch)
             norm_img_batch = norm_img_batch.copy()
+
             input_feed = self.get_input_feed(self.cls_input_name, norm_img_batch)
             outputs = self.cls_onnx_session.run(
                 self.cls_output_name, input_feed=input_feed

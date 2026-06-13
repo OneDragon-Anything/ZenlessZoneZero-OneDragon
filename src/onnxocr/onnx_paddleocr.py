@@ -2,11 +2,10 @@ import argparse
 import time
 from pathlib import Path
 
+from onnxocr.logger import get_logger
 from onnxocr.predict_system import TextSystem
 from onnxocr.utils import draw_ocr
 from onnxocr.utils import infer_args as init_args
-
-from .logger import get_logger
 
 log = get_logger("onnx_paddleocr")
 
@@ -27,13 +26,13 @@ PPOCRV6_MODEL_CONFIGS = {
 
 
 def _normalize_ppocrv6_size(model_name=None, model_size=None):
+    if not model_name:
+        return None
     if model_size:
         size = str(model_size).lower()
-    elif model_name:
+    else:
         normalized = str(model_name).lower()
         size = next((name for name in PPOCRV6_MODEL_CONFIGS if name in normalized), None)
-    else:
-        size = None
 
     if size not in PPOCRV6_MODEL_CONFIGS:
         return None
@@ -43,6 +42,9 @@ def _normalize_ppocrv6_size(model_name=None, model_size=None):
 def _build_ppocrv6_defaults(kwargs):
     """为 PP-OCRv6 模型构建默认参数。如果不是 v6 模型则返回空字典，保证 v5 兼容。"""
     model_name = kwargs.pop("ocr_model_name", None)
+    if not model_name:
+        kwargs.pop("ocr_model_size", None)
+        return {}
     model_size = kwargs.pop("ocr_model_size", None)
     size = _normalize_ppocrv6_size(model_name=model_name, model_size=model_size)
     if not size:
@@ -151,7 +153,8 @@ def sav2Img(org_img, result, name="draw_ocr.jpg"):
 
 def __debug():
     import os
-    from one_dragon.utils import os_utils, debug_utils
+
+    from one_dragon.utils import debug_utils, os_utils
 
     models_dir = os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', 'ppocrv5')
 

@@ -1,16 +1,17 @@
 import os
 import platform
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any
 
 import onnxruntime
 
-from .logger import get_logger
+from onnxocr.logger import get_logger
 
 log = get_logger("inference_engine")
 
 
-Provider = Union[str, Tuple[str, Dict[str, Any]]]
+Provider = str | tuple[str, dict[str, Any]]
 
 
 InferenceSession = onnxruntime.InferenceSession
@@ -25,16 +26,16 @@ class EP(Enum):
     CANN = "CANNExecutionProvider"
 
 
-DEFAULT_CPU_EP_CFG: Dict[str, Any] = {}
-DEFAULT_CUDA_EP_CFG: Dict[str, Any] = {
+DEFAULT_CPU_EP_CFG: dict[str, Any] = {}
+DEFAULT_CUDA_EP_CFG: dict[str, Any] = {
     "cudnn_conv_algo_search": "DEFAULT",
     "device_id": 0,
 }
-DEFAULT_DML_EP_CFG: Dict[str, Any] = {}
-DEFAULT_CANN_EP_CFG: Dict[str, Any] = {}
+DEFAULT_DML_EP_CFG: dict[str, Any] = {}
+DEFAULT_CANN_EP_CFG: dict[str, Any] = {}
 
 
-def get_available_providers() -> List[str]:
+def get_available_providers() -> list[str]:
     return onnxruntime.get_available_providers()
 
 
@@ -49,8 +50,8 @@ def is_session(value: Any) -> bool:
 def build_providers(
     use_gpu: bool = False,
     gpu_id: int = 0,
-    providers: Optional[Sequence[Provider]] = None,
-) -> List[Provider]:
+    providers: Sequence[Provider] | None = None,
+) -> list[Provider]:
     if providers is not None:
         return list(providers)
 
@@ -67,7 +68,7 @@ def build_providers(
     return [EP.CPU.value]
 
 
-def build_providers_from_engine_cfg(engine_cfg: Any) -> List[Provider]:
+def build_providers_from_engine_cfg(engine_cfg: Any) -> list[Provider]:
     """Build ONNXRuntime execution providers from the common engine_cfg shape.
 
     RapidTable, RapidLayout and RapidDoc use slightly different vendored copies of
@@ -76,7 +77,7 @@ def build_providers_from_engine_cfg(engine_cfg: Any) -> List[Provider]:
     """
 
     available = get_available_providers()
-    providers: List[Provider] = [(EP.CPU.value, _cfg_dict(engine_cfg, "cpu_ep_cfg", DEFAULT_CPU_EP_CFG))]
+    providers: list[Provider] = [(EP.CPU.value, _cfg_dict(engine_cfg, "cpu_ep_cfg", DEFAULT_CPU_EP_CFG))]
 
     if _cfg_bool(engine_cfg, "use_cuda") and EP.CUDA.value in available:
         providers.insert(0, (EP.CUDA.value, _cfg_dict(engine_cfg, "cuda_ep_cfg", DEFAULT_CUDA_EP_CFG)))
@@ -96,7 +97,7 @@ class ProviderConfig:
     def __init__(self, engine_cfg: Any):
         self.engine_cfg = engine_cfg
 
-    def get_ep_list(self) -> List[Provider]:
+    def get_ep_list(self) -> list[Provider]:
         return build_providers_from_engine_cfg(self.engine_cfg)
 
     def verify_providers(self, session_providers: Sequence[str]) -> None:
@@ -109,7 +110,7 @@ def _cfg_bool(engine_cfg: Any, key: str, default: bool = False) -> bool:
     return bool(value)
 
 
-def _cfg_dict(engine_cfg: Any, key: str, default: Dict[str, Any]) -> Dict[str, Any]:
+def _cfg_dict(engine_cfg: Any, key: str, default: dict[str, Any]) -> dict[str, Any]:
     result = dict(default)
     value = _cfg_get(engine_cfg, key, default)
     if value is not None:
@@ -148,10 +149,10 @@ def _default_session_options() -> SessionOptions:
 
 def create_session(
     model_path: str,
-    providers: Optional[Sequence[Provider]] = None,
+    providers: Sequence[Provider] | None = None,
     use_gpu: bool = False,
     gpu_id: int = 0,
-    sess_options: Optional[SessionOptions] = None,
+    sess_options: SessionOptions | None = None,
 ) -> InferenceSession:
     if not os.path.exists(model_path):
         raise FileNotFoundError(

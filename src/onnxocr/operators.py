@@ -1,14 +1,15 @@
-import numpy as np
-import cv2
 import math
+
+import cv2
+import numpy as np
 from PIL import Image
 
-from .logger import get_logger
+from onnxocr.logger import get_logger
 
 log = get_logger("operators")
 
 
-class NormalizeImage(object):
+class NormalizeImage:
     """ normalize image such as substract mean, divide std
     """
 
@@ -38,9 +39,9 @@ class NormalizeImage(object):
         return data
 
 
-class DetResizeForTest(object):
+class DetResizeForTest:
     def __init__(self, **kwargs):
-        super(DetResizeForTest, self).__init__()
+        super().__init__()
         self.resize_type = 0
         self.keep_ratio = False
         if 'image_shape' in kwargs:
@@ -167,7 +168,7 @@ class DetResizeForTest(object):
 
         return img, [ratio_h, ratio_w]
 
-class ToCHWImage(object):
+class ToCHWImage:
     """ convert hwc image to chw image
     """
 
@@ -183,7 +184,7 @@ class ToCHWImage(object):
         return data
 
 
-class KeepKeys(object):
+class KeepKeys:
     def __init__(self, keep_keys, **kwargs):
         self.keep_keys = keep_keys
 

@@ -1,15 +1,15 @@
 import os
+
 import cv2
-from . import predict_det
-from . import predict_cls
-from . import predict_rec
-from .logger import get_logger
-from .utils import get_rotate_crop_image, get_minarea_rect_crop
+
+from onnxocr import predict_cls, predict_det, predict_rec
+from onnxocr.logger import get_logger
+from onnxocr.utils import get_minarea_rect_crop, get_rotate_crop_image
 
 log = get_logger("predict_system")
 
 
-class TextSystem(object):
+class TextSystem:
     def __init__(self, args):
         self.text_detector = predict_det.TextDetector(args)
         self.text_recognizer = predict_rec.TextRecognizer(args)
@@ -64,7 +64,7 @@ class TextSystem(object):
         if self.args.save_crop_res:
             self.draw_crop_rec_res(self.args.crop_res_save_dir, img_crop_list, rec_res)
         filter_boxes, filter_rec_res = [], []
-        for box, rec_result in zip(dt_boxes, rec_res):
+        for box, rec_result in zip(dt_boxes, rec_res, strict=False):
             text, score = rec_result
             if score >= self.drop_score:
                 filter_boxes.append(box)

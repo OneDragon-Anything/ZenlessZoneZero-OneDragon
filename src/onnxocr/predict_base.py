@@ -1,14 +1,12 @@
-from .inference_engine import create_session
-from .logger import get_logger
+from onnxocr.inference_engine import InferenceSession, create_session
+from onnxocr.logger import get_logger
 
 log = get_logger("predict_base")
-
-
-class PredictBase(object):
-    def __init__(self):
+class PredictBase:
+    def __init__(self) -> None:
         pass
 
-    def get_onnx_session(self, model_dir, use_gpu, gpu_id=0):
+    def get_onnx_session(self, model_dir: str, use_gpu: bool, gpu_id: int = 0) -> InferenceSession:
         return create_session(model_dir, use_gpu=use_gpu, gpu_id=gpu_id)
 
     def get_output_name(self, onnx_session):

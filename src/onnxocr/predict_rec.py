@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .logger import get_logger
-from .predict_base import PredictBase
-from .rec_postprocess import CTCLabelDecode
+from onnxocr.logger import get_logger
+from onnxocr.predict_base import PredictBase
+from onnxocr.rec_postprocess import CTCLabelDecode
 
 log = get_logger("predict_rec")
 
