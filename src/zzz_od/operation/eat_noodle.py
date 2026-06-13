@@ -95,7 +95,7 @@ class EatNoodle(ZOperation):
             area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
             self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.5)
             self.ctx.controller.click()
-            return self.round_success(result.status)
+            return self.round_success(result.status, wait=1)
 
         return self.round_retry(result.status, wait=1)
 
