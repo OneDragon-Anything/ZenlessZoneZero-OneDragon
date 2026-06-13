@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass, field, fields
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -8,7 +9,6 @@ from zzz_od.application.charge_plan import charge_plan_const
 
 
 class CardNumEnum(Enum):
-
     DEFAULT = ConfigItem('默认数量')
     NUM_1 = ConfigItem('1张卡片', '1')
     NUM_2 = ConfigItem('2张卡片', '2')
@@ -18,44 +18,31 @@ class CardNumEnum(Enum):
 
 
 class RestoreChargeEnum(Enum):
-
     NONE = ConfigItem('不使用')
     BACKUP_ONLY = ConfigItem('使用储蓄电量')
     ETHER_ONLY = ConfigItem('使用以太电池')
     BOTH = ConfigItem('同时使用储蓄电量和以太电池')
 
 
+@dataclass
 class ChargePlanItem:
+    tab_name: str = '训练'
+    category_name: str = '实战模拟室'
+    mission_type_name: str = '基础材料'
+    mission_name: str | None = '调查专项'
+    level: str = '默认等级'
+    auto_battle_config: str = '全配队通用'
+    run_times: int = 0
+    plan_times: int = 1
+    card_num: str = CardNumEnum.DEFAULT.value.value  # 实战模拟室的卡片数量
+    predefined_team_idx: int = -1  # 预备配队下标 -1为使用当前配队
+    notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
+    plan_id: str | None = None  # 计划的唯一标识符
+    skipped: bool = field(default=False, metadata={'persist': False})  # 单次运行中是否跳过
 
-    def __init__(
-            self,
-            tab_name: str = '训练',
-            category_name: str = '实战模拟室',
-            mission_type_name: str = '基础材料',
-            mission_name: str = '调查专项',
-            level: str = '默认等级',
-            auto_battle_config: str = '全配队通用',
-            run_times: int = 0,
-            plan_times: int = 1,
-            card_num: str = CardNumEnum.DEFAULT.value.value,
-            predefined_team_idx: int = -1,
-            notorious_hunt_buff_num: int = 1,
-            plan_id: str | None = None,
-    ):
-        self.tab_name: str = tab_name
-        self.category_name: str = category_name
-        self.mission_type_name: str = mission_type_name
-        self.mission_name: str = mission_name
-        self.level: str = level
-        self.auto_battle_config: str = auto_battle_config
-        self.run_times: int = run_times
-        self.plan_times: int = plan_times
-        self.card_num: str = card_num  # 实战模拟室的卡片数量
-
-        self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
-        self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
-        self.plan_id: str = plan_id if plan_id else str(uuid.uuid4())  # 计划的唯一标识符
-        self.skipped: bool = False  # 单次运行中是否跳过（不持久化）
+    def __post_init__(self) -> None:
+        if self.plan_id is None:
+            self.plan_id = str(uuid.uuid4())
 
     @property
     def is_agent_plan(self) -> bool:
@@ -63,7 +50,6 @@ class ChargePlanItem:
 
     @property
     def uid(self) -> str:
-
         tab_name = self.tab_name or ''
         category_name = self.category_name or ''
         mission_type_name = self.mission_type_name or ''
@@ -84,6 +70,21 @@ class ChargePlanItem:
         if self.category_name == '恶名狩猎':
             return 60
         return 0  # 未知类型，在副本内检查
+
+    def to_dict(self, *, include_plan_id: bool = True) -> dict[str, str | int | None]:
+        return {
+            item.name: getattr(self, item.name)
+            for item in fields(self)
+            if item.metadata.get('persist', True)
+            and (include_plan_id or item.name != 'plan_id')
+        }
+
+    def to_history_dict(self) -> dict[str, str | int | None]:
+        return self.to_dict(include_plan_id=False)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ChargePlanItem':
+        return cls(**data)
 
 
 class ChargePlanConfig(ApplicationConfig):
@@ -107,21 +108,10 @@ class ChargePlanConfig(ApplicationConfig):
         new_history_list = []
 
         for plan_item in self.plan_list:
-            plan_data = {
-                'tab_name': plan_item.tab_name,
-                'category_name': plan_item.category_name,
-                'mission_type_name': plan_item.mission_type_name,
-                'mission_name': plan_item.mission_name,
-                'auto_battle_config': plan_item.auto_battle_config,
-                'run_times': plan_item.run_times,
-                'plan_times': plan_item.plan_times,
-                'card_num': plan_item.card_num,
-                'predefined_team_idx': plan_item.predefined_team_idx,
-                'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
-                'plan_id': plan_item.plan_id,
-            }
+            plan_data = plan_item.to_dict()
+            history_data = plan_item.to_history_dict()
 
-            new_history_list.append(plan_data.copy())
+            new_history_list.append(history_data)
             plan_list.append(plan_data)
 
         old_history_list = self.history_list
@@ -129,12 +119,12 @@ class ChargePlanConfig(ApplicationConfig):
             old_history = ChargePlanItem(**old_history_data)
             with_new = False
             for plan in self.plan_list:
-                if self._is_same_plan(plan, old_history):
+                if self._is_same_plan(plan, old_history, compare_plan_id=False):
                     with_new = True
                     break
 
             if not with_new:
-                new_history_list.append(old_history_data)
+                new_history_list.append(old_history.to_history_dict())
 
         self.data['plan_list'] = plan_list
         self.data['history_list'] = new_history_list
@@ -197,7 +187,9 @@ class ChargePlanConfig(ApplicationConfig):
 
             self.save()
 
-    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
+    def get_next_plan(
+        self, last_tried_plan: ChargePlanItem | None = None
+    ) -> ChargePlanItem | None:
         """
         获取下一个未完成的计划任务（跳过 skipped 的计划）。
         如果提供了 last_tried_plan，则从该任务之后开始查找。
@@ -273,12 +265,18 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
-    def _is_same_plan(self, x: ChargePlanItem, y: ChargePlanItem) -> bool:
+    def _is_same_plan(
+        self, x: ChargePlanItem, y: ChargePlanItem, compare_plan_id: bool = True
+    ) -> bool:
         if x is None or y is None:
             return False
 
         # 如果两个计划都有ID，直接比较ID
-        if hasattr(x, 'plan_id') and hasattr(y, 'plan_id') and x.plan_id and y.plan_id:
+        if (compare_plan_id
+                and hasattr(x, 'plan_id')
+                and hasattr(y, 'plan_id')
+                and x.plan_id
+                and y.plan_id):
             return x.plan_id == y.plan_id
 
         # 向后兼容：如果没有ID，使用原有的比较方式
@@ -295,7 +293,7 @@ class ChargePlanConfig(ApplicationConfig):
         history_list = self.history_list
         for history_data in history_list:
             history = ChargePlanItem(**history_data)
-            if self._is_same_plan(history, plan):
+            if self._is_same_plan(history, plan, compare_plan_id=False):
                 return history
 
     @property
@@ -315,12 +313,21 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('skip_plan', new_value)
 
     @property
-    def use_coupon(self) -> bool:
-        return self.get('use_coupon', False)
+    def double_reward(self) -> bool:
+        return self.get('double_reward', False)
 
-    @use_coupon.setter
-    def use_coupon(self, new_value: bool) -> None:
-        self.update('use_coupon', new_value)
+    @double_reward.setter
+    def double_reward(self, new_value: bool) -> None:
+        self.update('double_reward', new_value)
+
+    @property
+    def combat_simulation_double_reward_config(self) -> ChargePlanItem:
+        data = self.get('combat_simulation_double_reward_config', {})
+        return ChargePlanItem.from_dict(data)
+
+    @combat_simulation_double_reward_config.setter
+    def combat_simulation_double_reward_config(self, new_value: ChargePlanItem) -> None:
+        self.update('combat_simulation_double_reward_config', new_value.to_dict())
 
     @property
     def restore_charge(self) -> str:
