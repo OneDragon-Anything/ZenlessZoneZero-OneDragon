@@ -396,8 +396,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self._refresh_content_widget()
 
     def _on_game_path_clicked(self) -> None:
+        executable_name = self.ctx.project_config.game_executable_name or 'game.exe'
         file_path, _ = QFileDialog.getOpenFileName(
-            self, f"{gt('选择你的')} ZenlessZoneZero.exe", filter="Exe (*.exe)"
+            self, f"{gt('选择你的')} {executable_name}", filter="Exe (*.exe)"
         )
         if file_path is not None and file_path.endswith(".exe"):
             log.info(f"{gt('选择路径')} {file_path}")
