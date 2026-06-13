@@ -64,7 +64,7 @@ class YamlOperator:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return
 
-    def save(self):
+    def save(self) -> None:
         """
         将 yaml 写入文件.
         写入之前先对比写入内容和文件内容是否一致, 不一致才写入
