@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import re
+from copy import deepcopy
 from typing import Any
 
-from one_dragon.base.config.yaml_config import YamlConfig
-
+from one_dragon.base.config.user_config import UserConfig
 
 _DEFAULT_PANEL_GEOMETRY: dict[str, dict[str, int]] = {
     "log_panel": {"x": 100, "y": 100, "w": 480, "h": 200},
@@ -112,11 +111,11 @@ _OVERLAY_SCALAR_KEYS = {
 }
 
 
-class OverlayConfig(YamlConfig):
-    """Overlay debug HUD configuration persisted at config/overlay.yml."""
+class OverlayConfig(UserConfig):
+    """Overlay 调试 HUD 配置。"""
 
-    def __init__(self):
-        YamlConfig.__init__(self, module_name="overlay")
+    def __init__(self) -> None:
+        UserConfig.__init__(self, module_name="overlay")
 
     def _overlay_data(self) -> dict[str, Any]:
         data = self.get("overlay", {})
@@ -184,15 +183,14 @@ class OverlayConfig(YamlConfig):
         data[key] = value
         self.update("overlay", data)
 
-    def update(self, key: str, value, save: bool = True):
-        """
-        Override update so YamlConfigAdapter can still write overlay.* fields.
-        """
+    def update(self, key: str, value: Any, save: bool = True) -> None:
+        """兼容 ConfigAdapter 直接写入 overlay 子字段。"""
         if key in _OVERLAY_SCALAR_KEYS:
             data = self._overlay_data()
             data[key] = value
-            return YamlConfig.update(self, "overlay", data, save=save)
-        return YamlConfig.update(self, key, value, save=save)
+            UserConfig.update(self, "overlay", data, save=save)
+            return
+        UserConfig.update(self, key, value, save=save)
 
     @staticmethod
     def _normalize_hotkey_key(value: str) -> str:

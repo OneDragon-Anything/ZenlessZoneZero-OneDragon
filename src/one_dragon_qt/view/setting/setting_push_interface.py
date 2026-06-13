@@ -3,6 +3,7 @@ import json
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.push.curl_generator import CurlGenerator
@@ -36,7 +37,6 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
@@ -285,13 +285,13 @@ class SettingPushInterface(VerticalScrollInterface):
             if server_card is not None:
                 host = f"{smtp_server}:{smtp_port}"
                 server_card.setValue(host)
-                adapter: YamlConfigAdapter = getattr(server_card, "adapter", None)
+                adapter: ConfigAdapter | None = getattr(server_card, "adapter", None)
                 if adapter is not None:
                     adapter.set_value(host)
             ssl_card: SettingCard = getattr(self, "smtp_ssl_push_card", None)
             if ssl_card is not None:
                 ssl_card.setValue(smtp_ssl)
-                adapter: YamlConfigAdapter = getattr(ssl_card, "adapter", None)
+                adapter: ConfigAdapter | None = getattr(ssl_card, "adapter", None)
                 if adapter is not None:
                     adapter.set_value(smtp_ssl)
 

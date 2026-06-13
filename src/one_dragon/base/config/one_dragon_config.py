@@ -3,7 +3,7 @@ import shutil
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon.utils import os_utils
 
 
@@ -35,10 +35,10 @@ class InstanceRun(Enum):
     CURRENT = ConfigItem('仅运行当前')
 
 
-class OneDragonConfig(YamlConfig):
+class OneDragonConfig(UserConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, 'one_dragon')
+        UserConfig.__init__(self, 'one_dragon', backup_module_name='zzz_one_dragon')  # TODO 2025.12时可以删掉 backup_module_name
         self.instance_list: list[OneDragonInstance] = []
         self._temp_instance_indices: list[int] | None = None
         self._init_instance_list()

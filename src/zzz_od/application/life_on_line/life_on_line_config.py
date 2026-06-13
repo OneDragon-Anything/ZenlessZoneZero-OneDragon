@@ -1,6 +1,5 @@
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class LifeOnLineConfig(ApplicationConfig):

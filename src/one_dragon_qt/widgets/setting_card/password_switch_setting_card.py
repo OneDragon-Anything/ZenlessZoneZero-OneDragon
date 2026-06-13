@@ -14,6 +14,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon_qt.utils.layout_utils import IconSize, Margins
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
@@ -30,6 +31,7 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
                  margins: Margins = Margins(16, 16, 0, 16),
                  on_text_cn: str = "开",
                  off_text_cn: str = "关",
+                 adapter: ConfigAdapter | None = None,
                  extra_btn: QWidget | None = None,
                  parent=None,
                  password_hint: str = "请输入密码",
@@ -62,6 +64,8 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
         self.btn._onText = gt(on_text_cn)
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
+
+        self.adapter = adapter
 
         # 添加密码输入框
         self.password = LineEdit()
