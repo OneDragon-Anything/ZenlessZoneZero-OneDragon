@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from colorama import Fore, Style, init
 
 from one_dragon.envs.git_progress_reporter import create_git_progress_reporter
+from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
@@ -241,9 +242,7 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
     print_message("开始获取最新代码...", "INFO")
-    progress_callback = create_git_progress_reporter(
-        lambda message: print_message(message, 'INFO')
-    )
+    progress_callback = create_git_progress_reporter(log.info)
     success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
         print_message("最新代码获取成功", "PASS")
