@@ -20,6 +20,7 @@ class RuntimeLauncher(ExeLauncher):
         pre_modules = set(sys.modules)
 
         from one_dragon.envs.env_config import EnvConfig
+        from one_dragon.envs.git_progress_reporter import create_git_progress_reporter
         from one_dragon.envs.git_service import GitService
         from one_dragon.envs.project_config import ProjectConfig
         from one_dragon.utils.i18_utils import gt
@@ -34,7 +35,8 @@ class RuntimeLauncher(ExeLauncher):
             return
 
         log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
-        success, msg = git_service.fetch_latest_code()
+        progress_callback = create_git_progress_reporter(log.info)
+        success, msg = git_service.fetch_latest_code(progress_callback=progress_callback)
 
         if success:
             log.info(gt('代码同步完成') if first_run else gt('代码已是最新'))

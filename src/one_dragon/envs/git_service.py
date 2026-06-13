@@ -11,6 +11,7 @@ from pygit2 import (
     Blob,
     Oid,
     Remote,
+    RemoteCallbacks,
     Repository,
     Walker,
     discover_repository,
@@ -33,6 +34,37 @@ class GitLog:
     author: str
     commit_time: str
     commit_message: str
+
+
+class _FetchProgressRemoteCallbacks(RemoteCallbacks):
+    """将 pygit2 的传输进度转发给外部进度回调。"""
+
+    def __init__(
+        self,
+        progress_callback: Callable[[float, str], None],
+        stage_start: float,
+        stage_end: float,
+    ) -> None:
+        super().__init__()
+        self._progress_callback: Callable[[float, str], None] = progress_callback
+        self._stage_start: float = stage_start
+        self._stage_end: float = stage_end
+
+    def transfer_progress(self, stats: object) -> None:
+        total_objects = int(getattr(stats, 'total_objects', 0) or 0)
+        received_objects = int(getattr(stats, 'received_objects', 0) or 0)
+        received_bytes = int(getattr(stats, 'received_bytes', 0) or 0)
+
+        if total_objects > 0:
+            ratio = min(max(received_objects / total_objects, 0.0), 1.0)
+            progress = self._stage_start + (self._stage_end - self._stage_start) * ratio
+            message = f'拉取对象 {received_objects}/{total_objects}'
+        else:
+            progress = self._stage_start
+            received_mb = received_bytes / 1024 / 1024
+            message = f'拉取对象 {received_mb:.2f} MB'
+
+        self._progress_callback(progress, message)
 
 
 class GitService:
@@ -140,12 +172,34 @@ class GitService:
 
         return f'http://{proxy}'
 
-    def _fetch_remote(self) -> bool:
+    def _create_fetch_callbacks(
+        self,
+        progress_callback: Callable[[float, str], None] | None,
+        stage_start: float,
+        stage_end: float,
+    ) -> RemoteCallbacks | None:
+        """创建远程拉取进度回调。"""
+        if progress_callback is None:
+            return None
+
+        return _FetchProgressRemoteCallbacks(progress_callback, stage_start, stage_end)
+
+    def _fetch_remote(
+        self,
+        progress_callback: Callable[[float, str], None] | None = None,
+        stage_start: float = 0.0,
+        stage_end: float = 1.0,
+    ) -> bool:
         """获取远程代码
 
         根据本地是否存在有内容的同名分支来决定拉取深度：
         - 若本地不存在该分支或分支为空，则使用深度1（拉取最新1条）
         - 若本地已有该分支且有提交历史，则使用深度0（增量拉取）
+
+        Args:
+            progress_callback: 进度回调
+            stage_start: 当前阶段起始进度
+            stage_end: 当前阶段结束进度
 
         Returns:
             是否成功
@@ -158,6 +212,7 @@ class GitService:
             branch_name = self.env_config.git_branch
             refspecs = [f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}']
             proxy = self._get_proxy_address()
+            callbacks = self._create_fetch_callbacks(progress_callback, stage_start, stage_end)
 
             # 检查本地是否存在该分支且有提交历史
             depth = 1  # 默认深度为1
@@ -170,16 +225,18 @@ class GitService:
                     depth = 0
 
             try:
-                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth)
+                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
             except KeyError as e:
                 # 如果是因为找不到对象导致的错误，使用 depth=1 重试
                 if 'object not found' in str(e) and depth == 0:
                     log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
-                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1)
+                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
                 else:
                     raise
 
             log.info(gt('获取远程代码成功'))
+            if progress_callback is not None:
+                progress_callback(stage_end, gt('获取远程代码成功'))
             return True
         except Exception:
             log.error('获取远程代码失败', exc_info=True)
@@ -516,7 +573,7 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('获取远程代码'))
 
-        if not self._fetch_remote():
+        if not self._fetch_remote(progress_callback, 2 / 5, 3 / 5):
             return False, gt('获取远程代码失败')
 
         # 切换到目标分支
@@ -549,7 +606,7 @@ class GitService:
         if progress_callback:
             progress_callback(1/6, gt('获取远程代码'))
 
-        if not self._fetch_remote():
+        if not self._fetch_remote(progress_callback, 1 / 6, 2 / 6):
             return False, gt('获取远程代码失败')
 
         # 检查模块清单兼容性（仅 frozen 环境）
