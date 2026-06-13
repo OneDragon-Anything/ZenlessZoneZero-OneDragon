@@ -33,12 +33,12 @@ class EnterGame(ZOperation):
     MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
     def __init__(self, ctx: ZContext, switch: bool = False):
-        ZOperation.__init__(self, ctx,
-                            op_name=gt('进入游戏')
-                            )
+        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
 
-        self.force_login: bool = (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+        self.force_login: bool = (
+            self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
+            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1
+        )
 
         # 切换账号的情况下 一定需要登录
         if switch:
@@ -54,6 +54,7 @@ class EnterGame(ZOperation):
 
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
+        self.already_login = False
         self.after_first_enter_click = False
         self.after_second_enter_click = False
         self.resource_download_start_time = None
@@ -64,6 +65,7 @@ class EnterGame(ZOperation):
     @node_from(from_name='B服新-选择登录过的账号')
     @node_from(from_name='国际服-换服')
     @node_from(from_name='点击进入游戏', status=STATUS_GAME_DATA_UPDATED)
+    @node_from(from_name='点击进入游戏', status='切换账号确定')
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
@@ -115,35 +117,10 @@ class EnterGame(ZOperation):
         if result.is_success:
             return self.round_success(result.status)
 
-        # 判断是否要切换账号
-        if self.force_login and not self.already_login:
-            result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
-            if result.is_success:
-                self.after_first_enter_click = False
-                self.after_second_enter_click = False
-                self.resource_download_start_time = None
-                self.round_by_click_area('打开游戏', '切换账号')
-                return self.round_wait(result.status, wait=1)
-
-            result = self.round_by_find_and_click_area(screen, '打开游戏', '切换账号确定')
-            if result.is_success:
-                self.after_first_enter_click = False
-                self.after_second_enter_click = False
-                self.resource_download_start_time = None
-                return self.round_wait(result.status, wait=5)
-        else:
-            result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
-            if result.is_success:
-                self.resource_download_start_time = None
-                if self.already_login:
-                    return self.round_success('点击进入游戏', wait=1)
-
-                self.after_first_enter_click = True
-                self.after_second_enter_click = False
-                click_result = self.round_by_click_area('打开游戏', '点击进入游戏')
-                if click_result.is_success:
-                    return self.round_success('点击进入游戏', wait=5)
-                return click_result
+        result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
+        if result.is_success:
+            self.resource_download_start_time = None
+            return self.round_success('点击进入游戏', wait=1)
 
         result = self.round_by_find_and_click_area(screen, '打开游戏', '国服-账号密码')
         if result.is_success:
@@ -384,9 +361,9 @@ class EnterGame(ZOperation):
         return self.round_by_find_and_click_area(screen, '打开游戏', area_name, success_wait=1)
 
     def check_game_data_updated(
-            self,
-            screen: MatLike,
-            back_to_check_screen: bool,
+        self,
+        screen: MatLike,
+        back_to_check_screen: bool,
     ) -> OperationRoundResult | None:
         """
         处理资源更新完成后要求重新登录的提示。
@@ -398,25 +375,18 @@ class EnterGame(ZOperation):
         Returns:
             有处理结果时返回对应结果，否则返回 None。
         """
-        message_result = self.round_by_ocr_and_click_with_action(
-            target_action_list=[
-                (EnterGame.STATUS_GAME_DATA_UPDATED, OperationRoundResultEnum.WAIT),
-            ],
-            screen=screen,
-            area=self.ctx.screen_loader.get_area('打开游戏', '游戏数据更新提示'),
-            pre_delay=0,
-            wait_wait=0,
-            retry_wait=0,
+        message_result = self.round_by_find_area(
+            screen,
+            '打开游戏',
+            '游戏数据更新提示',
         )
-        if message_result.result == OperationRoundResultEnum.RETRY:
+        if not message_result.is_success:
             return None
 
-        confirm_result = self.round_by_ocr_and_click_with_action(
-            target_action_list=[
-                ('确定', OperationRoundResultEnum.SUCCESS),
-            ],
-            screen=screen,
-            area=self.ctx.screen_loader.get_area('打开游戏', '游戏数据更新-确定'),
+        confirm_result = self.round_by_find_and_click_area(
+            screen,
+            '打开游戏',
+            '游戏数据更新-确定',
             retry_wait=1,
         )
         if not confirm_result.is_success:
@@ -460,6 +430,8 @@ class EnterGame(ZOperation):
             '领取',  # 每个版本出现的10连抽奖励 issue #893
             '已领取',  # 需要有这个词 防止画面出现"已领取"也匹配到"领取"
             '待领取',  # 需要有这个词 防止画面出现"待领取"也匹配到"领取"
+            '今日到账',  # 小月卡 issue #893
+            '惊喜补给',  # 免费月卡 issue #1996
         ]
         ignore_list: list[str] = [
             '已领取',  # 需要有这个词 防止画面出现"已领取"也匹配到"领取"
@@ -633,6 +605,22 @@ class EnterGame(ZOperation):
         if data_updated_result is not None:
             return data_updated_result
 
+        if self.force_login and not self.already_login:
+            result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '切换账号确定')
+            if result.is_success:
+                self.after_first_enter_click = False
+                self.after_second_enter_click = False
+                self.resource_download_start_time = None
+                return self.round_success(result.status, wait=5)
+
+            result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '切换账号')
+            if result.is_success:
+                self.after_second_enter_click = False
+                self.resource_download_start_time = None
+                return self.round_wait(result.status, wait=1)
+
+            return self.round_retry('等待切换账号', wait=1)
+
         match_word, _ = self.check_enter_click_status_text(
             self.last_screenshot,
             include_enter_click=True,
@@ -643,12 +631,12 @@ class EnterGame(ZOperation):
 
             self.resource_download_start_time = None
             if match_word == '点击进入游戏':
-                if self.after_first_enter_click:
-                    self.after_second_enter_click = True
-                else:
-                    self.after_first_enter_click = True
                 click_result = self.round_by_click_area('打开游戏', '点击进入游戏')
                 if click_result.is_success:
+                    if self.after_first_enter_click:
+                        self.after_second_enter_click = True
+                    else:
+                        self.after_first_enter_click = True
                     return self.round_wait(status=match_word, wait=1)
                 return click_result
 
@@ -700,14 +688,12 @@ class EnterGame(ZOperation):
         if self.is_gray_loading_screen(self.last_screenshot):
             return self.round_wait(EnterGame.STATUS_LOADING, wait=2)
 
-        if self.node_retry_times < 5:
-            return self.round_retry('登录成功后等待加载中或大世界', wait=1)
-
         # 如果既不在大世界也没有已知弹窗, 游戏界面可能是被其他未知弹窗覆盖了, 尝试点击左上角关闭弹窗
         return_result = self.round_by_click_area('菜单', '返回')
         if not return_result.is_success:
             return return_result
-        return self.round_retry('未识别到大世界, 点击左上角', wait=2)
+
+        return self.round_retry('登录成功后等待加载中或大世界', wait=2)
 
 
 def __debug():
