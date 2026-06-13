@@ -89,6 +89,7 @@ class YamlOperator:
             return
         with open(self.file_path, 'w', encoding='utf-8') as file:
             file.write(new_content)
+        invalidate_cache(self.file_path)
 
     def save_diy(self, text: str):
         """
