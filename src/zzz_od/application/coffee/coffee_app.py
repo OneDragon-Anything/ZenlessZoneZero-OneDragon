@@ -301,9 +301,13 @@ class CoffeeApp(ZApplication):
             return self.round_success(result.status)
 
         # 这个点击很怪 需要多点几次
-        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
+        # 原因是绝区零逆天按钮, 需要先拖鼠标, 让鼠标显形才能点击
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
+            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.5)
+            self.ctx.controller.click()
+            return self.round_success(result.status)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:
