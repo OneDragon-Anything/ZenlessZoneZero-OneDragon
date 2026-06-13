@@ -1,11 +1,10 @@
-import time
 
 import numpy as np
 
-from .db_postprocess import DBPostProcess
-from .imaug import create_operators, transform
-from .logger import get_logger
-from .predict_base import PredictBase
+from onnxocr.db_postprocess import DBPostProcess
+from onnxocr.imaug import create_operators, transform
+from onnxocr.logger import get_logger
+from onnxocr.predict_base import PredictBase
 
 log = get_logger("predict_det")
 
