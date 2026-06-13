@@ -50,12 +50,13 @@ def _build_ppocrv6_defaults(kwargs):
     if not size:
         return {}
 
-    model_root = Path(__file__).resolve().parent / "models" / "ppocrv6"
+    from one_dragon.utils import os_utils
+    model_root = Path(os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', model_name))
     config = PPOCRV6_MODEL_CONFIGS[size]
 
     defaults = {
-        "det_model_dir": str(model_root / size / "det" / "det.onnx"),
-        "rec_model_dir": str(model_root / size / "rec" / "rec.onnx"),
+        "det_model_dir": str(model_root / "det.onnx"),
+        "rec_model_dir": str(model_root / "rec.onnx"),
         "rec_char_dict_path": str(model_root / config["rec_char_dict_path"]),
         "rec_image_shape": "3, 48, 320",
         "det_limit_side_len": 960,
