@@ -49,6 +49,8 @@ class TrigramsCollectionApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='获取卦象', node_max_retry_times=10)
     def get_trigram(self) -> OperationRoundResult:
+        # ocr加速: 只识别下半部分屏幕
+        offset: Point = Point(0, self.ctx.controller.standard_height // 2)
         ocr_result_map = self.ctx.ocr.crop_and_run_ocr(
             self.last_screenshot,
             Rect(0,
@@ -69,14 +71,16 @@ class TrigramsCollectionApp(ZApplication):
                 self.round_by_click_area('卦象集录', '区域-获取卦象')
                 return self.round_wait(status=word, wait=1)
         elif word == '滑动屏幕以获取卦象':
-            start = Point(self.ctx.controller.standard_width - 100, self.ctx.controller.standard_height // 2)
-            end = Point(100, self.ctx.controller.standard_height // 2)
+            start = Point(self.ctx.controller.standard_width - 100, 100)
+            end = Point(100, self.ctx.controller.standard_height - 100)
             self.ctx.controller.drag_to(start=start, end=end, duration=1)  # 这里是越慢拖动越多
             self.ctx.controller.drag_to(start=end, end=start, duration=1)
             return self.round_wait(status=word)
         elif word == '确认':
             self.claim_reward = True
-            self.ctx.controller.click(mrl.max.center)
+            area: Point = mrl.max.center
+            area = area.__add__(offset)
+            self.ctx.controller.click(area)
             return self.round_wait(status=word, wait=1)
 
         return self.round_retry(status='未识别目标文本', wait=1)
