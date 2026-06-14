@@ -197,6 +197,27 @@ class ChargePlanConfig(ApplicationConfig):
 
             self.save()
 
+    def try_reset_plan_times_by_dt(self, current_dt: str) -> bool:
+        """
+        按游戏刷新日清零已运行次数
+
+        Args:
+            current_dt: 当前游戏刷新日
+
+        Returns:
+            是否执行了清零
+        """
+        if not self.daily_reset_plan_times:
+            return False
+        if self.last_daily_reset_dt == current_dt:
+            return False
+
+        for plan in self.plan_list:
+            plan.run_times = 0
+        self.update('last_daily_reset_dt', current_dt, save=False)
+        self.save()
+        return True
+
     def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
         """
         获取下一个未完成的计划任务（跳过 skipped 的计划）。
@@ -305,6 +326,22 @@ class ChargePlanConfig(ApplicationConfig):
     @loop.setter
     def loop(self, new_value: bool) -> None:
         self.update('loop', new_value)
+
+    @property
+    def daily_reset_plan_times(self) -> bool:
+        return self.get('daily_reset_plan_times', False)
+
+    @daily_reset_plan_times.setter
+    def daily_reset_plan_times(self, new_value: bool) -> None:
+        self.update('daily_reset_plan_times', new_value)
+
+    @property
+    def last_daily_reset_dt(self) -> str:
+        return self.get('last_daily_reset_dt', '')
+
+    @last_daily_reset_dt.setter
+    def last_daily_reset_dt(self, new_value: str) -> None:
+        self.update('last_daily_reset_dt', new_value)
 
     @property
     def skip_plan(self) -> bool:

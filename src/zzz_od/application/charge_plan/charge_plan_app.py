@@ -60,6 +60,7 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan = None
         for plan in self.config.plan_list:
             plan.skipped = False
+        self.config.try_reset_plan_times_by_dt(self.run_record.get_current_dt())
         return self.round_success()
 
     @node_from(from_name='挑战完成')
