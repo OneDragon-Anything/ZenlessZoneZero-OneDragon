@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from enum import Enum
 from qfluentwidgets import FluentIconBase
 from qfluentwidgets import ToolTip
@@ -11,11 +10,11 @@ from typing import Optional, List, Iterable
 from typing import Union
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
@@ -52,7 +51,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self.hBoxLayout.addSpacing(16)
 
         # 处理工具提示
-        self.tooltip_text: str = tooltip
+        self.tooltip_text: str | None = gt(tooltip) if tooltip is not None else None
         self._tooltip: Optional[ToolTip] = None
         if self.with_tooltip:
             self.titleLabel.installEventFilter(self)
