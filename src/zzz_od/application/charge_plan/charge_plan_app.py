@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
@@ -60,7 +61,9 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan = None
         for plan in self.config.plan_list:
             plan.skipped = False
-        self.config.try_reset_plan_times_by_dt(self.run_record.get_current_dt())
+        current_dt = self.run_record.get_current_dt()
+        if self.config.try_reset_plan_times_by_dt(current_dt):
+            log.info('已按游戏刷新日重置体力计划已运行次数 %s', current_dt)
         return self.round_success()
 
     @node_from(from_name='挑战完成')
