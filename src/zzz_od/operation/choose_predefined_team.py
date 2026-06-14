@@ -25,6 +25,7 @@ class ChoosePredefinedTeam(ZOperation):
 
         self.target_team_idx_list: list[int] = target_team_idx_list
         self.scroll_page_count: int = 0
+        self.selected_team_idx: set[int] = set()  # 已选中的队伍下标集合
         # 预备编队默认打开在第一页，因此这里记录最多需要向下翻几页。
         # 一次下滑后，列表实际会前进 4 个编队。
         self.max_scroll_page_count: int = max(
@@ -54,35 +55,51 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='尝试查找编队')
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
-        result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
-                                   color_range=[[240, 240, 240], [255, 255, 255]])
-        if result.is_success:
-            return self.round_success(result.status)
-
         team_list = self.ctx.team_config.team_list
 
+        ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        target_list = list(ocr_map.keys())
+        found_any: bool = False
+
         for target_team_idx in self.target_team_idx_list:
+            if target_team_idx in self.selected_team_idx:
+                continue
+
             if team_list is None or target_team_idx >= len(team_list):
                 return self.round_fail(f'选择的预备编队下标错误 {target_team_idx}')
 
             target_team_name = team_list[target_team_idx].name
-
-            ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            target_list = list(ocr_map.keys())
             best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
 
             if best_match is None or len(best_match) == 0:
-                return self.round_fail(f'当前页未找到编队 {target_team_name}')
+                continue
 
             ocr_result: MatchResultList = ocr_map.get(best_match[0], None)
             if ocr_result is None or ocr_result.max is None:
-                return self.round_fail(f'当前页未找到编队 {target_team_name}')
+                continue
 
             to_click = ocr_result.max.center + Point(200, 0)
             self.ctx.controller.click(to_click)
-
             time.sleep(0.5)
+            self.screenshot()
+
+            self.selected_team_idx.add(target_team_idx)
+            ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            target_list = list(ocr_map.keys())
+            found_any = True
+
+        # 所有队伍都已在已选集合中 → 完成
+        if self.selected_team_idx >= set(self.target_team_idx_list):
+            area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
+            result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
+                                       color_range=[[240, 240, 240], [255, 255, 255]])
+            if result.is_success:
+                return self.round_success(result.status)
+            return self.round_wait(wait=1)
+
+        # 本页没有找到任何待选队伍时才翻页
+        if not found_any:
+            return self.round_fail('当前页未找到待选队伍')
 
         return self.round_wait(wait=1)
 
