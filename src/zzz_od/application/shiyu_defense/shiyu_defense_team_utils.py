@@ -17,6 +17,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import DmgTypeEnum
 
 
+
 class DefensePhaseTeamInfo:
 
     def __init__(self,
@@ -30,8 +31,8 @@ class DefensePhaseTeamInfo:
         self.phase_resistance: list[DmgTypeEnum] = phase_resistance
         self.team_idx: int = -1  # 最终使用的队伍下标
 
-        self.same_as_weakness: int = 0  # 是否与弱点一致
-        self.same_as_resistance: int = 0  # 是否与抗性一致
+        self.weakness_match_count: int = 0  # 弱点匹配数量
+        self.resistance_match_count: int = 0  # 抗性匹配数量
 
     def cal_score(self, defense_team_config: ShiyuDefenseTeamConfig | None) -> None:
         """
@@ -41,20 +42,21 @@ class DefensePhaseTeamInfo:
         """
         if defense_team_config is None:
             # 非法的下标 用最差的评分
-            self.same_as_weakness = 0
-            self.same_as_resistance = 1
+            self.weakness_match_count = 0
+            self.resistance_match_count = len(self.phase_resistance)
             return
 
         target_weakness_list = defense_team_config.weakness_list
         for target_weakness in target_weakness_list:
             if target_weakness in self.phase_weakness:
-                self.same_as_weakness = 1
+                self.weakness_match_count += 1
             if target_weakness in self.phase_resistance:
-                self.same_as_resistance = 1
+                self.resistance_match_count += 1
 
     @property
     def score(self) -> int:
-        return self.same_as_weakness - self.same_as_resistance
+        # 弱点匹配数量越高越好 抗性匹配数量越高越差
+        return self.weakness_match_count - self.resistance_match_count
 
 
 class DefenseTeamSearcher:
@@ -110,7 +112,7 @@ class DefenseTeamSearcher:
 
         current_phase_team = self.team_list[phase_idx]
 
-        weakness_idx_list: list[int] = []
+        weakness_with_count: list[tuple[int, int]] = []  # (team_idx, weakness_match_count)
         resistance_idx_list: list[int] = []
         normal_idx_list: list[int] = []
 
@@ -123,23 +125,30 @@ class DefenseTeamSearcher:
             if defense_team_config is None or not defense_team_config.for_critical:
                 continue
 
+            weakness_count: int = 0
             sames_weakness: bool = False
             sames_resistance: bool = False
             for dmg_type in defense_team_config.weakness_list:
                 if dmg_type in current_phase_team.phase_weakness:
                     sames_weakness = True
+                    weakness_count += 1
                 elif dmg_type in current_phase_team.phase_resistance:
                     sames_resistance = True
 
             if sames_weakness:
-                weakness_idx_list.append(predefined_team.idx)
+                weakness_with_count.append((predefined_team.idx, weakness_count))
             elif sames_resistance:
                 resistance_idx_list.append(predefined_team.idx)
             else:
                 normal_idx_list.append(predefined_team.idx)
 
+        # 按弱点匹配数量降序排列 优先选择弱点覆盖更多的队伍
+        weakness_with_count.sort(key=lambda x: x[1], reverse=True)
+        weakness_idx_list = [i[0] for i in weakness_with_count]
+
         # 优先考虑弱点 迫不得已再选逆抗性
         candidate_idx_list = weakness_idx_list + normal_idx_list + resistance_idx_list
+
         for idx in candidate_idx_list:
             new_team = self.predefined_team_list[idx]
             conflict: bool = False  # 是否与现有配队有代理人冲突
@@ -151,11 +160,13 @@ class DefenseTeamSearcher:
             if conflict:
                 continue
 
-            self.chosen_idx.add(idx)
-            current_phase_team.team_idx = idx
-
+            current_phase_team.weakness_match_count = 0
+            current_phase_team.resistance_match_count = 0
             defense_team_config = self.defense_team_config.get(idx, None)
             current_phase_team.cal_score(defense_team_config)
+
+            self.chosen_idx.add(idx)
+            current_phase_team.team_idx = idx
 
             self.dfs(phase_idx + 1)
 
@@ -180,9 +191,10 @@ class DefenseTeamSearcher:
             for team in self.team_list:
                 new_team = DefensePhaseTeamInfo(team.phase_weakness, team.phase_resistance)
                 new_team.team_idx = team.team_idx
-                new_team.same_as_weakness = team.same_as_weakness
-                new_team.same_as_resistance = team.same_as_resistance
+                new_team.weakness_match_count = team.weakness_match_count
+                new_team.resistance_match_count = team.resistance_match_count
                 self.best_team_list.append(new_team)
+
             return True
         else:
             return False
