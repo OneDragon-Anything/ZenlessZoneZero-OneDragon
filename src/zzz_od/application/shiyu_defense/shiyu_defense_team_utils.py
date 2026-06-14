@@ -96,7 +96,7 @@ class DefenseTeamSearcher:
         self.dfs(0)
         return self.best_team_list
 
-    def dfs(self, phase_idx: int):
+    def dfs(self, phase_idx: int) -> None:
         """
         递归搜索
         @param phase_idx: 阶段下标
@@ -160,6 +160,9 @@ class DefenseTeamSearcher:
             if conflict:
                 continue
 
+            old_weakness = current_phase_team.weakness_match_count
+            old_resistance = current_phase_team.resistance_match_count
+
             current_phase_team.weakness_match_count = 0
             current_phase_team.resistance_match_count = 0
             defense_team_config = self.defense_team_config.get(idx, None)
@@ -172,6 +175,8 @@ class DefenseTeamSearcher:
 
             self.chosen_idx.remove(idx)
             current_phase_team.team_idx = -1
+            current_phase_team.weakness_match_count = old_weakness
+            current_phase_team.resistance_match_count = old_resistance
 
     def compare_and_save_best(self) -> bool:
         """
@@ -216,8 +221,10 @@ class DefenseTeamSearcher:
         for team in self.best_team_list:
             old_score += team.score
 
-        # 剩余阶段都符合弱点拿1分 依然不能比现在更高分
-        return new_score + phase_left <= old_score
+        # 剩余阶段每阶段理论最大得分 = 该阶段弱点数量
+        # 即使后续所有剩余阶段都达到理论最高分，仍无法超越当前最优，则剪枝
+        max_gain_per_phase = max(len(t.phase_weakness) for t in self.team_list)
+        return new_score + phase_left * max_gain_per_phase <= old_score
 
     def is_team_conflict(self, team_1: PredefinedTeamInfo, team_2: PredefinedTeamInfo) -> bool:
         """
