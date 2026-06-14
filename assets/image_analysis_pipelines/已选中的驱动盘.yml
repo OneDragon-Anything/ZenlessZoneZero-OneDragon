@@ -1,0 +1,24 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 仓库-驱动仓库
+    area_name: 驱动盘仓库
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 50
+    - 255
+    - 200
+    hsv_diff:
+    - 40
+    - 10
+    - 40
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 100
+    max_area: 18000
+    draw_contours: 2
