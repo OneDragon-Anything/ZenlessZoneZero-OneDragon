@@ -79,7 +79,7 @@ class EatNoodle(ZOperation):
     @operation_node(name='点单后确认')
     def confirm_after_order(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '拉面店', '点单确认',
-                                                 success_wait=1, retry_wait=1)
+                                                 success_wait=0.5, retry_wait=1)
 
     @node_from(from_name='点单后确认')
     @operation_node(name='点单后跳过')
@@ -93,7 +93,7 @@ class EatNoodle(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
             area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
-            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.5)
+            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
             self.ctx.controller.click()
             return self.round_success(result.status, wait=1)
 

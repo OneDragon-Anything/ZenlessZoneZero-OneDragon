@@ -272,9 +272,9 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             self.had_coffee_list.add(self.chosen_coffee.coffee_name)
             if self.chosen_coffee.extra:
-                return self.round_success(status=CoffeeApp.STATUS_EXTRA_COFFEE, wait=1)
+                return self.round_success(status=CoffeeApp.STATUS_EXTRA_COFFEE, wait=0.5)
             elif self.chosen_coffee.without_benefit:
-                return self.round_success(status=CoffeeApp.STATUS_WITHOUT_BENEFIT, wait=1)
+                return self.round_success(status=CoffeeApp.STATUS_WITHOUT_BENEFIT, wait=0.5)
             else:
                 return self.round_success(wait=3)
         return self.round_retry(wait=1)
@@ -305,7 +305,7 @@ class CoffeeApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
             area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
-            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.5)
+            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
             self.ctx.controller.click()
             return self.round_success(result.status, wait=1)
 
