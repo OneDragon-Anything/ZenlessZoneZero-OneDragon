@@ -1,6 +1,5 @@
 from typing import ClassVar, List, Optional
 
-from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.one_dragon_config import InstanceRun, OneDragonInstance
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.operation.application import application_const
@@ -91,7 +90,7 @@ class OneDragonApp(Application):
         current_instance = self._instance_list[self._instance_idx]
         next_instance = self._instance_list[next_idx]
 
-        if GameAccountConfig.is_different_game_path(current_instance.idx, next_instance.idx):
+        if self.ctx.game_account_config.is_different_game_path(current_instance.idx, next_instance.idx):
             self._last_controller = self.ctx.controller
             self._instance_idx = next_idx
             return self.round_success(status='游戏路径不同')
