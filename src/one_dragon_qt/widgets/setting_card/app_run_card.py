@@ -3,8 +3,10 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
+    Action,
     FluentIcon,
     FluentThemeColor,
+    RoundMenu,
     SwitchButton,
     TransparentToolButton,
 )
@@ -26,6 +28,7 @@ class AppRunCard(DraggableListItem):
     run = Signal(str)
     switched = Signal(str, bool)
     setting_clicked = Signal(str)
+    notify_clicked = Signal(str)
 
     def __init__(
         self,
@@ -40,12 +43,23 @@ class AppRunCard(DraggableListItem):
         self.run_record: AppRunRecord | None = run_record
 
         self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
+        self.setting_btn.setToolTip(gt('应用设置'))
         self.setting_btn.clicked.connect(self._on_setting_clicked)
 
-        self.move_top_btn = TransparentToolButton(FluentIcon.PIN, None)
-        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+        self.more_btn = TransparentToolButton(FluentIcon.MORE, None)
+        self.more_btn.setToolTip(gt('更多'))
+        self.more_btn.clicked.connect(self._show_more_menu)
+
+        self.more_menu = RoundMenu()
+        self.notify_action = Action(FluentIcon.MESSAGE, gt('通知设置'), self.more_menu)
+        self.notify_action.triggered.connect(lambda _checked=False: self._on_notify_clicked())
+        self.move_top_action = Action(FluentIcon.PIN, gt('移到顶部'), self.more_menu)
+        self.move_top_action.triggered.connect(lambda _checked=False: self._on_move_top_clicked())
+        self.more_menu.addAction(self.notify_action)
+        self.more_menu.addAction(self.move_top_action)
 
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
+        self.run_btn.setToolTip(gt('运行'))
         self.run_btn.clicked.connect(self._on_run_clicked)
 
         self.switch_btn = SwitchButton()
@@ -56,7 +70,7 @@ class AppRunCard(DraggableListItem):
 
         # 创建 MultiPushSettingCard 作为 content_widget
         content_widget = MultiPushSettingCard(
-            btn_list=[self.setting_btn, self.move_top_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.setting_btn, self.more_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
@@ -101,6 +115,13 @@ class AppRunCard(DraggableListItem):
         """
         self.move_top.emit(self.app.app_id)
 
+    def _show_more_menu(self) -> None:
+        """
+        显示低频操作菜单。
+        """
+        pos = self.more_btn.mapToGlobal(self.more_btn.rect().bottomLeft())
+        self.more_menu.popup(pos)
+
     def _on_run_clicked(self) -> None:
         """
         运行应用
@@ -131,15 +152,30 @@ class AppRunCard(DraggableListItem):
 
     def setDisabled(self, arg__1: bool) -> None:
         self.content_widget.setDisabled(arg__1)
-        self.move_top_btn.setDisabled(arg__1)
+        self.setting_btn.setDisabled(arg__1)
+        self.more_btn.setDisabled(arg__1)
+        self.notify_action.setEnabled(not arg__1)
+        self.move_top_action.setEnabled(not arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
     def set_switch_on(self, on: bool) -> None:
         self.switch_btn.setChecked(on)
 
+    def set_notify_visible(self, visible: bool) -> None:
+        """
+        设置通知菜单项是否可见。
+        """
+        self.notify_action.setVisible(visible)
+
     def _on_setting_clicked(self) -> None:
         """
         点击设置按钮
         """
         self.setting_clicked.emit(self.app.app_id)
+
+    def _on_notify_clicked(self) -> None:
+        """
+        点击通知设置按钮
+        """
+        self.notify_clicked.emit(self.app.app_id)

@@ -49,6 +49,7 @@ if not getattr(sys, 'frozen', False):
     import string
     import subprocess
     import sys
+    import tempfile
     import threading
     import time
     import traceback
@@ -72,7 +73,7 @@ if not getattr(sys, 'frozen', False):
     from PySide6.QtGui import QBrush, QCloseEvent, QColor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QIntValidator, QKeyEvent, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
     from PySide6.QtMultimedia import QMediaPlayer
     from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
-    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
+    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
     from collections.abc import Callable

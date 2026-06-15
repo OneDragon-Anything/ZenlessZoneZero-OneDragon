@@ -1,5 +1,6 @@
 screen_id: city_fund
 screen_name: 丽都城募
+app_id: city_fund
 pc_alt: false
 area_list:
 - area_name: 成长任务

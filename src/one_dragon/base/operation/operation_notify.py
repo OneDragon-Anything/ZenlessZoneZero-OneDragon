@@ -4,7 +4,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from one_dragon.base.config.notify_config import NotifyLevel
+from one_dragon.base.config.notify_config import NotifyDetailMode, NotifyLifecycleMode
 from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
@@ -46,43 +46,57 @@ def _get_app_info(operation: Operation) -> tuple[str | None, str | None]:
         return app_id, None
 
 
-def _get_notify_level(operation: Operation) -> int:
+def _is_notify_enabled(operation: Operation) -> bool:
     """
-    获取通知等级
+    判断通知总开关是否开启。
 
     Args:
         operation: Operation 实例
 
     Returns:
-        int: 通知等级
+        bool: 通知总开关是否开启
     """
-    # 检查全局通知开关
-    if not operation.ctx.notify_config.enable_notify:
-        return NotifyLevel.OFF
+    return operation.ctx.notify_config.enable_notify
 
-    # 检查应用级别的通知开关
-    app_id, _ = _get_app_info(operation)
-    return operation.ctx.notify_config.get_app_notify_level(app_id)
+
+def _get_lifecycle_mode(operation: Operation, app_id: str) -> str:
+    """
+    获取应用生命周期通知模式。
+    """
+    if not _is_notify_enabled(operation):
+        return NotifyLifecycleMode.OFF.value.value
+
+    return operation.ctx.notify_config.get_app_lifecycle_mode(app_id)
+
+
+def _get_detail_mode(operation: Operation, app_id: str) -> str:
+    """
+    获取节点细节通知模式。
+    """
+    if not _is_notify_enabled(operation):
+        return NotifyDetailMode.OFF.value.value
+
+    return operation.ctx.notify_config.get_app_detail_mode(app_id)
 
 
 def send_application_notify(app: Application, status: bool | None) -> None:
     """向外部推送应用运行状态通知。
 
-    各通知等级的结束通知行为：
-        - APP: 发送结束通知，附带池中最后一张截图
-        - ALL: 发送结束通知，不附图（节点截图已逐条发送）
-        - MERGE: 将结束消息与池中节点消息合并发送
+    生命周期通知与节点细节通知是平行配置：
+        - 生命周期配置决定是否发送开始、结束消息
+        - 节点合并配置决定是否在应用结束时合并发送节点消息
 
     Args:
         app: Application 实例
         status: True=成功, False=失败, None=开始
     """
-    # 验证配置
-    if _get_notify_level(app) < NotifyLevel.APP:
+    app_id = app.app_id
+    lifecycle_mode = _get_lifecycle_mode(app, app_id)
+    detail_mode = _get_detail_mode(app, app_id)
+    if lifecycle_mode == NotifyLifecycleMode.OFF.value.value and detail_mode != NotifyDetailMode.MERGE.value.value:
         return
 
-    # 检查全局的开始前通知开关
-    if status is None and not app.ctx.notify_config.enable_before_notify:
+    if status is None and lifecycle_mode != NotifyLifecycleMode.START_AND_FINISH.value.value:
         return
 
     # 确定状态文本
@@ -94,7 +108,10 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         status_text = gt('开始')
 
     # 构建消息
-    _, app_name = _get_app_info(app)
+    try:
+        app_name = app.ctx.run_context.get_application_name(app_id)
+    except Exception:
+        app_name = app.op_name
     app_name = gt(app_name)
     message = f"{gt('任务')}「{app_name}」{gt('运行')}{status_text}"
 
@@ -106,25 +123,24 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         )
         return
 
-    # 结束通知
     pool = app.ctx.run_context.notify_pool
-    notify_level = _get_notify_level(app)
 
-    if notify_level == NotifyLevel.MERGE and len(pool) > 0:
-        # 合并模式: 将结束消息放在开头，与池中消息合并送出
-        items = [NotifyPoolItem(content=message), *pool.items]
+    if detail_mode == NotifyDetailMode.MERGE.value.value and len(pool) > 0:
+        # 合并模式: 生命周期开启时把结束消息放在开头，否则只合并节点消息。
+        items = pool.items
+        if lifecycle_mode != NotifyLifecycleMode.OFF.value.value:
+            items = [NotifyPoolItem(content=message), *items]
         app.ctx.push_service.push_merged_async(
             title=app.ctx.notify_config.title,
             items=items,
         )
-    else:
-        # 普通模式: 发送结束通知，APP 级别附带最后一张截图
-        image = pool.last_image if notify_level == NotifyLevel.APP else None
+    elif lifecycle_mode != NotifyLifecycleMode.OFF.value.value:
         app.ctx.push_service.push_async(
             title=app.ctx.notify_config.title,
             content=message,
-            image=image,
         )
+    else:
+        return
 
 
 class NodeNotifyDesc:
@@ -142,7 +158,7 @@ class NodeNotifyDesc:
             custom_message: str | None = None,
             send_image: bool = True,
             detail: bool = False,
-    ):
+    ) -> None:
         self.when: NotifyTiming = when
         self.custom_message: str | None = custom_message
         self.send_image: bool = send_image
@@ -154,7 +170,7 @@ def node_notify(
     custom_message: str | None = None,
     send_image: bool = True,
     detail: bool = False,
-):
+) -> Callable[[Callable], Callable]:
     """为操作节点函数附加通知元数据的装饰器。
 
     用法示例：
@@ -180,7 +196,7 @@ def node_notify(
         - 可多次装饰同一函数以实现多种时机通知
     """
 
-    def decorator(func: Callable):
+    def decorator(func: Callable) -> Callable:
         if not hasattr(func, 'operation_notify_annotation'):
             func.operation_notify_annotation = []
         lst: list[NodeNotifyDesc] = func.operation_notify_annotation
@@ -200,13 +216,15 @@ def send_node_notify(
     round_result: OperationRoundResult,
     current_node: OperationNode | None = None,
     next_node: OperationNode | None = None
-):
+) -> None:
     """
     发送节点级通知，并收集到通知池中。
 
-    始终收集消息到通知池中（用于合并通知和最后一张图片）。
-    ALL 等级时逐条立即发送；MERGE 等级时仅收集。
-    显式开启“节点失败立即通知”且当前节点失败时，额外推送单条通知。
+    节点细节通知模式：
+        - OFF: 不处理节点通知
+        - ERROR_ONLY: 仅失败节点立即发送
+        - ALL: 节点逐条立即发送
+        - MERGE: 收集节点消息，应用结束时合并发送
 
     Args:
         operation: Operation 实例
@@ -215,11 +233,20 @@ def send_node_notify(
         next_node: 下一个要执行的节点
     """
     pool = operation.ctx.run_context.notify_pool
-    notify_level = _get_notify_level(operation)
-    current_fail = round_result.is_fail
-    notify_on_error = operation.ctx.notify_config.notify_on_error
+    if not _is_notify_enabled(operation):
+        return
 
-    should_collect_notify = notify_level >= NotifyLevel.APP
+    app_id, app_name = _get_app_info(operation)
+    detail_mode = (
+        NotifyDetailMode.ALL.value.value
+        if app_id is None
+        else operation.ctx.notify_config.get_app_detail_mode(app_id)
+    )
+    current_fail = round_result.is_fail
+
+    should_collect_notify = detail_mode != NotifyDetailMode.OFF.value.value
+    if detail_mode == NotifyDetailMode.ERROR_ONLY.value.value and not current_fail:
+        should_collect_notify = False
 
     if not should_collect_notify or current_node is None:
         return
@@ -272,7 +299,6 @@ def send_node_notify(
             custom_message += f'\n{desc.custom_message}'
 
     # 构建消息内容
-    _, app_name = _get_app_info(operation)
     if app_name is None:
         app_name = operation.op_name
 
@@ -297,8 +323,14 @@ def send_node_notify(
     # 收集到通知池
     pool.add(content=message, image=image)
 
-    should_send_all_nodes = notify_level == NotifyLevel.ALL
-    should_send_fail_notify = current_fail and notify_on_error
+    should_send_all_nodes = detail_mode == NotifyDetailMode.ALL.value.value
+    should_send_fail_notify = current_fail and (
+        detail_mode == NotifyDetailMode.ERROR_ONLY.value.value
+        or (
+            detail_mode == NotifyDetailMode.MERGE.value.value
+            and operation.ctx.notify_config.merge_error_immediate_notify
+        )
+    )
     should_send_now = should_send_all_nodes or should_send_fail_notify
 
     if should_send_now:

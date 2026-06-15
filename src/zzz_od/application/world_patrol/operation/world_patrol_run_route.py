@@ -25,6 +25,7 @@ from zzz_od.application.world_patrol.world_patrol_route import (
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -140,7 +141,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.ui_disappear_start_time: float = 0  # 疑似界面消失的开始时间
 
         # 自适应转向算法状态变量
-        self.sensitivity: float = 1.0  # 转向灵敏度
+        self.turn_compensator = AngleTurnCompensator(self.ctx.controller)
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
 
@@ -173,6 +174,9 @@ class WorldPatrolRunRoute(ZOperation):
             # 起点坐标缺失，视为配置错误
             log.error('未找到初始坐标，请检查路线配置')
             return self.round_fail(status='路线或开始下标有误')
+        # 静止切人会让角色向前冲一小段，先切完最佳行走位，再记录路线起点
+        self.ctx.controller.stop_moving_forward()
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.current_pos = start_pos
         self.route_start_pos = start_pos  # 记录起点
         self.ctx.controller.turn_vertical_by_distance(300)
@@ -235,7 +239,7 @@ class WorldPatrolRunRoute(ZOperation):
             if is_next_move:
                 # 到达途径点后，点刹，用于校准
                 self.ctx.controller.stop_moving_forward()
-                time.sleep(0.006)
+                time.sleep(0.01)
                 self.ctx.controller.start_moving_forward()
             # 到达目标点后，重置脱困计数
             if self.pos_stuck_attempts > 0:
@@ -430,45 +434,27 @@ class WorldPatrolRunRoute(ZOperation):
         target_angle = cal_utils.calculate_direction_angle(self.current_pos, target_pos)
         angle_diff = cal_utils.angle_delta(current_angle, target_angle)
 
-        # --- 自适应转向算法 ---
-        # 1. 校准灵敏度: 通过对比上一次的指令和实际的视角变化，动态微调灵敏度
         if self.last_angle is not None and self.last_angle_diff_command is not None:
-            # 计算实际上视角变化了多少度
-            actual_angle_change = cal_utils.angle_delta(self.last_angle, current_angle)
-            # 防止除零错误
-            if abs(self.last_angle_diff_command) > 1e-6:
-                # 根据“实际变化/指令变化”计算出理论上最匹配的灵敏度
-                theoretical_sensitivity = actual_angle_change / self.last_angle_diff_command
-                # 计算理论灵敏度与当前灵敏度的差距
-                sensitivity_change = theoretical_sensitivity - self.sensitivity
-                # 限制单次调整幅度，防止突变，让校准过程更平滑
-                clipped_change = max(-0.02, min(sensitivity_change, 0.02))
-                self.sensitivity += clipped_change
-                # 限制灵敏度在合理范围内，防止累积偏离
-                self.sensitivity = max(0.5, min(self.sensitivity, 2.0))
-                # 可选：打印调试信息
-                # log.debug(f"校准: 理论灵敏度={theoretical_sensitivity:.4f}, 新灵敏度={self.sensitivity:.4f}")
+            # 用上一轮转向前后的朝向变化，更新本次运行期的转向补偿比例
+            self.turn_compensator.learn(self.last_angle, self.last_angle_diff_command, current_angle)
 
-        # 2. 计算并执行转向
-        calibrated_angle_diff = angle_diff * self.sensitivity
-        # 判断是否需要停下转向的角度阈值
-        need_turn = abs(angle_diff) > 2.0
-
-        if need_turn:
-            # 角度偏差大，点刹，再转向
+        effective_angle_diff = angle_diff * self.turn_compensator.scale
+        if abs(effective_angle_diff) > 90:
+            # 大角度先停下，避免移动中急转
             self.ctx.controller.stop_moving_forward()
-            # 执行转向
-            self.ctx.controller.turn_by_angle_diff(calibrated_angle_diff)
-        else:
-            # 角度偏差小，直接在移动中微调
-            self.ctx.controller.turn_by_angle_diff(calibrated_angle_diff)
 
-        # 3. 记录本次数据
+        if abs(effective_angle_diff) < 2:
+            # 小角度不转，避免在目标方向附近左右晃动
+            calibrated_angle_diff = 0
+        else:
+            # 实际单轮下发最多 45 度
+            calibrated_angle_diff = self.turn_compensator.turn(angle_diff, max_abs_angle_diff=45)
+
+        # 记录本次数据
         self.last_angle = current_angle
         self.last_angle_diff_command = calibrated_angle_diff
-        # --- 算法结束 ---
 
-        # 4. 开始移动
+        # 开始移动
         self.ctx.controller.start_moving_forward()
 
     def _backtrack_step(self, next_pos: Point, emit_log: bool = False) -> str:
@@ -637,10 +623,9 @@ class WorldPatrolRunRoute(ZOperation):
             auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
 
-        # 重置自适应转向状态（战斗后切换角色，转向特性可能不同）
+        # 战斗会打断路线转向样本，但不影响已学到的转向补偿比例
         self.last_angle = None
         self.last_angle_diff_command = None
-        self.sensitivity = 1.0
 
         return self.round_success()
 
