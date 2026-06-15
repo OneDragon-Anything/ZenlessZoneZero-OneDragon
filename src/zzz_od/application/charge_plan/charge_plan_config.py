@@ -333,3 +333,11 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    @property
+    def auto_exchange_ether_battery(self) -> bool:
+        return self.get('auto_exchange_ether_battery', False)
+
+    @auto_exchange_ether_battery.setter
+    def auto_exchange_ether_battery(self, new_value: bool) -> None:
+        self.update('auto_exchange_ether_battery', new_value)
