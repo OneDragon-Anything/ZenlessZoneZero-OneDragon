@@ -38,7 +38,7 @@ class ChargePlanItem:
     predefined_team_idx: int = -1  # 预备配队下标 -1为使用当前配队
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
     plan_id: str | None = None  # 计划的唯一标识符
-    skipped: bool = field(default=False, metadata={'persist': False})  # 单次运行中是否跳过
+    skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
 
     def __post_init__(self) -> None:
         if self.plan_id is None:
@@ -272,18 +272,10 @@ class ChargePlanConfig(ApplicationConfig):
             return False
 
         # 如果两个计划都有ID，直接比较ID
-        if (compare_plan_id
-                and hasattr(x, 'plan_id')
-                and hasattr(y, 'plan_id')
-                and x.plan_id
-                and y.plan_id):
+        if compare_plan_id and x.plan_id and y.plan_id:
             return x.plan_id == y.plan_id
 
-        # 向后兼容：如果没有ID，使用原有的比较方式
-        return (x.tab_name == y.tab_name
-                and x.category_name == y.category_name
-                and x.mission_type_name == y.mission_type_name
-                and x.mission_name == y.mission_name)
+        return x == y
 
     @property
     def history_list(self) -> list[dict]:
