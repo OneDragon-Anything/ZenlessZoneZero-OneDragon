@@ -84,7 +84,7 @@ if not getattr(sys, 'frozen', False):
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
     from cv2.typing import MatLike
-    from dataclasses import dataclass, field
+    from dataclasses import dataclass, field, fields
     from datetime import datetime, timedelta
     from email.header import Header
     from email.mime.image import MIMEImage
