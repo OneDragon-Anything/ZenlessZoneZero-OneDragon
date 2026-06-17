@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 
 class HorizontalSettingCardGroup(QWidget):
@@ -12,10 +12,8 @@ class HorizontalSettingCardGroup(QWidget):
         cards: list[QWidget] | None = None,
         spacing: int = 2,
         parent: QWidget | None = None,
-        equal_width: bool = False,
     ) -> None:
         super().__init__(parent=parent)
-        self.equal_width: bool = equal_width
 
         # 创建水平布局
         self.h_layout = QHBoxLayout(self)
@@ -34,8 +32,6 @@ class HorizontalSettingCardGroup(QWidget):
     def add_card(self, card: QWidget) -> None:
         """添加设置卡片到布局中"""
         card.setParent(self)
-        if self.equal_width:
-            card.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         # 确保卡片垂直居中对齐
         self.h_layout.addWidget(card, 1, Qt.AlignmentFlag.AlignTop)
 
