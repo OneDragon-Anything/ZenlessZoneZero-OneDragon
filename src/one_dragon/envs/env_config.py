@@ -192,16 +192,16 @@ class EnvConfig(YamlConfig):
         self.update('force_update', new_value)
 
     @property
-    def auto_update(self) -> bool:
+    def auto_update_code(self) -> bool:
         """
         自动更新
         :return:
         """
-        return self.get('auto_update', True)
+        return self.get('auto_update_code', True)
 
-    @auto_update.setter
-    def auto_update(self, new_value: bool) -> None:
-        self.update('auto_update', new_value)
+    @auto_update_code.setter
+    def auto_update_code(self, new_value: bool) -> None:
+        self.update('auto_update_code', new_value)
 
     @property
     def cpython_source(self) -> str:

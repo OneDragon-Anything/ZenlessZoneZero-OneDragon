@@ -235,7 +235,7 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     """
     获取最新代码
     """
-    if not ctx.env_config.auto_update:
+    if not ctx.env_config.auto_update_code:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
     print_message("开始获取最新代码...", "INFO")
