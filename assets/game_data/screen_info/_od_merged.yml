@@ -1981,10 +1981,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 708
-    - 140
-    - 1636
-    - 220
+    - 1728
+    - 206
+    - 1796
+    - 268
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''

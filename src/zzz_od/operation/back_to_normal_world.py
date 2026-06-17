@@ -241,7 +241,7 @@ class BackToNormalWorld(ZOperation):
         return None
 
 
-def _debug():
+def _debug() -> None:
     ctx = ZContext()
     ctx.init()
     ctx.run_context.start_running()
