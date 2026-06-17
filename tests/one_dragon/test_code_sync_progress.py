@@ -8,12 +8,14 @@ import one_dragon.utils.i18_utils as i18_utils_module
 from one_dragon.launcher.runtime_launcher import RuntimeLauncher
 
 
-def test_python_launcher_progress_callback_limits_transfer_messages() -> None:
+def test_python_launcher_progress_callback_limits_transfer_messages(monkeypatch) -> None:
     messages: list[tuple[str, str]] = []
     callback = python_launcher.create_git_progress_callback()
 
     original_print_message = python_launcher.print_message
     python_launcher.print_message = lambda message, level='INFO': messages.append((level, message))
+    timestamps = iter([0.0, 0.4, 1.5])
+    monkeypatch.setattr(python_launcher.time, 'monotonic', lambda: next(timestamps))
     try:
         callback(0.421, '拉取对象 1/10')
         callback(0.424, '拉取对象 2/10')
@@ -24,9 +26,28 @@ def test_python_launcher_progress_callback_limits_transfer_messages() -> None:
 
     assert messages == [
         ('INFO', '拉取对象 1/10 (10%)'),
-        ('INFO', '拉取对象 2/10 (20%)'),
         ('INFO', '检查运行环境兼容性'),
         ('INFO', '拉取对象 3/10 (30%)'),
+    ]
+
+
+def test_python_launcher_progress_callback_always_shows_final_100_percent(monkeypatch) -> None:
+    messages: list[tuple[str, str]] = []
+    callback = python_launcher.create_git_progress_callback()
+
+    original_print_message = python_launcher.print_message
+    python_launcher.print_message = lambda message, level='INFO': messages.append((level, message))
+    timestamps = iter([0.0, 0.2])
+    monkeypatch.setattr(python_launcher.time, 'monotonic', lambda: next(timestamps))
+    try:
+        callback(0.421, '拉取对象 1/10')
+        callback(1.0, '拉取对象 10/10')
+    finally:
+        python_launcher.print_message = original_print_message
+
+    assert messages == [
+        ('INFO', '拉取对象 1/10 (10%)'),
+        ('INFO', '拉取对象 10/10 (100%)'),
     ]
 
 

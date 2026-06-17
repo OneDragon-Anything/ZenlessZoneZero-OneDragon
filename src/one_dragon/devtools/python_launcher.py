@@ -36,7 +36,7 @@ PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
 init(autoreset=True)
 
 
-def print_message(message, level="INFO"):
+def print_message(message, level="INFO", flush=False):
     # 打印消息，带有时间戳和日志级别
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
     colors = {
@@ -47,11 +47,18 @@ def print_message(message, level="INFO"):
         "PASS": Fore.GREEN,
     }
     color = colors.get(level, Fore.WHITE)
-    print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
+    if flush:
+        print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}", end='\r', flush=True)
+    else:
+        print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
 
 
 def create_git_progress_callback():
+    last_transfer_log_at: float | None = None
+
     def _report(progress: float, message: str) -> None:
+        nonlocal last_transfer_log_at
+
         del progress
 
         match = _TRANSFER_PROGRESS_PATTERN.match(message)
@@ -65,8 +72,17 @@ def create_git_progress_callback():
             print_message(message, 'INFO')
             return
 
+        now = time.monotonic()
+        is_complete = received_objects >= total_objects
+        if last_transfer_log_at is not None and now - last_transfer_log_at < 0.2 and not is_complete:
+            return
+
         transfer_message = f'拉取对象 {received_objects}/{total_objects} ({round(received_objects / total_objects * 100)}%)'
-        print_message(transfer_message, 'INFO')
+        last_transfer_log_at = now
+        if not is_complete:
+            print_message(transfer_message, 'INFO', flush=True)
+        else:
+            print_message(transfer_message, 'INFO')
 
     return _report
 
