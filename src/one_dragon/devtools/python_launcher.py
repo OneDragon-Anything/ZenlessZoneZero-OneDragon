@@ -4,7 +4,6 @@ import atexit
 import contextlib
 import ctypes
 import datetime
-import logging
 import os
 import re
 import signal
@@ -17,13 +16,21 @@ from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
-from one_dragon.utils.log_utils import log as framework_log
+from one_dragon.utils.log_utils import (
+    LoggerConfig,
+    configure_logger,
+    get_log_file_path,
+)
+from one_dragon.utils.log_utils import (
+    log as framework_log,
+)
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
 
 _TRANSFER_PROGRESS_PATTERN = re.compile(r'^拉取对象\s+(\d+)/(\d+)$')
+PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
 
 # 初始化 colorama
 init(autoreset=True)
@@ -43,8 +50,7 @@ def print_message(message, level="INFO"):
     print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
 
 
-def create_git_progress_callback(
-):
+def create_git_progress_callback():
     def _report(progress: float, message: str) -> None:
         del progress
 
@@ -65,20 +71,22 @@ def create_git_progress_callback(
     return _report
 
 
-@contextlib.contextmanager
-def silence_framework_console_log():
-    removed_handlers: list[logging.Handler] = []
+def _configure_runtime_logger() -> None:
+    if getattr(sys, 'frozen', False):
+        log_dir = Path(sys.executable).resolve().parent / '.log'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file_path = str(log_dir / PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME)
+    else:
+        log_file_path = get_log_file_path(default_name=PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME)
 
-    for handler in list(framework_log.handlers):
-        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
-            framework_log.removeHandler(handler)
-            removed_handlers.append(handler)
-
-    try:
-        yield
-    finally:
-        for handler in removed_handlers:
-            framework_log.addHandler(handler)
+    configure_logger(
+        framework_log,
+        LoggerConfig(
+            log_file_path=log_file_path,
+            add_console_handler=False,
+            propagate=False,
+        ),
+    )
 
 def verify_working_directory():
     # 设置当前工作目录
@@ -291,9 +299,9 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
     print_message("开始获取最新代码...", "INFO")
+    _configure_runtime_logger()
     progress_callback = create_git_progress_callback()
-    with silence_framework_console_log():
-        success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
+    success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
         print_message("最新代码获取成功", "PASS")
     else:

@@ -1,5 +1,3 @@
-import io
-import logging
 from types import SimpleNamespace
 
 import one_dragon.devtools.python_launcher as python_launcher
@@ -72,17 +70,11 @@ def test_python_launcher_fetch_latest_code_passes_progress_callback(
 def test_python_launcher_fetch_latest_code_silences_framework_console_log(
     monkeypatch,
 ) -> None:
-    console_output = io.StringIO()
-    test_logger = logging.getLogger('test_python_launcher_framework_log')
-    test_logger.handlers.clear()
-    test_logger.propagate = False
-    test_logger.setLevel(logging.INFO)
-    test_logger.addHandler(logging.StreamHandler(console_output))
+    configured: list[tuple[object, str | None, bool, bool]] = []
 
     class FakeGitService:
 
         def fetch_latest_code(self, progress_callback=None):
-            test_logger.info('获取远程代码')
             progress_callback(0.500, '检查运行环境兼容性')
             return True, ''
 
@@ -92,7 +84,22 @@ def test_python_launcher_fetch_latest_code_silences_framework_console_log(
         git_service=FakeGitService(),
     )
 
-    monkeypatch.setattr(python_launcher, 'framework_log', test_logger)
+    def _fake_configure_logger(logger, config):
+        configured.append(
+            (
+                logger,
+                config.log_file_path,
+                config.add_console_handler,
+                config.propagate,
+            )
+        )
+        return logger
+
+    monkeypatch.setattr(
+        python_launcher,
+        'configure_logger',
+        _fake_configure_logger,
+    )
     monkeypatch.setattr(
         python_launcher,
         'print_message',
@@ -101,7 +108,11 @@ def test_python_launcher_fetch_latest_code_silences_framework_console_log(
 
     python_launcher.fetch_latest_code(ctx)
 
-    assert console_output.getvalue() == ''
+    assert configured
+    assert configured[0][0] is python_launcher.framework_log
+    assert configured[0][1] is not None
+    assert configured[0][2] is False
+    assert configured[0][3] is False
     assert ('INFO', '检查运行环境兼容性') in messages
 
 
