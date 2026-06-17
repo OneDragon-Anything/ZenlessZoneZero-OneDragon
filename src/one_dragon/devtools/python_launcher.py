@@ -314,12 +314,11 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     if not ctx.env_config.auto_update:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
-    print_message("开始获取最新代码...", "INFO")
     _configure_runtime_logger()
     progress_callback = create_git_progress_callback()
     success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
-        print_message("最新代码获取成功", "PASS")
+        print_message("代码更新成功", "PASS")
     else:
         print_message(f'代码更新失败 {msg}', "ERROR")
 

@@ -209,7 +209,7 @@ class GitService:
         Returns:
             是否成功
         """
-        log.info(gt('获取远程代码'))
+        log.info(gt('获取远程代码...'))
 
         try:
             repo = self._open_repo()
