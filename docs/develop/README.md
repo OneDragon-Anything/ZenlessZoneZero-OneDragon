@@ -40,6 +40,10 @@ Github Action 有完整的环境变量配置，会运行所有的测试用例。
 uv run --env-file .env pytest zzz-od-test/
 ```
 
+### 常用业务文档
+
+- [转向与灵敏度配置](zzz/turn_sensitivity.md) - 说明 `turn_dx`、`gamepad_turn_speed`、前台/后台模式，以及锄大地、录像店营业、迷失之地、式舆防卫战各自的转向链路。
+
 ## 1.4.代码提交
 
 提交PR后

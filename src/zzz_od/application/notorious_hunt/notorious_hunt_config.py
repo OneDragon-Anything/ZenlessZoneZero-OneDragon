@@ -47,47 +47,41 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         self.plan_list: list[ChargePlanItem] = []
 
-        if 'plan_list' in self.data:
-            for plan_item in self.data.get('plan_list', []):
-                old_plan = ChargePlanItem(**plan_item)
-                # 1.4版本 快捷手册中的TAB名称改动 在这里做检测兼容
-                if old_plan.tab_name == '挑战':
-                    old_plan.tab_name = '训练'
-                # 2.5版本 恶名狩猎从作战迁移到训练
-                if old_plan.tab_name == '作战' and old_plan.category_name == '恶名狩猎':
-                    old_plan.tab_name = '训练'
-                self.plan_list.append(old_plan)
+        for plan_item in self.data.get('plan_list', []):
+            self.plan_list.append(ChargePlanItem(**plan_item))
 
-        existed_missions = [i.mission_type_name for i in self.plan_list]
-        default_list = self._get_default_plan()
-        if len(self.plan_list) < len(default_list):
-            for plan in default_list:
-                if plan.mission_type_name not in existed_missions:
-                    self.plan_list.append(plan)
+        # 旧配置迁移，2026-09-21 可删除
+        self._migrate_legacy_config()
+
+    def _migrate_legacy_config(self) -> None:
+        """迁移旧配置，2026-09-21 可删除。"""
+        migrated: bool = False
+        for plan_item in self.plan_list:
+            if plan_item.tab_name == '挑战' or (
+                    plan_item.tab_name == '作战'
+                    and plan_item.category_name == '恶名狩猎'
+            ):
+                plan_item.tab_name = '训练'
+                migrated = True
+
+        if migrated:
+            self.save()
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
-        return self.data.get('weekly_challenge_start_weekday', 1)
+        return self.get('weekly_challenge_start_weekday', 1)
 
     @weekly_challenge_start_weekday.setter
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
         self.update('weekly_challenge_start_weekday', new_value)
 
-    def _get_default_plan(self) -> list[ChargePlanItem]:
-        """
-        默认的周本计划
-        """
-        return [
-            ChargePlanItem('训练', '恶名狩猎', '初生死路屠夫', None),
-            ChargePlanItem('训练', '恶名狩猎', '未知复合侵蚀体', None),
-            ChargePlanItem('训练', '恶名狩猎', '冥宁芙·双子', None),
-            ChargePlanItem('训练', '恶名狩猎', '「霸主侵蚀体·庞培」', None),
-            ChargePlanItem('训练', '恶名狩猎', '牲鬼·布林格', None),
-            ChargePlanItem('训练', '恶名狩猎', '秽息司祭', None),
-            ChargePlanItem('训练', '恶名狩猎', '彷徨猎手', None),
-            ChargePlanItem('训练', '恶名狩猎', '魇缚者·叶释渊', None),
-            ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
-        ]
+    @property
+    def loop(self) -> bool:
+        return self.get('loop', True)
+
+    @loop.setter
+    def loop(self, new_value: bool) -> None:
+        self.update('loop', new_value)
 
     def save(self) -> None:
         plan_list = []
@@ -103,25 +97,26 @@ class NotoriousHuntConfig(ApplicationConfig):
                 'run_times': plan_item.run_times,
                 'plan_times': plan_item.plan_times,
                 'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
+                'plan_id': plan_item.plan_id,
             })
         self.data['plan_list'] = plan_list
 
         YamlConfig.save(self)
 
+    def add_plan(self, plan: ChargePlanItem) -> None:
+        self.plan_list.append(plan)
+        self.save()
+
+    def delete_plan(self, idx: int) -> None:
+        if idx < 0 or idx >= len(self.plan_list):
+            return
+        self.plan_list.pop(idx)
+        self.save()
+
     def update_plan(self, idx: int, plan: ChargePlanItem) -> None:
         if idx < 0 or idx >= len(self.plan_list):
             return
         self.plan_list[idx] = plan
-        self.save()
-
-    def move_up(self, idx: int) -> None:
-        if idx <= 0 or idx >= len(self.plan_list):
-            return
-
-        tmp = self.plan_list[idx - 1]
-        self.plan_list[idx - 1] = self.plan_list[idx]
-        self.plan_list[idx] = tmp
-
         self.save()
 
     def move_top(self, idx: int) -> None:
@@ -134,34 +129,75 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.save()
 
     def reset_plans(self) -> None:
+        """根据运行次数重置运行计划，仅未被 skipped 的计划项参与判定与扣减"""
         if len(self.plan_list) == 0:
             return
 
+        eligible = [plan for plan in self.plan_list if not plan.skipped and plan.plan_times > 0]
+        if len(eligible) == 0:
+            return
+
+        modified: bool = False
         while True:
             all_finish: bool = True
-            for plan in self.plan_list:
+            for plan in eligible:
                 if plan.run_times < plan.plan_times:
                     all_finish = False
 
             if not all_finish:
                 break
 
-            for plan in self.plan_list:
+            for plan in eligible:
                 plan.run_times -= plan.plan_times
 
+            modified = True
+
+        if modified:
             self.save()
 
-    def get_next_plan(self) -> ChargePlanItem | None:
+    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
+        """
+        获取下一个未完成且未被跳过的计划。
+
+        Args:
+            last_tried_plan: 上次尝试的计划。为 None 时从列表开头查找；
+                否则从该计划之后的位置起查找，到列表末尾返回 None（不回卷）。
+        """
         if len(self.plan_list) == 0:
             return None
 
-        self.reset_plans()
+        start_index = 0
+        if last_tried_plan is not None:
+            # 定位上次尝试的计划，从其后一位开始查找
+            last_tried_index = -1
+            for i, plan in enumerate(self.plan_list):
+                if self._is_same_plan(plan, last_tried_plan):
+                    last_tried_index = i
+                    break
 
-        for plan in self.plan_list:
+            if last_tried_index != -1:
+                start_index = last_tried_index + 1
+                if start_index >= len(self.plan_list):
+                    return None
+            # 失配时 start_index 保持 0，回退为从开头查找
+
+        for i in range(start_index, len(self.plan_list)):
+            plan = self.plan_list[i]
+            if plan.skipped:
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
         return None
+
+    def all_plan_finished(self) -> bool:
+        """全部计划是否均已完成（跳过 skipped 的计划）"""
+        for plan in self.plan_list:
+            if plan.skipped:
+                continue
+            if plan.run_times < plan.plan_times:
+                return False
+        return True
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """
@@ -189,6 +225,12 @@ class NotoriousHuntConfig(ApplicationConfig):
         if x is None or y is None:
             return False
 
+        # 优先按 plan_id 比较：恶名狩猎计划项 mission_name 多为 None，
+        # 同副本类型的多条计划无法靠字段区分
+        if x.plan_id and y.plan_id:
+            return x.plan_id == y.plan_id
+
+        # 缺少 plan_id 的旧数据回退到字段比较
         return (x.tab_name == y.tab_name
                 and x.category_name == y.category_name
                 and x.mission_type_name == y.mission_type_name

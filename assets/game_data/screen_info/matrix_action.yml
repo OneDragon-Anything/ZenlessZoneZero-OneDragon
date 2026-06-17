@@ -1,5 +1,6 @@
 screen_id: matrix_action
 screen_name: 迷失之地-矩阵行动
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 预备编队

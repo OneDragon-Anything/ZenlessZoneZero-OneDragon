@@ -1,5 +1,6 @@
 screen_id: commission_assistant
 screen_name: 委托助手
+app_id: commission_assistant
 pc_alt: false
 area_list:
 - area_name: 对话框标题
