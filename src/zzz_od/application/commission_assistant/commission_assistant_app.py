@@ -94,9 +94,12 @@ class CommissionAssistantApp(ZApplication):
     @node_from(from_name='钓鱼', success=False)
     @operation_node(name='委托助手', is_start_node=True)
     def dialog_mode(self) -> OperationRoundResult:
+        if self.config.pause_in_background and not self.ctx.controller.game_win.is_win_active:
+            return self.round_wait('等待游戏切换至前台', wait=1)
+
         if self.run_mode in [1, 2]:
             self._load_auto_op()
-            return self.round_success('战斗模式')
+            return self.round_success('自动战斗模式')
 
         result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', pre_delay=0)
         if result.is_success:
@@ -319,7 +322,7 @@ class CommissionAssistantApp(ZApplication):
         self.ctx.controller.click(bottom_mr.center)
         return self.round_success(bottom_text)
 
-    @node_from(from_name='委托助手', status='战斗模式')
+    @node_from(from_name='委托助手', status='自动战斗模式')
     @operation_node(name='自动战斗模式')
     def auto_mode(self) -> OperationRoundResult:
         if self.run_mode == 0:

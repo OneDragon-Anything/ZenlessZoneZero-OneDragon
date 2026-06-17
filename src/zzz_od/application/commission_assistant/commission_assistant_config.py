@@ -30,6 +30,14 @@ class CommissionAssistantConfig(ApplicationConfig):
         self.OPTION_CLICK_INTERVAL_MIN = 0.1  # 选项的最小点击间隔(需要等待点击动画结束0.2s, 减去pyautogui.click()自带的0.1s)
 
     @property
+    def pause_in_background(self) -> bool:
+        return self.get('pause_in_background', True)
+
+    @pause_in_background.setter
+    def pause_in_background(self, new_value: bool) -> None:
+        self.update('pause_in_background', new_value)
+
+    @property
     def dialog_click_interval(self) -> float:
         return self.get('dialog_click_interval', 0.5)
 

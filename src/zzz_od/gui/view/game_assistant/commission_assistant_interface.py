@@ -14,6 +14,7 @@ from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
@@ -52,10 +53,15 @@ class CommissionAssistantRunInterface(AppRunInterface):
         right_layout = QVBoxLayout()
         content.h_layout.addLayout(left_layout)
         content.h_layout.addLayout(right_layout)
+        layout.add_widget(content)
 
         self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_game_assistant.html')
-        layout.add_widget(self.help_opt)
-        layout.add_widget(content)
+        left_layout.addWidget(self.help_opt)
+
+        self.pause_in_background_opt = SwitchSettingCard(
+            icon=FluentIcon.GAME, title='游戏在后台时暂停'
+        )
+        right_layout.addWidget(self.pause_in_background_opt)
 
         self.dialog_option_opt = ComboBoxSettingCard(
             icon=FluentIcon.CHAT, title='对话选项优先级', options_enum=DialogOptionEnum,
@@ -96,6 +102,8 @@ class CommissionAssistantRunInterface(AppRunInterface):
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
+        self.pause_in_background_opt.init_with_adapter(get_prop_adapter(self.config, 'pause_in_background'))
+        
         self.dialog_click_interval_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_click_interval'))
         self.dialog_option_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_option'))
         self.story_mode_opt.init_with_adapter(get_prop_adapter(self.config, 'story_mode'))
