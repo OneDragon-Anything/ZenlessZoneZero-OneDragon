@@ -86,6 +86,9 @@ class CommissionAssistantApp(ZApplication):
             else:  # 防止并发有问题导致值错乱 最后兜底成初始值
                 self.run_mode = 0
 
+    def _need_pause_in_background(self) -> bool:
+        return self.config.pause_in_background and not self.ctx.controller.game_win.is_win_active
+
     @node_from(from_name='委托助手')
     @node_from(from_name='自动战斗模式')
     @node_from(from_name='剧情模式')
@@ -94,7 +97,7 @@ class CommissionAssistantApp(ZApplication):
     @node_from(from_name='钓鱼', success=False)
     @operation_node(name='委托助手', is_start_node=True)
     def dialog_mode(self) -> OperationRoundResult:
-        if self.config.pause_in_background and not self.ctx.controller.game_win.is_win_active:
+        if self._need_pause_in_background():
             return self.round_wait('等待游戏切换至前台', wait=1)
 
         if self.run_mode in [1, 2]:
@@ -349,6 +352,8 @@ class CommissionAssistantApp(ZApplication):
         - 左上角有返回
         - 出现了抛竿文本
         """
+        if self._need_pause_in_background():
+            return self.round_wait('等待游戏切换至前台', wait=1)
         result = self.round_by_find_area(self.last_screenshot, '钓鱼', '按键-返回')
         if not result.is_success:
             return None
@@ -387,6 +392,9 @@ class CommissionAssistantApp(ZApplication):
         """
         剧情模式：右上角有 菜单/自动/跳过（点击前后显隐性或位置性会改变）
         """
+
+        if self._need_pause_in_background():
+            return self.round_wait('等待游戏切换至前台', wait=1)
         # 如果按快捷键键切换了别的模式, 跳出循环
         if self.run_mode != 0:
             return self.round_success('切换自动对话模式')
