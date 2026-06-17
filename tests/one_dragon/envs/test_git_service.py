@@ -72,6 +72,22 @@ class TestFetchProgressRemoteCallbacks:
         assert progress == pytest.approx(0.2)
         assert message == '拉取对象 3.00 MB'
 
+    def test_transfer_progress_deduplicates_identical_messages(self) -> None:
+        events: list[tuple[float, str]] = []
+        callbacks = _FetchProgressRemoteCallbacks(
+            lambda progress, message: events.append((progress, message)),
+            0.2,
+            0.4,
+        )
+
+        stats = SimpleNamespace(received_objects=12, total_objects=12, received_bytes=2048)
+        callbacks.transfer_progress(stats)
+        callbacks.transfer_progress(stats)
+
+        assert events == [
+            (0.4, '拉取对象 12/12'),
+        ]
+
 
 class TestGitServiceFetchRemote:
 

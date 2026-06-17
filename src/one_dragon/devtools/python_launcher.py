@@ -4,7 +4,9 @@ import atexit
 import contextlib
 import ctypes
 import datetime
+import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -15,21 +17,68 @@ from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
-from one_dragon.envs.git_progress_reporter import create_git_progress_reporter
-from one_dragon.utils.log_utils import log
+from one_dragon.utils.log_utils import log as framework_log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
+
+_TRANSFER_PROGRESS_PATTERN = re.compile(r'^拉取对象\s+(\d+)/(\d+)$')
+
 # 初始化 colorama
 init(autoreset=True)
+
 
 def print_message(message, level="INFO"):
     # 打印消息，带有时间戳和日志级别
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
-    colors = {"INFO": Fore.CYAN, "ERROR": Fore.YELLOW + Style.BRIGHT, "PASS": Fore.GREEN}
+    colors = {
+        "DEBUG": Fore.WHITE,
+        "INFO": Fore.CYAN,
+        "WARNING": Fore.YELLOW,
+        "ERROR": Fore.YELLOW + Style.BRIGHT,
+        "PASS": Fore.GREEN,
+    }
     color = colors.get(level, Fore.WHITE)
     print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
+
+
+def create_git_progress_callback(
+):
+    def _report(progress: float, message: str) -> None:
+        del progress
+
+        match = _TRANSFER_PROGRESS_PATTERN.match(message)
+        if match is None:
+            print_message(message, 'INFO')
+            return
+
+        received_objects = int(match.group(1))
+        total_objects = int(match.group(2))
+        if total_objects <= 0:
+            print_message(message, 'INFO')
+            return
+
+        transfer_message = f'拉取对象 {received_objects}/{total_objects} ({round(received_objects / total_objects * 100)}%)'
+        print_message(transfer_message, 'INFO')
+
+    return _report
+
+
+@contextlib.contextmanager
+def silence_framework_console_log():
+    removed_handlers: list[logging.Handler] = []
+
+    for handler in list(framework_log.handlers):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            framework_log.removeHandler(handler)
+            removed_handlers.append(handler)
+
+    try:
+        yield
+    finally:
+        for handler in removed_handlers:
+            framework_log.addHandler(handler)
 
 def verify_working_directory():
     # 设置当前工作目录
@@ -242,8 +291,9 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
     print_message("开始获取最新代码...", "INFO")
-    progress_callback = create_git_progress_reporter(log.info)
-    success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
+    progress_callback = create_git_progress_callback()
+    with silence_framework_console_log():
+        success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
         print_message("最新代码获取成功", "PASS")
     else:

@@ -49,6 +49,7 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         self._progress_callback: Callable[[float, str], None] = progress_callback
         self._stage_start: float = stage_start
         self._stage_end: float = stage_end
+        self._last_message: str | None = None
 
     def transfer_progress(self, stats: object) -> None:
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
@@ -64,6 +65,10 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
             received_mb = received_bytes / 1024 / 1024
             message = f'拉取对象 {received_mb:.2f} MB'
 
+        if message == self._last_message:
+            return
+
+        self._last_message = message
         self._progress_callback(progress, message)
 
 
@@ -653,7 +658,10 @@ class GitService:
         """
         return discover_repository(self.repo_dir) is not None
 
-    def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
+    def fetch_latest_code(
+        self,
+        progress_callback: Callable[[float, str], None] | None = None,
+    ) -> tuple[bool, str]:
         """
         更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
