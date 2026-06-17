@@ -42,13 +42,6 @@ class WorldPatrolApp(ZApplication):
         self.route_list: list[WorldPatrolRoute] = []
         self.route_idx: int = 0
 
-        # 每日多轮循环运行时字段
-        self.current_round: int = 1
-        self.total_rounds: int = 1
-        self.world_patrol_round_start_time: float | None = None
-        self.round_wait_seconds: float = 0.0
-        self.round_wait_start_time: float | None = None
-
     @operation_node(name='初始化', is_start_node=True)
     def init_world_patrol(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
@@ -79,14 +72,14 @@ class WorldPatrolApp(ZApplication):
                         for route in self.route_list
                         if route.full_id in route_id_list
                     ]
-        self.total_rounds = self.config.daily_loop_count
+        self.run_record.total_rounds = self.config.daily_loop_count
         self.run_record.set_routes_per_round(len(self.route_list))
         # 基于当日已完成轮数计算起始轮次，使重启任务能从下一轮继续
-        self.current_round = self.run_record.completed_rounds + 1
+        self.run_record.current_round = self.run_record.completed_rounds + 1
         # 仅清本轮的计时字段，保留 finished 以支持任务中途停止后的续跑
-        self._reset_round_timing()
-        if self.current_round > self.total_rounds:
-            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.total_rounds} 轮，无需再跑')
+        self.run_record.reset_round_timing()
+        if self.run_record.current_round > self.run_record.total_rounds:
+            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.run_record.total_rounds} 轮，无需再跑')
         return self.round_success(status=f'加载路线 {len(self.route_list)}')
 
     @node_from(from_name='初始化')
@@ -134,13 +127,13 @@ class WorldPatrolApp(ZApplication):
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         # 当日已完成的轮数已达上限，直接走「全部完成」分支
-        if self.current_round > self.total_rounds:
+        if self.run_record.current_round > self.run_record.total_rounds:
             return self.round_success(status='路线已全部完成')
 
         # 轮次首次进入：记录起始时间并打印开场日志
-        if self.world_patrol_round_start_time is None:
-            self.world_patrol_round_start_time = time.monotonic()
-            log.info(f'开始第 {self.current_round}/{self.total_rounds} 轮锄大地')
+        if self.run_record.round_start_time is None:
+            self.run_record.round_start_time = time.monotonic()
+            log.info(f'开始第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮锄大地')
 
         if self.route_idx >= len(self.route_list):
             return self.round_success(status='路线已全部完成')
@@ -172,7 +165,7 @@ class WorldPatrolApp(ZApplication):
                 action = self.config.ui_disappear_action
                 if action == WorldPatrolConfig.UI_DISAPPEAR_SILENT_FAIL:
                     log.warning(
-                        f'第 {self.current_round}/{self.total_rounds} 轮因界面消失静默失败终止任务 '
+                        f'第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮因界面消失静默失败终止任务 '
                         f'路线 {route.full_id}'
                     )
                     self._stop_route_actions()
@@ -224,25 +217,25 @@ class WorldPatrolApp(ZApplication):
         - 本轮是最后一轮 → 计入当日已完成轮数后结束
         - 还有下一轮 → 计入当日已完成轮数后按配置间隔算出还要等多久
         """
-        if self.current_round > self.total_rounds:
-            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.total_rounds} 轮，无需再跑')
+        if self.run_record.current_round > self.run_record.total_rounds:
+            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.run_record.total_rounds} 轮，无需再跑')
             return self.round_success(status='全部完成')
 
         # 本轮真实跑完，加入当日已完成轮数
         self.run_record.inc_completed_rounds()
 
-        if self.current_round >= self.total_rounds:
-            log.info(f'锄大地全部循环已完成 共 {self.total_rounds} 轮')
+        if self.run_record.current_round >= self.run_record.total_rounds:
+            log.info(f'锄大地全部循环已完成 共 {self.run_record.total_rounds} 轮')
             return self.round_success(status='全部完成')
 
         loop_interval_seconds = self.config.loop_interval_seconds
-        round_duration = time.monotonic() - self.world_patrol_round_start_time
-        self.round_wait_seconds = max(0.0, loop_interval_seconds - round_duration)
+        round_duration = time.monotonic() - self.run_record.round_start_time
+        self.run_record.round_wait_seconds = max(0.0, loop_interval_seconds - round_duration)
 
-        if self.round_wait_seconds > 0:
+        if self.run_record.round_wait_seconds > 0:
             log.info(
-                f'第 {self.current_round}/{self.total_rounds} 轮耗时 {round_duration:.0f}s '
-                f'最少占用 {loop_interval_seconds}s 将等待 {self.round_wait_seconds:.0f}s'
+                f'第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮耗时 {round_duration:.0f}s '
+                f'最少占用 {loop_interval_seconds}s 将等待 {self.run_record.round_wait_seconds:.0f}s'
             )
         return self.round_success(status='进入轮间等待')
 
@@ -257,33 +250,27 @@ class WorldPatrolApp(ZApplication):
     @operation_node(name='轮间等待')
     def wait_between_rounds(self) -> OperationRoundResult:
         """以 1 秒为粒度轮询等待，借助 round_wait 让暂停/停止信号能及时响应。"""
-        if self.round_wait_start_time is None:
-            self.round_wait_start_time = time.monotonic()
+        if self.run_record.round_wait_start_time is None:
+            self.run_record.round_wait_start_time = time.monotonic()
 
-        elapsed = time.monotonic() - self.round_wait_start_time
-        if elapsed >= self.round_wait_seconds:
+        elapsed = time.monotonic() - self.run_record.round_wait_start_time
+        if elapsed >= self.run_record.round_wait_seconds:
             return self.round_success(status='等待完成')
 
         return self.round_wait(
-            status=f'轮间等待中 {elapsed:.0f}/{self.round_wait_seconds:.0f}s',
-            wait=min(1.0, self.round_wait_seconds - elapsed),
+            status=f'轮间等待中 {elapsed:.0f}/{self.run_record.round_wait_seconds:.0f}s',
+            wait=min(1.0, self.run_record.round_wait_seconds - elapsed),
         )
 
     @node_from(from_name='轮间等待', status='等待完成')
     @operation_node(name='准备下一轮')
     def prepare_next_round(self) -> OperationRoundResult:
         """跨轮重置：清空 finished 让下一轮所有路线重新执行，并重置本轮的时间字段。"""
-        self.current_round += 1
+        self.run_record.current_round += 1
         self.route_idx = 0
         self.run_record.reset_finished()
-        self._reset_round_timing()
+        self.run_record.reset_round_timing()
         return self.round_success(status='进入下一轮')
-
-    def _reset_round_timing(self) -> None:
-        """重置本轮的计时字段，不影响 finished、completed_rounds 等持久化记录。"""
-        self.world_patrol_round_start_time = None
-        self.round_wait_seconds = 0.0
-        self.round_wait_start_time = None
 
     def _stop_route_actions(self) -> None:
         self.ctx.auto_battle_context.stop_auto_battle()

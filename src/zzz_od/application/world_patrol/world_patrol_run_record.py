@@ -14,6 +14,13 @@ class WorldPatrolRunRecord(AppRunRecord):
         self.completed_rounds = self.get('completed_rounds', 0)
         self.routes_per_round = self.get('routes_per_round', 0)
 
+        # 每日多轮循环运行时字段（仅内存，不持久化）
+        self.current_round: int = 1
+        self.total_rounds: int = 1
+        self.round_start_time: float | None = None
+        self.round_wait_seconds: float = 0.0
+        self.round_wait_start_time: float | None = None
+
     def reset_record(self):
         AppRunRecord.reset_record(self)
         self.finished = []
@@ -21,6 +28,12 @@ class WorldPatrolRunRecord(AppRunRecord):
         self.update('finished', self.finished, False)
         self.update('completed_rounds', self.completed_rounds, False)
         self.save()
+
+    def reset_round_timing(self) -> None:
+        """重置本轮的计时字段，不影响 finished、completed_rounds 等持久化记录。"""
+        self.round_start_time = None
+        self.round_wait_seconds = 0.0
+        self.round_wait_start_time = None
 
     def reset_finished(self) -> None:
         """清空当日已完成路线列表，不影响其他记录字段。"""
