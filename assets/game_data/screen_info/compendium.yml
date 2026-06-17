@@ -5,10 +5,10 @@ area_list:
 - area_name: TAB列表
   id_mark: false
   pc_rect:
-  - 716
-  - 100
-  - 1630
-  - 178
+  - 708
+  - 140
+  - 1636
+  - 220
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -62,9 +62,9 @@ area_list:
   id_mark: false
   pc_rect:
   - 1532
-  - 234
+  - 250
   - 1602
-  - 308
+  - 350
   text: ''
   lcs_percent: 0.5
   template_sub_dir: compendium
@@ -104,9 +104,9 @@ area_list:
   id_mark: false
   pc_rect:
   - 417
-  - 221
+  - 250
   - 646
-  - 274
+  - 320
   text: 今日最大活跃度
   lcs_percent: 0.5
   template_sub_dir: ''

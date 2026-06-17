@@ -244,12 +244,9 @@ class BackToNormalWorld(ZOperation):
 def _debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     op = BackToNormalWorld(ctx)
-    from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('508500962-c6b83e60-fc00-49ce-83d0-17e0e49a5aa1')
-    import cv2
-    op.last_screenshot = cv2.resize(screen, (1920, 1080))
-    print(op.check_screen_and_run().status)
+    op.execute()
 
 
 if __name__ == '__main__':
