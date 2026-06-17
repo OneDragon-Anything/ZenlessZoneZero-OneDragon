@@ -28,8 +28,6 @@ from one_dragon.utils.log_utils import (
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
-
-_TRANSFER_PROGRESS_PATTERN = re.compile(r'^拉取对象\s+(\d+)/(\d+)$')
 PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
 
 # 初始化 colorama
@@ -56,12 +54,10 @@ def print_message(message, level="INFO", flush=False):
 def create_git_progress_callback():
     last_transfer_log_at: float | None = None
 
-    def _report(progress: float, message: str) -> None:
+    def _report(_progress: float, message: str) -> None:
         nonlocal last_transfer_log_at
 
-        del progress
-
-        match = _TRANSFER_PROGRESS_PATTERN.match(message)
+        match = re.match(r'^拉取对象\s+(\d+)/(\d+)$', message)
         if match is None:
             print_message(message, 'INFO')
             return
