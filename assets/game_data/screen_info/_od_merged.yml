@@ -6566,9 +6566,9 @@
   - area_name: 小地图
     id_mark: false
     pc_rect:
-    - 1565
+    - 1554
     - 200
-    - 1775
+    - 1764
     - 410
     text: ''
     lcs_percent: 0.5
