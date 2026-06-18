@@ -6746,9 +6746,9 @@
   - area_name: 预备编队
     id_mark: true
     pc_rect:
-    - 1315
+    - 1225
     - 44
-    - 1595
+    - 1505
     - 102
     text: ''
     lcs_percent: 0.5
