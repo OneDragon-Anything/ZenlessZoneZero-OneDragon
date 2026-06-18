@@ -145,14 +145,18 @@ class ChargePlanApp(ZApplication):
         if len(resource_list) != 3:
             return None
 
-        charge_match = re.search(r'(\d+)\s*/\s*(\d+)', resource_list[0].data)
-        if charge_match is None:
-            return None
+        charge_text = resource_list[0].data
+        charge_match = re.search(r'(\d+)\s*/\s*(\d+)', charge_text)
+        if charge_match is not None:
+            battery_charge = int(charge_match.group(1))
+        else:
+            charge_suffix = str(ChargePlanRunRecord.MAX_CHARGE_POWER)
+            battery_charge_text = re.sub(r'\D', '', charge_text).removesuffix(charge_suffix)
+            battery_charge_text = battery_charge_text.removesuffix('1')
 
-        battery_charge = int(charge_match.group(1))
-        max_battery_charge = int(charge_match.group(2))
-        if battery_charge > max_battery_charge:
-            return None
+            battery_charge = str_utils.get_positive_digits(battery_charge_text, None)
+            if battery_charge is None:
+                return None
 
         backup_battery_charge = str_utils.get_positive_digits(resource_list[1].data, None)
         ether_battery = str_utils.get_positive_digits(resource_list[2].data, None)
