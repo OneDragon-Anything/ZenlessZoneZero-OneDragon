@@ -199,9 +199,9 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='查找并选择下一个可执行任务')
     def find_and_select_next_plan(self) -> OperationRoundResult:
         """
-        查找计划列表中的下一个可执行任务（未完成且体力足够）。
-        如果找到，更新 self.next_plan 并返回成功状态。
-        如果找不到，返回计划完成状态。
+        查找计划列表中的下一个可执行任务
+
+        找到后更新 self.current_plan；找不到时返回计划完成状态。
         """
         if self.temp_plan is not None:
             self.current_plan = self.temp_plan
