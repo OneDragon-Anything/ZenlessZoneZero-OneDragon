@@ -517,3 +517,17 @@ class AgentEnum(Enum):
                                         hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                         max_length=135)
                       ])
+
+    PYROIS_WISE = Agent('pyrois_wise', '佩洛伊斯', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ETHER,
+                        ['pyrois_wise'],
+                        state_list=[AgentStateDef('佩洛伊斯-日珥', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                  template_id='pyrois_wise',
+                                                  hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                  max_length=60)])
+
+    STARLIGHT_BILLY_KID = Agent('starlight_billy_kid', '星辉比利', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL,
+                                ['starlight_billy_kid'],
+                                state_list=[AgentStateDef('星辉比利-决心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                          template_id='starlight_billy_kid',
+                                                          hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                          max_length=120)])
