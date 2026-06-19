@@ -13,7 +13,6 @@ from one_dragon.base.conditional_operation.state_cal_tree import (
     construct_state_cal_tree,
 )
 from one_dragon.base.conditional_operation.state_recorder import StateRecorder
-from one_dragon.utils.log_utils import log
 
 
 class StateHandler:
@@ -77,7 +76,9 @@ class StateHandler:
             op_getter: 原子操作获取器
             parent_interrupt_states_cal_tree: 父级的打断状态判断树
         """
-        log.debug('构造状态判断树 ' + (self.display_name or self.states))
+        # 不逐条打 DEBUG 日志：大型配置（如自动战斗 merged.yml）会有数千个
+        # StateHandler，逐条 log.debug 在 DEBUG 级别下（尤其叠加 overlay 的
+        # OverlayLogHandler 同步分发）会严重拖慢加载。
         self.state_cal_tree = construct_state_cal_tree(self.states, state_recorder_getter)
         self.interrupt_states_cal_tree = self._build_interrupt_tree(state_recorder_getter, parent_interrupt_states_cal_tree)
 
