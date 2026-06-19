@@ -1,0 +1,42 @@
+# 长按普攻 3 秒后松开，再等待 2 秒
+# 参考普罗米娅-长按普攻：每 0.5 秒重发一次「按下」，防止并发导致按键被意外弹起
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 3
+  - op_name: "设置状态"
+    state: "自定义-无视闪光"
+    seconds: 3
+  - operation_template: "通用-闪避-左"
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5

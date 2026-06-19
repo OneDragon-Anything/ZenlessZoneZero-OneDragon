@@ -246,7 +246,7 @@ handlers:
               - states: "![前台-维琳娜]"
                 debug_name: "维琳娜能量切入"
                 sub_handlers:
-                  - states: "[前台-能量]{90, 120}"
+                  - states: "[维琳娜-能量]{90, 120}"
                     debug_name: "能量大于90，切维琳娜"
                     operations:
                       - op_name: "按键-切换角色"
