@@ -32,6 +32,7 @@ class ChargePlanApp(ZApplication):
 
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
+    STATUS_FIND_NEXT_PLAN: ClassVar[str] = '继续查找下一个计划'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -67,6 +68,62 @@ class ChargePlanApp(ZApplication):
         if self.config.try_reset_plan_times_by_dt(current_dt):
             log.info('已按游戏刷新日重置体力计划已运行次数 %s', current_dt)
         return self.round_success()
+
+    @node_from(from_name='挑战完成')
+    @node_from(from_name='开始体力计划')
+    @node_from(from_name='跳过或结束计划', status=STATUS_FIND_NEXT_PLAN)
+    @operation_node(name='前往大世界')
+    def back_before_open_compendium(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='前往大世界')
+    @operation_node(name='打开快捷手册')
+    def open_compendium(self) -> OperationRoundResult:
+        return self.round_by_goto_screen(screen_name='快捷手册-训练')
+
+    @node_from(from_name='打开快捷手册')
+    @operation_node(name='识别电量')
+    def check_battery_charge(self) -> OperationRoundResult:
+        area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            self.last_screenshot,
+            rect=area.rect,
+        )
+        resource_list = sorted(
+            [i for i in ocr_result_list if str_utils.get_positive_digits(i.data, None) is not None],
+            key=lambda i: i.center.x,
+        )
+        log.debug('快捷手册资源栏 OCR %s', [(i.data, i.x, i.y, i.w, i.h) for i in resource_list])
+        if len(resource_list) != 3:
+            return self.round_retry('未识别到电量', wait=1)
+
+        charge_text = resource_list[0].data
+        charge_match = re.search(r'(\d+)\s*/\s*(\d+)', charge_text)
+        if charge_match is not None:
+            battery_charge = int(charge_match.group(1))
+        else:
+            charge_suffix = str(ChargePlanRunRecord.MAX_CHARGE_POWER)
+            battery_charge_text = re.sub(r'\D', '', charge_text).removesuffix(charge_suffix)
+            battery_charge_text = battery_charge_text.removesuffix('1')
+
+            battery_charge = str_utils.get_positive_digits(battery_charge_text, None)
+            if battery_charge is None:
+                return self.round_retry('未识别到电量', wait=1)
+
+        backup_battery_charge = str_utils.get_positive_digits(resource_list[1].data, None)
+        ether_battery = str_utils.get_positive_digits(resource_list[2].data, None)
+        if backup_battery_charge is None or ether_battery is None:
+            return self.round_retry('未识别到电量', wait=1)
+
+        self.battery_charge = battery_charge
+        self.backup_battery_charge = backup_battery_charge
+        self.ether_battery = ether_battery
+        self.run_record.record_current_charge_power(self.battery_charge)
+        log.info('剩余电量 %s 储蓄电量 %s 以太电池 %s', self.battery_charge, self.backup_battery_charge, self.ether_battery)
+        if self.config.double_reward:
+            return self.round_success('查看双倍活动')
+        return self.round_success(f'剩余电量 {self.battery_charge}')
 
     @node_from(from_name='识别电量', status='查看双倍活动')
     @operation_node(name='查看双倍活动')
@@ -118,65 +175,57 @@ class ChargePlanApp(ZApplication):
         self.temp_plan = temp_plan
         return self.round_success()
 
-    @node_from(from_name='挑战完成')
-    @node_from(from_name='开始体力计划')
-    @node_from(from_name='跳过或结束计划')
-    @operation_node(name='前往大世界')
-    def back_before_open_compendium(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    @node_from(from_name='识别电量')
+    @node_from(from_name='查看双倍活动')
+    @node_from(from_name='查看双倍活动', success=False)
+    @node_from(from_name='判断是否执行', status=STATUS_FIND_NEXT_PLAN)
+    @operation_node(name='查找候选计划')
+    def find_next_plan(self) -> OperationRoundResult:
+        """
+        查找计划列表中的下一个候选计划
 
-    @node_from(from_name='前往大世界')
-    @operation_node(name='打开快捷手册')
-    def open_compendium(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='快捷手册-训练')
+        找到后更新 self.current_plan；是否执行交给后续节点判断。
+        """
+        if self.temp_plan is not None:
+            self.current_plan = self.temp_plan
+            return self.round_success()
 
-    def _get_compendium_resource_digits(self) -> tuple[int, int, int] | None:
-        area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            self.last_screenshot,
-            rect=area.rect,
-        )
-        resource_list = sorted(
-            [i for i in ocr_result_list if str_utils.get_positive_digits(i.data, None) is not None],
-            key=lambda i: i.center.x,
-        )
-        log.debug('快捷手册资源栏 OCR %s', [(i.data, i.x, i.y, i.w, i.h) for i in resource_list])
-        if len(resource_list) != 3:
-            return None
+        # 检查是否所有计划都已完成
+        if self.config.all_plan_finished():
+            # 如果开启了循环模式且所有计划已完成，重置计划并继续
+            if self.config.loop:
+                self.last_tried_plan = None
+                self.config.reset_plans()
+            else:
+                return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
-        charge_text = resource_list[0].data
-        charge_match = re.search(r'(\d+)\s*/\s*(\d+)', charge_text)
-        if charge_match is not None:
-            battery_charge = int(charge_match.group(1))
-        else:
-            charge_suffix = str(ChargePlanRunRecord.MAX_CHARGE_POWER)
-            battery_charge_text = re.sub(r'\D', '', charge_text).removesuffix(charge_suffix)
-            battery_charge_text = battery_charge_text.removesuffix('1')
+        candidate_plan = self.config.get_next_plan(self.last_tried_plan)
+        if candidate_plan is None:
+            return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
-            battery_charge = str_utils.get_positive_digits(battery_charge_text, None)
-            if battery_charge is None:
-                return None
+        self.current_plan = candidate_plan
+        return self.round_success()
 
-        backup_battery_charge = str_utils.get_positive_digits(resource_list[1].data, None)
-        ether_battery = str_utils.get_positive_digits(resource_list[2].data, None)
-        if backup_battery_charge is None or ether_battery is None:
-            return None
-        return battery_charge, backup_battery_charge, ether_battery
+    @node_from(from_name='查找候选计划')
+    @operation_node(name='判断是否执行')
+    def check_before_transport(self) -> OperationRoundResult:
+        if self.current_plan is self.temp_plan:
+            return self.round_success()
 
-    @node_from(from_name='打开快捷手册')
-    @operation_node(name='识别电量')
-    def check_battery_charge(self) -> OperationRoundResult:
-        resource_digits = self._get_compendium_resource_digits()
-        if resource_digits is None:
-            return self.round_retry('未识别到电量', wait=1)
+        # 未知类型会返回 0，交给副本内流程继续判断真实消耗
+        need_battery_charge = self.current_plan.estimated_charge_power
+        if need_battery_charge <= 0 or self.battery_charge >= need_battery_charge:
+            return self.round_success()
 
-        self.battery_charge, self.backup_battery_charge, self.ether_battery = resource_digits
-        self.run_record.record_current_charge_power(self.battery_charge)
-        log.info('剩余电量 %s 储蓄电量 %s 以太电池 %s', self.battery_charge, self.backup_battery_charge, self.ether_battery)
-        if self.config.double_reward:
-            return self.round_success('查看双倍活动')
-        return self.round_success(f'剩余电量 {self.battery_charge}')
+        if self._can_restore_charge(need_battery_charge - self.battery_charge):
+            return self.round_success()
+
+        if not self.config.skip_plan:
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
+
+        self.current_plan.skipped = True
+        self.last_tried_plan = self.current_plan
+        return self.round_success(ChargePlanApp.STATUS_FIND_NEXT_PLAN)
 
     def _can_restore_charge(self, required_charge: int) -> bool:
         if not self.config.is_restore_charge_enabled:
@@ -197,57 +246,10 @@ class ChargePlanApp(ZApplication):
             and self.ether_battery * 60 >= required_charge
         )
 
-    @node_from(from_name='识别电量')
-    @node_from(from_name='查看双倍活动')
-    @node_from(from_name='查看双倍活动', success=False)
-    @operation_node(name='查找并选择下一个可执行任务')
-    def find_and_select_next_plan(self) -> OperationRoundResult:
-        """
-        查找计划列表中的下一个可执行任务
-
-        找到后更新 self.current_plan；找不到时返回计划完成状态。
-        """
-        if self.temp_plan is not None:
-            self.current_plan = self.temp_plan
-            return self.round_success()
-
-        # 检查是否所有计划都已完成
-        if self.config.all_plan_finished():
-            # 如果开启了循环模式且所有计划已完成，重置计划并继续
-            if self.config.loop:
-                self.last_tried_plan = None
-                self.config.reset_plans()
-            else:
-                return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
-
-        # 使用循环查找下一个可执行的任务
-        while True:
-            # 查找下一个未完成的计划
-            candidate_plan = self.config.get_next_plan(self.last_tried_plan)
-            if candidate_plan is None:
-                return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
-
-            # 计算当前计划预估所需电量；未知类型会返回0，交给副本内流程继续判断
-            need_battery_charge = candidate_plan.estimated_charge_power
-
-            # 检查电量是否足够
-            if need_battery_charge > 0 and self.battery_charge < need_battery_charge:
-                if not self._can_restore_charge(need_battery_charge - self.battery_charge):
-                    if not self.config.skip_plan:
-                        return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
-                    else:
-                        # 跳过当前计划，继续查找下一个任务
-                        self.last_tried_plan = candidate_plan
-                        continue
-
-            # 设置下一个计划并返回成功
-            self.current_plan = candidate_plan
-            return self.round_success()
-
-    @node_from(from_name='查找并选择下一个可执行任务')
+    @node_from(from_name='判断是否执行')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
-        # 使用已经在查找并选择下一个可执行任务节点中设置好的self.current_plan
+        # 使用已经在查找候选计划节点中设置好的 self.current_plan
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
@@ -325,7 +327,7 @@ class ChargePlanApp(ZApplication):
             self.last_tried_plan = self.current_plan
             if self.current_plan is self.temp_plan:
                 self.temp_plan = None
-            return self.round_success()
+            return self.round_success(ChargePlanApp.STATUS_FIND_NEXT_PLAN)
         else:
             # 不跳过，直接结束本轮计划
             self.last_tried_plan = None
@@ -334,8 +336,9 @@ class ChargePlanApp(ZApplication):
             return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
     @node_from(from_name='跳过或结束计划', status=STATUS_ROUND_FINISHED)
-    @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
-    @node_from(from_name='查找并选择下一个可执行任务', success=False)
+    @node_from(from_name='查找候选计划', status=STATUS_ROUND_FINISHED)
+    @node_from(from_name='查找候选计划', success=False)
+    @node_from(from_name='判断是否执行', status=STATUS_ROUND_FINISHED)
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
