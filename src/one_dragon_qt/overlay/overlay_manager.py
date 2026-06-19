@@ -935,9 +935,7 @@ class OverlayManager(QObject):
             return
 
         self._log_handler = OverlayLogHandler(self.ctx)
-        # 只处理 INFO 及以上：DEBUG 级别的高频日志（如加载时数千条
-        # 「构造状态判断树」）会经 dispatch_event 同步分发，严重拖慢加载。
-        self._log_handler.setLevel(logging.INFO)
+        self._log_handler.setLevel(logging.DEBUG)
         log.addHandler(self._log_handler)
         if yolo_log is not None:
             yolo_log.addHandler(self._log_handler)
