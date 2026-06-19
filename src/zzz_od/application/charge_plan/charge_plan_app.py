@@ -57,11 +57,13 @@ class ChargePlanApp(ZApplication):
         self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
+        self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.temp_plan = None
         self.last_tried_plan = None
+        self.double_reward_checked = False
         for plan in self.config.plan_list:
             plan.skipped = False
         current_dt = self.run_record.get_current_dt()
@@ -121,9 +123,10 @@ class ChargePlanApp(ZApplication):
         self.ether_battery = ether_battery
         self.run_record.record_current_charge_power(self.battery_charge)
         log.info('剩余电量 %s 储蓄电量 %s 以太电池 %s', self.battery_charge, self.backup_battery_charge, self.ether_battery)
-        if self.config.double_reward:
+        if self.config.double_reward and not self.double_reward_checked:
+            self.double_reward_checked = True
             return self.round_success('查看双倍活动')
-        return self.round_success(f'剩余电量 {self.battery_charge}')
+        return self.round_success('查找候选计划')
 
     @node_from(from_name='识别电量', status='查看双倍活动')
     @operation_node(name='查看双倍活动')
@@ -175,7 +178,7 @@ class ChargePlanApp(ZApplication):
         self.temp_plan = temp_plan
         return self.round_success()
 
-    @node_from(from_name='识别电量')
+    @node_from(from_name='识别电量', status='查找候选计划')
     @node_from(from_name='查看双倍活动')
     @node_from(from_name='查看双倍活动', success=False)
     @node_from(from_name='判断是否执行', status=STATUS_FIND_NEXT_PLAN)
