@@ -51,7 +51,7 @@ class CommissionAssistantApp(ZApplication):
 
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
 
-        self.chosen_opt_max_sec: float = 1.5
+        self.chosen_opt_max_sec: float = 2  # 逆天确认按钮, 连续点击1.5s都点不了
         self.chosen_opt: str | None = None  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
         self.chosen_opt_last_time: float = 0  # 上一次点击选项的时间
 
