@@ -5,7 +5,6 @@ import contextlib
 import ctypes
 import datetime
 import os
-import re
 import signal
 import subprocess
 import sys
@@ -16,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import (
     LoggerConfig,
     configure_logger,
@@ -34,7 +34,7 @@ PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
 init(autoreset=True)
 
 
-def print_message(message, level="INFO", flush=False):
+def print_message(message: str, level: str = "INFO", flush: bool = False) -> None:
     # 打印消息，带有时间戳和日志级别
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
     colors = {
@@ -52,33 +52,9 @@ def print_message(message, level="INFO", flush=False):
 
 
 def create_git_progress_callback():
-    last_transfer_log_at: float | None = None
-
     def _report(_progress: float, message: str) -> None:
-        nonlocal last_transfer_log_at
-
-        match = re.match(r'^拉取对象\s+(\d+)/(\d+)$', message)
-        if match is None:
-            print_message(message, 'INFO')
-            return
-
-        received_objects = int(match.group(1))
-        total_objects = int(match.group(2))
-        if total_objects <= 0:
-            print_message(message, 'INFO')
-            return
-
-        now = time.monotonic()
-        is_complete = received_objects >= total_objects
-        if last_transfer_log_at is not None and now - last_transfer_log_at < 0.2 and not is_complete:
-            return
-
-        transfer_message = f'拉取对象 {received_objects}/{total_objects} ({round(received_objects / total_objects * 100)}%)'
-        last_transfer_log_at = now
-        if not is_complete:
-            print_message(transfer_message, 'INFO', flush=True)
-        else:
-            print_message(transfer_message, 'INFO')
+        refresh = message.startswith(gt('拉取对象')) and not message.endswith('(100%)')
+        print_message(message, 'INFO', flush=refresh)
 
     return _report
 
@@ -308,15 +284,15 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     获取最新代码
     """
     if not ctx.env_config.auto_update:
-        print_message("未开启代码自动更新 跳过", "INFO")
+        print_message(gt('未开启代码自动更新，跳过'), "INFO")
         return
     _configure_runtime_logger()
     progress_callback = create_git_progress_callback()
     success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
-        print_message("代码更新成功", "PASS")
+        print_message(gt('代码更新完成'), "PASS")
     else:
-        print_message(f'代码更新失败 {msg}', "ERROR")
+        print_message(f"{gt('代码更新失败')}: {msg}", "ERROR")
 
 def run_python(app_path, no_windows: bool = True, args: list | None = None, piped: bool = False):
     # 主函数

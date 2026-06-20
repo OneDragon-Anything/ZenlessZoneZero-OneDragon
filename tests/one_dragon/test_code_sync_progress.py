@@ -8,46 +8,34 @@ import one_dragon.utils.i18_utils as i18_utils_module
 from one_dragon.launcher.runtime_launcher import RuntimeLauncher
 
 
-def test_python_launcher_progress_callback_limits_transfer_messages(monkeypatch) -> None:
-    messages: list[tuple[str, str]] = []
-    callback = python_launcher.create_git_progress_callback()
+def test_git_service_transfer_progress_limits_transfer_messages(monkeypatch) -> None:
+    messages: list[tuple[float, str]] = []
+    callback = git_service_module._FetchProgressRemoteCallbacks(lambda progress, message: messages.append((progress, message)))
+    timestamps = iter([0.0, 0.1, 0.4])
+    monkeypatch.setattr(git_service_module.time, 'monotonic', lambda: next(timestamps))
 
-    original_print_message = python_launcher.print_message
-    python_launcher.print_message = lambda message, level='INFO': messages.append((level, message))
-    timestamps = iter([0.0, 0.4, 1.5])
-    monkeypatch.setattr(python_launcher.time, 'monotonic', lambda: next(timestamps))
-    try:
-        callback(0.421, '拉取对象 1/10')
-        callback(0.424, '拉取对象 2/10')
-        callback(0.500, '检查运行环境兼容性')
-        callback(0.431, '拉取对象 3/10')
-    finally:
-        python_launcher.print_message = original_print_message
+    callback.transfer_progress(SimpleNamespace(total_objects=10, received_objects=1, received_bytes=0))
+    callback.transfer_progress(SimpleNamespace(total_objects=10, received_objects=2, received_bytes=0))
+    callback.transfer_progress(SimpleNamespace(total_objects=10, received_objects=3, received_bytes=0))
 
     assert messages == [
-        ('INFO', '拉取对象 1/10 (10%)'),
-        ('INFO', '检查运行环境兼容性'),
-        ('INFO', '拉取对象 3/10 (30%)'),
+        (0.1, '拉取对象 1/10 (10%)'),
+        (0.3, '拉取对象 3/10 (30%)'),
     ]
 
 
-def test_python_launcher_progress_callback_always_shows_final_100_percent(monkeypatch) -> None:
-    messages: list[tuple[str, str]] = []
-    callback = python_launcher.create_git_progress_callback()
+def test_git_service_transfer_progress_always_shows_final_100_percent(monkeypatch) -> None:
+    messages: list[tuple[float, str]] = []
+    callback = git_service_module._FetchProgressRemoteCallbacks(lambda progress, message: messages.append((progress, message)))
+    timestamps = iter([0.0, 0.1])
+    monkeypatch.setattr(git_service_module.time, 'monotonic', lambda: next(timestamps))
 
-    original_print_message = python_launcher.print_message
-    python_launcher.print_message = lambda message, level='INFO': messages.append((level, message))
-    timestamps = iter([0.0, 0.2])
-    monkeypatch.setattr(python_launcher.time, 'monotonic', lambda: next(timestamps))
-    try:
-        callback(0.421, '拉取对象 1/10')
-        callback(1.0, '拉取对象 10/10')
-    finally:
-        python_launcher.print_message = original_print_message
+    callback.transfer_progress(SimpleNamespace(total_objects=10, received_objects=1, received_bytes=0))
+    callback.transfer_progress(SimpleNamespace(total_objects=10, received_objects=10, received_bytes=0))
 
     assert messages == [
-        ('INFO', '拉取对象 1/10 (10%)'),
-        ('INFO', '拉取对象 10/10 (100%)'),
+        (0.1, '拉取对象 1/10 (10%)'),
+        (1.0, '拉取对象 10/10 (100%)'),
     ]
 
 
@@ -63,7 +51,7 @@ def test_python_launcher_fetch_latest_code_passes_progress_callback(
 
         def fetch_latest_code(self, progress_callback=None):
             self.progress_callback = progress_callback
-            progress_callback(0.421, '拉取对象 3/10')
+            progress_callback(0.421, '拉取对象 3/10 (30%)')
             progress_callback(0.500, '检查运行环境兼容性')
             return True, ''
 
@@ -76,16 +64,15 @@ def test_python_launcher_fetch_latest_code_passes_progress_callback(
     monkeypatch.setattr(
         python_launcher,
         'print_message',
-        lambda message, level='INFO': messages.append((level, message)),
+        lambda message, level='INFO', flush=False: messages.append((level, message)),
     )
 
     python_launcher.fetch_latest_code(ctx)
 
     assert git_service.progress_callback is not None
-    assert ('INFO', '开始获取最新代码...') in messages
     assert ('INFO', '拉取对象 3/10 (30%)') in messages
     assert ('INFO', '检查运行环境兼容性') in messages
-    assert ('PASS', '最新代码获取成功') in messages
+    assert ('PASS', '代码更新完成') in messages
 
 
 def test_python_launcher_fetch_latest_code_silences_framework_console_log(
@@ -124,7 +111,7 @@ def test_python_launcher_fetch_latest_code_silences_framework_console_log(
     monkeypatch.setattr(
         python_launcher,
         'print_message',
-        lambda message, level='INFO': messages.append((level, message)),
+        lambda message, level='INFO', flush=False: messages.append((level, message)),
     )
 
     python_launcher.fetch_latest_code(ctx)
@@ -138,20 +125,24 @@ def test_python_launcher_fetch_latest_code_silences_framework_console_log(
 
 
 def test_python_launcher_progress_callback_passes_stage_messages_through() -> None:
-    messages: list[tuple[str, str]] = []
+    messages: list[tuple[str, str, bool]] = []
 
     callback = python_launcher.create_git_progress_callback()
     original_print_message = python_launcher.print_message
-    python_launcher.print_message = lambda message, level='INFO': messages.append((level, message))
+    python_launcher.print_message = lambda message, level='INFO', flush=False: messages.append((level, message, flush))
     try:
         callback(0.2, '获取远程代码')
         callback(0.5, '检查工作区状态')
+        callback(0.3, '拉取对象 3/10 (30%)')
+        callback(1.0, '拉取对象 10/10 (100%)')
     finally:
         python_launcher.print_message = original_print_message
 
     assert messages == [
-        ('INFO', '获取远程代码'),
-        ('INFO', '检查工作区状态'),
+        ('INFO', '获取远程代码', False),
+        ('INFO', '检查工作区状态', False),
+        ('INFO', '拉取对象 3/10 (30%)', True),
+        ('INFO', '拉取对象 10/10 (100%)', False),
     ]
 
 
@@ -175,18 +166,30 @@ def test_runtime_launcher_sync_code_uses_framework_log(monkeypatch) -> None:
 
         def fetch_latest_code(self, progress_callback=None):
             self.progress_callback = progress_callback
+            progress_callback(0.3, '拉取对象 3/10 (30%)')
+            progress_callback(1.0, '拉取对象 10/10 (100%)')
             return True, ''
+
+    print_calls: list[tuple[str, str, bool]] = []
 
     monkeypatch.setattr(env_config_module, 'EnvConfig', FakeEnvConfig)
     monkeypatch.setattr(git_service_module, 'GitService', FakeGitService)
     monkeypatch.setattr(project_config_module, 'ProjectConfig', lambda: object())
     monkeypatch.setattr(i18_utils_module, 'gt', lambda message: message)
     monkeypatch.setattr('one_dragon.utils.log_utils.log.info', lambda message: messages.append(message))
+    monkeypatch.setattr(
+        'builtins.print',
+        lambda message, end='\n', flush=False: print_calls.append((message, end, flush)),
+    )
 
     launcher = RuntimeLauncher('test', '1.0.0')
     launcher._sync_code()
 
     assert len(FakeGitService.instances) == 1
-    assert FakeGitService.instances[0].progress_callback is None
+    assert FakeGitService.instances[0].progress_callback is not None
     assert '正在检查代码更新...' in messages
-    assert '代码已是最新' in messages
+    assert '拉取对象 3/10 (30%)' not in messages
+    assert '拉取对象 10/10 (100%)' in messages
+    assert print_calls[0] == ('拉取对象 3/10 (30%)', '\r', True)
+    assert print_calls[1] == (' ' * 120, '\r', True)
+    assert '代码更新检查完成' in messages

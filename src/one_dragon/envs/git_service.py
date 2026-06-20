@@ -42,32 +42,35 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
     def __init__(
         self,
         progress_callback: Callable[[float, str], None],
-        stage_start: float,
-        stage_end: float,
     ) -> None:
         super().__init__()
         self._progress_callback: Callable[[float, str], None] = progress_callback
-        self._stage_start: float = stage_start
-        self._stage_end: float = stage_end
         self._last_message: str | None = None
+        self._last_log_at: float | None = None
 
     def transfer_progress(self, stats: object) -> None:
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
         received_objects = int(getattr(stats, 'received_objects', 0) or 0)
         received_bytes = int(getattr(stats, 'received_bytes', 0) or 0)
 
+        fetch_message = gt('拉取对象')
+        is_final = total_objects > 0 and received_objects >= total_objects
         if total_objects > 0:
-            ratio = min(max(received_objects / total_objects, 0.0), 1.0)
-            progress = self._stage_start + (self._stage_end - self._stage_start) * ratio
-            message = f'拉取对象 {received_objects}/{total_objects}'
+            progress = min(max(received_objects / total_objects, 0.0), 1.0)
+            message = f'{fetch_message} {received_objects}/{total_objects} ({round(progress * 100)}%)'
         else:
-            progress = self._stage_start
+            progress = 0.0
             received_mb = received_bytes / 1024 / 1024
-            message = f'拉取对象 {received_mb:.2f} MB'
+            message = f'{fetch_message} {received_mb:.2f} MB'
 
         if message == self._last_message:
             return
 
+        now = time.monotonic()
+        if not is_final and self._last_log_at is not None and now - self._last_log_at < 0.2:
+            return
+
+        self._last_log_at = now
         self._last_message = message
         self._progress_callback(progress, message)
 
@@ -187,7 +190,11 @@ class GitService:
         if progress_callback is None:
             return None
 
-        return _FetchProgressRemoteCallbacks(progress_callback, stage_start, stage_end)
+        def stage_progress_callback(progress: float, message: str) -> None:
+            mapped_progress = stage_start + (stage_end - stage_start) * progress
+            progress_callback(mapped_progress, message)
+
+        return _FetchProgressRemoteCallbacks(stage_progress_callback)
 
     def _fetch_remote(
         self,
@@ -195,7 +202,7 @@ class GitService:
         stage_start: float = 0.0,
         stage_end: float = 1.0,
     ) -> bool:
-        """获取远程代码
+        """拉取远程代码
 
         根据本地是否存在有内容的同名分支来决定拉取深度：
         - 若本地不存在该分支或分支为空，则使用深度1（拉取最新1条）
@@ -209,7 +216,7 @@ class GitService:
         Returns:
             是否成功
         """
-        log.info(gt('获取远程代码...'))
+        log.info(gt('拉取远程代码...'))
 
         try:
             repo = self._open_repo()
@@ -239,12 +246,12 @@ class GitService:
                 else:
                     raise
 
-            log.info(gt('获取远程代码成功'))
+            log.info(gt('拉取远程代码成功'))
             if progress_callback is not None:
-                progress_callback(stage_end, gt('获取远程代码成功'))
+                progress_callback(stage_end, gt('拉取远程代码成功'))
             return True
         except Exception:
-            log.error('获取远程代码失败', exc_info=True)
+            log.error('拉取远程代码失败', exc_info=True)
             return False
 
     def _reset_hard(self, target_id: str | Oid) -> bool:
@@ -492,7 +499,7 @@ class GitService:
             return False
 
     def _sync_with_remote(self, force: bool) -> tuple[bool, str]:
-        """同步远程分支到本地
+        """同步本地代码到远程分支状态
 
         Args:
             force: 是否强制更新（重置本地修改）
@@ -574,12 +581,12 @@ class GitService:
             log.error(msg, exc_info=True)
             return False, msg
 
-        # 获取远程代码
+        # 拉取远程代码
         if progress_callback:
-            progress_callback(2/5, gt('获取远程代码'))
+            progress_callback(2/5, gt('拉取远程代码'))
 
         if not self._fetch_remote(progress_callback, 2 / 5, 3 / 5):
-            return False, gt('获取远程代码失败')
+            return False, gt('拉取远程代码失败')
 
         # 切换到目标分支
         if progress_callback:
@@ -588,9 +595,9 @@ class GitService:
         if not self._checkout_branch():
             return False, gt('切换到目标分支失败')
 
-        # 同步远程代码
+        # 同步本地代码
         if progress_callback:
-            progress_callback(4/5, gt('同步远程代码'))
+            progress_callback(4/5, gt('同步本地代码'))
 
         success, message = self._sync_with_remote(force=True)
         if not success:
@@ -607,12 +614,12 @@ class GitService:
         """
         log.info(gt('核对当前仓库'))
 
-        # 获取远程代码
+        # 拉取远程代码
         if progress_callback:
-            progress_callback(1/6, gt('获取远程代码'))
+            progress_callback(1/6, gt('拉取远程代码'))
 
         if not self._fetch_remote(progress_callback, 1 / 6, 2 / 6):
-            return False, gt('获取远程代码失败')
+            return False, gt('拉取远程代码失败')
 
         # 检查模块清单兼容性（仅 frozen 环境）
         if progress_callback:
@@ -637,9 +644,9 @@ class GitService:
         if not self._checkout_branch():
             return False, gt('切换到目标分支失败')
 
-        # 同步远程分支
+        # 同步本地代码
         if progress_callback:
-            progress_callback(5/6, gt('同步远程分支'))
+            progress_callback(5/6, gt('同步本地代码'))
 
         success, message = self._sync_with_remote(self.env_config.force_update)
         if not success:
@@ -699,7 +706,7 @@ class GitService:
         log.info(gt('检测当前代码是否最新'))
 
         if not self._fetch_remote():
-            return False, gt('获取远程代码失败')
+            return False, gt('拉取远程代码失败')
 
         # 获取本地和远程的提交ID
         local_oid, remote_oid, msg = self._get_local_and_remote_oid()
