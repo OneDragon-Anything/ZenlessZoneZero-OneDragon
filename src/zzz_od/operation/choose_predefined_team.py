@@ -52,7 +52,7 @@ class ChoosePredefinedTeam(ZOperation):
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='尝试查找编队')
-    @operation_node(name='选择编队')
+    @operation_node(name='选择编队', timeout_seconds=30)
     def choose_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
         result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
