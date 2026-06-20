@@ -294,6 +294,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='点单')
     @node_from(from_name='不占用点单确认')
+    @node_from(from_name='对话选咖啡', status='已点单')
     @operation_node(name='点单后跳过')
     def skip_after_order(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -338,7 +339,6 @@ class CoffeeApp(ZApplication):
         return self.round_retry(status='等待对话框', wait=1)
 
     @node_from(from_name='点单后跳过')
-    @node_from(from_name='对话选咖啡', status='已点单')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
