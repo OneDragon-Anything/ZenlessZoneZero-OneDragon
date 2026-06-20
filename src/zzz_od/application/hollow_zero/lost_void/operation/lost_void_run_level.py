@@ -671,7 +671,8 @@ class LostVoidRunLevel(ZOperation):
             if self.interact_target.is_npc:
                 if self.interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value and not self.ao_fei_li_ya_talked:
                     # 俩npc在一起时, self.interact_target.name 有概率识别错误, 故使用 ao_fei_li_ya_talked 来判断是否选择了关卡武备
-                    # 选择角色武备后往左前走, 即可利用绝区零交互机制来与蕾交互(选择关卡武备)
+                    # 绝区零交互的范围是角色朝向的一个扇形区域, 故和npc贴贴时, 不面向npc就不会点击npc
+                    # 选择角色武备后往前走与奥菲利亚贴贴, 然后左转, 即可利用绝区零交互机制来与蕾交互(选择关卡武备)
                     self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
                     self.ctx.controller.move_a(press=True, press_time=0.1, release=True)
                     self.ao_fei_li_ya_talked = True
