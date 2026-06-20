@@ -32,6 +32,9 @@ from one_dragon_qt.services.app_setting.app_setting_provider import (
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon_qt.view.setting.app_notify_setting_interface import (
+        NotifySettingInterface,
+    )
     from one_dragon_qt.widgets.base_interface import BaseInterface
     from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 
@@ -49,6 +52,7 @@ class AppSettingManager(QObject):
         self.ctx: OneDragonContext = ctx
         self._setting_module_suffix: str = "_app_setting"
         self._interface_cache: dict[tuple[int, type], BaseInterface] = {}
+        self._notify_interface_cache: dict[int, NotifySettingInterface] = {}
         self._app_setting_map: dict[str, Callable[..., None]] = {}
 
     # ─── 公共 API ─────────────────────────────────────────
@@ -70,6 +74,43 @@ class AppSettingManager(QObject):
         handler = self._app_setting_map.get(app_id)
         if handler is not None:
             handler(parent=parent, group_id=group_id, target=target)
+
+    def show_notify_setting(self, parent: QWidget) -> None:
+        """推入通知设置界面。"""
+        from one_dragon_qt.view.setting.app_notify_setting_interface import (
+            NotifySettingInterface,
+        )
+
+        pivot_navi = self._find_pivot_navigator(parent)
+        if pivot_navi is None:
+            return
+
+        cache_key = id(pivot_navi)
+        if cache_key not in self._notify_interface_cache:
+            self._notify_interface_cache[cache_key] = NotifySettingInterface(self.ctx)
+
+        instance = self._notify_interface_cache[cache_key]
+        pivot_navi.push_setting_interface(instance.nav_text, instance)
+
+    def show_app_notify_setting(
+        self,
+        app_id: str,
+        parent: QWidget,
+        target: QWidget,
+    ) -> None:
+        """显示应用通知设置 Flyout。"""
+        from one_dragon_qt.widgets.app_setting.app_notify_setting_flyout import (
+            AppNotifySettingFlyout,
+        )
+
+        app_name = self.ctx.notify_config.app_map.get(app_id, app_id)
+        AppNotifySettingFlyout.show_flyout(
+            ctx=self.ctx,
+            app_id=app_id,
+            app_name=app_name,
+            target=target,
+            parent=parent,
+        )
 
     # ─── 扫描与注册 ──────────────────────────────────────
 

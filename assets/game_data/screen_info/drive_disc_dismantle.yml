@@ -1,5 +1,6 @@
 screen_id: drive_disc_dismantle
 screen_name: 仓库-驱动仓库-驱动盘拆解
+app_id: drive_disc_dismantle
 pc_alt: false
 area_list:
 - area_name: 标题-驱动盘拆解

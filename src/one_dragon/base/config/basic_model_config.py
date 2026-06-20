@@ -19,12 +19,12 @@ class BasicModelConfig(YamlConfig):
         self.update('ocr', new_value)
 
     @property
-    def ocr_gpu(self) -> bool:
-        return self.get('ocr_gpu', False)
+    def ocr_use_gpu(self) -> bool:
+        return self.get('ocr_use_gpu', False)
 
-    @ocr_gpu.setter
-    def ocr_gpu(self, new_value: bool) -> None:
-        self.update('ocr_gpu', new_value)
+    @ocr_use_gpu.setter
+    def ocr_use_gpu(self, new_value: bool) -> None:
+        self.update('ocr_use_gpu', new_value)
 
     def using_old_model(self) -> bool:
         """

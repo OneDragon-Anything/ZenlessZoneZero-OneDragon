@@ -1,7 +1,8 @@
 import os
+import threading
 import time
+from collections.abc import Callable
 from logging import DEBUG
-from typing import Callable, List, Optional
 
 from cv2.typing import MatLike
 
@@ -11,8 +12,7 @@ from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
-from one_dragon.utils import os_utils
-from one_dragon.utils import str_utils
+from one_dragon.utils import os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -117,7 +117,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_param: Optional[OnnxOcrParam] =  None):
+    def __init__(self, ocr_param: OnnxOcrParam | None =  None):
         if ocr_param is None:
             ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
@@ -135,6 +135,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         )
         self._ocr_param: OnnxOcrParam = ocr_param
         self._model = None
+        self._init_lock = threading.Lock()
         self._loading: bool = False
         self.overlay_debug_bus = None
 
@@ -174,53 +175,43 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
-            proxy_url: Optional[str] = None,
-            ghproxy_url: Optional[str] = None,
+            proxy_url: str | None = None,
+            ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Optional[Callable[[float, str], None]] = None
+            progress_callback: Callable[[float, str], None] | None = None
             ) -> bool:
-        log.info('正在加载OCR模型')
+        with self._init_lock:
+            log.info('正在加载OCR模型')
 
-        # 保证只有一个线程下载
-        if self._loading:
-            while self._loading:
-                time.sleep(1)
-            return self._model is not None
-        self._loading = True
+            if self._model is not None:
+                log.info('加载OCR模型完毕')
+                return True
 
-        # 先检查模型文件和下载模型
-        done: bool = self.download(
-            download_by_github=download_by_github,
-            download_by_gitee=download_by_gitee,
-            download_by_mirror_chan=download_by_mirror_chan,
-            proxy_url=proxy_url,
-            ghproxy_url=ghproxy_url,
-            skip_if_existed=skip_if_existed,
-            progress_callback=progress_callback
-        )
-        if not done:
-            log.error('下载OCR模型失败')
-            self._loading = False
-            return False
+            # 先检查模型文件和下载模型
+            done: bool = self.download(
+                download_by_github=download_by_github,
+                download_by_gitee=download_by_gitee,
+                download_by_mirror_chan=download_by_mirror_chan,
+                proxy_url=proxy_url,
+                ghproxy_url=ghproxy_url,
+                skip_if_existed=skip_if_existed,
+                progress_callback=progress_callback
+            )
+            if not done:
+                log.error('下载OCR模型失败')
+                return False
 
-        # 加载模型
-        if self._model is None:
+            # 加载模型
             from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
             try:
                 args = self._ocr_param.to_dict()
                 self._model = ONNXPaddleOcr(**args)
-                self._loading = False
                 log.info('加载OCR模型完毕')
                 return True
             except Exception:
                 log.error('OCR模型加载出错', exc_info=True)
-                self._loading = False
                 return False
-
-        log.info('加载OCR模型完毕')
-        self._loading = False
-        return True
 
     def update_use_gpu(self, use_gpu: bool) -> None:
         """
@@ -347,7 +338,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
     def match_words(
             self,
-            image: MatLike, words: List[str],
+            image: MatLike, words: list[str],
             threshold: float = 0,
             same_word: bool = False,
             ignore_case: bool = True,

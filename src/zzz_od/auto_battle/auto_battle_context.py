@@ -553,7 +553,7 @@ class AutoBattleContext:
 
             # 距离
             if check_distance:
-                if self.ctx.model_config.ocr_gpu:
+                if self.ctx.model_config.ocr_use_gpu:
                     future_list.append(gpu_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
                 else:
                     future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
@@ -564,7 +564,7 @@ class AutoBattleContext:
             # 战斗结束
             check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
             if check_battle_end:
-                if self.ctx.model_config.ocr_gpu:
+                if self.ctx.model_config.ocr_use_gpu:
                     executor = gpu_executor
                 else:
                     executor = _battle_state_check_executor

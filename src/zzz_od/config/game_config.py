@@ -303,7 +303,7 @@ class GameConfig(BasicGameConfig):
     @property
     def turn_dx(self) -> float:
         """转向时 每度所需要移动的像素距离。"""
-        return self.get('turn_dx', 0)
+        return self.get('turn_dx', -5.5)  # 游戏内镜头灵敏度（X轴）为默认值3时的经验兜底值
 
     @turn_dx.setter
     def turn_dx(self, new_value: float):

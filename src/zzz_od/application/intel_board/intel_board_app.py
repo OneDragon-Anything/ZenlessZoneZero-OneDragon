@@ -194,7 +194,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        result = self.round_by_ocr(self.last_screenshot, '接取失败')
+        result = self.round_by_ocr(self.last_screenshot, '接取失败', lcs_percent=0.75)
         if result.is_success:
             return self.round_success('接取失败')
 
