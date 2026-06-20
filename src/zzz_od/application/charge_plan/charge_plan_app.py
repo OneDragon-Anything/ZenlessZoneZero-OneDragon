@@ -76,7 +76,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='跳过或结束计划', status=STATUS_FIND_NEXT_PLAN)
     @operation_node(name='前往大世界')
     def back_before_open_compendium(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
+        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='前往大世界')
@@ -139,7 +139,7 @@ class ChargePlanApp(ZApplication):
            这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
         """
 
-        op = TransportByCompendium(self.ctx, '训练', '实战模拟室')
+        op = TransportByCompendium(self.ctx, '训练', '实战模拟室', try_current_screen_first=True)
         result1 = self.round_by_op_result(op.execute())
         if not result1.is_success:
             return result1
@@ -256,7 +256,8 @@ class ChargePlanApp(ZApplication):
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
-                                   self.current_plan.mission_type_name)
+                                   self.current_plan.mission_type_name,
+                                   try_current_screen_first=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
