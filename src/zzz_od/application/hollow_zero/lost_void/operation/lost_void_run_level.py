@@ -95,6 +95,7 @@ class LostVoidRunLevel(ZOperation):
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
         self.interact_target: LostVoidInteractTarget | None = None  # 最终识别的交互目标 后续改动应该都是用这个判断
+        self.ao_fei_li_ya_talked: bool = False  # 开局是否选过角色武备的标志, 用于简化开局流程
         self.interact_attempted: bool = False  # 是否尝试过交互
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
@@ -345,7 +346,7 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_retry('移动失败')
 
-        # 没找到目标 转动
+        # 没找到目标 转动视角
         self.ctx.controller.turn_by_distance(-200)
         self.nothing_times += 1
 
@@ -667,11 +668,19 @@ class LostVoidRunLevel(ZOperation):
         if self.region_type == LostVoidRegionType.ENTRY:
             # 第一层 两个武备选择后 往后走 可以方便走上楼梯
             # 2.0版本 入口左侧增加了一个研究员 因此交互后往后多走一点 方便看到这个研究员
-            self.ctx.controller.move_s(press=True, press_time=2, release=True)
             if self.interact_target.is_npc:
-                if self.interact_target.name == LostVoidInteractNPC.SCGMDYJY.value:
+                if self.interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value and not self.ao_fei_li_ya_talked:
+                    # 俩npc在一起时, self.interact_target.name 有概率识别错误, 故使用 ao_fei_li_ya_talked 来判断是否选择了关卡武备
+                    # 选择角色武备后往左前走, 即可利用绝区零交互机制来与蕾交互(选择关卡武备)
+                    self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
+                    self.ctx.controller.move_a(press=True, press_time=0.1, release=True)
+                    self.ao_fei_li_ya_talked = True
+                    pass
+                elif self.interact_target.name == LostVoidInteractNPC.SCGMDYJY.value:
                     # 研究员交互后 往右一点方便走到白点位置
                     self.ctx.controller.move_d(press=True, press_time=0.5, release=True)
+                else:
+                    self.ctx.controller.move_s(press=True, press_time=2, release=True)
         elif self.region_type == LostVoidRegionType.FRIENDLY_TALK:
             # 挚交会谈
             if self.interact_target.is_agent:  # 如果是代理人 向后右移动 可以避开中间桌子的障碍
