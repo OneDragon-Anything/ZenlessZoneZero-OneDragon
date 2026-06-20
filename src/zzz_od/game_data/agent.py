@@ -30,6 +30,7 @@ class DmgTypeEnum(Enum):
     PHYSICAL = '物理属性'
     FIRE = '火属性'
     ICE = '冰属性'
+    WIND = '风属性'
     UNKNOWN = '未知'
 
     @classmethod
@@ -510,3 +511,23 @@ class AgentEnum(Enum):
     PROMEIA = Agent('promeia', '普罗米娅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['promeia'],
                     state_list=[AgentStateDef('普罗米娅-霜刑', AgentStateCheckWay.COLOR_RANGE_CONNECT, 'promeia_ss',
                                               hsv_color=(0,255,255), hsv_color_diff=(90, 255, 50), connect_cnt=2)])
+
+    VELINA = Agent('velina', '维琳娜', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.WIND, ['velina'],
+                    state_list=[AgentStateDef('维琳娜-风华', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH, 'velina',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=135)
+                      ])
+
+    PYROIS_WISE = Agent('pyrois_wise', '佩洛伊斯', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ETHER,
+                        ['pyrois_wise'],
+                        state_list=[AgentStateDef('佩洛伊斯-日珥', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                  template_id='pyrois_wise',
+                                                  hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                  max_length=60)])
+
+    STARLIGHT_BILLY_KID = Agent('starlight_billy_kid', '星辉比利', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL,
+                                ['starlight_billy_kid'],
+                                state_list=[AgentStateDef('星辉比利-决心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                          template_id='starlight_billy_kid',
+                                                          hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                          max_length=120)])

@@ -104,7 +104,7 @@ class TextDetector(PredictBase):
         img = img.copy()
 
         input_feed = self.get_input_feed(self.det_input_name, img)
-        outputs = self.det_onnx_session.run(self.det_output_name, input_feed=input_feed)
+        outputs = self.run_onnx_session(self.det_onnx_session, self.det_output_name, input_feed=input_feed)
 
         preds = {}
         preds["maps"] = outputs[0]
