@@ -107,13 +107,9 @@ class MiniMapWrapper:
 
     @cached_property
     def player_mask(self) -> MatLike:
-        # 步骤1: HSV 颜色范围过滤
-        # 根据docstring中的 hsv_color 和 hsv_diff 计算上下限
-        # H: 24 ± 10 => [14, 34]
-        # S: 180 ± 90 => [90, 270] -> 裁剪到OpenCV范围 [90, 255]
-        # V: 255 ± 80 => [175, 335] -> 裁剪到OpenCV范围 [175, 255]
-        lower_bound = np.array([14, 90, 175])
-        upper_bound = np.array([34, 255, 255])
+        # HSV 颜色范围过滤
+        lower_bound = np.array([10, 70, 150])
+        upper_bound = np.array([38, 255, 255])
         hsv_mask = cv2.inRange(self.hsv, lower_bound, upper_bound)
 
         # 步骤2: 查找轮廓
@@ -126,12 +122,12 @@ class MiniMapWrapper:
         for contour in contours:
             # 按周长过滤
             perimeter = cv2.arcLength(contour, True)
-            if not (60 <= perimeter <= 70):
+            if not (50 <= perimeter <= 85):
                 continue
 
             # 按面积过滤
             area = cv2.contourArea(contour)
-            if not (240 <= area <= 300):
+            if not (200 <= area <= 380):
                 continue
 
             # 如果所有检查都通过，则认为是目标轮廓
@@ -155,7 +151,7 @@ class MiniMapWrapper:
         Returns:
             bool: 是否能找到玩家的指标
         """
-        return np.sum(np.where(self.player_mask > 0)) > 50
+        return np.count_nonzero(self.player_mask) > 0
 
     @cached_property
     def circle_mask(self) -> MatLike:
