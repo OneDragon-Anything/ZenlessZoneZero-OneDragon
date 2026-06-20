@@ -6,9 +6,9 @@ area_list:
   id_mark: false
   pc_rect:
   - 708
-  - 140
+  - 160
   - 1636
-  - 220
+  - 270
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -22,7 +22,7 @@ area_list:
   - 164
   - 287
   - 429
-  - 870
+  - 1055
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
