@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: starlight_billy_kid_3_1
+template_name: 角色状态-星辉比利-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 141, 124
+- 218, 125

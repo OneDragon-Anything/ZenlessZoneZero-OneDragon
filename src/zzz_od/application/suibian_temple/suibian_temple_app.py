@@ -17,9 +17,6 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
 from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
     SuibianTempleGoodGoods,
 )
-from zzz_od.application.suibian_temple.operations.suibian_temple_pawnshop import (
-    SuibianTemplePawnshop,
-)
 from zzz_od.application.suibian_temple.operations.suibian_temple_sales_stall import (
     SuibianTempleSalesStall,
 )
@@ -30,7 +27,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempl
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
+from zzz_od.operation.transport import Transport
 
 
 class SuibianTempleApp(ZApplication):
@@ -56,22 +53,16 @@ class SuibianTempleApp(ZApplication):
         if screen_name == '随便观-入口':
             return self.round_success(status='随便观-入口')
 
-        # 未识别到画面，走快捷手册传送流程
-        can_go = self.check_current_can_go('快捷手册-目标')
-        if can_go:
-            return self.round_success(status='可前往快捷手册')
+        return self.round_success('不在随便观')
 
-        return self.round_success(status='未识别初始画面', wait=1)
-
-    @node_from(from_name='识别初始画面', status='可前往快捷手册')
-    @node_from(from_name='识别初始画面', status='未识别初始画面')
-    @operation_node(name='前往快捷手册-目标')
+    @node_from(from_name='识别初始画面', status='不在随便观')
+    @operation_node(name='传送')
     def goto_category(self) -> OperationRoundResult:
-        op = TransportByCompendium(self.ctx, '目标', '修者纪行')
+        op = Transport(self.ctx, '澄辉坪', '随便观', wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='前往快捷手册-目标')
-    @operation_node(name='前往随便观', node_max_retry_times=10)
+    @node_from(from_name='传送')
+    @operation_node(name='前往随便观', timeout_seconds=60, node_max_retry_times=999)
     def goto_suibian_temple(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '前往随便观',

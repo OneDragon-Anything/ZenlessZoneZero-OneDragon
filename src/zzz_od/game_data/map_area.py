@@ -3,9 +3,23 @@ import difflib
 import os
 from typing import List, Optional
 
+from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+
+class TransportPoint(ConfigItem):
+
+    def __init__(self, area_name: str, tp_name: str):
+        """
+        传送点配置项 用于 enum 选项
+        :param area_name: 区域名
+        :param tp_name: 传送点名
+        """
+        ConfigItem.__init__(self, label=f'{area_name} - {tp_name}')
+        self.area_name: str = area_name
+        self.tp_name: str = tp_name
 
 
 class MapArea:

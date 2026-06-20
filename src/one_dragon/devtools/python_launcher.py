@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 from ctypes import wintypes
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
@@ -71,18 +72,29 @@ def configure_environment(ctx: OneDragonEnvContext, cwd):
     print_message(f"PYTHONPATH：{os.environ['PYTHONPATH']}", "PASS")
     print_message(f"UV_DEFAULT_INDEX：{os.environ['UV_DEFAULT_INDEX']}", "PASS")
 
-def execute_python_script(ctx: OneDragonEnvContext, app_path, no_windows: bool, args: list | None = None, piped: bool = False):
-    app_script_path = os.environ.get('PYTHONPATH')
-    for sub_path in app_path:
-        app_script_path = os.path.join(app_script_path, sub_path)
+def execute_python_script(
+        ctx: OneDragonEnvContext,
+        app_path: list[str],
+        no_windows: bool,
+        args: list[str] | None = None,
+        piped: bool = False,
+) -> None:
+    uv_path = ctx.env_config.uv_path
+    app_module_parts = app_path.copy()
+    module_name = app_module_parts[-1]
+    if module_name.endswith('.py'):
+        module_name = module_name[:-3]
+    app_module_parts[-1] = module_name
+    app_module = '.'.join(app_module_parts)
 
-    if not os.path.exists(app_script_path):
-        print_message(f"PYTHONPATH 设置错误，无法找到 {app_script_path}", "ERROR")
+    app_module_path = Path(os.environ.get('PYTHONPATH', '')).joinpath(*app_module_parts)
+    app_file_path = app_module_path.with_suffix('.py')
+    if not app_file_path.is_file():
+        print_message(f"PYTHONPATH 设置错误，无法找到 {app_file_path}", "ERROR")
         sys.exit(1)
 
-    uv_path = ctx.env_config.uv_path
     # 构建 uv run 命令参数
-    run_args = ['run', '--frozen', app_script_path]
+    run_args = ['run', '--frozen', '-m', app_module]
     if args:
         run_args.extend(args)
         print_message(f"传递参数：{' '.join(args)}", "INFO")
@@ -223,7 +235,7 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     """
     获取最新代码
     """
-    if not ctx.env_config.auto_update:
+    if not ctx.env_config.auto_update_code:
         print_message("未开启代码自动更新 跳过", "INFO")
         return
     print_message("开始获取最新代码...", "INFO")

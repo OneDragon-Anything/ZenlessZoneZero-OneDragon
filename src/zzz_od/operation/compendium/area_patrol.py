@@ -6,7 +6,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -21,7 +21,6 @@ from zzz_od.operation.challenge_mission.check_next_after_battle import (
 )
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
-# from zzz_od.operation.compendium.coupon import Coupon  # 2.5版本已移除家政券功能，暂时移除导入
 from zzz_od.operation.deploy import Deploy
 from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
@@ -41,10 +40,7 @@ class AreaPatrol(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
-                gt('区域巡防', 'game'),
-                gt(plan.mission_type_name, 'game')
-            )
+            op_name=f"{gt('区域巡防', 'game')} {gt(plan.mission_type_name, 'game')}"
         )
         self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
@@ -66,10 +62,9 @@ class AreaPatrol(ZOperation):
     # @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('区域巡防', '副本名称列表')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         target_point: Point | None = None
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         for ocr_result, mrl in ocr_result_map.items():
             if not str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
                 continue
@@ -97,11 +92,11 @@ class AreaPatrol(ZOperation):
     #         return self.round_success(Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
     # @node_from(from_name='处理家政券', success=False)
     # @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
-    @node_from(from_name='恢复电量', status='恢复电量成功')
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if result.is_success:
             return self.round_success(status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -124,8 +119,7 @@ class AreaPatrol(ZOperation):
         if not self.config.is_restore_charge_enabled:
             return self.round_success(AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -194,7 +188,11 @@ class AreaPatrol(ZOperation):
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
+        op = ChooseNextOrFinishAfterBattle(
+            self.ctx,
+            self.plan.plan_times > self.plan.run_times,
+            is_agent_plan=self.plan.is_agent_plan,
+        )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)

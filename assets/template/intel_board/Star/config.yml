@@ -1,0 +1,8 @@
+sub_dir: intel_board
+template_id: Star
+template_name: 情报板-我的帖子
+template_shape: circle
+auto_mask: true
+point_list:
+- 824, 830
+- 838, 830

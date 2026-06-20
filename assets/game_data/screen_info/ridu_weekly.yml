@@ -1,14 +1,15 @@
 screen_id: ridu_weekly
 screen_name: 丽都周纪
+app_id: ridu_weekly
 pc_alt: false
 area_list:
 - area_name: 丽都周纪
   id_mark: false
   pc_rect:
   - 414
-  - 812
+  - 840
   - 596
-  - 858
+  - 900
   text: 丽都周纪
   lcs_percent: 0.5
   template_sub_dir: ''

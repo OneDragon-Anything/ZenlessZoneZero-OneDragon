@@ -16,6 +16,48 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
+- area_name: 进入游戏点击后状态
+  id_mark: false
+  pc_rect:
+  - 700
+  - 820
+  - 1220
+  - 1032
+  text: ''
+  lcs_percent: null
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 游戏数据更新提示
+  id_mark: false
+  pc_rect:
+  - 760
+  - 520
+  - 1160
+  - 590
+  text: 游戏数据已更新
+  lcs_percent: 0.6
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 游戏数据更新-确定
+  id_mark: false
+  pc_rect:
+  - 820
+  - 610
+  - 1120
+  - 700
+  text: 确定
+  lcs_percent: 0.6
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
 - area_name: 国服-账号密码
   id_mark: false
   pc_rect:
@@ -92,7 +134,7 @@ area_list:
   - 1036
   - 604
   - 1226
-  - 652
+  - 812
   text: 确定
   lcs_percent: 1.0
   template_sub_dir: ''
@@ -103,25 +145,39 @@ area_list:
 - area_name: 切换账号
   id_mark: false
   pc_rect:
-  - 1796
-  - 974
-  - 1852
-  - 1022
+  - 1790
+  - 965
+  - 1853
+  - 1029
   text: ''
+  lcs_percent: 0.5
+  template_sub_dir: enter_game
+  template_id: switch_account
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服-登录
+  id_mark: false
+  pc_rect:
+  - 839
+  - 555
+  - 1080
+  - 664
+  text: 登录
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: B服-登陆
+- area_name: B服新-手机号登录
   id_mark: false
   pc_rect:
   - 839
   - 626
   - 1080
   - 664
-  text: 登录
+  text: 登录/注册
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
@@ -182,6 +238,76 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-隐私政策提示
+  id_mark: false
+  pc_rect:
+  - 739
+  - 380
+  - 1180
+  - 480
+  text: bilibili游戏隐私政策提示
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-同意隐私政策
+  id_mark: false
+  pc_rect:
+  - 930
+  - 560
+  - 1100
+  - 708
+  text: 同意
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-登录记录
+  id_mark: false
+  pc_rect:
+  - 739
+  - 380
+  - 1180
+  - 470
+  text: 登录记录
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-切换账号
+  id_mark: false
+  pc_rect:
+  - 1000
+  - 350
+  - 1200
+  - 550
+  text: ''
+  lcs_percent: null
+  template_sub_dir: enter_game
+  template_id: bilibili_switch_account
+  template_match_threshold: 0.5
+  color_range: null
+  goto_list: []
+- area_name: B服新-账号列表
+  id_mark: false
+  pc_rect:
+  - 739
+  - 500
+  - 1180
+  - 840
+  text: ''
+  lcs_percent: null
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: null
   color_range: null
   goto_list: []
 - area_name: 标题-退出登录

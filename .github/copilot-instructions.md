@@ -7,6 +7,7 @@ applyTo: "**"
 - **Thinking**: 遇到复杂问题时，优先使用 `sequential-thinking` 工具制定计划。
 - **Documentation**: 使用 `context7` 工具查找文档。
 - **Environment**: 项目启动前要 `activate uv`，把源根加入 `PYTHONPATH`。
+- **项目上下文**: 完整的项目结构、架构概念、编码规范、文档索引请阅读根目录 `AGENTS.md`。
 
 # Coding Standards (Best Practices)
 - **Python Version**: 目标 Python 3.11+。使用现代特性（如 `list[str]` 代替 `List[str]`，`|` 代替 `Union`）。

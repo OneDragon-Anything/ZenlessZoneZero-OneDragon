@@ -13,7 +13,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, gpu_executor, str_utils
+from one_dragon.utils import cv2_utils, gpu_executor, str_utils, log_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
@@ -110,6 +110,7 @@ class LostVoidRunLevel(ZOperation):
         self.click_challenge_confirm: bool = False  # 点击了挑战确认
         self.boss_pre_battle: bool = self.region_type == LostVoidRegionType.BOSS  # 终结之役正式开战前的交互阶段
 
+        self.room_inited_times: int = 0  # 挚交会谈需要初始化两次
         self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
@@ -118,12 +119,8 @@ class LostVoidRunLevel(ZOperation):
     @operation_node(name='等待加载', node_max_retry_times=60, is_start_node=True)
     def wait_loading(self) -> OperationRoundResult:
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
-            # 有一个战略会在挚交会谈时奖励一个鸣徽 这个画面会在进入大世界一秒内触发
-            if self.region_type == LostVoidRegionType.FRIENDLY_TALK:
-                wait = 1
-            else:
-                wait = 0
-            return self.round_success('大世界', wait=wait)
+            self.room_inited_times = 0
+            return self.round_success('大世界')
 
         # 1. 在精英怪后 点击完挑战结果后 加载挚交会谈前 可能会弹出奖励
         # 2. 有战略可以导致进入新一层时获取战利品
@@ -186,11 +183,6 @@ class LostVoidRunLevel(ZOperation):
         if self.region_type == LostVoidRegionType.BANGBOO_STORE:
             return self.round_success('非战斗区域')
         if self.region_type == LostVoidRegionType.FRIENDLY_TALK:
-            # 挚交会谈 刚开始时 先往右走一段距离 避开桌子
-            # 如果桌子旁有感叹号交互会走过去 交互之后往右后移动
-            # 如果桌子旁没有感叹号交互 可以直接走到后方的感叹号
-            self.ctx.controller.move_w(press=True, press_time=0.7, release=True)
-            self.ctx.controller.move_d(press=True, press_time=2, release=True)
             return self.round_success('非战斗区域')
         if self.region_type == LostVoidRegionType.ELITE:
             return self.round_success('战斗区域')
@@ -249,6 +241,7 @@ class LostVoidRunLevel(ZOperation):
         if self.last_screenshot_time - self.operation_start_time >= 600:  # 10分钟超时
             return self.round_fail(Operation.STATUS_TIMEOUT)
 
+        # 黄金魔神邦布开战前对话
         if self.boss_pre_battle:
             if self.is_boss_battle_started():
                 return self.enter_battle(end_boss_pre_battle=True)
@@ -258,6 +251,21 @@ class LostVoidRunLevel(ZOperation):
                 self.nothing_times = 0
                 self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
                 return self.round_success(LostVoidDetector.CLASS_INTERACT, wait=0.5)
+
+        # 挚交会谈初始化
+        if self.region_type == LostVoidRegionType.FRIENDLY_TALK:
+            # 有一个战略会在挚交会谈时奖励一个鸣徽 这个画面会在进入大世界一秒内触发(?)
+            if self.room_inited_times == 0:
+                self.room_inited_times = 1
+                return self.round_wait(wait=2)
+            elif self.room_inited_times == 1:
+                self.room_inited_times = 2
+                # 挚交会谈 刚开始时 先往右走一段距离 避开桌子
+                # 如果桌子旁有感叹号交互会走过去 交互之后往右后移动
+                # 如果桌子旁没有感叹号交互 可以直接走到后方的感叹号
+                self.ctx.controller.move_w(press=True, press_time=0.7, release=True)
+                self.ctx.controller.move_d(press=True, press_time=1.4, release=True)
+                log_utils.log('挚交会谈开局向右移动')
 
         # 在大世界 开始检测
         frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
@@ -387,8 +395,7 @@ class LostVoidRunLevel(ZOperation):
             time.sleep(0.5)
             self.screenshot()  # 重新截图
             area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
-            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
             current_interact_target = None
             for ocr_result in ocr_result_map.keys():
                 target = match_interact_target(self.ctx, ocr_result)
@@ -476,6 +483,7 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_fail(op_result.status)
 
+        # 尝试对话
         talk_result = self.try_talk(self.last_screenshot)
         if talk_result is not None:
             # 对话的情况 说明交互到的不是下层入口 中途交互到其他内容了
@@ -483,6 +491,13 @@ class LostVoidRunLevel(ZOperation):
                 self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
 
             return talk_result
+
+        # 对话后可能出现需要点击的黑屏 (如战斗区域被npc提前清理了)
+        center_area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '中间区域-识别黑屏')
+        center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
+        if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
+            self.ctx.controller.click()
+            return self.round_wait(status='黑屏点击', wait=0.5)
 
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
             return self.round_success('迷失之地-大世界')
@@ -728,7 +743,7 @@ class LostVoidRunLevel(ZOperation):
                 if not not_in_battle:
                     area = self.ctx.screen_loader.get_area('战斗画面', '代理人阵亡')
                     result: FindAreaResultEnum = gpu_executor.execute_function(
-                        self.ctx.model_config.ocr_gpu,
+                        self.ctx.model_config.ocr_use_gpu,
                         screen_utils.find_area_in_screen,
                         ctx=self.ctx,
                         screen=self.last_screenshot,
@@ -741,7 +756,7 @@ class LostVoidRunLevel(ZOperation):
 
                     area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
                     found = gpu_executor.execute_function(
-                        self.ctx.model_config.ocr_gpu,
+                        self.ctx.model_config.ocr_use_gpu,
                         screen_utils.find_by_ocr,
                         ctx=self.ctx,
                         screen=self.last_screenshot,
@@ -784,7 +799,7 @@ class LostVoidRunLevel(ZOperation):
                     '迷失之地-战斗失败'
                 ]
                 screen_name = gpu_executor.execute_function(
-                    self.ctx.model_config.ocr_gpu,
+                    self.ctx.model_config.ocr_use_gpu,
                     self.check_and_update_current_screen,
                     screen=self.last_screenshot,
                     screen_name_list=not_in_battle_screen_name_list
@@ -793,7 +808,7 @@ class LostVoidRunLevel(ZOperation):
                 # 以下情况会出现确认对话框
                 # 1. 所有战术棱镜均已升级
                 confirm_result = gpu_executor.execute_function(
-                    self.ctx.model_config.ocr_gpu,
+                    self.ctx.model_config.ocr_use_gpu,
                     self.round_by_find_and_click_area,
                     screen=self.last_screenshot,
                     screen_name='迷失之地-大世界',

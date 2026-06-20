@@ -5,6 +5,7 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
+import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
@@ -27,6 +28,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
@@ -59,17 +61,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
+        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+        self.tm.overlay_debug_bus = self.overlay_debug_bus
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
+                use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -196,6 +201,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if default_factories:
             self.run_context.registry_application(default_factories, default_group=True)
 
+    def _load_plugin_screens(self) -> None:
+        """加载插件的 screen_info
+
+        遍历所有已注册插件，从其 screen_info/ 子目录加载 screen YAML。
+        未设 app_id 的 screen 自动使用插件的 app_id。
+        应在 screen_loader.reload() 之后调用。
+        """
+        for plugin_info in self.factory_manager.plugin_infos:
+            if plugin_info.plugin_dir is None:
+                continue
+            screen_dir = plugin_info.plugin_dir / 'screen_info'
+            self.screen_loader.load_extra_screen_dir(
+                str(screen_dir), default_app_id=plugin_info.app_id
+            )
+
     def refresh_application_registration(self) -> None:
         """刷新应用注册
 
@@ -215,6 +235,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         if default_factories:
             self.run_context.registry_application(default_factories, default_group=True)
+
+        # 重新加载插件 screen
+        self.screen_loader.reload()
+        self._load_plugin_screens()
 
         # 更新默认应用组
         self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
@@ -252,6 +276,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.init_ocr()
 
             self.screen_loader.reload()
+            self._load_plugin_screens()
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()
@@ -355,7 +380,68 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.controller.game_win is not None:
             self.controller.game_win.active()
         _, img = self.controller.screenshot(independent=True)
-        debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
+        base_file_name = debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
+        self._save_overlay_patched_image(img, base_file_name)
+
+    def _save_overlay_patched_image(self, base_image, base_file_name: str) -> None:
+        try:
+            from one_dragon_qt.overlay.overlay_config import OverlayConfig
+        except Exception:
+            return
+
+        config = OverlayConfig()
+        if not config.patched_capture_enabled:
+            return
+
+        overlay_rgba = self._capture_overlay_rgba()
+        if overlay_rgba is None:
+            return
+
+        patched = self._compose_overlay_patched_image(base_image, overlay_rgba)
+        if patched is None:
+            return
+
+        debug_utils.save_debug_image(
+            patched,
+            file_name=f"{base_file_name}{config.patched_capture_suffix}",
+            copy_screenshot=False,
+        )
+
+    @staticmethod
+    def _compose_overlay_patched_image(base_image, overlay_rgba):
+        if base_image is None or overlay_rgba is None:
+            return None
+        if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
+            return None
+
+        target_h, target_w = base_image.shape[:2]
+        if target_h <= 0 or target_w <= 0:
+            return None
+
+        if overlay_rgba.shape[0] != target_h or overlay_rgba.shape[1] != target_w:
+            overlay_rgba = cv2.resize(
+                overlay_rgba,
+                (target_w, target_h),
+                interpolation=cv2.INTER_LINEAR,
+            )
+
+        overlay_rgb = overlay_rgba[:, :, :3].astype("float32")
+        overlay_bgr = overlay_rgb[:, :, ::-1]  # RGBA -> BGR 通道顺序
+        alpha = (overlay_rgba[:, :, 3:4].astype("float32") / 255.0).clip(0.0, 1.0)
+        base_rgb = base_image.astype("float32")
+        patched = base_rgb * (1.0 - alpha) + overlay_bgr * alpha
+        return patched.astype("uint8")
+
+    @staticmethod
+    def _capture_overlay_rgba():
+        try:
+            from one_dragon_qt.overlay.overlay_manager import OverlayManager
+        except Exception:
+            return None
+        manager = OverlayManager.instance()
+        if manager is None:
+            return None
+        return manager.capture_overlay_rgba()
 
     def switch_instance(self, instance_idx: int) -> None:
         """
@@ -398,7 +484,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
+        self.ocr.update_use_gpu(self.model_config.ocr_use_gpu)
         self.ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
@@ -427,3 +513,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
+        self.overlay_debug_bus.clear()

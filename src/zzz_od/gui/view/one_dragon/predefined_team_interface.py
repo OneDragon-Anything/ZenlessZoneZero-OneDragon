@@ -41,15 +41,15 @@ class TeamNameValidator(QValidator):
 
 
 class TeamSettingCard(SettingCardBase):
-
     changed = Signal(PredefinedTeamInfo)
 
-    def __init__(self):
+    def __init__(self, only_agents: bool = False):
         SettingCardBase.__init__(
             self, icon=FluentIcon.PEOPLE, title='',
             margins=Margins(16, 0, 0, 16),
         )
         self.team_info: PredefinedTeamInfo | None = None
+        self.only_agents: bool = only_agents
 
         self.titleLabel.hide()
         self.contentLabel.hide()
@@ -60,23 +60,29 @@ class TeamSettingCard(SettingCardBase):
         self.hBoxLayout.addLayout(v_layout)
 
         # 第一行：编队名称 + 战斗策略
-        row1 = QHBoxLayout()
-        row1.setSpacing(10)
-        self.name_input = LineEdit()
-        self.name_input.setValidator(TeamNameValidator(self.name_input))
-        self.name_input.textChanged.connect(self.on_name_changed)
-        self.name_input.setFixedWidth(130)
-        row1.addWidget(self.name_input)
-        row1.addSpacing(13)
+        if only_agents:
+            self.name_input = None
+            self.auto_battle_btn = None
+        else:
+            self.setFixedHeight(96)
 
-        auto_battle_label = CaptionLabel(gt('战斗配置'))
-        row1.addWidget(auto_battle_label)
+            row1 = QHBoxLayout()
+            row1.setSpacing(10)
+            self.name_input = LineEdit()
+            self.name_input.setValidator(TeamNameValidator(self.name_input))
+            self.name_input.textChanged.connect(self.on_name_changed)
+            self.name_input.setFixedWidth(130)
+            row1.addWidget(self.name_input)
+            row1.addSpacing(13)
 
-        self.auto_battle_btn = ComboBox()
-        self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
-        row1.addWidget(self.auto_battle_btn, stretch=1)
-        row1.addSpacing(16)
-        v_layout.addLayout(row1)
+            auto_battle_label = CaptionLabel(gt('战斗配置'))
+            row1.addWidget(auto_battle_label)
+
+            self.auto_battle_btn = ComboBox()
+            self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
+            row1.addWidget(self.auto_battle_btn, stretch=1)
+            row1.addSpacing(16)
+            v_layout.addLayout(row1)
 
         # 第二行：三个代理人
         row2 = QHBoxLayout()
@@ -96,23 +102,34 @@ class TeamSettingCard(SettingCardBase):
         row2.addSpacing(16)
         v_layout.addLayout(row2)
 
-        self.setFixedHeight(96)
-
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
         self.team_info = team
 
-        self.name_input.blockSignals(True)
-        self.name_input.setText(self.team_info.name)
-        self.name_input.blockSignals(False)
+        if not self.only_agents:
+            self.name_input.blockSignals(True)
+            self.name_input.setText(self.team_info.name)
+            self.name_input.blockSignals(False)
 
-        self.auto_battle_btn.set_items(auto_battle_list, team.auto_battle)
+            self.auto_battle_btn.set_items(auto_battle_list, team.auto_battle)
 
         agent_opts = ([ConfigItem(label='代理人', value='unknown')]
-            + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
+                      + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
 
         self.agent_1_btn.set_items(agent_opts, team.agent_id_list[0])
         self.agent_2_btn.set_items(agent_opts, team.agent_id_list[1])
         self.agent_3_btn.set_items(agent_opts, team.agent_id_list[2])
+
+    def setEnabled(self, enabled: bool):
+        if not self.only_agents:
+            self.name_input.setEnabled(enabled)
+            self.auto_battle_btn.setEnabled(enabled)
+
+        self.agent_1_btn.setEnabled(enabled)
+        self.agent_2_btn.setEnabled(enabled)
+        self.agent_3_btn.setEnabled(enabled)
+
+    def setDisabled(self, disabled: bool):
+        self.setEnabled(not disabled)
 
     def on_name_changed(self, value: str) -> None:
         if self.team_info is None:

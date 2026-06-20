@@ -113,8 +113,7 @@ class NotoriousHunt(ZOperation):
         # 通过代理人进入则跳过重新选择副本
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         is_target_mission: bool = False  # 当前是否目标副本
 
         for ocr_result in ocr_result_map:
@@ -132,9 +131,8 @@ class NotoriousHunt(ZOperation):
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('恶名狩猎', '副本名称列表')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
 
         for ocr_result, mrl in ocr_result_map.items():
             if self._match_mission_type(self.plan.mission_type_name, ocr_result):
@@ -196,6 +194,7 @@ class NotoriousHunt(ZOperation):
                     return self.round_retry('未识别到剩余次数', wait=0.5)
                 self.can_run_times = self.run_record.left_times
             else:
+                self.run_record.left_times = left_times
                 self.can_run_times = left_times
 
             log.info('恶名狩猎剩余奖励次数 %s', self.can_run_times)
@@ -260,11 +259,11 @@ class NotoriousHunt(ZOperation):
             return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='选择难度')
-    @node_from(from_name='恢复电量', status='恢复电量成功')
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if result.is_success:
             return self.round_success(status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -287,8 +286,7 @@ class NotoriousHunt(ZOperation):
         if not self.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -426,7 +424,7 @@ class NotoriousHunt(ZOperation):
             try_next = self.plan.plan_times > self.plan.run_times
         else:
             try_next = self.can_run_times > 0
-        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next)
+        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next, is_agent_plan=self.plan.is_agent_plan)
         result = op.execute()
         if result.status == '战斗结果-完成' and self.can_run_times > 0:
             # 可能是其他设备挑战了 没有剩余次数了

@@ -1,5 +1,7 @@
 # 初始化流程规范
 
+> 相关文档：[一条龙整体架构](one_dragon_architecture.md) | [应用插件系统](modules/application_plugin_system.md)
+
 需要初始化的内容划分为以下部分
 
 - 普遍应用需要: 应该在启动时异步初始化，初始化完成后才能开始执行应用。

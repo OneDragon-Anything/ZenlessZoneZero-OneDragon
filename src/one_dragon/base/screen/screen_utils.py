@@ -120,15 +120,15 @@ def find_area_in_screen_binary(
     elif area.is_template_area:
         # 裁剪区域
         rect = area.rect
-        part = cv2_utils.crop_image_only(binary_screen, rect)
 
         # 使用二值化模板匹配
-        mrl = ctx.tm.match_template_binary(
-            part,
+        mrl = ctx.tm.crop_and_match_template_binary(
+            binary_screen,
+            rect,
             area.template_sub_dir,
             area.template_id,
             threshold=area.template_match_threshold,
-            binary_threshold=binary_threshold
+            binary_threshold=binary_threshold,
         )
         find = mrl.max is not None
 
@@ -171,10 +171,9 @@ def find_area_in_screen(
                 break
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
@@ -202,16 +201,14 @@ def find_template_coord_in_area(
     if area is None or not area.is_template_area:
         return None
 
-    # 裁剪出指定区域
-    part = cv2_utils.crop_image_only(screen, area.rect)
-
     # 在裁剪区域内进行模板匹配
-    mrl = ctx.tm.match_template(
-        part,
+    mrl = ctx.tm.crop_and_match_template(
+        screen,
+        area.rect,
         area.template_sub_dir,
         area.template_id,
         threshold=area.template_match_threshold,
-        only_best=True
+        only_best=True,
     )
 
     if mrl.max is None:
@@ -272,10 +269,9 @@ def find_and_click_area(
         return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
     elif area.is_template_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+        mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
+                                             threshold=area.template_match_threshold)
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
 
@@ -363,7 +359,7 @@ def get_match_screen_name(
     elif ctx.screen_loader.current_screen_name is not None or ctx.screen_loader.last_screen_name is not None:
         return get_match_screen_name_from_last(ctx, screen, crop_first=crop_first)
     else:
-        for screen_info in ctx.screen_loader.screen_info_list:
+        for screen_info in ctx.screen_loader.active_screen_info_list:
             if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
                 return screen_info.screen_name
 
@@ -385,6 +381,8 @@ def get_match_screen_name_from_last(
     Returns:
         str | None: 画面名称
     """
+    active_names = ctx.screen_loader.active_screen_names  # set or None
+
     bfs_list = []
 
     if ctx.screen_loader.current_screen_name is not None:  # 如果有记录上次所在画面 则从这个画面开始搜索
@@ -400,6 +398,18 @@ def get_match_screen_name_from_last(
         current_screen_name = bfs_list[bfs_idx]
         bfs_idx += 1
 
+        # 在 scope 模式下 跳过非活跃 screen 的匹配（但仍展开其邻居以保持图连通性）
+        if active_names is not None and current_screen_name not in active_names:
+            screen_info = ctx.screen_loader.screen_info_map.get(current_screen_name)
+            if screen_info is not None:
+                for area in screen_info.area_list:
+                    if area.goto_list is None or len(area.goto_list) == 0:
+                        continue
+                    for goto_screen in area.goto_list:
+                        if goto_screen not in bfs_list:
+                            bfs_list.append(goto_screen)
+            continue
+
         if is_target_screen(ctx, screen, screen_name=current_screen_name, crop_first=crop_first):
             return current_screen_name
 
@@ -414,7 +424,7 @@ def get_match_screen_name_from_last(
                     bfs_list.append(goto_screen)
 
     # 最后 尝试搜索中没有出现的画面
-    for screen_info in ctx.screen_loader.screen_info_list:
+    for screen_info in ctx.screen_loader.active_screen_info_list:
         if screen_info.screen_name in bfs_list:
             continue
         if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
