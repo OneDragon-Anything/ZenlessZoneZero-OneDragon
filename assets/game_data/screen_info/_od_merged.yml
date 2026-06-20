@@ -1697,10 +1697,10 @@
   - area_name: 按钮-退出
     id_mark: false
     pc_rect:
-    - 1730
-    - 206
-    - 1794
-    - 266
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1880,10 +1880,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1981,10 +1981,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2082,10 +2082,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2183,10 +2183,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2284,10 +2284,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
