@@ -13,6 +13,7 @@ class ScreenInfo:
         self.old_screen_id: str = data.get('screen_id', '')  # 旧的画面ID 用于保存时删掉旧文件
         self.screen_id: str = data.get('screen_id', '')  # 画面ID 用于加载文件
         self.screen_name: str = data.get('screen_name', '')  # 画面名称 用于显示
+        self.app_id: str = data.get('app_id', '')  # 所属应用ID 空字符串表示全局 screen
 
         self.screen_image: MatLike | None = None
 
@@ -96,6 +97,8 @@ class ScreenInfo:
         data: dict[str, Any] = {}
         data['screen_id'] = self.screen_id
         data['screen_name'] = self.screen_name
+        if self.app_id:
+            data['app_id'] = self.app_id
         data['pc_alt'] = self.pc_alt
         data['area_list'] = [area.to_dict() for area in self.area_list]
 

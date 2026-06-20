@@ -19,6 +19,7 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeChallengeWay,
     CoffeeChooseWay,
     CoffeeConfig,
+    CoffeeTransportPoint,
 )
 from zzz_od.context.zzz_context import ZContext
 
@@ -39,6 +40,9 @@ class CoffeeSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
+
+        self.transport_point_opt = ComboBoxSettingCard(icon=FluentIcon.SEND, title='传送地点', options_enum=CoffeeTransportPoint)
+        content_widget.add_widget(self.transport_point_opt)
 
         self.choose_way_opt = ComboBoxSettingCard(icon=FluentIcon.CALENDAR, title='咖啡选择', options_enum=CoffeeChooseWay)
         content_widget.add_widget(self.choose_way_opt)
@@ -74,6 +78,7 @@ class CoffeeSettingInterface(VerticalScrollInterface, GroupIdMixin):
             group_id=self.group_id,
         )
 
+        self.transport_point_opt.init_with_adapter(get_prop_adapter(self.config, 'transport_point'))
         self.choose_way_opt.init_with_adapter(get_prop_adapter(self.config, 'choose_way'))
         self.challenge_way_opt.init_with_adapter(get_prop_adapter(self.config, 'challenge_way'))
         self.card_num_opt.init_with_adapter(get_prop_adapter(self.config, 'card_num'))

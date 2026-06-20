@@ -29,7 +29,7 @@ class RuntimeLauncher(ExeLauncher):
         git_service = GitService(ProjectConfig(), env_config)
         first_run = not git_service.check_repo_exists()
 
-        if not first_run and not env_config.auto_update:
+        if not first_run and not env_config.auto_update_code:
             log.info(gt('未开启代码自动更新，跳过'))
             return
 

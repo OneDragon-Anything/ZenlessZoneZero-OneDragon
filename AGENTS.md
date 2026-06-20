@@ -23,10 +23,10 @@ uv sync --group dev
 uv run --env-file .env src/zzz_od/gui/app.py
 uv run --env-file .env pytest zzz-od-test/
 uv run --env-file .env ruff check src/你修改的文件.py
-uv run --env-file .env ruff format src/你修改的文件.py
+uv run --env-file .env ruff check --fix src/你修改的文件.py
 ```
 
-- 只对自己修改的文件运行 `ruff check` / `ruff format`。
+- 只对自己修改的文件运行 `ruff check`。
 - 不要对整个 `src/` 目录运行 ruff，现有仓库尚未全面适配。
 - 优先使用 Windows PowerShell 可直接执行的命令。
 

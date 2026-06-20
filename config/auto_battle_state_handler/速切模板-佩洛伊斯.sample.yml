@@ -1,0 +1,66 @@
+template_name: "速切模板-佩洛伊斯"
+handlers:
+  - states: "[前台-佩洛伊斯]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-佩洛伊斯]"
+    sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        sub_handlers:
+          - states: "[自定义-失衡时间, 0, 10]"
+            operations:
+              - operation_template: "佩洛伊斯-终结技-失衡"
+          - states: ""
+            operations:
+              - operation_template: "佩洛伊斯-终结技"
+
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "通用-支援攻击"
+
+      # 红光 → 用特殊技代替格挡（参考仪玄）
+      - states: "[自定义-红光闪避, 0, 1]"
+        sub_handlers:
+          - states: ""
+            operations:
+              - operation_template: "通用-闪A"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "通用-连携攻击"
+
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 1.0
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      # 终结技可用
+      - states: "[佩洛伊斯-终结技可用]"
+        sub_handlers:
+          - states: "[自定义-失衡时间, 0, 10]"
+            operations:
+              - operation_template: "佩洛伊斯-终结技-失衡"
+          - states: ""
+            operations:
+              - operation_template: "佩洛伊斯-终结技"
+
+      # 强化特殊技可用 且 日珥足够 → 强化特殊接长按普攻
+      - states: "[佩洛伊斯-特殊技可用] & [佩洛伊斯-日珥]{31, 60}"
+        operations:
+          - operation_template: "佩洛伊斯-强化特殊接长按普攻"
+
+      # 日珥 > 30 → 长按普攻
+      - states: "[佩洛伊斯-日珥]{31, 60}"
+        operations:
+          - operation_template: "佩洛伊斯-长按普攻"
+
+      # 默认：普通攻击
+      - states: ""
+        interrupt_states: "[佩洛伊斯-日珥]{31, 60} | [佩洛伊斯-能量]{110, 120}"
+        operations:
+          - operation_template: "通用-普通攻击"

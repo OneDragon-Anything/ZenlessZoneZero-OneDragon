@@ -1,0 +1,10 @@
+sub_dir: agent_state
+template_id: promeia_ss_3_3
+template_name: 角色状态-普罗米娅-霜刑-33
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 803, 99
+- 804, 101
+- 809, 99
+- 811, 101

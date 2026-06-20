@@ -28,7 +28,6 @@ from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.app_run_list import AppRunList
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -68,6 +67,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.app_run_list.app_run_clicked.connect(self._on_app_card_run)
         self.app_run_list.app_switch_changed.connect(self.on_app_switch_run)
         self.app_run_list.app_setting_clicked.connect(self.on_app_setting_clicked)
+        self.app_run_list.app_notify_clicked.connect(self.on_app_notify_clicked)
         return self.app_run_list
 
     def get_widget_at_top(self) -> QWidget:
@@ -80,7 +80,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
             self.help_opt = HelpCard(url=self.help_url)
             run_group.addSettingCard(self.help_opt)
 
-        self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='单应用通知')
+        self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='应用通知')
         self.notify_btn = PushButton(text=gt('设置'), icon=FluentIcon.SETTING)
         self.notify_btn.clicked.connect(self._on_notify_setting_clicked)
         self.notify_switch.hBoxLayout.addWidget(self.notify_btn, 0, Qt.AlignmentFlag.AlignRight)
@@ -234,14 +234,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         pass
 
     def _on_notify_setting_clicked(self) -> None:
-        self.show_notify_dialog()
-
-    def show_notify_dialog(self) -> None:
-        """
-        显示通知设置对话框。配置更新由对话框内部处理。
-        """
-        dialog = NotifyDialog(self.ctx, self.window())
-        dialog.exec()
+        """处理通知设置按钮被点击，委托给 app_setting_manager。"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        window.app_setting_manager.show_notify_setting(parent=self)
 
     def on_app_setting_clicked(self, app_id: str) -> None:
         """处理应用设置按钮被点击，委托给 app_setting_manager"""
@@ -258,6 +255,20 @@ class OneDragonRunInterface(SplitAppRunInterface):
             target=target,
         )
 
+    def on_app_notify_clicked(self, app_id: str) -> None:
+        """处理应用通知设置按钮被点击，委托给 app_setting_manager。"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        target = self._find_app_card_notify_btn(app_id)
+        if target is None:
+            return
+        window.app_setting_manager.show_app_notify_setting(
+            app_id=app_id,
+            parent=self.window(),
+            target=target,
+        )
+
     def _update_setting_btn_visibility(self) -> None:
         """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
         window = self.window()
@@ -266,10 +277,18 @@ class OneDragonRunInterface(SplitAppRunInterface):
         settable = window.app_setting_manager.settable_app_ids
         for card in self.app_run_list._app_cards:
             card.setting_btn.setVisible(card.app.app_id in settable)
+            card.set_notify_visible(card.app.app_id in self.ctx.notify_config.app_map)
 
     def _find_app_card_setting_btn(self, app_id: str):
         """找到对应 app_id 的卡片的设置按钮"""
         for card in self.app_run_list._app_cards:
             if card.app.app_id == app_id:
                 return card.setting_btn
+        return None
+
+    def _find_app_card_notify_btn(self, app_id: str):
+        """找到对应 app_id 的卡片的通知设置按钮"""
+        for card in self.app_run_list._app_cards:
+            if card.app.app_id == app_id:
+                return card.more_btn
         return None
