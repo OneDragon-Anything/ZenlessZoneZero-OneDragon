@@ -99,6 +99,9 @@ class AutoBattleContext:
         read_from_merged = self.ctx.battle_assistant_config.use_merged_file
         if read_from_merged and key in self._op_cache:
             self.auto_op = self._op_cache[key]
+            # 从缓存取出时，确保 is_running 已清理，防止上次异常退出残留标志
+            if self.auto_op.is_running:
+                self.auto_op.stop_running()
         else:
             self.auto_op = AutoBattleOperator(
                 ctx=self,
@@ -143,7 +146,6 @@ class AutoBattleContext:
         """
         if self.auto_op is not None:
             # 清空之前检测到的状态
-
             self.auto_op.start_running_async()
             self.start_context_async()
             self.clear_all_states()

@@ -52,7 +52,8 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.current_execution_info: ExecutionInfo | None = None  # 当前的执行信息
         self.running_executor: OperationExecutor | None = None  # 正在运行的任务
         self.running_executor_cnt: AtomicInt = AtomicInt()  # 统计有
-        
+        self._pending_stop_decs: int = 0  # 记录 _stop_running_task 提前递减的次数
+
         self._inited: bool = False
         self._task_lock: Lock = Lock()
 
@@ -262,6 +263,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 # 如果 finish=True 则计数器已经在 _on_task_done 减少了 这里就不减了
                 # 如果 finish=False 则代表还有操作在继续。在这里要减少计数器而不是等_on_task_done 让无触发器场景尽早运行
                 self.running_executor_cnt.dec()
+                self._pending_stop_decs += 1  # 记录这次提前递减 防止 _on_task_done 双重递减
             self.running_executor = None
 
     def _on_task_done(self, future: Future) -> None:
@@ -273,8 +275,19 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 result = future.result()
                 if result:  # 顺利执行完毕
                     self.running_executor_cnt.dec()
+                else:
+                    # 被 _stop_running_task 提前停止时 已经递减过了 消耗掉标记即可
+                    if self._pending_stop_decs > 0:
+                        self._pending_stop_decs -= 1
+                    else:
+                        # op_list 为空等情况返回 False 需要递减计数器 否则主循环永远阻塞
+                        self.running_executor_cnt.dec()
             except Exception:  # run_async里有callback打印日志
-                pass
+                if self._pending_stop_decs > 0:
+                    self._pending_stop_decs -= 1
+                else:
+                    # 异常路径同样需要递减计数器 防止 running_executor_cnt 永远 > 0 导致死锁
+                    self.running_executor_cnt.dec()
 
     @cached_property
     def usage_states(self) -> set[str]:
