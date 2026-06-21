@@ -3,6 +3,7 @@ import threading
 import time
 from collections.abc import Callable
 from logging import DEBUG
+from typing import Any
 
 from cv2.typing import MatLike
 
@@ -121,14 +122,14 @@ class OnnxOcrParam:
                 ocr_model_size = 'small'
             else:
                 ocr_model_size = 'small'
-        self.ocr_model_size = ocr_model_size
+        self.ocr_model_size: str | None = ocr_model_size
 
         # ===================================================================
         # IV. 文字检测超参数 (Detection Hyperparameters)
         # ===================================================================
         self.det_limit_side_len = det_limit_side_len  # 输入图像的长边限制
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """将OCR配置转换为字典格式"""
         return {
             'use_gpu': self.use_gpu,
