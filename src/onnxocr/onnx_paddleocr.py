@@ -104,7 +104,7 @@ class ONNXPaddleOcr(TextSystem):
             if det and rec:
                 ocr_res = []
                 dt_boxes, rec_res = self.__call__(img, cls)
-                tmp_res = [[box.tolist(), res] for box, res in zip(dt_boxes, rec_res, strict=False)]
+                tmp_res = [[box.tolist(), res] for box, res in zip(dt_boxes, rec_res, strict=True)]
                 ocr_res.append(tmp_res)
                 return ocr_res
             elif det and not rec:
