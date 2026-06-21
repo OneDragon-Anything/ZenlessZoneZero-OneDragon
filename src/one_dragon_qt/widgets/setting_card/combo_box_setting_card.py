@@ -31,6 +31,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
                  tooltip: Optional[str] = None,
+                 content_shrink: bool = False,
                  parent=None
                  ):
 
@@ -50,6 +51,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self.combo_box = ComboBox(self)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
+        self._content_shrink = content_shrink
 
         # 处理工具提示
         self.tooltip_text: str = tooltip
@@ -81,6 +83,22 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             for opt_item in options_list:
                 self._opts_list.append(opt_item)
                 self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
+
+    def showEvent(self, event: QEvent) -> None:
+        super().showEvent(event)
+        if self._content_shrink:
+            self._shrink_content()
+
+    def _shrink_content(self) -> None:
+        """下拉框变宽时收窄说明文字，右边界不动、下拉框文字完整显示"""
+        card_w = self.width()
+        if card_w <= 0:
+            return
+        combo_w = self.combo_box.sizeHint().width()
+        max_content = card_w - 80 - combo_w
+        if max_content < 40:
+            max_content = 40
+        self.contentLabel.setMaximumWidth(max_content)
 
     def eventFilter(self, obj, event: QEvent) -> bool:
         """处理标题标签的鼠标事件。"""
@@ -140,6 +158,8 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             return
 
         self.last_index = index
+        if self._content_shrink:
+            self._shrink_content()
         self._update_desc()
         val = self.combo_box.itemData(index)
 
@@ -174,6 +194,8 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         if not emit_signal:
             self.combo_box.blockSignals(False)
         self._update_desc()
+        if self._content_shrink:
+            self._shrink_content()
 
     def getValue(self) -> object:
         """获取当前选中的值。"""

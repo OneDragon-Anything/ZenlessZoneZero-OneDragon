@@ -231,3 +231,14 @@ class PredefinedTeamInterface(SplitAppRunInterface):
 
     def _on_team_info_changed(self, team: PredefinedTeamInfo) -> None:
         self.ctx.team_config.update_team(team)
+
+    def on_context_state_changed(self) -> None:
+        super().on_context_state_changed()
+        if self.ctx.run_context.is_context_stop:
+            self._refresh_team_cards()
+
+    def _refresh_team_cards(self) -> None:
+        auto_battle_list = get_auto_battle_op_config_list('auto_battle')
+        team_list = self.ctx.team_config.team_list
+        for i in range(min(len(team_list), len(self.team_opt_list))):
+            self.team_opt_list[i].init_setting_card(auto_battle_list, team_list[i])

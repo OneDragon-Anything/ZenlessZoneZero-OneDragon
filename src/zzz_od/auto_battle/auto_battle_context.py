@@ -561,18 +561,18 @@ class AutoBattleContext:
             # 连携
             future_list.append(_battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
 
-            # 战斗结束
-            check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
-            if check_battle_end:
-                if self.ctx.model_config.ocr_use_gpu:
-                    executor = gpu_executor
-                else:
-                    executor = _battle_state_check_executor
-                future_list.append(executor.submit(
-                    self._check_battle_end,
-                    screen, screenshot_time,
-                    check_battle_end_normal_result, check_battle_end_hollow_result, check_battle_end_defense_result
-                ))
+        # 战斗结束 — 不受 in_battle 限制，防止攻击按钮误匹配结算画面导致永不检测结束
+        check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
+        if check_battle_end:
+            if self.ctx.model_config.ocr_use_gpu:
+                executor = gpu_executor
+            else:
+                executor = _battle_state_check_executor
+            future_list.append(executor.submit(
+                self._check_battle_end,
+                screen, screenshot_time,
+                check_battle_end_normal_result, check_battle_end_hollow_result, check_battle_end_defense_result
+            ))
 
         # 统一处理结果
         for future in future_list:
