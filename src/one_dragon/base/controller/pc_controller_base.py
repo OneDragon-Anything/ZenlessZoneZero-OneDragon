@@ -71,6 +71,7 @@ class PcControllerBase(ControllerBase):
             return False
 
     def init_before_context_run(self) -> bool:
+        pyautogui.PAUSE = 0.001  # pyautogui的操作会有延迟, 一些需要低延迟的操作中会取消这个延迟然后恢复延迟, 以免影响其他功能
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
         self.init_game_win()
         if not self.background_mode:
@@ -269,7 +270,8 @@ class PcControllerBase(ControllerBase):
         screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
         win32api.SetCursorPos((screen_x, screen_y))
 
-    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False, gamepad_key: str | None = None) -> bool:
+    def click(self, pos: Point = None, press_time: float = 0.1, pc_alt: bool = False,
+              gamepad_key: str | None = None) -> bool:
         """点击位置。
 
         Args:
@@ -288,8 +290,7 @@ class PcControllerBase(ControllerBase):
 
         return self._foreground_click(pos, press_time, pc_alt)
 
-
-    def _foreground_click(self, pos: Point | None, press_time: float = 0, pc_alt: bool = False) -> bool:
+    def _foreground_click(self, pos: Point | None, press_time: float = 0.1, pc_alt: bool = False) -> bool:
         """前台点击：通过 pyautogui 点击，可选 ALT 解锁光标。
 
         Args:
@@ -514,14 +515,14 @@ class PcControllerBase(ControllerBase):
         win_pos = self.game_win.game2win_pos(game_pos)
         if win_pos is not None:
             pyautogui.moveTo(win_pos.x, win_pos.y)
+            time.sleep(0.1)  # 原本 pyautogui 的操作会有0.1s延迟, 现在去掉了, 故在这里加上延迟
 
     @property
     def center_point(self) -> Point:
         return Point(self.standard_width // 2, self.standard_height // 2)
 
 
-
-def win_click(pos: Point = None, press_time: float = 0, primary: bool = True):
+def win_click(pos: Point = None, press_time: float = 0.1, primary: bool = True):
     """点击鼠标。
 
     Args:
@@ -532,13 +533,11 @@ def win_click(pos: Point = None, press_time: float = 0, primary: bool = True):
     btn = pyautogui.PRIMARY if primary else pyautogui.SECONDARY
     if pos is None:
         pos = get_current_mouse_pos()
-    if press_time > 0:
-        pyautogui.moveTo(pos.x, pos.y)
-        pyautogui.mouseDown(button=btn)
-        time.sleep(press_time)
-        pyautogui.mouseUp(button=btn)
-    else:
-        pyautogui.click(pos.x, pos.y, button=btn)
+
+    pyautogui.moveTo(pos.x, pos.y)
+    pyautogui.mouseDown(button=btn)
+    time.sleep(max(0.001, press_time))
+    pyautogui.mouseUp(button=btn)
 
 
 def win_scroll(clicks: int, pos: Point = None):

@@ -7,9 +7,9 @@ area_list:
   id_mark: false
   pc_rect:
   - 414
-  - 812
+  - 840
   - 596
-  - 858
+  - 900
   text: 丽都周纪
   lcs_percent: 0.5
   template_sub_dir: ''

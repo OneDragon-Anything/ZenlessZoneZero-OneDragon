@@ -70,7 +70,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
+                use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
@@ -484,7 +484,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
+        self.ocr.update_use_gpu(self.model_config.ocr_use_gpu)
         self.ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
