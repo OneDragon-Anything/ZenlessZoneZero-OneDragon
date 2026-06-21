@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# 获取目标远程库名称及 URL
+remote_name="$1"
+remote_url="$2"
+
+if [ -z "$remote_url" ]; then
+    remote_url=$(git remote get-url "$remote_name" 2>/dev/null)
+fi
+
+# 仅当推送目标是主仓时才进行分支检查
+if echo "$remote_url" | grep -qi "OneDragon-Anything/ZenlessZoneZero-OneDragon"; then
+    # 从标准输入中读取推送引用的信息
+    # 格式为: <local-ref> <local-sha> <remote-ref> <remote-sha>
+    while read -r local_ref local_sha remote_ref remote_sha; do
+        if [ "$remote_ref" = "refs/heads/main" ]; then
+            echo "=========================================================="
+            echo " [ERROR] 拦截：请不要直接推送（push）代码到主仓的 main 分支！"
+            echo "         Direct push to the main repo's main branch is not allowed!"
+            echo ""
+            echo " 请在本地切出 feature 分支并提交 Pull Request/Merge Request。"
+            echo " Please create a feature branch and submit a Pull/Merge Request."
+            echo "=========================================================="
+            exit 1
+        fi
+    done
+fi
+
+exit 0

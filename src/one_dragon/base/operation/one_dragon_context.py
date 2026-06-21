@@ -297,10 +297,85 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+            self._setup_git_hooks()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
             self._init_lock.release()
+
+    def _setup_git_hooks(self) -> None:
+        """
+        自动配置本地的 git hooks 指向项目中的 .githooks 目录
+        """
+        try:
+            import subprocess
+            
+            cls_file = inspect.getfile(self.__class__)
+            src_dir = file_utils.find_src_dir(cls_file)
+            if src_dir is None:
+                return
+            project_root = src_dir.parent
+            git_dir = project_root / ".git"
+            githooks_dir = project_root / ".githooks"
+            
+            if git_dir.exists() and githooks_dir.exists():
+                # 检查当前的 hooksPath
+                result = subprocess.run(
+                    ["git", "config", "core.hooksPath"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(project_root)
+                )
+                
+                # 若命令返回码非 0 且 stderr 存在内容，才视为真实错误返回
+                stderr_msg = result.stderr.strip()
+                if result.returncode != 0 and stderr_msg:
+                    log.warning(f"获取当前 Git hooksPath 失败: {stderr_msg}")
+                    return
+                current_hooks_path = result.stdout.strip()
+                
+                # 根据已有配置情况进行处理
+                if not current_hooks_path:
+                    set_result = subprocess.run(
+                        ["git", "config", "core.hooksPath", ".githooks"],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+                    if set_result.returncode == 0:
+                        log.info("Git hooks 路径已成功配置为 .githooks")
+                    else:
+                        log.warning(f"配置 Git hooks 失败 (返回码 {set_result.returncode}): {set_result.stderr.strip()}")
+                        return
+                elif current_hooks_path != ".githooks":
+                    # 检测到自定义 hooksPath，尝试自动将 pre-push 注入到对方的路径中以保证两者共存
+                    import shutil
+                    custom_hooks_dir = project_root / current_hooks_path
+                    custom_pre_push = custom_hooks_dir / "pre-push"
+                    
+                    if not custom_pre_push.exists():
+                        try:
+                            custom_hooks_dir.mkdir(parents=True, exist_ok=True)
+                            source_pre_push = githooks_dir / "pre-push"
+                            if source_pre_push.exists():
+                                shutil.copy2(source_pre_push, custom_pre_push)
+                                custom_pre_push.chmod(0o755)
+                                log.info(f"成功将 pre-push 保护逻辑注入到自定义路径 '{current_hooks_path}' 中")
+                        except Exception as e:
+                            log.warning(f"尝试向自定义 hooksPath 注入 pre-push 失败: {e}")
+                    else:
+                        log.warning(f"检测到自定义的 Git hooks 路径 '{current_hooks_path}' 且已存在 pre-push 脚本。请手动将仓库 '.githooks/pre-push' 逻辑合并进去。")
+                        
+                # 无论 hooksPath 是否刚配置过，都确保钩子文件有执行权限
+                pre_push_file = githooks_dir / "pre-push"
+                if pre_push_file.exists():
+                    try:
+                        pre_push_file.chmod(0o755)
+                    except Exception as pe:
+                        log.warning(f"赋予 pre-push 脚本可执行权限失败: {pe}")
+                        
+        except (subprocess.SubprocessError, OSError) as e:
+            log.warning(f"自动配置 Git hooks 失败: {e}")
 
     def init_controller(self) -> None:
         """
