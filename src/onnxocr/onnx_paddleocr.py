@@ -130,14 +130,14 @@ class ONNXPaddleOcr(TextSystem):
                     return cls_res
                 return ocr_res
         except Exception:
-            from one_dragon.utils.log_utils import log
-            log.error('OCR推理出错', exc_info=True)
+            from one_dragon.utils.log_utils import log as od_log
+            od_log.error('OCR推理出错', exc_info=True)
             try:
                 from one_dragon.utils import debug_utils
                 debug_image = img[0] if isinstance(img, list) else img
                 debug_utils.save_debug_image(image=debug_image, prefix='ocr_error')
             except Exception:
-                log.warning('保存OCR错误调试图片失败', exc_info=True)
+                od_log.warning('保存OCR错误调试图片失败', exc_info=True)
             raise
 
 
