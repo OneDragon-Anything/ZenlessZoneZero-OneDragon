@@ -484,6 +484,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        # 清理旧实例资源
+        if hasattr(self, 'ocr') and self.ocr is not None:
+            if hasattr(self.ocr, 'cleanup'):
+                self.ocr.cleanup()
+
         self.ocr = OnnxOcrMatcher(
             OnnxOcrParam(
                 ocr_model_name=self.model_config.ocr,
