@@ -90,7 +90,10 @@ class OnnxOcrParam:
         self.ocr_model_name: str = ocr_model_name
         self.models_dir: str = get_ocr_model_dir(ocr_model_name)
         if dict_name is None:
-            dict_name = get_ocr_model_dict_name(ocr_model_name) or ''
+            dict_name = get_ocr_model_dict_name(ocr_model_name)
+            if dict_name is None:
+                # 首次运行未下载时，根据模型名推导一个默认的字典文件名，避免崩溃
+                dict_name = f"{ocr_model_name}_dict.txt"
         # ===================================================================
         # I. 设备与性能 (Device & Performance)
         # ===================================================================
@@ -110,7 +113,9 @@ class OnnxOcrParam:
         # ===================================================================
         self.use_angle_cls = use_angle_cls  # 是否加载并使用方向分类模型
         if ocr_model_size is None:
-            if 'tiny' in ocr_model_name:
+            if 'medium' in ocr_model_name:
+                ocr_model_size = 'medium'
+            elif 'tiny' in ocr_model_name:
                 ocr_model_size = 'tiny'
             elif 'small' in ocr_model_name:
                 ocr_model_size = 'small'
@@ -239,6 +244,15 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             except Exception:
                 log.error('OCR模型加载出错', exc_info=True)
                 return False
+
+    def cleanup(self) -> None:
+        """
+        释放底层模型实例资源，协助 GC 回收 ONNX 会话
+        """
+        with self._init_lock:
+            if self._model is not None:
+                del self._model
+                self._model = None
 
     def update_use_gpu(self, use_gpu: bool) -> None:
         """
