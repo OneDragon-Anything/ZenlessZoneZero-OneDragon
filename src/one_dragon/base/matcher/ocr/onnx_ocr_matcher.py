@@ -37,6 +37,18 @@ def get_ocr_download_url(website: str, ocr_model_name: str) -> str:
     return f'{website}/{ocr_model_name}/{ocr_model_name}.zip'
 
 
+def get_ocr_model_dict_name(ocr_model_name: str) -> str | None:
+    """
+    获取模型对应的字典文件名。直接扫描本地文件夹中的字典文件。
+    """
+    base_dir = get_ocr_model_dir(ocr_model_name)
+    if os.path.exists(base_dir):
+        for f in os.listdir(base_dir):
+            if f.endswith('_dict.txt'):
+                return f
+    return None
+
+
 def get_final_file_list(ocr_model_name: str) -> list[str]:
     """
     下载成功后 整个模型的所有文件
@@ -44,14 +56,16 @@ def get_final_file_list(ocr_model_name: str) -> list[str]:
     :return:
     """
     base_dir = get_ocr_model_dir(ocr_model_name)
-    dict_name = 'ppocrv6_dict.txt' if 'ppocrv6' in ocr_model_name else 'ppocrv5_dict.txt'
-    return [
+    files = [
         os.path.join(base_dir, 'det.onnx'),
         os.path.join(base_dir, 'rec.onnx'),
         os.path.join(base_dir, 'cls.onnx'),
-        os.path.join(base_dir, dict_name),
         os.path.join(base_dir, 'simfang.ttf'),
     ]
+    dict_name = get_ocr_model_dict_name(ocr_model_name)
+    if dict_name is not None:
+        files.append(os.path.join(base_dir, dict_name))
+    return files
 
 
 class OnnxOcrParam:
@@ -66,17 +80,17 @@ class OnnxOcrParam:
             det_model_name: str = 'det.onnx',
             rec_model_name: str = 'rec.onnx',
             cls_model_name: str = 'cls.onnx',
-            dict_name: Optional[str] = None,
+            dict_name: str | None = None,
             font_name: str = 'simfang.ttf',
             use_gpu: bool = False,
             use_angle_cls: bool = False,
             det_limit_side_len: float = 960.0,
-            ocr_model_size: str = "small",
+            ocr_model_size: str | None = None,
     ):
         self.ocr_model_name: str = ocr_model_name
         self.models_dir: str = get_ocr_model_dir(ocr_model_name)
         if dict_name is None:
-            dict_name = 'ppocrv6_dict.txt' if 'ppocrv6' in ocr_model_name else 'ppocrv5_dict.txt'
+            dict_name = get_ocr_model_dict_name(ocr_model_name) or ''
         # ===================================================================
         # I. 设备与性能 (Device & Performance)
         # ===================================================================
@@ -95,6 +109,13 @@ class OnnxOcrParam:
         # III. 核心功能开关 (Core Feature Switches)
         # ===================================================================
         self.use_angle_cls = use_angle_cls  # 是否加载并使用方向分类模型
+        if ocr_model_size is None:
+            if 'tiny' in ocr_model_name:
+                ocr_model_size = 'tiny'
+            elif 'small' in ocr_model_name:
+                ocr_model_size = 'small'
+            else:
+                ocr_model_size = 'small'
         self.ocr_model_size = ocr_model_size
 
         # ===================================================================

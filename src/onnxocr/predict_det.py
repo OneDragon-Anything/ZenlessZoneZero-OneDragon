@@ -1,3 +1,4 @@
+import time
 
 import numpy as np
 
@@ -113,6 +114,7 @@ class TextDetector(PredictBase):
         shape_list = np.expand_dims(shape_list, axis=0)
         img = img.copy()
 
+        input_feed = self.get_input_feed(self.det_input_name, img)
         t0 = time.time()
         outputs = self.run_onnx_session(self.det_onnx_session, self.det_output_name, input_feed=input_feed)
         log.debug("Detection inference time: {:.3f}s", time.time() - t0)
