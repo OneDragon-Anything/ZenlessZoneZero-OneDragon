@@ -3,7 +3,6 @@ from onnxocr.logger import get_logger
 
 log = get_logger("predict_base")
 from one_dragon.utils import gpu_executor
-from one_dragon.utils.log_utils import log
 
 
 class PredictBase:
