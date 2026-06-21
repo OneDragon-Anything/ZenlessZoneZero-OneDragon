@@ -1,6 +1,9 @@
 import argparse
 import time
 from pathlib import Path
+from typing import Any
+
+from cv2.typing import MatLike
 
 from onnxocr.logger import get_logger
 from onnxocr.predict_system import TextSystem
@@ -75,7 +78,19 @@ class ONNXPaddleOcr(TextSystem):
     https://onnxruntime.ai/docs/reference/compatibility.html
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        use_gpu: bool = False,
+        det_model_dir: str | None = None,
+        rec_model_dir: str | None = None,
+        cls_model_dir: str | None = None,
+        rec_char_dict_path: str | None = None,
+        vis_font_path: str | None = None,
+        use_angle_cls: bool = False,
+        det_limit_side_len: float = 960.0,
+        ocr_model_size: str | None = None,
+        ocr_model_name: str | None = None,
+    ) -> None:
         # 默认参数
         parser = init_args()
         inference_args_dict = {}
@@ -83,18 +98,57 @@ class ONNXPaddleOcr(TextSystem):
             inference_args_dict[action.dest] = action.default
         params = argparse.Namespace(**inference_args_dict)
 
-        model_defaults = _build_ppocrv6_defaults(kwargs)
+        kwargs = {
+            "use_gpu": use_gpu,
+            "det_model_dir": det_model_dir,
+            "rec_model_dir": rec_model_dir,
+            "cls_model_dir": cls_model_dir,
+            "rec_char_dict_path": rec_char_dict_path,
+            "vis_font_path": vis_font_path,
+            "use_angle_cls": use_angle_cls,
+            "det_limit_side_len": det_limit_side_len,
+            "ocr_model_size": ocr_model_size,
+            "ocr_model_name": ocr_model_name,
+        }
+        # 过滤掉 None 值，避免覆盖默认行为
+        filtered_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        model_defaults = _build_ppocrv6_defaults(filtered_kwargs)
         params.rec_image_shape = "3, 48, 320"
 
         # 根据传入的参数覆盖更新默认参数
         params.__dict__.update(model_defaults)
-        params.__dict__.update(**kwargs)
+        params.__dict__.update(**filtered_kwargs)
 
         # 初始化模型
         super().__init__(params)
         log.info("OCR model initialized: det=True, cls={}, rec=True", self.use_angle_cls)
 
-    def ocr(self, img, det=True, rec=True, cls=True) -> list:
+    def ocr(
+        self,
+        img: MatLike | list[MatLike],
+        det: bool = True,
+        rec: bool = True,
+        cls: bool = True
+    ) -> list[Any]:
+        """对输入图像进行文字检测、方向分类及文本识别。
+
+        Args:
+            img: 待识别的图像，可以是单张图像 (MatLike) 或图像列表 (List[MatLike])。
+            det: 是否进行文字检测。若为 True，会先检测出所有文字区域的包围框。
+            rec: 是否进行文字识别。若为 True，会对文字区域进行文本内容识别。
+            cls: 是否进行方向角度分类校正。若为 True 且初始化时启用了角度分类模型，会校正文字方向。
+
+        Returns:
+            根据参数组合，返回不同层级的嵌套列表：
+            1. det=True, rec=True (默认):
+               返回 [[[box, (text_result, score)], ...]]
+               其中 box 是四点坐标列表 [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]，text_result 是识别的文本，score 是置信度。
+            2. det=True, rec=False:
+               返回 [[box, box, ...]]，仅包含检测到的所有包围框坐标。
+            3. det=False, rec=True (或 det=False, rec=False):
+               返回识别结果列表或分类结果列表。
+        """
         if cls is True and self.use_angle_cls is False:
             log.warning(
                 "Since the angle classifier is not initialized, the angle classifier will not be used during the forward process"
