@@ -669,18 +669,31 @@ class LostVoidRunLevel(ZOperation):
             # 第一层 两个武备选择后 往后走 可以方便走上楼梯
             # 2.0版本 入口左侧增加了一个研究员 因此交互后往后多走一点 方便看到这个研究员
             if self.interact_target.is_npc:
+                default_move_back: bool = False
+                # 俩npc在一起时, self.interact_target.name 有概率识别错误, 故使用 ao_fei_li_ya_talked 来判断是否选择了关卡武备
                 if self.interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value and not self.ao_fei_li_ya_talked:
-                    # 俩npc在一起时, self.interact_target.name 有概率识别错误, 故使用 ao_fei_li_ya_talked 来判断是否选择了关卡武备
-                    # 绝区零交互的范围是角色朝向的一个扇形区域, 故和npc贴贴时, 不面向npc就不会点击npc
-                    # 选择角色武备后往前走与奥菲利亚贴贴, 然后左转, 即可利用绝区零交互机制来与蕾交互(选择关卡武备)
-                    self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
-                    self.ctx.controller.move_a(press=True, press_time=0.1, release=True)
                     self.ao_fei_li_ya_talked = True
-                    pass
+                    # 识别开局右侧是否有两个npc
+                    frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
+                        self.last_screenshot, screenshot_time=self.last_screenshot_time,
+                        ignore_list=self.had_been_list)
+                    with_interact, with_distance, with_entry = self.ctx.lost_void.detector.is_frame_with_all(frame_result)
+                    if not with_interact:
+                        # 如果开局右边只有一个npc, 交互完正常后退
+                        default_move_back = True
+                    else:
+                        # 俩npc在一起时的寻路逻辑
+                        # 绝区零交互的范围是角色朝向的180°扇面区域、且扫描交互对象的优先级是角度>距离
+                        # 选择角色武备后先与奥菲利亚贴贴, 然后左转, 即可利用绝区零交互机制来与蕾交互(选择关卡武备)
+                        self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
+                        time.sleep(0.2)  # 消除惯性
+                        self.ctx.controller.move_a(press=True, press_time=0.1, release=True)
                 elif self.interact_target.name == LostVoidInteractNPC.SCGMDYJY.value:
                     # 研究员交互后 往右一点方便走到白点位置
                     self.ctx.controller.move_d(press=True, press_time=0.5, release=True)
                 else:
+                    default_move_back = True
+                if default_move_back:
                     self.ctx.controller.move_s(press=True, press_time=2, release=True)
         elif self.region_type == LostVoidRegionType.FRIENDLY_TALK:
             # 挚交会谈
