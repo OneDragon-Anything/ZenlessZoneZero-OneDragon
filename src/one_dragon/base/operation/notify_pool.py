@@ -62,4 +62,6 @@ class NotifyPool:
 
     def clear(self) -> None:
         self.items.clear()
+        self.max_items = 200
+        self.max_images = 10
         self._image_count = 0
