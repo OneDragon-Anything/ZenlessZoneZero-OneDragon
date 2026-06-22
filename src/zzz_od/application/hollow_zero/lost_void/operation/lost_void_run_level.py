@@ -677,7 +677,7 @@ class LostVoidRunLevel(ZOperation):
                     frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
                         self.last_screenshot, screenshot_time=self.last_screenshot_time,
                         ignore_list=self.had_been_list)
-                    with_interact, with_distance, with_entry = self.ctx.lost_void.detector.is_frame_with_all(frame_result)
+                    with_interact = self.ctx.lost_void.detector.is_frame_with(frame_result, LostVoidDetector.CLASS_INTERACT)
                     if not with_interact:
                         # 如果开局右边只有一个npc, 交互完正常后退
                         default_move_back = True
