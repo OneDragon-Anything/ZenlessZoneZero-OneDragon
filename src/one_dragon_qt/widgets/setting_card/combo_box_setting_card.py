@@ -85,6 +85,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                 self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
 
     def showEvent(self, event: QEvent) -> None:
+        """首次显示后收窄说明文字。"""
         super().showEvent(event)
         if self._content_shrink:
             self._shrink_content()
