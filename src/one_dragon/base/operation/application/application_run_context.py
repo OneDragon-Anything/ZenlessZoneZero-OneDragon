@@ -337,6 +337,8 @@ class ApplicationRunContext:
             return
         if self.is_context_running:  # 先触发暂停 让执行中的指令停止
             self.switch_context_pause_and_run()
+        if self.ctx.controller is not None:
+            self.ctx.controller.cleanup_after_context_stop()
         self._run_state = ApplicationRunContextStateEnum.STOP
         log.info("停止运行")
         self.event_bus.dispatch_event(
