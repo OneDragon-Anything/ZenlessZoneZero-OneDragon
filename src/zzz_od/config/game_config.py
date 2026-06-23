@@ -41,6 +41,7 @@ class GameKeyAction(Enum):
     DODGE = ConfigItem('闪避', 'dodge')
     SWITCH_NEXT = ConfigItem('角色切换-下一个', 'switch_next')
     SWITCH_PREV = ConfigItem('角色切换-上一个', 'switch_prev')
+    SWITCH_BACKUP = ConfigItem('切换后援', 'switch_backup')
     SPECIAL_ATTACK = ConfigItem('特殊攻击', 'special_attack')
     ULTIMATE = ConfigItem('终结技', 'ultimate')
     CHAIN_LEFT = ConfigItem('连携技-左', 'chain_left')
@@ -61,6 +62,7 @@ _KEY_DEFAULTS: dict[str, dict[str, str]] = {
         'dodge': 'shift',
         'switch_next': 'space',
         'switch_prev': 'c',
+        'switch_backup': 'r',
         'special_attack': 'e',
         'ultimate': 'q',
         'chain_left': 'q',
@@ -78,6 +80,7 @@ _KEY_DEFAULTS: dict[str, dict[str, str]] = {
         'dodge': XboxButtonEnum.A.value.value,
         'switch_next': XboxButtonEnum.RB.value.value,
         'switch_prev': XboxButtonEnum.LB.value.value,
+        'switch_backup': XboxButtonEnum.B.value.value,
         'special_attack': XboxButtonEnum.Y.value.value,
         'ultimate': XboxButtonEnum.RT.value.value,
         'chain_left': XboxButtonEnum.LB.value.value,
@@ -95,6 +98,7 @@ _KEY_DEFAULTS: dict[str, dict[str, str]] = {
         'dodge': Ds4ButtonEnum.CROSS.value.value,
         'switch_next': Ds4ButtonEnum.R1.value.value,
         'switch_prev': Ds4ButtonEnum.L1.value.value,
+        'switch_backup': Ds4ButtonEnum.CIRCLE.value.value,
         'special_attack': Ds4ButtonEnum.TRIANGLE.value.value,
         'ultimate': Ds4ButtonEnum.R2.value.value,
         'chain_left': Ds4ButtonEnum.L1.value.value,

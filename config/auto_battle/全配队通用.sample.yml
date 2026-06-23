@@ -128,6 +128,17 @@ scenes:
         sub_handlers:
           - state_template: "轮换-合轴-全角色"
 
+  - triggers: ["按键可用-切换后援"]
+    priority: 70
+    interval: 0.1
+    handlers:
+      - states: "![自定义-终结技被强制释放, 0, 1]"
+        debug_name: "切换后援可用"
+        operations:
+          - op_name: "按键-切换后援"
+          - op_name: "等待秒数"
+            seconds: 0.1
+
   - triggers: []
     priority: 9
     interval: 0.02

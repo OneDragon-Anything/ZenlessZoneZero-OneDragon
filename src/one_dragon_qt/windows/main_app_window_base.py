@@ -3,7 +3,13 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING
 
+from PySide6.QtCore import Signal
+from qfluentwidgets import InfoBar, InfoBarIcon, InfoBarPosition
+
+from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_manager import AppSettingManager
 from one_dragon_qt.widgets.back_navigation_button import BackNavigationButton
 from one_dragon_qt.widgets.base_interface import BaseInterface
@@ -23,6 +29,8 @@ class MainAppWindowBase(AppWindowBase):
     - 导航栏返回按钮
     """
 
+    context_notify_signal = Signal(object)
+
     def __init__(
         self,
         ctx: OneDragonContext,
@@ -31,6 +39,7 @@ class MainAppWindowBase(AppWindowBase):
         app_icon: str | None = None,
         parent=None,
     ):
+        self.ctx: OneDragonContext = ctx
         self.app_setting_manager = AppSettingManager(ctx)
         self._connected_pivot_navi: PivotNavigatorInterface | None = None
 
@@ -41,6 +50,9 @@ class MainAppWindowBase(AppWindowBase):
             app_icon=app_icon,
             parent=parent,
         )
+
+        self.context_notify_signal.connect(self._show_context_notify)
+        self.ctx.listen_event(ContextNotifyEvent.EVENT_ID, self._emit_context_notify)
 
     def create_sub_interface(self) -> None:
         # 导航栏返回按钮（最上方，在子界面之前添加）
@@ -79,6 +91,23 @@ class MainAppWindowBase(AppWindowBase):
             self._back_nav_btn.set_active(has_secondary)
         else:
             self._back_nav_btn.set_active(False)
+
+    def _emit_context_notify(self, event: ContextEventItem) -> None:
+        """将上下文通知事件通过信号传递到主线程。"""
+        if isinstance(event.data, ContextNotifyEvent):
+            self.context_notify_signal.emit(event.data)
+
+    def _show_context_notify(self, event: ContextNotifyEvent) -> None:
+        """在主窗口展示上下文通知。"""
+        InfoBar.new(
+            icon=InfoBarIcon[event.level.name],
+            title=gt(event.title),
+            content=gt(event.content),
+            isClosable=True,
+            duration=5000,
+            position=InfoBarPosition.TOP_RIGHT,
+            parent=self,
+        )
 
     def on_ctx_ready(self) -> None:
         """在 ctx.init() 完成后调用，执行设置提供者扫描"""
