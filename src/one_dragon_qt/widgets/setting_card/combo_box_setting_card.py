@@ -1,4 +1,5 @@
 from PySide6.QtCore import QEvent
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
@@ -87,6 +88,12 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
     def showEvent(self, event: QEvent) -> None:
         """首次显示后收窄说明文字。"""
         super().showEvent(event)
+        if self._content_shrink:
+            self._shrink_content()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """窗口尺寸变化时重新收窄说明文字。"""
+        super().resizeEvent(event)
         if self._content_shrink:
             self._shrink_content()
 
