@@ -31,6 +31,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
+      create_release: ${{ steps.release_requested.outputs.value }}
 
     steps:
     - name: Checkout code
@@ -42,6 +43,12 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+
+    - name: Check release requested
+      id: release_requested
+      shell: pwsh
+      run: |
+        "value=$env:CREATE_RELEASE" >> $env:GITHUB_OUTPUT
 
     - name: Get version
       id: get_version
@@ -180,9 +187,7 @@ jobs:
     needs:
       - version
       - build
-    if: ${{ github.repository_owner == 'OneDragon-Anything' &&
-            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
-        }}
+    if: ${{ github.repository_owner == 'OneDragon-Anything' && needs.version.outputs.create_release == 'true' }}
     env:
       SIGNED_DIR: 'signed'
       SIGNPATH_SIGNING_POLICY_SLUG: 'release-signing'
@@ -215,8 +220,8 @@ jobs:
       - sign
     if: ${{ always() &&
             needs.build.result == 'success' &&
-            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
-            (needs.sign.result == 'success')
+            needs.version.outputs.create_release == 'true' &&
+            needs.sign.result == 'success'
         }}
     steps:
     - name: Checkout code
