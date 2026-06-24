@@ -264,6 +264,24 @@ class LostVoidChooseGear(ZOperation):
     @node_from(from_name='点击携带')
     @operation_node(name='点击返回')
     def click_back(self) -> OperationRoundResult:
+        # 先尝试点击返回
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='按钮-返回',
+                                                 success_wait=1, retry_wait=1)
+        if result.is_success:
+            return result
+
+        # 如果找不到返回按钮，说明有弹窗，先点不再提示，再点确认
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='不再提示',
+                                                   success_wait=0.5, retry_wait=0.5)
+        if not result.is_success:
+            # 找不到不再提示，可能弹窗没有出现，直接重试返回
+            return self.round_retry(wait=1)
+
+        # 点确认
+        self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='确认',
+                                         success_wait=0.5, retry_wait=0.5)
+
+        # 最后再点返回
         return self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='按钮-返回',
                                                  success_wait=1, retry_wait=1)
 
