@@ -53,18 +53,21 @@ class AutoBattleContext:
         # 识别锁 保证每种类型只有1实例在进行识别
         self._check_chain_lock = threading.Lock()
         self._check_quick_lock = threading.Lock()
+        self._check_switch_backup_lock = threading.Lock()
         self._check_end_lock = threading.Lock()
         self._check_distance_lock = threading.Lock()
 
         # 识别间隔
         self._check_chain_interval: float | list[float] = 0
         self._check_quick_interval: float | list[float] = 0
+        self._check_switch_backup_interval: float | list[float] = 1
         self._check_end_interval: float | list[float] = 5
         self._check_distance_interval: float | list[float] = 5
 
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
         self._last_check_quick_time: float = 0
+        self._last_check_switch_backup_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
@@ -116,6 +119,7 @@ class AutoBattleContext:
         # 识别间隔
         self._check_chain_interval = self.auto_op.check_chain_interval
         self._check_quick_interval = self.auto_op.check_quick_interval
+        self._check_switch_backup_interval = 1
         self._check_end_interval = self.auto_op.check_end_interval
         self._check_distance_interval = 5
 
@@ -187,6 +191,7 @@ class AutoBattleContext:
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
         self._last_check_quick_time: float = 0
+        self._last_check_switch_backup_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
@@ -207,6 +212,7 @@ class AutoBattleContext:
         self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
+        self.area_btn_switch_backup: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援')
 
         self.area_chain_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-1')
         self.area_chain_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-2')
@@ -291,6 +297,19 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
+        self._emit_overlay_action(e)
+
+    def switch_backup(self, press: bool = False, press_time: float | None = None, release: bool = False):
+        if press:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value + '-按下'
+        elif release:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value + '-松开'
+        else:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value
+
+        self.ctx.controller.switch_backup(press=press, press_time=press_time, release=release)
+        finish_time = time.time()
+        self.state_record_service.update_state(StateRecord(e, finish_time))
         self._emit_overlay_action(e)
 
     def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
@@ -550,6 +569,7 @@ class AutoBattleContext:
 
             # 快速支援
             future_list.append(_battle_state_check_executor.submit(self.check_quick_assist, screen, screenshot_time))
+            future_list.append(_battle_state_check_executor.submit(self.check_switch_backup, screen, screenshot_time))
 
             # 距离
             if check_distance:
@@ -762,6 +782,34 @@ class AutoBattleContext:
         finally:
             self._check_quick_lock.release()
 
+    def check_switch_backup(self, screen: MatLike, screenshot_time: float) -> None:
+        """
+        识别切换后援按键是否可用
+        """
+        if not self._check_switch_backup_lock.acquire(blocking=False):
+            return
+
+        try:
+            if screenshot_time - self._last_check_switch_backup_time < cal_utils.random_in_range(self._check_switch_backup_interval):
+                # 还没有达到识别间隔
+                return
+            self._last_check_switch_backup_time = screenshot_time
+
+            part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup.rect)
+            for template_id in ['btn_switch_backup_1', 'btn_switch_backup_2']:
+                mrl = self.ctx.tm.match_template(part, 'battle', template_id, threshold=0.9)
+                if mrl.max is None:
+                    continue
+
+                self.state_record_service.update_state(
+                    StateRecord(BattleStateEnum.STATUS_SWITCH_BACKUP_READY.value, screenshot_time)
+                )
+                break
+        except Exception:
+            log.error('识别切换后援失败', exc_info=True)
+        finally:
+            self._check_switch_backup_lock.release()
+
     def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
         在候选列表重匹配角色
@@ -959,6 +1007,7 @@ class AutoBattleContext:
         self._release_keys()
         self.switch_next(release=True)
         self.switch_prev(release=True)
+        self.switch_backup(release=True)
         self.lock(release=True)
         self.ultimate(release=True)
         self.chain_cancel(release=True)

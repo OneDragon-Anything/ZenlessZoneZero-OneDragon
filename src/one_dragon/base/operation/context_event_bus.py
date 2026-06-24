@@ -1,23 +1,24 @@
-from concurrent.futures import ThreadPoolExecutor, Future
-
-from typing import Callable, Any, List
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import suppress
+from dataclasses import dataclass
+from typing import Any
 
 from one_dragon.utils import thread_utils
 
 _od_event_bus_executor = ThreadPoolExecutor(thread_name_prefix='od_event_bus', max_workers=32)
 
 
+@dataclass
 class ContextEventItem:
-
-    def __init__(self, event_id: str, data: Any):
-        self.event_id: str = event_id
-        self.data: Any = data
+    event_id: str
+    data: Any
 
 
 class ContextEventBus:
 
     def __init__(self):
-        self.callbacks: dict[str, List[Callable[[Any], None]]] = {}
+        self.callbacks: dict[str, list[Callable[[Any], None]]] = {}
 
     def dispatch_event(self, event_id: str, event_obj: Any = None):
         """
@@ -55,10 +56,8 @@ class ContextEventBus:
         """
         if event_id not in self.callbacks:
             return
-        try:
+        with suppress(Exception):
             self.callbacks[event_id].remove(callback)
-        except Exception as e:
-            pass
 
     def unlisten_all_event(self, obj: Any):
         """

@@ -531,3 +531,9 @@ class AgentEnum(Enum):
                                                           template_id='starlight_billy_kid',
                                                           hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                                           max_length=120)])
+
+    NORMA = Agent('norma', '诺姆', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['norma'],
+                  state_list=[AgentStateDef('诺姆-预热', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                            template_id='norma',
+                                            hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                            max_length=100)])

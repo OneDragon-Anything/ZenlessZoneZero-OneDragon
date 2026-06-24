@@ -109,12 +109,15 @@ class OneDragonRunInterface(SplitAppRunInterface):
             instance_idx=self.ctx.current_instance_idx
         )
 
-    def on_interface_shown(self) -> None:
-        SplitAppRunInterface.on_interface_shown(self)
+    def _refresh_app_config(self) -> None:
         self.config = self.ctx.app_group_manager.get_one_dragon_group_config(
             instance_idx=self.ctx.current_instance_idx,
         )
         self._init_app_list()
+
+    def on_interface_shown(self) -> None:
+        SplitAppRunInterface.on_interface_shown(self)
+        self._refresh_app_config()
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
         self.ctx.listen_event(ApplicationEventId.APPLICATION_START.value, self._on_app_state_changed)
@@ -141,7 +144,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
         window = self.window()
         if isinstance(window, MainAppWindowBase):
-            window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
+            window.app_setting_manager.ready.connect(self._on_app_setting_manager_ready)
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
@@ -150,7 +153,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             with contextlib.suppress(RuntimeError):
-                window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
+                window.app_setting_manager.ready.disconnect(self._on_app_setting_manager_ready)
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:
         """
@@ -225,7 +228,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         实例变更 这是signal 可以改ui
         :return:
         """
-        self._init_app_list()
+        self._refresh_app_config()
+
+    def _on_app_setting_manager_ready(self) -> None:
+        self._refresh_app_config()
+        self._update_setting_btn_visibility()
 
     def _on_instance_run_changed(self, idx: int, value: str) -> None:
         self.ctx.one_dragon_config.instance_run = value

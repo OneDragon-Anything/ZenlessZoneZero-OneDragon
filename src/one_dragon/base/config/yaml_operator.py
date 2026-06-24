@@ -1,5 +1,6 @@
 import copy
 import os
+import shutil
 
 import yaml
 
@@ -43,6 +44,12 @@ class YamlOperator:
         self.file_path: str | None = file_path
         """yml文件的路径"""
 
+        self._write_file_path: str | None = file_path
+        """实际写入路径 兼容 onedir 下读写路径分离"""
+
+        self._copy_on_write_source_path: str | None = None
+        """首次写入前需要复制到写入路径的来源文件"""
+
         self.data: dict | list = {}
         """存放数据的地方"""
 
@@ -64,32 +71,63 @@ class YamlOperator:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return
 
-    def save(self) -> None:
-        """
-        将 yaml 写入文件.
-        写入之前先对比写入内容和文件内容是否一致, 不一致才写入
-        """
-        if self.file_path is None:
+        if self.data is None:
+            self.data = {}
+
+    def _ensure_write_path_ready(self) -> bool:
+        write_path = self._get_write_path()
+        if write_path is None:
+            return False
+
+        parent_dir = os.path.dirname(write_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+
+        if self._copy_on_write_source_path is not None and not os.path.exists(write_path):
+            try:
+                shutil.copyfile(self._copy_on_write_source_path, write_path)
+            except FileNotFoundError:
+                log.error(
+                    f'复制配置文件失败 来源文件不存在 source={self._copy_on_write_source_path} write_path={write_path}'
+                )
+                return False
+
+        self._copy_on_write_source_path = None
+        return True
+
+    def _get_write_path(self) -> str | None:
+        if self._copy_on_write_source_path is None:
+            return self.file_path if self.file_path is not None else self._write_file_path
+        return self._write_file_path if self._write_file_path is not None else self.file_path
+
+    def save(self):
+        if not self._ensure_write_path_ready():
+            return
+        write_path = self._get_write_path()
+        if write_path is None:
             return
 
-        # 1. 先把要写入的内容转成字符串
+        # 把要写入的内容转成字符串
         new_content = yaml.dump(self.data, allow_unicode=True, sort_keys=False)
-
-        # 2. 尝试读取旧文件内容
+        # 尝试读取旧文件内容
         old_content = None
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
+            with open(write_path, 'r', encoding='utf-8') as file:
                 old_content = file.read()
         except FileNotFoundError:
-            # 文件不存在 → 必须写入
             old_content = None
 
-        # 3. 只有内容不一致时才写入
+        # 只有内容不一致时才写入
         if old_content == new_content:
             return
-        with open(self.file_path, 'w', encoding='utf-8') as file:
+        with open(write_path, 'w', encoding='utf-8') as file:
             file.write(new_content)
-        invalidate_cache(self.file_path)
+        invalidate_cache(write_path)
+
+        if self.file_path != write_path:
+            self.file_path = write_path
+            if hasattr(self, 'old_file_path'):
+                self.old_file_path = write_path
 
     def save_diy(self, text: str):
         """
@@ -97,12 +135,21 @@ class YamlOperator:
         :param text: 自定义的文本
         :return:
         """
-        if self.file_path is None:
+        if not self._ensure_write_path_ready():
             return
 
-        with open(self.file_path, "w", encoding="utf-8") as file:
+        write_path = self._get_write_path()
+        if write_path is None:
+            return
+
+        with open(write_path, "w", encoding="utf-8") as file:
             file.write(text)
-        invalidate_cache(self.file_path)
+        invalidate_cache(write_path)
+
+        if self.file_path != write_path:
+            self.file_path = write_path
+            if hasattr(self, 'old_file_path'):
+                self.old_file_path = write_path
 
     def get(self, prop: str, value=None):
         if not isinstance(self.data, dict):
@@ -111,7 +158,8 @@ class YamlOperator:
 
     def update(self, key: str, value, save: bool = True):
         if not isinstance(self.data, dict):
-            self.data = {}
+            # 根节点为 list 是合法 YAML；keyed update 只适用于 dict。
+            return
         if key in self.data and not isinstance(value, list) and self.data[key] == value:
             return
         self.data[key] = value

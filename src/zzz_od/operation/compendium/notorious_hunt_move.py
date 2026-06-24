@@ -83,6 +83,7 @@ class NotoriousHuntMove(ZOperation):
             return self.round_success(battle_result.status)
 
         if distance_pos is None:
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
             return self.round_retry(wait=1)
 
         current_distance = self.ctx.auto_battle_context.last_check_distance

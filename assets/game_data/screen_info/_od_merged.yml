@@ -408,6 +408,20 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 按键-切换后援
+    id_mark: false
+    pc_rect:
+    - 1615
+    - 776
+    - 1726
+    - 877
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: battle
+    template_id: btn_switch_backup_1
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 连携技-1
     id_mark: false
     pc_rect:
@@ -668,6 +682,20 @@
     - 889
     - 1098
     - 890
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按键-切换后援标记
+    id_mark: false
+    pc_rect:
+    - 1658
+    - 891
+    - 1661
+    - 897
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1298,10 +1326,24 @@
     - 1110
     - 830
     text: ''
-    lcs_percent: 0.5
+    lcs_percent: null
     template_sub_dir: ''
     template_id: ''
-    template_match_threshold: 0.7
+    template_match_threshold: null
+    color_range: null
+    goto_list: []
+  - area_name: 对话框内容
+    id_mark: false
+    pc_rect:
+    - 418
+    - 831
+    - 1500
+    - 980
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 右侧选项区域
@@ -1312,10 +1354,10 @@
     - 1914
     - 830
     text: ''
-    lcs_percent: 0.5
+    lcs_percent: null
     template_sub_dir: ''
     template_id: ''
-    template_match_threshold: 0.7
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 中间选项区域
@@ -1400,6 +1442,20 @@
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 玩法引导
+    id_mark: false
+    pc_rect:
+    - 342
+    - 213
+    - 565
+    - 285
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 按钮-短信-关闭
@@ -1697,10 +1753,10 @@
   - area_name: 按钮-退出
     id_mark: false
     pc_rect:
-    - 1730
-    - 206
-    - 1794
-    - 266
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1880,10 +1936,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1981,10 +2037,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2082,10 +2138,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2183,10 +2239,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2284,10 +2340,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
