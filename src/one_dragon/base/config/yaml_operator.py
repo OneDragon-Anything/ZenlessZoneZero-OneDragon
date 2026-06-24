@@ -100,7 +100,7 @@ class YamlOperator:
             return self.file_path if self.file_path is not None else self._write_file_path
         return self._write_file_path if self._write_file_path is not None else self.file_path
 
-    def save(self):
+    def save(self) -> None:
         if not self._ensure_write_path_ready():
             return
         write_path = self._get_write_path()
