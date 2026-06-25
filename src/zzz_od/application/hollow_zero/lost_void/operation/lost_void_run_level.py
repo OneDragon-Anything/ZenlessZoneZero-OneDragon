@@ -522,7 +522,7 @@ class LostVoidRunLevel(ZOperation):
 
             if current_interact_target is not None:
                 target_key = self.get_interact_target_key(current_interact_target)
-                if target_key in self.interacted_target_key_list:
+                if self.region_type != LostVoidRegionType.ENTRY and target_key in self.interacted_target_key_list:
                     log.info('当前层已交互过 %s，本次不再交互，返回上游继续处理', target_key)
                     return self.round_fail('重复交互对象')
                 self.interact_target = current_interact_target
