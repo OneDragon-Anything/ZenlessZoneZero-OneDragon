@@ -5,6 +5,8 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
@@ -213,6 +215,8 @@ class AutoBattleContext:
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
         self.area_btn_switch_backup: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援')
+        self.area_btn_switch_backup_mark: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援标记')
+        self.area_btn_switch_backup_gray: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援灰度区域')
 
         self.area_chain_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-1')
         self.area_chain_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-2')
@@ -795,20 +799,62 @@ class AutoBattleContext:
                 return
             self._last_check_switch_backup_time = screenshot_time
 
-            part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup.rect)
-            for template_id in ['btn_switch_backup_1', 'btn_switch_backup_2']:
-                mrl = self.ctx.tm.match_template(part, 'battle', template_id, threshold=0.9)
-                if mrl.max is None:
-                    continue
-
+            if self._is_switch_backup_ready(screen):
                 self.state_record_service.update_state(
                     StateRecord(BattleStateEnum.STATUS_SWITCH_BACKUP_READY.value, screenshot_time)
                 )
-                break
         except Exception:
             log.error('识别切换后援失败', exc_info=True)
         finally:
             self._check_switch_backup_lock.release()
+
+    def _is_switch_backup_ready(self, screen: MatLike) -> bool:
+        """
+        通过后援按钮标记与灰度区域的颜色特征，判断当前是否可切换后援。
+        """
+        mark_part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup_mark.rect)
+        gray_part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup_gray.rect)
+
+        return self._is_switch_backup_mark_black(mark_part) and self._is_switch_backup_gray_area_colorful(gray_part)
+
+    @staticmethod
+    def _is_switch_backup_mark_black(part: MatLike) -> bool:
+        """
+        判断后援标记内部是否基本全黑。
+        """
+        if part is None or part.size == 0:
+            return False
+
+        hsv = cv2.cvtColor(part, cv2.COLOR_RGB2HSV)
+        saturation = hsv[:, :, 1]
+        value = hsv[:, :, 2]
+
+        black_mask = (saturation <= 10) & (value <= 20)
+        black_ratio = float(np.mean(black_mask))
+        return black_ratio >= 0.9
+
+    @staticmethod
+    def _is_switch_backup_gray_area_colorful(part: MatLike) -> bool:
+        """
+        判断后援按钮灰度区域是否已经明显变成彩色。
+        """
+        if part is None or part.size == 0:
+            return False
+
+        hsv = cv2.cvtColor(part, cv2.COLOR_RGB2HSV)
+        saturation = hsv[:, :, 1]
+        value = hsv[:, :, 2]
+
+        colorful_mask = (saturation >= 40) & (value >= 90)
+        gray_mask = (saturation <= 10) & (np.abs(value.astype(np.int16) - 150) <= 20)
+
+        colorful_ratio = float(np.mean(colorful_mask))
+        gray_ratio = float(np.mean(gray_mask))
+
+        if colorful_ratio < 0.5:
+            return False
+
+        return gray_ratio <= 0.2
 
     def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """

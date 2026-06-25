@@ -102,7 +102,7 @@ if not getattr(sys, 'frozen', False):
     from pathlib import Path
     from pyautogui import screenshot
     from pygetwindow import Win32Window
-    from pygit2 import Blob, Oid, Remote, Repository, Walker, discover_repository, init_repository, settings
+    from pygit2 import Blob, Oid, Remote, RemoteCallbacks, Repository, Walker, discover_repository, init_repository, settings
     from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
     from pynput import keyboard, mouse
     from pynput.keyboard import Controller, Key

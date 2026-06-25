@@ -1,5 +1,4 @@
 import time
-from collections import deque
 
 from cv2.typing import MatLike
 
@@ -39,6 +38,10 @@ class CommissionAssistantApp(ZApplication):
             app_id=commission_assistant_const.APP_ID,
             op_name=commission_assistant_const.APP_NAME,
         )
+        self.CHOSEN_OPT_HOLD_SEC: float = 0.5  # 点击右侧选项之后的保护时间 (绝区零按钮经常点了没反应而且按钮变透明, 此时即使ocr识别不到这个选项了也要一直逮着选)
+        self.CHOSEN_OPT_MAX_SEC: float = 2  # 一个按钮连续存在2s则大概率是误识别
+        self.OPTION_CLICK_INTERVAL_MIN: float = 0.1  # 选项的最小点击间隔, 加上pyautogui.click()自带的0.1s就是0.2s
+
         self.config: CommissionAssistantConfig = self.ctx.run_context.get_config(
             app_id=commission_assistant_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
@@ -51,14 +54,13 @@ class CommissionAssistantApp(ZApplication):
 
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
 
-        self.chosen_opt_max_sec: float = 2  # 逆天确认按钮, 连续点击1.5s都点不了
         self.chosen_opt: str | None = None  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
         self.chosen_opt_last_time: float = 0  # 上一次点击选项的时间
 
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
         self.main_story_click_time: float = 0.  # 跳过主线时, 添加一个标记 点击菜单后的5s内没有跳过确认按钮出现则不处理对话框和黑框
-        self.option_click_interval_min = max(self.config.OPTION_CLICK_INTERVAL_MIN,
+        self.option_click_interval_min = max(self.OPTION_CLICK_INTERVAL_MIN,
                                              self.config.dialog_click_interval)  # 选项的最小点击间隔(需要等待点击动画结束)
         self.dialog_clicked: bool = False  # 有些对话框内容为'......', ocr不识别, 故引进这个参数, 使得结束对话框点击之后的3次识别不到任何内容时也点击屏幕
 
@@ -214,14 +216,19 @@ class CommissionAssistantApp(ZApplication):
         if len(ocr_result_list) == 0:
             return False
 
+        now: float = time.time()
+        if now < self.CHOSEN_OPT_HOLD_SEC + self.chosen_opt_last_time:
+            # 点击按钮的保护时间
+            self.ctx.controller.click()
+            return True
+
         to_click: Point | None = None
         to_choose_opt: str | None = None
 
-        now: float = time.time()
         for mr in ocr_result_list:
             opt_point = mr.center
             if self.chosen_opt_last_time > 0 \
-                    and now - self.chosen_opt_last_time > self.chosen_opt_max_sec + self.option_click_interval_min \
+                    and now - self.chosen_opt_last_time > self.CHOSEN_OPT_MAX_SEC + self.option_click_interval_min \
                     and mr.data == self.chosen_opt \
                     and self.check_same_opts(set([i.data for i in ocr_result_list])):
                 # 忽略一直选择但是仍然存在的选项

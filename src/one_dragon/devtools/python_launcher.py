@@ -15,18 +15,66 @@ from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
+from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import (
+    LoggerConfig,
+    configure_logger,
+    get_log_file_path,
+)
+from one_dragon.utils.log_utils import (
+    log as framework_log,
+)
+
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+
+PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
 
 # 初始化 colorama
 init(autoreset=True)
 
-def print_message(message, level="INFO"):
+
+def print_message(message: str, level: str = "INFO", flush: bool = False) -> None:
     # 打印消息，带有时间戳和日志级别
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
-    colors = {"INFO": Fore.CYAN, "ERROR": Fore.YELLOW + Style.BRIGHT, "PASS": Fore.GREEN}
+    colors = {
+        "DEBUG": Fore.WHITE,
+        "INFO": Fore.CYAN,
+        "WARNING": Fore.YELLOW,
+        "ERROR": Fore.YELLOW + Style.BRIGHT,
+        "PASS": Fore.GREEN,
+    }
     color = colors.get(level, Fore.WHITE)
-    print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
+    if flush:
+        print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}", end='\r', flush=True)
+    else:
+        print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
+
+
+def create_git_progress_callback():
+    def _report(_progress: float, message: str) -> None:
+        refresh = message.startswith(gt('拉取对象')) and not message.endswith('(100%)')
+        print_message(message, 'INFO', flush=refresh)
+
+    return _report
+
+
+def _configure_runtime_logger() -> None:
+    if getattr(sys, 'frozen', False):
+        log_dir = Path(sys.executable).resolve().parent / '.log'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file_path = str(log_dir / PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME)
+    else:
+        log_file_path = get_log_file_path(default_name=PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME)
+
+    configure_logger(
+        framework_log,
+        LoggerConfig(
+            log_file_path=log_file_path,
+            add_console_handler=False,
+            propagate=False,
+        ),
+    )
 
 def verify_working_directory():
     # 设置当前工作目录
@@ -236,14 +284,15 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     获取最新代码
     """
     if not ctx.env_config.auto_update_code:
-        print_message("未开启代码自动更新 跳过", "INFO")
+        print_message(gt('未开启代码自动更新，跳过'), "INFO")
         return
-    print_message("开始获取最新代码...", "INFO")
-    success, msg = ctx.git_service.fetch_latest_code()
+    _configure_runtime_logger()
+    progress_callback = create_git_progress_callback()
+    success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
     if success:
-        print_message("最新代码获取成功", "PASS")
+        print_message(gt('代码更新完成'), "PASS")
     else:
-        print_message(f'代码更新失败 {msg}', "ERROR")
+        print_message(f"{gt('代码更新失败')}: {msg}", "ERROR")
 
 def run_python(app_path, no_windows: bool = True, args: list | None = None, piped: bool = False):
     # 主函数

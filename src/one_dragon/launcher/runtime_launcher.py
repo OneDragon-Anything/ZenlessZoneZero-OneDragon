@@ -33,17 +33,33 @@ class RuntimeLauncher(ExeLauncher):
             log.info(gt('未开启代码自动更新，跳过'))
             return
 
+        last_progress_printed = False
+
+        def log_progress(_progress: float, message: str) -> None:
+            nonlocal last_progress_printed
+            refresh = message.startswith(gt('拉取对象')) and not message.endswith('(100%)')
+            if refresh:
+                print(message, end='\r', flush=True)
+                last_progress_printed = True
+                return
+
+            if last_progress_printed:
+                print(' ' * 120, end='\r', flush=True)
+                last_progress_printed = False
+
+            log.info(message)
+
         log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
-        success, msg = git_service.fetch_latest_code()
+        success, msg = git_service.fetch_latest_code(log_progress)
 
         if success:
-            log.info(gt('代码同步完成') if first_run else gt('代码已是最新'))
+            log.info(gt('代码仓库同步完成') if first_run else gt('代码更新检查完成'))
             # 清除同步过程中加载的模块，避免主程序使用旧版本
             for name in set(sys.modules) - pre_modules:
                 del sys.modules[name]
             importlib.invalidate_caches()
         elif first_run:
-            log.info(f"{gt('代码同步失败')}: {msg}")
+            log.info(f"{gt('代码仓库同步失败')}: {msg}")
             sys.exit(1)
         else:
             log.info(f"{gt('代码更新失败')}: {msg}")

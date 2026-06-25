@@ -89,8 +89,8 @@ class RandomPlayApp(ZApplication):
             if not result.is_success:
                 return result
             self.ctx.controller.move_w(press=True, press_time=1, release=True)
-            time.sleep(1)
 
+        time.sleep(1)
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
         return self.round_success()
 

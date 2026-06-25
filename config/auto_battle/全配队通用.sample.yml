@@ -132,10 +132,13 @@ scenes:
     priority: 70
     interval: 0.1
     handlers:
-      - states: "![自定义-终结技被强制释放, 0, 1]"
+      - states: "![自定义-无视闪光, -15, 0]"
         debug_name: "切换后援可用"
         operations:
-          - op_name: "按键-切换后援"
+          - op_name: "按键-切换后援-按下"
+          - op_name: "等待秒数"
+            seconds: 0.1
+          - op_name: "按键-切换后援-松开"
           - op_name: "等待秒数"
             seconds: 0.1
 

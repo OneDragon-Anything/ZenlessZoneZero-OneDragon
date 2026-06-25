@@ -13,16 +13,26 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import LostVoidInvestigationStrategy
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import (
+    LostVoidArtifact,
+)
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import (
+    LostVoidDetector,
+)
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import (
+    LostVoidInvestigationStrategy,
+)
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidChallengeConfig,
     LostVoidRegionType,
 )
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
-from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import MoveTargetWrapper
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import (
+    LostVoidArtifactPos,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
+    MoveTargetWrapper,
+)
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import CommonAgentStateEnum
@@ -45,10 +55,12 @@ class LostVoidContext:
         self.predefined_team_idx: int = -1  # 本次挑战所使用的预备编队
         self.priority_updated: bool = False  # 动态优先级是否已经更新
         self.dynamic_priority_list: list[str] = []  # 动态获取的优先级列表
+        self.dynamic_abandon_list: list[str] = []  # 动态放弃组
 
     def init_before_run(self) -> None:
         self.priority_updated = False
         self.dynamic_priority_list = []
+        self.dynamic_abandon_list = []
         self.init_lost_void_det_model()
         self.load_artifact_data()
         self.load_challenge_config()
@@ -146,10 +158,7 @@ class LostVoidContext:
             return True
 
         result = screen_utils.find_area(self.ctx, screen, '迷失之地-大世界', '按键-交互-不可用')
-        if result == FindAreaResultEnum.TRUE:
-            return True
-
-        return False
+        return result == FindAreaResultEnum.TRUE
 
     def is_boss_health_bar_present(self, screen: MatLike) -> bool:
         """判断当前画面是否已出现 BOSS 血条。"""
@@ -207,10 +216,7 @@ class LostVoidContext:
         area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
         if screen_utils.find_by_ocr(self.ctx, screen, target_cn='战斗开始', area=area):
             return True
-        if screen_utils.find_by_ocr(self.ctx, screen, target_cn='侦测到最后的敌人', area=area):
-            return True
-
-        return False
+        return screen_utils.find_by_ocr(self.ctx, screen, target_cn='侦测到最后的敌人', area=area)
 
     def check_battle_encounter_in_period(self, total_check_seconds: float) -> bool:
         """
@@ -260,7 +266,7 @@ class LostVoidContext:
         to_sort_list = []
 
         # 取出与分类名称长度一致的前缀 用LCS来判断对应的cate分类
-        for cate in self.cate_2_artifact.keys():
+        for cate in self.cate_2_artifact:
             cate_name = gt(cate, 'game')
 
             if cate not in ['卡牌', '无详情']:
@@ -517,8 +523,16 @@ class LostVoidContext:
             if len(raw_name) == 0:
                 return None, False
 
-            # 例如 “击破: 叩击” -> “击破”，便于和配置里的分类文本做匹配
-            category = raw_category.split('：', 1)[0].split(':', 1)[0].strip()
+            # 例如：
+            # 1. “击破: 叩击” -> “击破”
+            # 2. “强袭” -> “强袭”
+            # 便于和配置里的分类文本做匹配
+            if '：' in raw_category:
+                category = raw_category.split('：', 1)[0].strip()
+            elif ':' in raw_category:
+                category = raw_category.split(':', 1)[0].strip()
+            else:
+                category = raw_category[:2].strip()
             if len(category) == 0:
                 category = raw_category
 
@@ -634,6 +648,36 @@ class LostVoidContext:
             return True
         return str_utils.find_by_lcs(item_name, artifact.name, percent=0.6) or str_utils.find_by_lcs(item_name, artifact_pos.ocr_text, percent=0.6)
 
+    def _extract_priority_rule_category(self, priority_rule: str) -> str | None:
+        """
+        提取优先级规则中的分类部分。
+        - `强攻` -> `强攻`
+        - `强攻 割草除根` -> `强攻`
+        """
+        if priority_rule is None:
+            return None
+
+        rule = priority_rule.strip()
+        if len(rule) == 0:
+            return None
+
+        split_idx = rule.find(' ')
+        if split_idx == -1:
+            return rule
+
+        return rule[:split_idx].strip()
+
+    def _is_specific_priority_rule(self, priority_rule: str) -> bool:
+        """
+        判断是否为“具体武备/角色”规则。
+        只有纯分类规则（如 `强攻`）会被动态放弃组覆盖；
+        带具体名称/等级的规则（如 `强攻 割草除根`）仍保留优先级。
+        """
+        if priority_rule is None:
+            return False
+
+        return ' ' in priority_rule.strip()
+
     def get_artifact_by_priority(
             self, artifact_list: list[LostVoidArtifactPos], choose_num: int,
             consider_priority_1: bool = True, consider_priority_2: bool = True,
@@ -687,8 +731,10 @@ class LostVoidContext:
 
         p1_text = ', '.join(final_priority_list_1) if len(final_priority_list_1) > 0 else '空'
         p2_text = ', '.join(self.challenge_config.artifact_priority_2) if consider_priority_2 and len(self.challenge_config.artifact_priority_2) > 0 else '空'
+        abandon_text = ', '.join(self.dynamic_abandon_list) if len(self.dynamic_abandon_list) > 0 else '空'
         log.debug(f'优先级规则 第一优先级={p1_text}')
         log.debug(f'优先级规则 第二优先级={p2_text}')
+        log.debug(f'优先级规则 动态放弃组={abandon_text}')
 
         priority_idx_list: list[int] = []  # 优先级排序的下标
         choose_reason_map: dict[int, str] = {}
@@ -696,7 +742,7 @@ class LostVoidContext:
         all_idx_list = [i for i in range(len(artifact_list)) if i not in ignored_idx_set]
         primary_idx_list = [i for i in all_idx_list if artifact_list[i].is_primary_name]
         secondary_idx_list = [i for i in all_idx_list if not artifact_list[i].is_primary_name]
-        ignored_text = ', '.join([str(i) for i in sorted(list(ignored_idx_set))]) if len(ignored_idx_set) > 0 else '无'
+        ignored_text = ', '.join([str(i) for i in sorted(ignored_idx_set)]) if len(ignored_idx_set) > 0 else '无'
         log.debug(f'优先级分组 忽略下标={ignored_text} 主选下标={primary_idx_list} 次选下标={secondary_idx_list}')
 
         def add_idx_if_absent(target_idx: int, reason: str) -> None:
@@ -727,6 +773,18 @@ class LostVoidContext:
             for list_idx, priority_list in enumerate(priority_list_to_consider):
                 list_name = '第一优先级' if list_idx == 0 else f'第二优先级{list_idx}'
                 for priority_rule in priority_list:
+                    rule_category = self._extract_priority_rule_category(priority_rule)
+                    # dynamic_abandon_list 由 AgentTypeEnum.value 同源填充，rule_category 与
+                    # artifact_category 均走同一套干净取值链路，无别名或分隔符差异，因此直接
+                    # 使用 in 精确匹配即可，无需复用 _is_category_match 的归一化与子串逻辑。
+                    if (
+                        rule_category is not None
+                        and rule_category in self.dynamic_abandon_list
+                        and not self._is_specific_priority_rule(priority_rule)
+                    ):
+                        log.debug(f'规则跳过 {group_name}-{list_name} 规则="{priority_rule}" 原因=命中动态放弃组')
+                        continue
+
                     matched_idx_list: list[int] = []
                     for idx in group_idx_list:
                         if idx in priority_idx_list:
@@ -742,10 +800,21 @@ class LostVoidContext:
 
             # 3) 其余候选按坐标顺序补齐
             if consider_not_in_priority:
+                normal_idx_list: list[int] = []
+                abandon_idx_list: list[int] = []
                 for idx in group_idx_list:
                     if idx in priority_idx_list:
                         continue
+                    artifact_category = artifact_list[idx].artifact.category
+                    if artifact_category in self.dynamic_abandon_list:
+                        abandon_idx_list.append(idx)
+                    else:
+                        normal_idx_list.append(idx)
+
+                for idx in normal_idx_list:
                     add_idx_if_absent(idx, f'{group_name}-非优先级补位')
+                for idx in abandon_idx_list:
+                    add_idx_if_absent(idx, f'{group_name}-动态放弃组补位')
 
         result_list: list[LostVoidArtifactPos] = []
         for i in range(choose_num):
