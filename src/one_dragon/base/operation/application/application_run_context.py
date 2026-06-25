@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
@@ -79,10 +79,10 @@ class ApplicationRunContext:
         self.default_group_apps: list = []  # 默认应用组的应用ID列表
 
         # 当前运行的应用
-        self.current_app_id: Optional[str] = None
-        self.current_instance_idx: Optional[int] = None
-        self.current_group_id: Optional[str] = None
-        self.current_application: Optional[Application] = None
+        self.current_app_id: str | None = None
+        self.current_instance_idx: int | None = None
+        self.current_group_id: str | None = None
+        self.current_application: Application | None = None
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
@@ -201,9 +201,9 @@ class ApplicationRunContext:
 
     def get_config(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
-        group_id: Optional[str] = None,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+        group_id: str | None = None,
     ) -> CONFIG:
         """
         获取配置实例。
@@ -239,9 +239,9 @@ class ApplicationRunContext:
 
     def get_run_record(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
-    ) -> RECORD:
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+    ) -> RECORD | None:
         """
         获取运行记录实例。
 
@@ -269,7 +269,11 @@ class ApplicationRunContext:
             raise Exception(f"应用未注册 {app_id}")
 
         factory = self._application_factory_map[app_id]
-        return factory.get_run_record(instance_idx)
+        try:
+            return factory.get_run_record(instance_idx)
+        except NotImplementedError:
+            log.warning(f"应用 {app_id} 获取运行记录失败，未实现运行记录创建方法")
+            return None
 
     @property
     def is_context_stop(self) -> bool:

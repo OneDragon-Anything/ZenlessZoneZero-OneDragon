@@ -1,4 +1,4 @@
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -21,7 +21,7 @@ class GroupApplication(Application):
         self,
         ctx: OneDragonContext,
         group_id: str,
-        op_to_enter_game: Optional[Operation] = None,
+        op_to_enter_game: Operation | None = None,
     ):
         Application.__init__(
             self,
@@ -32,7 +32,7 @@ class GroupApplication(Application):
         )
         self._group_id: str = group_id
 
-        self._group_config: Optional[ApplicationGroupConfig] = None
+        self._group_config: ApplicationGroupConfig | None = None
         self._current_app_idx: int = 0  # 当前运行的app 下标
         self._fail_app_idx_list: list[int] = []  # 失败的app下标 未实现重试功能
 
