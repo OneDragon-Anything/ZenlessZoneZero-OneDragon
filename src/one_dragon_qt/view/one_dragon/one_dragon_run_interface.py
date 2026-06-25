@@ -231,6 +231,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self._refresh_app_config()
 
     def _on_app_setting_manager_ready(self) -> None:
+        self.ctx.app_group_manager.clear_config_cache()
         self._refresh_app_config()
         self._update_setting_btn_visibility()
 
