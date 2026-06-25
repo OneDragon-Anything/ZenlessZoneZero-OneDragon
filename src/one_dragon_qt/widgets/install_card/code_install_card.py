@@ -24,7 +24,7 @@ class CodeInstallCard(BaseInstallCard):
             title_cn='代码版本',
             install_method=ctx.git_service.fetch_latest_code,
             install_btn_icon=FluentIcon.SYNC,
-            install_btn_text_cn='同步代码',
+            install_btn_text_cn='代码同步',
             parent=parent,
             left_widgets=[self.git_branch_opt]
         )
