@@ -20,6 +20,11 @@ class HouHouBakeryApp(ZApplication):
     """
 
     def __init__(self, ctx: ZContext):
+        """初始化吼吼饼铺签到应用。
+
+        Args:
+            ctx: 运行上下文。
+        """
         ZApplication.__init__(
             self,
             ctx=ctx,
@@ -77,8 +82,10 @@ class HouHouBakeryApp(ZApplication):
         # 集卡机可领取 -> 点击盲盒格子
         result = self.round_by_ocr(self.last_screenshot, '每日可领取一次')
         if result.is_success:
-            self.round_by_click_area('吼吼饼铺', '盲盒')
-            return self.round_wait(status='选择盲盒', wait=1)
+            click_result = self.round_by_click_area('吼吼饼铺', '盲盒')
+            if click_result.is_success:
+                return self.round_wait(status='选择盲盒', wait=1)
+            return self.round_retry(status='盲盒区域点击失败', wait=1)
 
         # 今日已领取同类型奖励(两条路径终点) -> 结束
         result = self.round_by_ocr(self.last_screenshot, '同类型奖励')
@@ -96,7 +103,8 @@ class HouHouBakeryApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
 
-def __debug():
+def __debug() -> None:
+    """本地调试入口: 初始化上下文并直接运行一次吼吼饼铺签到。"""
     ctx = ZContext()
     ctx.init_by_config()
     app = HouHouBakeryApp(ctx)
