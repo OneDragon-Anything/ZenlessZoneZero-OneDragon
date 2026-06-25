@@ -1,4 +1,4 @@
 APP_ID = "scratch_card"
 APP_NAME = "刮刮卡"
-DEFAULT_GROUP = True
+DEFAULT_GROUP = False
 NEED_NOTIFY = True
