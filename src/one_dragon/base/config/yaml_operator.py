@@ -114,10 +114,10 @@ class YamlOperator:
         try:
             with open(write_path, 'r', encoding='utf-8') as file:
                 old_content = file.read()
-        except FileNotFoundError:
-            old_content = None
+        except Exception:
+            pass
 
-        # 只有内容不一致时才写入
+        # 读取报错/内容不一致时写入
         if old_content == new_content:
             return
         with open(write_path, 'w', encoding='utf-8') as file:
