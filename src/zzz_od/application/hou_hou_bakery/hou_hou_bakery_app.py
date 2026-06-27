@@ -58,12 +58,20 @@ class HouHouBakeryApp(ZApplication):
         """领取每日奖励 单节点自循环。
 
         各画面按 OCR 文字分发
+        - 「相同类型的奖励」: 兼容当日已签到的两种情况。
         - 「确定/确认」: 卡片揭示界面, 点击确认领取并标记 claimed。
         - 「查看今天」: 盲盒已居中(点击盲盒, 查看今天的「卡片」吧), 点屏幕中心开盒。
         - 「每日可领取一次」: 集卡机界面可领取, 点击格子里的盲盒。
-        - 「同类型奖励」: 今日已领取同类型奖励, 两条路径的终点, 结束。
         其余(黑屏过渡/加载) -> 重试。
         """
+        # 「相同类型的奖励」弹窗(流程终点) -> 命中即结束, 残留弹窗交由「返回大世界」关闭
+        # 兼容当日已签到的两种情况: 饼铺签到/非饼铺签到
+        # 必须置于「确定/确认」分支之前, 否则弹窗的「确认」会被误点而退回集卡机循环领取
+        result = self.round_by_ocr(self.last_screenshot, '相同类型的奖励')
+        if result.is_success:
+            status = '领取成功' if self.claimed else '今日已领取'
+            return self.round_success(status=status, wait=1)
+
         # 卡片揭示 -> 点击确定
         for confirm_word in ['确定', '确认']:
             result = self.round_by_ocr_and_click(self.last_screenshot, confirm_word)
@@ -86,12 +94,6 @@ class HouHouBakeryApp(ZApplication):
             if click_result.is_success:
                 return self.round_wait(status='选择盲盒', wait=1)
             return self.round_retry(status='盲盒区域点击失败', wait=1)
-
-        # 今日已领取同类型奖励(两条路径终点) -> 结束
-        result = self.round_by_ocr(self.last_screenshot, '同类型奖励')
-        if result.is_success:
-            status = '领取成功' if self.claimed else '今日已领取'
-            return self.round_success(status=status)
 
         return self.round_retry(status='未识别目标文本', wait=1)
 
