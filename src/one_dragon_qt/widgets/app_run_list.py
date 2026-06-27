@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
+from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 
@@ -80,12 +81,14 @@ class AppRunList(DraggableList):
             app_list: 应用配置列表
             instance_idx: 实例索引
         """
+        timer = UiPerformanceTimer(f'AppRunList设置 {len(app_list)}个应用')
         # 如果已有卡片且数量一致，更新现有卡片（更高效）
         if len(self._app_cards) > 0 and len(self._app_cards) == len(app_list):
             self._update_existing_cards(app_list, instance_idx)
         else:
             # 数量不一致或首次创建，重建整个列表
             self._create_new_cards(app_list, instance_idx)
+        timer.total('完成设置应用列表')
 
     def _update_existing_cards(
         self,
@@ -99,21 +102,28 @@ class AppRunList(DraggableList):
             app_list: 应用配置列表
             instance_idx: 实例索引
         """
+        timer = UiPerformanceTimer(f'AppRunList更新现有卡片 {len(app_list)}个应用')
         for idx, app in enumerate(app_list):
             if idx < len(self._app_cards):
+                card_timer = UiPerformanceTimer(f'AppRunCard更新 #{idx} {app.app_id}')
                 card = self._app_cards[idx]
                 card.update_item(app, idx)
+                card_timer.lap('更新索引和数据')
                 run_record = self.ctx.run_context.get_run_record(
                     app_id=app.app_id,
                     instance_idx=instance_idx
                 )
+                card_timer.lap('读取运行记录')
                 card.set_app(
                     app,
                     run_record,
                     is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
                 )
+                card_timer.lap('设置应用数据')
                 card.set_switch_on(app.enabled)
                 card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
+                card_timer.total('完成更新卡片')
+        timer.total('完成更新现有卡片')
 
     def _create_new_cards(
         self,
@@ -127,14 +137,18 @@ class AppRunList(DraggableList):
             app_list: 应用配置列表
             instance_idx: 实例索引
         """
+        timer = UiPerformanceTimer(f'AppRunList创建新卡片 {len(app_list)}个应用')
         self._app_cards.clear()
         self.clear()
+        timer.lap('清空旧卡片')
 
         for idx, app in enumerate(app_list):
+            card_timer = UiPerformanceTimer(f'AppRunCard创建 #{idx} {app.app_id}')
             run_record = self.ctx.run_context.get_run_record(
                 app_id=app.app_id,
                 instance_idx=instance_idx
             )
+            card_timer.lap('读取运行记录')
             card = AppRunCard(
                 app=app,
                 index=idx,
@@ -143,13 +157,16 @@ class AppRunList(DraggableList):
                 is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
                 enable_opacity_effect=self._enable_opacity_effect,
             )
+            card_timer.lap('创建 AppRunCard')
             self._app_cards.append(card)
             self.add_list_item(card)
+            card_timer.lap('加入列表布局')
 
             # 移除卡片的 margins，使列表项之间没有间距
             card.layout().setContentsMargins(0, 0, 0, 0)
 
             card.update_display()
+            card_timer.lap('刷新显示状态')
 
             # 连接信号
             card.move_top.connect(self._on_app_move_top)
@@ -158,6 +175,8 @@ class AppRunList(DraggableList):
             card.setting_clicked.connect(self.app_setting_clicked.emit)
             card.notify_clicked.connect(self.app_notify_clicked.emit)
             card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
+            card_timer.total('完成创建卡片')
+        timer.total('完成创建新卡片')
 
     def update_cards_display(self) -> None:
         """

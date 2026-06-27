@@ -14,6 +14,7 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
+from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
@@ -203,20 +204,32 @@ class ChargePlanCard(DraggableListItem):
         """
         以一个体力计划进行初始化
         """
+        timer = UiPerformanceTimer(f'体力计划卡片初始化 {self._plan_perf_name(plan)}')
         self.plan = plan
         self.config = config
 
         self.init_category_combo_box()
+        timer.lap('初始化分类下拉框')
         self.init_mission_type_combo_box()
+        timer.lap('初始化副本类型下拉框')
         self.init_mission_combo_box()
+        timer.lap('初始化副本下拉框')
 
         self.init_card_num_box()
+        timer.lap('初始化电量数量下拉框')
         self.init_notorious_hunt_buff_num_opt()
+        timer.lap('初始化恶名狩猎次数下拉框')
         self.init_predefined_team_opt()
+        timer.lap('初始化预备编队下拉框')
         self.init_auto_battle_box()
+        timer.lap('初始化战斗配置下拉框')
 
         self.init_run_times_input()
         self.init_plan_times_input()
+        timer.total('完成体力计划卡片初始化')
+
+    def _plan_perf_name(self, plan: ChargePlanItem) -> str:
+        return f'#{self.idx} {plan.category_name}/{plan.mission_type_name}/{plan.mission_name}'
 
     def _on_category_changed(self, idx: int) -> None:
         category_name = self.category_combo_box.itemData(idx)
@@ -494,27 +507,34 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         return self.content_widget
 
     def on_interface_shown(self) -> None:
+        timer = UiPerformanceTimer('体力计划页面显示')
         VerticalScrollInterface.on_interface_shown(self)
+        timer.lap('基础显示')
 
         self.config = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
+        timer.lap('读取体力计划配置')
 
         self.update_plan_list_display()
+        timer.lap('刷新计划列表')
 
         self.combat_simulation_double_reward_config_card.init_with_plan(
             self.config.combat_simulation_double_reward_config
         )
+        timer.lap('刷新双倍活动配置卡')
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
         self.daily_reset_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'daily_reset_plan_times'))
         self.double_reward_opt.init_with_adapter(get_prop_adapter(self.config, 'double_reward'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
+        timer.lap('绑定设置卡适配器')
 
         self.combat_simulation_double_reward_config_card.setEnabled(self.config.double_reward)
+        timer.total('完成体力计划页面显示')
 
     def on_double_reward_changed(self, value: bool) -> None:
         self.combat_simulation_double_reward_config_card.setEnabled(value)
@@ -525,28 +545,58 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
+    def preload_interface(self) -> None:
+        """预加载体力计划页面的计划卡片。"""
+        timer = UiPerformanceTimer('体力计划页面预加载')
+        self._init_layout()
+        timer.lap('初始化布局')
+        self.config = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+        timer.lap('读取体力计划配置')
+        self.update_plan_list_display()
+        timer.total('完成体力计划页面预加载')
+
     def update_plan_list_display(self):
         plan_list = self.config.plan_list
+        timer = UiPerformanceTimer(f'体力计划列表刷新 {len(plan_list)}个计划')
+
+        if len(self.card_list) == len(plan_list):
+            for idx, plan in enumerate(plan_list):
+                card_timer = UiPerformanceTimer(
+                    f'体力计划卡片复用更新 #{idx} {plan.category_name}/{plan.mission_type_name}/{plan.mission_name}'
+                )
+                self.card_list[idx].update_item(plan, idx)
+                card_timer.total('完成复用更新')
+            timer.total('完成体力计划列表复用刷新')
+            return
 
         # 清空原来的卡片再创建新的卡片, 以防止部分信息未更新
         self.drag_list.clear()
         self.card_list.clear()
+        timer.lap('清空旧计划卡片')
         idx = 0
         while idx < len(plan_list):
+            plan = self.config.plan_list[idx]
+            card_timer = UiPerformanceTimer(
+                f'体力计划卡片创建 #{idx} {plan.category_name}/{plan.mission_type_name}/{plan.mission_name}'
+            )
             card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx],
                                   config=self.config)
+            card_timer.lap('创建 ChargePlanCard')
             card.changed.connect(self._on_plan_item_changed)
             card.delete.connect(self._on_plan_item_deleted)
             card.move_top.connect(self._on_plan_item_move_top)
+            card_timer.lap('连接信号')
 
             self.card_list.append(card)
             # 使用 DraggableList 的 add_list_item 方法直接添加 ChargePlanCard
             self.drag_list.add_list_item(card)
+            card_timer.total('加入拖拽列表')
             idx += 1
-
-        # 更新所有卡片的显示
-        for idx, plan in enumerate(plan_list):
-            self.card_list[idx].update_item(plan, idx)
+        timer.total('完成体力计划列表刷新')
 
     def _on_add_clicked(self) -> None:
         from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog
