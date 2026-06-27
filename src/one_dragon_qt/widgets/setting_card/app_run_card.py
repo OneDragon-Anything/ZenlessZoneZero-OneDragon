@@ -105,7 +105,7 @@ class AppRunCard(DraggableListItem):
         self.customContextMenuRequested.connect(self._show_context_menu)
         content_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         content_widget.customContextMenuRequested.connect(self._show_context_menu_from_content)
-        self.set_app(app, run_record)
+        self.set_app(app, run_record, is_migrated=is_migrated)
         self.set_switch_on(switch_on)
 
     def update_display(self) -> None:

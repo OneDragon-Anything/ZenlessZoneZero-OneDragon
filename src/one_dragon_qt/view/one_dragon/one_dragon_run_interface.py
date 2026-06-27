@@ -30,7 +30,6 @@ from one_dragon.base.operation.one_dragon_finalizer import (
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.app_run_list import AppRunList
@@ -120,50 +119,38 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self._init_app_list()
 
     def on_interface_shown(self) -> None:
-        timer = UiPerformanceTimer('一条龙运行页显示')
         SplitAppRunInterface.on_interface_shown(self)
-        timer.lap('基础显示')
         if not self._runner_finished_connected:
             self.app_runner.finished.connect(self._on_app_runner_finished)
             self._runner_finished_connected = True
         self._refresh_app_config()
-        timer.lap('刷新应用配置和列表')
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
-        timer.lap('绑定通知开关')
 
         self.ctx.listen_event(ApplicationEventId.APPLICATION_START.value, self._on_app_state_changed)
         self.ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, self._on_app_state_changed)
         self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_event)
-        timer.lap('注册上下文事件')
 
         self.instance_run_opt.blockSignals(True)
         self.instance_run_opt.setValue(self.ctx.one_dragon_config.instance_run)
         self.instance_run_opt.setVisible(self.need_multiple_instance)
         self.instance_run_opt.blockSignals(False)
-        timer.lap('刷新运行实例选项')
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
         self.after_done_opt.setVisible(self.need_after_done_opt)
-        timer.lap('刷新结束后选项')
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
         self.run_all_apps_signal.connect(self.run_app)
-        timer.lap('连接页面信号')
 
         if self.ctx.signal.start_onedragon:
             self.ctx.signal.start_onedragon = False
             self.run_all_apps_signal.emit()
-            timer.lap('触发启动一条龙')
 
         self._update_setting_btn_visibility()
-        timer.lap('刷新设置按钮可见性')
 
         # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             window.app_setting_manager.ready.connect(self._on_app_setting_manager_ready)
-            timer.lap('连接应用设置管理器信号')
-        timer.total('完成一条龙运行页显示')
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
@@ -176,11 +163,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def preload_interface(self) -> None:
         """预加载一条龙运行页 UI，不读取业务数据。"""
-        timer = UiPerformanceTimer('一条龙运行页预加载')
         self._init_layout()
-        timer.lap('初始化布局')
         self.app_run_list.ensure_card_capacity(self.PRELOAD_CARD_CAPACITY)
-        timer.total('完成一条龙运行页预加载')
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:
         """

@@ -11,7 +11,6 @@ from qfluentwidgets import (
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -104,28 +103,21 @@ class TeamSettingCard(SettingCardBase):
         v_layout.addLayout(row2)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
-        timer = UiPerformanceTimer(f'预备编队卡片刷新 {team.idx} {team.name}')
         self.team_info = team
 
         if not self.only_agents:
             self.name_input.blockSignals(True)
             self.name_input.setText(self.team_info.name)
             self.name_input.blockSignals(False)
-            timer.lap('刷新编队名称')
 
             self.auto_battle_btn.set_items(auto_battle_list, team.auto_battle)
-            timer.lap('刷新战斗配置下拉框')
 
         agent_opts = ([ConfigItem(label='代理人', value='unknown')]
                       + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
-        timer.lap('构建代理人选项')
 
         self.agent_1_btn.set_items(agent_opts, team.agent_id_list[0])
-        timer.lap('刷新1号位下拉框')
         self.agent_2_btn.set_items(agent_opts, team.agent_id_list[1])
-        timer.lap('刷新2号位下拉框')
         self.agent_3_btn.set_items(agent_opts, team.agent_id_list[2])
-        timer.total('完成预备编队卡片刷新')
 
     def setEnabled(self, enabled: bool):
         if not self.only_agents:
@@ -228,25 +220,18 @@ class PredefinedTeamInterface(SplitAppRunInterface):
         w.exec()
 
     def on_interface_shown(self) -> None:
-        timer = UiPerformanceTimer('预备编队页面显示')
         SplitAppRunInterface.on_interface_shown(self)
-        timer.lap('基础显示')
 
         auto_battle_list = get_auto_battle_op_config_list('auto_battle')
-        timer.lap('读取战斗配置列表')
         team_list = self.ctx.team_config.team_list
         for i in range(len(team_list)):
             if i >= len(self.team_opt_list):
                 break
             self.team_opt_list[i].init_setting_card(auto_battle_list, team_list[i])
-            timer.lap(f'刷新队伍卡片 {i} {team_list[i].name}')
-        timer.total('完成预备编队页面显示')
 
     def preload_interface(self) -> None:
         """预加载预备编队页面 UI，不读取业务数据。"""
-        timer = UiPerformanceTimer('预备编队页面预加载')
         self._init_layout()
-        timer.total('完成预备编队页面预加载')
 
     def _on_team_info_changed(self, team: PredefinedTeamInfo) -> None:
         self.ctx.team_config.update_team(team)

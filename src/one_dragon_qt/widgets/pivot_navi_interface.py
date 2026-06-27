@@ -3,7 +3,6 @@ from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase, Pivot, qrouter
 
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.page_stack_wrapper import PageStackWrapper
 
@@ -70,33 +69,24 @@ class PivotNavigatorInterface(BaseInterface):
 
     def on_current_index_changed(self, index: int) -> None:
         current_widget = self.stacked_widget.widget(index)
-        current_name = current_widget.objectName()
         last_widget = self.stacked_widget.widget(self._last_stack_idx)
-        last_name = last_widget.objectName() if last_widget is not None else ''
-        timer = UiPerformanceTimer(f'标签切换 {self.objectName()} {last_name}->{current_name}')
 
         if index != self._last_stack_idx:
             if isinstance(last_widget, PageStackWrapper | BaseInterface):
                 last_widget.on_interface_hidden()
-                timer.lap(f'隐藏旧页面 {last_name}')
             self._last_stack_idx = index
 
         self.pivot.setCurrentItem(current_widget.objectName())
-        timer.lap('更新 Pivot')
         qrouter.push(self.stacked_widget, current_widget.objectName())
-        timer.lap('更新路由')
 
         # 通知二级页面状态
         if isinstance(current_widget, PageStackWrapper):
             self.secondary_state_changed.emit(current_widget.is_secondary_shown)
         else:
             self.secondary_state_changed.emit(False)
-        timer.lap('发送二级页面状态')
 
         if isinstance(current_widget, PageStackWrapper | BaseInterface):
             current_widget.on_interface_shown()
-            timer.lap(f'显示新页面 {current_name}')
-        timer.total('完成标签切换')
 
     def on_interface_shown(self) -> None:
         """子界面显示时 进行初始化"""
@@ -149,7 +139,5 @@ class PivotNavigatorInterface(BaseInterface):
             return
 
     def _preload_widget(self, widget: QWidget) -> None:
-        timer = UiPerformanceTimer(f'预加载子标签 {self.objectName()} {widget.objectName()}')
         if isinstance(widget, PageStackWrapper | BaseInterface):
             widget.preload_interface()
-        timer.total('完成预加载子标签')

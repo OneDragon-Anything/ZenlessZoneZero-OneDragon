@@ -2,7 +2,6 @@ from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase
 
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
@@ -51,18 +50,14 @@ class VerticalScrollInterface(BaseInterface):
         if self._init:
             return
 
-        timer = UiPerformanceTimer(f'页面布局初始化 {self.objectName()}')
-
         # 创建一个垂直布局，底边距为0（由滚动内容末尾的11px空白提供视觉边距）
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 11, 0, 0)
         main_layout.setSpacing(0)
-        timer.lap('创建主布局')
 
         content_widget = self._param_content_widget
         if content_widget is None:
             content_widget = self.get_content_widget()
-            timer.lap('创建内容组件')
 
         top_widget = self.get_fixed_top_widget()
         if top_widget is not None:
@@ -73,12 +68,10 @@ class VerticalScrollInterface(BaseInterface):
             top_wrapper_layout.setSpacing(0)
             top_wrapper_layout.addWidget(top_widget)
             main_layout.addWidget(top_wrapper, stretch=0)
-            timer.lap('创建固定顶部组件')
 
         scroll_area = FastScrollArea(orient=Qt.Orientation.Vertical)
         scroll_area.setViewportMargins(11, 0, 11, 0)
         main_layout.addWidget(scroll_area, stretch=1)
-        timer.lap('创建滚动区域')
 
         # 包一层容器，用底边距在滚动内容末尾提供视觉边距
         wrapper = QWidget()
@@ -91,7 +84,6 @@ class VerticalScrollInterface(BaseInterface):
 
         scroll_area.setWidget(wrapper)
         self._init = True
-        timer.total('完成页面布局初始化')
 
     def get_content_widget(self) -> QWidget:
         """

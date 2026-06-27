@@ -21,7 +21,6 @@ from one_dragon.base.operation.one_dragon_context import (
 )
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -236,12 +235,9 @@ class SplitAppRunInterface(AppRunInterface):
             return
         self._init = True
 
-        timer = UiPerformanceTimer(f'分栏运行页布局初始化 {self.objectName()}')
-
         outer_layout = QHBoxLayout(self)
         outer_layout.setContentsMargins(11, 11, 11, 0)
         outer_layout.setSpacing(10)
-        timer.lap('创建外层布局')
 
         # 左侧：滚动区域（无底边距）
         scroll_area = FastScrollArea(orient=Qt.Orientation.Vertical)
@@ -249,14 +245,11 @@ class SplitAppRunInterface(AppRunInterface):
         left_widget.setStyleSheet("QWidget { background-color: transparent; }")
         scroll_area.setWidget(left_widget)
         outer_layout.addWidget(scroll_area, stretch=self._left_stretch)
-        timer.lap('创建左侧组件')
 
         # 右侧：运行控件（由 AppRunInterface.get_content_widget 创建）
         right_widget = self.get_content_widget()
         right_widget.layout().setContentsMargins(0, 0, 0, 11)
         outer_layout.addWidget(right_widget, stretch=self._right_stretch)
-        timer.lap('创建右侧运行组件')
-        timer.total('完成分栏运行页布局初始化')
 
     def get_left_widget(self) -> QWidget:
         """返回左侧内容控件，由子类实现。"""

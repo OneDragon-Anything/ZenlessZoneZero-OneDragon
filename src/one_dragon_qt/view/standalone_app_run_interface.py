@@ -17,7 +17,6 @@ from qfluentwidgets import (
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.multi_select_list import MultiSelectListWidget
@@ -93,9 +92,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
     def preload_interface(self) -> None:
         """预加载独立应用运行页 UI，不读取业务数据。"""
-        timer = UiPerformanceTimer('应用运行页预加载')
         self._init_layout()
-        timer.total('完成应用运行页预加载')
 
     # ── 应用列表管理 ──
 
