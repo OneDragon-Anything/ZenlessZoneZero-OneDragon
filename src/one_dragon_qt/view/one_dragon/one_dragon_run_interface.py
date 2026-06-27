@@ -347,8 +347,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
         return None
 
     def _find_app_card_notify_btn(self, app_id: str):
-        """找到对应 app_id 的卡片的通知设置按钮"""
+        """找到对应 app_id 的卡片，作为通知设置弹窗锚点。"""
         for card in self.app_run_list._app_cards:
             if card.app.app_id == app_id:
-                return card.more_btn
+                return card
         return None
