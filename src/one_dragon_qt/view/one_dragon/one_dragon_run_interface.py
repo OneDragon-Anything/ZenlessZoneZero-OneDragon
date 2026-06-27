@@ -47,6 +47,7 @@ from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 class OneDragonRunInterface(SplitAppRunInterface):
 
     run_all_apps_signal = Signal()
+    PRELOAD_CARD_CAPACITY: int = 24
 
     def __init__(self, ctx: OneDragonContext,
                  nav_text_cn: str = '一条龙运行',
@@ -178,11 +179,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
                 window.app_setting_manager.ready.disconnect(self._on_app_setting_manager_ready)
 
     def preload_interface(self) -> None:
-        """预加载一条龙运行页的卡片列表。"""
+        """预加载一条龙运行页 UI，不读取业务数据。"""
         timer = UiPerformanceTimer('一条龙运行页预加载')
         self._init_layout()
         timer.lap('初始化布局')
-        self._refresh_app_config()
+        self.app_run_list.ensure_card_capacity(self.PRELOAD_CARD_CAPACITY)
         timer.total('完成一条龙运行页预加载')
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:

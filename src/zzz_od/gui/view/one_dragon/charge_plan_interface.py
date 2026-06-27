@@ -309,6 +309,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         ctx: ZContext,
         plan: ChargePlanItem | None = None,
         category_name: str = '实战模拟室',
+        init_on_create: bool = True,
     ) -> None:
         self.ctx: ZContext = ctx
         self.plan: ChargePlanItem = plan if plan is not None else ChargePlanItem()
@@ -344,7 +345,8 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
             ]
         )
 
-        self.init_with_plan(self.plan)
+        if init_on_create:
+            self.init_with_plan(self.plan)
 
     def init_with_plan(self, plan: ChargePlanItem) -> None:
         """
@@ -464,6 +466,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.combat_simulation_double_reward_config_card = DoubleRewardEventConfigCard(
             self.ctx,
             category_name='实战模拟室',
+            init_on_create=False,
         )
         self.combat_simulation_double_reward_config_card.changed.connect(
             self.set_combat_simulation_double_reward_config
@@ -546,17 +549,9 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         VerticalScrollInterface.on_interface_hidden(self)
 
     def preload_interface(self) -> None:
-        """预加载体力计划页面的计划卡片。"""
+        """预加载体力计划页面 UI，不读取业务数据。"""
         timer = UiPerformanceTimer('体力计划页面预加载')
         self._init_layout()
-        timer.lap('初始化布局')
-        self.config = self.ctx.run_context.get_config(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=self.group_id,
-        )
-        timer.lap('读取体力计划配置')
-        self.update_plan_list_display()
         timer.total('完成体力计划页面预加载')
 
     def update_plan_list_display(self):

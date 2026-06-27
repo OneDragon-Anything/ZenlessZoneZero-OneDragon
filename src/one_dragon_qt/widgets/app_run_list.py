@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
+from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon_qt.utils.performance_timer import UiPerformanceTimer
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
@@ -65,6 +66,7 @@ class AppRunList(DraggableList):
 
         # 存储应用卡片
         self._app_cards: list[AppRunCard] = []
+        self._card_pool: list[AppRunCard] = []
 
         # 连接父类的拖拽排序信号
         self.order_changed.connect(self._handle_order_changed)
@@ -89,6 +91,21 @@ class AppRunList(DraggableList):
             # 数量不一致或首次创建，重建整个列表
             self._create_new_cards(app_list, instance_idx)
         timer.total('完成设置应用列表')
+
+    def ensure_card_capacity(self, capacity: int) -> None:
+        """预创建指定数量的空卡片，不读取任何业务数据。"""
+        timer = UiPerformanceTimer(f'AppRunList预创建空卡片 容量={capacity}')
+        current_capacity = len(self._app_cards) + len(self._card_pool)
+        for idx in range(current_capacity, capacity):
+            card_timer = UiPerformanceTimer(f'AppRunCard空壳创建 #{idx}')
+            card = AppRunCard(
+                parent=self,
+                enable_opacity_effect=self._enable_opacity_effect,
+            )
+            card.hide()
+            self._card_pool.append(card)
+            card_timer.total('完成空壳创建')
+        timer.total('完成预创建空卡片')
 
     def _update_existing_cards(
         self,
@@ -149,15 +166,9 @@ class AppRunList(DraggableList):
                 instance_idx=instance_idx
             )
             card_timer.lap('读取运行记录')
-            card = AppRunCard(
-                app=app,
-                index=idx,
-                run_record=run_record,
-                switch_on=app.enabled,
-                is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
-                enable_opacity_effect=self._enable_opacity_effect,
-            )
-            card_timer.lap('创建 AppRunCard')
+            card = self._take_card(app, idx, run_record)
+            card_timer.lap('获取 AppRunCard')
+            card.is_migrated = app.app_id not in self.ctx.run_context.default_group_apps
             self._app_cards.append(card)
             self.add_list_item(card)
             card_timer.lap('加入列表布局')
@@ -177,6 +188,27 @@ class AppRunList(DraggableList):
             card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
             card_timer.total('完成创建卡片')
         timer.total('完成创建新卡片')
+
+    def _take_card(
+        self,
+        app: ApplicationGroupConfigItem,
+        idx: int,
+        run_record: AppRunRecord | None,
+    ) -> AppRunCard:
+        if self._card_pool:
+            card = self._card_pool.pop(0)
+            card.set_app(app, run_record)
+            card.set_switch_on(app.enabled)
+            card.index = idx
+            card.show()
+            return card
+        return AppRunCard(
+            app=app,
+            index=idx,
+            run_record=run_record,
+            switch_on=app.enabled,
+            enable_opacity_effect=self._enable_opacity_effect,
+        )
 
     def update_cards_display(self) -> None:
         """

@@ -92,11 +92,9 @@ class StandaloneRunInterface(SplitAppRunInterface):
                 window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
 
     def preload_interface(self) -> None:
-        """预加载独立应用运行页列表。"""
+        """预加载独立应用运行页 UI，不读取业务数据。"""
         timer = UiPerformanceTimer('应用运行页预加载')
         self._init_layout()
-        timer.lap('初始化布局')
-        self._refresh_app_list()
         timer.total('完成应用运行页预加载')
 
     # ── 应用列表管理 ──
