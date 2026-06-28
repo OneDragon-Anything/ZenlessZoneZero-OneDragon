@@ -2,7 +2,7 @@
 
 本文件是项目级 AI 编码协作入口，只保留会直接影响实现落点与提交流程的约束。
 详细规范与背景资料不要堆在这里，按需继续阅读：
-- 开发环境与 Vibe Coding 配置：[docs/develop/README.md](docs/develop/README.md)
+- 开发环境与打包：[docs/develop/README.md](docs/develop/README.md)
 - 详细编码规范：[docs/develop/spec/agent_guidelines.md](docs/develop/spec/agent_guidelines.md)
 - 一条龙整体架构：[docs/develop/one_dragon/one_dragon_architecture.md](docs/develop/one_dragon/one_dragon_architecture.md)
 - 应用插件开发指引：[docs/develop/guides/application_plugin_guide.md](docs/develop/guides/application_plugin_guide.md)
@@ -84,7 +84,3 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - 框架与模块架构：`docs/develop/one_dragon/`、`docs/develop/one_dragon/modules/`
 - 游戏业务与专项设计：`docs/develop/zzz/`
 - 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`
-
-## AI 工具接入
-
-本仓库以根目录 `AGENTS.md` 作为统一入口；其他工具按 [docs/develop/README.md](docs/develop/README.md) 中的硬链接说明接入即可。

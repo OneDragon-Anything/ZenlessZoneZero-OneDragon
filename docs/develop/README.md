@@ -1,16 +1,22 @@
 # 开发指南
 
+> `docs/develop/` 的入口与索引。开发环境与流程见 §1–§3；各类专题文档按下索引查阅。
+
+## 文档索引
+
+- **开发环境与工具**：[开发环境](setup/environment.md) · [AI 编码助手接入](setup/ai_coding.md)
+- **编码规范**：[agent_guidelines.md](spec/agent_guidelines.md)
+- **架构设计**：[一条龙整体架构](one_dragon/one_dragon_architecture.md) · [集成启动器 RuntimeLauncher](one_dragon/runtime_launcher.md) · [模块文档](one_dragon/modules/)
+- **开发指引**：[应用插件开发](guides/application_plugin_guide.md) · [应用设置界面](guides/application_setting_guide.md)
+- **游戏业务**：[自动战斗](zzz/auto_battle.md) · [进游戏](zzz/enter_game.md) · [转向与灵敏度](zzz/turn_sensitivity.md) · [功能模块](zzz/application/) · [Web 架构](zzz/web/web-architecture.md)
+- **AI Harness 工程**：[总览与路线图](harness/README.md)
+- **设计文档**：[屏幕区域识别设计](screen_scope_design.md) · [屏幕区域推进](screen_scope_rollout.md)
+
 ## 1.开发
 
 ### 1.1.开发环境
 
-项目使用 [uv](https://github.com/astral-sh/uv/releases/latest) 进行依赖管理，使用以下命令可安装对应环境。
-
-```shell
-uv sync --group dev
-```
-
-项目整体布局使用`src-layout`结构，源代码位于`src/`目录下。请自行在IDE中设置为`Sources Root`，或增加环境变量`PYTHONPATH=src`。
+见 [setup/environment.md](setup/environment.md)。
 
 ### 1.2.代码规范
 
@@ -53,23 +59,8 @@ uv run --env-file .env pytest zzz-od-test/
 
 ## 2.Vibe Coding
 
-### Agent指南
-
-推荐使用 [agent_guidelines.md](spec/agent_guidelines.md) 指导Agent进行编程
-
-可以通过创建硬链接到各个编程工具所需位置
-
-> 以下命令请在仓库根目录执行。
-
-- Qwen Coder - `New-Item -ItemType HardLink -Path "QWEN.md" -Target "AGENTS.md"`
-- Lingma Rules - `New-Item -ItemType HardLink -Path ".lingma/rules/project_rule.md" -Target "AGENTS.md"`
-- Gemini CLI - `New-Item -ItemType HardLink -Path "GEMINI.md" -Target "AGENTS.md"`
-- Claude Code - `New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"`
-
-
-### 推荐MCP
-
-- [context7](https://github.com/upstash/context7) - 查询各个库的文档。
+- AI 编码工具（Claude Code / GitHub Copilot / Qwen / Gemini 等）的接入方式、MCP 与扩展配置见 [setup/ai_coding.md](setup/ai_coding.md)。
+- AI Coding Harness 工程的设计决策、skill 清单与 MCP 路线图见 [harness/](harness/README.md)。
 
 ## 3.打包
 
