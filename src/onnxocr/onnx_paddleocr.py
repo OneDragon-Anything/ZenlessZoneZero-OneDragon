@@ -12,60 +12,49 @@ from onnxocr.utils import infer_args as init_args
 
 log = get_logger("onnx_paddleocr")
 
-PPOCRV6_MODEL_CONFIGS = {
-    "medium": {
-        "det_db_box_thresh": 0.45,
-        "rec_char_dict_path": "ppocrv6_dict.txt",
-    },
-    "small": {
-        "det_db_box_thresh": 0.45,
-        "rec_char_dict_path": "ppocrv6_dict.txt",
-    },
-    "tiny": {
-        "det_db_box_thresh": 0.4,
-        "rec_char_dict_path": "ppocrv6_tiny_dict.txt",
-    },
+PPOCRV6_MODEL_CONFIG = {
+    "det_db_box_thresh": 0.45,
+    "rec_char_dict_path": "ppocrv6_dict.txt",
 }
 
 
-def _normalize_ppocrv6_size(model_name=None, model_size=None):
+def _normalize_ppocrv6_size(model_name: str | None = None, model_size: str | None = None) -> str | None:
     if not model_name:
         return None
-    if model_size:
-        size = str(model_size).lower()
-    else:
-        normalized = str(model_name).lower()
-        size = next((name for name in PPOCRV6_MODEL_CONFIGS if name in normalized), None)
-
-    if size not in PPOCRV6_MODEL_CONFIGS:
+    if "ppocrv6" not in str(model_name).lower():
         return None
-    return size
+    return "small"
 
 
-def _build_ppocrv6_defaults(kwargs):
+def _normalize_ppocrv6_model_name(model_name: str) -> str:
+    if "ppocrv6" in model_name.lower():
+        return "ppocrv6"
+    return model_name
+
+
+def _build_ppocrv6_defaults(kwargs: dict[str, Any]) -> dict[str, Any]:
     """为 PP-OCRv6 模型构建默认参数。如果不是 v6 模型则返回空字典，保证 v5 兼容。"""
     model_name = kwargs.pop("ocr_model_name", None)
     if not model_name:
         kwargs.pop("ocr_model_size", None)
         return {}
     model_size = kwargs.pop("ocr_model_size", None)
-    size = _normalize_ppocrv6_size(model_name=model_name, model_size=model_size)
-    if not size:
+    if _normalize_ppocrv6_size(model_name=model_name, model_size=model_size) is None:
         return {}
+    model_name = _normalize_ppocrv6_model_name(model_name)
 
     from one_dragon.utils import os_utils
     model_root = Path(os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', model_name))
-    config = PPOCRV6_MODEL_CONFIGS[size]
 
     defaults = {
         "det_model_dir": str(model_root / "det.onnx"),
         "rec_model_dir": str(model_root / "rec.onnx"),
-        "rec_char_dict_path": str(model_root / config["rec_char_dict_path"]),
+        "rec_char_dict_path": str(model_root / PPOCRV6_MODEL_CONFIG["rec_char_dict_path"]),
         "rec_image_shape": "3, 48, 320",
         "det_limit_side_len": 960,
         "det_limit_type": "max",
         "det_db_thresh": 0.3,
-        "det_db_box_thresh": config["det_db_box_thresh"],
+        "det_db_box_thresh": PPOCRV6_MODEL_CONFIG["det_db_box_thresh"],
         "det_db_unclip_ratio": 1.5,
         "det_db_max_candidates": 1000,
     }
