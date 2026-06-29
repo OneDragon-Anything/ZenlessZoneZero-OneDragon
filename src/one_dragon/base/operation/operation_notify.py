@@ -138,7 +138,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         app.ctx.push_service.push_async(
             title=app.ctx.notify_config.title,
             content=message,
-            image=pool.last_image
+            image=pool.last_image,
         )
     else:
         return
@@ -250,16 +250,20 @@ def send_node_notify(
     )
     current_fail = round_result.is_fail
 
-    # 是否收集节点通知
-    should_collect_details = (detail_mode != NotifyDetailMode.OFF.value.value
-                              and not (detail_mode == NotifyDetailMode.ERROR_ONLY.value.value and not current_fail))
-    # 应用级通知开启时不能直接return, 因为要收集最后一张图片
-    should_get_last_screenshot = (operation.ctx.push_service.push_config.send_image
-                                  and app_lifecycle_mode != NotifyLifecycleMode.OFF.value.value)
-    if not should_collect_details and not should_get_last_screenshot:
+    should_collect_details = detail_mode != NotifyDetailMode.OFF.value.value
+    if detail_mode == NotifyDetailMode.ERROR_ONLY.value.value and not current_fail:
+        should_collect_details = False
+
+    should_keep_lifecycle_image = (
+        operation.ctx.push_service.push_config.send_image
+        and app_lifecycle_mode != NotifyLifecycleMode.OFF.value.value
+    )
+
+    if not should_collect_details:
+        if should_keep_lifecycle_image:
+            pool.max_images = 1
+            pool.add(content='', image=operation.last_screenshot)
         return
-    if not should_collect_details and should_get_last_screenshot:
-        pool.max_images = 1
 
     # 初始化通知列表
     current_notify_list: list[NodeNotifyDesc] = []
