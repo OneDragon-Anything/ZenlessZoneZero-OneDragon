@@ -1,15 +1,13 @@
-from typing import List, Optional
-
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class OneDragonAppConfig(YamlConfig):
+class OneDragonAppConfig(UserConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'one_dragon_app', instance_idx=instance_idx, sample=False)
-        self._temp_app_run_list: Optional[List[str]] = None
+    def __init__(self, instance_idx: int | None = None):
+        UserConfig.__init__(self, 'one_dragon_app', instance_idx=instance_idx)
+        self._temp_app_run_list: list[str] | None = None
 
-    def set_temp_app_run_list(self, app_run_list: Optional[List[str]]):
+    def set_temp_app_run_list(self, app_run_list: list[str] | None):
         """设置临时应用运行列表"""
         self._temp_app_run_list = app_run_list
 
@@ -18,7 +16,7 @@ class OneDragonAppConfig(YamlConfig):
         self._temp_app_run_list = None
 
     @property
-    def app_order(self) -> List[str]:
+    def app_order(self) -> list[str]:
         """
         运行顺序
         :return:
@@ -26,7 +24,7 @@ class OneDragonAppConfig(YamlConfig):
         return self.get("app_order", [])
 
     @app_order.setter
-    def app_order(self, new_list: List[str]):
+    def app_order(self, new_list: list[str]):
         self.update('app_order', new_list)
 
     def move_up_app(self, app_id: str) -> None:
@@ -53,7 +51,7 @@ class OneDragonAppConfig(YamlConfig):
         self.app_order = old_app_orders
 
     @property
-    def app_run_list(self) -> List[str]:
+    def app_run_list(self) -> list[str]:
         """
         应用运行列表
         如果设置了临时应用列表，则使用临时配置
@@ -64,7 +62,7 @@ class OneDragonAppConfig(YamlConfig):
         return self.get("app_run_list", [])
 
     @app_run_list.setter
-    def app_run_list(self, new_list: List[str]):
+    def app_run_list(self, new_list: list[str]):
         self.update('app_run_list', new_list)
 
     def set_app_run(self, app_id: str, to_run: bool) -> None:

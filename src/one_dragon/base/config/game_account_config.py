@@ -1,7 +1,7 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class GamePlatformEnum(Enum):
@@ -25,10 +25,10 @@ class GameRegionEnum(Enum):
     TWHKMO = ConfigItem('港澳台服', 'twhkmo')
 
 
-class GameAccountConfig(YamlConfig):
+class GameAccountConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'game_account', instance_idx=instance_idx)
 
     @classmethod
     def is_different_game_path(cls, current_idx: int, next_idx: int) -> bool:
@@ -113,15 +113,15 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def game_refresh_hour_offset(self) -> int:
-        if self.game_region == GameRegionEnum.CN.value.value \
-                or self.game_region == GameRegionEnum.CNB.value.value:
+        if (
+            self.game_region == GameRegionEnum.CN.value.value
+            or self.game_region == GameRegionEnum.CNB.value.value
+            or self.game_region == GameRegionEnum.ASIA.value.value
+            or self.game_region == GameRegionEnum.TWHKMO.value.value
+        ):
             return 4
         elif self.game_region == GameRegionEnum.AMERICA.value.value:
             return -9
         elif self.game_region == GameRegionEnum.EUROPE.value.value:
             return -3
-        elif self.game_region == GameRegionEnum.ASIA.value.value:
-            return 4
-        elif self.game_region == GameRegionEnum.TWHKMO.value.value:
-            return 4
         return 4

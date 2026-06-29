@@ -19,6 +19,9 @@ CLAUDE.local.md
 nul
 
 # 用户独有的配置文件
+config.db
+config.db-shm
+config.db-wal
 env.bat
 config/custom.yml
 config/env.yml

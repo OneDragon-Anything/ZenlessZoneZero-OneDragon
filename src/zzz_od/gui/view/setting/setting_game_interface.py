@@ -245,7 +245,7 @@ class SettingGameInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+        self.input_way_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('type_input_way'))
 
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))

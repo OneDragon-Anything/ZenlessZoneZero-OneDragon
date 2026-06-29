@@ -1,7 +1,7 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class UILanguageEnum(Enum):
@@ -26,10 +26,10 @@ class BackgroundTypeEnum(Enum):
     NONE = ConfigItem('无', 'none')
 
 
-class CustomConfig(YamlConfig):
+class CustomConfig(UserConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, module_name='custom')
+        UserConfig.__init__(self, 'custom', instance_idx=None)
 
     @property
     def ui_language(self) -> str:
