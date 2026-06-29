@@ -66,17 +66,18 @@ class Scene:
 
         return states
 
-    def match_execution(self, trigger_time: float) -> ExecutionInfo | None:
+    def match_execution(self, trigger_time: float, state_triggered: set[str]) -> ExecutionInfo | None:
         """
         根据触发时间和优先级 获取符合条件的场景下的执行信息
 
         Args:
             trigger_time: 触发时间
+            state_triggered: 已触发的指令
 
         Returns:
             符合条件的场景下的执行信息
         """
         for handler in self.handlers:
-            info = handler.match_execution(trigger_time)
+            info = handler.match_execution(trigger_time, state_triggered)
             if info is not None:
                 return info

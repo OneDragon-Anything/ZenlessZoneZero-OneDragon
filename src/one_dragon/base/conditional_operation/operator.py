@@ -55,6 +55,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         
         self._inited: bool = False
         self._task_lock: Lock = Lock()
+        self.state_triggered: set[str] = set()  # 一些状态开局释放和中局释放有区别, 故记录是否释放过
 
     def init(self) -> None:
         """
@@ -66,6 +67,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.load()
         self.build()
         self.state_record_service.register_operator(self)
+        self.state_triggered: set[str] = set()  # 一些状态开局释放和中局释放有区别, 故记录是否释放过
 
         self._inited = True
 
@@ -151,7 +153,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 if past_time < self.normal_scene.interval_seconds:
                     to_sleep = self.normal_scene.interval_seconds - past_time
                 else:
-                    new_execution_info = self.normal_scene.match_execution(trigger_time)
+                    new_execution_info = self.normal_scene.match_execution(trigger_time, self.state_triggered)
                     if new_execution_info is not None:
                         log.debug(f'当前场景 主循环 当前条件 {new_execution_info.expr_display}')
                         new_execution_info.priority = self.normal_scene.priority
@@ -171,6 +173,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         self.running_executor_cnt.inc()
                         future = self.running_executor.run_async()
                         future.add_done_callback(self._on_task_done)
+                        self.state_triggered.add(new_execution_info.state_list[0])
 
             if to_sleep is not None:
                 # 等待时间不能写在锁里 要尽快释放锁
@@ -200,7 +203,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             if trigger_time - last_trigger_time < scene.interval_seconds:  # 冷却时间没过 不触发
                 return
 
-            new_execution_info = scene.match_execution(trigger_time)
+            new_execution_info = scene.match_execution(trigger_time, self.state_triggered)
             # 若new_execution_info为空，即无匹配state，则不打断当前运行
             if new_execution_info is None:
                 return
@@ -239,6 +242,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             self.last_trigger_time[trigger_scene_id] = trigger_time
             future = self.running_executor.run_async()
             future.add_done_callback(self._on_task_done)
+            self.state_triggered.add(new_execution_info.op_list[0].op_name)
 
     def stop_running(self) -> None:
         """
@@ -256,6 +260,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         调用这个函数的地方都使用了 self._task_lock 锁
         :return:
         """
+        self.state_triggered.clear()
         if self.running_executor is not None:
             finish = self.running_executor.stop()  # stop之前是否已经完成所有op
             if not finish:

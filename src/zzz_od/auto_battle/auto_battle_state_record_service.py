@@ -121,6 +121,10 @@ class AutoBattleStateRecordService(StateRecordService):
                 if state_def.state_name not in event_ids:
                     event_ids.append(state_def.state_name)
 
+        # 整局战斗触发过一次状态的标记
+        event_ids.append('state_triggered')
+        event_ids.append('state_not_triggered')
+
         # 这是一个旧的状态 等待后续删除或者恢复识别
         # 完全不知道这个注册器有有什么作用，实测根本不影响状态运转
         event_ids.append('格挡-破碎')

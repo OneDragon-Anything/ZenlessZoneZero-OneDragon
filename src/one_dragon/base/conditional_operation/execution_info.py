@@ -36,7 +36,7 @@ class ExecutionInfo:
 
     @cached_property
     def expr_display(self) -> str:
-        return ' ← '.join(self.state_list) if self.state_list else '/'
+        return ' → '.join(self.state_list) if self.state_list else '/'
 
     @cached_property
     def priority_display(self) -> str:

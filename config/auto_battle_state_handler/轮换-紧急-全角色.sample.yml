@@ -24,7 +24,7 @@ handlers:
         state: "自定义-连携跳过"
 
   # 嘉音放大招和补唱歌, 至少3分钟一次
-  - states: "![前台-耀嘉音]"
+  - states: "[前台-耀嘉音] | [后台-耀嘉音]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-耀嘉音] & ([按键-切换角色-下一个, 0.3, 1] | [按键-切换角色-上一个, 0.3, 1])"
     debug_name: "耀嘉音状态检查"
     sub_handlers:
@@ -42,7 +42,7 @@ handlers:
             state: "自定义-非失衡连携"
             add: 2
 
-      - states: "[后台-耀嘉音] & ![前台-耀嘉音] & ![自定义-耀嘉音-唱歌, 0, 180]"
+      - states: "([后台-耀嘉音] | [state_not_triggered]) & ![自定义-耀嘉音-唱歌, 0, 180]"
         debug_name: "耀嘉音补唱歌"
         operations:
           - op_name: "按键-切换角色"

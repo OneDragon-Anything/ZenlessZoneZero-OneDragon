@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from enum import IntEnum
 from functools import cached_property
 from typing import Callable, Optional
@@ -9,14 +11,12 @@ from one_dragon.utils.log_utils import log
 
 
 class StateCalNodeType(IntEnum):
-
     OP = 0
     STATE = 1
-    TRUE =2
+    TRUE = 2
 
 
 class StateCalOpType(IntEnum):
-
     AND = 0
     OR = 1
     NOT = 2
@@ -24,16 +24,16 @@ class StateCalOpType(IntEnum):
 
 class StateCalNode:
     def __init__(
-        self,
-        node_type: StateCalNodeType,
-        op_type: StateCalOpType | None = None,
-        left_child: StateCalNode | None = None,
-        right_child: StateCalNode | None = None,
-        state_recorder: Optional[StateRecorder] = None,
-        state_time_range_min: float = None,
-        state_time_range_max: float = None,
-        state_value_range_min: int = None,
-        state_value_range_max: int = None,
+            self,
+            node_type: StateCalNodeType,
+            op_type: StateCalOpType | None = None,
+            left_child: StateCalNode | None = None,
+            right_child: StateCalNode | None = None,
+            state_recorder: Optional[StateRecorder] = None,
+            state_time_range_min: float = None,
+            state_time_range_max: float = None,
+            state_value_range_min: int = None,
+            state_value_range_max: int = None,
     ):
         """
         状态计算树的一个节点
@@ -61,19 +61,21 @@ class StateCalNode:
         self.state_value_range_min: int = state_value_range_min
         self.state_value_range_max: int = state_value_range_max
 
-    def in_time_range(self, now: float) -> bool:
+    def in_time_range(self, now: float, state_triggered: bool = True) -> bool:
         """
         根据当前时间 判断是否在状态的生效时间范围内
-        :param now: 当前时间
+        :param
+        now: 当前时间
+        state_triggered: 是否触发过此状态
         :return:
         """
         if self.node_type == StateCalNodeType.OP:
             if self.op_type == StateCalOpType.AND:
-                return self.left_child.in_time_range(now) and self.right_child.in_time_range(now)
+                return self.left_child.in_time_range(now, state_triggered) and self.right_child.in_time_range(now, state_triggered)
             elif self.op_type == StateCalOpType.OR:
-                return self.left_child.in_time_range(now) or self.right_child.in_time_range(now)
+                return self.left_child.in_time_range(now, state_triggered) or self.right_child.in_time_range(now, state_triggered)
             elif self.op_type == StateCalOpType.NOT:
-                return not self.left_child.in_time_range(now)
+                return not self.left_child.in_time_range(now, state_triggered)
         elif self.node_type == StateCalNodeType.STATE:
             diff = now - self.state_recorder.last_record_time
             # log.debug('状态 [ %s ] 距离上次 %.2f, 要求区间 [%.2f, %.2f]' % (
@@ -83,8 +85,15 @@ class StateCalNode:
             #     self.state_time_range_max
             # ))
             time_valid = self.state_time_range_min <= diff <= self.state_time_range_max
+            # time_valid = min(-999, self.state_time_range_min) <= diff <= max(999, self.state_time_range_max)  # debug 用
+            if not time_valid:
+                return False
             value_valid = True
-            if self.state_value_range_min is not None and self.state_value_range_max is not None:
+            if self.state_recorder.state_name == 'state_triggered':
+                return state_triggered
+            elif self.state_recorder.state_name == 'state_not_triggered':
+                return not state_triggered
+            elif self.state_value_range_min is not None and self.state_value_range_max is not None:
                 # log.debug('状态 [ %s ] 当前值 %s, 值要求区间 [%d, %d]' % (
                 #     self.state_recorder.state_name,
                 #     self.state_recorder.last_value,
@@ -96,7 +105,7 @@ class StateCalNode:
                 else:
                     value_valid = self.state_value_range_min <= self.state_recorder.last_value <= self.state_value_range_max
 
-            return time_valid and value_valid
+            return value_valid
         elif self.node_type == StateCalNodeType.TRUE:
             return True
 
@@ -132,8 +141,8 @@ class StateCalNode:
 
 
 def construct_state_cal_tree(
-    expr_str: str,
-    state_getter: Callable[[str], StateRecorder],
+        expr_str: str,
+        state_getter: Callable[[str], StateRecorder],
 ) -> StateCalNode:
     """
     根据表达式 构造出状态判断树
@@ -173,14 +182,18 @@ def construct_state_cal_tree(
             op_stack.pop(-1)  # 弹出左括号
             op_idx_stack.pop(-1)
             pop_op = True  # 计算完括号之后 可以尝试继续弹出前面的运算符
-        elif c == '[':   # 状态判断的开始
+        elif c == '[':  # 状态判断的开始
             right_idx = expr_str.find(']', idx + 1)  # 状态判断的结束
             if right_idx == -1:
                 raise ValueError('位置 %d 的左中括号 找不到对应的右中括号' % display_idx)
             state_str = expr_str[idx + 1:right_idx]
             state_split_arr = state_str.split(',')
 
-            if len(state_split_arr) < 3:
+            if state_str in ['state_triggered', 'state_not_triggered']:
+                state_name = state_str
+                time_min = sys.float_info.min
+                time_max = sys.float_info.max
+            elif len(state_split_arr) < 3:
                 state_name = state_split_arr[0].strip()
                 time_min = float(0)
                 time_max = float(1)

@@ -102,3 +102,17 @@ class AutoBattleApp(ZApplication):
     def handle_resume(self, e=None):
         if self.current_node.node is not None and self.current_node.node.cn == '画面识别':
             self.ctx.auto_battle_context.resume_auto_battle()
+
+
+def __debug():
+    from zzz_od.context.zzz_context import ZContext
+    ctx = ZContext()
+    ctx.init()
+    ctx.run_context.current_app_id = auto_battle_const.APP_ID
+    ctx.run_context.start_running()
+    op = AutoBattleApp(ctx)
+    op.execute()
+
+
+if __name__ == '__main__':
+    __debug()

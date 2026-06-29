@@ -18,8 +18,8 @@ from one_dragon.base.conditional_operation.state_recorder import StateRecorder
 class StateHandler:
 
     def __init__(
-        self,
-        data: dict[str, Any]
+            self,
+            data: dict[str, Any]
     ):
         self.original_data: dict[str, Any] = data
         # TODO 后续改为 state_handler_template
@@ -63,10 +63,10 @@ class StateHandler:
             del self.original_data["sub_handlers"]
 
     def build(
-        self,
-        state_recorder_getter: Callable[[str], StateRecorder],
-        op_getter: Callable[[OperationDef], AtomicOp],
-        parent_interrupt_states_cal_tree: StateCalNode | None = None,
+            self,
+            state_recorder_getter: Callable[[str], StateRecorder],
+            op_getter: Callable[[OperationDef], AtomicOp],
+            parent_interrupt_states_cal_tree: StateCalNode | None = None,
     ) -> None:
         """
         构建状态处理器
@@ -93,9 +93,9 @@ class StateHandler:
             ]
 
     def _build_interrupt_tree(
-        self,
-        state_recorder_getter: Callable[[str], StateRecorder],
-        parent_tree: StateCalNode | None,
+            self,
+            state_recorder_getter: Callable[[str], StateRecorder],
+            parent_tree: StateCalNode | None,
     ) -> StateCalNode | None:
         """
         构建当前的打断状态判断树
@@ -121,10 +121,10 @@ class StateHandler:
 
         # 两个中断树都存在时，使用OR逻辑合并
         return StateCalNode(
-           node_type=StateCalNodeType.OP,
-           op_type=StateCalOpType.OR,
-           left_child=parent_tree,
-           right_child=self_interrupt_tree
+            node_type=StateCalNodeType.OP,
+            op_type=StateCalOpType.OR,
+            left_child=parent_tree,
+            right_child=self_interrupt_tree
         )
 
     @cached_property
@@ -142,20 +142,23 @@ class StateHandler:
 
         return states
 
-    def match_execution(self, trigger_time: float) -> ExecutionInfo | None:
+    def match_execution(self, trigger_time: float, state_triggered: set[str]) -> ExecutionInfo | None:
         """
         根据触发时间和优先级 获取符合条件的场景下的执行信息
+        并且添加
 
         Args:
             trigger_time: 触发时间
+            state_triggered: 已经触发的指令
 
         Returns:
             符合条件的场景下的执行信息
         """
-        if self.state_cal_tree.in_time_range(trigger_time):
+        is_state_triggered = state_triggered.__contains__(self.display_name)
+        if self.state_cal_tree.in_time_range(trigger_time, is_state_triggered):
             if self.sub_handlers is not None and len(self.sub_handlers) > 0:
                 for sub_handler in self.sub_handlers:
-                    info = sub_handler.match_execution(trigger_time)
+                    info = sub_handler.match_execution(trigger_time, state_triggered)
                     if info is not None:
                         info.add_state(self.states, self.display_name)
                         return info
