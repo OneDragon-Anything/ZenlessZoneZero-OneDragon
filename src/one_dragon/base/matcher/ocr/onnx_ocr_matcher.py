@@ -23,17 +23,7 @@ GITHUB_DOWNLOAD_URL: str = 'https://github.com/OneDragon-Anything/OneDragon-Env/
 GITEE_DOWNLOAD_URL: str = 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download'
 
 
-def normalize_ocr_model_name(ocr_model_name: str) -> str:
-    """
-    规范化 OCR 模型名。
-    """
-    if ocr_model_name.startswith(PPOCRV6_MODEL_NAME):
-        return PPOCRV6_MODEL_NAME
-    return ocr_model_name
-
-
 def get_ocr_model_dir(ocr_model_name: str) -> str:
-    ocr_model_name = normalize_ocr_model_name(ocr_model_name)
     return os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', ocr_model_name)
 
 
@@ -46,7 +36,6 @@ def get_ocr_download_url_gitee(ocr_model_name: str) -> str:
 
 
 def get_ocr_download_url(website: str, ocr_model_name: str) -> str:
-    ocr_model_name = normalize_ocr_model_name(ocr_model_name)
     return f'{website}/{ocr_model_name}/{ocr_model_name}.zip'
 
 
@@ -100,7 +89,7 @@ class OnnxOcrParam:
             det_limit_side_len: float = 960.0,
             ocr_model_size: str | None = None,
     ):
-        self.ocr_model_name: str = normalize_ocr_model_name(ocr_model_name)
+        self.ocr_model_name: str = ocr_model_name
         self.models_dir: str = get_ocr_model_dir(ocr_model_name)
         if dict_name is None:
             dict_name = get_ocr_model_dict_name(ocr_model_name)
