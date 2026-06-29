@@ -8,7 +8,7 @@
 - **编码规范**：[agent_guidelines.md](spec/agent_guidelines.md)
 - **架构设计**：[一条龙整体架构](one_dragon/one_dragon_architecture.md) · [集成启动器 RuntimeLauncher](one_dragon/runtime_launcher.md) · [模块文档](one_dragon/modules/)
 - **开发指引**：[应用插件开发](guides/application_plugin_guide.md) · [应用设置界面](guides/application_setting_guide.md)
-- **游戏业务**：[自动战斗](zzz/auto_battle.md) · [进游戏](zzz/enter_game.md) · [转向与灵敏度](zzz/turn_sensitivity.md) · [功能模块](zzz/application/) · [Web 架构](zzz/web/web-architecture.md)
+- **游戏业务**：[自动战斗](zzz/auto_battle.md) · [进游戏](zzz/enter_game.md) · [转向与灵敏度](zzz/turn_sensitivity.md) · [功能模块](zzz/application/) · [后端服务层](zzz/backend/)
 - **AI Harness 工程**：[总览与路线图](harness/README.md)
 - **设计文档**：[屏幕区域识别设计](screen_scope_design.md) · [屏幕区域推进](screen_scope_rollout.md)
 

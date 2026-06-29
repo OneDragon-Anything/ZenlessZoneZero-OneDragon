@@ -62,11 +62,40 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 ## MCP
 
 - **推荐**：[context7](https://github.com/upstash/context7) — 查询库文档；已在本项目 `.claude/settings.json` 启用（Claude Code 场景）。
-- **项目自有 MCP（规划中）**：后续将把游戏操作（截图 / OCR / 进游戏等）暴露给 agent，用于辅助开发与调试。整体设计见 [harness/README.md](../harness/README.md)。
+- **项目自有 MCP（规划中）**：后续将把游戏操作（截图 / OCR / 进游戏等）暴露给 agent，用于辅助开发与调试。运行层后端化与 MCP 适配的整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
 
 ## Skills
 
-现有 Claude Code skill 在仓库根 `skills/`（如 `agent-auto-battle-config`、`agent-definition`、`new-config`）。后续约定与清单见 [harness/README.md](../harness/README.md)（待实施）。
+Skill 是 Claude Code（及 Codex 等少数工具）的可调用能力。要点：**每个工具只读自己目录下的 skill**——Claude Code 读 `.claude/skills/`，**不读根目录 `skills/`**；且 skill 没有 `@import` 之类的引入逃逸口。
+
+### Skill 分类与命名
+
+Skill 分两类，统一用 `zzz-od-` 项目前缀，开发类再加 `dev-`：
+
+| 类别 | 前缀 | 用途 | 现有 skill（迁移时按此重命名） |
+|---|---|---|---|
+| **开发** | `zzz-od-dev-` | 指引 AI 在本项目开发/配置/构建 | agent-auto-battle-config、agent-definition、new-config |
+| **使用** | `zzz-od-` | 指引使用本项目做游戏自动化 | zzz-one-dragon-player |
+
+> `zzz-od-` 兼作**项目命名空间**——避免和插件/个人 skill 撞名，`/` 列表里本项目 skill 聚一起。命名示例：`zzz-od-dev-character`（新增角色）、`zzz-od-dev-build`（构建配置）、`zzz-od-player`（安装使用）。将来若出现第 3 类（如调试），加对应中缀（`zzz-od-debug-*`）即可。
+
+### Skill 开发：三级晋升
+
+跟整体"三级晋升"一致，新增 skill 从低到高放：
+
+| 级别 | 位置 | 是否提交 | 说明 |
+|---|---|:---:|---|
+| **① 个人级** | `.claude/skills/<name>/`（`.claude/*` 已 gitignore，天然不提交）或 `~/.claude/skills/` | ❌ | 先在这里试做、验证有用再升级。 |
+| **② 工具项目级** | `.claude/skills/<name>/`（**提交**：`.gitignore` 放行 `.claude/skills/`） | ✅ | 团队共享、Claude Code 特有。 |
+| **③ 项目级（跨工具源）** | 根目录 `skills/<name>/`（**提交**） | ✅ | 多个"skills 感知"工具都要用时，作单一源。 |
+
+**晋升路径**：① 个人试做 →（验证有用）→ ② 提交到 `.claude/skills/` →（多工具都要）→ ③ 根 `skills/` 作跨工具源。
+
+> ⚠️ 根 `skills/` 不会被工具自动发现，只是③的单一源；要**符号链接**（symlink，目录级；非硬链接）进各工具目录（如 `.claude/skills/`）。Windows 符号链接需管理员或开发者模式。只有 Claude Code 一个消费者时，停在②即可，不必上③。
+
+### 现状
+
+仓库根 `skills/` 现有 4 个 skill（`agent-auto-battle-config`、`agent-definition`、`new-config`、`zzz-one-dragon-player`），放在根目录、**暂未被 Claude Code 自动加载**；是否迁移到 `.claude/skills/` 待定（价值还在评估）。
 
 ## 相关文档
 
