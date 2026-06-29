@@ -14,6 +14,9 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.devtools.agent_template_generator_interface import (
     AgentTemplateGeneratorInterface,
 )
+from zzz_od.gui.view.devtools.devtools_code_manage_interface import (
+    DevtoolsCodeManageInterface,
+)
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
     DevtoolsScreenshotHelperInterface,
 )
@@ -40,3 +43,5 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))
+        self.add_sub_interface(DevtoolsCodeManageInterface(self.ctx))
+

@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QTableWidgetItem
 from qfluentwidgets import (
     Dialog,
     FluentIcon,
-    LineEdit,
     PipsPager,
     TableWidget,
     ToolButton,
@@ -17,10 +16,6 @@ from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
-from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
-    PasswordSwitchSettingCard,
-)
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
@@ -71,36 +66,10 @@ class CodeInterface(VerticalScrollInterface):
     def get_content_widget(self) -> Column:
         content_widget = Column()
 
-        self.auto_update_code_opt = PasswordSwitchSettingCard(
-            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
-            password_hash='69fec7ebc9c57ba044c55deb4e30aa1a6d6788f1da67b824ef96a590f526d20a',
-            reverse_mode=True
-        )
-        content_widget.add_widget(self.auto_update_code_opt)
-
-        self.force_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
-        )
-        content_widget.add_widget(self.force_update_opt)
-
         self.code_card = CodeInstallCard(self.ctx)
         self.code_card.finished.connect(self.on_code_updated)
         self.code_card.finished.connect(self._show_dialog_after_code_updated)
-        content_widget.add_widget(self.code_card)
-
-        self.custom_git_branch_lineedit = LineEdit()
-        self.custom_git_branch_lineedit.setPlaceholderText(gt('自定义分支'))
-        self.custom_git_branch_lineedit.editingFinished.connect(self._on_custom_branch_edited)
-        self.code_card.git_branch_opt.currentIndexChanged.connect(
-            lambda: self.custom_git_branch_lineedit.setText(self.code_card.git_branch_opt.currentData())
-        )
-        self.custom_git_branch_opt = PasswordSwitchSettingCard(
-            icon=FluentIcon.EDIT,
-            title='自定义分支',
-            extra_btn=self.custom_git_branch_lineedit,
-            password_hash='9eccbf284f363f3a5f416e879aa9bcb2c8d8445997f97740270fccc98d360a33'
-        )
-        content_widget.add_widget(self.custom_git_branch_opt)
+        content_widget.add_widget(self.code_card, alignment=Qt.AlignmentFlag(0))
 
         self.log_table = TableWidget()
         self.log_table.setMinimumHeight(self.page_size * 42)
@@ -124,14 +93,14 @@ class CodeInterface(VerticalScrollInterface):
             gt('时间'),
             gt('内容')
         ])
-        content_widget.add_widget(self.log_table)
+        content_widget.add_widget(self.log_table, stretch=1, alignment=Qt.AlignmentFlag(0))
 
         self.pager = PipsPager()
         self.pager.setPageNumber(1)
         self.pager.setVisibleNumber(5)
         self.pager.currentIndexChanged.connect(self.on_page_changed)
         self.pager.setItemAlignment(Qt.AlignmentFlag.AlignCenter)
-        content_widget.add_widget(self.pager)
+        content_widget.add_widget(self.pager, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         return content_widget
 
@@ -141,10 +110,6 @@ class CodeInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
-        self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
-        self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
-        self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
         self.start_fetch_total()
         self.code_card.check_and_update_display()
 
@@ -255,11 +220,6 @@ class CodeInterface(VerticalScrollInterface):
             dialog.setTitleBarVisible(False)
             dialog.cancelButton.hide()
             dialog.exec()
-
-    def _on_custom_branch_edited(self) -> None:
-        text = self.custom_git_branch_lineedit.text()
-        self.ctx.env_config.git_branch = text if text else self.code_card.git_branch_opt.currentData()
-        self.code_card.check_and_update_display()
 
     def _show_dialog_after_code_updated(self, success: bool) -> None:
         """显示代码更新后的对话框"""
