@@ -1,6 +1,6 @@
 # HTTP 适配器
 
-> 把 `ZzzBackendContext`（见 [architecture.md](architecture.md)）以 **HTTP** 暴露。它是 **web 前端 + skill 的共同目标**——任何能发 HTTP 的客户端（含 AI 经 Bash / curl）都能用；MCP 感知工具另走 [mcp.md](mcp.md)。两个适配器并行、共享同一 backend。
+> 把 `ZzzBackendContext`（见 [architecture.md](architecture.md)）以 **HTTP** 暴露。它是 **web 前端 + skill 的共同目标**——任何能发 HTTP 的客户端（含 AI 经 Bash / curl）都能用；MCP 客户端另走 [mcp.md](mcp.md)。两个适配器并行、共享同一 backend。
 
 ## 端点
 
@@ -23,7 +23,7 @@
 
 | | HTTP（本适配器） | MCP（[mcp.md](mcp.md)） |
 |---|---|---|
-| 消费者 | web 前端 + skill / Bash 的 AI | MCP 感知工具（Claude Code 等） |
+| 消费者 | web 前端 + skill / Bash 的 AI | MCP 客户端（AI 编码工具等） |
 | 调用方式 | REST | tool-call（类型化 schema） |
 | 共享 | 同一 `ZzzBackendContext` | 同一 `ZzzBackendContext` |
 

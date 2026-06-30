@@ -14,7 +14,7 @@
 | 收敛层 | `ZzzBackendContext`：持有 ctx、管生命周期、感知 / 操作方法 |
 | 适配器 | MCP（`@mcp.tool`）+ HTTP（`/game/*`），并行、共享 backend |
 
-当前已实现 **game 切片**：4 个感知 / 操作方法 + MCP / HTTP 适配器 + 服务入口。其余（run-as-service、事件桥、多实例、daemon、GUI 收敛）见各文档的「路线图」。
+当前已实现：**4 个感知 / 操作方法**（窗口状态 / 截图 / OCR / 进游戏）+ MCP / HTTP 适配器 + 服务入口 + 远程 SSH daemon。其余（run-as-service、事件桥、多实例、GUI 收敛）见各文档的「路线图」。
 
 ## 怎么跑
 
@@ -32,8 +32,9 @@ uv run --env-file .env python -m zzz_od.backend.entry.server --port 23001
 | [mcp.md](mcp.md) | MCP 适配器（tool、传输、注册） |
 | [http.md](http.md) | HTTP `/game/*` 适配器 |
 | [entry.md](entry.md) | 服务入口、运行方式 |
+| [remote-ssh.md](remote-ssh.md) | 远程 SSH daemon（Session 1 常驻，管主 server 启停） |
 
-> 各文档末尾有「路线图（尚未实现）」段落，列 run-as-service / 事件桥 / 多实例 / daemon / GUI 收敛等待办。
+> 各文档末尾有「路线图（尚未实现）」段落，列 run-as-service / 事件桥 / 多实例 / GUI 收敛等待办。
 
 ## 相关文档
 

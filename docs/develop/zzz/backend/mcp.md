@@ -1,6 +1,6 @@
 # MCP 适配器
 
-> 把 `ZzzBackendContext`（见 [architecture.md](architecture.md)）以 **MCP** 暴露给 AI 工具（Claude Code 等）。MCP 是两个并行适配器之一，另一个是 HTTP（见 [http.md](http.md)）；两者共享同一 backend。
+> 把 `ZzzBackendContext`（见 [architecture.md](architecture.md)）以 **MCP** 暴露给 MCP 客户端（AI 编码工具等）。MCP 是两个并行适配器之一，另一个是 HTTP（见 [http.md](http.md)）；两者共享同一 backend。
 
 ## 工具
 
@@ -16,7 +16,7 @@
 要点：
 
 - backend 实例**注入**（闭包捕获），不用全局单例，也不用 FastMCP lifespan 管 backend 生命周期（由入口管）。
-- `capture_game_screen` 落盘返路径，AI 用 `Read` 看图；`analyze_screen` 返结构化 dataclass，FastMCP 序列化为带嵌套 `OcrText` 的 JSON。
+- `capture_game_screen` 落盘返路径,客户端读取该图片;`analyze_screen` 返结构化 dataclass,FastMCP 序列化为带嵌套 `OcrText` 的 JSON。
 - `open_and_enter_game` 是长阻塞，适配器用 `asyncio.to_thread` 调用，不阻塞事件循环。
 - 理念：MCP 只做感知，编码 / 调试交给 AI。
 
@@ -25,13 +25,15 @@
 - 传输 streamable-http，端点 `/mcp`，与 HTTP `/game/*` 同进程共存。
 - 默认端口 **23001**。
 
-## 接入 Claude Code
+## 接入 MCP 客户端
+
+主 server 是标准 streamable-http,任何 MCP 客户端都可挂载。以 Claude Code 为例:
 
 ```shell
 claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp
 ```
 
-注册后重启 Claude Code 生效。`.claude/settings.json` 的 `mcp__zzz_od` 权限占位对应这些 tool。
+注册后重启客户端生效。
 
 ## 路线图（尚未实现）
 

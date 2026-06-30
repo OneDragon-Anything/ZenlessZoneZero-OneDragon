@@ -1,6 +1,6 @@
 # 服务入口
 
-> `ZzzBackendContext` 的进程入口：装配 backend + MCP / HTTP 适配器，uvicorn 运行。当前只实现**本地 headless 入口**；远程 SSH daemon 属路线图。
+> `ZzzBackendContext` 的进程入口：装配 backend + MCP / HTTP 适配器，uvicorn 运行。本地 headless 入口见下；远程 SSH daemon（管本入口启停）见 [remote-ssh.md](remote-ssh.md)。
 
 ## 运行
 
@@ -22,11 +22,9 @@ CLI：`--host`（默认 `127.0.0.1`）、`--port`（默认 **23001**）。
 
 - `mcp`（FastMCP / streamable-http）、`uvicorn`（ASGI server）。
 
-## 路线图（尚未实现）
+## 远程 SSH
 
-- **daemon（远程 SSH）**：Session 0/1 下管理 server 的 start / stop / restart / status（需 `psutil`）。
-- **安装脚本**：`claude mcp add` 的注册 / 卸载 / 检查自动化。
-- **RDP / SSH 限制**：输入注入需管理员 + 交互式桌面会话；远程场景靠 daemon 绕开 Windows 会话隔离。
+远程 SSH 场景经 daemon 管 server 启停（daemon 已实现,详见 [remote-ssh.md](remote-ssh.md)）。**RDP / SSH 限制**:输入注入需管理员 + 交互式桌面会话;远程场景靠 daemon 绕开 Windows 会话隔离。
 
 ## 相关文档
 
