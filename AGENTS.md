@@ -78,6 +78,10 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
 - 提交 PR 后，review comment 需要逐条回复或修正。
 
+## 自维护指南
+
+修改 **AI 入口文件**——本文件（`AGENTS.md`）、`.claude/CLAUDE.md`、`.github/copilot-instructions.md` 等——时，必须先按 [entry_files.md](docs/develop/harness/entry_files.md) 的规范来：纯指令不掺杂元信息、只放 always-on 该留的（「删了会出错吗」逐条自检）、单一信息源（`AGENTS.md` 是源，工具入口 `@import` 引入）、共享文档改动先经用户确认。
+
 ## 深入阅读
 
 只在当前任务确实需要时继续看这些文档：
