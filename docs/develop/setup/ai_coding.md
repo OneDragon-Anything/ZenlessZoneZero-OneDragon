@@ -97,6 +97,34 @@ Skill 分两类，统一用 `zzz-od-` 项目前缀，开发类再加 `dev-`：
 
 仓库根 `skills/` 现有 4 个 skill（`agent-auto-battle-config`、`agent-definition`、`new-config`、`zzz-one-dragon-player`），放在根目录、**暂未被 Claude Code 自动加载**；是否迁移到 `.claude/skills/` 待定（价值还在评估）。
 
+## AI 辅助提交的署名（推荐）
+
+用 AI 编码工具协作时，**推荐在 commit 消息里用 `Co-Authored-By` trailer 标明 AI 参与**——让提交历史能看出哪些是 AI 协作的（透明、可追溯），GitHub 会识别该格式并把 co-author 显示在提交上。
+
+```
+Co-Authored-By: <名字> <邮箱>
+```
+
+落地有两种做法，按“靠模型自觉 → 全自动”递进：
+
+### 做法一：在指令文件里写指引
+
+在该 AI 工具的指令文件里写一条，让它自己加 trailer（例如“提交时在 message 末尾追加 `Co-Authored-By: <工具> (<模型>) <邮箱>`”）。
+
+- ✅ 零配置、跨工具。
+- ❌ **靠模型自觉**：会忘、会漏，模型名也可能写错。
+
+### 做法二：用 git hook 自动注入（推荐）
+
+用 git 的 `prepare-commit-msg` 钩子在每次提交时自动追加 trailer，不依赖模型记忆。git 每次提交都会调它，链式 `&&`、`git -C <dir>`、`--amend` 全覆盖。两种粒度：
+
+- **2a. 钩子里写死内容（静态）**：硬编码固定 trailer。最简单、稳；但不反映实际模型。
+- **2b. git hook + AI 工具 hook 写入模型名（动态）**：git 钩子注入 trailer；再用 AI 工具自带的 hook 在每次 `git commit` 前把**当前模型名**写到侧信道文件，git 钩子读取 → trailer 反映实际模型，模型一换跟着变。需把工具默认的 co-author 指令关掉，避免重复。
+
+各工具的具体实现不同——Claude Code 的做法见 [Claude Code：自动注入 commit trailer](claude-code/commit-trailer.md)；其他工具用各自等价的 hook 机制。
+
+> 注：部分工具/模型厂商没有官方 GitHub bot 邮箱，模型那行的邮箱只是占位（GitHub 上不出头像/contributor）；推荐用对应厂商**官网域名**（如 `noreply@<官网域名>`）作占位。
+
 ## 相关文档
 
 - [AGENTS.md](../../../AGENTS.md) — 统一 AI 编码协作入口
