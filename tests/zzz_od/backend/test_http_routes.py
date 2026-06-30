@@ -89,3 +89,42 @@ def test_register_http_routes_adds_custom_routes() -> None:
     app = mcp.streamable_http_app()
     paths = {getattr(r, "path", None) for r in app.routes}
     assert any(p and "game" in p for p in paths)
+
+
+def test_route_dispatch_window_ok() -> None:
+    """经 Starlette 路由层分发 GET /game/window，应返回 200 + 窗口状态 JSON。
+
+    回归 ``register_http_routes`` 中同步 lambda 返回 coroutine 的 bug：
+    处理器未走真实路由分发，上面几个直调 ``handle_*`` 的用例无法覆盖。
+    """
+    from mcp.server.fastmcp import FastMCP
+    from starlette.testclient import TestClient
+
+    from zzz_od.backend.http.routes import register_http_routes
+
+    mcp = FastMCP("test")
+    backend = MagicMock()
+    backend.check_window.return_value = WindowStatus(
+        win_title="绝区零", is_win_valid=True, is_win_active=False, is_win_scale=True
+    )
+    register_http_routes(mcp, backend)
+    client = TestClient(mcp.streamable_http_app())
+    resp = client.get("/game/window")
+    assert resp.status_code == 200
+    assert resp.json()["win_title"] == "绝区零"
+
+
+def test_route_dispatch_window_not_ready() -> None:
+    """经路由层分发，backend 未就绪时应返回 503（而非 500）。"""
+    from mcp.server.fastmcp import FastMCP
+    from starlette.testclient import TestClient
+
+    from zzz_od.backend.http.routes import register_http_routes
+
+    mcp = FastMCP("test")
+    backend = MagicMock()
+    backend.check_window.side_effect = BackendNotReadyError("未就绪")
+    register_http_routes(mcp, backend)
+    client = TestClient(mcp.streamable_http_app())
+    resp = client.get("/game/window")
+    assert resp.status_code == 503

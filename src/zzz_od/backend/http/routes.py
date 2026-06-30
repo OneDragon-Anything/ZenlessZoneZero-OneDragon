@@ -127,15 +127,22 @@ def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
         mcp: 目标 ``FastMCP`` 实例。
         backend: 已就绪的 ``ZzzBackendContext``，提供 game 切片能力。
     """
-    mcp.custom_route("/game/window", methods=["GET"])(
-        lambda request: handle_game_window(backend, request)
-    )
-    mcp.custom_route("/game/capture", methods=["GET"])(
-        lambda request: handle_game_capture(backend, request)
-    )
-    mcp.custom_route("/game/analyze", methods=["GET"])(
-        lambda request: handle_game_analyze(backend, request)
-    )
-    mcp.custom_route("/game/enter", methods=["POST"])(
-        lambda request: handle_game_enter(backend, request)
-    )
+    @mcp.custom_route("/game/window", methods=["GET"])
+    async def _game_window(request: Request) -> Response:
+        """GET /game/window 路由分发：委托 ``handle_game_window``。"""
+        return await handle_game_window(backend, request)
+
+    @mcp.custom_route("/game/capture", methods=["GET"])
+    async def _game_capture(request: Request) -> Response:
+        """GET /game/capture 路由分发：委托 ``handle_game_capture``。"""
+        return await handle_game_capture(backend, request)
+
+    @mcp.custom_route("/game/analyze", methods=["GET"])
+    async def _game_analyze(request: Request) -> Response:
+        """GET /game/analyze 路由分发：委托 ``handle_game_analyze``。"""
+        return await handle_game_analyze(backend, request)
+
+    @mcp.custom_route("/game/enter", methods=["POST"])
+    async def _game_enter(request: Request) -> Response:
+        """POST /game/enter 路由分发：委托 ``handle_game_enter``。"""
+        return await handle_game_enter(backend, request)
