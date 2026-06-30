@@ -1,0 +1,39 @@
+# HTTP 适配器
+
+> 把 `ZzzBackendContext`（见 [architecture.md](architecture.md)）以 **HTTP** 暴露。它是 **web 前端 + skill 的共同目标**——任何能发 HTTP 的客户端（含 AI 经 Bash / curl）都能用；MCP 感知工具另走 [mcp.md](mcp.md)。两个适配器并行、共享同一 backend。
+
+## 端点
+
+按作用对象分前缀：`/game/*` 直接作用于游戏（窗口 / 画面 / 启动）。流程类（`/app/*`）、账号类（`/instances/*`）端点属路线图。
+
+| 方法 | 端点 | 委托 | 返回 |
+|---|---|---|---|
+| GET | `/game/window` | `backend.check_window()` | `WindowStatus` JSON |
+| GET | `/game/capture` | `backend.capture()` | PNG 字节（`image/png`，不落盘） |
+| GET | `/game/analyze` | `backend.analyze()` | `AnalyzeScreenResult` JSON |
+| POST | `/game/enter` | `backend.enter_game()` | 结果 JSON |
+
+要点：
+
+- 处理器调 backend 走 `asyncio.to_thread`；`BackendNotReadyError` → 503 JSON。
+- `/game/capture` 直接回传 PNG 字节（区别于 MCP 的落盘返路径——同一能力、不同序列化）。
+- skill 教 AI 经 Bash / curl 打这些端点（通用，任何 AI 工具可用）。
+
+## 与 MCP 的关系
+
+| | HTTP（本适配器） | MCP（[mcp.md](mcp.md)） |
+|---|---|---|
+| 消费者 | web 前端 + skill / Bash 的 AI | MCP 感知工具（Claude Code 等） |
+| 调用方式 | REST | tool-call（类型化 schema） |
+| 共享 | 同一 `ZzzBackendContext` | 同一 `ZzzBackendContext` |
+
+## 路线图（尚未实现）
+
+- 事件推送（WebSocket / SSE）：订阅 `subscribe_events`，推日志 / 运行状态给 web 前端。
+- `/app/*`（跑一条龙流程）、`/instances/*`（账号切换）端点。
+
+## 相关文档
+
+- [architecture.md](architecture.md) — backend 方法定义
+- [mcp.md](mcp.md) — 并行的 MCP 适配器
+- [entry.md](entry.md) — 服务入口

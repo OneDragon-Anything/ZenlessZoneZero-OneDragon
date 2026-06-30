@@ -18,6 +18,10 @@ CLAUDE.local.md
 !.claude/CLAUDE.md
 nul
 
+# superpowers
+docs/superpowers/
+.superpowers/
+
 # 用户独有的配置文件
 env.bat
 config/custom.yml
