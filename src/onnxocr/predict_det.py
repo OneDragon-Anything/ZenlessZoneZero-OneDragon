@@ -117,7 +117,7 @@ class TextDetector(PredictBase):
         input_feed = self.get_input_feed(self.det_input_name, img)
         t0 = time.time()
         outputs = self.run_onnx_session(self.det_onnx_session, self.det_output_name, input_feed=input_feed)
-        log.debug("Detection inference time: {:.3f}s", time.time() - t0)
+        # log.debug("Detection inference time: {:.3f}s", time.time() - t0)
 
         preds = {}
         preds["maps"] = outputs[0]

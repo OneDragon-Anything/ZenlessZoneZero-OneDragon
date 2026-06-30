@@ -4927,10 +4927,10 @@
   - area_name: 标题-挑战结果
     id_mark: true
     pc_rect:
-    - 566
-    - 92
-    - 1340
-    - 286
+    - 581
+    - 24
+    - 1354
+    - 289
     text: 挑战结果
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -4941,10 +4941,10 @@
   - area_name: 按钮-确定
     id_mark: false
     pc_rect:
-    - 1054
-    - 900
-    - 1276
-    - 966
+    - 936
+    - 855
+    - 1338
+    - 997
     text: 确定
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -5016,10 +5016,10 @@
   - area_name: 按钮-确定
     id_mark: true
     pc_rect:
-    - 847
-    - 762
-    - 1125
-    - 975
+    - 466
+    - 758
+    - 1406
+    - 977
     text: 确定
     lcs_percent: 0.5
     template_sub_dir: ''
