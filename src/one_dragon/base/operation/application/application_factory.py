@@ -99,7 +99,7 @@ class ApplicationFactory(ABC):
         Returns:
             AppRunRecord: 创建的运行记录对象
         """
-        raise Exception(f"未提供应用运行记录创建方法 {self.app_id}")
+        raise NotImplementedError(f"未提供应用运行记录创建方法 {self.app_id}")
 
     def get_config(
         self, instance_idx: int, group_id: str
