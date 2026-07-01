@@ -14,7 +14,7 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
-from one_dragon.utils import cal_utils, cv2_utils, gpu_executor, str_utils, thread_utils
+from one_dragon.utils import cal_utils, cv2_utils, debug_utils, gpu_executor, str_utils, thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
@@ -554,6 +554,8 @@ class AutoBattleContext:
         self.last_check_in_battle = in_battle
 
         future_list: list[Future] = []
+        flash_future: Future | None = None
+        audio_future: Future | None = None
 
         # 统一提交检测任务
         if in_battle:
@@ -561,9 +563,10 @@ class AutoBattleContext:
             audio_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
             future_list.append(audio_future)
             if self.ctx.model_config.flash_classifier_gpu:
-                future_list.append(gpu_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+                flash_future = gpu_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future)
             else:
-                future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+                flash_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future)
+            future_list.append(flash_future)
 
             # 角色状态
             future_list.append(_battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
@@ -605,6 +608,16 @@ class AutoBattleContext:
         if sync:
             for future in future_list:
                 future.result()
+
+        # debug 闪避检测截图
+        if self.ctx.env_config.dodge_detect and flash_future is not None and audio_future is not None:
+            try:
+                flash_detected = flash_future.result()
+                audio_detected = audio_future.result()
+                if flash_detected or audio_detected:
+                    debug_utils.save_debug_image(screen, prefix='dodge')
+            except Exception:
+                log.error('保存闪避 debug 截图失败', exc_info=True)
 
         return in_battle
 

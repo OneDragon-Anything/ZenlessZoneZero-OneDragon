@@ -91,9 +91,18 @@ class ScreenshotHelperApp(ZApplication):
 
         if self.config.dodge_detect:
             if self.ctx.auto_battle_context.dodge_context.check_dodge_flash(self.last_screenshot, self.last_screenshot_time):
-                debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
+                # 查 state record 判断具体闪光类型
+                sr = self.ctx.auto_battle_context.state_record_service
+                t = self.last_screenshot_time
+                prefix = 'dodge'
+                for state_name in ['闪避识别-红光', '闪避识别-黄光']:
+                    state = sr.get_state_recorder(state_name)
+                    if state is not None and state.last_record_time == t:
+                        prefix = 'dodge_red' if '红光' in state_name else 'dodge_yellow'
+                        break
+                debug_utils.save_debug_image(self.last_screenshot, prefix=prefix)
             elif self.ctx.auto_battle_context.dodge_context.check_dodge_audio(self.last_screenshot_time):
-                debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
+                debug_utils.save_debug_image(self.last_screenshot, prefix='dodge_audio')
 
         if self.to_save_screenshot:
             if not self.config.screenshot_before_key and self.is_saving_after_key:

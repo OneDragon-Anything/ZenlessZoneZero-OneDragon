@@ -362,6 +362,22 @@ class EnvConfig(YamlConfig):
         self.update('is_debug', new_value)
 
     @property
+    def dodge_detect(self) -> bool:
+        """
+        闪避检测截图：开启后自动战斗检测到闪光时自动保存 debug 截图
+        :return:
+        """
+        return self.get('dodge_detect', True)
+
+    @dodge_detect.setter
+    def dodge_detect(self, new_value: bool) -> None:
+        """
+        更新闪避检测截图开关
+        :return:
+        """
+        self.update('dodge_detect', new_value)
+
+    @property
     def copy_screenshot(self) -> bool:
         """
         截图后是否复制到剪贴板
