@@ -167,7 +167,7 @@ class BattleAssistantInterface(AppRunInterface):
 
         guide_btn = HyperlinkButton(
             text=gt('查看指南'),
-            url='https://one-dragon.com/zzz/zh/feat_game_assistant.html'
+            url='https://one-dragon.com/zzz/zh/feat/feat_game_assistant.html'
         )
 
         shared_btn = HyperlinkButton(
