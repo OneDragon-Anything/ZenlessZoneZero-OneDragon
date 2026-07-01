@@ -92,23 +92,26 @@ def start_zzz_od_mcp_server(port: int = MCP_SERVER_PORT) -> str:
         return f"[WARN] 端口 {port} 已被占用，可能有其他程序在使用"
 
     try:
-        cmd = f'cd /d "{PROJECT_ROOT}" && uv run --env-file .env python -m zzz_od.backend.entry.server --port {port}'
+        # 输出重定向到日志文件:长驻 server 若用 PIPE 且不持续消费,buffer 满会阻塞子进程
+        log_path = PROJECT_ROOT / '.debug' / 'zzz_od_mcp' / 'main_server.log'
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_file = open(log_path, 'w', encoding='utf-8')  # noqa: SIM115 daemon 持有,生命周期内不 close
+        cmd = [
+            'uv', 'run', '--env-file', '.env',
+            'python', '-m', 'zzz_od.backend.entry.server', '--port', str(port),
+        ]
         process = subprocess.Popen(
             cmd,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding='utf-8',
+            cwd=str(PROJECT_ROOT),
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
         )
 
         time.sleep(2)
 
         if process.poll() is None:
-            return f"[SUCCESS] 主 MCP server 启动成功 (PID: {process.pid})\n端口: {port}"
-        stdout, stderr = process.communicate()
-        error_msg = stderr if stderr else "未知错误"
-        return f"[ERROR] 启动失败: {error_msg}"
+            return f"[SUCCESS] 主 MCP server 启动成功 (PID: {process.pid})\n端口: {port}\n日志: {log_path}"
+        return f"[ERROR] 启动失败(返回码 {process.returncode})\n日志: {log_path}"
 
     except Exception as e:
         return f"[ERROR] 启动异常: {e}"

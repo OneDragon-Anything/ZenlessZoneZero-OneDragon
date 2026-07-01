@@ -42,7 +42,8 @@ def _save_screenshot(image: 'MatLike') -> str:
     screenshot_dir.mkdir(parents=True, exist_ok=True)
     img_path = screenshot_dir / f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
     bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(str(img_path), bgr_image)
+    if not cv2.imwrite(str(img_path), bgr_image):
+        raise RuntimeError(f"截图写盘失败: {img_path}")
     return str(img_path)
 
 
