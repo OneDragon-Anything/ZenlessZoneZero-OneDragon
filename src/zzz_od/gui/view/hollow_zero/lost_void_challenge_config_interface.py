@@ -296,7 +296,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.existed_yml_btn.clear()
         config_list: list[LostVoidChallengeConfig] = get_all_lost_void_challenge_config()
         for config in config_list:
-            self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
+            self.existed_yml_btn.addItem(text=gt(config.module_name), icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)
         self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.blockSignals(False)
@@ -396,7 +396,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         if msg is None or len(msg) == 0:
             self.error_message.setVisible(False)
         else:
-            self.error_message.setText(msg)
+            self.error_message.setText(gt(msg))
             self.error_message.setVisible(True)
 
     def _on_artifact_priority_changed(self) -> None:
