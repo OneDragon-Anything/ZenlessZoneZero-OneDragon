@@ -208,6 +208,9 @@ class LostVoidContext:
                     return True
 
                 self.ctx.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
+                state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_PURPLE.value)
+                if state is not None and state.last_record_time == screenshot_time:
+                    return True
                 state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
