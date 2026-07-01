@@ -95,17 +95,18 @@ def start_zzz_od_mcp_server(port: int = MCP_SERVER_PORT) -> str:
         # 输出重定向到日志文件:长驻 server 若用 PIPE 且不持续消费,buffer 满会阻塞子进程
         log_path = PROJECT_ROOT / '.debug' / 'zzz_od_mcp' / 'main_server.log'
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_file = open(log_path, 'w', encoding='utf-8')  # noqa: SIM115 daemon 持有,生命周期内不 close
         cmd = [
             'uv', 'run', '--env-file', '.env',
             'python', '-m', 'zzz_od.backend.entry.server', '--port', str(port),
         ]
-        process = subprocess.Popen(
-            cmd,
-            cwd=str(PROJECT_ROOT),
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-        )
+        # with 关闭父进程的日志句柄;子进程已继承 fd 继续写日志,避免失败/异常路径泄漏 fd
+        with open(log_path, 'w', encoding='utf-8') as log_file:
+            process = subprocess.Popen(
+                cmd,
+                cwd=str(PROJECT_ROOT),
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+            )
 
         time.sleep(2)
 
