@@ -437,7 +437,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
         self.daily_reset_plan_times_opt = SwitchSettingCard(icon=FluentIcon.HISTORY, title='每日重置', content='开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零')
-        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', content='体力不足时按所选方式恢复。若提取后仍不足以触发挑战则会跳过提取', options_enum=RestoreChargeEnum)
+        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', content='体力不足时按所选方式恢复。若提取后仍不足以触发挑战则会跳过提取', options_enum=RestoreChargeEnum, content_shrink=True)
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.daily_reset_plan_times_opt, self.restore_charge_opt], spacing=6))
 
         self.double_reward_group = ExpandSettingCardGroup(
