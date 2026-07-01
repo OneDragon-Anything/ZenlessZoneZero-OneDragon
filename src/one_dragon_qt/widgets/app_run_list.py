@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
+from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 
@@ -64,6 +65,7 @@ class AppRunList(DraggableList):
 
         # 存储应用卡片
         self._app_cards: list[AppRunCard] = []
+        self._card_pool: list[AppRunCard] = []
 
         # 连接父类的拖拽排序信号
         self.order_changed.connect(self._handle_order_changed)
@@ -86,6 +88,17 @@ class AppRunList(DraggableList):
         else:
             # 数量不一致或首次创建，重建整个列表
             self._create_new_cards(app_list, instance_idx)
+
+    def ensure_card_capacity(self, capacity: int) -> None:
+        """预创建指定数量的空卡片，不读取任何业务数据。"""
+        current_capacity = len(self._app_cards) + len(self._card_pool)
+        for _ in range(current_capacity, capacity):
+            card = AppRunCard(
+                parent=self,
+                enable_opacity_effect=self._enable_opacity_effect,
+            )
+            card.hide()
+            self._card_pool.append(card)
 
     def _update_existing_cards(
         self,
@@ -131,13 +144,7 @@ class AppRunList(DraggableList):
                 app_id=app.app_id,
                 instance_idx=instance_idx
             )
-            card = AppRunCard(
-                app=app,
-                index=idx,
-                run_record=run_record,
-                switch_on=app.enabled,
-                enable_opacity_effect=self._enable_opacity_effect,
-            )
+            card = self._take_card(app, idx, run_record)
             self._app_cards.append(card)
             self.add_list_item(card)
 
@@ -153,6 +160,27 @@ class AppRunList(DraggableList):
             card.setting_clicked.connect(self.app_setting_clicked.emit)
             card.notify_clicked.connect(self.app_notify_clicked.emit)
             card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
+
+    def _take_card(
+        self,
+        app: ApplicationGroupConfigItem,
+        idx: int,
+        run_record: AppRunRecord | None,
+    ) -> AppRunCard:
+        if self._card_pool:
+            card = self._card_pool.pop(0)
+            card.set_app(app, run_record)
+            card.set_switch_on(app.enabled)
+            card.index = idx
+            card.show()
+            return card
+        return AppRunCard(
+            app=app,
+            index=idx,
+            run_record=run_record,
+            switch_on=app.enabled,
+            enable_opacity_effect=self._enable_opacity_effect,
+        )
 
     def update_cards_display(self) -> None:
         """

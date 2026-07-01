@@ -2,7 +2,9 @@ from qfluentwidgets import FluentIcon
 
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.setting.zzz_setting_instance_interface import ZSettingInstanceInterface
+from zzz_od.gui.view.setting.zzz_setting_instance_interface import (
+    ZSettingInstanceInterface,
+)
 
 
 class AccountsInterface(PivotNavigatorInterface):

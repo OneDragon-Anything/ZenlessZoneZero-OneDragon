@@ -90,6 +90,10 @@ class StandaloneRunInterface(SplitAppRunInterface):
             with contextlib.suppress(RuntimeError):
                 window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
 
+    def preload_interface(self) -> None:
+        """预加载独立应用运行页 UI，不读取业务数据。"""
+        self._init_layout()
+
     # ── 应用列表管理 ──
 
     def _get_all_apps(self) -> dict[str, str]:
