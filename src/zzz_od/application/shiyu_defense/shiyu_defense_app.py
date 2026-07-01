@@ -66,6 +66,8 @@ class ShiyuDefenseApp(ZApplication):
         self.multi_room_config: Optional[MultiRoomNodeConfig] = None
         self.current_room_idx: int = 0
         self.room_teams: List[DefensePhaseTeamInfo] = []
+        self.next_click_count: int = 0  # "下一步"点击次数（需点2次）
+        self.room_team_selected: bool = False  # 当前房间是否已完成选队
 
     @operation_node(name='传送', is_start_node=True)
     def tp(self) -> OperationRoundResult:
@@ -99,6 +101,8 @@ class ShiyuDefenseApp(ZApplication):
         if self.multi_room_config is not None:
             self.current_room_idx = 0
             self.room_teams = []
+            self.next_click_count = 0
+            self.room_team_selected = False
             result1 = self.round_by_find_and_click_area(
                 self.last_screenshot,
                 self.multi_room_config.screen_template,
@@ -198,29 +202,44 @@ class ShiyuDefenseApp(ZApplication):
     @operation_node(name='多间-选择房间')
     def multi_room_select(self) -> OperationRoundResult:
         log.info('选择房间: %s', ROOM_NAMES[self.current_room_idx])
-        return self.round_by_click_area(self.multi_room_config.screen_template, ROOM_NAMES[self.current_room_idx], success_wait=1)
+        self.next_click_count = 0
+        self.room_team_selected = False
+        return self.round_by_click_area(self.multi_room_config.screen_template, ROOM_NAMES[self.current_room_idx], success_wait=3)
 
     @node_from(from_name='多间-选择房间')
-    @operation_node(name='多间-准备出战', node_max_retry_times=10)
+    @operation_node(name='多间-准备出战', node_max_retry_times=30)
     def multi_room_prepare(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, self.multi_room_config.screen_template, '出战')
-        if result.is_success:
-            return self.round_success(result.status)
+        # 阶段1：点"下一步" x2，切换到预备编队页面
+        if self.next_click_count < 2:
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '式舆防卫战', '下一步',
+                success_wait=2, retry_wait=1
+            )
+            if result.is_success:
+                self.next_click_count += 1
+                return self.round_wait(result.status, wait=2)
+            return self.round_retry(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(self.last_screenshot, self.multi_room_config.screen_template, '预备编队', success_wait=1)
-        if result.is_success:
+        # 阶段2：预备编队 → 选队 → 预备出战
+        if not self.room_team_selected:
+            log.info('预备编队')
             op = ChoosePredefinedTeam(self.ctx, [self.room_teams[self.current_room_idx].team_idx])
             op.execute()
-            return self.round_by_find_and_click_area(self.last_screenshot, self.multi_room_config.screen_template, '预备出战', success_wait=1, retry_wait=1)
+            self.room_team_selected = True
+            log.info('预备出战亮起')
+            return self.round_wait(wait=0.5)
 
-        return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '下一步', success_wait=1, retry_wait=1)
+        # 阶段3：出战
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot, self.multi_room_config.screen_template, '出战',
+            success_wait=1, retry_wait=1
+        )
+        if result.is_success:
+            log.info('出战点击')
+            return self.round_success(result.status)
+        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='多间-准备出战')
-    @operation_node(name='多间-出战', node_max_retry_times=10)
-    def multi_room_deploy(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, self.multi_room_config.screen_template, '出战', success_wait=1, retry_wait=1)
-
-    @node_from(from_name='多间-出战')
     @operation_node(name='多间-战斗')
     def multi_room_battle(self) -> OperationRoundResult:
         op = ShiyuDefenseBattle(self.ctx, self.room_teams[self.current_room_idx].team_idx)
@@ -229,7 +248,7 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='多间-战斗')
     @operation_node(name='多间-战斗结束', node_max_retry_times=30)
     def multi_room_exit(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出', success_wait=2)
+        result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出', success_wait=15)
         if result.is_success:
             self.current_room_idx += 1
             if self.current_room_idx >= self.multi_room_config.room_count:
