@@ -63,6 +63,19 @@ class RandomPlayApp(ZApplication):
         self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
         self.retried_transport: bool = False
 
+    def execute(self, max_retry_times: int = 3):
+        """
+        执行录像店经营，失败时自动重试整个流程（从传送重新开始）
+        :param max_retry_times: 最大重试次数，默认 3 次
+        """
+        for attempt in range(1, max_retry_times + 1):
+            result = super().execute()
+            if result.success:
+                return result
+            if attempt < max_retry_times:
+                log.error(f'{self.op_name} 执行失败（第{attempt}次），即将重试整个流程...')
+        return result
+
     @node_from(from_name='等待经营画面加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
