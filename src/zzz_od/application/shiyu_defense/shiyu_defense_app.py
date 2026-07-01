@@ -224,20 +224,15 @@ class ShiyuDefenseApp(ZApplication):
         if not self.room_team_selected:
             log.info('预备编队')
             op = ChoosePredefinedTeam(self.ctx, [self.room_teams[self.current_room_idx].team_idx])
-            op.execute()
+            if not op.execute().success:
+                return self.round_fail(status='选队失败', wait=1)
             self.room_team_selected = True
             log.info('预备出战亮起')
             return self.round_wait(wait=0.5)
 
-        # 阶段3：出战
-        result = self.round_by_find_and_click_area(
-            self.last_screenshot, self.multi_room_config.screen_template, '出战',
-            success_wait=1, retry_wait=1
-        )
-        if result.is_success:
-            log.info('出战点击')
-            return self.round_success(result.status)
-        return self.round_retry(result.status, wait=1)
+        # 阶段3：出战（复用 Deploy 操作）
+        op = Deploy(self.ctx)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='多间-准备出战')
     @operation_node(name='多间-战斗')
