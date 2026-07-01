@@ -11,6 +11,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
@@ -63,17 +64,23 @@ class RandomPlayApp(ZApplication):
         self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
         self.retried_transport: bool = False
 
-    def execute(self, max_retry_times: int = 3):
+    def execute(self, max_retry_times: int = 3) -> OperationResult:
         """
         执行录像店经营，失败时自动重试整个流程（从传送重新开始）
         :param max_retry_times: 最大重试次数，默认 3 次
+        :return: 执行结果
+        :raises ValueError: 当 max_retry_times < 1 时
         """
+        if max_retry_times < 1:
+            raise ValueError(f'max_retry_times 必须 >= 1，当前传入: {max_retry_times}')
+        result: OperationResult | None = None
         for attempt in range(1, max_retry_times + 1):
             result = super().execute()
             if result.success:
                 return result
             if attempt < max_retry_times:
                 log.error(f'{self.op_name} 执行失败（第{attempt}次），即将重试整个流程...')
+        assert result is not None  # max_retry_times >= 1 时循环至少执行一次
         return result
 
     @node_from(from_name='等待经营画面加载', success=False)
