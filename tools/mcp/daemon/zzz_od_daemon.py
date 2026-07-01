@@ -68,8 +68,8 @@ def _get_server_port(proc: psutil.Process) -> int | None:
 
 def is_port_in_use(port: int) -> bool:
     """检查端口是否处于监听状态。"""
-    for conn in psutil.net_connections():
-        if conn.laddr.port == port and conn.status == 'LISTEN':
+    for conn in psutil.net_connections(kind='inet'):
+        if conn.laddr and conn.laddr.port == port and conn.status == 'LISTEN':
             return True
     return False
 
@@ -146,7 +146,11 @@ def stop_zzz_od_mcp_server() -> str:
 
 @mcp.tool()
 def restart_zzz_od_mcp_server() -> str:
-    """重启主 MCP server(先停再启)。"""
+    """重启主 MCP server(先停再启,沿用原监听端口)。"""
+    # 停止前读取当前端口,重启后沿用,避免非默认端口被静默改回 23001
+    proc = find_zzz_od_mcp_server_process()
+    port = _get_server_port(proc) if proc else None
+
     stop_result = stop_zzz_od_mcp_server()
 
     if "[ERROR]" in stop_result:
@@ -154,7 +158,10 @@ def restart_zzz_od_mcp_server() -> str:
 
     time.sleep(2)
 
-    start_result = start_zzz_od_mcp_server()
+    start_result = (
+        start_zzz_od_mcp_server(port) if port is not None
+        else start_zzz_od_mcp_server()
+    )
 
     return f"[RESTART]\n{stop_result}\n{start_result}"
 

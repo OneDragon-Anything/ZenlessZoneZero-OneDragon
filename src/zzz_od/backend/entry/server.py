@@ -56,9 +56,9 @@ async def _serve(host: str, port: int) -> None:
     """
     ctx = ZContext()
     backend = ZzzBackendContext(ctx)
-    log.info("ZZZ 后端：初始化 ZContext（线程池，不阻塞事件循环）……")
-    await backend.start()
     try:
+        log.info("ZZZ 后端：初始化 ZContext（线程池，不阻塞事件循环）……")
+        await backend.start()
         app = create_app(backend)
         config = uvicorn.Config(app, host=host, port=port, log_level="info")
         server = uvicorn.Server(config)

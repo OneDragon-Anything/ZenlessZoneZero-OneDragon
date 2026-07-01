@@ -10,7 +10,7 @@ import pytest
 from zzz_od.backend.backend_context import BackendNotReadyError, ZzzBackendContext
 
 
-def _backend(ready: bool = True, controller=None) -> ZzzBackendContext:
+def _backend(ready: bool = True, controller: MagicMock | None = None) -> ZzzBackendContext:
     """构造一个使用伪造 ctx 的 ZzzBackendContext。
 
     Args:
@@ -115,7 +115,7 @@ def test_analyze_returns_error_when_screenshot_none() -> None:
     assert "截图失败" in (result.error or "")
 
 
-def test_enter_game_success(monkeypatch) -> None:
+def test_enter_game_success(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx = MagicMock()
     ctx.ready_for_application = True
     ctx.run_context.start_running.return_value = True

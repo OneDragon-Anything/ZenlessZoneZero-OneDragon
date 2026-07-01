@@ -5,12 +5,13 @@
 ``app.routes`` 可能含 ``Mount``，因此递归收集子路由的 ``path``。
 """
 
+from typing import Any
 from unittest.mock import MagicMock
 
 from zzz_od.backend.entry.server import create_app
 
 
-def _collect_paths(routes) -> list[str]:
+def _collect_paths(routes: list[Any]) -> list[str]:
     """递归收集 Starlette 路由（含 ``Mount`` 子路由）的 ``path``。
 
     Args:

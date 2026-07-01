@@ -12,7 +12,7 @@
 """
 
 import asyncio
-import time
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -40,7 +40,7 @@ def _save_screenshot(image: 'MatLike') -> str:
 
     screenshot_dir = Path(os_utils.get_path_under_work_dir(".debug", "zzz_od_mcp", "screenshot"))
     screenshot_dir.mkdir(parents=True, exist_ok=True)
-    img_path = screenshot_dir / f"screenshot_{time.strftime('%Y%m%d_%H%M%S')}.png"
+    img_path = screenshot_dir / f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
     bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     cv2.imwrite(str(img_path), bgr_image)
     return str(img_path)
@@ -107,7 +107,10 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         Returns:
             ``AnalyzeScreenResult``（成功标志、OCR 文本列表、错误描述）。
         """
-        return backend.analyze()
+        try:
+            return backend.analyze()
+        except Exception as e:  # noqa: BLE001 工具层统一兜底
+            return AnalyzeScreenResult(success=False, ocr_texts=[], error=str(e))
 
     @mcp.tool()
     async def open_and_enter_game() -> str:

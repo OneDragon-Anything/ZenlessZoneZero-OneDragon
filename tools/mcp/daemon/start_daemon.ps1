@@ -1,4 +1,4 @@
-# ZZZ OD Daemon 启动脚本
+﻿# ZZZ OD Daemon 启动脚本
 #
 # 使用方式:
 #   .\start_daemon.ps1              # 使用默认端口（23000）
