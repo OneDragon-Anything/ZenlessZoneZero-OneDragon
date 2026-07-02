@@ -29,16 +29,6 @@ class AfterDoneOpEnum(Enum):
     SHUTDOWN = ConfigItem('关机')
 
 
-def should_execute_after_done(after_done: str, is_last_stop_by_user: bool) -> bool:
-    """判断结束后动作是否应该执行。"""
-    if is_last_stop_by_user:
-        return False
-    return after_done in [
-        AfterDoneOpEnum.CLOSE_GAME.value.value,
-        AfterDoneOpEnum.SHUTDOWN.value.value,
-    ]
-
-
 class InstanceRun(Enum):
 
     ALL = ConfigItem('全部实例')
