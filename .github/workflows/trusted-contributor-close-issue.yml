@@ -1,0 +1,113 @@
+name: Trusted Contributor Close Issue
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  close_issue:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'OneDragon-Anything' && !github.event.issue.pull_request }}
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: 关闭贡献者指定的 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const threshold = 80;
+            const commentBody = context.payload.comment.body ?? '';
+            const closerLogin = context.payload.comment.user.login;
+            const {owner, repo} = context.repo;
+
+            const issueNumbers = [
+              ...new Set(
+                [...commentBody.matchAll(/\bclose\s+#(\d+)\b/gi)]
+                  .map((match) => Number(match[1]))
+                  .filter((issueNumber) => Number.isSafeInteger(issueNumber) && issueNumber > 0),
+              ),
+            ];
+
+            if (issueNumbers.length === 0) {
+              console.log('未匹配到 close #数字 指令');
+              return;
+            }
+
+            const commitCount = await getDefaultBranchCommitCount(owner, repo, closerLogin);
+            console.log(`@${closerLogin} 在默认分支有 ${commitCount} 个 commit`);
+
+            if (commitCount < threshold) {
+              console.log(`@${closerLogin} 未达到 ${threshold} 个 commit 的自动关闭阈值`);
+              return;
+            }
+
+            for (const issueNumber of issueNumbers) {
+              await closeIssue(owner, repo, issueNumber, closerLogin, commitCount, threshold);
+            }
+
+            async function getDefaultBranchCommitCount(owner, repo, author) {
+              const response = await github.request('GET /repos/{owner}/{repo}/commits', {
+                owner,
+                repo,
+                author,
+                per_page: 1,
+              });
+
+              const link = response.headers.link;
+              const lastPage = link?.match(/[?&]page=(\d+)>;\s*rel="last"/)?.[1];
+              if (lastPage) {
+                return Number(lastPage);
+              }
+
+              return response.data.length;
+            }
+
+            async function closeIssue(owner, repo, issueNumber, closerLogin, commitCount, threshold) {
+              try {
+                const {data: issue} = await github.rest.issues.get({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                });
+
+                if (issue.pull_request) {
+                  console.log(`#${issueNumber} 是 PR，已跳过`);
+                  return;
+                }
+
+                if (issue.state === 'closed') {
+                  console.log(`#${issueNumber} 已关闭，已跳过`);
+                  return;
+                }
+
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: [
+                    `由 @${closerLogin} 通过 \`close #${issueNumber}\` 请求关闭。`,
+                    '',
+                    `贡献信息：@${closerLogin} 在默认分支有 ${commitCount} 个 commit，满足 >= ${threshold} 的自动关闭阈值。`,
+                  ].join('\n'),
+                });
+
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+
+                console.log(`#${issueNumber} 已由 @${closerLogin} 关闭`);
+              } catch (error) {
+                if (error.status === 404) {
+                  console.log(`#${issueNumber} 不存在或当前 token 无法访问，已跳过`);
+                  return;
+                }
+
+                throw error;
+              }
+            }
