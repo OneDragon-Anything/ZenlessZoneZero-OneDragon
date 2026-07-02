@@ -86,6 +86,7 @@ class ApplicationRunContext:
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
+        self.last_run_corrupted: str | None = None  # 上次运行中断的app
 
     def registry_application(
         self,
@@ -398,13 +399,13 @@ class ApplicationRunContext:
         while not self.ctx.ready_for_application:
             now = time.time()
             if now - start_time >= init_timeout:
-                log.error("等待应用 {} 初始化超时", app_id)
+                log.error("等待应用 %s 初始化超时", app_id)
                 return False
 
             time.sleep(1)
 
         if not self.is_app_registered(app_id):
-            log.error("应用 {} 未注册", app_id)
+            log.error("应用 %s 未注册", app_id)
             return False
 
         if not self.start_running():
@@ -412,7 +413,7 @@ class ApplicationRunContext:
 
         app = self.get_application(app_id, instance_idx, group_id)
         if app is None:
-            log.error("应用 {} 未注册", app_id)
+            log.error("应用 %s 未注册", app_id)
             return False
 
         try:
@@ -422,8 +423,8 @@ class ApplicationRunContext:
             self.current_application = app
 
             op_result = app.execute()
-        except Exception:
-            log.error("运行应用 {} 失败", app_id)
+        except Exception as e:
+            log.error("运行应用 %s 失败", app_id)
         finally:
             self.stop_running()
             self.current_app_id = None
@@ -472,9 +473,14 @@ class ApplicationRunContext:
         Args:
             instance_idx: 账号实例下标
         """
+        from one_dragon.base.operation.application_run_record import AppRunRecord
         for app_id in self._application_factory_map.keys():
             try:
                 run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+                if run_record is not None and run_record.run_status == AppRunRecord.STATUS_RUNNING:
+                    app_name = self._application_factory_map[app_id].app_name
+                    self.last_run_corrupted = app_name
+                    log.error('上次运行异常停止: 「%s」', app_name)
                 run_record.check_and_update_status()
             except Exception:
                 # 部分应用没有运行记录 跳过即可
