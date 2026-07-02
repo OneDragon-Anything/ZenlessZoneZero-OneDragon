@@ -12,6 +12,21 @@ SEED_FILE_NAME = "module_manifest.py"  # 生成的清单文件名
 SRC_DIR_NAME = "src"  # 源码目录名
 DEPLOY_DIR_NAME = "deploy"  # 部署目录名
 
+# 扫描排除项:相对 src/ 的路径前缀(as_posix 风格,如 "zzz_od/backend")。
+# 命中前缀的目录下所有源码都不进 module_manifest.py → 其第三方依赖不会被收进打包版 exe。
+# 用途:仅开发/调试用的可选服务 —— 依赖放 dev 组、不在普通用户安装面,
+# 不该被打进分发给普通用户的 RuntimeLauncher bundle(否则 exe 白带用不上的依赖)。
+# 新增 dev-only 可选模块时,把它的 src/ 相对路径加到这里。
+EXCLUDE_SRCPATHS: list[str] = [
+    "zzz_od/backend",  # MCP/HTTP 服务层:独立可选 dev 服务,GUI 不依赖;依赖 mcp/uvicorn 在 dev 组
+]
+
+# 卫生级排除:扫描时跳过这些目录名(匹配路径任意层级,不仅 src/ 下)。
+# 它们不是项目源码,而是工具产物 / 虚拟环境 —— 扫到会把第三方库源码当成项目代码,
+# 严重污染清单(实测 src/zzz_od/gui/.install/uv_cache 被误扫进 1482 个无关 .py)。
+# 不影响 CI(干净 checkout 无这些目录),但本地开发者跑 generate 会踩坑。
+EXCLUDE_DIRNAMES: set[str] = {".install", ".venv", "__pycache__"}
+
 # 项目路径
 DEPLOY_DIR = Path(__file__).parent  # 当前脚本所在目录（deploy）
 REPO_ROOT = DEPLOY_DIR.parent  # 仓库根目录
@@ -97,6 +112,25 @@ def is_local_package(name: str, local_pkg_names: set[str]) -> bool:
     return get_top_package(name) in local_pkg_names
 
 
+def is_excluded(py: Path) -> bool:
+    """判断文件是否应排除出依赖清单。两类:
+
+    1. 业务级(EXCLUDE_SRCPATHS):相对 src/ 的路径前缀,dev-only 可选模块不进打包版;
+    2. 卫生级(EXCLUDE_DIRNAMES):路径任意层级的目录名命中工具产物 / 虚拟环境。
+    """
+    # 1) 业务级:相对 src/ 的路径前缀
+    try:
+        rel = py.relative_to(SRC_DIR).as_posix()
+        for ex in EXCLUDE_SRCPATHS:
+            if rel == ex or rel.startswith(ex + "/"):
+                return True
+    except ValueError:
+        # 文件不在 src/ 下,跳过业务级判断(继续走卫生级)
+        pass
+    # 2) 卫生级:路径中任一段目录名命中黑名单
+    return any(part in EXCLUDE_DIRNAMES for part in py.parts)
+
+
 def scan_all_imports(src_roots: list[Path], repo_root: Path, local_pkg_names: set[str]) -> list[str]:
     """扫描所有源码文件，收集第三方库和标准库导入"""
     # 验证源码目录存在
@@ -108,9 +142,12 @@ def scan_all_imports(src_roots: list[Path], repo_root: Path, local_pkg_names: se
     all_from_imports: dict[str, set[str]] = {}
     py_files = []
 
-    # 收集所有 Python 文件
+    # 收集所有 Python 文件(跳过 EXCLUDE_SRCPATHS 下的 dev-only 可选服务)
     for root in src_roots:
-        py_files.extend(root.rglob("*.py"))
+        for py in root.rglob("*.py"):
+            if is_excluded(py):
+                continue
+            py_files.append(py)
 
     print(f"Scanning {len(py_files)} Python files...")
 

@@ -3,7 +3,6 @@ import sys
 if not getattr(sys, 'frozen', False):
     import argparse
     import ast
-    import asyncio
     import atexit
     import base64
     import builtins
@@ -57,7 +56,6 @@ if not getattr(sys, 'frozen', False):
     import urllib.parse
     import urllib.request
     import uuid
-    import uvicorn
     import vgamepad
     import warnings
     import webbrowser
@@ -86,7 +84,7 @@ if not getattr(sys, 'frozen', False):
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
     from cv2.typing import MatLike
-    from dataclasses import asdict, dataclass, field, fields
+    from dataclasses import dataclass, field, fields
     from datetime import datetime, timedelta
     from email.header import Header
     from email.mime.image import MIMEImage
@@ -98,7 +96,6 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from mcp.server.fastmcp import FastMCP
     from mss import mss
     from mss.base import MSSBase
     from packaging import version
@@ -127,9 +124,6 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from starlette.applications import Starlette
-    from starlette.requests import Request
-    from starlette.responses import JSONResponse, Response
     from threading import Event, Lock
     from types import ModuleType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, NamedTuple, Optional, Sequence, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
