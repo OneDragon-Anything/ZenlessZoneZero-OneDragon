@@ -51,7 +51,6 @@ class SettingCustomInterface(VerticalScrollInterface):
         content_widget = Column(self)
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/setting/setting_custom.html',
             title='设置说明',
             content='语言、主题和背景调整后，部分效果可能需要重启后生效',
         )

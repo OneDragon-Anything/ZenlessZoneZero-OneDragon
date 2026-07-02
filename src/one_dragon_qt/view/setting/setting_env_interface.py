@@ -52,7 +52,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/setting/setting_env.html',
             title='设置说明',
             content='不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整',
         )

@@ -57,7 +57,6 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/setting/setting_notify.html',
             title='设置说明',
             content='配置运行通知的推送方式或渠道，所有已配置的渠道都会启用',
         )
