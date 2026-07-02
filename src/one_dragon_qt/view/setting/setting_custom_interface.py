@@ -28,6 +28,7 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
@@ -49,7 +50,14 @@ class SettingCustomInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column(self)
 
+        self.help_opt = HelpCard(
+            url='https://one-dragon.com/zzz/zh/setting/setting_custom.html',
+            title='设置说明',
+            content='语言、主题和背景调整后，部分效果可能需要重启后生效',
+        )
+        content_widget.add_widget(self.help_opt)
         content_widget.add_widget(self._init_basic_group())
+        content_widget.add_stretch(1)
 
         return content_widget
 

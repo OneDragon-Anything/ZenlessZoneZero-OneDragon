@@ -34,6 +34,12 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         control_layout = QVBoxLayout(content_widget)
         control_layout.setContentsMargins(0, 0, 0, 0)
 
+        self.help_opt = HelpCard(
+            url='https://one-dragon.com/zzz/zh/setting/setting_resource_download.html',
+            title='下载说明',
+            content='下载失败时 请尝试到「脚本环境」更改网络代理',
+        )
+        control_layout.addWidget(self.help_opt)
         control_layout.addWidget(self._init_common_group())
 
         log_label = BodyLabel(gt('日志显示'))
@@ -47,9 +53,6 @@ class ResourceDownloadInterface(VerticalScrollInterface):
 
     def _init_common_group(self) -> SettingCardGroup:
         group = SettingCardGroup(gt('资源下载'))
-
-        self.help_opt = HelpCard(title='下载说明', content='下载失败时 请尝试到「脚本环境」更改网络代理')
-        group.addSettingCard(self.help_opt)
 
         self.launcher_opt = LauncherDownloadCard(self.ctx)
         group.addSettingCard(self.launcher_opt)
