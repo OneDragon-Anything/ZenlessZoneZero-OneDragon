@@ -805,8 +805,7 @@ class GitService:
         """
         获取当前代码版本
         """
-        logs = self.fetch_page_commit(0, 1)
-        return logs[0].commit_id if logs else None
+        return self.get_head_commit_id(short=True)
 
     def get_latest_tag(self) -> tuple[str, str]:
         """获取最新tag，未找到时返回空字符串

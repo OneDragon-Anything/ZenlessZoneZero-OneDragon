@@ -24,7 +24,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
-from one_dragon.utils import app_utils, os_utils
+from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import get_foreground_color
@@ -357,7 +357,7 @@ class HomeInterface(BaseInterface):
         self._last_reload_banner_signal = False
         self._last_applied_theme_color: tuple[int, int, int] | None = None
 
-        # 记录上次自动检查更新的时间
+        # 记录上次自动检查资源更新的时间；代码同步由启动器或代码同步页负责。
         self._last_auto_check_time = 0
         self._auto_check_interval = 300  # 5分钟冷却时间
 
@@ -431,17 +431,7 @@ class HomeInterface(BaseInterface):
             apply_shadow(button)
 
     def _init_check_runners(self):
-        """初始化检查更新的线程"""
-        self._check_code_runner = CheckRunner(
-            self.ctx,
-            lambda ctx: not ctx.git_service.is_current_branch_latest()[0],
-            self
-        )
-        self._check_code_runner.need_update.connect(
-            self._need_to_update_code,
-            Qt.ConnectionType.QueuedConnection
-        )
-
+        """初始化资源检查线程。"""
         self._check_model_runner = CheckRunner(
             self.ctx,
             lambda ctx: ctx.model_config.using_old_model(),
@@ -449,30 +439,6 @@ class HomeInterface(BaseInterface):
         )
         self._check_model_runner.need_update.connect(
             self._need_to_update_model,
-            Qt.ConnectionType.QueuedConnection
-        )
-
-        def check_launcher_update(ctx: ZContext) -> bool:
-            current_version = app_utils.get_launcher_version()
-            latest_stable, latest_beta = ctx.git_service.get_latest_tag()
-
-            # 根据当前版本是否包含 -beta 来确定比较通道
-            if current_version and '-beta' in current_version:
-                # 测试通道：与最新测试版比较；若不存在测试版，则和稳定版比较
-                target_latest = latest_beta or latest_stable
-            else:
-                # 稳定通道：与最新稳定版比较；若不存在稳定版，则视为已最新
-                target_latest = latest_stable or current_version
-
-            return current_version != target_latest
-
-        self._check_launcher_runner = CheckRunner(
-            self.ctx,
-            check_launcher_update,
-            self
-        )
-        self._check_launcher_runner.need_update.connect(
-            self._need_to_update_launcher,
             Qt.ConnectionType.QueuedConnection
         )
 
@@ -526,7 +492,7 @@ class HomeInterface(BaseInterface):
             self._banner_widget.release_media()
 
     def on_interface_shown(self) -> None:
-        """界面显示时启动检查更新的线程"""
+        """界面显示时启动资源检查线程。"""
         super().on_interface_shown()
 
         if self._banner_widget:
@@ -544,12 +510,8 @@ class HomeInterface(BaseInterface):
         should_check = (current_time - self._last_auto_check_time) > self._auto_check_interval
 
         if should_check:
-            if not self._check_code_runner.isRunning():
-                self._check_code_runner.start()
             if not self._check_model_runner.isRunning():
                 self._check_model_runner.start()
-            if not self._check_launcher_runner.isRunning():
-                self._check_launcher_runner.start()
             self._last_auto_check_time = current_time
 
         # Banner 刷新检查不需要冷却，因为它依赖信号
@@ -597,20 +559,9 @@ class HomeInterface(BaseInterface):
         if self._dynamic_background_downloader.isRunning():
             self._dynamic_background_downloader.stop()
 
-    def _need_to_update_code(self, with_new: bool):
-        if not with_new:
-            self._show_info_bar("代码已是最新版本", "Enjoy it & have fun!")
-            return
-        else:
-            self._show_info_bar("有新版本啦", "稍安勿躁~")
-
     def _need_to_update_model(self, with_new: bool):
         if with_new:
             self._show_info_bar("有新模型啦", "到[设置-资源下载]更新吧~", 5000)
-
-    def _need_to_update_launcher(self, with_new: bool):
-        if with_new:
-            self._show_info_bar("有新启动器啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条（手动定位，避免标题栏遮挡）"""
