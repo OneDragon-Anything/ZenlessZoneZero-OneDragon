@@ -95,7 +95,7 @@ OCR服务，负责职责包括：
 ### 一条龙结束后动作
 
 一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机等收尾动作。
-GUI 配置和 CLI 参数都只负责描述“希望执行的动作”，实际执行由统一 finalizer 根据 `ApplicationRunResult.finish_reason` 判定。
+GUI 配置和 CLI 参数都只负责描述“希望执行的动作”，并先构造成 `AfterDoneRequest`；真正执行由 `ApplicationRunContext.run_application()` 在统一收口处调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
 其中“关闭游戏”和“关机”只在 `COMPLETED` 时执行；如果用户点击停止按钮、流程主动中断、运行异常、初始化失败/超时，或程序退出清理导致结束，则不会关闭游戏或关机。
 `STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
 

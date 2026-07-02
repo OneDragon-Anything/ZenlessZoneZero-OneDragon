@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypeVar
 
+from one_dragon.base.operation.application.application_finalizer import (
+    AfterDoneRequest,
+    execute_after_done,
+)
+from one_dragon.base.operation.application.application_run_semantics import (
+    ApplicationRunResult,
+    RunFinishReason,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
 from one_dragon.utils import thread_utils
@@ -39,28 +46,6 @@ class ApplicationRunContextStateEventEnum(StrEnum):
     PAUSE = "pause"  # 暂停运行事件
     RESUME = "resume"  # 恢复运行事件
     STOP = "stop"  # 停止运行事件
-
-
-class RunFinishReason(StrEnum):
-    """应用结束原因。"""
-
-    COMPLETED = "COMPLETED"  # 正常完成
-    STOPPED_BY_USER = "STOPPED_BY_USER"  # 用户主动停止
-    STOPPED_BY_FLOW = "STOPPED_BY_FLOW"  # 流程主动停止
-    FAILED = "FAILED"  # 运行异常结束
-    INIT_FAILED = "INIT_FAILED"  # 启动前初始化失败
-    INIT_TIMEOUT = "INIT_TIMEOUT"  # 等待初始化超时
-    APP_SHUTDOWN = "APP_SHUTDOWN"  # 程序退出清理
-
-
-@dataclass(slots=True)
-class ApplicationRunResult:
-    """应用运行结果。"""
-
-    finish_reason: RunFinishReason
-    app_id: str
-    instance_idx: int | None
-    group_id: str | None
 
 
 CONFIG = TypeVar('CONFIG', bound="ApplicationConfig")
@@ -358,6 +343,16 @@ class ApplicationRunContext:
             )
         return result
 
+    def _execute_after_done_if_needed(
+        self,
+        run_result: ApplicationRunResult,
+        after_done_request: AfterDoneRequest | None,
+    ) -> None:
+        """在统一收口处按运行结果执行结束后动作。"""
+        if after_done_request is None:
+            return
+        execute_after_done(self.ctx, run_result, after_done_request)
+
     def start_running(self) -> bool:
         """
         开始运行。
@@ -434,6 +429,7 @@ class ApplicationRunContext:
         instance_idx: int,
         group_id: str,
         init_timeout: int = 60,
+        after_done_request: AfterDoneRequest | None = None,
     ) -> ApplicationRunResult:
         """
         同步运行指定的应用。
@@ -445,6 +441,7 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标
             group_id: 应用组ID，可将应用分组运行
             init_timeout: 等待初始化的超时时间(秒)
+            after_done_request: 运行结束后希望执行的统一收尾动作
 
         Returns:
             ApplicationRunResult: 应用运行结束结果。
@@ -515,6 +512,7 @@ class ApplicationRunContext:
                 )
             else:
                 run_result = self.last_run_result
+            self._execute_after_done_if_needed(run_result, after_done_request)
             self.current_app_id = None
             self.current_instance_idx = None
             self.current_group_id = None

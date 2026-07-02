@@ -58,7 +58,8 @@ config/
 - 应用注册 - 所有需要运行的应用都将 `ApplicationFactory` 注册进来，后续用于获取应用相关内容。
 - 提供应用运行记录的统一刷新接口。
 - 返回 `ApplicationRunResult` 作为统一结束语义，`STOP` 只表示状态停止，真正的结束原因通过 `RunFinishReason` 区分。
-- GUI 的“结束后”配置与 CLI 的收尾参数共用同一 finalizer，仅在 `RunFinishReason.COMPLETED` 时执行关闭游戏/关机。
+- GUI 的“结束后”配置与 CLI 的收尾参数都先构造成 `AfterDoneRequest`，再由 `ApplicationRunContext.run_application()` 在统一收口处调用同一 finalizer。
+- 关闭游戏/关机仅在 `RunFinishReason.COMPLETED` 时执行；用户停止、流程中断、异常结束、初始化失败/超时、程序退出清理都不会触发收尾动作。
 
 ## 应用组
 

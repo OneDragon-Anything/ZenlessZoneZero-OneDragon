@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum
-from one_dragon.base.operation.application.application_run_context import (
+from one_dragon.base.operation.application.application_run_semantics import (
     ApplicationRunResult,
     RunFinishReason,
 )

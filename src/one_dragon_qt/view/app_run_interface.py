@@ -10,6 +10,9 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.application_finalizer import (
+    AfterDoneRequest,
+)
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContextStateEventEnum,
     RunFinishReason,
@@ -34,6 +37,7 @@ class AppRunner(QThread):
         QThread.__init__(self)
         self.ctx: OneDragonContext = ctx
         self.app_id: str = ''
+        self.after_done_request: AfterDoneRequest | None = None
 
     def run(self):
         """
@@ -49,6 +53,7 @@ class AppRunner(QThread):
             app_id=self.app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
+            after_done_request=self.after_done_request,
         )
 
         self.ctx.run_context.event_bus.unlisten_all_event(self)
@@ -161,8 +166,13 @@ class AppRunInterface(VerticalScrollInterface):
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
             return
+        self.app_runner.after_done_request = self.get_after_done_request()
         self.app_runner.app_id = self.app_id
         self.app_runner.start()
+
+    def get_after_done_request(self) -> AfterDoneRequest | None:
+        """返回当前运行希望执行的结束后动作。"""
+        return None
 
     def on_context_state_changed(self) -> None:
         """

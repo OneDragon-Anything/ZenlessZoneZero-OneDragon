@@ -16,7 +16,7 @@ from one_dragon.base.config.one_dragon_config import (
 )
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_finalizer import (
-    execute_after_done,
+    AfterDoneRequest,
     get_after_done_request_from_config,
 )
 from one_dragon.base.operation.application.application_group_config import (
@@ -177,6 +177,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
             return
+        self.app_runner.after_done_request = self.get_after_done_request()
         self.app_runner.app_id = app.app_id
         self.app_runner.start()
 
@@ -184,14 +185,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
         SplitAppRunInterface.on_context_state_changed(self)
         self.app_run_list.update_cards_display()
 
-        if self.ctx.run_context.is_context_stop and self.need_after_done_opt:
-            execute_after_done(
-                self.ctx,
-                self.ctx.run_context.last_run_result,
-                get_after_done_request_from_config(
-                    self.ctx.one_dragon_config.after_done
-                ),
-            )
+    def get_after_done_request(self) -> AfterDoneRequest | None:
+        """按当前 GUI 配置构造统一收尾动作请求。"""
+        if not self.need_after_done_opt:
+            return None
+        return get_after_done_request_from_config(
+            self.ctx.one_dragon_config.after_done
+        )
 
     def _on_app_state_changed(self, event) -> None:
         self.app_run_list.update_cards_display()

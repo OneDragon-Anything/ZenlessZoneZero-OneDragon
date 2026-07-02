@@ -3,7 +3,6 @@ import sys
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_finalizer import (
     AfterDoneRequest,
-    execute_after_done,
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.launcher.launcher_base import LauncherBase
@@ -73,17 +72,11 @@ class ApplicationLauncher(LauncherBase):
         """运行应用"""
         try:
             # 执行一条龙应用
-            run_result = self.ctx.run_context.run_application(
+            self.ctx.run_context.run_application(
                 app_id=application_const.ONE_DRAGON_APP_ID,
                 instance_idx=self.ctx.current_instance_idx,
                 group_id=application_const.DEFAULT_GROUP_ID,
-            )
-
-            # 运行后操作
-            execute_after_done(
-                self.ctx,
-                run_result,
-                AfterDoneRequest(
+                after_done_request=AfterDoneRequest(
                     close_game=args.close_game,
                     shutdown_seconds=args.shutdown,
                 ),
