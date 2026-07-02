@@ -1,10 +1,13 @@
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QPoint, Property, QEasingCurve
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
-from qfluentwidgets import qconfig, Theme, isDarkTheme
-from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.utils.log_utils import log
-from one_dragon.utils import os_utils, yaml_utils
 import os
+
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from qfluentwidgets import isDarkTheme
+
+from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+from one_dragon.utils import os_utils, yaml_utils
+from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
 
 class ScrollCreditsWidget(QWidget):
@@ -34,11 +37,11 @@ class ScrollCreditsWidget(QWidget):
         初始化UI布局，保持电影字幕风格
         """
         self.setMinimumHeight(400)
-        
+
         # 根据主题设置背景色
         bg_color = "#000000" if isDarkTheme() else "#ffffff"  # 黑色(暗色主题) 或 白色(亮色主题)
         text_color = "#ffffff" if isDarkTheme() else "#000000"  # 白色(暗色主题) 或 黑色(亮色主题)
-        
+
         self.setStyleSheet(f"""
             ScrollCreditsWidget {{
                 background-color: {bg_color};
@@ -51,8 +54,7 @@ class ScrollCreditsWidget(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # 创建滚动区域以避免滚动条显示
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area = FastScrollArea()
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll_area.setStyleSheet("""
@@ -161,7 +163,7 @@ class ScrollCreditsWidget(QWidget):
                 return
 
             # 读取并解析YAML文件
-            with open(contributors_file, 'r', encoding='utf-8') as f:
+            with open(contributors_file, encoding='utf-8') as f:
                 contributors_data = yaml_utils.safe_load(f)
 
             # 整合所有贡献者信息 - 按类别显示，支持自定义分组
@@ -184,7 +186,7 @@ class ScrollCreditsWidget(QWidget):
                         'category': category_type,
                         'is_category_header': True
                     })
-                    
+
                     # 添加该类别的具体贡献者
                     for item in contributors_data[category_key]:
                         if isinstance(item, dict) and 'name' in item:
@@ -217,7 +219,7 @@ class ScrollCreditsWidget(QWidget):
                         'category': category_type,
                         'is_category_header': True
                     })
-                    
+
                     # 添加该类别的内容
                     for item in contributors_data[category_key]:
                         if isinstance(item, dict) and 'name' in item:
@@ -298,7 +300,7 @@ class ScrollCreditsWidget(QWidget):
             # 获取主题颜色
             text_color = "#ffffff" if isDarkTheme() else "#000000"
             border_color = "#444444" if isDarkTheme() else "#bbbbbb"
-            
+
             # 类别标题样式
             title_text = contributor.get('name', '')
             name_label = QLabel(f"【{title_text}】")
@@ -321,12 +323,12 @@ class ScrollCreditsWidget(QWidget):
         main_text_color = "#ffffff" if isDarkTheme() else "#000000"  # 主要文字颜色
         secondary_text_color = "#cccccc" if isDarkTheme() else "#333333"  # 次要文字颜色
         light_text_color = "#aaaaaa" if isDarkTheme() else "#666666"  # 更浅的文字颜色
-        
+
         # 名称/标题
         title_text = contributor.get('name', '')
         name_label = QLabel(f"{title_text}")
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         # 使用主题适配的颜色
         name_label.setStyleSheet(f"""
             QLabel {{
@@ -337,18 +339,18 @@ class ScrollCreditsWidget(QWidget):
                 font-family: Arial, sans-serif;
             }}
         """)
-        
+
         layout.addWidget(name_label)
 
         # 如果是多成员分组（成员列表），合并为单个元素显示
-        if 'members' in contributor and isinstance(contributor['members'], (list, tuple)):
+        if 'members' in contributor and isinstance(contributor['members'], list | tuple):
             members = contributor['members']
             # 使用换行而不是分隔符来显示成员，避免渲染问题
             members_text = '\n'.join(str(m) for m in members)
             members_label = QLabel(members_text)
             members_label.setWordWrap(True)
             members_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
+
             members_label.setStyleSheet(f"""
                 QLabel {{
                     color: {secondary_text_color};  /* 根据主题设置文字颜色 */
@@ -379,7 +381,7 @@ class ScrollCreditsWidget(QWidget):
         if 'contributions' in contributor:
             contributions_label = QLabel(f"{contributor.get('contributions')}")
             contributions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            
+
             contributions_label.setStyleSheet(f"""
                 QLabel {{
                     color: {light_text_color};  /* 根据主题设置文字颜色 */

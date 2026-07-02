@@ -18,6 +18,7 @@ from zzz_od.auto_battle.atomic_op.btn_normal_attack import AtomicBtnNormalAttack
 from zzz_od.auto_battle.atomic_op.btn_quick_assist import AtomicBtnQuickAssist
 from zzz_od.auto_battle.atomic_op.btn_special_attack import AtomicBtnSpecialAttack
 from zzz_od.auto_battle.atomic_op.btn_switch_agent import AtomicBtnSwitchAgent
+from zzz_od.auto_battle.atomic_op.btn_switch_backup import AtomicBtnSwitchBackup
 from zzz_od.auto_battle.atomic_op.btn_switch_next import AtomicBtnSwitchNext
 from zzz_od.auto_battle.atomic_op.btn_switch_prev import AtomicBtnSwitchPrev
 from zzz_od.auto_battle.atomic_op.btn_ultimate import AtomicBtnUltimate
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class AtomicOpFactory:
-    
+
     def __init__(self, auto_battle_context: AutoBattleContext):
         self.auto_battle_context = auto_battle_context
 
@@ -65,6 +66,8 @@ class AtomicOpFactory:
             return AtomicBtnSwitchNext(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_SWITCH_PREV.value):
             return AtomicBtnSwitchPrev(self.auto_battle_context, press=press, press_time=press_time, release=release)
+        elif op_name.startswith(BattleStateEnum.BTN_SWITCH_BACKUP.value):
+            return AtomicBtnSwitchBackup(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_SWITCH_NORMAL_ATTACK.value):
             return AtomicBtnNormalAttack(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_SWITCH_SPECIAL_ATTACK.value):
@@ -94,4 +97,4 @@ class AtomicOpFactory:
         elif op_name == AtomicClearState.OP_NAME:
             return AtomicClearState(self.auto_battle_context.custom_context, op_def)
         else:
-            raise ValueError('非法的指令 %s' % op_name)
+            raise ValueError(f'非法的指令 {op_name}')

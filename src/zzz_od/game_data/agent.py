@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, List, Union, Tuple
 
 from cv2.typing import MatLike
 
@@ -31,6 +30,7 @@ class DmgTypeEnum(Enum):
     PHYSICAL = '物理属性'
     FIRE = '火属性'
     ICE = '冰属性'
+    WIND = '风属性'
     UNKNOWN = '未知'
 
     @classmethod
@@ -66,15 +66,15 @@ class RareTypeEnum(Enum):
 
 class AgentStateCheckWay(Enum):
 
-    COLOR_RANGE_CONNECT: int = 1  # 根据颜色 在特定范围里匹配找连通块的数量
-    BACKGROUND_GRAY_RANGE_LENGTH: int = 2  # 根据背景的灰度颜色 在特定范围里反推横条的长度
-    COLOR_RANGE_EXIST: int = 3  # 根据颜色 在特定范围里匹配是否出现
-    FOREGROUND_COLOR_RANGE_LENGTH: int = 4  # 根据前景颜色 在特定范围里计算横条的长度
-    FOREGROUND_GRAY_RANGE_LENGTH: int = 5  # 根据前景的灰度颜色 在特定范围里计算横条的长度
-    TEMPLATE_FOUND: int = 6  # 根据模板识别是否存在
-    TEMPLATE_NOT_FOUND: int = 7  # 根据模板识别不存在
-    COLOR_CHANNEL_MAX_RANGE_EXIST: int = 8  # 根据颜色通道的最大值 在特定范围里匹配是否出现
-    COLOR_CHANNEL_EQUAL_RANGE_CONNECT: int = 9  # 在特定范围里匹配找三色相等的像素点数量
+    COLOR_RANGE_CONNECT = 1  # 根据颜色 在特定范围里匹配找连通块的数量
+    BACKGROUND_GRAY_RANGE_LENGTH = 2  # 根据背景的灰度颜色 在特定范围里反推横条的长度
+    COLOR_RANGE_EXIST = 3  # 根据颜色 在特定范围里匹配是否出现
+    FOREGROUND_COLOR_RANGE_LENGTH = 4  # 根据前景颜色 在特定范围里计算横条的长度
+    FOREGROUND_GRAY_RANGE_LENGTH = 5  # 根据前景的灰度颜色 在特定范围里计算横条的长度
+    TEMPLATE_FOUND = 6  # 根据模板识别是否存在
+    TEMPLATE_NOT_FOUND = 7  # 根据模板识别不存在
+    COLOR_CHANNEL_MAX_RANGE_EXIST = 8  # 根据颜色通道的最大值 在特定范围里匹配是否出现
+    COLOR_CHANNEL_EQUAL_RANGE_CONNECT = 9  # 在特定范围里匹配找三色相等的像素点数量
 
 
 class AgentStateDef:
@@ -82,15 +82,15 @@ class AgentStateDef:
     def __init__(self, state_name: str,
                  check_way: AgentStateCheckWay,
                  template_id: str,
-                 lower_color: Union[MatLike, Tuple, int] = None,
-                 upper_color: Union[MatLike, Tuple, int] = None,
-                 hsv_color: Union[MatLike, Tuple, int] = None,
-                 hsv_color_diff: Union[MatLike, Tuple, int] = None,
-                 connect_cnt: Optional[int] = None,
-                 split_color_range: Optional[List[Union[MatLike, int]]] = None,
+                 lower_color: MatLike | tuple | int = None,
+                 upper_color: MatLike | tuple | int = None,
+                 hsv_color: MatLike | tuple | int = None,
+                 hsv_color_diff: MatLike | tuple | int = None,
+                 connect_cnt: int | None = None,
+                 split_color_range: list[MatLike | int] | None = None,
                  max_length: int = 100,
-                 min_value_trigger_state: Optional[int] = None,
-                 template_threshold: Optional[float] = None,
+                 min_value_trigger_state: int | None = None,
+                 template_threshold: float | None = None,
                  clear_on_zero: bool = False,  # 新增属性，当检测值为0时，是否清除状态
                  ):
         self.state_name: str = state_name
@@ -98,18 +98,18 @@ class AgentStateDef:
         self.check_way: AgentStateCheckWay = check_way
 
         # 需要匹配的颜色范围RGB
-        self.lower_color: Union[MatLike, int] = lower_color
-        self.upper_color: Union[MatLike, int] = upper_color
+        self.lower_color: MatLike | int = lower_color
+        self.upper_color: MatLike | int = upper_color
 
         # 需要匹配的颜色范围HVS
-        self.hsv_color: Union[MatLike, int] = hsv_color
-        self.hsv_color_diff: Union[MatLike, int] = hsv_color_diff
+        self.hsv_color: MatLike | int = hsv_color
+        self.hsv_color_diff: MatLike | int = hsv_color_diff
 
         # 匹配用于分割的颜色范围 类似能量条的中间有空白时使用
-        self.split_color_range: Optional[List[Union[MatLike, int]]] = split_color_range
+        self.split_color_range: list[MatLike | int] | None = split_color_range
 
         # 判断连通块时 所需的最小像素点数量
-        self.connect_cnt: Optional[int] = connect_cnt
+        self.connect_cnt: int | None = connect_cnt
 
         # 判断长度时 用于调整最大长度 例如能量最大值是120
         self.max_length: int = max_length
@@ -200,7 +200,7 @@ class Agent:
                  agent_type: AgentTypeEnum,
                  dmg_type: DmgTypeEnum,
                  template_id_list: list[str],
-                 state_list: Optional[List[AgentStateDef]] = None,
+                 state_list: list[AgentStateDef] | None = None,
                  ):
         """
         代理人
@@ -216,7 +216,7 @@ class Agent:
         self.dmg_type: DmgTypeEnum = dmg_type  # 伤害类型
 
         self.template_id_list: list[str] = template_id_list  # 代理人的头像模板ID列表
-        self.state_list: List[AgentStateDef] = state_list  # 可能有的状态
+        self.state_list: list[AgentStateDef] = state_list  # 可能有的状态
 
     @property
     def agent_type_str(self) -> str:
@@ -284,7 +284,7 @@ class AgentEnum(Enum):
                                               'lighter', lower_color=0, upper_color=50)])
 
     ASABA_HARUMASA = Agent('asaba_harumasa', '悠真', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['asaba_harumasa'])
-    HOSHIMI_MIYABI = Agent('hoshimi_miyabi', '雅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['hoshimi_miyabi'],
+    HOSHIMI_MIYABI = Agent('hoshimi_miyabi', '雅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['hoshimi_miyabi', 'hoshimi_miyabi_dignified_blossom'],
                            state_list=[AgentStateDef('雅-落霜', AgentStateCheckWay.COLOR_RANGE_CONNECT,'hoshimi_miyabi',
                                                      hsv_color=(90,255,255), hsv_color_diff=(60,255,50), connect_cnt=5)])
 
@@ -333,11 +333,11 @@ class AgentEnum(Enum):
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                      template_id='yixuan_technique',
-                                     hsv_color=(20, 0, 245), hsv_color_diff=(7, 240, 17),
+                                     hsv_color=(30, 0, 245), hsv_color_diff=(15, 245, 255),
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 255, 255), hsv_color_diff=(20, 175, 50),
+                                     hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
 
@@ -507,3 +507,33 @@ class AgentEnum(Enum):
 
     CISSIA = Agent('cissia', '希希芙', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['cissia'],
                    state_list=[])
+
+    PROMEIA = Agent('promeia', '普罗米娅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['promeia'],
+                    state_list=[AgentStateDef('普罗米娅-霜刑', AgentStateCheckWay.COLOR_RANGE_CONNECT, 'promeia_ss',
+                                              hsv_color=(0,255,255), hsv_color_diff=(90, 255, 50), connect_cnt=2)])
+
+    VELINA = Agent('velina', '维琳娜', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.WIND, ['velina'],
+                    state_list=[AgentStateDef('维琳娜-风华', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH, 'velina',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=135)
+                      ])
+
+    PYROIS_WISE = Agent('pyrois_wise', '佩洛伊斯', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ETHER,
+                        ['pyrois_wise'],
+                        state_list=[AgentStateDef('佩洛伊斯-日珥', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                  template_id='pyrois_wise',
+                                                  hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                  max_length=60)])
+
+    STARLIGHT_BILLY_KID = Agent('starlight_billy_kid', '星辉比利', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL,
+                                ['starlight_billy_kid'],
+                                state_list=[AgentStateDef('星辉比利-决心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                          template_id='starlight_billy_kid',
+                                                          hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                          max_length=120)])
+
+    NORMA = Agent('norma', '诺姆', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['norma'],
+                  state_list=[AgentStateDef('诺姆-预热', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                            template_id='norma',
+                                            hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                            max_length=100)])

@@ -2,7 +2,7 @@
 
 本文件是项目级 AI 编码协作入口，只保留会直接影响实现落点与提交流程的约束。
 详细规范与背景资料不要堆在这里，按需继续阅读：
-- 开发环境与 Vibe Coding 配置：[docs/develop/README.md](docs/develop/README.md)
+- 开发环境与打包：[docs/develop/README.md](docs/develop/README.md)
 - 详细编码规范：[docs/develop/spec/agent_guidelines.md](docs/develop/spec/agent_guidelines.md)
 - 一条龙整体架构：[docs/develop/one_dragon/one_dragon_architecture.md](docs/develop/one_dragon/one_dragon_architecture.md)
 - 应用插件开发指引：[docs/develop/guides/application_plugin_guide.md](docs/develop/guides/application_plugin_guide.md)
@@ -23,10 +23,10 @@ uv sync --group dev
 uv run --env-file .env src/zzz_od/gui/app.py
 uv run --env-file .env pytest zzz-od-test/
 uv run --env-file .env ruff check src/你修改的文件.py
-uv run --env-file .env ruff format src/你修改的文件.py
+uv run --env-file .env ruff check --fix src/你修改的文件.py
 ```
 
-- 只对自己修改的文件运行 `ruff check` / `ruff format`。
+- 只对自己修改的文件运行 `ruff check`。
 - 不要对整个 `src/` 目录运行 ruff，现有仓库尚未全面适配。
 - 优先使用 Windows PowerShell 可直接执行的命令。
 
@@ -78,13 +78,13 @@ uv run --env-file .env ruff format src/你修改的文件.py
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
 - 提交 PR 后，review comment 需要逐条回复或修正。
 
+## 自维护指南
+
+修改 **AI 入口文件**——本文件（`AGENTS.md`）、`.claude/CLAUDE.md`、`.github/copilot-instructions.md` 等——时，必须先按 [entry_files.md](docs/develop/harness/entry_files.md) 的规范来：纯指令不掺杂元信息、只放 always-on 该留的（「删了会出错吗」逐条自检）、单一信息源（`AGENTS.md` 是源，工具入口 `@import` 引入）、共享文档改动先经用户确认。
+
 ## 深入阅读
 
 只在当前任务确实需要时继续看这些文档：
 - 框架与模块架构：`docs/develop/one_dragon/`、`docs/develop/one_dragon/modules/`
 - 游戏业务与专项设计：`docs/develop/zzz/`
 - 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`
-
-## AI 工具接入
-
-本仓库以根目录 `AGENTS.md` 作为统一入口；其他工具按 [docs/develop/README.md](docs/develop/README.md) 中的硬链接说明接入即可。

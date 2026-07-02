@@ -231,18 +231,6 @@ try:
             if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
                 self.overlay_manager.shutdown()
 
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                import time
-                session_duration = time.time() - self._app_start_time
-
-                # 跟踪应用关闭
-                self.ctx.telemetry.track_ui_interaction('main_window', 'close', {
-                    'session_duration': session_duration
-                })
-
-                # 强制刷新遥测队列，确保关闭事件被发送
-                self.ctx.telemetry.flush()
-
             # 调用父类的关闭事件
             super().closeEvent(event)
 

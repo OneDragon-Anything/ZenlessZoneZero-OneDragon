@@ -41,7 +41,9 @@ class LostVoidApp(ZApplication):
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext,
+                 lost_void_debug: bool = False,
+                 next_region_type: LostVoidRegionType = LostVoidRegionType.ENTRY):
         ZApplication.__init__(
             self,
             ctx=ctx,
@@ -58,12 +60,15 @@ class LostVoidApp(ZApplication):
             app_id=lost_void_const.APP_ID,
         )
 
-        self.next_region_type: LostVoidRegionType = LostVoidRegionType.ENTRY  # 下一个区域的类型
+        self.next_region_type = next_region_type  # 下一个区域的类型
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
         self._entry_nav_click_cooldown_sec: float = 1.0
         self._entry_nav_last_click_at: float = 0.0
+
+        # debug
+        self.lost_void_debug = lost_void_debug
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
@@ -82,6 +87,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='初始化加载', status=STATUS_AGAIN)
     @operation_node(name='识别初始画面')
     def check_initial_screen(self) -> OperationRoundResult:
+        if self.lost_void_debug:
+            return self.round_success('迷失之地-大世界')
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-大世界', '按钮-挑战-确认')
         # 特殊兼容：在挑战区域开始，接力运行
         if result.is_success:
@@ -848,11 +855,13 @@ class LostVoidApp(ZApplication):
         op_result = op.execute()
         if op_result.success:
             if op_result.status == LostVoidRunLevel.STATUS_NEXT_LEVEL:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 if op_result.data is not None:
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
             elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 self.next_region_type = LostVoidRegionType.ENTRY
 
         return self.round_by_op_result(op_result)
@@ -921,7 +930,7 @@ def __debug():
     ctx = ZContext()
     ctx.init()
     ctx.run_context.start_running()
-    op = LostVoidApp(ctx)
+    op = LostVoidApp(ctx, lost_void_debug=True, next_region_type = LostVoidRegionType.FRIENDLY_TALK)
     op.execute()
 
 

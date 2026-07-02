@@ -18,7 +18,7 @@ from qfluentwidgets import (
     ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum
+from one_dragon.base.config.game_account_config import GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -59,15 +59,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
-        run_idx = 0
         target_idx = 0
-        for opt_enum in RunInOneDragonApp:
+        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
             self.run_opt.addItem(text=opt.label, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
-
-            run_idx += 1
         self.run_opt.setCurrentIndex(target_idx)
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
@@ -88,7 +85,7 @@ class InstanceSettingCard(MultiPushSettingCard):
                 self.login_btn,
                 self.delete_btn,
             ],
-            title="%02d" % self.instance.idx,
+            title=f"{self.instance.idx:02d}",
             icon=FluentIcon.PEOPLE,
         )
         self.update_title()
@@ -97,7 +94,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         """
         更新显示文本
         """
-        title = "%02d" % self.instance.idx
+        title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
         self.setTitle(title)
@@ -243,6 +240,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.content_widget.add_widget(self._get_instanceSwitch_group())
         self.content_widget.add_stretch(1)
 
+    def _refresh_content_widget(self) -> None:
+        """
+        重新初始化显示并同步当前账号配置
+        :return:
+        """
+        self._init_content_widget()
+        self.init_game_account_config()
+
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
@@ -357,7 +362,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._init_content_widget()
+        self._refresh_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
         self.ctx.one_dragon_config.update_instance(instance)
@@ -388,11 +393,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._init_content_widget()
+        self._refresh_content_widget()
 
     def _on_game_path_clicked(self) -> None:
+        executable_name = self.ctx.project_config.game_executable_name or 'game.exe'
         file_path, _ = QFileDialog.getOpenFileName(
-            self, f"{gt('选择你的')} ZenlessZoneZero.exe", filter="Exe (*.exe)"
+            self, f"{gt('选择你的')} {executable_name}", filter="Exe (*.exe)"
         )
         if file_path is not None and file_path.endswith(".exe"):
             log.info(f"{gt('选择路径')} {file_path}")

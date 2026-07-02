@@ -112,7 +112,7 @@ class PythonService:
             progress_callback(-1, msg)
         log.info(msg)
 
-        env_zip_path = os.path.join(DEFAULT_ENV_PATH, 'ZenlessZoneZero-OneDragon-Environment.zip')
+        env_zip_path = os.path.join(DEFAULT_ENV_PATH, self.project_config.env_archive_name)
         if os.path.exists(env_zip_path):
             msg = gt('检测到已存在的环境压缩包，正在解压...')
             log.info(msg)

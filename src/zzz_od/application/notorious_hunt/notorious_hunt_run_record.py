@@ -37,8 +37,7 @@ class NotoriousHuntRunRecord(AppRunRecord):
         if self._should_reset_by_dt():
             return False
 
-        return (self.left_times <= 0
-                or self.run_status == AppRunRecord.STATUS_SUCCESS)
+        return self.left_times <= 0
 
     @property
     def is_auto_run_allowed_today(self) -> bool:

@@ -14,9 +14,9 @@ from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
+from zzz_od.operation.transport import Transport
 
 
 class CommissionType(StrEnum):
@@ -43,12 +43,12 @@ class IntelBoardApp(ZApplication):
         self.current_commission_type: CommissionType | None = None
         self.has_filtered: bool = False
 
-    @operation_node(name='返回大世界', is_start_node=True)
+    @operation_node(name='返回录像店', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
+        op = Transport(self.ctx, '录像店', '房间')
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='返回大世界')
+    @node_from(from_name='返回录像店')
     @operation_node(name='打开情报板')
     def open_board(self) -> OperationRoundResult:
         if self.config.exp_grind_mode:
@@ -194,7 +194,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        result = self.round_by_ocr(self.last_screenshot, '接取失败')
+        result = self.round_by_ocr(self.last_screenshot, '接取失败', lcs_percent=0.75)
         if result.is_success:
             return self.round_success('接取失败')
 

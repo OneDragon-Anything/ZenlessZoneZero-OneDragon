@@ -1,3 +1,17 @@
+"author": "DoctorReid"
+"auto_lock_interval": 5
+"check_agent_interval":
+- 0.4
+- 0.6
+"check_chain_interval":
+- 0.9
+- 1.1
+"check_dodge_interval": 0.02
+"check_quick_interval":
+- 0.9
+- 1.1
+"homepage": ""
+"introduction": "帅就完事了"
 "scenes":
 - "handlers":
   - "states": "![自定义-动作不打断, 0, 30]"
@@ -5,15 +19,20 @@
     - "states": "[闪避识别-黄光]"
       "sub_handlers":
       - "operations":
-        - "op_name": "设置状态"
+        - &id022
+          "op_name": "设置状态"
           "state": "自定义-凯撒-战意激昂"
-        - "op_name": "设置状态"
+        - &id023
+          "op_name": "设置状态"
           "state": "自定义-招架支援"
-        - "op_name": "设置状态"
+        - &id024
+          "op_name": "设置状态"
           "state": "自定义-原始朋克"
-        - "agent_name": "凯撒"
+        - &id025
+          "agent_name": "凯撒"
           "op_name": "按键-切换角色"
-        - "op_name": "清除状态"
+        - &id026
+          "op_name": "清除状态"
           "state_list":
           - "自定义-连携技换人"
           - "自定义-快速支援换人"
@@ -93,12 +112,15 @@
   - "states": "[按键可用-快速支援]"
     "sub_handlers":
     - "operations":
-      - "op_name": "按键-快速支援"
-      - "op_name": "设置状态"
+      - &id027
+        "op_name": "按键-快速支援"
+      - &id028
+        "op_name": "设置状态"
         "state_list":
         - "自定义-快速支援换人"
         - "自定义-露西-加油"
-      - "op_name": "清除状态"
+      - &id029
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
@@ -112,17 +134,21 @@
   - "states": "[按键可用-连携技]"
     "sub_handlers":
     - "operations":
-      - "op_name": "按键-连携技-左"
-      - "op_name": "设置状态"
+      - &id018
+        "op_name": "按键-连携技-左"
+      - &id019
+        "op_name": "设置状态"
         "state": "自定义-连携技邦布"
-      - "op_name": "清除状态"
+      - &id020
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
         - "自定义-快速支援换人"
         - "自定义-下场"
         - "自定义-动作不打断"
-      - "op_name": "等待秒数"
+      - &id021
+        "op_name": "等待秒数"
         "seconds": 3
       "states": "[连携技-1-邦布]"
     - "states": "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
@@ -204,42 +230,51 @@
   - "states": "[自定义-下场]"
     "sub_handlers":
     - "operations":
-      - "agent_name": "凯撒"
+      - &id030
+        "agent_name": "凯撒"
         "op_name": "按键-切换角色"
-      - "op_name": "清除状态"
+      - &id031
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
         - "自定义-快速支援换人"
         - "自定义-下场"
         - "自定义-动作不打断"
-      - "op_name": "等待秒数"
+      - &id032
+        "op_name": "等待秒数"
         "seconds": 0.2
       "states": "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{45, 120}"
     - "operations":
-      - "agent_name": "露西"
+      - &id036
+        "agent_name": "露西"
         "op_name": "按键-切换角色"
-      - "op_name": "清除状态"
+      - &id037
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
         - "自定义-快速支援换人"
         - "自定义-下场"
         - "自定义-动作不打断"
-      - "op_name": "等待秒数"
+      - &id038
+        "op_name": "等待秒数"
         "seconds": 0.3
       "states": "![自定义-露西-加油, -5, 13] & [后台-露西] & [露西-能量]{65, 120}"
     - "operations":
-      - "agent_name": "莱特"
+      - &id033
+        "agent_name": "莱特"
         "op_name": "按键-切换角色"
-      - "op_name": "清除状态"
+      - &id034
+        "op_name": "清除状态"
         "state_list":
         - "自定义-招架支援"
         - "自定义-连携技换人"
         - "自定义-快速支援换人"
         - "自定义-下场"
         - "自定义-动作不打断"
-      - "op_name": "等待秒数"
+      - &id035
+        "op_name": "等待秒数"
         "seconds": 0.3
       "states": ""
   - "interrupt_states": "[后台-凯撒]"
@@ -482,3 +517,68 @@
       "states": ""
   "interval": 0.02
   "triggers": []
+"t-chain-bamboo":
+- *id018
+- *id019
+- *id020
+- *id021
+"t-chain-left":
+- *id012
+- *id013
+- *id014
+"t-chain-right":
+- *id015
+- *id016
+- *id017
+"t-dodge":
+- *id007
+- *id008
+- *id009
+- *id010
+- *id011
+"t-dodge-caesar":
+- *id022
+- *id023
+- *id024
+- *id025
+- *id026
+"t-dodge-lighter":
+- *id004
+- *id005
+- *id006
+"t-dodge-lucy":
+- *id001
+- *id002
+- *id003
+"t-quick-assist":
+- "op_name": "按键-快速支援"
+- "op_name": "设置状态"
+  "state": "自定义-快速支援换人"
+- "op_name": "清除状态"
+  "state_list":
+  - "自定义-招架支援"
+  - "自定义-连携技换人"
+  - "自定义-下场"
+  - "自定义-动作不打断"
+"t-quick-assist-lucy":
+- *id027
+- *id028
+- *id029
+"t-switch-caesar":
+- *id030
+- *id031
+- *id032
+"t-switch-lighter":
+- *id033
+- *id034
+- *id035
+"t-switch-lucy":
+- *id036
+- *id037
+- *id038
+"team_list":
+- - "莱特"
+  - "凯撒"
+  - "露西"
+"thanks": ""
+"version": "1.0"

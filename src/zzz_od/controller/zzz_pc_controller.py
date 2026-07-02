@@ -92,6 +92,10 @@ class ZPcController(PcControllerBase):
         """切换角色-上一个"""
         self._action_btn(self.action_keys['switch_prev'], press, press_time, release)
 
+    def switch_backup(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
+        """切换后援"""
+        self._action_btn(self.action_keys['switch_backup'], press, press_time, release)
+
     def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """普通攻击"""
         self._action_btn(self.action_keys['normal_attack'], press, press_time, release)

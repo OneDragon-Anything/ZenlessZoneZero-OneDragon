@@ -1,5 +1,6 @@
 screen_id: shiyu_defense
 screen_name: 式舆防卫战
+app_id: shiyu_defense
 pc_alt: false
 area_list:
 - area_name: 节点区域
@@ -327,10 +328,10 @@ area_list:
 - area_name: 领取奖励-界面
   id_mark: false
   pc_rect:
-  - 442
-  - 220
-  - 678
-  - 257
+  - 426
+  - 207
+  - 690
+  - 271
   text: 剧变节点奖励领取
   lcs_percent: 0.5
   template_sub_dir: ''

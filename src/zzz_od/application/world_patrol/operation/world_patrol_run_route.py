@@ -25,10 +25,34 @@ from zzz_od.application.world_patrol.world_patrol_route import (
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
 from zzz_od.operation.zzz_operation import ZOperation
 
 
 class WorldPatrolRunRoute(ZOperation):
+    """
+    执行锄大地的一条路线。
+
+    整体流程：
+    1. 从大世界开始，按路线配置传送到起点，并记录当前路线起点。
+    2. 按路线指令循环移动：裁剪小地图、计算当前坐标、过滤异常跳变和方向偏离的候选、
+       折算并下发转向，到达途径点后点刹校准并继续前进，到达终点推进指令下标。
+    3. 小地图被战斗遮挡时进入自动战斗；战斗结束后切回行走位，校准视角并继续路线。
+    4. 全部指令完成后交回上层应用，由上层记录完成路线或处理失败重试。
+
+    异常处理：
+    - 坐标计算失败：分时间档处理，先停盲走，再尝试脱困，仍未恢复则返回路线重试状态。
+    - 有坐标但原地卡住：优先回溯到上一个路线点；回溯不可用或超时后再执行脱困动作。
+    - 重试同一路线时若再次卡住：可跳过该路线、不再脱困（由用户配置决定），避免在同一处反复重启。
+    - 战斗阶段若既没有战斗信号、交互按键提示，也没有小地图，则累积为界面消失卡死并交给上层处理。
+
+    定位与转向：
+    - 候选过滤先按本轮合理位移上限拒绝异常跳变；长时间 no-pos 后该上限会随搜索窗口放宽，
+      再检查移动方向是否落在上一帧朝向加上一次转向指令的允许范围内。
+    - 转向补偿器只用上一轮的转向样本校准本轮下发幅度；战斗打断后清理样本，不重置学到的比例。
+    """
+
+    STATUS_UI_DISAPPEARED: str = '疑似界面消失卡死'
 
     def __init__(
         self,
@@ -37,73 +61,6 @@ class WorldPatrolRunRoute(ZOperation):
         start_idx: int = 0,  # 从第几个指令开始执行（断点续传用）
         is_restarted: bool = False,  # 是否重启模式（影响容错策略）
     ):
-        """
-        这是一个专门用于在游戏世界中自动执行巡逻路线的核心组件。
-        它能够让角色按照预设的路径自动移动、战斗，并处理各种突发情况。
-
-        核心场景串联：
-        1. 正常移动流程：坐标更新 -> 角度计算 -> 转向移动 -> 距离检查 -> 循环执行
-        2. 战斗处理流程：检测战斗 -> 停止移动 -> 自动战斗 -> 战斗结束 -> 恢复移动
-        3. 异常处理流程：坐标失败/卡住检测 -> 智能回溯 -> 脱困动作 -> 重启判定
-        4. 自适应优化：转向灵敏度校准 -> 角色切换优化 -> 移动策略调整
-
-        详细执行逻辑：
-
-        阶段一：坐标定位与状态更新
-        - 基于上次位置估算搜索范围（移动距离+小地图尺寸），在大地图中匹配小地图获取精确坐标
-        - 搜索范围估算：移动时间×50单位/秒+保守估计1秒，确保覆盖可能的移动范围
-        - 处理坐标计算失败：2秒后停止移动，4秒后脱困（不计数），20秒后重启路线
-        - 检测位置卡住：同一位置（距离<到达距离阈值）停留2秒以上触发智能回溯或脱困机制
-        - 维护各种计时器：无坐标开始时间、卡住开始时间、回溯截止时间等
-        - 每轮调整视角（垂直距离300），帮助恢复坐标匹配
-
-        阶段二：智能回溯机制（优先级高于脱困）
-        - 卡住时优先尝试回溯到上一个回溯目标点或路线起点
-        - 回溯超时：15秒，避免回溯到相同位置造成循环
-        - 回溯判定：通过坐标值精确比较（x和y都相等）避免重复回溯同一点
-        - 回溯成功后重置脱困尝试次数，回溯失败（不可用/超时）则转入脱困流程
-        - 状态机管理：回溯激活标志控制状态，回溯目标点记录位置
-        - 距离判定阈值：到达距离阈值，用于判断是否到达回溯点
-        - 回溯进行中输出debug日志：当前距离和剩余时间
-
-        阶段三：自适应转向与移动
-        - 计算当前位置到目标点的角度差，结合视角信息执行精确转向
-        - 自适应灵敏度校准：对比上次角度和上次转向指令，动态调整转向灵敏度
-        - 灵敏度初始值：1.0，范围：0.5-2.0，单次调整幅度：±0.02，防止突变
-        - 除零保护：只有当上次转向指令绝对值>1e-6时才进行校准
-        - 转向策略：角度偏差>2度时点刹转向，≤2度时移动中微调
-        - 移动控制：角度校准后开始前进，途径点到达时点刹0.006秒校准
-        - 无角度信息时：重置自适应状态，直接向前移动
-
-        阶段四：脱困动作执行
-        - 脱困前先切换角色（利用不同体型/站位尝试摆脱卡点）
-        - 脱困方向序列（脱困移动方向，共6种，循环使用）：
-          方向0：左移1秒 | 方向1：右移1秒
-          方向2：后退→左移→前进 各1秒 | 方向3：后退→右移→前进 各1秒
-          方向4：后退→左移→前进 各2秒 | 方向5：后退→右移→前进 各2秒
-        - 有坐标脱困：脱困尝试次数累加，连续6次失败后重启路线，成功到达目标点后重置
-        - 无坐标脱困：不计数，依赖20秒时间上限
-        - 脱困日志：有坐标显示"脱困尝试 X/6"，无坐标显示"本次脱困方向 Y"
-        - 重启路线标记：重启标志为真时再次卡住直接跳过（同一个地方跌倒了，及时止损，避免高血压）
-
-        阶段五：战斗状态处理
-        - 检测小地图消失（播放遮罩未找到）进入战斗，停止移动并初始化自动战斗系统
-        - 防御性检查：如果自动战斗操作未初始化则执行兜底初始化（正常由世界巡逻应用完成）
-        - 战斗循环：持续检查战斗状态和小地图（间隔1秒），等待战斗结束信号
-        - 战斗结束判定：战斗系统内部判定（最后检查结束结果）或小地图重新出现
-        - 确认战斗结束后：停止自动战斗→等待5秒让画面稳定→切换最佳行走角色→校准视角
-        - 视角校准：垂直距离300，为继续执行路线做准备
-        - 备注：等待5秒是因为某些角色（如仪玄）战斗结束双大动画较长
-
-        阶段六：目标到达判定
-        - 使用统一的距离阈值（到达距离阈值）判定是否到达目标点
-        - 到达途径点时：点刹0.006秒校准→继续向前移动
-        - 到达最终目标时：当前索引+1→重置脱困尝试次数→返回成功状态
-        - 更新指令索引推进路线执行，所有指令完成时返回成功状态
-        - 暂停恢复处理：战斗中标记控制暂停/恢复行为
-        - 主循环等待时间：0.3秒，避免转向后方向判断不准确
-        - 操作结束清理：无论成功失败都停止移动，释放按键
-        """
         ZOperation.__init__(self, ctx, op_name=gt('运行路线'))
 
         self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
@@ -136,9 +93,10 @@ class WorldPatrolRunRoute(ZOperation):
         # 自动战斗状态变量
         self.in_battle: bool = False  # 是否在战斗中
         self.last_check_battle_time: float = 0  # 上一次检测是否还在战斗的时间
+        self.ui_disappear_start_time: float = 0  # 疑似界面消失的开始时间
 
         # 自适应转向算法状态变量
-        self.sensitivity: float = 1.0  # 转向灵敏度
+        self.turn_compensator = AngleTurnCompensator(self.ctx.controller)
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
 
@@ -171,6 +129,9 @@ class WorldPatrolRunRoute(ZOperation):
             # 起点坐标缺失，视为配置错误
             log.error('未找到初始坐标，请检查路线配置')
             return self.round_fail(status='路线或开始下标有误')
+        # 静止切人会让角色向前冲一小段，先切完最佳行走位，再记录路线起点
+        self.ctx.controller.stop_moving_forward()
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.current_pos = start_pos
         self.route_start_pos = start_pos  # 记录起点
         self.ctx.controller.turn_vertical_by_distance(300)
@@ -233,7 +194,7 @@ class WorldPatrolRunRoute(ZOperation):
             if is_next_move:
                 # 到达途径点后，点刹，用于校准
                 self.ctx.controller.stop_moving_forward()
-                time.sleep(0.006)
+                time.sleep(0.01)
                 self.ctx.controller.start_moving_forward()
             # 到达目标点后，重置脱困计数
             if self.pos_stuck_attempts > 0:
@@ -275,8 +236,7 @@ class WorldPatrolRunRoute(ZOperation):
             mini_map,
             possible_rect,
         )
-        if not self._is_next_pos_valid(next_pos):
-            log.info(f'计算坐标偏移较大 舍弃 {next_pos}')
+        if next_pos is not None and not self._is_next_pos_valid(next_pos, move_distance):
             next_pos = None
 
         if next_pos is None:
@@ -310,26 +270,25 @@ class WorldPatrolRunRoute(ZOperation):
             self.current_pos = next_pos
             return None
 
-    def _is_next_pos_valid(self, next_pos: Point | None) -> bool:
-        if next_pos is None:
-            return False
+    def _is_next_pos_valid(self, next_pos: Point, move_distance: float) -> bool:
         """
         判断匹配的下一个坐标是否合法
         1. 距离检查：防止基准点错误导致的大幅跳跃
         2. 角度检查：根据上一坐标、朝向、转向等判断方向是否合理
         Args:
             next_pos: 匹配的坐标
+            move_distance: 本帧允许的合理位移上限
         Returns:
             bool: True 表示坐标合法，False 表示坐标非法
         """
-        # 距离检查：如果距离过大（超过合理移动范围），直接拒绝
-        # 假设最大移动速度 50 单位/秒，0.3秒一轮，最大移动 15 单位
-        # 加上容错，设置为 100 单位（约 2 秒的移动距离）
-        distance = cal_utils.distance_between(self.current_pos, next_pos)
-        if distance > 100:
+        pos_distance = cal_utils.distance_between(self.current_pos, next_pos)
+        if pos_distance > move_distance:
+            log.info(f'坐标跳变过大 舍弃 {next_pos} 距离 {pos_distance:.1f} 允许 {move_distance:.1f}')
             return False
-
-        return self._is_next_pos_in_angle_range(next_pos)
+        if not self._is_next_pos_in_angle_range(next_pos):
+            log.info(f'坐标方向偏离 舍弃 {next_pos}')
+            return False
+        return True
 
     def _is_next_pos_in_angle_range(self, next_pos: Point) -> bool:
         """
@@ -428,45 +387,27 @@ class WorldPatrolRunRoute(ZOperation):
         target_angle = cal_utils.calculate_direction_angle(self.current_pos, target_pos)
         angle_diff = cal_utils.angle_delta(current_angle, target_angle)
 
-        # --- 自适应转向算法 ---
-        # 1. 校准灵敏度: 通过对比上一次的指令和实际的视角变化，动态微调灵敏度
         if self.last_angle is not None and self.last_angle_diff_command is not None:
-            # 计算实际上视角变化了多少度
-            actual_angle_change = cal_utils.angle_delta(self.last_angle, current_angle)
-            # 防止除零错误
-            if abs(self.last_angle_diff_command) > 1e-6:
-                # 根据“实际变化/指令变化”计算出理论上最匹配的灵敏度
-                theoretical_sensitivity = actual_angle_change / self.last_angle_diff_command
-                # 计算理论灵敏度与当前灵敏度的差距
-                sensitivity_change = theoretical_sensitivity - self.sensitivity
-                # 限制单次调整幅度，防止突变，让校准过程更平滑
-                clipped_change = max(-0.02, min(sensitivity_change, 0.02))
-                self.sensitivity += clipped_change
-                # 限制灵敏度在合理范围内，防止累积偏离
-                self.sensitivity = max(0.5, min(self.sensitivity, 2.0))
-                # 可选：打印调试信息
-                # log.debug(f"校准: 理论灵敏度={theoretical_sensitivity:.4f}, 新灵敏度={self.sensitivity:.4f}")
+            # 用上一轮转向前后的朝向变化，更新本次运行期的转向补偿比例
+            self.turn_compensator.learn(self.last_angle, self.last_angle_diff_command, current_angle)
 
-        # 2. 计算并执行转向
-        calibrated_angle_diff = angle_diff * self.sensitivity
-        # 判断是否需要停下转向的角度阈值
-        need_turn = abs(angle_diff) > 2.0
-
-        if need_turn:
-            # 角度偏差大，点刹，再转向
+        effective_angle_diff = angle_diff * self.turn_compensator.scale
+        if abs(effective_angle_diff) > 90:
+            # 大角度先停下，避免移动中急转
             self.ctx.controller.stop_moving_forward()
-            # 执行转向
-            self.ctx.controller.turn_by_angle_diff(calibrated_angle_diff)
-        else:
-            # 角度偏差小，直接在移动中微调
-            self.ctx.controller.turn_by_angle_diff(calibrated_angle_diff)
 
-        # 3. 记录本次数据
+        if abs(effective_angle_diff) < 2:
+            # 小角度不转，避免在目标方向附近左右晃动
+            calibrated_angle_diff = 0
+        else:
+            # 实际单轮下发最多 45 度
+            calibrated_angle_diff = self.turn_compensator.turn(angle_diff, max_abs_angle_diff=45)
+
+        # 记录本次数据
         self.last_angle = current_angle
         self.last_angle_diff_command = calibrated_angle_diff
-        # --- 算法结束 ---
 
-        # 4. 开始移动
+        # 开始移动
         self.ctx.controller.start_moving_forward()
 
     def _backtrack_step(self, next_pos: Point, emit_log: bool = False) -> str:
@@ -570,6 +511,7 @@ class WorldPatrolRunRoute(ZOperation):
             self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
 
         self.in_battle = True
+        self.ui_disappear_start_time = 0
         self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
@@ -587,17 +529,41 @@ class WorldPatrolRunRoute(ZOperation):
         # 每秒检测1次是否退出了战斗
         if self.last_screenshot_time - self.last_check_battle_time > 1:
             self.last_check_battle_time = self.last_screenshot_time
-            if not self.ctx.auto_battle_context.last_check_in_battle:
-                # 当前不在战斗画面(没有攻击按钮) 但有可能是战斗结束靠近了可交互物 变成了交互按键
-                result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-                if result.is_success:
-                    return self.round_success(status=result.status)
-            else:
+            if self.ctx.auto_battle_context.last_check_in_battle:
+                self._reset_ui_disappear_stuck()
                 mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
                 if mini_map.play_mask_found:
                     return self.round_success(status='发现地图')
+            else:
+                # 当前不在战斗画面(没有攻击按钮) 但有可能是战斗结束靠近了可交互物 变成了交互按键
+                result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+                if result.is_success:
+                    self._reset_ui_disappear_stuck()
+                    return self.round_success(status=result.status)
+
+                mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+                if mini_map.play_mask_found:
+                    self._reset_ui_disappear_stuck()
+                    return self.round_success(status='发现地图')
+
+                result = self._check_ui_disappear_stuck()
+                if result is not None:
+                    return result
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
+
+    def _reset_ui_disappear_stuck(self) -> None:
+        self.ui_disappear_start_time = 0
+
+    def _check_ui_disappear_stuck(self) -> OperationRoundResult | None:
+        if self.ui_disappear_start_time == 0:
+            self.ui_disappear_start_time = self.last_screenshot_time
+
+        stuck_seconds = self.last_screenshot_time - self.ui_disappear_start_time
+        if stuck_seconds >= self.config.ui_disappear_seconds:
+            return self.round_fail(status=self.STATUS_UI_DISAPPEARED)
+
+        return self.round_wait(status=f'疑似界面消失 持续 {stuck_seconds:.2f} 秒')
 
     @node_from(from_name='自动战斗')
     @operation_node(name='自动战斗结束')
@@ -610,10 +576,9 @@ class WorldPatrolRunRoute(ZOperation):
             auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
 
-        # 重置自适应转向状态（战斗后切换角色，转向特性可能不同）
+        # 战斗会打断路线转向样本，但不影响已学到的转向补偿比例
         self.last_angle = None
         self.last_angle_diff_command = None
-        self.sensitivity = 1.0
 
         return self.round_success()
 

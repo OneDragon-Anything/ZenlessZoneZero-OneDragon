@@ -169,6 +169,7 @@ class ExpertChallenge(ZOperation):
         op = ChooseNextOrFinishAfterBattle(
             self.ctx,
             self.plan.plan_times > self.plan.run_times,
+            is_agent_plan=self.plan.is_agent_plan,
         )
         return self.round_by_op_result(op.execute())
 

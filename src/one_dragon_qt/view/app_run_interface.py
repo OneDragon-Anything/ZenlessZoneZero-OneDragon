@@ -6,7 +6,6 @@ from qfluentwidgets import (
     FluentIconBase,
     PrimaryPushButton,
     PushButton,
-    SingleDirectionScrollArea,
     SubtitleLabel,
 )
 
@@ -22,6 +21,7 @@ from one_dragon.base.operation.one_dragon_context import (
 )
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -235,16 +235,14 @@ class SplitAppRunInterface(AppRunInterface):
         self._init = True
 
         outer_layout = QHBoxLayout(self)
-        outer_layout.setContentsMargins(11, 0, 11, 0)
+        outer_layout.setContentsMargins(11, 11, 11, 0)
         outer_layout.setSpacing(10)
 
         # 左侧：滚动区域（无底边距）
-        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        scroll_area = FastScrollArea(orient=Qt.Orientation.Vertical)
         left_widget = self.get_left_widget()
         left_widget.setStyleSheet("QWidget { background-color: transparent; }")
         scroll_area.setWidget(left_widget)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
         outer_layout.addWidget(scroll_area, stretch=self._left_stretch)
 
         # 右侧：运行控件（由 AppRunInterface.get_content_widget 创建）
