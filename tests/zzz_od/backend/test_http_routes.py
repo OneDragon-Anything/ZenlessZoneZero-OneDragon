@@ -69,12 +69,41 @@ async def test_handle_game_analyze_ok() -> None:
 
 @pytest.mark.asyncio
 async def test_handle_game_enter_ok() -> None:
-    """handle_game_enter 应以 200 返回 enter_game 的结果字符串。"""
+    """handle_game_enter 应委托 backend.start_run，返回 started/result JSON。
+
+    block=true（默认）且 start_run 返回 (True, 已完成 Future) 时，
+    响应体应包含 result 文本（success → 「成功打开并进入绝区零游戏」）。
+    """
+    from concurrent.futures import Future
+    from dataclasses import dataclass
+
+    from zzz_od.backend.schemas import RunStatusResult
+
+    @dataclass
+    class _FakeRequest:
+        query_params: dict
+
+        async def json(self) -> dict:
+            return {}
+
+    @dataclass
+    class _OpResult:
+        success: bool
+        status: str = ""
+
+    fut: Future = Future()
+    fut.set_result(_OpResult(success=True))
     backend = MagicMock()
-    backend.enter_game.return_value = "成功打开并进入绝区零游戏"
-    resp = await handle_game_enter(backend)
+    backend.start_run.return_value = (True, fut)
+    backend.query_status.return_value = RunStatusResult(
+        state="running", source="http", app="OpenAndEnterGame",
+        started_at="2026-07-02T00:00:00", duration_seconds=1.0,
+    )
+    resp = await handle_game_enter(backend, _FakeRequest({}))
     assert resp.status_code == 200
-    assert "成功" in resp.body.decode("utf-8")
+    data = json.loads(resp.body.decode("utf-8"))
+    assert data["result"] == "成功打开并进入绝区零游戏"
+    backend.start_run.assert_called_once()
 
 
 def test_register_http_routes_adds_custom_routes() -> None:

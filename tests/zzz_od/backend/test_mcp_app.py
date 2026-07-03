@@ -18,7 +18,8 @@ def _mcp_with_backend() -> tuple[FastMCP, MagicMock]:
     """构造一个 MCP 服务器与对应的伪造 backend。
 
     Returns:
-        ``(mcp, backend)`` 元组：mcp 为注册了 4 个工具的 FastMCP 实例，
+        ``(mcp, backend)`` 元组：mcp 为注册了 6 个工具的 FastMCP 实例
+        （check/capture/analyze + open_and_enter_game/get_run_status/stop_run），
         backend 为 MagicMock，可在测试中配置其方法返回值或副作用。
     """
     backend = MagicMock()
@@ -26,8 +27,8 @@ def _mcp_with_backend() -> tuple[FastMCP, MagicMock]:
     return mcp, backend
 
 
-def test_registers_four_tools() -> None:
-    """create_mcp_server 应注册 4 个 game 工具。"""
+def test_registers_all_tools() -> None:
+    """create_mcp_server 应注册 6 个 game 工具。"""
     mcp, _ = _mcp_with_backend()
     names = set(mcp._tool_manager._tools.keys())
     assert {
@@ -35,6 +36,8 @@ def test_registers_four_tools() -> None:
         "capture_game_screen",
         "analyze_screen",
         "open_and_enter_game",
+        "get_run_status",
+        "stop_run",
     } <= names
 
 

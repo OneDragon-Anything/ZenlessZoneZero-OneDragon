@@ -62,7 +62,7 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 ## MCP
 
 - **推荐**：[context7](https://github.com/upstash/context7) — 查询库文档；已在本项目 `.claude/settings.json` 启用（Claude Code 场景）。
-- **项目自有 MCP（4 个感知/操作 tool 已实现，已验证）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001），4 个 tool：`check_game_window` / `capture_game_screen` / `analyze_screen` / `open_and_enter_game`。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
+- **项目自有 MCP（6 个感知/操作 tool 已实现，已验证）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏 + 运行态查/停）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001），6 个 tool：`check_game_window` / `capture_game_screen` / `analyze_screen` / `open_and_enter_game` / `get_run_status` / `stop_run`。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
 
 ## LSP
 

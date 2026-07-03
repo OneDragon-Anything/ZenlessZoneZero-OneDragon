@@ -115,27 +115,48 @@ def test_analyze_returns_error_when_screenshot_none() -> None:
     assert "截图失败" in (result.error or "")
 
 
-def test_enter_game_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    ctx = MagicMock()
-    ctx.ready_for_application = True
-    ctx.run_context.start_running.return_value = True
-    ctx.current_instance_idx = 0
-    backend = ZzzBackendContext(ctx)
+def test_start_run_delegates_to_run_slot() -> None:
+    """start_run 应委托 run_slot._start_run，返回 (ok, future) 元组。
 
-    fake_op = MagicMock()
-    fake_op.execute.return_value = MagicMock(success=True, status="OK")
-    import zzz_od.operation.enter_game.open_and_enter_game as eg_mod
-    monkeypatch.setattr(eg_mod, "OpenAndEnterGame", lambda c: fake_op)
+    覆盖旧的 enter_game 用例：不再有同步 enter_game 方法，运行由
+    run_slot 异步派发；此处直接 mock run_slot，验证透传与返回结构。
+    """
+    from concurrent.futures import Future
 
-    msg = backend.enter_game()
-    assert "成功" in msg
-    ctx.run_context.stop_running.assert_called_once()
+    backend = _backend(ready=True)
+    fut: Future = Future()
+    fut.set_result(object())
+    backend.run_slot = MagicMock()
+    backend.run_slot._start_run.return_value = (True, fut)
+
+    def _factory(_ctx: object) -> object:
+        return object()
+
+    ok, future = backend.start_run("mcp", _factory)
+    assert ok is True
+    assert future is fut
+    backend.run_slot._start_run.assert_called_once_with("mcp", _factory)
 
 
-def test_enter_game_start_running_failed() -> None:
-    ctx = MagicMock()
-    ctx.ready_for_application = True
-    ctx.run_context.start_running.return_value = False
-    backend = ZzzBackendContext(ctx)
-    with pytest.raises(BackendNotReadyError):
-        backend.enter_game()
+def test_query_status_delegates_to_run_slot() -> None:
+    """query_status 应委托 run_slot._query_status 返回 RunStatusResult。"""
+    from zzz_od.backend.schemas import RunStatusResult
+
+    expected = RunStatusResult(state="idle", source=None, app=None,
+                               started_at=None, duration_seconds=None)
+    backend = _backend(ready=True)
+    backend.run_slot = MagicMock()
+    backend.run_slot._query_status.return_value = expected
+
+    assert backend.query_status() is expected
+    backend.run_slot._query_status.assert_called_once()
+
+
+def test_stop_delegates_to_run_slot() -> None:
+    """stop 应封装 run_slot._stop，无运行时返回 {stopped: False, error}。"""
+    backend = _backend(ready=True)
+    backend.run_slot = MagicMock()
+    backend.run_slot._stop.return_value = (False, None)
+
+    assert backend.stop() == {"stopped": False, "error": "当前无运行"}
+    backend.run_slot._stop.assert_called_once()
