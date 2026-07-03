@@ -23,6 +23,7 @@ from one_dragon.base.operation.operation_base import OperationResult
 from zzz_od.backend.schemas import (
     AnalyzeScreenResult,
     OcrText,
+    RunStatusResult,
     WindowStatus,
 )
 from zzz_od.context.zzz_context import ZContext
@@ -139,6 +140,38 @@ class RunSlot:
                 self.current_op = None
             run_context.stop_running()
         return result
+
+    def _query_status(self) -> RunStatusResult:
+        """查询运行状态。判据用固化 terminal_state(单一事实源),不读 run_context。
+
+        终态:返固化 terminal_state + last_status/failed_node。
+        运行中(started_at 非 None 且 terminal_state None):统一 RUNNING,读 current_op 的 current_node/retry。
+        空闲(从未运行,started_at None):返 idle。
+        """
+        with self._lock:
+            if self.terminal_state is not None:
+                duration = (self.finished_at - self.started_at) if (self.finished_at and self.started_at) else None
+                return RunStatusResult(
+                    state=self.terminal_state.value,
+                    source=self.source, app=self.app,
+                    started_at=_iso(self.started_at), duration_seconds=duration,
+                    last_status=self.last_status, failed_node=self.failed_node,
+                )
+            source = self.source
+            app = self.app
+            started_at = self.started_at
+            op = self.current_op
+            if started_at is None:
+                return RunStatusResult(state=RunState.IDLE.value, source=source)
+        current_node = op._current_node.cn if op is not None and op._current_node is not None else None
+        retry_count = op.node_retry_times if op is not None else None
+        duration = (time.time() - started_at) if started_at else None
+        return RunStatusResult(
+            state=RunState.RUNNING.value,
+            source=source, app=app,
+            started_at=_iso(started_at), duration_seconds=duration,
+            current_node=current_node, retry_count=retry_count,
+        )
 
 
 class BackendNotReadyError(Exception):
