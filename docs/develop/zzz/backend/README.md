@@ -28,6 +28,7 @@ uv run --env-file .env python -m zzz_od.backend.entry.server --port 23001
 
 | 文档 | 内容 |
 |---|---|
+| [design-principles.md](design-principles.md) | **设计纲领**：MCP tool 的能力边界与设计原则（agent 能力视角） |
 | [architecture.md](architecture.md) | `ZzzBackendContext` 架构、生命周期、方法、资源约束、进程模型 |
 | [mcp.md](mcp.md) | MCP 适配器（tool、传输、注册） |
 | [http.md](http.md) | HTTP `/game/*` 适配器 |

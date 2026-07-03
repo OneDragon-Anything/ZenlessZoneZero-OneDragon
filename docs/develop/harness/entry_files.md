@@ -43,7 +43,7 @@
 - 跨工具单源(硬链接)成本:git 不保留 hardlink(需脚本重建)+ 各工具 frontmatter 字段不同(Claude `paths` / Cursor·Trae `globs`)+ Qoder 不用文件 frontmatter + Codex/Pi/OpenCode 无 path-scoped——覆盖不全、运维重。
 - 补充:rules 文件**不支持 `@import`**(只 CLAUDE.md 支持);rules 唯一引用机制是 hardlink/symlink,跨工具复用受限。
 
-**现状**:特定任务规范(如 GUI)就放**单文件**(AGENTS.md 为源 / CLAUDE.md 正文),不拆 path-scoped。
+**现状**:特定任务规范(如 GUI)就放**单文件**(AGENTS.md 为源 / CLAUDE.md 正文),不拆 path-scoped。这些规范本质是**非 always-on**(只关系部分代码库),理想落 path-scoped rule(②档);本项目不用 path-scoped,故需在 always-on(AGENTS.md)**提及其存在并指向 docs**,让智能体按需得知。提及形式按内容量:极少 → 直接进正文;较多 → 指针(一行 + 链接)。
 
 **重启条件**:将来按-scope 规范变多(测试 / 文档 / MCP 等)且 always-on context 紧张时,再评估。
 
