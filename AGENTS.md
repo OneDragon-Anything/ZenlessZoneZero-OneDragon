@@ -87,5 +87,6 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 只在当前任务确实需要时继续看这些文档：
 - 框架与模块架构：`docs/develop/one_dragon/`、`docs/develop/one_dragon/modules/`
 - 游戏业务与专项设计：`docs/develop/zzz/`
+- 游戏知识库（给智能体理解游戏）：`docs/game/`（画面描述 `screens/` + 玩法 `gameplay/`）
 - 后端服务 / MCP 对外能力：`docs/develop/zzz/backend/`（入口 README；开发 MCP tool 前先看 design-principles）
 - 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`
