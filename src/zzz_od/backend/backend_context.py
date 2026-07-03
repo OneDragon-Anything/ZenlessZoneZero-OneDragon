@@ -304,7 +304,10 @@ class ZzzBackendContext:
         if image is None:
             return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error='截图失败')
         try:
-            ocr_result_list = self._ctx.ocr_service.get_ocr_result_list(image=image)
+            # crop_first=False:与下方 find_screen_matches 内 find_area_with_detail(color_range=None)复用
+            # 同一份全图 OCR 缓存(cache key 含 crop_first;True/False 不复用会触发两次全图 OCR)。
+            # rect=None 时 crop_first 不影响 OCR 结果(都全图),只改 cache key。
+            ocr_result_list = self._ctx.ocr_service.get_ocr_result_list(image=image, crop_first=False)
             ocr_texts = [
                 OcrText(text=r.data, x=int(r.x), y=int(r.y), width=int(r.w), height=int(r.h))
                 for r in ocr_result_list
