@@ -2,16 +2,15 @@
 
 本模块在后端 game 切片（``ZzzBackendContext``）之上架设一层传输适配：
 - ``create_mcp_server`` 创建一个 ``FastMCP`` 实例，并通过闭包将 backend 注入到
-  4 个工具函数中，使工具调用最终落到 backend 的 game 切片方法上。
+  工具函数中，使工具调用最终落到 backend 的 game 切片方法上。
 - 工具返回值尽量保持「可直接读」的字符串或传输无关结构，便于上层（CLI/Agent）消费。
 
 注意：
     - 同步工具（check/capture/analyze）直接调用 backend 的同步方法；
-    - 耗时较长的 ``open_and_enter_game`` 为 async 工具，通过 ``asyncio.to_thread``
-      把 backend 的同步阻塞调用放到线程池，避免阻塞 MCP 事件循环。
+    - ``open_and_enter_game`` 当前为临时占位，Task 6 将改造为基于
+      ``backend.start_run`` 的异步适配。
 """
 
-import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -48,10 +47,11 @@ def _save_screenshot(image: 'MatLike') -> str:
 
 
 def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastMCP:
-    """创建 MCP 服务器并注册 4 个 game 工具。
+    """创建 MCP 服务器并注册 game 工具。
 
     通过闭包将 ``backend`` 注入到各工具函数中，使工具调用最终落到 backend 的
-    game 切片方法（``check_window``/``capture``/``analyze``/``enter_game``）。
+    game 切片方法（``check_window``/``capture``/``analyze``）；``open_and_enter_game``
+    当前为临时占位（Task 6 改造）。
 
     Args:
         backend: 已就绪的 ``ZzzBackendContext``，提供 game 切片能力。
@@ -117,15 +117,12 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     async def open_and_enter_game() -> str:
         """打开并进入绝区零游戏。
 
-        这是一个长阻塞流程，需要本地交互式桌面会话；通过线程池调用 backend
-        的同步 ``enter_game``，避免阻塞 MCP 事件循环。
+        这是一个长阻塞流程，需要本地交互式桌面会话。
 
         Returns:
             执行结果描述字符串；backend 抛错时返回 ``错误: <原因>``。
         """
-        try:
-            return await asyncio.to_thread(backend.enter_game)
-        except Exception as e:  # noqa: BLE001 工具层统一兜底
-            return f"错误: {e}"
+        # 临时占位:backend.enter_game 已移除,Task 6 将改为基于 start_run 的异步适配。
+        raise RuntimeError('Task 6 改造中')
 
     return mcp

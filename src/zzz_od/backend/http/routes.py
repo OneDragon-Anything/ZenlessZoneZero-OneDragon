@@ -101,20 +101,18 @@ async def handle_game_analyze(backend: ZzzBackendContext, _request: Request | No
 async def handle_game_enter(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
     """处理 ``POST /game/enter``：打开并进入绝区零游戏。
 
-    长阻塞流程，通过线程池调用 backend 的同步 ``enter_game``，避免阻塞事件循环。
+    长阻塞流程。当前为临时占位：backend 的 ``enter_game`` 已移除，
+    Task 7 将改造为基于 ``backend.start_run`` 的异步端点。
 
     Args:
         backend: 提供游戏切片能力的 ``ZzzBackendContext``。
         _request: Starlette 请求对象（本处理器不使用）。
 
-    Returns:
-        200 + ``{"result": msg}``；backend 未就绪时返回 503。
+    Raises:
+        RuntimeError: 临时占位，Task 7 替换为基于 ``start_run`` 的实现。
     """
-    try:
-        msg = await asyncio.to_thread(backend.enter_game)
-    except BackendNotReadyError as e:
-        return _err(str(e))
-    return JSONResponse({"result": msg})
+    # 临时占位:backend.enter_game 已移除,Task 7 将改为基于 start_run 的异步适配。
+    raise RuntimeError('Task 7 改造中')
 
 
 def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:

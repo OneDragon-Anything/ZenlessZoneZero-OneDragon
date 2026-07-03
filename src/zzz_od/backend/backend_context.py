@@ -5,9 +5,10 @@
   传输协议（HTTP/IPC 等）无关的感知/操作方法。
 - ``BackendNotReadyError`` 在前置校验失败（ZContext 尚未就绪）时抛出。
 
-game 切片方法（``check_window``/``capture``/``analyze``/``enter_game``）从
+game 切片方法（``check_window``/``capture``/``analyze``）从
 ``ZContext`` 的控制器、OCR 服务、运行上下文中读取数据，并以 ``zzz_od.backend.schemas``
-中的传输无关结构返回。
+中的传输无关结构返回。运行类操作通过 ``start_run``/``query_status``/``stop``
+委托给 ``run_slot``(RunSlot)。
 """
 
 import asyncio
@@ -308,33 +309,41 @@ class ZzzBackendContext:
         ]
         return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, error=None)
 
-    def enter_game(self) -> str:
-        """打开并进入游戏。
+    def start_run(self, source: str, op_factory: 'Callable[[ZContext], Operation]') -> tuple[bool, Future | None]:
+        """触发运行(供 MCP/HTTP 适配器调用,返回 future 供 block=True 时 await)。
 
-        通过 ``OpenAndEnterGame`` 操作打开并进入绝区零游戏。这是一个长阻塞流程，
-        需要交互式桌面会话。调用前会先启动运行上下文，结束后无论成功与否都会停止运行上下文。
+        单跑道委托 ``run_slot._start_run``:已有运行在进行时返回 ``ok=False``，
+        适配器据此返回并发拒绝；其余由 RunSlot 在后台线程内执行 operation。
+
+        Args:
+            source: 触发方标识，如 ``"mcp"``/``"http"``。
+            op_factory: operation 构造器，由适配器提供。
 
         Returns:
-            执行结果描述字符串：成功时包含「成功」，失败时附带操作状态。
-
-        Raises:
-            BackendNotReadyError: ``ZContext`` 未就绪，或运行上下文启动失败时抛出。
+            ``(ok, future)``：``ok=False`` 表示已有运行在进行(``future=None``)；
+            ``ok=True`` 表示已启动，``future`` 可供阻塞 await 取结果。
         """
-        self._ensure_ready()
-        from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
+        return self.run_slot._start_run(source, op_factory)
 
-        run_context = self._ctx.run_context
-        if not run_context.start_running():
-            raise BackendNotReadyError('无法启动运行上下文')
-        try:
-            run_context.current_instance_idx = self._ctx.current_instance_idx
-            op = OpenAndEnterGame(self._ctx)
-            result = op.execute()
-            if result.success:
-                return '成功打开并进入绝区零游戏'
-            return f'打开游戏失败: {result.status}'
-        finally:
-            run_context.stop_running()
+    def query_status(self) -> RunStatusResult:
+        """查询运行状态(委托 ``run_slot._query_status``)。
+
+        Returns:
+            当前运行状态的传输无关结构。
+        """
+        return self.run_slot._query_status()
+
+    def stop(self) -> dict:
+        """停止当前运行(委托 ``run_slot._stop``)。
+
+        Returns:
+            ``{"stopped": True, "source": <触发方>}`` 成功发出停止信号；
+            ``{"stopped": False, "error": "当前无运行"}`` 无运行可停。
+        """
+        stopped, source = self.run_slot._stop()
+        if not stopped:
+            return {'stopped': False, 'error': '当前无运行'}
+        return {'stopped': True, 'source': source}
 
     async def start(self) -> None:
         """启动服务：在线程池中初始化 ``ZContext``，不阻塞事件循环。
