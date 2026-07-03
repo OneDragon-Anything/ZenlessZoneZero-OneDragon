@@ -60,3 +60,29 @@ class WindowStatus:
     y: int | None = None
     width: int | None = None
     height: int | None = None
+
+
+@dataclass
+class RunStatusResult:
+    """运行状态查询结果(MCP/HTTP 共享,传输无关)。
+
+    Attributes:
+        state: idle/running/success/failed/stopped。
+        source: 触发方 "mcp"/"http";终态后保留,反映最近一次来源。
+        app: operation 类名(如 "OpenAndEnterGame");终态后保留。
+        started_at: ISO 时间戳,可作 tail 日志锚点;不可用时 None。
+        duration_seconds: 截至查询时的耗时;不可用时 None。
+        current_node: 运行中当前节点名;终态 None。
+        retry_count: 运行中当前节点重试次数;终态 None。
+        last_status: OperationResult.status(失败原因 / "人工结束" / 成功描述);运行中 None。
+        failed_node: 仅 failed:失败停在哪一步;否则 None。
+    """
+    state: str
+    source: str | None = None
+    app: str | None = None
+    started_at: str | None = None
+    duration_seconds: float | None = None
+    current_node: str | None = None
+    retry_count: int | None = None
+    last_status: str | None = None
+    failed_node: str | None = None
