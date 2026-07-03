@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from one_dragon.base.screen.screen_match import ScreenMatch
 
 
 @dataclass
@@ -22,19 +24,20 @@ class OcrText:
 
 @dataclass
 class AnalyzeScreenResult:
-    """画面分析结果。
-
-    传输无关的返回结构，Task 3 将在 game 切片中消费。
+    """分析游戏画面结果(截图 + OCR + 画面匹配)。
 
     Attributes:
-        success: 本次分析是否成功。
-        ocr_texts: 命中的 OCR 文本列表。
-        error: 失败时的错误描述；成功时为 None。
+        success: 是否成功截图并完成分析。
+        ocr_texts: 全图原始 OCR 文本列表(含未归类到任何 area 的散落文本)。
+        error: 失败时的错误描述。
+        screens: 画面匹配结果(精准命中=[1 个 is_precise=True];否则 top_n 个
+            is_precise=False 候选)。决策优先看 screens;需看散落文本再看 ocr_texts。
     """
 
     success: bool
     ocr_texts: list[OcrText]
     error: str | None = None
+    screens: list[ScreenMatch] = field(default_factory=list)
 
 
 @dataclass
