@@ -1,10 +1,10 @@
 """HTTP 适配器：``/game/*`` 端点，把 ``ZzzBackendContext`` 暴露给 web/skill。
 
 本模块在后端 game 切片（``ZzzBackendContext``）之上架设一层 HTTP 传输适配：
-- ``register_http_routes`` 通过 FastMCP 的 ``custom_route`` 挂 6 个端点
-  （``window``/``capture``/``analyze``/``enter``/``status``/``stop``），与 MCP ``/mcp``
+- ``register_http_routes`` 通过 FastMCP 的 ``custom_route`` 挂 7 个端点
+  （``window``/``capture``/``analyze``/``enter``/``status``/``stop``/``close``），与 MCP ``/mcp``
   端点同进程共存。
-- 6 个处理器函数（``handle_game_*``）为模块级、可独立调用，便于直接测试，
+- 7 个处理器函数（``handle_game_*``）为模块级、可独立调用，便于直接测试，
   不依赖 MCP 协议层；``capture`` 直接回传 PNG 字节，不落盘（区别于 MCP 适配器
   的落盘返路径，避免重复的 ``_save_screenshot`` 逻辑）。
 - 同步 backend 方法通过 ``asyncio.to_thread`` 放到线程池执行，避免阻塞事件循环；
@@ -184,7 +184,7 @@ async def handle_game_close(backend: ZzzBackendContext, _request: Request | None
 def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     """把 ``/game/*`` 端点挂到 FastMCP。
 
-    使用 ``custom_route``（装饰器工厂二次调用）在 Starlette 层挂载 6 个端点，
+    使用 ``custom_route``（装饰器工厂二次调用）在 Starlette 层挂载 7 个端点，
     与 MCP ``/mcp`` 同进程共存。通过闭包将 ``backend`` 注入到各 lambda 处理器。
 
     Args:
