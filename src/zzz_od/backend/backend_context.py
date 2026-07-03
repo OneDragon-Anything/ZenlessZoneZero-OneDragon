@@ -112,6 +112,7 @@ class RunSlot:
         try:
             if not run_context.start_running():
                 failed_node = 'start_running 初始化失败'
+                result = OperationResult(success=False, status='start_running 初始化失败')
             else:
                 run_context.current_instance_idx = self._ctx.current_instance_idx
                 op = op_factory(self._ctx)

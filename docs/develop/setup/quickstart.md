@@ -86,7 +86,7 @@ uv run python -m zzz_od.backend.entry.server
 claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp
 ```
 
-- 6 个 tool：`check_game_window` / `capture_game_screen` / `analyze_screen` / `open_and_enter_game` / `get_run_status` / `stop_run`。
+- **工具清单见 [zzz/backend/mcp.md](../zzz/backend/mcp.md)**（不在此列举，避免随实现演进过时）。
 - **远程 SSH**（在别的机器 SSH 到游戏本机操作）场景下，游戏在 Session 1、SSH 在 Session 0，需用常驻 daemon 跨会话拉起 server —— 详见 [AI 编码助手接入 §MCP](ai_coding.md#mcp) 与 [zzz/backend/](../zzz/backend/)。
 
 ### LSP（代码导航，pyright）
