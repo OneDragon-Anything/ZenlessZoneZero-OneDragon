@@ -10,6 +10,18 @@
 """
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
+
+from one_dragon.base.matcher.match_result import MatchResultList
+from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
+from one_dragon.base.screen.screen_area import ScreenArea
+from one_dragon.utils import str_utils
+from one_dragon.utils.i18_utils import gt
+
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
+
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class AreaType(str, Enum):
@@ -62,3 +74,66 @@ class ScreenMatch:
     screen_name: str
     is_precise: bool
     areas: list[AreaMatchDetail]
+
+
+def find_area_with_detail(
+    ctx: 'OneDragonContext',
+    screen: 'MatLike',
+    area: ScreenArea,
+    crop_first: bool = False,
+) -> AreaMatchDetail | None:
+    """单 area 强化匹配,返回命中详情;纯定位区域或未命中返 None。
+
+    与 ``find_area_in_screen`` 的差异:默认 ``crop_first=False`` 走全图 OCR 缓存
+    复用(性能,见 spec §2.5);返回 ``AreaMatchDetail`` 详情而非布尔枚举。
+
+    Args:
+        ctx: 运行上下文(提供 ``ocr_service`` / ``tm``)。
+        screen: 游戏截图。
+        area: 待匹配的区域。
+        crop_first: 是否先裁剪再 OCR,默认 False(全图缓存复用)。
+
+    Returns:
+        命中详情;纯定位区域或未命中返 None。
+    """
+    if area.is_text_area:
+        ocr_result_list: list[OcrMatchResult] = ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+            color_range=area.color_range,
+            crop_first=crop_first,
+        )
+        for ocr_result in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
+                return AreaMatchDetail(
+                    area_name=area.area_name,
+                    area_type=AreaType.TEXT,
+                    x=int(ocr_result.x),
+                    y=int(ocr_result.y),
+                    width=int(ocr_result.w),
+                    height=int(ocr_result.h),
+                    text=ocr_result.data,
+                    confidence=float(ocr_result.confidence),
+                )
+        return None
+    if area.is_template_area:
+        mrl: MatchResultList = ctx.tm.crop_and_match_template(
+            screen,
+            area.rect,
+            area.template_sub_dir,
+            area.template_id,
+            threshold=area.template_match_threshold,
+        )
+        if mrl.max is None:
+            return None
+        # mrl.max 坐标是相对 area.rect 左上角的局部坐标,转绝对坐标
+        return AreaMatchDetail(
+            area_name=area.area_name,
+            area_type=AreaType.TEMPLATE,
+            x=int(mrl.max.x + area.rect.x1),
+            y=int(mrl.max.y + area.rect.y1),
+            width=int(mrl.max.w),
+            height=int(mrl.max.h),
+            confidence=float(mrl.max.confidence),
+        )
+    return None
