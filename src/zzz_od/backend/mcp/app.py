@@ -179,7 +179,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         try:
             return backend.analyze()
         except Exception as e:  # noqa: BLE001 工具层统一兜底
-            return AnalyzeScreenResult(success=False, ocr_texts=[], error=str(e))
+            return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error=str(e))
 
     @mcp.tool()
     def close_game() -> str:
