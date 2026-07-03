@@ -4,7 +4,7 @@
 
 ## 工具
 
-6 个 `@mcp.tool`，各自委托一个 backend 方法：
+7 个 `@mcp.tool`，各自委托一个 backend 方法：
 
 | MCP tool | 委托 | 返回 |
 |---|---|---|
@@ -14,6 +14,7 @@
 | `open_and_enter_game(block=True)` | `backend.start_run('mcp', op_factory)` | `block=True`：结果文本（`str`）；`block=False`：已启动 JSON；并发拒绝时返错误 JSON |
 | `get_run_status` | `backend.query_status()` | `RunStatusResult`（运行中返当前节点/重试；终态返结果/失败定位） |
 | `stop_run` | `backend.stop()` | `{"stopped": bool, ...}`（仅表信号已发出，过渡期 `get_run_status` 仍显示 running） |
+| `close_game` | `backend.close_game()` | 文本（`str`，已发送关闭信号；controller 吞异常，用 `check_game_window` 验证） |
 
 要点：
 
@@ -22,6 +23,7 @@
 - 长耗时 operation（`open_and_enter_game`）经 backend 共享 `RunSlot` 派发：`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。MCP 与 HTTP（见 [http.md](http.md)）**对称暴露**这套运行态三件套（[design-principles.md](design-principles.md) P11）。
 - **中断安全**：`block=True` 时若调用方取消 await，中断的只是本次 await，底层 `RunSlot._run` 继续执行、结果入槽，可用 `get_run_status` 查到终态。
 - 单跑道：已有运行在进行时 `open_and_enter_game` 返回并发拒绝（含 `source` + 提示），保证同进程独占资源不冲突。
+- `close_game` **独立同步**（不走 RunSlot）：秒级关游戏窗口，镜像 `check_window` 同步模式；与 `open_and_enter_game`（走 RunSlot）非对称（耗时量级不同）。反复 open→close 测试用。
 - 理念：MCP 只做感知 / 操作，编码 / 调试交给 AI（[design-principles.md](design-principles.md)）。
 
 ## 传输与端口

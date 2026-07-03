@@ -14,6 +14,7 @@
 | POST | `/game/enter?block=` | `backend.start_run('http', op_factory)` | `block=true`（默认）：结果 JSON；`block=false`：已启动 JSON；并发拒绝返错误 JSON |
 | GET | `/game/status` | `backend.query_status()` | `RunStatusResult` JSON |
 | POST | `/game/stop` | `backend.stop()` | `{"stopped": bool, ...}` JSON |
+| POST | `/game/close` | `backend.close_game()` | `{"result": 文本}` JSON（已发送关闭信号；窗口未就绪 503） |
 
 要点：
 
