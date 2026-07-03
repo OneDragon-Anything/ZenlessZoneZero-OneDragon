@@ -160,3 +160,14 @@ def test_stop_delegates_to_run_slot() -> None:
 
     assert backend.stop() == {"stopped": False, "error": "当前无运行"}
     backend.run_slot._stop.assert_called_once()
+
+
+def test_close_game_delegates() -> None:
+    """close_game 应委托 controller.close_game()。"""
+    controller = MagicMock()
+    controller.is_game_window_ready = True
+    controller.close_game.return_value = None
+    backend = _backend(ready=True, controller=controller)
+    msg = backend.close_game()
+    controller.close_game.assert_called_once()
+    assert msg == '已发送关闭游戏信号,可用 check_game_window 验证'

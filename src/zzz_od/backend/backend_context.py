@@ -309,6 +309,25 @@ class ZzzBackendContext:
         ]
         return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, error=None)
 
+    def close_game(self) -> str:
+        """关闭游戏(发关闭窗口信号,秒级,不走 RunSlot)。
+
+        controller.close_game() 内部 try/except 吞异常(log)、不返成功标志,
+        故无法区分关成功/失败 —— 返「已发送关闭信号」,用 check_game_window 验证。
+
+        Returns:
+            '已发送关闭游戏信号,可用 check_game_window 验证'。
+
+        Raises:
+            BackendNotReadyError: ZContext 未就绪或游戏窗口未就绪时抛。
+        """
+        self._ensure_ready()
+        controller = self._ctx.controller
+        if controller is None or not controller.is_game_window_ready:
+            raise BackendNotReadyError('游戏窗口未就绪')
+        controller.close_game()
+        return '已发送关闭游戏信号,可用 check_game_window 验证'
+
     def start_run(self, source: str, op_factory: 'Callable[[ZContext], Operation]') -> tuple[bool, Future | None]:
         """触发运行(供 MCP/HTTP 适配器调用,返回 future 供 block=True 时 await)。
 
