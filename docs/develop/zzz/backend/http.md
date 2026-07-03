@@ -11,12 +11,15 @@
 | GET | `/game/window` | `backend.check_window()` | `WindowStatus` JSON |
 | GET | `/game/capture` | `backend.capture()` | PNG 字节（`image/png`，不落盘） |
 | GET | `/game/analyze` | `backend.analyze()` | `AnalyzeScreenResult` JSON |
-| POST | `/game/enter` | `backend.enter_game()` | 结果 JSON |
+| POST | `/game/enter?block=` | `backend.start_run('http', op_factory)` | `block=true`（默认）：结果 JSON；`block=false`：已启动 JSON；并发拒绝返错误 JSON |
+| GET | `/game/status` | `backend.query_status()` | `RunStatusResult` JSON |
+| POST | `/game/stop` | `backend.stop()` | `{"stopped": bool, ...}` JSON |
 
 要点：
 
 - 处理器调 backend 走 `asyncio.to_thread`；`BackendNotReadyError` → 503 JSON。
 - `/game/capture` 直接回传 PNG 字节（区别于 MCP 的落盘返路径——同一能力、不同序列化）。
+- `/game/enter` 经 `backend.start_run` 异步派发到共享 `RunSlot`：`block=true`（默认）用 `asyncio.wrap_future(future)` 阻塞到运行结束返结果文本；`block=false` 立刻返回已启动状态，后续用 `/game/status` 查进度与结果。单跑道，已有运行时返回并发拒绝 JSON（含 `source` + 提示）。
 - skill 教 AI 经 Bash / curl 打这些端点（通用，任何 AI 工具可用）。
 
 ## 与 MCP 的关系
@@ -26,6 +29,8 @@
 | 消费者 | web 前端 + skill / Bash 的 AI | MCP 客户端（AI 编码工具等） |
 | 调用方式 | REST | tool-call（类型化 schema） |
 | 共享 | 同一 `ZzzBackendContext` | 同一 `ZzzBackendContext` |
+
+运行态三件套**对称暴露**：`/game/enter` ↔ `open_and_enter_game`、`/game/status` ↔ `get_run_status`、`/game/stop` ↔ `stop_run`，两侧调同一 backend 方法（[design-principles.md](design-principles.md) P11），跨适配器状态共享同一 `RunSlot`（HTTP 触发的运行 MCP 也能查到）。
 
 ## 路线图（尚未实现）
 
