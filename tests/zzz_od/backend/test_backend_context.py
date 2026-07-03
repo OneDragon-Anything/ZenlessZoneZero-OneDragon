@@ -115,6 +115,70 @@ def test_analyze_returns_error_when_screenshot_none() -> None:
     assert "截图失败" in (result.error or "")
 
 
+def test_analyze_returns_screens_and_writes_back_on_precise(monkeypatch):
+    """analyze 精准命中 → 返回 screens[0].is_precise=True,并回写 current_screen_name。"""
+    import zzz_od.backend.backend_context as bc
+    from one_dragon.base.screen.screen_match import ScreenMatch
+
+    controller = MagicMock()
+    controller.is_game_window_ready = True
+    controller.get_screenshot.return_value = MagicMock()
+    backend = _backend(ready=True, controller=controller)
+
+    # mock find_screen_matches 返精准
+    precise = ScreenMatch(screen_name='菜单', is_precise=True, areas=[])
+    monkeypatch.setattr(bc, 'find_screen_matches', lambda ctx, screen, top_n=5: [precise])
+    # mock ocr_service 返空(ocr_texts 走全图 OCR)
+    backend.ctx.ocr_service.get_ocr_result_list.return_value = []
+
+    result = backend.analyze()
+    assert result.success is True
+    assert len(result.screens) == 1
+    assert result.screens[0].is_precise is True
+    # 回写
+    backend.ctx.screen_loader.update_current_screen_name.assert_called_once_with('菜单')
+
+
+def test_analyze_no_precise_does_not_write_back(monkeypatch):
+    """analyze 无精准(模糊 top_n)→ 不回写 current_screen_name。"""
+    import zzz_od.backend.backend_context as bc
+    from one_dragon.base.screen.screen_match import ScreenMatch
+
+    controller = MagicMock()
+    controller.is_game_window_ready = True
+    controller.get_screenshot.return_value = MagicMock()
+    backend = _backend(ready=True, controller=controller)
+
+    fuzzy = ScreenMatch(screen_name='某画面', is_precise=False, areas=[])
+    monkeypatch.setattr(bc, 'find_screen_matches', lambda ctx, screen, top_n=5: [fuzzy])
+    backend.ctx.ocr_service.get_ocr_result_list.return_value = []
+
+    result = backend.analyze()
+    assert result.success is True
+    assert result.screens[0].is_precise is False
+    backend.ctx.screen_loader.update_current_screen_name.assert_not_called()
+
+
+def test_analyze_exception_no_writeback(monkeypatch):
+    """匹配中途异常 → success=False, screens=[], 不回写。"""
+    import zzz_od.backend.backend_context as bc
+
+    controller = MagicMock()
+    controller.is_game_window_ready = True
+    controller.get_screenshot.return_value = MagicMock()
+    backend = _backend(ready=True, controller=controller)
+
+    def boom(ctx, screen, top_n=5):
+        raise RuntimeError('ocr boom')
+    monkeypatch.setattr(bc, 'find_screen_matches', boom)
+
+    result = backend.analyze()
+    assert result.success is False
+    assert result.screens == []
+    assert result.error is not None
+    backend.ctx.screen_loader.update_current_screen_name.assert_not_called()
+
+
 def test_start_run_delegates_to_run_slot() -> None:
     """start_run 应委托 run_slot._start_run，返回 (ok, future) 元组。
 
