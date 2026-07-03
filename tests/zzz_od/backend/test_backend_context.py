@@ -115,7 +115,7 @@ def test_analyze_returns_error_when_screenshot_none() -> None:
     assert "截图失败" in (result.error or "")
 
 
-def test_analyze_returns_screens_and_writes_back_on_precise(monkeypatch):
+def test_analyze_returns_screens_and_writes_back_on_precise(monkeypatch) -> None:
     """analyze 精准命中 → 返回 screens[0].is_precise=True,并回写 current_screen_name。"""
     import zzz_od.backend.backend_context as bc
     from one_dragon.base.screen.screen_match import ScreenMatch
@@ -139,7 +139,7 @@ def test_analyze_returns_screens_and_writes_back_on_precise(monkeypatch):
     backend.ctx.screen_loader.update_current_screen_name.assert_called_once_with('菜单')
 
 
-def test_analyze_no_precise_does_not_write_back(monkeypatch):
+def test_analyze_no_precise_does_not_write_back(monkeypatch) -> None:
     """analyze 无精准(模糊 top_n)→ 不回写 current_screen_name。"""
     import zzz_od.backend.backend_context as bc
     from one_dragon.base.screen.screen_match import ScreenMatch
@@ -159,7 +159,7 @@ def test_analyze_no_precise_does_not_write_back(monkeypatch):
     backend.ctx.screen_loader.update_current_screen_name.assert_not_called()
 
 
-def test_analyze_exception_no_writeback(monkeypatch):
+def test_analyze_exception_no_writeback(monkeypatch) -> None:
     """匹配中途异常 → success=False, screens=[], 不回写。"""
     import zzz_od.backend.backend_context as bc
 
