@@ -7,10 +7,14 @@
 
 注意：
     - 同步工具（check/capture/analyze）直接调用 backend 的同步方法；
-    - ``open_and_enter_game`` 当前为临时占位，Task 6 将改造为基于
-      ``backend.start_run`` 的异步适配。
+    - ``open_and_enter_game`` 为异步长耗时操作，基于 ``backend.start_run`` 适配，
+      ``block=True`` 阻塞到完成、``block=False`` 立刻返回。
+    - 运行类 tool 工厂（``make_open_and_enter_game`` 等）为模块级函数，
+      只调 backend 公开方法，不戳 run_slot 私有，便于独立测试。
 """
 
+import asyncio
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -20,10 +24,12 @@ from mcp.server.fastmcp import FastMCP
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext
-from zzz_od.backend.schemas import AnalyzeScreenResult
+from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
+
+    from one_dragon.base.operation.operation_base import OperationResult
 
 
 def _save_screenshot(image: 'MatLike') -> str:
@@ -46,19 +52,79 @@ def _save_screenshot(image: 'MatLike') -> str:
     return str(img_path)
 
 
+def make_open_and_enter_game(backend: ZzzBackendContext) -> Callable:
+    """构造 ``open_and_enter_game`` tool(模块级,便于独立测试)。
+
+    返回的 async tool 只调 backend 公开方法(``start_run``/``query_status``),
+    不戳 run_slot 私有(P11 对称 + 封装)。
+    """
+    async def open_and_enter_game(block: bool = True) -> dict | str:
+        """打开并进入绝区零游戏(长耗时,需交互式桌面)。
+
+        block=True(默认)阻塞到完成返结果文本;block=False 立刻返回,用 get_run_status 查进度。
+        副作用:操作游戏(点击/按键);单跑道,已有运行时返回错误(含 source + 提示)。
+        中断语义:block=True 时若调用方取消 await,底层 operation 仍继续(结果入槽),
+        用 get_run_status 查;中断的只是本次 await,不影响后台 _run。
+        """
+        from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
+        ok, future = backend.start_run('mcp', lambda ctx: OpenAndEnterGame(ctx))
+        if not ok:
+            st = backend.query_status()
+            return {
+                'started': False,
+                'error': '已有运行在进行中',
+                'source': st.source,
+                'hint': '先 get_run_status 查状态,或 stop_run 停止',
+            }
+        if not block:
+            st = backend.query_status()
+            return {
+                'started': True,
+                'source': 'mcp',
+                'started_at': st.started_at,
+                'hint': '用 get_run_status 查进度与结果',
+            }
+        result: OperationResult = await asyncio.wrap_future(future)  # 中断 cancel 的是 await,底层 _run 继续
+        return '成功打开并进入绝区零游戏' if result.success else f'打开游戏失败: {result.status}'
+    return open_and_enter_game
+
+
+def make_get_run_status(backend: ZzzBackendContext) -> Callable[[], RunStatusResult]:
+    """构造 ``get_run_status`` tool(模块级,便于独立测试)。"""
+    def get_run_status() -> RunStatusResult:
+        """查当前/最近一次运行状态(无副作用)。
+
+        运行中返当前节点/耗时/重试;非运行返结果/失败定位。
+        """
+        return backend.query_status()
+    return get_run_status
+
+
+def make_stop_run(backend: ZzzBackendContext) -> Callable[[], dict]:
+    """构造 ``stop_run`` tool(模块级,便于独立测试)。"""
+    def stop_run() -> dict:
+        """发出停止信号,operation 在当前节点完成后退出(非强杀)。
+
+        返回仅表信号已发出(过渡期 get_run_status 仍显示 running)。
+        """
+        return backend.stop()
+    return stop_run
+
+
 def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastMCP:
     """创建 MCP 服务器并注册 game 工具。
 
     通过闭包将 ``backend`` 注入到各工具函数中，使工具调用最终落到 backend 的
-    game 切片方法（``check_window``/``capture``/``analyze``）；``open_and_enter_game``
-    当前为临时占位（Task 6 改造）。
+    game 切片方法（``check_window``/``capture``/``analyze``）；运行类操作
+    （``open_and_enter_game``/``get_run_status``/``stop_run``）经模块级工厂
+    构造后用 ``mcp.tool()(...)`` 注册。
 
     Args:
         backend: 已就绪的 ``ZzzBackendContext``，提供 game 切片能力。
         name: MCP 服务器名称，默认 ``zzz_od``。
 
     Returns:
-        注册好 4 个工具的 ``FastMCP`` 实例。
+        注册好工具的 ``FastMCP`` 实例。
     """
     mcp = FastMCP(name)
 
@@ -113,16 +179,8 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         except Exception as e:  # noqa: BLE001 工具层统一兜底
             return AnalyzeScreenResult(success=False, ocr_texts=[], error=str(e))
 
-    @mcp.tool()
-    async def open_and_enter_game() -> str:
-        """打开并进入绝区零游戏。
-
-        这是一个长阻塞流程，需要本地交互式桌面会话。
-
-        Returns:
-            执行结果描述字符串；backend 抛错时返回 ``错误: <原因>``。
-        """
-        # 临时占位:backend.enter_game 已移除,Task 6 将改为基于 start_run 的异步适配。
-        raise RuntimeError('Task 6 改造中')
+    mcp.tool()(make_open_and_enter_game(backend))
+    mcp.tool()(make_get_run_status(backend))
+    mcp.tool()(make_stop_run(backend))
 
     return mcp
