@@ -173,6 +173,21 @@ class RunSlot:
             current_node=current_node, retry_count=retry_count,
         )
 
+    def _stop(self) -> tuple[bool, str | None]:
+        """发出停止信号(run_context.stop_running 直接设 STOP,非阻塞)。
+
+        operation 实际退出有过渡期(下一轮才退),期间 _query_status 仍报 running。
+
+        Returns:
+            (stopped, source):无运行 → (False, None);否则 (True, 被停运行的触发方)。
+        """
+        with self._lock:
+            if self.future is None or self.future.done():
+                return False, None
+            source = self.source
+        self._ctx.run_context.stop_running()
+        return True, source
+
 
 class BackendNotReadyError(Exception):
     """后端未就绪。
@@ -199,6 +214,7 @@ class ZzzBackendContext:
             ctx: 被包装的 ``ZContext`` 实例，由调用方负责构造并注入。
         """
         self._ctx: ZContext = ctx
+        self.run_slot: RunSlot = RunSlot(ctx)
 
     @property
     def ctx(self) -> ZContext:
