@@ -131,7 +131,7 @@ class RunSlot:
                 failed_node = op._current_node.cn
             else:
                 failed_node = f'异常: {e}'
-            result = None
+            result = OperationResult(success=False, status='执行异常')
         finally:
             with self._lock:
                 self.terminal_state = terminal
