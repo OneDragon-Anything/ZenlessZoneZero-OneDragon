@@ -88,7 +88,8 @@ async def handle_game_analyze(backend: ZzzBackendContext, _request: Request | No
         _request: Starlette 请求对象（本处理器不使用）。
 
     Returns:
-        200 + 分析结果 JSON（成功标志、OCR 文本列表、错误描述）；backend 未就绪时返回 503。
+        200 + 分析结果 JSON（成功标志、OCR 文本列表、画面匹配结果、错误描述）；
+        backend 未就绪时返回 503。决策优先看 ``screens``，散落文本看 ``ocr_texts``。
     """
     try:
         result = await asyncio.to_thread(backend.analyze)
@@ -97,6 +98,7 @@ async def handle_game_analyze(backend: ZzzBackendContext, _request: Request | No
     return JSONResponse({
         "success": result.success,
         "ocr_texts": [asdict(t) for t in result.ocr_texts],
+        "screens": [asdict(s) for s in result.screens],
         "error": result.error,
     })
 

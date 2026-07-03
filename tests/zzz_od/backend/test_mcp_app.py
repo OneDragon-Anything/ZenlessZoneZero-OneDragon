@@ -63,6 +63,35 @@ def test_analyze_tool_returns_result() -> None:
     assert result.success is True
 
 
+def test_analyze_screen_tool_returns_screens_field() -> None:
+    """analyze_screen tool 直接调用应返回带 screens 的 AnalyzeScreenResult(验证嵌套结构)。
+
+    MCP 经 FastMCP/pydantic 的 JSON 序列化由框架保证(与 HTTP 同源 dataclass);
+    端到端 JSON 序列化(area_type → 'text')由 HTTP 测试覆盖。此处验证 tool.fn
+    返回的 dataclass 结构正确。
+    """
+    from one_dragon.base.screen.screen_match import (
+        AreaMatchDetail,
+        AreaType,
+        ScreenMatch,
+    )
+
+    mcp, backend = _mcp_with_backend()
+    detail = AreaMatchDetail(
+        area_name='标题', area_type=AreaType.TEXT,
+        x=1, y=1, width=1, height=1, text='菜单',
+    )
+    match = ScreenMatch(screen_name='菜单', is_precise=True, areas=[detail])
+    backend.analyze.return_value = AnalyzeScreenResult(
+        success=True, ocr_texts=[], error=None, screens=[match])
+    tool = mcp._tool_manager._tools['analyze_screen']
+    fn = getattr(tool, 'fn', None) or getattr(tool, 'func', None)
+    result = fn()
+    assert result.success is True
+    assert result.screens[0].screen_name == '菜单'
+    assert result.screens[0].areas[0].area_type == AreaType.TEXT
+
+
 def test_check_game_window_formats_status() -> None:
     """check_game_window 在就绪时应格式化输出窗口状态字段。"""
     mcp, backend = _mcp_with_backend()

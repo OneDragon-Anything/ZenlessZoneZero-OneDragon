@@ -169,10 +169,12 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
 
     @mcp.tool()
     def analyze_screen() -> AnalyzeScreenResult:
-        """分析画面（截图 + OCR），返回结构化结果。
+        """分析画面（截图 + OCR + 画面匹配），返回结构化结果。
 
         Returns:
-            ``AnalyzeScreenResult``（成功标志、OCR 文本列表、错误描述）。
+            ``AnalyzeScreenResult``（成功标志、OCR 文本列表、画面匹配结果、错误描述）。
+            决策优先看 ``screens``（精准命中 1 个 ``is_precise=True``；否则 top_n 个候选）；
+            需要散落文本（未归类到任何 area 的 OCR 文本）再看 ``ocr_texts``。
         """
         try:
             return backend.analyze()
