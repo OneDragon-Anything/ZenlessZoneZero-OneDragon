@@ -18,6 +18,9 @@ dependencies = [
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
     "pygit2==1.19.0",
+    # pywin32>=312 的 wheel 不再内置 mfc140u.dll，未装 VC++ 2015-2022 Redistributable (x64) 的机器
+    # import win32ui 会闪退（issue #2428）；锁 <312 沿用 311（自带 pythonwin/mfc140u.dll）。等上游 build 313 修复后放开。
+    "pywin32<312",
 ]
 
 [dependency-groups]
