@@ -1,9 +1,17 @@
 """screen_match 框架强化匹配测试。"""
 from unittest.mock import MagicMock
 
+import one_dragon.base.screen.screen_match as _sm
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.base.screen.screen_match import AreaType, AreaMatchDetail, ScreenMatch, find_area_with_detail
+from one_dragon.base.screen.screen_info import ScreenInfo
+from one_dragon.base.screen.screen_match import (
+    AreaMatchDetail,
+    AreaType,
+    ScreenMatch,
+    find_area_with_detail,
+    find_screen_matches,
+)
 
 
 def test_area_type_is_str_enum():
@@ -110,3 +118,126 @@ def test_find_area_default_crop_first_false():
     find_area_with_detail(ctx, MagicMock(), _text_area())
     _args, kwargs = ctx.ocr_service.get_ocr_result_list.call_args
     assert kwargs.get('crop_first') is False
+
+
+# --- find_screen_matches 测试(find_screen_matches 一次遍历分级匹配)---
+
+
+def _screen_info(name: str, areas: list[ScreenArea]) -> ScreenInfo:
+    """用 ScreenInfo 构造一个画面(area_list 来自入参)。"""
+    data = {'screen_id': name, 'screen_name': name, 'app_id': '',
+            'area_list': [a.to_dict() for a in areas]}
+    return ScreenInfo(data)
+
+
+def _id_mark_text_area(name: str, text: str) -> ScreenArea:
+    a = ScreenArea(area_name=name, pc_rect=Rect(0, 0, 100, 50), text=text, lcs_percent=0.5)
+    a.id_mark = True
+    return a
+
+
+def _make_loader(screens: list[ScreenInfo], current: str | None = None,
+                 last: str | None = None):
+    """构造 mock screen_loader。"""
+    loader = MagicMock()
+    loader.screen_info_list = screens
+    loader.active_screen_info_list = screens
+    loader.screen_info_map = {s.screen_name: s for s in screens}
+    loader.active_screen_names = None   # backend 语境 scope 不激活
+    loader.current_screen_name = current
+    loader.last_screen_name = last
+    return loader
+
+
+def _patch_find(monkeypatch, hit_map: dict) -> None:
+    """patch 模块级 find_area_with_detail:按 area_name 决定命中(走 text 分支语义)。
+
+    必须用 monkeypatch.setattr(_sm, ...)patch 模块属性 —— find_screen_matches 内部以
+    模块级引用调用 find_area_with_detail(见实现注),patch 模块属性才生效。
+    """
+    def fake_find(ctx, screen, area, crop_first=False):
+        if area.area_name in hit_map and hit_map[area.area_name]:
+            return AreaMatchDetail(area_name=area.area_name, area_type=AreaType.TEXT,
+                                   x=0, y=0, width=10, height=10, text=area.text or '')
+        return None
+    monkeypatch.setattr(_sm, 'find_area_with_detail', fake_find)
+
+
+def test_precise_early_stop_when_current_set(monkeypatch):
+    """current 有值 + 该画面 id_mark 全中 → 精准早停返 1 个 is_precise=True。"""
+    menu = _screen_info('菜单', [_id_mark_text_area('菜单标题', '菜单')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([menu], current='菜单')
+    _patch_find(monkeypatch, {'菜单标题': True})
+    result = find_screen_matches(ctx, MagicMock())
+    assert len(result) == 1
+    assert result[0].screen_name == '菜单'
+    assert result[0].is_precise is True
+
+
+def test_no_precise_returns_topn_by_hit_count(monkeypatch):
+    """无 id_mark 全中 → 按命中数 top_n(is_precise=False)。"""
+    a = _screen_info('画面A', [ScreenArea(area_name='a1', pc_rect=Rect(0, 0, 10, 10), text='x'),
+                               ScreenArea(area_name='a2', pc_rect=Rect(0, 0, 10, 10), text='y')])
+    b = _screen_info('画面B', [ScreenArea(area_name='b1', pc_rect=Rect(0, 0, 10, 10), text='z')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([a, b])
+    _patch_find(monkeypatch, {'a1': True, 'a2': True, 'b1': True})
+    result = find_screen_matches(ctx, MagicMock(), top_n=5)
+    assert len(result) == 2
+    assert result[0].screen_name == '画面A'   # 命中 2 个,排前
+    assert result[0].is_precise is False
+    assert result[1].screen_name == '画面B'
+
+
+def test_current_last_none_full_traversal(monkeypatch):
+    """current/last 均 None → 直接全量遍历(无 BFS)。"""
+    menu = _screen_info('菜单', [_id_mark_text_area('标题', '菜单')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([menu], current=None, last=None)
+    _patch_find(monkeypatch, {'标题': True})
+    result = find_screen_matches(ctx, MagicMock())
+    assert len(result) == 1
+    assert result[0].is_precise is True
+
+
+def test_no_id_mark_screen_only_enters_topn(monkeypatch):
+    """无 id_mark 画面精准永假,但参与命中数(可进 top_n)。"""
+    plain = _screen_info('无标识画面', [ScreenArea(area_name='p1', pc_rect=Rect(0, 0, 10, 10), text='p')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([plain])
+    _patch_find(monkeypatch, {'p1': True})
+    result = find_screen_matches(ctx, MagicMock())
+    assert len(result) == 1
+    assert result[0].is_precise is False
+
+
+def test_bfs_traverses_goto_neighbors(monkeypatch):
+    """BFS 从 current 沿 goto_list 扩散到邻接画面(图不连通时兜底全量覆盖)。"""
+    a = _screen_info('A', [_id_mark_text_area('a_mark', 'a')])
+    a_area = ScreenArea(area_name='a_goto', pc_rect=Rect(0, 0, 10, 10), text='goto')
+    a_area.goto_list = ['B']
+    a.area_list.append(a_area)
+    b = _screen_info('B', [_id_mark_text_area('b_mark', 'b')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([a, b], current='A')
+    _patch_find(monkeypatch, {'b_mark': True})   # A 的 a_mark 未中 → 沿 goto 到 B
+    result = find_screen_matches(ctx, MagicMock())
+    assert len(result) == 1
+    assert result[0].screen_name == 'B'
+    assert result[0].is_precise is True
+
+
+def test_precise_early_stop_returns_first_processed(monkeypatch):
+    """current 起的精准早停:两画面共享 id_mark 时,current 先处理即返(B 不会进 BFS)。
+
+    (精准早停使「共享 id_mark tie-break」实际不可达 —— 首个精准即返,不存在多精准排序。)
+    """
+    a = _screen_info('A', [_id_mark_text_area('shared', 'x')])
+    b = _screen_info('B', [_id_mark_text_area('shared', 'x')])
+    ctx = MagicMock()
+    ctx.screen_loader = _make_loader([a, b], current='A')
+    _patch_find(monkeypatch, {'shared': True})
+    result = find_screen_matches(ctx, MagicMock())
+    assert len(result) == 1
+    assert result[0].screen_name == 'A'   # current=A,BFS 从 A 起,A 首个精准即返
