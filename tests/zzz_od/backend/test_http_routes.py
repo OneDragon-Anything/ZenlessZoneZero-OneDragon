@@ -14,6 +14,7 @@ from zzz_od.backend.backend_context import BackendNotReadyError
 from zzz_od.backend.http.routes import (
     handle_game_analyze,
     handle_game_capture,
+    handle_game_close,
     handle_game_enter,
     handle_game_window,
 )
@@ -118,6 +119,43 @@ def test_register_http_routes_adds_custom_routes() -> None:
     app = mcp.streamable_http_app()
     paths = {getattr(r, "path", None) for r in app.routes}
     assert any(p and "game" in p for p in paths)
+
+
+@pytest.mark.asyncio
+async def test_handle_game_close_ok() -> None:
+    """handle_game_close 在就绪时应以 200 返回 backend.close_game() 文本。"""
+    backend = MagicMock()
+    backend.close_game.return_value = "已发送关闭游戏信号,可用 check_game_window 验证"
+    resp = await handle_game_close(backend)
+    assert resp.status_code == 200
+    data = json.loads(resp.body.decode("utf-8"))
+    assert data["result"] == "已发送关闭游戏信号,可用 check_game_window 验证"
+
+
+@pytest.mark.asyncio
+async def test_handle_game_close_error() -> None:
+    """handle_game_close 在 backend 未就绪时应返回 503。"""
+    backend = MagicMock()
+    backend.close_game.side_effect = BackendNotReadyError("未就绪")
+    resp = await handle_game_close(backend)
+    assert resp.status_code == 503
+
+
+def test_route_dispatch_game_close_ok() -> None:
+    """经路由层分发 POST /game/close,应返回 200 + result 文本。"""
+    from mcp.server.fastmcp import FastMCP
+    from starlette.testclient import TestClient
+
+    from zzz_od.backend.http.routes import register_http_routes
+
+    mcp = FastMCP("test")
+    backend = MagicMock()
+    backend.close_game.return_value = "已发送关闭游戏信号,可用 check_game_window 验证"
+    register_http_routes(mcp, backend)
+    client = TestClient(mcp.streamable_http_app())
+    resp = client.post("/game/close")
+    assert resp.status_code == 200
+    assert resp.json()["result"] == "已发送关闭游戏信号,可用 check_game_window 验证"
 
 
 def test_route_dispatch_window_ok() -> None:

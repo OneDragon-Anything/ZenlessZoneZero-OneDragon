@@ -160,6 +160,27 @@ async def handle_game_stop(backend: ZzzBackendContext, _request: Request | None 
     return JSONResponse(backend.stop())
 
 
+async def handle_game_close(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
+    """处理 ``POST /game/close``：关闭游戏(发关闭窗口信号)。
+
+    通过线程池调用 backend 的 ``close_game``，将其返回文本包装为 JSON。
+    controller 吞异常不返成功标志，故响应仅表「信号已发」，用
+    ``GET /game/window`` 验证是否真关。
+
+    Args:
+        backend: 提供游戏切片能力的 ``ZzzBackendContext``。
+        _request: Starlette 请求对象（本处理器不使用）。
+
+    Returns:
+        200 + ``{"result": <文本>}``；backend 未就绪时返回 503 + 错误描述。
+    """
+    try:
+        msg = await asyncio.to_thread(backend.close_game)
+    except BackendNotReadyError as e:
+        return _err(str(e))
+    return JSONResponse({"result": msg})
+
+
 def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     """把 ``/game/*`` 端点挂到 FastMCP。
 
@@ -199,3 +220,8 @@ def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     async def _game_stop(request: Request) -> Response:
         """POST /game/stop 路由分发：委托 ``handle_game_stop``。"""
         return await handle_game_stop(backend, request)
+
+    @mcp.custom_route("/game/close", methods=["POST"])
+    async def _game_close(request: Request) -> Response:
+        """POST /game/close 路由分发：委托 ``handle_game_close``。"""
+        return await handle_game_close(backend, request)

@@ -83,6 +83,26 @@ def test_check_game_window_formats_status() -> None:
     assert "x=10" in out
 
 
+def test_close_game_tool_registered() -> None:
+    """create_mcp_server 应注册内联 close_game tool(同 check_game_window,非工厂)。"""
+    import asyncio
+
+    mcp, _ = _mcp_with_backend()
+    tools = asyncio.run(mcp.list_tools())
+    assert any(t.name == "close_game" for t in tools)
+
+
+def test_close_game_tool_error_on_not_ready() -> None:
+    """close_game 在 backend 未就绪时返回包含「错误」的字符串(工具层兜底)。"""
+    mcp, backend = _mcp_with_backend()
+    backend.close_game.side_effect = BackendNotReadyError("未就绪")
+    tool = mcp._tool_manager._tools["close_game"]
+    fn = getattr(tool, "fn", None) or getattr(tool, "func", None)
+    assert fn is not None
+    out = fn()
+    assert "错误" in out
+
+
 def test_capture_game_screen_returns_path() -> None:
     """capture_game_screen 应保存截图并返回保存路径字符串。"""
     import numpy as np

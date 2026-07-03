@@ -179,6 +179,21 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         except Exception as e:  # noqa: BLE001 工具层统一兜底
             return AnalyzeScreenResult(success=False, ocr_texts=[], error=str(e))
 
+    @mcp.tool()
+    def close_game() -> str:
+        """关闭游戏(发关闭窗口信号,秒级)。
+
+        controller 吞异常不返成功标志,故只表「信号已发」—— 用 check_game_window
+        验证是否真关。backend 未就绪 / 窗口未就绪时返 ``错误: <原因>``。
+
+        Returns:
+            backend ``close_game`` 返回的文本;backend 抛错时返回 ``错误: <原因>``。
+        """
+        try:
+            return backend.close_game()
+        except Exception as e:  # noqa: BLE001 工具层兜底(BackendNotReadyError 等)
+            return f"错误: {e}"
+
     mcp.tool()(make_open_and_enter_game(backend))
     mcp.tool()(make_get_run_status(backend))
     mcp.tool()(make_stop_run(backend))
