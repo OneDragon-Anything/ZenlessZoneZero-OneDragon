@@ -116,7 +116,7 @@ handlers:
         debug_name: "明心境-期间输出"
         sub_handlers:
           - states: "[叶瞬光-明心境]{110,120}"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{4,4} & [叶瞬光-明心境]{90,110} | [叶瞬光-明心境]{0,20}"
+            interrupt_states: "[叶瞬光-明心境]{0,110}"
             debug_name: "等待变身就绪"
             operations:
               - op_name: "设置状态"
@@ -134,8 +134,12 @@ handlers:
                 post_delay: 0.1
                 repeat: 40
 
-          - states: "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-明心境]{90,110}"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{4,4} | [叶瞬光-明心境]{0,20}"
+      - states: "[叶瞬光-明心境]{20,120}"
+        interrupt_states: "[叶瞬光-明心境]{0,20}"
+        debug_name: "明心境-输出"
+        sub_handlers:
+          - states: "[叶瞬光-青溟剑势-白]{6,6}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{4,4}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-无视闪光"
@@ -146,12 +150,9 @@ handlers:
               - op_name: "按键-特殊攻击"
                 post_delay: 0.1
                 repeat: 20
-              - op_name: "按键-普通攻击"
-                post_delay: 0.1
-                repeat: 40
 
           - states: "[叶瞬光-青溟剑势-白]{4,4}"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{3,3} | [叶瞬光-明心境]{0,20}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{3,3}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-无视闪光"
@@ -164,7 +165,7 @@ handlers:
                 repeat: 20
 
           - states: "[叶瞬光-青溟剑势-白]{3,3}"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{1,1} | [叶瞬光-明心境]{0,20}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{1,1}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-无视闪光"
@@ -180,7 +181,7 @@ handlers:
                 repeat: 40
 
           - states: "[叶瞬光-青溟剑势-白]{1,1}"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-无视闪光"
@@ -205,13 +206,13 @@ handlers:
                 post_delay: 0.1
                 repeat: 20
 
-          - states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
-            interrupt_states: "[叶瞬光-常态]{1,1} & [叶瞬光-明心境]{0,0}"
-            operations:
-              - op_name: "设置状态"
-                state: "自定义-无视闪光"
-                seconds: 9
-              - op_name: "设置状态"
-                state: "自定义-动作不打断"
-                seconds: 9
-              - operation_template: "叶瞬光-乱砍"
+      - states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
+        interrupt_states: "[叶瞬光-常态]{1,1} & [叶瞬光-明心境]{0,0}"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-无视闪光"
+            seconds: 9
+          - op_name: "设置状态"
+            state: "自定义-动作不打断"
+            seconds: 9
+          - operation_template: "叶瞬光-乱砍"
