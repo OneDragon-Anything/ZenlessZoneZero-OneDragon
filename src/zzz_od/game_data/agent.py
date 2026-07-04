@@ -466,11 +466,9 @@ class AgentEnum(Enum):
             ),
             AgentStateDef(
                 "叶瞬光-常态",
-                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                AgentStateCheckWay.TEMPLATE_FOUND,
                 template_id="yeshunguang_normal",
-                hsv_color=(0, 0, 0),
-                hsv_color_diff=(0, 255, 255),
-                connect_cnt=5,
+                template_threshold=0.7,
             ),
             AgentStateDef(
                 "叶瞬光-青溟剑势-红",
