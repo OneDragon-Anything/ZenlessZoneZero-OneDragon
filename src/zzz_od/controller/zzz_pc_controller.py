@@ -3,15 +3,6 @@ import time
 
 from cv2.typing import MatLike
 
-from one_dragon.base.controller.pc_button.ds4_button_controller import (
-    Ds4ButtonController,
-)
-from one_dragon.base.controller.pc_button.keyboard_mouse_controller import (
-    KeyboardMouseController,
-)
-from one_dragon.base.controller.pc_button.xbox_button_controller import (
-    XboxButtonController,
-)
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import cv2_utils
 from zzz_od.config.game_config import GameConfig
@@ -49,21 +40,15 @@ class ZPcController(PcControllerBase):
         self.gamepad_turn_speed = game_config.gamepad_turn_speed
         self.mouse_flash_duration = game_config.mouse_flash_duration
 
-        if self.background_mode:
-            self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
+        if self.game_config.background_mode:
+            self.enable_background_mode(self.game_config.background_gamepad_type)
+            if self.game_config.background_gamepad_type == 'ds4':
+                self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
+            else:
+                self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
         else:
-            self.gamepad_action_keys = {}
-
-        if isinstance(self.btn_controller, KeyboardMouseController):
-            self.enable_keyboard()
-        elif isinstance(self.btn_controller, XboxButtonController):
-            self.enable_xbox()
-            self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
-        elif isinstance(self.btn_controller, Ds4ButtonController):
-            self.enable_ds4()
-            self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
-        else:
-            self.action_keys = self.game_config.get_action_keys('keyboard')
+            self.enable_foreground_mode()
+            self.active_window()
 
     def init_before_context_run(self) -> bool:
         """运行前根据配置启用后台/前台模式，刷新快照配置"""
