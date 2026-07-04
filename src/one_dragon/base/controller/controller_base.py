@@ -37,6 +37,14 @@ class ControllerBase:
         """
         pass
 
+    def sync_game_config(self, game_config: object) -> None:
+        """
+        同步游戏配置
+
+        默认无需处理，由子类按需覆盖
+        """
+        pass
+
     @property
     def is_game_window_ready(self) -> bool:
         """

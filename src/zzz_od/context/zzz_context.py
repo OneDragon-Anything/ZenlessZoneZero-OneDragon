@@ -107,8 +107,7 @@ class ZContext(OneDragonContext):
         切换实例后更新 controller 的窗口标题
         """
         if self.controller is not None:
-            if hasattr(self.controller, 'sync_game_config'):
-                self.controller.sync_game_config(self.game_config)
+            self.controller.sync_game_config(self.game_config)
             new_win_title = self._get_win_title()
             self.controller.set_window_title(new_win_title)
 
