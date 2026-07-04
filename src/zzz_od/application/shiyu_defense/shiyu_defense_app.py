@@ -173,6 +173,13 @@ class ShiyuDefenseApp(ZApplication):
     @operation_node(name='识别弱点并计算配队', node_max_retry_times=10)
     def check_weakness(self) -> OperationRoundResult:
         if self.current_node_idx in MULTI_ROOM_NODES:
+            result = self.round_by_find_area(self.last_screenshot, '式舆防卫战-三间选择', '确认')
+            if result.is_success:
+                click = self.round_by_click_area('式舆防卫战-三间选择', '确认', success_wait=1)
+                if click.is_success:
+                    return self.round_wait('点击确认', wait=1)
+                return self.round_retry('点击确认失败', wait=1)
+
             # 等待多间模式画面加载
             result = self.round_by_find_area(self.last_screenshot, '式舆防卫战-三间选择', '本期最佳总分')
             if not result.is_success:
@@ -189,8 +196,7 @@ class ShiyuDefenseApp(ZApplication):
                     break
 
             if need_reset:
-                self.round_by_click_area('式舆防卫战-三间选择', '重置全部', success_wait=0.3)
-                self.round_by_click_area('式舆防卫战-三间选择', '确认', success_wait=1)
+                self.round_by_click_area('式舆防卫战-三间选择', '重置全部', success_wait=1)
                 return self.round_retry('已重置', wait=1)
 
             # 多间模式
