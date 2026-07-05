@@ -68,7 +68,6 @@ jobs:
             uv run pytest zzz-od-test/ -v --tb=short --color=yes
           }
         env:
-          PYTHONPATH: src
           PYTHONIOENCODING: utf-8
           PUSH_SERVER_CHAN_PUSH_KEY: ${{ secrets.PUSH_SERVER_CHAN_PUSH_KEY }}
           PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}

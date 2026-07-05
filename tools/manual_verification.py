@@ -8,8 +8,12 @@ from pathlib import Path
 # 添加源代码路径
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
-from zzz_od.application.redemption_code.redemption_code_run_record import RedemptionCodeRunRecord
+from zzz_od.application.redemption_code.redemption_code_config import (
+    RedemptionCodeConfig,
+)
+from zzz_od.application.redemption_code.redemption_code_run_record import (
+    RedemptionCodeRunRecord,
+)
 
 
 def test_config_paths():
