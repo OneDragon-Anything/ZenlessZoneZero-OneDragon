@@ -92,7 +92,11 @@ claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp
 ### LSP（代码导航，pyright）
 项目用 uv 方式 pyright 做 LSP（定义 / 引用 / 符号）；Claude Code 的插件安装见 [claude-code/pyright-lsp.md](claude-code/pyright-lsp.md)。
 
-### Skills / Plugin（待补）
+### Skills
+
+项目有 3 个开发类 skill（`zzz-od-dev-pr-finishing` / `zzz-od-dev-deciding-a-fix` / `zzz-od-dev-skill-guide`），Claude Code 经 `.claude/skills/` junction 自动加载。**团队采用 [superpowers](https://github.com/anthropics/superpowers) 作为开发流程方法论**（brainstorming → 计划 → TDD → review → 合并），本项目 dev skill 是叠加其上的项目特定补充，建议一并安装（`/plugin install superpowers`）。详见 [AI 编码助手接入 §Skills](ai_coding.md#skills)。
+
+### Plugin
 
 后续补充。
 
