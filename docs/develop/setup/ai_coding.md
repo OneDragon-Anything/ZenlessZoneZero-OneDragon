@@ -64,6 +64,10 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 - **推荐**：[context7](https://github.com/upstash/context7) — 查询库文档；已在本项目 `.claude/settings.json` 启用（Claude Code 场景）。
 - **项目自有 MCP（感知/操作 tool 已实现）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏 + 运行态查/停）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001）。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。**工具清单见 [zzz/backend/mcp.md](../zzz/backend/mcp.md)**（不在此列举，避免随实现演进过时）；整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
 
+## 测试仓
+
+测试代码在独立仓 `zzz-od-test/`(`.gitignore`,clone 到项目根目录),不在主仓。Claude Code 的 Grep/Glob 默认尊重 `.gitignore`,**不会自动搜** `zzz-od-test/`——查/改测试须 `Read`/`grep` 显式指定 `zzz-od-test/` 路径。clone 指引见 [quickstart §②](quickstart.md#②-跑测试可选),规范见 [spec/agent_guidelines.md](../spec/agent_guidelines.md#测试代码规范)。
+
 ## LSP
 
 项目用 **uv 方式 pyright** 做 LSP(代码导航:定义 / 引用 / 符号)——不用 Claude Code 官方的全局 pyright(走系统 PATH,解析不到项目 `.venv` 依赖,跟 uv 环境冲突)。pyright 在 dev 组、`[tool.pyright]` 配置(团队共享);Claude Code 的插件安装见 [claude-code/pyright-lsp.md](claude-code/pyright-lsp.md)。
