@@ -599,7 +599,7 @@ class LostVoidRunLevel(ZOperation):
                 self.interact_target = LostVoidInteractTarget(name='未知', icon='感叹号', is_exclamation=True)
             op_result = interact_op.execute()
             if op_result.success:
-                if interact_type is not None:
+                if self.should_record_interact_type_as_visited(interact_type):
                     self.had_been_list.append(interact_type)
 
                 return self.round_wait(op_result.status, wait=2)
@@ -788,6 +788,16 @@ class LostVoidRunLevel(ZOperation):
         获取交互对象在本层内的唯一标识
         """
         return f'{target.icon}:{target.name}'
+
+    @staticmethod
+    def should_record_interact_type_as_visited(interact_type: str | None) -> bool:
+        """
+        判断交互后的类型是否需要加入已访问列表。
+        邦布商店/抽奖机交互完成后不会变成“已处理的入口类型”，
+        继续按类型级忽略会误伤后续同类入口。
+        """
+        return interact_type is not None and interact_type != '邦布商店'
+
 
     def move_after_interact(self) -> None:
         """
