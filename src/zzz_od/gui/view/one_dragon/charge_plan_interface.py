@@ -219,8 +219,6 @@ class ChargePlanCard(DraggableListItem):
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
 
-        self.update_by_history()
-
         self._emit_value()
 
     def _on_mission_type_changed(self, idx: int) -> None:
@@ -229,14 +227,12 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_mission_combo_box()
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_mission_changed(self, idx: int) -> None:
         mission_name = self.mission_combo_box.itemData(idx)
         self.plan.mission_name = mission_name
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_card_num_changed(self, idx: int) -> None:
@@ -275,25 +271,6 @@ class ChargePlanCard(DraggableListItem):
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
 
-    def update_by_history(self) -> None:
-        """
-        根据历史记录更新
-        """
-        history = self.config.get_history_by_uid(self.plan)
-        if history is None:
-            return
-
-        self.plan.card_num = history.card_num
-        self.plan.notorious_hunt_buff_num = history.notorious_hunt_buff_num
-        self.plan.predefined_team_idx = history.predefined_team_idx
-        self.plan.auto_battle_config = history.auto_battle_config
-        self.plan.plan_times = history.plan_times
-
-        self.init_card_num_box()
-        self.init_notorious_hunt_buff_num_opt()
-        self.init_predefined_team_opt()
-        self.init_auto_battle_box()
-        self.init_plan_times_input()
 
 
 class DoubleRewardEventConfigCard(MultiLineSettingCard):
