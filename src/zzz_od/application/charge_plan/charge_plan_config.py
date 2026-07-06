@@ -71,12 +71,11 @@ class ChargePlanItem:
             return 60
         return 0  # 未知类型，在副本内检查
 
-    def to_dict(self, *, include_plan_id: bool = True) -> dict[str, str | int | None]:
+    def to_dict(self) -> dict[str, str | int | None]:
         return {
             item.name: getattr(self, item.name)
             for item in fields(self)
             if item.metadata.get('persist', True)
-            and (include_plan_id or item.name != 'plan_id')
         }
 
     @classmethod
