@@ -1,5 +1,6 @@
 import concurrent.futures
 import contextlib
+import re
 import sys
 import time
 from collections.abc import Callable
@@ -50,12 +51,15 @@ def _run_network_with_timeout(fn: Callable[[], _T], timeout: float, operation_na
     Raises:
         TimeoutError: 操作超时
     """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
         future = executor.submit(fn)
         try:
             return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            raise TimeoutError(f'{operation_name} 超时（{timeout}秒）')
+        except concurrent.futures.TimeoutError as err:
+            raise TimeoutError(f'{operation_name} 超时（{timeout}秒）') from err
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 @dataclass
@@ -86,9 +90,8 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         if not string or not string.strip():
             return
         text = string.strip()
-        # 过滤纯进度百分比行（如 "remote: 20% (100/500)"），
-        # 这些已经有 transfer_progress 负责展示
-        if text.endswith('%') or text.endswith('done.'):
+        # 过滤进度行（含百分比/完成标记），这些由 transfer_progress 负责展示
+        if re.search(r'\d+%', text) or text.endswith('done.'):
             return
         self._progress_callback(0.0, text)
 
