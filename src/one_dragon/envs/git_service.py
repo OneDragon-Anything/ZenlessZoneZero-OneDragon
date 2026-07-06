@@ -82,7 +82,6 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         self._progress_callback: Callable[[float, str], None] = progress_callback
         self._last_message: str | None = None
         self._last_log_at: float | None = None
-        self._first_transfer: bool = True
 
     def sideband_progress(self, string: str) -> None:
         """远端 git 的实时输出（如 "Compressing objects", "Counting objects"）。"""
@@ -99,11 +98,6 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
         received_objects = int(getattr(stats, 'received_objects', 0) or 0)
         received_bytes = int(getattr(stats, 'received_bytes', 0) or 0)
-
-        # 首次收到传输进度时，告知用户已成功建立连接
-        if self._first_transfer:
-            self._first_transfer = False
-            self._progress_callback(0.0, gt('已连接远程仓库，开始接收数据...'))
 
         fetch_message = gt('拉取对象')
         is_final = total_objects > 0 and received_objects >= total_objects
@@ -289,8 +283,6 @@ class GitService:
                     depth = 0
 
             try:
-                if progress_callback is not None:
-                    progress_callback(stage_start, gt('正在连接远程仓库...'))
                 _run_network_with_timeout(
                     lambda d=depth: remote.fetch(refspecs=refspecs, proxy=proxy, depth=d, callbacks=callbacks),
                     timeout=GIT_FETCH_TIMEOUT,
