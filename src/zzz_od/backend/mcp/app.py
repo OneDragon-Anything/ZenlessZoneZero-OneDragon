@@ -21,6 +21,12 @@ from mcp.server.fastmcp import FastMCP
 
 from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext, _save_screenshot
+from zzz_od.backend.mcp.prompts import register_prompt_tools, register_prompts
+from zzz_od.backend.mcp.service_app import (
+    make_list_applications,
+    make_run_one_dragon,
+    make_run_standalone_app,
+)
 from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult
 
 if TYPE_CHECKING:
@@ -93,7 +99,7 @@ def make_stop_run(backend: ZzzBackendContext) -> Callable[[], dict]:
 
 
 def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastMCP:
-    """创建 MCP 服务器并注册 game 工具。
+    """创建 MCP 服务器并注册 game 工具与 prompt。
 
     通过闭包将 ``backend`` 注入到各工具函数中，使工具调用最终落到 backend 的
     game 切片方法（``check_window``/``capture``/``analyze``）；运行类操作
@@ -257,7 +263,12 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             return {'success': False, 'method': None, 'masked_text': None, 'error': str(e)}
 
     mcp.tool()(make_open_game(backend))
+    mcp.tool()(make_run_one_dragon(backend))
+    mcp.tool()(make_run_standalone_app(backend))
+    mcp.tool()(make_list_applications(backend))
     mcp.tool()(make_get_run_status(backend))
     mcp.tool()(make_stop_run(backend))
+    register_prompts(mcp)
+    register_prompt_tools(mcp)
 
     return mcp

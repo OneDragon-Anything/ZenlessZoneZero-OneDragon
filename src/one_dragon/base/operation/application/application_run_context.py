@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon.base.operation.operation_base import OperationResult
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -79,10 +80,12 @@ class ApplicationRunContext:
         self.default_group_apps: list = []  # 默认应用组的应用ID列表
 
         # 当前运行的应用
-        self.current_app_id: Optional[str] = None
-        self.current_instance_idx: Optional[int] = None
-        self.current_group_id: Optional[str] = None
-        self.current_application: Optional[Application] = None
+        self.current_app_id: str | None = None
+        self.current_instance_idx: int | None = None
+        self.current_group_id: str | None = None
+        self.current_application: Application | None = None
+        # 同步运行应用的最近一次结果，供 backend 运行槽固化终态使用。
+        self.last_application_result: OperationResult | None = None
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
@@ -118,6 +121,16 @@ class ApplicationRunContext:
         """
         self._application_factory_map.clear()
         self.default_group_apps.clear()
+
+    def clear_application_cache(self) -> None:
+        """清理已注册应用工厂缓存的配置和运行记录。
+
+        外置 backend server 与 GUI 是不同进程；GUI 保存 YAML 后，本进程内
+        已缓存的 ApplicationConfig / AppRunRecord 不会自动刷新，运行前通过
+        这里清理缓存，让后续读取落到最新配置。
+        """
+        for factory in self._application_factory_map.values():
+            factory.clear_cache()
 
     @property
     def notify_app_map(self) -> dict[str, str]:
@@ -201,9 +214,9 @@ class ApplicationRunContext:
 
     def get_config(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
-        group_id: Optional[str] = None,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+        group_id: str | None = None,
     ) -> CONFIG:
         """
         获取配置实例。
@@ -239,8 +252,8 @@ class ApplicationRunContext:
 
     def get_run_record(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
     ) -> RECORD:
         """
         获取运行记录实例。
@@ -394,6 +407,8 @@ class ApplicationRunContext:
         Returns:
             bool: 是否成功启动运行（不关心运行结果）
         """
+        # 每次启动前清空旧结果，避免启动失败时被上一轮结果误判。
+        self.last_application_result = None
         start_time = time.time()
         while not self.ctx.ready_for_application:
             now = time.time()
@@ -422,8 +437,10 @@ class ApplicationRunContext:
             self.current_application = app
 
             op_result = app.execute()
+            # run_application 的布尔返回值只表示是否成功启动；详细执行结果由这里保留。
+            self.last_application_result = op_result
         except Exception:
-            log.error("运行应用 {} 失败", app_id)
+            log.error("运行应用 {} 失败", app_id, exc_info=True)
         finally:
             self.stop_running()
             self.current_app_id = None
@@ -472,7 +489,7 @@ class ApplicationRunContext:
         Args:
             instance_idx: 账号实例下标
         """
-        for app_id in self._application_factory_map.keys():
+        for app_id in self._application_factory_map:
             try:
                 run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
                 run_record.check_and_update_status()

@@ -92,3 +92,31 @@ class RunStatusResult:
     retry_count: int | None = None
     last_status: str | None = None
     failed_node: str | None = None
+
+
+@dataclass
+class ApplicationInfo:
+    """可通过 backend 触发运行的应用信息。
+
+    字段同时描述「一条龙组里是否启用」和「独立应用列表里是否出现」，
+    这样 MCP/HTTP 客户端能区分完整一条龙运行与单个应用运行。
+    """
+
+    app_id: str
+    app_name: str
+    enabled_in_one_dragon: bool = False
+    in_standalone_list: bool = False
+    is_active_standalone: bool = False
+
+
+@dataclass
+class ApplicationListResult:
+    """应用运行配置概览。
+
+    用于 ``list_applications`` / ``GET /game/applications`` 返回当前实例下
+    可运行应用、GUI 当前选中的独立应用，以及各应用在不同运行模式中的状态。
+    """
+
+    current_instance_idx: int
+    active_standalone_app_id: str | None
+    applications: list[ApplicationInfo]
