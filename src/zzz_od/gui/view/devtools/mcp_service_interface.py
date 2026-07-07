@@ -44,6 +44,7 @@ LOG_TAIL_MAX_LINES = 30
 STATUS_POLL_INTERVAL_MS = 5000
 LOG_POLL_INTERVAL_MS = 5000
 MESSAGE_MAX_BLOCKS = 300
+RUNNER_WAIT_TIMEOUT_MS = 5000
 NOISY_ACCESS_LOG_PARTS = (
     '"GET /health HTTP/1.1" 200 OK',
     '"GET /game/status HTTP/1.1" 200 OK',
@@ -335,6 +336,14 @@ class McpServiceInterface(VerticalScrollInterface):
         super().on_interface_hidden()
         self._status_timer.stop()
         self._log_timer.stop()
+        self._wait_runner_finished()
+
+    def _wait_runner_finished(self) -> None:
+        """等待正在执行的服务操作线程退出，避免页面销毁时线程仍在运行。"""
+        if self._runner is None or not self._runner.isRunning():
+            return
+        if not self._runner.wait(RUNNER_WAIT_TIMEOUT_MS):
+            self._append_message('MCP 服务操作仍在执行，将在后台继续完成')
 
     def _port(self) -> int:
         """读取端口输入框；非法输入时回退默认端口。"""

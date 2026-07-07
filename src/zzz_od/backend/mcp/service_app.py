@@ -89,9 +89,12 @@ def make_run_standalone_app(backend: ZzzBackendContext) -> Callable:
     return run_standalone_app
 
 
-def make_list_applications(backend: ZzzBackendContext) -> Callable[[], ApplicationListResult]:
+def make_list_applications(backend: ZzzBackendContext) -> Callable[[], ApplicationListResult | dict]:
     """构造 ``list_applications`` tool。"""
-    def list_applications() -> ApplicationListResult:
+    def list_applications() -> ApplicationListResult | dict:
         """列出当前实例可运行应用、独立应用列表和当前选中项(无副作用)。"""
-        return backend.list_applications()
+        try:
+            return backend.list_applications()
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'error': str(e)}
     return list_applications
