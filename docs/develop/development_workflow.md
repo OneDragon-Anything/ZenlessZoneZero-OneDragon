@@ -41,7 +41,7 @@
 
 1. 测试仓改动先提交、推送、开 PR(`git -C zzz-od-test`),拿到测试仓 PR 链接。
 2. 主仓开 PR,**描述里带上测试仓 PR 链接**(reviewer 可跳转看测试改动);主仓与测试仓用**同分支名**(CI 按分支名 clone 测试仓)。
-3. assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review(逐条回复 / 修正、清 unresolved thread、处理 CodeRabbit)。
+3. assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review(逐条回复 / 修正、清 unresolved thread、处理 CodeRabbit);**关联 PR 一起收尾、合并顺序(测试仓先)见该 skill §6**。
 
 ### 5. 配套产出(按需)
 
