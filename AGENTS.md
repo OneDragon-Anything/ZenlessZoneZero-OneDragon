@@ -14,7 +14,7 @@
 - 语言与环境：Python 3.11、uv、PySide6。
 - 代码布局：`src-layout`，源码在 `src/`，运行时配置在 `config/`，资源在 `assets/`，开发文档在 `docs/develop/`。
 - 运行基准：1080p；配置以 YAML 为主。
-- 所有测试统一在独立仓 `zzz-od-test/test/`(`.gitignore`,须 clone 到仓库根目录才能读/改;clone 见 [quickstart §②](docs/develop/setup/quickstart.md),测试规范见 [agent_guidelines](docs/develop/spec/agent_guidelines.md))。主仓不保留测试。AI 查测试用 `Read`/`grep` 显式指定 `zzz-od-test/`(默认搜索会跳过 .gitignore)。
+- 所有测试统一在独立仓 `zzz-od-test/test/`(`.gitignore`,须 clone 到仓库根目录才能读/改;clone 见 [quickstart §②](docs/develop/setup/quickstart.md),测试规范见 [testing/](docs/develop/testing/README.md))。主仓不保留测试。AI 查测试用 `Read`/`grep` 显式指定 `zzz-od-test/`(默认搜索会跳过 .gitignore)。
 
 ## 常用命令
 
@@ -67,6 +67,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 ## 文档与测试要求
 
 - 修改代码后，同步更新对应的 `docs/develop/` 文档与 `zzz-od-test/` 测试。
+- 测试方法论（测试基建 / FixtureController 流程测试 / 画面截图存档）见 [docs/develop/testing/](docs/develop/testing/README.md)。
 - 若测试依赖截图或环境变量，按 [docs/develop/README.md](docs/develop/README.md) 中说明准备 `.env` 与测试仓。
 - 提交前至少验证自己改动直接影响的部分；若无法本地完成，要明确说明缺失前提。
 - 复杂功能、架构调整或新自动化流程，先补设计/说明文档，再继续实现。
