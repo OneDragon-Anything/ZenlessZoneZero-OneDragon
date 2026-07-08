@@ -1,6 +1,6 @@
 ---
-name: agent-definition
-description: 角色模板配置指南 - 在一条龙中新增可自动战斗角色所需的 Agent 定义、头像模板、状态模板与自动战斗配置
+name: zzz-od-dev-character
+description: 绝区零一条龙新增可自动战斗角色指南，覆盖 Agent 定义、头像模板、状态模板与自动战斗配置
 version: 1.1.0
 author: OneDragon-Anything
 tags: [zzz, agent, character, auto-battle, development]
