@@ -60,5 +60,5 @@ git -C zzz-od-test add test/... && git -C zzz-od-test commit -m "..."
 
 - **能压**:整屏画面匹配 / 事件识别(`test_get_match_screen_name`、hollow_zero 事件等,容差大)。
 - **保留 PNG**:精度敏感(小地图角度,如 `test_cal_angle` 文件名=期望角度)、含细文字 OCR(webp q90 致 OCR 空,如 `ridu_weekly_app/100`)。
-- **转换**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(中文路径安全,非 `cv2.imwrite`);批量见 [onboard skill 的 `convert_to_webp.py`](../../../skills/zzz-od-dev-screen-onboarding/convert_to_webp.py)。
+- **转换**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(中文路径安全,非 `cv2.imwrite`);批量见 [onboard skill 的 `convert_to_webp.py`](../../../skills/zzz-od-dev-screen-onboarding/convert_to_webp.py)(默认保留原 PNG,确认无引用且测试过后再删,或转时加 `--delete`)。
 - **改引用**:转后同步改测试代码 `.png`→`.webp`(保留 PNG 的不改)。
