@@ -31,6 +31,7 @@ description: 当用户要把已开的 PR 推到「完善可合并」、处理 PR
   若**未暂停**却没自动触发(罕见,如 check run 未建、或 `gh pr checks` 里那条 `Review completed` 是**旧 commit** 的),才走手动 `review` 兜底。**确保有 review**:done criteria 要求 review 完成,别空等。
 - **review 完成了吗?**(增量无建议时 API 无痕):查 CodeRabbit 最近的 ack issue comment —— `gh pr view <PR> --json comments --jq '.comments | map(select(.author.login=="coderabbitai")) | last | .body'`,body 含 `Review finished`(在 `✅ Action performed` 的 `<details>` 里)即这轮完成。⚠️ 若 body 是 `Review triggered` —— review 还在进行,**别当完成**:CodeRabbit 完成后会**编辑同一条** comment 为 `Review finished`(不另发新 comment),等几分钟再查。
 - ⚠️ **outside-diff comment(GitHub 平台限制)**:GitHub 不允许在 diff 外的行 post inline review comment,CodeRabbit 把这类 comment 放在 **review body 的「Outside diff range comments」折叠 `<details>`** 里 —— **不在 reviewThreads、不计入 unresolved**,易漏。摸现状时也要展开 review body 折叠区看,逐条处理(走流程 2,但它无法 reply 到行,用 issue comment 回复)。
+- ⚠️ **rate limit(per-developer 配额)**:push 不自动 review 且 issue comment 含「Review limit reached」+「Next review available in <时长>」—— 配额达,这轮**不 review**(只 post warning)。查:`gh pr view <PR> --json comments --jq '.comments[]|select(.body|test("Review limit reached"))'`。等指定时长后 `@coderabbitai review` 重试;频繁触发考虑开 usage-based 或暂停增量 auto-review。**和 auto-pause 区别**:rate limit 是**组织级 per-developer 配额**(等时间恢复);auto-pause 是**频繁 commit 暂停**(`resume` 恢复)。
 
 > ⏰ **时区**:GitHub API 返回的时间是 UTC(`Z` 后缀),显示给用户前转本地(维护者 UTC+8 → +8 小时,如 `03:46Z` → `11:46`),别直接甩 UTC 串让人困惑。
 
