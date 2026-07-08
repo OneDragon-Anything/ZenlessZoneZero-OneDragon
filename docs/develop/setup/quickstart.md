@@ -86,12 +86,17 @@ $env:PYTHONPATH = "src"; uv run src/zzz_od/gui/app.py
 
 测试代码在独立仓 `zzz-od-test`，clone 到**本项目根目录**下：
 
-```powershell
-# 组织/项目成员
-git clone https://github.com/OneDragon-Anything/zzz-od-test.git zzz-od-test
-# 外部贡献者：先在 GitHub fork，再 clone 你的 fork（<你的账号> 替换为 GitHub 用户名）
-git clone https://github.com/<你的账号>/zzz-od-test.git zzz-od-test
-```
+- **组织/项目成员**：
+
+  ```powershell
+  git clone https://github.com/OneDragon-Anything/zzz-od-test.git zzz-od-test
+  ```
+
+- **外部贡献者**（先在 GitHub fork，再 clone 你的 fork，`<你的账号>` 替换为 GitHub 用户名）：
+
+  ```powershell
+  git clone https://github.com/<你的账号>/zzz-od-test.git zzz-od-test
+  ```
 
 IDE 里把 `zzz-od-test/` 设为 `Test Sources Root`；运行方式（含所需环境变量）见 [开发指南 §1.3](../README.md)。测试改动随主仓 PR 同分支名一起提（CI 按分支名匹配 clone 测试仓），详见 [相关仓库](repositories.md)。
 
