@@ -15,6 +15,7 @@
 - 代码布局：`src-layout`，源码在 `src/`，运行时配置在 `config/`，资源在 `assets/`，开发文档在 `docs/develop/`。
 - 运行基准：1080p；配置以 YAML 为主。
 - 所有测试统一在独立仓 `zzz-od-test/test/`(`.gitignore`,须 clone 到仓库根目录才能读/改;clone 见 [quickstart §②](docs/develop/setup/quickstart.md),测试规范见 [testing/](docs/develop/testing/README.md))。主仓不保留测试。AI 查测试用 `Read`/`grep` 显式指定 `zzz-od-test/`(默认搜索会跳过 .gitignore)。
+- 相关仓库全貌(测试仓 / yolo 训练仓 / 数据集 / 官网 blog)见 [相关仓库](docs/develop/setup/repositories.md);外部贡献者需 fork 后开发。
 
 ## 常用命令
 
@@ -51,6 +52,16 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - 这里的 `Operation` 指框架里的基础操作单元；文档里提到的“流转 / flow”是由这些 `Operation` 节点组成的执行链。
 - 操作链基于 `ZOperation` / `Operation` 编排；状态流转沿用现有 round 系列接口与节点声明方式。
 - GPU/onnx session 的异步调用必须通过 `gpu_executor.submit`，不要并发直调多个 session。
+
+## 开发流程（端到端）
+
+游戏自动化功能的开发链路(bug 修复 / 性能 / UI 等其他类型后续补充,详细判据见 [development_workflow.md](docs/develop/development_workflow.md)):
+
+1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。
+2. **开发**:做成 `Application`(`ApplicationFactory` 接入)+ `Operation`,复用现有配置 / 界面模式(架构细则见上方「功能开发优先路径」)。
+3. **测试**:用留档截图在测试仓补流程测试(见 [testing/](docs/develop/testing/))。
+4. **提 PR**:assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review / resolve。
+5. **配套(按需)**:模型 → [yolo/dataset 仓](docs/develop/setup/repositories.md);使用说明 → blog(**用户可见变化**才更新)。
 
 ## 开发硬约束
 

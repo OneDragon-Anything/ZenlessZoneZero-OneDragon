@@ -76,7 +76,7 @@ __ZenlessZoneZero-OneDragon__
 ![Contributors](https://contrib.rocks/image?repo=DoctorReid/ZenlessZoneZero-OneDragon&columns=12)
 
 是你们的参与共同构建了这个项目，让这个项目越来越好♡
-如果想要参与开发，可以参考 [一条龙官网](https://onedragon-anything.github.io/) 对应的开发指南，我们期待你的加入
+如果想要参与开发，欢迎查看 [贡献者招募](../docs/develop/RECRUITING.md)（技术栈 / 参与方式 / 成长故事），并按 [快速开始](../docs/develop/setup/quickstart.md) 把项目跑起来，期待你的加入 ✨
 
 </div>
 

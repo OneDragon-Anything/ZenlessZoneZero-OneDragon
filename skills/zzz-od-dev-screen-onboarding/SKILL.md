@@ -3,7 +3,7 @@ name: zzz-od-dev-screen-onboarding
 description: 当拿到一张游戏截图、需要分析它并纳入游戏知识库(docs/game)+ screen_info(建档 + 建模其可交互元素)+ 归档代表截图时用。
 ---
 
-# 画面入职(analyze → 建档 → 建模)
+# 画面建档(analyze → 建档 → 建模)
 
 拿到截图后按「客观识别 → 主观理解 → 建档 → 缺口分析 → 主动建模」推进。每步给判据。
 
