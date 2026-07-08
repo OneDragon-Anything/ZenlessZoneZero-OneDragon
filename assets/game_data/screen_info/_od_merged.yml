@@ -2477,11 +2477,11 @@
   - area_name: 标题-驱动盘拆解
     id_mark: true
     pc_rect:
-    - 184
-    - 4
-    - 326
-    - 102
-    text: 驱动盘拆解
+    - 168
+    - 17
+    - 432
+    - 92
+    text: 驱动
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -2491,10 +2491,10 @@
   - area_name: 按钮-快速选择
     id_mark: true
     pc_rect:
-    - 166
-    - 1000
-    - 342
-    - 1054
+    - 134
+    - 968
+    - 407
+    - 1068
     text: 快速选择
     lcs_percent: 0.5
     template_sub_dir: ''
