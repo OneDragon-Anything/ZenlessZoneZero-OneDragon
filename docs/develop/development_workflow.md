@@ -10,7 +10,7 @@
 
 ## 游戏自动化功能
 
-以 **OpenAndEnterGame(打开并进入游戏)** 为实例。
+以 **OpenAndEnterGame(打开并登录游戏)** 为实例。
 
 ### 1. 画面建档(涉及新画面 / 交互时)
 
@@ -27,7 +27,7 @@
 
 做成 `Application`(放 `src/zzz_od/application/`,经 `ApplicationFactory` 接入)+ `Operation` 节点编排 flow;复用现有配置体系(YAML / `YamlConfig`)与界面(setting card / `YamlConfigAdapter`)。架构细则见 AGENTS.md「功能开发优先路径」。
 
-> OpenAndEnterGame 实例:`OpenAndEnterGame` Application 编排 `OpenGame` + `EnterGame` Operation;`OpenGame` 涉及注册表 / 进程,详见 [zzz/enter_game.md](zzz/enter_game.md)。
+> OpenAndEnterGame 实例:`OpenAndEnterGame` 是一个编排 `OpenGame` + `EnterGame` 的 **Operation**(被 app 调用进入游戏);`OpenGame` 负责启动游戏进程(及相关系统设置),`EnterGame` 负责屏幕驱动,详见 [zzz/enter_game.md](zzz/enter_game.md)。
 
 ### 3. 测试
 
