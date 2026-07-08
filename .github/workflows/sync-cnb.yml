@@ -2,7 +2,7 @@ name: Sync to CNB
 
 on:
   push:
-    branches: [main]
+    branches: [main, test]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -24,4 +24,4 @@ jobs:
           CNB_TOKEN: ${{ secrets.CNB_GIT_TOKEN }}
         run: |
           git remote add cnb "https://cnb:${CNB_TOKEN}@cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
-          git push cnb "${GITHUB_REF}:${GITHUB_REF}"
+          git push -f cnb "${GITHUB_REF}:${GITHUB_REF}"

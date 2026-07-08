@@ -13,12 +13,31 @@
 
 ## ① 跑起来（核心）
 
-### 1. clone 主仓
+### 1. 获取代码
 
-```powershell
-git clone https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git
-cd ZenlessZoneZero-OneDragon
-```
+- **组织/项目成员**（有主仓 push 权）：直接 clone
+
+  ```powershell
+  git clone https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git
+  cd ZenlessZoneZero-OneDragon
+  ```
+
+- **外部贡献者**（无 push 权）：先 Fork 再 clone 自己的 fork，提 PR 回主仓
+
+  1. 在 [仓库页面](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon) 右上角点 **Fork**，fork 到自己账号下。
+  2. clone **你 fork 的仓库**（`<你的账号>` 换成 GitHub 用户名）：
+
+     ```powershell
+     git clone https://github.com/<你的账号>/ZenlessZoneZero-OneDragon.git
+     cd ZenlessZoneZero-OneDragon
+     ```
+  3. （可选）配 upstream remote，方便后续同步主仓更新（clone 只会设 `origin`，upstream 需手动加）：
+
+     ```powershell
+     git remote add upstream https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git
+     ```
+
+> 其余相关仓库（测试仓 / yolo 训练仓 / 数据集 / 官网 blog）见 [相关仓库](repositories.md)。
 
 ### 2. 安装 uv
 
@@ -67,11 +86,19 @@ $env:PYTHONPATH = "src"; uv run src/zzz_od/gui/app.py
 
 测试代码在独立仓 `zzz-od-test`，clone 到**本项目根目录**下：
 
-```powershell
-git clone https://github.com/OneDragon-Anything/zzz-od-test.git zzz-od-test
-```
+- **组织/项目成员**：
 
-IDE 里把 `zzz-od-test/` 设为 `Test Sources Root`；运行方式（含所需环境变量）见 [开发指南 §1.3](../README.md)。
+  ```powershell
+  git clone https://github.com/OneDragon-Anything/zzz-od-test.git zzz-od-test
+  ```
+
+- **外部贡献者**（先在 GitHub fork，再 clone 你的 fork，`<你的账号>` 替换为 GitHub 用户名）：
+
+  ```powershell
+  git clone https://github.com/<你的账号>/zzz-od-test.git zzz-od-test
+  ```
+
+IDE 里把 `zzz-od-test/` 设为 `Test Sources Root`；运行方式（含所需环境变量）见 [开发指南 §1.3](../README.md)。测试改动随主仓 PR 同分支名一起提（CI 按分支名匹配 clone 测试仓），详见 [相关仓库](repositories.md)。
 
 ## ③ 配 AI 工具（可选）
 
@@ -94,7 +121,9 @@ claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp
 
 ### Skills
 
-项目有 3 个开发类 skill（`zzz-od-dev-pr-finishing` / `zzz-od-dev-deciding-a-fix` / `zzz-od-dev-skill-guide`），Claude Code 经 `.claude/skills/` junction 自动加载。**团队采用 [superpowers](https://github.com/anthropics/superpowers) 作为开发流程方法论**（brainstorming → 计划 → TDD → review → 合并），本项目 dev skill 是叠加其上的项目特定补充，建议一并安装（`/plugin install superpowers`）。详见 [AI 编码助手接入 §Skills](ai_coding.md#skills)。
+项目有开发类 skill（`zzz-od-dev-*`），Claude Code 经 `.claude/skills/` junction 自动加载；叠加在团队采用的 [superpowers](https://github.com/anthropics/superpowers) 开发流程方法论之上（brainstorming → 计划 → TDD → review → 合并）。建议一并安装：`/plugin install superpowers`。
+
+- **现有 skill 见 [`skills/` 目录](../../../skills/)**（每个 SKILL.md 的 frontmatter 有触发描述）；分类与命名规范见 [AI 编码助手接入 §Skills](ai_coding.md#skills)。
 
 ### Plugin
 
