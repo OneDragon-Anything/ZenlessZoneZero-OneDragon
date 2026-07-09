@@ -1860,26 +1860,32 @@
 - category: "无详情"
   name: "蜜瓜"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "保养佩刀"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "记住毕业照上同学的名字"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "天琴座"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "简约低调"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "速度与亲情"
   level: "S"
+  is_answer_fallback: true
 
 - category: "无详情"
   name: "回答正确"
