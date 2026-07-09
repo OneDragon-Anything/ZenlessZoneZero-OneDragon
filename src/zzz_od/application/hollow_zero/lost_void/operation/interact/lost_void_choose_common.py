@@ -216,7 +216,7 @@ class LostVoidChooseCommon(ZOperation):
 
             answer_fallback_list = self.sort_candidates([
                 i for i in can_choose_list
-                if i.can_choose and i.artifact.category == '无详情' and i.artifact.is_answer_fallback
+                if i.can_choose and i.artifact.category == '无详情'
             ])
             candidate_text = ', '.join([i.artifact.display_name for i in answer_fallback_list]) if len(answer_fallback_list) > 0 else '无'
             log.info(
