@@ -9,6 +9,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
+from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.map_transport import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -33,7 +34,6 @@ class BackToNormalWorld(ZOperation):
 
     def handle_init(self) -> None:
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
-        self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.prefer_dialog_confirm: bool = False  # 第一次优先取消，后续确认/取消轮流点击
 
     @node_from(from_name='打开地图', success=False)
@@ -75,15 +75,13 @@ class BackToNormalWorld(ZOperation):
 
 
         # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
-        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
+        # 交给 ExitInBattle 完成「点退出战斗 → 等确认框出现 → 点确认 → 等确认框消失」的闭环，
+        # 避免原来在本节点内直接点击时，因点击未生效而反复识别到同一「按钮-退出战斗」直到 60 次重试耗尽失败
+        # （复现：副本战斗失败/撤退后返回大世界，画面停在战斗菜单，'按钮-退出战斗' 被反复点击但确认框始终未处理）
+        result = self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
         if result.is_success:
-            self.click_exit_battle = True
+            ExitInBattle(self.ctx).execute()
             return self.round_retry(result.status, wait=1)
-        if self.click_exit_battle:  # 必须置前，因为会被通用的"取消"误判
-            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗-确认')
-            if result.is_success:
-                return self.round_retry(result.status, wait=1)
-        self.click_exit_battle = False
 
         # 战斗菜单-脱离卡死（大世界-勘域不慎进入战斗状态时使用）
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死')
