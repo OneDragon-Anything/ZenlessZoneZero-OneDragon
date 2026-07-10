@@ -1,4 +1,5 @@
-agent_name: "苍角"
-agent_type: "SUPPORT"
-dmg_type: "ICE"
-rare_type: "A"
+agent_name: 苍角
+agent_type: SUPPORT
+dmg_type: ICE
+rare_type: A
+code: soukaku
