@@ -120,3 +120,53 @@ class ApplicationListResult:
     current_instance_idx: int
     active_standalone_app_id: str | None
     applications: list[ApplicationInfo]
+
+
+@dataclass
+class OperationParam:
+    """自定义 operation 的单个参数(纯反射得到,不实例化类)。
+
+    Attributes:
+        name: 参数名(已剔除 self/ctx)。
+        annotation: 类型注解的可读字符串(如 ``str``、``ChargePlanItem``、``int``)。
+        required: 是否必填(无默认值)。
+        default: 默认值的字符串表示;必填参数为 None。
+        json_serializable: 该参数类型是否可经 JSON 标量/列表/字典传入
+            (str/int/float/bool/list/dict/Optional → True;自定义数据类 → False)。
+    """
+
+    name: str
+    annotation: str
+    required: bool
+    default: str | None = None
+    json_serializable: bool = True
+
+
+@dataclass
+class OperationInfo:
+    """单个 operation 的反射信息。
+
+    Attributes:
+        op_id: 定位标识,``<dotted module path>.<ClassName>``。
+        class_name: 类名。
+        module: 定义模块的 dotted path。
+        params: ``__init__`` 参数 schema(已剔除 self/ctx)。
+    """
+
+    op_id: str
+    class_name: str
+    module: str
+    params: list[OperationParam] = field(default_factory=list)
+
+
+@dataclass
+class OperationListResult:
+    """operation 扫描结果。
+
+    Attributes:
+        operations: 通过三重过滤的可运行 operation 信息列表。
+        failures: 单模块 import 失败记录(``{module}: {error}`` 格式),扫描不中断。
+    """
+
+    operations: list[OperationInfo] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)
