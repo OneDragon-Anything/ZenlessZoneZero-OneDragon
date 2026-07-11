@@ -4,19 +4,24 @@
 
 ## 工具
 
-14 个 `@mcp.tool`，各自委托一个 backend 方法：
+19 个 `@mcp.tool`，多数委托一个 backend 方法；自定义 op 工具另走 `operation_registry` + `run_slot._start`：
 
 | MCP tool | 委托 | 返回 |
 |---|---|---|
 | `check_game_window` | `backend.check_window()` | 状态文本（`str`） |
 | `capture_game_screen` | `backend.capture()` | 截图绝对路径（落盘 `.debug/zzz_od_mcp/screenshot/`） |
 | `analyze_screen(screenshot=None, save_image=False)` | `backend.analyze()` | `AnalyzeScreenResult`（结构化 JSON；实时 + `save_image=True` 多回传 `screenshot_path`） |
+| `upsert_screen_area(screen_name, area_name, pc_rect, ...)` | `backend.upsert_screen_area()` | `{success, action(inserted/updated), area_count, error}`（写 yml + reload） |
+| `delete_screen_area(screen_name, area_name)` | `backend.delete_screen_area()` | `{success, action(deleted), area_count, error}`（写 yml + reload） |
 | `open_game(enter=True, block=True)` | `backend.start_run('mcp', op_factory)`（`enter=False`→`OpenGame`，`enter=True`→`OpenAndEnterGame`） | `block=True`：结果文本；`block=False`：已启动 JSON；并发拒绝时返错误 JSON |
 | `click_game(x, y, press_time=0)` | `backend.click_game()` | `{success, x, y, in_window}`（坐标不在窗口内 → `in_window=False`） |
 | `input_text(text, use_clipboard=None)` | `backend.input_text()` | `{success, method, masked_text}`（`use_clipboard=None` 跟 `game_config.type_input_way`） |
-| `list_applications` | `backend.list_applications()` | 当前实例可运行应用、独立应用列表和当前选中项 |
+| `list_applications` | `backend.list_applications()` | 当前实例可运行应用、独立应用列表和当前选中项（只读，不刷新配置） |
 | `run_one_dragon(block=False)` | `backend.run_one_dragon('mcp')` | 默认立刻返回启动状态；`block=True` 等待一条龙结束 |
 | `run_standalone_app(app_id=None, block=False)` | `backend.run_standalone_app('mcp', app_id)` | `app_id=None` 时使用 GUI「应用运行」当前选中项 |
+| `list_operations` | `operation_registry.scan_operations(ctx)` | 可运行自定义 op 列表（`op_id` + 参数 schema，纯反射不实例化） |
+| `describe_operation(op_id)` | `operation_registry.describe_operation(ctx, op_id)` | 单个 op 参数 schema（每个参数标 `json_serializable` + 整体 `debuggable`） |
+| `run_operation(op_id, args=None, block=False)` | `operation_registry` 校验 + `run_slot._start`（op 路径） | 默认立刻返回；`block=True` 等结束；非 Operation / 缺参 / 复杂数据类 / 并发拒绝返错误 JSON |
 | `get_run_status` | `backend.query_status()` | `RunStatusResult`（运行中返当前节点/重试；终态返结果/失败定位） |
 | `stop_run` | `backend.stop()` | `{"stopped": bool, ...}`（仅表信号已发出，过渡期 `get_run_status` 仍显示 running） |
 | `close_game` | `backend.close_game()` | 文本（`str`，已发送关闭信号；controller 吞异常，用 `check_game_window` 验证） |
@@ -25,14 +30,14 @@
 
 要点：
 
-- `app.py` 放 MCP server 创建、基础 game tool 和总注册入口；`service_app.py` 放应用运行 tool 工厂。
+- `app.py` 放 MCP server 创建、基础 game tool 和总注册入口；`service_app.py` 放应用运行 tool 与自定义 op tool 工厂。
 - backend 实例通过闭包注入 tool，不使用全局单例，也不让 FastMCP lifespan 管 backend 生命周期。
 - `capture_game_screen` 落盘返回路径；`analyze_screen` 返回结构化 dataclass，由 FastMCP 序列化。
 - `analyze_screen(save_image=True)`（实时模式）把已截的内存图顺手存盘 + 回传 `screenshot_path`，供调用方喂 vision double-check；默认 `false` 不落盘，离线模式忽略。
-- 长耗时 operation（`open_game`）经 `RunSlot` 派发：`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。
-- `run_one_dragon` 和 `run_standalone_app` 经 `ApplicationRunSlot` 复用 `run_context.run_application`，避免复制 GUI 应用运行路径。
-- 应用运行 tool 启动前会让 backend 刷新当前进程内的 YAML 配置缓存，尽量对齐 GUI 已保存设置。
-- `get_run_status` / `stop_run` 是统一入口：无论最近一次运行来自进游戏 operation 还是应用运行，都通过同一组工具查询和停止。
+- 所有运行（`open_game` / 一条龙 / 独立应用 / 自定义 op）经**同一个 `RunSlot`** 派发：op 路径（`open_game` / `run_operation`）槽自管 `start_running/execute/stop_running`，app 路径（`run_one_dragon` / `run_standalone_app`）委托 `run_application`（复用 GUI/CLI 共享入口）。`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。
+- `run_operation` 是**通用 operation 运行入口**（不框死为调试）：`op_id` 格式 `<dotted module path>.<ClassName>`（可从 `list_operations` 获取）；`args` 传构造参数，以 `cls(ctx, **args)` 烤进闭包——仅限 JSON 可序列化标量/列表/字典，复杂数据类参数（`ChargePlanItem` 等）拒绝并提示走 application；先用 `describe_operation` 看参数 schema。
+- 配置刷新：app 路径在 `run_application` 前（槽线程内、`_start` 已赢锁后）刷新当前进程的 YAML 配置缓存，对齐 GUI 已保存设置；`list_applications` 与 `list_operations` 是只读路径，不刷新。
+- `get_run_status` / `stop_run` 是统一入口：无论最近一次运行来自 op 路径还是 app 路径，都通过同一组工具查询和停止。
 - 单进程内已有运行时会返回并发拒绝，避免同一个 backend 内重复操作游戏资源。
 - MCP tool 不返回运行日志正文；客户端需要用 `get_run_status` 轮询是否完成，GUI 服务页负责展示日志。
 - `close_game` / `click_game` / `input_text` 是独立同步操作，不走运行槽；`click_game` 使用 1080p 游戏空间坐标。

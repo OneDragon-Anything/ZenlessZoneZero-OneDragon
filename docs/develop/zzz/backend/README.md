@@ -20,8 +20,7 @@ flowchart LR
     CLI["uv run ... server"] --> Entry
     Entry --> Backend["ZzzBackendContext"]
     Backend --> ZContext["ZContext"]
-    Backend --> BasicSlot["RunSlot<br/>operation 运行"]
-    Backend --> AppSlot["ApplicationRunSlot<br/>一条龙/独立应用"]
+    Backend --> RunSlot["RunSlot（单跑道）<br/>app 路径委托 run_application / op 路径自管生命周期"]
     Backend --> Schemas["schemas.py"]
     Backend --> MCP["mcp/app.py<br/>mcp/service_app.py"]
     Backend --> HTTP["http/routes.py<br/>http/service_routes.py"]
@@ -33,7 +32,8 @@ flowchart LR
 
 - 游戏感知与操作：窗口状态、截图、画面分析、进游戏、关闭游戏。
 - 应用运行：列出应用、一条龙运行、独立应用运行。
-- 统一状态：`query_status` / `stop` 同时覆盖 operation 与 application 运行。
+- 自定义 operation 运行：`list_operations` / `describe_operation` / `run_operation`，按 `op_id` 定位运行任意 operation（调试定位 + 未来 agent 自由组合 op）。
+- 统一状态：`query_status` / `stop` 覆盖 app 路径与 op 路径两类后台运行（单槽 `RunSlot`）。
 - 对外协议：MCP streamable-http、MCP prompts 与 HTTP `/game/*` / `/health`。
 - GUI 辅助：开发工具中的「MCP 服务」页可探测、启动、停止、重启本机 server，显示当前运行状态、滚动展示 server 日志并复制 MCP 地址。
 

@@ -19,9 +19,27 @@ uv run python -m zzz_od.backend.entry.server --host 127.0.0.1 --port 23001
 1. 创建 `ZContext()`。
 2. 创建 `ZzzBackendContext(ctx)`。
 3. `await backend.start()` 在线程池中执行同步初始化。
-4. 注册 MCP `/mcp` 和 HTTP `/health`、`/game/*`。
+4. 注册 MCP `/mcp` 和 HTTP 路由（`/health`、`/game/*`，含应用运行与自定义 op 端点，详见路由总览）。
 5. `uvicorn.serve` 监听本机端口。
 6. 关闭时调用 `backend.shutdown()`。
+
+## 路由总览
+
+同一进程同时挂载 MCP（tool-call）和 HTTP（REST）两套适配器，共享同一个 `ZzzBackendContext`：
+
+| 适配器 | 入口 | 能力 |
+|---|---|---|
+| MCP | `POST /mcp`（streamable-http） | 19 个 tool：感知/操作 + 应用运行 + 自定义 op 运行 + 帮助指南（见 [mcp.md](mcp.md)） |
+| HTTP | `GET /health` | 本机服务探测（GUI「MCP 服务」页用） |
+| HTTP | `GET /game/window` `/game/capture` `/game/analyze` | 窗口状态 / 截图 / 画面分析 |
+| HTTP | `POST /game/enter?block=` | 打开游戏（op 路径） |
+| HTTP | `GET /game/applications` | 应用列表（只读） |
+| HTTP | `POST /game/run/one-dragon?block=` `/game/run/standalone?app_id=&block=` | 一条龙 / 独立应用（app 路径） |
+| HTTP | `GET /game/operations` `/game/operations/describe?op_id=` | 自定义 op 列表 / 单个 op 参数 schema |
+| HTTP | `POST /game/run/operation?op_id=&block=` | 运行自定义 op（`args` 走 body；业务失败 200+body） |
+| HTTP | `GET /game/status` `/game/stop` `/game/close` | 运行状态 / 停止 / 关闭游戏 |
+
+路由分两层注册：`http/routes.py` 注册基础 `/game/*` handler，`http/service_routes.py` 注册应用运行、自定义 op 与 `/health`。每个端点的语义见 [http.md](http.md)。
 
 CLI 参数：
 
