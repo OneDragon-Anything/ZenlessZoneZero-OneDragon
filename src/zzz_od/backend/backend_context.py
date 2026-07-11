@@ -7,8 +7,9 @@
 
 game 切片方法（``check_window``/``capture``/``analyze``）从
 ``ZContext`` 的控制器、OCR 服务、运行上下文中读取数据，并以 ``zzz_od.backend.schemas``
-中的传输无关结构返回。运行类操作通过 ``start_run``/``query_status``/``stop``
-委托给 ``basic_run_slot``(``RunSlot``)。
+中的传输无关结构返回。运行类操作（``start_run``/``run_one_dragon``/
+``run_standalone_app``/``query_status``/``stop``）统一委托给单个 ``RunSlot``，
+槽内按 app / op 路径分派（详见 ``RunSlot``）。
 """
 
 import asyncio
@@ -44,7 +45,6 @@ from zzz_od.context.zzz_context import ZContext
 if TYPE_CHECKING:
     from cv2.typing import MatLike
 
-    from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.operation import Operation
 
 
@@ -316,140 +316,6 @@ class RunSlot:
         return True, source
 
 
-class ApplicationRunSlot(RunSlot):
-    """单跑道应用运行槽，负责一条龙和独立应用的运行态固化。
-
-    与 ``RunSlot`` 的区别是：这里不直接拼 ``Operation``，而是复用
-    ``ApplicationRunContext.run_application``，保证 MCP/HTTP 触发的应用运行
-    与 GUI「应用运行」走同一套应用上下文、通知、暂停/停止和自动战斗初始化逻辑。
-    """
-
-    def __init__(self, ctx: 'ZContext') -> None:
-        RunSlot.__init__(self, ctx, thread_name_prefix='zzz_backend_app_run')
-        self.app_id: str | None = None
-        self.current_app: Application | None = None
-
-    def _start_application(self, source: str, app_id: str, instance_idx: int, group_id: str) -> tuple[bool, Future | None]:
-        """触发应用运行。单跑道: 已在跑则拒绝。"""
-        with self._lock:
-            if self.future is not None and not self.future.done():
-                return False, None
-            # 启动新任务前清空上一轮固化状态，避免 query_status 读到旧结果。
-            self.terminal_state = None
-            self.last_status = None
-            self.failed_node = None
-            self.finished_at = None
-            self.app = None
-            self.app_id = app_id
-            self.source = source
-            self.started_at = time.time()
-            self.future = self._executor.submit(self._run_application, app_id, instance_idx, group_id)
-            return True, self.future
-
-    @staticmethod
-    def _current_application_node_name(app: 'Application | None') -> str | None:
-        """读取当前应用节点名；测试替身或异常状态下拿不到时返回 None。"""
-        if app is None:
-            return None
-        current_node = getattr(app, '_current_node', None)
-        node_name = getattr(current_node, 'cn', None) if current_node is not None else None
-        return node_name if isinstance(node_name, str) else None
-
-    def _run_application(self, app_id: str, instance_idx: int, group_id: str) -> OperationResult | None:
-        """后台线程: 委托 ApplicationRunContext 运行应用并固化结果。"""
-        run_context = self._ctx.run_context
-        result: OperationResult | None = None
-        terminal: RunState = RunState.FAILED
-        failed_node: str | None = None
-        try:
-            if not self._ctx.ready_for_application:
-                result = OperationResult(success=False, status='ZContext 未就绪')
-                failed_node = 'ZContext 未就绪'
-            elif not run_context.is_app_registered(app_id):
-                result = OperationResult(success=False, status=f'应用未注册 {app_id}')
-                failed_node = f'应用未注册 {app_id}'
-            else:
-                # 先记录应用名，后续 query_status 即使应用尚未进入节点也能展示目标应用。
-                with self._lock:
-                    self.app = run_context.get_application_name(app_id)
-                # 核心执行路径必须委托 run_context，避免 MCP/HTTP 与 GUI 应用运行语义分叉。
-                started = run_context.run_application(app_id, instance_idx, group_id)
-                # run_application 返回值只表示是否启动成功；实际执行结果从上下文缓存读取。
-                result = run_context.last_application_result
-                if not started:
-                    result = OperationResult(success=False, status='应用启动失败')
-                    failed_node = '应用启动失败'
-                elif result is None:
-                    # 老应用或异常路径可能没有返回 OperationResult，仍把后台线程正常结束固化下来。
-                    result = OperationResult(success=True, status='应用运行结束')
-
-                if result.success:
-                    terminal = RunState.SUCCESS
-                elif result.status == '人工结束':
-                    terminal = RunState.STOPPED
-                else:
-                    terminal = RunState.FAILED
-                    app = run_context.current_application
-                    failed_node = self._current_application_node_name(app) or result.status
-        except Exception as e:  # noqa: BLE001 后端服务层兜底，避免运行槽卡死
-            terminal = RunState.FAILED
-            app = run_context.current_application
-            failed_node = self._current_application_node_name(app) or f'异常: {e}'
-            result = OperationResult(success=False, status='执行异常')
-        finally:
-            with self._lock:
-                # 运行槽只保存传输层需要的摘要，不把 Application 实例泄漏给适配器。
-                self.terminal_state = terminal
-                self.last_status = result.status if result is not None else '执行异常'
-                self.failed_node = failed_node
-                self.finished_at = time.time()
-                self.current_app = None
-        return result
-
-    def _query_status(self) -> RunStatusResult:
-        """查询应用运行状态。"""
-        with self._lock:
-            if self.terminal_state is not None:
-                duration = (self.finished_at - self.started_at) if (self.finished_at and self.started_at) else None
-                return RunStatusResult(
-                    state=self.terminal_state.value,
-                    source=self.source,
-                    app=self.app or self.app_id,
-                    started_at=_iso(self.started_at),
-                    duration_seconds=duration,
-                    last_status=self.last_status,
-                    failed_node=self.failed_node,
-                )
-            source = self.source
-            app_name = self.app or self.app_id
-            started_at = self.started_at
-            # current_app 可能已经由 run_context 设置，优先读取它来显示当前节点。
-            app = self.current_app or self._ctx.run_context.current_application
-            if started_at is None:
-                return RunStatusResult(state=RunState.IDLE.value, source=source)
-        current_node = app._current_node.cn if app is not None and app._current_node is not None else None
-        retry_count = app.node_retry_times if app is not None else None
-        duration = (time.time() - started_at) if started_at else None
-        return RunStatusResult(
-            state=RunState.RUNNING.value,
-            source=source,
-            app=app_name,
-            started_at=_iso(started_at),
-            duration_seconds=duration,
-            current_node=current_node,
-            retry_count=retry_count,
-        )
-
-    def _stop(self) -> tuple[bool, str | None]:
-        """发出停止应用运行信号。"""
-        with self._lock:
-            if self.future is None or self.future.done():
-                return False, None
-            source = self.source
-        self._ctx.run_context.stop_running()
-        return True, source
-
-
 class BackendNotReadyError(Exception):
     """后端未就绪。
 
@@ -498,9 +364,7 @@ class ZzzBackendContext:
             ctx: 被包装的 ``ZContext`` 实例，由调用方负责构造并注入。
         """
         self._ctx: ZContext = ctx
-        self.basic_run_slot: RunSlot = RunSlot(ctx)
-        self.run_slot: RunSlot = self.basic_run_slot
-        self.app_run_slot: ApplicationRunSlot = ApplicationRunSlot(ctx)
+        self.run_slot: RunSlot = RunSlot(ctx)
 
     @property
     def ctx(self) -> ZContext:
@@ -845,6 +709,7 @@ class ZzzBackendContext:
 
         单跑道委托 ``run_slot._start``(op 路径):已有运行在进行时返回 ``ok=False``，
         适配器据此返回并发拒绝；其余由 RunSlot 在后台线程内执行 operation。
+        单跑道互斥由 ``run_slot._start`` 锁内 check-then-submit 原子保证。
 
         Args:
             source: 触发方标识，如 ``"mcp"``/``"http"``。
@@ -855,43 +720,45 @@ class ZzzBackendContext:
             ``(ok, future)``：``ok=False`` 表示已有运行在进行(``future=None``)；
             ``ok=True`` 表示已启动，``future`` 可供阻塞 await 取结果。
         """
-        if self.app_run_slot.is_running():
-            return False, None
         return self.run_slot._start(source, op_factory=op_factory, display_name=display_name)
 
     def run_one_dragon(self, source: str) -> tuple[bool, Future | None]:
-        """按当前一条龙配置启动完整一条龙运行。"""
+        """按当前一条龙配置启动完整一条龙运行(app 路径,经 ``_start_app``)。"""
         self._ensure_ready()
-        if self.basic_run_slot.is_running():
-            return False, None
-        self._refresh_runtime_config()
-        return self.app_run_slot._start_application(
-            source=source,
-            app_id=application_const.ONE_DRAGON_APP_ID,
-            instance_idx=self._ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
+        return self._start_app(source, application_const.ONE_DRAGON_APP_ID, application_const.DEFAULT_GROUP_ID)
 
     def run_standalone_app(self, source: str, app_id: str | None = None) -> tuple[bool, Future | None]:
-        """启动独立应用；app_id 为空时使用 GUI 当前选中的独立应用。"""
+        """启动独立应用；app_id 为空时使用 GUI 当前选中的独立应用(app 路径,经 ``_start_app``)。"""
         self._ensure_ready()
-        if self.basic_run_slot.is_running():
-            return False, None
-        self._refresh_runtime_config()
         target_app_id = app_id or self._ctx.standalone_app_config.active_app_id
         if not target_app_id:
             raise BackendNotReadyError('未选择独立应用')
-        return self.app_run_slot._start_application(
-            source=source,
-            app_id=target_app_id,
+        return self._start_app(source, target_app_id, application_const.DEFAULT_GROUP_ID)
+
+    def _start_app(self, source: str, app_id: str, group_id: str) -> tuple[bool, Future | None]:
+        """app 路径统一入口:委托 ``run_slot._start`` 的 app 分派。
+
+        ``refresh_config`` 作为钩子注入槽线程:仅在 ``_start`` 赢锁后、``run_application``
+        前执行(拒绝路径不进 ``_run``,不刷新),修原 ``run_one_dragon``/``run_standalone_app``
+        的刷新竞态;``instance_idx`` 由 ``_run`` 在刷新后重读(可能切实例)。
+
+        Args:
+            source: 触发方标识。
+            app_id: 应用 id(同时作唯一标识 op_id)。
+            group_id: 应用组 id。
+
+        Returns:
+            ``(ok, future)``:``ok=False`` 表示单跑道已有运行在跑。
+        """
+        return self.run_slot._start(
+            source, app_id=app_id, group_id=group_id,
             instance_idx=self._ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            refresh_config=self._refresh_runtime_config,
         )
 
     def list_applications(self) -> ApplicationListResult:
-        """列出当前实例可运行应用和独立应用选择状态。"""
+        """列出当前实例可运行应用和独立应用选择状态(只读路径,不刷新配置)。"""
         self._ensure_ready()
-        self._refresh_runtime_config()
         active_standalone_app_id = self._ctx.standalone_app_config.active_app_id
         standalone_app_ids = set(self._ctx.standalone_app_config.app_list)
         group_config = self._ctx.app_group_manager.get_one_dragon_group_config(self._ctx.current_instance_idx)
@@ -925,27 +792,12 @@ class ZzzBackendContext:
         )
 
     def query_status(self) -> RunStatusResult:
-        """查询当前或最近一次运行状态。"""
-        if self.basic_run_slot.is_running():
-            return self.basic_run_slot._query_status()
-        if self.app_run_slot.is_running():
-            return self.app_run_slot._query_status()
-        if self.app_run_slot.has_history() and not self.basic_run_slot.has_history():
-            return self.app_run_slot._query_status()
-        if self.basic_run_slot.has_history() and not self.app_run_slot.has_history():
-            return self.basic_run_slot._query_status()
-        if self.app_run_slot.has_history() and self.basic_run_slot.has_history():
-            app_started = self.app_run_slot.started_at or 0
-            op_started = self.basic_run_slot.started_at or 0
-            return self.app_run_slot._query_status() if app_started >= op_started else self.basic_run_slot._query_status()
-        return self.basic_run_slot._query_status()
+        """查询当前或最近一次运行状态(单槽,直接委托)。"""
+        return self.run_slot._query_status()
 
     def stop(self) -> dict:
-        """停止当前 operation 或 application 运行。"""
-        stopped, source = self.basic_run_slot._stop()
-        if stopped:
-            return {'stopped': True, 'source': source}
-        stopped, source = self.app_run_slot._stop()
+        """停止当前运行(单槽)。无运行时返回 ``{stopped: False, error}``。"""
+        stopped, source = self.run_slot._stop()
         if stopped:
             return {'stopped': True, 'source': source}
         return {'stopped': False, 'error': '当前无运行'}
