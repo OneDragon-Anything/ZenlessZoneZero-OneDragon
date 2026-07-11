@@ -27,6 +27,7 @@
 - ✅ **状态指示图标 → 每态一模板**(方法确立,2026-07-06):下拉 ▽/△(收起/展开)用每态一个模板 + 阈值 0.9 区分,实测各配自家 1.0、互不串。radio 选中态同理(建模待补,方法已明)。SKILL.md 第 5 步加了说明。
 - ✅ **pc_rect +10 约定**(已补,2026-07-06):template area 的 pc_rect = 模板 bbox 每边 +10px(项目编辑器约定,`devtools_screen_manage_interface` L640「稍微比模板大一点」,防匹配大小/位移偏差)。SKILL.md 第 5 步加了。初版圆形用了 7px、三角不对称,已全部校到 +10。
 - ✅ **子态快照 #### 编号标题**(已补,2026-07-06):多子态画面的识别快照,每子态用 `#### N. 子态名(source_image)` 而非加粗(加粗在 6+ 子态里扫不出层次)。SKILL.md 第 3 步加了。
+- ✅ **信息源三层并用**(方法确立,2026-07-11):onboard「大世界」时 doc 漏写左上角「按钮-菜单」(汉堡≡)—— `normal_world_basic.yml` 的 `area_list` 本有此 area,但它是纯坐标(无 text/template)不参与 analyze 匹配,只看截图就漏了;同期 onboard「邮件」靠读 `email.yml` area_list + email app 的 `@operation_node` 链快速理清跳转。→ 决策:建档信息源三层并用(截图 analyze/vision + screen_info area_list + application 代码);analyze 只返当前帧命中 area、screen_info 才是全集;doc 可交互元素/流转要与 area_list 逐条对齐。SKILL.md 加「信息源」段。
 - ⬜ **批量同屏改动**:多个 area 批量更新(如 5 个 pc_rect 修正)用 MCP 客户端**串行脚本**(1 turn)比 N 次**直调**(5 turn,同屏 save 写竞争需串行)高效;skill 的「直调 > 脚本」该对**批量**放宽说明 —— 待补。
 - 各类画面(战斗 / 养成 / 日常)的典型元素清单(反哺第 2 步预设提问)。
 - 更多形状的图形按钮(非圆形)的 CV 判据。
