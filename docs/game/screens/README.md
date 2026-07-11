@@ -19,4 +19,20 @@
 | 快捷手册-日常 | [快捷手册-日常.md](快捷手册-日常.md) | 手册日常 tab(今日活跃度奖励);已建模;领取弹窗待补(活跃度已满) |
 | 丽都城募 | [丽都城募.md](丽都城募.md) | 大月卡(菜单→丽都城募);5 tab,成长任务/等级回馈领奖;已建模 |
 
+## 非战斗 app 建档进度
+
+**已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)。
+
+**⚠️ 跳过(MCP 无法完整复现 —— 涉及传送/角色移动/拖拽,`click_game`+`input_text` 不足以驱动)**:
+- `scratch_card`(刮刮卡:Transport + move_w + interact + drag_to 刮)
+- `hou_hou_bakery`(吼吼饼铺:Transport + interact)
+- `random_play`(随机播放:Transport + move_w + interact + drag_to)
+- `trigrams_collection`(八卦收集:Transport + interact + drag_to)
+- `suibian_temple`(随便观:Transport + drag_to)
+- `commission_assistant`(委托助手:interact)/ `life_on_line`(危局:Transport + interact)
+
+**不建档(无游戏画面)**:`notify`(只发推送通知,汇总 run_record,不截图/不点 UI)。
+
+> 跳过的 app 待 MCP 补足 `transport`/`move`/`drag`/键盘注入能力后,或用框架 `run_standalone_app` 跑通后沿途截图补。
+
 (后续自由补充)
