@@ -23,8 +23,11 @@ from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext, _save_screenshot
 from zzz_od.backend.mcp.prompts import register_prompt_tools, register_prompts
 from zzz_od.backend.mcp.service_app import (
+    make_describe_operation,
     make_list_applications,
+    make_list_operations,
     make_run_one_dragon,
+    make_run_operation,
     make_run_standalone_app,
 )
 from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult
@@ -268,6 +271,9 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     mcp.tool()(make_list_applications(backend))
     mcp.tool()(make_get_run_status(backend))
     mcp.tool()(make_stop_run(backend))
+    mcp.tool()(make_list_operations(backend))
+    mcp.tool()(make_describe_operation(backend))
+    mcp.tool()(make_run_operation(backend))
     register_prompts(mcp)
     register_prompt_tools(mcp)
 

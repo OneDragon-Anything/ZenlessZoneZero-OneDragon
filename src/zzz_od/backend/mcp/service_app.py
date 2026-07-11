@@ -1,11 +1,12 @@
-"""MCP 应用运行工具：一条龙、独立应用和应用列表。"""
+"""MCP 应用运行工具：一条龙、独立应用、应用列表与自定义 operation 运行入口。"""
 
 import asyncio
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from zzz_od.backend import operation_registry
 from zzz_od.backend.backend_context import ZzzBackendContext
-from zzz_od.backend.schemas import ApplicationListResult
+from zzz_od.backend.schemas import ApplicationListResult, OperationListResult
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_base import OperationResult
@@ -98,3 +99,87 @@ def make_list_applications(backend: ZzzBackendContext) -> Callable[[], Applicati
         except Exception as e:  # noqa: BLE001 工具层兜底
             return {'error': str(e)}
     return list_applications
+
+
+def make_list_operations(backend: ZzzBackendContext) -> Callable[[], OperationListResult | dict]:
+    """构造 ``list_operations`` tool(自定义 operation 运行入口)。"""
+    def list_operations() -> OperationListResult | dict:
+        """列出可运行的自定义 operation(扫描 operation/+hollow_zero/ 承载包,纯反射不实例化)。
+
+        返回每个 operation 的 op_id(<module>.<ClassName>)与 __init__ 参数 schema(已剔除
+        self/ctx)。用 describe_operation 看单个详情,用 run_operation 按 op_id 运行。无副作用。
+        """
+        try:
+            return operation_registry.scan_operations(backend.ctx)
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'error': str(e)}
+    return list_operations
+
+
+def make_describe_operation(backend: ZzzBackendContext) -> Callable[[str], dict]:
+    """构造 ``describe_operation`` tool(自定义 operation 运行入口)。"""
+    def describe_operation(op_id: str) -> dict:
+        """描述单个 operation 的参数 schema(纯反射,不实例化)。
+
+        op_id 格式 ``<dotted module path>.<ClassName>``,可从 list_operations 获取。
+        每个参数标 json_serializable(标量/list/dict=True、复杂数据类如 ChargePlanItem=False,
+        提示走 application);整体 debuggable 表示所有必填参数是否可经 JSON 传入。
+        """
+        try:
+            return operation_registry.describe_operation(backend.ctx, op_id)
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'error': str(e)}
+    return describe_operation
+
+
+def make_run_operation(backend: ZzzBackendContext) -> Callable:
+    """构造 ``run_operation`` tool(自定义 operation 运行入口)。
+
+    按 op_id 运行任意 operation;args 以构造参数 ``cls(ctx, **args)`` 烤进闭包。
+    resolve_op_class + validate_args 在调用方线程先校验,通过后才提交单跑道运行槽。
+    """
+    async def run_operation(op_id: str, args: dict | None = None, block: bool = False) -> dict | str:
+        """按 op_id(package.path.ClassName)运行任意 operation;args 传构造参数。
+
+        args 仅限 JSON 可序列化标量/列表/字典(复杂数据类参数请走 application);
+        用 list_operations / describe_operation 查 op_id 与参数。
+        block=False(默认)立刻返回,用 get_run_status 查进度;block=True 阻塞到结束。
+        副作用:操作游戏;单跑道,已有运行时返回错误(含 source + 提示)。
+        """
+        try:
+            cls = operation_registry.resolve_op_class(op_id)
+            err = operation_registry.validate_args(cls, args or {})
+            if err:
+                return {'started': False, 'error': err}
+            # 闭包把 cls + args bake 进 op_factory(槽只认统一签名 op_factory(ctx) → Operation)
+            def op_factory(ctx):  # noqa: ANN202 闭包签名固定 Callable[[ZContext], Operation]
+                return cls(ctx, **(args or {}))
+            ok, future = backend.run_slot._start(
+                'mcp', op_factory=op_factory, display_name=op_id,
+            )
+        except Exception as e:  # noqa: BLE001 工具层兜底(resolve/validate/_start 异常)
+            return {'started': False, 'error': str(e)}
+        if not ok:
+            # 并发拒绝:返回当前占用者信息,方便 agent 决定轮询还是停止。
+            st = backend.query_status()
+            return {
+                'started': False,
+                'error': '已有运行在进行中',
+                'source': st.source,
+                'hint': '先 get_run_status 查状态,或 stop_run 停止',
+            }
+        if not block:
+            st = backend.query_status()
+            return {
+                'started': True,
+                'op_id': op_id,
+                'source': 'mcp',
+                'started_at': st.started_at,
+                'hint': '用 get_run_status 查进度与结果',
+            }
+        # block=True 只返回最终摘要,不把运行日志塞进 tool 输出。
+        result: OperationResult | None = await asyncio.wrap_future(future)
+        if result is None:
+            return 'operation 运行结束,但未返回结果'
+        return 'operation 运行成功' if result.success else f'operation 运行失败: {result.status}'
+    return run_operation

@@ -7,6 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from zzz_od.backend import operation_registry
 from zzz_od.backend.backend_context import BackendNotReadyError, ZzzBackendContext
 
 
@@ -107,6 +108,98 @@ async def handle_game_run_standalone(backend: ZzzBackendContext, request: Reques
     return JSONResponse({'result': msg})
 
 
+async def handle_game_operations(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
+    """处理 ``GET /game/operations``:列出可运行的自定义 operation(纯反射,无副作用)。
+
+    业务失败一律 ``200 + body``(``{error}``),不引入 4xx/5xx(除 backend 未就绪)。
+    """
+    try:
+        result = await asyncio.to_thread(operation_registry.scan_operations, backend.ctx)
+    except BackendNotReadyError as e:
+        return _err(str(e))
+    except Exception as e:  # noqa: BLE001 扫描异常兜底
+        return JSONResponse({'error': str(e)})
+    return JSONResponse(asdict(result))
+
+
+async def handle_game_operations_describe(
+    backend: ZzzBackendContext, request: Request | None = None,
+) -> Response:
+    """处理 ``GET /game/operations/describe?op_id=``:描述单个 operation 参数 schema。
+
+    op_id 走 query 参数;业务失败(缺 op_id / 解析失败)一律 ``200 + {error}``。
+    """
+    op_id = None
+    if request is not None:
+        op_id = request.query_params.get('op_id')
+    if not op_id:
+        return JSONResponse({'error': '缺少 op_id query 参数'})
+    try:
+        info = await asyncio.to_thread(operation_registry.describe_operation, backend.ctx, op_id)
+    except BackendNotReadyError as e:
+        return _err(str(e))
+    except Exception as e:  # noqa: BLE001 解析异常兜底
+        return JSONResponse({'error': str(e)})
+    return JSONResponse(info)
+
+
+async def handle_game_run_operation(
+    backend: ZzzBackendContext, request: Request | None = None,
+) -> Response:
+    """处理 ``POST /game/run/operation?op_id=&block=``:运行自定义 operation(args 走 JSON body)。
+
+    op_id、block 走 query;args 走 JSON body(整体 body 即 args 字典,空 body 时 args={})。
+    resolve_op_class + validate_args 先校验,通过后 op_factory 闭包 bake args 提交单跑道。
+    业务失败(非 Operation / 缺参 / 复杂数据类 / 并发拒绝)一律 ``200 + {started: False, error}``。
+    """
+    op_id: str | None = None
+    block = False
+    args: dict = {}
+    if request is not None:
+        op_id = request.query_params.get('op_id')
+        block = request.query_params.get('block', 'false').lower() == 'true'
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001 空 body / 非 JSON 时 args={}
+            body = None
+        if isinstance(body, dict):
+            args = body
+    if not op_id:
+        return JSONResponse({'started': False, 'error': '缺少 op_id query 参数'})
+    try:
+        cls = operation_registry.resolve_op_class(op_id)
+        err = operation_registry.validate_args(cls, args or {})
+        if err:
+            return JSONResponse({'started': False, 'error': err})
+        # 闭包 bake args(与 MCP 侧一致:槽只认 op_factory(ctx) → Operation)
+        def op_factory(ctx):  # noqa: ANN202 闭包签名固定 Callable[[ZContext], Operation]
+            return cls(ctx, **(args or {}))
+        ok, future = backend.run_slot._start('http', op_factory=op_factory, display_name=op_id)
+    except Exception as e:  # noqa: BLE001 resolve/validate/_start 异常兜底
+        return JSONResponse({'started': False, 'error': str(e)})
+    if not ok:
+        st = backend.query_status()
+        return JSONResponse({
+            'started': False,
+            'error': '已有运行在进行中',
+            'source': st.source,
+            'hint': '先 /game/status 查状态,或 /game/stop 停止',
+        })
+    if not block:
+        st = backend.query_status()
+        return JSONResponse({
+            'started': True,
+            'op_id': op_id,
+            'source': 'http',
+            'started_at': st.started_at,
+            'hint': '用 /game/status 查进度与结果',
+        })
+    result = await asyncio.wrap_future(future)
+    msg = ('operation 运行成功' if result and result.success
+           else f"operation 运行失败: {getattr(result, 'status', '无结果')}")
+    return JSONResponse({'result': msg})
+
+
 def register_service_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     """注册应用运行服务端点。"""
     @mcp.custom_route("/health", methods=["GET"])
@@ -128,3 +221,18 @@ def register_service_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     async def _game_run_standalone(request: Request) -> Response:
         """POST /game/run/standalone 路由分发。"""
         return await handle_game_run_standalone(backend, request)
+
+    @mcp.custom_route("/game/operations", methods=["GET"])
+    async def _game_operations(request: Request) -> Response:
+        """GET /game/operations 路由分发。"""
+        return await handle_game_operations(backend, request)
+
+    @mcp.custom_route("/game/operations/describe", methods=["GET"])
+    async def _game_operations_describe(request: Request) -> Response:
+        """GET /game/operations/describe 路由分发。"""
+        return await handle_game_operations_describe(backend, request)
+
+    @mcp.custom_route("/game/run/operation", methods=["POST"])
+    async def _game_run_operation(request: Request) -> Response:
+        """POST /game/run/operation 路由分发。"""
+        return await handle_game_run_operation(backend, request)
