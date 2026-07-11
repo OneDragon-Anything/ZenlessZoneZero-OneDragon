@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -21,7 +22,6 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
-    from one_dragon.base.operation.operation_base import OperationResult
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -439,8 +439,12 @@ class ApplicationRunContext:
             op_result = app.execute()
             # run_application 的布尔返回值只表示是否成功启动；详细执行结果由这里保留。
             self.last_application_result = op_result
-        except Exception:
+        except Exception as e:
             log.error("运行应用 {} 失败", app_id, exc_info=True)
+            # 异常时固化失败终态，避免 last_application_result 留 None 被误判为成功。
+            self.last_application_result = OperationResult(
+                success=False, status=f'执行异常: {e}'
+            )
         finally:
             self.stop_running()
             self.current_app_id = None
