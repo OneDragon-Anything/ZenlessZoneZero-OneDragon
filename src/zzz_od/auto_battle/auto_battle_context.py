@@ -214,7 +214,6 @@ class AutoBattleContext:
         self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
-        self.area_btn_switch_backup: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援')
         self.area_btn_switch_backup_mark: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援标记')
         self.area_btn_switch_backup_gray: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援灰度区域')
 

@@ -8,6 +8,7 @@ from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_manager import OverlayManager
 from one_dragon_qt.overlay.utils import win32_utils
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
@@ -44,6 +45,12 @@ class SettingOverlayInterface(VerticalScrollInterface):
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
+        self.help_opt = HelpCard(
+            url='https://one-dragon.com/zzz/zh/setting/setting_overlay.html',
+            title='设置说明',
+            content='Overlay 属于测试功能，显示异常或影响截图时请先查看说明',
+        )
+        content_widget.add_widget(self.help_opt)
         content_widget.add_widget(self._init_basic_group())
         content_widget.add_widget(self._init_visual_group())
         content_widget.add_widget(self._init_panel_group())

@@ -14,15 +14,49 @@
 | 收敛层 | `ZzzBackendContext`：持有 ctx、管生命周期、感知 / 操作方法 |
 | 适配器 | MCP（`@mcp.tool`）+ HTTP（`/game/*`），并行、共享 backend |
 
-当前已实现：**4 个感知 / 操作方法**（窗口状态 / 截图 / OCR / 进游戏）+ MCP / HTTP 适配器 + 服务入口 + 远程 SSH daemon。其余（run-as-service、事件桥、多实例、GUI 收敛）见各文档的「路线图」。
+```mermaid
+flowchart LR
+    GUI["GUI 开发工具<br/>MCP 服务页"] -->|启动/停止/探测| Entry["entry/server.py"]
+    CLI["uv run ... server"] --> Entry
+    Entry --> Backend["ZzzBackendContext"]
+    Backend --> ZContext["ZContext"]
+    Backend --> RunSlot["RunSlot（单跑道）<br/>app 路径委托 run_application / op 路径自管生命周期"]
+    Backend --> Schemas["schemas.py"]
+    Backend --> MCP["mcp/app.py<br/>mcp/service_app.py"]
+    Backend --> HTTP["http/routes.py<br/>http/service_routes.py"]
+    MCP --> Client["MCP 客户端"]
+    HTTP --> Tooling["HTTP 客户端/skill/脚本"]
+```
+
+当前已实现：
+
+- 游戏感知与操作：窗口状态、截图、画面分析、进游戏、关闭游戏。
+- 应用运行：列出应用、一条龙运行、独立应用运行。
+- 自定义 operation 运行：`list_operations` / `describe_operation` / `run_operation`，按 `op_id` 定位运行任意 operation（调试定位 + 未来 agent 自由组合 op）。
+- 统一状态：`query_status` / `stop` 覆盖 app 路径与 op 路径两类后台运行（单槽 `RunSlot`）。
+- 对外协议：MCP streamable-http、MCP prompts 与 HTTP `/game/*` / `/health`。
+- GUI 辅助：开发工具中的「MCP 服务」页可探测、启动、停止、重启本机 server，显示当前运行状态、滚动展示 server 日志并复制 MCP 地址。
 
 ## 怎么跑
+
+命令行启动：
 
 ```shell
 uv run --env-file .env python -m zzz_od.backend.entry.server --port 23001
 ```
 
-启动后同时服务 `http://127.0.0.1:23001/mcp`（MCP）与 `/game/*`（HTTP）。详见 [entry.md](entry.md)。
+如果项目根目录没有 `.env`，可省略 `--env-file .env`：
+
+```shell
+uv run python -m zzz_od.backend.entry.server --port 23001
+```
+
+GUI 启动：打开「开发工具 -> MCP 服务」，使用同一条入口命令在本机启动 `zzz_od.backend.entry.server` 子进程。
+
+启动后：
+
+- MCP：`http://127.0.0.1:23001/mcp`
+- HTTP 探测：`http://127.0.0.1:23001/health`
 
 ## 文档索引（总—分）
 
@@ -39,6 +73,6 @@ uv run --env-file .env python -m zzz_od.backend.entry.server --port 23001
 
 ## 相关文档
 
-- [一条龙整体架构](../../one_dragon/one_dragon_architecture.md) — Layer 0 运行层
-- [AI 编码助手接入](../../setup/ai_coding.md) — MCP / skill 接入
-- [AI Coding Harness 工程](../../harness/README.md) — 方向 B 路线图
+- [一条龙整体架构](../../one_dragon/one_dragon_architecture.md) - Layer 0 运行层
+- [AI 编码助手接入](../../setup/ai_coding.md) - MCP / skill 接入
+- [AI Coding Harness 工程](../../harness/README.md) - 方向 B 路线图

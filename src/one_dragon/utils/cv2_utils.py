@@ -16,20 +16,23 @@ feature_detector = cv2.SIFT_create()
 
 def read_image(file_path: str) -> Optional[MatLike]:
     """
-    读取图片
-    :param file_path: 图片路径
-    :return:
+    读取图片。用 ``np.fromfile`` + ``cv2.imdecode``,兼容非 ASCII(如中文)路径——
+    ``cv2.imread`` 在 Windows 走 C stdlib,中文路径会读失败。
+
+    :param file_path: 图片路径(支持中文等非 ASCII)。
+    :return: RGB 格式图像;文件不存在 / 读失败 / 解析失败时返 None。
     """
     if not os.path.exists(file_path):
         return None
     file_type = get_image_file_type(file_path)
-
-    # 默认以BGR格式加载
-    if file_type == 'webp':
-        image = cv2.imread(file_path, cv2.IMREAD_COLOR)
-    else:
-        image = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
-
+    flag = cv2.IMREAD_COLOR if file_type.lower() == 'webp' else cv2.IMREAD_UNCHANGED
+    try:
+        buf = np.fromfile(file_path, dtype=np.uint8)  # 兼容非 ASCII 路径
+    except OSError:
+        return None
+    image = cv2.imdecode(buf, flag)
+    if image is None:
+        return None
     if image.ndim == 2:
         return image
     elif image.ndim == 3:
@@ -42,18 +45,24 @@ def read_image(file_path: str) -> Optional[MatLike]:
 
 def save_image(img: MatLike, file_path: str) -> None:
     """
-    保存图片
-    :param img: RBG格式的图片
-    :param file_path: 保存路径
+    保存图片(RGB)。用 ``cv2.imencode`` + ``ndarray.tofile``,兼容非 ASCII(如中文)路径——
+    ``cv2.imwrite`` 在 Windows 走 C stdlib,中文路径会写失败。webp 用无损质量(q=100)。
+    写盘失败(目录缺失等)静默跳过,与原 ``cv2.imwrite`` 的 best-effort 行为一致。
+
+    :param img: RGB 格式图片。
+    :param file_path: 保存路径(支持中文等非 ASCII)。
     """
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
     file_type = get_image_file_type(file_path)
-    if file_type == 'webp':  # 无损压缩保存
-        cv2.imwrite(file_path, img, [cv2.IMWRITE_WEBP_QUALITY, 100])
-    else:
-        cv2.imwrite(file_path, img)
+    ext = '.' + file_type.lower()
+    params = [cv2.IMWRITE_WEBP_QUALITY, 100] if file_type.lower() == 'webp' else []
+    ok, buf = cv2.imencode(ext, img, params)
+    if ok:
+        try:
+            buf.tofile(file_path)  # 兼容非 ASCII;目录缺失等 OSError 静默(同 imwrite best-effort)
+        except OSError:
+            pass
 
 
 def get_image_file_type(file_path: str) -> str:

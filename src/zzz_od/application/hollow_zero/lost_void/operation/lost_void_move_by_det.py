@@ -198,7 +198,7 @@ class LostVoidMoveByDet(ZOperation):
         else:
             return self.round_retry('未在大世界画面')
 
-    @node_from(from_name='脱困')
+    @node_from(from_name='脱困', status=STATUS_CONTINUE)
     @node_from(from_name='无目标处理', status=STATUS_CONTINUE)
     @operation_node(name='移动前转向', node_max_retry_times=20, is_start_node=True)
     def turn_at_first(self) -> OperationRoundResult:

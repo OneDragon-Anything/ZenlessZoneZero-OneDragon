@@ -95,6 +95,10 @@ tool 按服务 / 资源分组前缀(如 `game_*` / `run_*`),帮智能体在多 s
 
 例:`RunSlot.app`(operation 标识):运行中可从 `current_op.display_name` 派生,但**终态 `current_op` 销毁**,要存 app 才知道「上次跑的什么」。全景(多 operation)下必要、不可全程派生 → 保留;「当前单 operation」不是删除理由(那是看当前,非全景)。
 
+### P13. 观察类工具可选持久化观测样本
+观察类 tool(如 `analyze_screen`)默认只在内存处理观测(截图 → OCR / 匹配),**不落盘**。但调用方若想对**同一帧**做二次分析(典型:喂给 vision double-check),重新取观测 = 第二次截图、且画面可能已变。故观察类 tool 可**可选地**把已取的观测样本顺手持久化并回传路径(例 `analyze_screen(save_image=True)` → `screenshot_path`),供调用方复用 —— **默认关闭、opt-in**,避免无谓落盘。
+(与 P6「返回智能体友好」协同:路径锚点让智能体关联观测样本;与 P3「操作 vs 观察分离」协同:持久化是观察的可选副作用,docstring 标注,不改变观察语义。)
+
 ## 4. 能力分配总表
 
 | 需求 | 智能体自己 | MCP | skill |

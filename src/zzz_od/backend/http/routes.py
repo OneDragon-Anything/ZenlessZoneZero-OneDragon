@@ -20,6 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from zzz_od.backend.backend_context import BackendNotReadyError, ZzzBackendContext
+from zzz_od.backend.http.service_routes import register_service_routes
 
 
 def _err(msg: str, status: int = 503) -> JSONResponse:
@@ -33,6 +34,27 @@ def _err(msg: str, status: int = 503) -> JSONResponse:
         body 为 ``{"error": msg}`` 的 ``JSONResponse``。
     """
     return JSONResponse({"error": msg}, status_code=status)
+
+
+def _query_bool(request: Request | None, key: str, default: bool = False) -> bool:
+    """从 ``request.query_params`` 读布尔值,无 request / 无 key 时返 default。
+
+    '1' / 'true' / 'yes'(大小写不敏感)→ True,其余 → False。
+
+    Args:
+        request: Starlette 请求对象;None 时直接返 default。
+        key: query 参数名。
+        default: 缺省值。
+
+    Returns:
+        解析后的布尔值。
+    """
+    if request is None:
+        return default
+    raw = request.query_params.get(key)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ('1', 'true', 'yes')
 
 
 async def handle_game_window(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
@@ -80,19 +102,23 @@ async def handle_game_capture(backend: ZzzBackendContext, _request: Request | No
     return Response(bytes(buf), media_type="image/png")
 
 
-async def handle_game_analyze(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
+async def handle_game_analyze(backend: ZzzBackendContext, request: Request | None = None) -> Response:
     """处理 ``GET /game/analyze``：返回画面分析（截图 + OCR）结果 JSON。
+
+    save_image=true(query,**仅实时模式**)→ 截图落盘并把路径放进响应 ``screenshot_path``
+    (供 vision 复用,省掉第二次截图)。默认 false。
 
     Args:
         backend: 提供游戏切片能力的 ``ZzzBackendContext``。
-        _request: Starlette 请求对象（本处理器不使用）。
+        request: Starlette 请求对象(读 query 中的 save_image)。
 
     Returns:
-        200 + 分析结果 JSON（成功标志、OCR 文本列表、画面匹配结果、错误描述）；
-        backend 未就绪时返回 503。决策优先看 ``screens``，散落文本看 ``ocr_texts``。
+        200 + 分析结果 JSON(success / ocr_texts / screens / error / screenshot_path);
+        backend 未就绪时返回 503。决策优先看 ``screens``,散落文本看 ``ocr_texts``。
     """
     try:
-        result = await asyncio.to_thread(backend.analyze)
+        save_image = _query_bool(request, 'save_image', False)
+        result = await asyncio.to_thread(backend.analyze, None, save_image)
     except BackendNotReadyError as e:
         return _err(str(e))
     return JSONResponse({
@@ -100,6 +126,7 @@ async def handle_game_analyze(backend: ZzzBackendContext, _request: Request | No
         "ocr_texts": [asdict(t) for t in result.ocr_texts],
         "screens": [asdict(s) for s in result.screens],
         "error": result.error,
+        "screenshot_path": result.screenshot_path,
     })
 
 
@@ -193,6 +220,8 @@ def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
         mcp: 目标 ``FastMCP`` 实例。
         backend: 已就绪的 ``ZzzBackendContext``，提供 game 切片能力。
     """
+    register_service_routes(mcp, backend)
+
     @mcp.custom_route("/game/window", methods=["GET"])
     async def _game_window(request: Request) -> Response:
         """GET /game/window 路由分发：委托 ``handle_game_window``。"""

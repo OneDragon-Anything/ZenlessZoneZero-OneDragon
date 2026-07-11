@@ -15,6 +15,8 @@
    - `gameplay/*.md` frontmatter `involves_screens`:本玩法经过哪些画面(用 `screen_name`)。
 2. **关联键**:一律用 `screen_info.screen_name`(中文,**非 `screen_id`**);`gameplay` 用 `gameplay_name`。
 3. **正文自由**:不强制 schema —— 先自由记录,收集完再统一分析、反哺 `screen_info`。
+4. **截图基线**:每篇画面 frontmatter 可带 `last_updated`(核对日期)+ `source_image`(当前基线来自哪张 `.debug/images/` 截图)。截图文件名是一次性捕获 ID、易失 —— **正文绝不写死具体 ID**,变更复核走方法(重新截图 → `analyze_screen` → 与 OCR 快照 diff → 更新 `last_updated`/`source_image`)。归档测试用 webp 版(可读名)见 [截图存档方法论](../develop/zzz/screenshot_archive.md)。
+5. **识别快照**:每篇画面文档记一份 `analyze_screen` 快照 = ① **匹配画面**(`screen_name` + `is_precise`);② **匹配 area 表**(取自 `screens[].areas`:area_name / 类型 `text`|`template` / 文本或 `template_id` / conf / 位置);③ **全量 OCR 文本**(`ocr_texts`)。注:MCP 的 `ocr_texts` 保持全量(area 维护的文字可能不全),故文字 area 在②③两边都出现属正常。
 
 ## 演化路径
 

@@ -60,7 +60,8 @@ async def _serve(host: str, port: int) -> None:
         log.info("ZZZ 后端：初始化 ZContext（线程池，不阻塞事件循环）……")
         await backend.start()
         app = create_app(backend)
-        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        # GUI 会主动轮询 /health 和 /game/status；关闭 access log，避免日志被访问记录刷屏。
+        config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=False)
         server = uvicorn.Server(config)
         log.info(f"ZZZ 后端监听: http://{host}:{port}/mcp 与 /game/*")
         await server.serve()

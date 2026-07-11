@@ -408,20 +408,6 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 按键-切换后援
-    id_mark: false
-    pc_rect:
-    - 1615
-    - 776
-    - 1726
-    - 877
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: battle
-    template_id: btn_switch_backup_1
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 连携技-1
     id_mark: false
     pc_rect:
@@ -2477,11 +2463,11 @@
   - area_name: 标题-驱动盘拆解
     id_mark: true
     pc_rect:
-    - 184
-    - 4
-    - 326
-    - 102
-    text: 驱动盘拆解
+    - 168
+    - 17
+    - 432
+    - 92
+    text: 驱动
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -2491,10 +2477,10 @@
   - area_name: 按钮-快速选择
     id_mark: true
     pc_rect:
-    - 166
-    - 1000
-    - 342
-    - 1054
+    - 134
+    - 968
+    - 407
+    - 1068
     text: 快速选择
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -3243,15 +3229,141 @@
   - area_name: 国服-返回按钮
     id_mark: false
     pc_rect:
-    - 538
-    - 222
-    - 575
-    - 265
+    - 527
+    - 210
+    - 588
+    - 271
     text: ''
     lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: login_back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 资源检测
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 705
+    - 1853
+    - 771
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: resource_check
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 设置
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 791
+    - 1853
+    - 857
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: settings
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏公告
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 877
+    - 1853
+    - 943
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: announcement
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 退出登录-清除登录记录
+    id_mark: false
+    pc_rect:
+    - 662
+    - 432
+    - 877
+    - 460
+    text: 退出并清除登录记录
+    lcs_percent: 0.6
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 退出登录-保留登录记录
+    id_mark: false
+    pc_rect:
+    - 662
+    - 510
+    - 877
+    - 537
+    text: 退出并保留登录记录
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-退出登录-取消
+    id_mark: false
+    pc_rect:
+    - 791
+    - 760
+    - 848
+    - 791
+    text: 取消
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 账号确认-进入游戏
+    id_mark: false
+    pc_rect:
+    - 907
+    - 608
+    - 1014
+    - 643
+    text: 进入游戏
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 账号下拉-点击展开
+    id_mark: false
+    pc_rect:
+    - 1208
+    - 487
+    - 1243
+    - 522
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: account_dropdown_expand
+    template_match_threshold: 0.9
+    color_range: null
+    goto_list: []
+  - area_name: 账号下拉-点击收起
+    id_mark: false
+    pc_rect:
+    - 1208
+    - 487
+    - 1243
+    - 522
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: account_dropdown_collapse
+    template_match_threshold: 0.9
     color_range: null
     goto_list: []
 - screen_id: expert_challenge
@@ -8326,6 +8438,194 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: shiyu_defense_select_3
+  screen_name: 式舆防卫战-三间选择
+  app_id: shiyu_defense
+  pc_alt: false
+  area_list:
+  - area_name: 第一间
+    id_mark: false
+    pc_rect:
+    - 907
+    - 224
+    - 1024
+    - 272
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 第二间
+    id_mark: false
+    pc_rect:
+    - 907
+    - 447
+    - 1036
+    - 496
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 第三间
+    id_mark: false
+    pc_rect:
+    - 907
+    - 669
+    - 1045
+    - 720
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 第一间属性
+    id_mark: false
+    pc_rect:
+    - 1317
+    - 258
+    - 1791
+    - 406
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 第二间属性
+    id_mark: false
+    pc_rect:
+    - 1318
+    - 481
+    - 1788
+    - 631
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 第三间属性
+    id_mark: false
+    pc_rect:
+    - 1317
+    - 703
+    - 1788
+    - 847
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第一间
+    id_mark: false
+    pc_rect:
+    - 1319
+    - 224
+    - 1425
+    - 264
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第二间
+    id_mark: false
+    pc_rect:
+    - 1315
+    - 446
+    - 1419
+    - 486
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第三间
+    id_mark: false
+    pc_rect:
+    - 1313
+    - 664
+    - 1433
+    - 707
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 返回
+    id_mark: false
+    pc_rect:
+    - 62
+    - 15
+    - 173
+    - 94
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: menu
+    template_id: back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 式舆防卫战
+  - area_name: 本期最佳总分
+    id_mark: true
+    pc_rect:
+    - 122
+    - 218
+    - 322
+    - 268
+    text: 总分
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 重置全部
+    id_mark: false
+    pc_rect:
+    - 1248
+    - 1009
+    - 1495
+    - 1045
+    text: 重置
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 确认
+    id_mark: false
+    pc_rect:
+    - 1038
+    - 624
+    - 1222
+    - 665
+    text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: storage_drive_disc
   screen_name: 仓库-驱动仓库
   app_id: drive_disc_dismantle
@@ -9497,194 +9797,6 @@
     - 1650
     - 640
     text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-- screen_id: shiyu_defense_select_3
-  screen_name: 式舆防卫战-三间选择
-  app_id: shiyu_defense
-  pc_alt: false
-  area_list:
-  - area_name: 第一间
-    id_mark: false
-    pc_rect:
-    - 907
-    - 224
-    - 1024
-    - 272
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 第二间
-    id_mark: false
-    pc_rect:
-    - 907
-    - 447
-    - 1036
-    - 496
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 第三间
-    id_mark: false
-    pc_rect:
-    - 907
-    - 669
-    - 1045
-    - 720
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 第一间属性
-    id_mark: false
-    pc_rect:
-    - 1317
-    - 258
-    - 1791
-    - 406
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 第二间属性
-    id_mark: false
-    pc_rect:
-    - 1318
-    - 481
-    - 1788
-    - 631
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 第三间属性
-    id_mark: false
-    pc_rect:
-    - 1317
-    - 703
-    - 1788
-    - 847
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 前往第一间
-    id_mark: false
-    pc_rect:
-    - 1319
-    - 224
-    - 1425
-    - 264
-    text: 属性
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 前往第二间
-    id_mark: false
-    pc_rect:
-    - 1315
-    - 446
-    - 1419
-    - 486
-    text: 属性
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 前往第三间
-    id_mark: false
-    pc_rect:
-    - 1313
-    - 664
-    - 1433
-    - 707
-    text: 属性
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 返回
-    id_mark: false
-    pc_rect:
-    - 62
-    - 15
-    - 173
-    - 94
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: menu
-    template_id: back
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list:
-    - 式舆防卫战
-  - area_name: 本期最佳总分
-    id_mark: true
-    pc_rect:
-    - 122
-    - 218
-    - 322
-    - 268
-    text: 总分
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 重置全部
-    id_mark: false
-    pc_rect:
-    - 1248
-    - 1009
-    - 1495
-    - 1045
-    text: 重置
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 确认
-    id_mark: false
-    pc_rect:
-    - 1038
-    - 624
-    - 1222
-    - 665
-    text: 确认
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
