@@ -237,18 +237,23 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             return f"错误: {e}"
 
     @mcp.tool()
-    def click_game(x: float, y: float, press_time: float = 0.0) -> dict:
+    def click_game(x: float, y: float, press_time: float = 0.1, pc_alt: bool = False) -> dict:
         """点击游戏窗口内坐标(1080p 游戏空间,同 screen_info pc_rect 中心)。操作类。
 
         坐标经控制器缩放到真实屏幕;不在窗口内则不点击(in_window=False)。需游戏窗口就绪。
 
+        pc_alt=True 时点击前先按住 Alt 解锁光标 —— 大世界等 pc_alt=true 画面必需
+        (绝区零锁光标,不按 Alt 点击落空)。判断依据:目标画面对应 screen_info
+        的 ``pc_alt`` 字段;框架内部点击(跑 application)会自动带,经 MCP 手动点击
+        pc_alt 画面时需显式传 True。其余画面保持 False。
+
         Returns:
-            ``{success, x, y, in_window, error?}``;backend 抛错时 success=False + error。
+            ``{success, x, y, in_window, pc_alt, error?}``;backend 抛错时 success=False + error。
         """
         try:
-            return backend.click_game(x, y, press_time)
+            return backend.click_game(x, y, press_time, pc_alt)
         except Exception as e:  # noqa: BLE001 工具层兜底
-            return {'success': False, 'x': x, 'y': y, 'in_window': False, 'error': str(e)}
+            return {'success': False, 'x': x, 'y': y, 'in_window': False, 'pc_alt': pc_alt, 'error': str(e)}
 
     @mcp.tool()
     def input_text(text: str, use_clipboard: bool | None = None) -> dict:

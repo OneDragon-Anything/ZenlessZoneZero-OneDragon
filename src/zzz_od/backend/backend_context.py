@@ -450,7 +450,9 @@ class ZzzBackendContext:
         image = controller.get_screenshot(independent=False)
         if image is None:
             raise BackendNotReadyError('截图返回 None')
-        return image
+        # 打码 UID:对齐 controller.screenshot()(框架流程截图本就经 fill_uid_black 打码,
+        # backend 截图供 MCP/HTTP 落盘 / 外传,同样不能带账号信息)。
+        return controller.fill_uid_black(image)
 
     @staticmethod
     def _resolve_screenshot(screenshot: str) -> 'tuple[MatLike | None, str]':
@@ -503,6 +505,8 @@ class ZzzBackendContext:
             image = controller.get_screenshot(independent=False)
             if image is None:
                 return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error='截图失败')
+            # 打码 UID:对齐 controller.screenshot(),analyze 的 OCR / 画面匹配不依赖 UID 区域。
+            image = controller.fill_uid_black(image)
             write_back = True
         else:
             image, resolved = self._resolve_screenshot(screenshot)
@@ -638,7 +642,7 @@ class ZzzBackendContext:
         controller.close_game()
         return '已发送关闭游戏信号,可用 check_game_window 验证'
 
-    def click_game(self, x: int | float, y: int | float, press_time: float = 0.0) -> dict:
+    def click_game(self, x: int | float, y: int | float, press_time: float = 0.1, pc_alt: bool = False) -> dict:
         """点击游戏窗口内指定坐标(1080p 游戏空间,同源 screen_info pc_rect)。操作类。
 
         坐标经控制器自动缩放到真实屏幕。坐标不在游戏窗口内时控制器返 False(不点击)。
@@ -646,9 +650,11 @@ class ZzzBackendContext:
         Args:
             x, y: 默认分辨率(1920×1080)下的游戏窗口坐标。
             press_time: >0 时长按若干秒。
+            pc_alt: 点击前是否先按住 Alt 解锁光标。大世界等 ``pc_alt=true`` 画面必需
+                (绝区零会锁光标,不按 Alt 点击落空);其余画面保持 False。
 
         Returns:
-            ``{success, x, y, in_window}``:``success/in_window=False`` 表示坐标不在窗口内。
+            ``{success, x, y, in_window, pc_alt}``:``success/in_window=False`` 表示坐标不在窗口内。
 
         Raises:
             BackendNotReadyError: ZContext 未就绪或游戏窗口未就绪时抛。
@@ -658,8 +664,8 @@ class ZzzBackendContext:
         if controller is None or not controller.is_game_window_ready:
             raise BackendNotReadyError('游戏窗口未就绪')
         controller.active_window()
-        clicked = controller.click(Point(int(x), int(y)), press_time=press_time)
-        return {'success': clicked, 'x': int(x), 'y': int(y), 'in_window': clicked}
+        clicked = controller.click(Point(int(x), int(y)), press_time=press_time, pc_alt=pc_alt)
+        return {'success': clicked, 'x': int(x), 'y': int(y), 'in_window': clicked, 'pc_alt': pc_alt}
 
     def input_text(self, text: str, use_clipboard: bool | None = None) -> dict:
         """向当前焦点输入框输入文本(账号/密码等)。操作类。
