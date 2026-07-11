@@ -31,7 +31,7 @@ jobs:
           .\.venv\Scripts\Activate.ps1
           uv sync --group dev
 
-      - name: Checkout test repo
+      - name: Checkout test repo (fork, same branch)
         id: checkout-test-repo
         uses: actions/checkout@v5
         with:
@@ -41,9 +41,20 @@ jobs:
           fetch-depth: 1
         continue-on-error: true
 
-      - name: Checkout test repo (default branch)
-        id: checkout-test-repo-default
+      - name: Checkout test repo (upstream, same branch)
+        id: checkout-test-repo-upstream
         if: steps.checkout-test-repo.outcome == 'failure'
+        uses: actions/checkout@v5
+        with:
+          repository: OneDragon-Anything/zzz-od-test
+          path: zzz-od-test
+          ref: ${{ github.head_ref || 'main' }}
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Checkout test repo (upstream, main)
+        id: checkout-test-repo-default
+        if: steps.checkout-test-repo-upstream.outcome == 'failure'
         uses: actions/checkout@v5
         with:
           repository: OneDragon-Anything/zzz-od-test
