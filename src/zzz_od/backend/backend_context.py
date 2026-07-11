@@ -93,6 +93,13 @@ class RunState(str, Enum):
     STOPPED = 'stopped'
 
 
+class RunType(str, Enum):
+    """运行单元类型:app 路径委托 run_application,op 路径槽自管生命周期。"""
+
+    APPLICATION = 'application'
+    OPERATION = 'operation'
+
+
 class RunSlot:
     """单跑道运行槽:MCP/HTTP 共享,固化终态,运行中读 operation 实例。
 
@@ -105,7 +112,9 @@ class RunSlot:
         self._lock: threading.Lock = threading.Lock()
         self._executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=1, thread_name_prefix=thread_name_prefix)
         self.source: str | None = None
-        self.app: str | None = None
+        self.op_id: str | None = None          # 唯一标识(定位用):app 路径=app_id、op 路径=display_name 或类名
+        self.run_type: RunType | None = None   # APPLICATION / OPERATION
+        self.app: str | None = None            # 展示名(_run 内固化):op 路径=op.op_name、app 路径=get_application_name
         self.started_at: float | None = None
         self.finished_at: float | None = None
         self.terminal_state: RunState | None = None
@@ -124,77 +133,143 @@ class RunSlot:
         with self._lock:
             return self.started_at is not None
 
-    def _start_run(self, source: str, op_factory: 'Callable[[ZContext], Operation]') -> tuple[bool, Future | None]:
-        """触发运行。单跑道:已在跑则拒绝。
+    def _start(
+        self,
+        source: str,
+        op_factory: 'Callable[[ZContext], Operation] | None' = None,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+        group_id: str | None = None,
+        display_name: str | None = None,
+        refresh_config: 'Callable[[], None] | None' = None,
+    ) -> tuple[bool, Future | None]:
+        """触发运行(单跑道)。op_factory 与 app_id 二选一,互斥校验。
+
+        - op 路径(op_factory):槽自管 start_running/execute/stop_running(open_game / 自定义 op)。
+        - app 路径(app_id):委托 run_application(复用 GUI/CLI 共享入口)。
+
+        check 与 submit 在同一把锁内原子,消除跨槽 check-then-act 竞态。
+
+        Args:
+            source: 触发方标识(如 ``"mcp"``/``"http"``)。
+            op_factory: operation 构造器(op 路径,与 app_id 互斥)。
+            app_id: 应用 id(app 路径,与 op_factory 互斥)。
+            instance_idx: 账号实例下标;op 路径 None 时取 ctx.current_instance_idx。
+            group_id: 应用组 id(app 路径)。
+            display_name: op 路径定位标识(如 op_id);None 时 _run 内 fallback 类名。
+            refresh_config: 配置刷新钩子(app 路径在 run_application 前、_start 已赢锁后调用)。
 
         Returns:
             (ok, future):ok=False 表示已有运行在进行(future=None);ok=True 表示已启动。
+
+        Raises:
+            ValueError: op_factory 与 app_id 同时传或同时缺省。
         """
+        if (op_factory is None) == (app_id is None):
+            raise ValueError('op_factory 与 app_id 必须二选一')
         with self._lock:
             if self.future is not None and not self.future.done():
-                return False, None
+                return False, None                         # 单跑道:已在跑就拒(拒绝路径不刷新配置)
             self.terminal_state = None
             self.last_status = None
             self.failed_node = None
             self.finished_at = None
-            self.app = None
+            self.op_id = app_id or display_name            # app 路径=app_id;op 路径=display_name,未传则 _run 内 fallback 类名
+            self.run_type = RunType.APPLICATION if app_id is not None else RunType.OPERATION
+            self.app = None                                # 展示名待 _run 填
             self.source = source
             self.started_at = time.time()
-            self.future = self._executor.submit(self._run, op_factory)
+            self.future = self._executor.submit(
+                self._run, source, op_factory, app_id, instance_idx, group_id, refresh_config,
+            )
             return True, self.future
 
-    def _run(self, op_factory: 'Callable[[ZContext], Operation]') -> OperationResult | None:
-        """后台线程:启动 run_context → 跑 operation → finally 固化终态 + stop_running。
+    def _run(
+        self,
+        source: str,
+        op_factory: 'Callable[[ZContext], Operation] | None',
+        app_id: str | None,
+        instance_idx: int | None,
+        group_id: str | None,
+        refresh_config: 'Callable[[], None] | None',
+    ) -> OperationResult | None:
+        """后台线程:按 app / op 分派执行,顶层 try/except/finally 固化终态。
 
-        并发(已在跑)已在 _start_run 拦截;此处 start_running 返回 False 只可能是初始化失败。
-        终态判据:OperationResult.status == '人工结束' → STOPPED(框架唯一 stop 标记)。
-        返回 OperationResult(future 解析值)供 block=True 的适配器 await 后取结果。
+        - app 路径:refresh_config → 委托 run_application → 读 last_application_result。
+        - op 路径:start_running → op_factory(ctx) → op.execute() → stop_running。
+
+        任何异常都固化终态(镜像原 RunSlot 安全网),避免卡 terminal_state=None/RUNNING。
         """
-        run_context = self._ctx.run_context
-        op: Operation | None = None
+        ctx = self._ctx
+        run_context = ctx.run_context
         result: OperationResult | None = None
-        terminal: RunState = RunState.FAILED
-        failed_node: str | None = None   # 局部累积,finally 锁内固化(避免锁外写固化字段)
+        failed_node: str | None = None
         try:
-            if not run_context.start_running():
-                failed_node = 'start_running 初始化失败'
-                result = OperationResult(success=False, status='start_running 初始化失败')
+            if app_id is not None:
+                # —— app 路径:委托 run_application(共享入口)——
+                if refresh_config is not None:
+                    refresh_config()                       # 槽线程内、_start 已赢锁后、run_application 前(修刷新竞态)
+                # 刷新后再读实例下标(refresh_config 可能切实例),修 instance_idx 回归
+                run_context.current_instance_idx = ctx.current_instance_idx
+                try:
+                    self.app = run_context.get_application_name(app_id)   # 固化应用中文名
+                except Exception:  # noqa: BLE001
+                    self.app = app_id
+                started = run_context.run_application(app_id, run_context.current_instance_idx, group_id)
+                result = run_context.last_application_result
+                if not started and result is None:
+                    result = OperationResult(success=False, status='应用启动失败')
             else:
-                run_context.current_instance_idx = self._ctx.current_instance_idx
-                op = op_factory(self._ctx)
-                with self._lock:
-                    self.current_op = op
-                    self.app = op.__class__.__name__
-                result = op.execute()
-                if result.success:
-                    terminal = RunState.SUCCESS
-                elif result.status == '人工结束':
-                    terminal = RunState.STOPPED
+                # —— op 路径:槽自管生命周期(open_game / 自定义 op 通用)——
+                run_context.current_instance_idx = instance_idx if instance_idx is not None else ctx.current_instance_idx
+                if not run_context.start_running():
+                    result = OperationResult(success=False, status='start_running 失败(有其它运行)')
                 else:
-                    terminal = RunState.FAILED
-                    failed_node = op._current_node.cn if op._current_node is not None else None
-        except Exception as e:  # noqa: BLE001 兜底:execute 抛异常也固化,避免卡 terminal_state=None
-            terminal = RunState.FAILED
-            if op is not None and op._current_node is not None:
-                failed_node = op._current_node.cn
-            else:
-                failed_node = f'异常: {e}'
-            result = OperationResult(success=False, status='执行异常')
+                    op: Operation | None = None
+                    try:
+                        op = op_factory(ctx)
+                        with self._lock:
+                            self.current_op = op
+                            if self.op_id is None:
+                                self.op_id = op.__class__.__name__   # open_game 未传 display_name 时 fallback 类名
+                            self.app = op.op_name or op.__class__.__name__   # 优先 Operation.op_name(中文),空时类名
+                        result = op.execute()
+                    except Exception as e:  # noqa: BLE001 execute 抛异常也兜住,避免卡 RUNNING
+                        result = OperationResult(success=False, status=f'执行异常: {e}')
+                    finally:
+                        # 清除句柄前本地捕获失败节点(修 failed_node 丢失),与原 RunSlot 一致
+                        failed_node = getattr(getattr(op, '_current_node', None), 'cn', None) if op is not None else None
+                        with self._lock:
+                            self.current_op = None
+                        run_context.stop_running()
+        except Exception as e:  # noqa: BLE001 兜底:refresh_config/run_application 等抛异常也固化,避免卡 RUNNING
+            result = OperationResult(success=False, status=f'执行异常: {e}')
         finally:
+            # —— 固化终态(任何路径都执行,镜像原 RunSlot finally)——
+            terminal = (RunState.SUCCESS if (result is not None and result.success)
+                        else RunState.STOPPED if (result is not None and result.status == '人工结束')
+                        else RunState.FAILED)
+            if failed_node is None:
+                failed_node = self._node_name() or (result.status if result is not None else None)
             with self._lock:
                 self.terminal_state = terminal
                 self.last_status = result.status if result is not None else '执行异常'
-                self.failed_node = failed_node
+                self.failed_node = failed_node if terminal == RunState.FAILED else None   # 仅 FAILED 记失败节点
                 self.finished_at = time.time()
-                self.current_op = None
-            run_context.stop_running()
         return result
+
+    def _node_name(self) -> str | None:
+        """统一读进度句柄的当前节点(app 路径读 current_application,op 路径读 current_op)。"""
+        op = self.current_op or self._ctx.run_context.current_application
+        node = getattr(op, '_current_node', None) if op is not None else None
+        return getattr(node, 'cn', None) if node is not None else None
 
     def _query_status(self) -> RunStatusResult:
         """查询运行状态。判据用固化 terminal_state(单一事实源),不读 run_context。
 
         终态:返固化 terminal_state + last_status/failed_node。
-        运行中(started_at 非 None 且 terminal_state None):统一 RUNNING,读 current_op 的 current_node/retry。
+        运行中(started_at 非 None 且 terminal_state None):统一 RUNNING,
+        进度读 progress = current_op or run_context.current_application(Application 也是 Operation)。
         空闲(从未运行,started_at None):返 idle。
         """
         with self._lock:
@@ -212,8 +287,11 @@ class RunSlot:
             op = self.current_op
             if started_at is None:
                 return RunStatusResult(state=RunState.IDLE.value, source=source)
-        current_node = op._current_node.cn if op is not None and op._current_node is not None else None
-        retry_count = op.node_retry_times if op is not None else None
+        # 进度句柄:op 路径读 current_op,app 路径(current_op=None)读 run_context.current_application
+        progress = op if op is not None else self._ctx.run_context.current_application
+        node = getattr(progress, '_current_node', None) if progress is not None else None
+        current_node = getattr(node, 'cn', None) if node is not None else None
+        retry_count = getattr(progress, 'node_retry_times', None) if progress is not None else None
         duration = (time.time() - started_at) if started_at else None
         return RunStatusResult(
             state=RunState.RUNNING.value,
@@ -757,15 +835,21 @@ class ZzzBackendContext:
             return use_clipboard
         return self._ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value
 
-    def start_run(self, source: str, op_factory: 'Callable[[ZContext], Operation]') -> tuple[bool, Future | None]:
-        """触发运行(供 MCP/HTTP 适配器调用,返回 future 供 block=True 时 await)。
+    def start_run(
+        self,
+        source: str,
+        op_factory: 'Callable[[ZContext], Operation]',
+        display_name: str | None = None,
+    ) -> tuple[bool, Future | None]:
+        """触发运行(op 原语入口,供 open_game 等经适配器调用)。
 
-        单跑道委托 ``basic_run_slot._start_run``:已有运行在进行时返回 ``ok=False``，
+        单跑道委托 ``run_slot._start``(op 路径):已有运行在进行时返回 ``ok=False``，
         适配器据此返回并发拒绝；其余由 RunSlot 在后台线程内执行 operation。
 
         Args:
             source: 触发方标识，如 ``"mcp"``/``"http"``。
             op_factory: operation 构造器，由适配器提供。
+            display_name: op 路径定位标识(如 op_id);None 时 _run 内 fallback 类名。
 
         Returns:
             ``(ok, future)``：``ok=False`` 表示已有运行在进行(``future=None``)；
@@ -773,7 +857,7 @@ class ZzzBackendContext:
         """
         if self.app_run_slot.is_running():
             return False, None
-        return self.basic_run_slot._start_run(source, op_factory)
+        return self.run_slot._start(source, op_factory=op_factory, display_name=display_name)
 
     def run_one_dragon(self, source: str) -> tuple[bool, Future | None]:
         """按当前一条龙配置启动完整一条龙运行。"""
