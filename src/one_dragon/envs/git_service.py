@@ -20,7 +20,7 @@ from pygit2 import (
 )
 from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
-from one_dragon.envs.env_config import EnvConfig, RepositoryTypeEnum
+from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
@@ -34,6 +34,47 @@ class GitLog:
     author: str
     commit_time: str
     commit_message: str
+
+
+@dataclass(frozen=True)
+class SourceRepository:
+    """源码同步来源。"""
+
+    name: str
+    url: str
+    is_primary: bool = False
+
+
+@dataclass(frozen=True)
+class FetchAttempt:
+    """单个源码同步来源的拉取结果。"""
+
+    source_name: str
+    error: str | None = None
+
+
+@dataclass
+class FetchResult:
+    """源码同步来源链的拉取结果。"""
+
+    attempts: list[FetchAttempt]
+    source_name: str | None = None
+
+    @property
+    def success(self) -> bool:
+        """是否已从某个来源拉取成功。"""
+        return self.source_name is not None
+
+    @property
+    def message(self) -> str:
+        """返回可展示的拉取结果。"""
+        if self.success:
+            return f'{self.source_name} 拉取成功'
+
+        return '\n'.join(
+            f'{attempt.source_name} 拉取失败: {attempt.error or "未知错误"}'
+            for attempt in self.attempts
+        )
 
 
 class _FetchProgressRemoteCallbacks(RemoteCallbacks):
@@ -126,9 +167,9 @@ class GitService:
         Returns:
             Remote 对象
         """
-        remote_url = self._get_git_repository()
+        remote_url = self.project_config.github_https_repository
         if not remote_url:
-            raise ValueError('未能获取有效的远程仓库地址')
+            raise ValueError('未能获取 GitHub 远程仓库地址')
 
         repo = self._open_repo()
         remote_name = self.env_config.git_remote
@@ -151,20 +192,13 @@ class GitService:
         repo.remotes.create(remote_name, remote_url)
         return repo.remotes[remote_name]
 
-    def _get_git_repository(self) -> str:
-        """获取仓库地址"""
-        repo_type = self.env_config.repository_type
-
-        if repo_type == RepositoryTypeEnum.GITHUB.value.value:
-            repo = self.project_config.github_https_repository
-            if self.env_config.is_gh_proxy:
-                return f'{self.env_config.gh_proxy_url}/{repo}'
-            return repo
-
-        elif repo_type == RepositoryTypeEnum.GITEE.value.value:
-            return self.project_config.gitee_https_repository
-
-        return ''
+    def _get_source_repositories(self) -> list[SourceRepository]:
+        """按固定优先级返回源码同步来源。"""
+        return [
+            SourceRepository('GitHub', self.project_config.github_https_repository, True),
+            SourceRepository('CNB', self.project_config.cnb_https_repository),
+            SourceRepository('Gitee', self.project_config.gitee_https_repository),
+        ]
 
     def _get_proxy_address(self) -> str | None:
         """获取代理地址"""
@@ -196,63 +230,126 @@ class GitService:
 
         return _FetchProgressRemoteCallbacks(stage_progress_callback)
 
+    def _fetch_source(
+        self,
+        remote: Remote,
+        refspecs: list[str],
+        progress_callback: Callable[[float, str], None] | None = None,
+        stage_start: float = 0.0,
+        stage_end: float = 1.0,
+    ) -> None:
+        """拉取单个源码同步来源。"""
+        repo = self._open_repo()
+        proxy = self._get_proxy_address()
+        callbacks = self._create_fetch_callbacks(progress_callback, stage_start, stage_end)
+
+        depth = 1
+        local_ref = f'refs/heads/{self.env_config.git_branch}'
+        if local_ref in repo.references and repo.references[local_ref].target is not None:
+            depth = 0
+
+        try:
+            remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
+        except KeyError as e:
+            if 'object not found' not in str(e) or depth != 0:
+                raise
+
+            log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
+            remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
+        except Exception as e:
+            if 'shallow fetch is not supported' not in str(e) or depth != 1:
+                raise
+
+            log.warning(f'浅拉取不可用({e})，使用完整拉取重试')
+            remote.fetch(refspecs=refspecs, proxy=proxy, depth=0, callbacks=callbacks)
+
+    def _is_fallback_behind_local_branch(self, fallback_target: Oid) -> bool:
+        """检查镜像目标提交是否落后于本地目标分支。"""
+        repo = self._open_repo()
+        local_ref = f'refs/heads/{self.env_config.git_branch}'
+        if local_ref not in repo.references:
+            return False
+
+        local_target = repo.references[local_ref].target
+        return local_target != fallback_target and repo.descendant_of(local_target, fallback_target)
+
     def _fetch_remote(
         self,
         progress_callback: Callable[[float, str], None] | None = None,
         stage_start: float = 0.0,
         stage_end: float = 1.0,
-    ) -> bool:
-        """拉取远程代码
-
-        根据本地是否存在有内容的同名分支来决定拉取深度：
-        - 若本地不存在该分支或分支为空，则使用深度1（拉取最新1条）
-        - 若本地已有该分支且有提交历史，则使用深度0（增量拉取）
-
-        Args:
-            progress_callback: 进度回调
-            stage_start: 当前阶段起始进度
-            stage_end: 当前阶段结束进度
-
-        Returns:
-            是否成功
-        """
+    ) -> FetchResult:
+        """按 GitHub、CNB、Gitee 的固定顺序拉取远程代码。"""
         log.info(gt('拉取远程代码...'))
 
+        attempts: list[FetchAttempt] = []
         try:
             repo = self._open_repo()
-            remote = self._ensure_remote()
-            branch_name = self.env_config.git_branch
-            refspecs = [f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}']
-            proxy = self._get_proxy_address()
-            callbacks = self._create_fetch_callbacks(progress_callback, stage_start, stage_end)
+            primary_remote = self._ensure_remote()
+        except Exception as e:
+            error = str(e)
+            log.error(f'准备 GitHub 远程仓库失败: {error}', exc_info=True)
+            return FetchResult([FetchAttempt('GitHub', error)])
 
-            # 检查本地是否存在该分支且有提交历史
-            depth = 1  # 默认深度为1
-            local_ref = f'refs/heads/{branch_name}'
-            if local_ref in repo.references:
-                # 分支存在，检查是否有提交历史
-                branch_target = repo.references[local_ref].target
-                if branch_target is not None:
-                    # 有提交历史，使用增量拉取
-                    depth = 0
+        remote_name = self.env_config.git_remote
+        branch_name = self.env_config.git_branch
+        primary_ref = f'refs/remotes/{remote_name}/{branch_name}'
 
-            try:
-                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
-            except KeyError as e:
-                # 如果是因为找不到对象导致的错误，使用 depth=1 重试
-                if 'object not found' in str(e) and depth == 0:
-                    log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
-                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
-                else:
-                    raise
+        for source in self._get_source_repositories():
+            if not source.url:
+                attempts.append(FetchAttempt(source.name, '未配置仓库地址'))
+                continue
 
-            log.info(gt('拉取远程代码成功'))
             if progress_callback is not None:
-                progress_callback(stage_end, gt('拉取远程代码成功'))
-            return True
-        except Exception:
-            log.error('拉取远程代码失败', exc_info=True)
-            return False
+                progress_callback(stage_start, f'从 {source.name} 拉取代码')
+
+            fallback_ref: str | None = None
+            try:
+                if source.is_primary:
+                    remote = primary_remote
+                    target_ref = primary_ref
+                else:
+                    remote = repo.remotes.create_anonymous(source.url)
+                    fallback_ref = f'refs/remotes/{remote_name}/source-sync-fallback/{branch_name}'
+                    target_ref = fallback_ref
+
+                self._fetch_source(
+                    remote,
+                    [f'+refs/heads/{branch_name}:{target_ref}'],
+                    progress_callback,
+                    stage_start,
+                    stage_end,
+                )
+
+                if source.is_primary:
+                    attempts.append(FetchAttempt(source.name))
+                    log.info(f'从 {source.name} 拉取远程代码成功')
+                    if progress_callback is not None:
+                        progress_callback(stage_end, f'{source.name} 拉取成功')
+                    return FetchResult(attempts, source.name)
+
+                fallback_target = repo.references[target_ref].target
+                if self._is_fallback_behind_local_branch(fallback_target):
+                    error = '镜像目标提交落后于本地分支'
+                    attempts.append(FetchAttempt(source.name, error))
+                    log.error(f'{source.name} {error}')
+                    return FetchResult(attempts)
+
+                repo.references.create(primary_ref, fallback_target, force=True)
+                attempts.append(FetchAttempt(source.name))
+                log.info(f'从 {source.name} 拉取远程代码成功')
+                if progress_callback is not None:
+                    progress_callback(stage_end, f'{source.name} 拉取成功')
+                return FetchResult(attempts, source.name)
+            except Exception as e:
+                error = str(e)
+                attempts.append(FetchAttempt(source.name, error))
+                log.warning(f'从 {source.name} 拉取远程代码失败: {error}', exc_info=True)
+            finally:
+                if fallback_ref is not None and fallback_ref in repo.references:
+                    repo.references.delete(fallback_ref)
+
+        return FetchResult(attempts)
 
     def _reset_hard(self, target_id: str | Oid) -> bool:
         """硬重置仓库到指定提交
@@ -592,8 +689,9 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('拉取远程代码'))
 
-        if not self._fetch_remote(progress_callback, 2 / 5, 3 / 5):
-            return False, gt('拉取远程代码失败')
+        fetch_result = self._fetch_remote(progress_callback, 2 / 5, 3 / 5)
+        if not fetch_result.success:
+            return False, fetch_result.message
 
         # 切换到目标分支
         if progress_callback:
@@ -613,7 +711,7 @@ class GitService:
         if progress_callback:
             progress_callback(5/5, gt('克隆仓库成功'))
 
-        return True, gt('克隆仓库成功')
+        return True, f'{gt("克隆仓库成功")}（来源：{fetch_result.source_name}）'
 
     def _fetch_and_checkout_latest_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
@@ -625,8 +723,9 @@ class GitService:
         if progress_callback:
             progress_callback(1/6, gt('拉取远程代码'))
 
-        if not self._fetch_remote(progress_callback, 1 / 6, 2 / 6):
-            return False, gt('拉取远程代码失败')
+        fetch_result = self._fetch_remote(progress_callback, 1 / 6, 2 / 6)
+        if not fetch_result.success:
+            return False, fetch_result.message
 
         # 检查模块清单兼容性（仅 frozen 环境）
         if progress_callback:
@@ -662,7 +761,7 @@ class GitService:
         if progress_callback:
             progress_callback(6/6, message)
 
-        return True, message
+        return True, f'{message}（来源：{fetch_result.source_name}）'
 
     # ================== 公共 API ==================
 
@@ -712,8 +811,9 @@ class GitService:
         """
         log.info(gt('检测当前代码是否最新'))
 
-        if not self._fetch_remote():
-            return False, gt('拉取远程代码失败')
+        fetch_result = self._fetch_remote()
+        if not fetch_result.success:
+            return False, fetch_result.message
 
         # 获取本地和远程的提交ID
         local_oid, remote_oid, msg = self._get_local_and_remote_oid()
@@ -725,7 +825,7 @@ class GitService:
         if local_oid == remote_oid:
             return True, ''
 
-        return False, gt('与远程分支不一致')
+        return False, f'{gt("与远程分支不一致")}（来源：{fetch_result.source_name}）'
 
     def fetch_total_commit(self) -> int:
         """

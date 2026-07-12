@@ -106,6 +106,12 @@ LauncherBase          → 基础参数解析、run() 入口
 
 步骤 5 的模块清理确保了主程序后续导入的是更新后的代码，而非同步过程中缓存的旧版本。
 
+### 源码同步来源
+
+`GitService` 每次同步源码时固定按 GitHub、CNB、Gitee 的顺序拉取当前分支。`origin` 的 fetch 地址始终保持为 GitHub；GitHub 不可达时，CNB 或 Gitee 的提交会写入同一 `origin/<branch>` 跟踪引用，成功后不会把 `origin`、分支跟踪关系或本地 `HEAD` 改成镜像来源。
+
+镜像可能落后于 GitHub。回退来源的目标提交已经是本地目标分支祖先时，程序会拒绝同步，避免把本地代码回退到旧提交。三个来源都失败时，程序保留当前工作树和 Git 状态，并按 GitHub、CNB、Gitee 的顺序记录失败原因。该策略只影响源码 Git 同步，不改变 Python、环境包、模型、Pip 源或网络代理设置。
+
 ## 错误处理
 
 ### 集成启动器的 try/except

@@ -1,16 +1,33 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton, PushButton
 import webbrowser
 
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QWidget
+from qfluentwidgets import (
+    FluentIcon,
+    PrimaryPushButton,
+    PushButton,
+    SettingCardGroup,
+    TitleLabel,
+)
+
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.envs.env_config import CpythonSourceEnum, EnvSourceEnum, ProxyTypeEnum, PipSourceEnum, RegionEnum, RepositoryTypeEnum
+from one_dragon.envs.env_config import (
+    CpythonSourceEnum,
+    EnvSourceEnum,
+    PipSourceEnum,
+    ProxyTypeEnum,
+    RegionEnum,
+)
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class SourceConfigInterface(VerticalScrollInterface):
@@ -79,13 +96,6 @@ class SourceConfigInterface(VerticalScrollInterface):
         # 源
         source_group = SettingCardGroup(gt('源'))
 
-        self.repository_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.CODE,
-            title='代码仓库',
-            options_enum=RepositoryTypeEnum
-        )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
-
         self.env_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.CLOUD_DOWNLOAD,
             title='环境下载源',
@@ -105,8 +115,8 @@ class SourceConfigInterface(VerticalScrollInterface):
         )
 
         # 创建横向布局组件
-        first_row = HorizontalSettingCardGroup([self.repository_type_opt, self.cpython_source_opt])
-        second_row = HorizontalSettingCardGroup([self.env_source_opt, self.pip_source_opt])
+        first_row = HorizontalSettingCardGroup([self.cpython_source_opt, self.env_source_opt])
+        second_row = HorizontalSettingCardGroup([self.pip_source_opt])
 
         # 将横向布局组件添加到源组
         source_group.addSettingCard(first_row)
@@ -165,19 +175,16 @@ class SourceConfigInterface(VerticalScrollInterface):
 
     def _on_region_changed(self, index: int, value: str):
         if index == 0:  # 中国 - Gitee
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITEE.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITEE.value.value
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITEE.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
         elif index == 1:  # 中国 - GitHub 代理
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
         elif index == 2:  # 海外
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.PYPI.value.value
@@ -186,7 +193,6 @@ class SourceConfigInterface(VerticalScrollInterface):
 
     def _init_config_values(self):
         """初始化配置值显示"""
-        self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
         self.env_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('env_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))

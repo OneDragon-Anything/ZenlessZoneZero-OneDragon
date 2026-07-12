@@ -46,7 +46,6 @@ class CodeInstallCard(BaseInstallCard):
             self.check_and_update_display()
             self.updated = True
         else:
-            msg = msg + ' 可考虑设置-脚本环境-代码源选择Gitee 但不能保证是最新版本'
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> tuple[QIcon, str]:

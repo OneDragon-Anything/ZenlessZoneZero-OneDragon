@@ -162,7 +162,7 @@ class EnvConfig(YamlConfig):
     @property
     def repository_type(self) -> str:
         """
-        仓库类型 GitHub / Gitee
+        旧版仓库类型配置，仅为兼容已有 env.yml 保留。
         :return:
         """
         return self.get('repository_type', RepositoryTypeEnum.GITEE.value.value)
@@ -170,7 +170,7 @@ class EnvConfig(YamlConfig):
     @repository_type.setter
     def repository_type(self, new_value: str) -> None:
         """
-        仓库类型 GitHub / Gitee
+        更新旧版仓库类型配置。
         :return:
         """
         self.update('repository_type', new_value)

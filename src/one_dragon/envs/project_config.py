@@ -11,6 +11,7 @@ class ProjectConfig(YamlConfig):
         self.github_homepage = self.get('github_homepage')
         self.github_https_repository = self.get('github_https_repository')
         self.github_ssh_repository = self.get('github_ssh_repository')
+        self.cnb_https_repository = self.get('cnb_https_repository')
         self.gitee_https_repository = self.get('gitee_https_repository')
         self.gitee_ssh_repository = self.get('gitee_ssh_repository')
         self.project_git_branch = self.get('project_git_branch')

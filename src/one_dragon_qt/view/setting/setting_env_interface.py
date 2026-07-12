@@ -16,7 +16,6 @@ from one_dragon.envs.env_config import (
     CpythonSourceEnum,
     PipSourceEnum,
     ProxyTypeEnum,
-    RepositoryTypeEnum,
     ScreenshotMethodEnum,
 )
 from one_dragon.utils.i18_utils import gt
@@ -90,13 +89,6 @@ class SettingEnvInterface(VerticalScrollInterface):
 
     def _init_code_group(self) -> SettingCardGroup:
         code_group = SettingCardGroup(gt('Git相关'))
-
-        self.repository_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
-            options_enum=RepositoryTypeEnum
-        )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
-        code_group.addSettingCard(self.repository_type_opt)
 
         self.auto_update_code_opt = PasswordSwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
@@ -209,8 +201,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))
         self.key_screenshot_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_screenshot'))
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
-
-        self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
