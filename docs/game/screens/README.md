@@ -27,6 +27,7 @@
 | 丽都周纪 | [丽都周纪.md](丽都周纪.md) | ridu_weekly 周常 BINGO 积分领奖(无战斗);BINGO 主画面已建档 |
 | 咖啡店 | [咖啡店.md](咖啡店.md) | coffee 每日咖啡增益;⚠️边界(核心点咖啡非战斗 + 可选挑战副本含战斗);对话点单-已喝过态已建档 |
 | 吼吼饼铺 | [吼吼饼铺.md](吼吼饼铺.md) | hou_hou_bakery 每日签到盲盒(无战斗);骨架已建(信息源三层);⚠️Transport 卡 3.0 布亚斯特城区未探索,截图待补 |
+| 委托助手 | [委托助手.md](委托助手.md) | commission_assistant 对话/剧情/钓鱼**辅助循环器**(非固定画面);多态识别已建 doc;⚠️含可选 auto_battle 边界 |
 
 ## 非战斗 app 建档进度
 
@@ -39,7 +40,7 @@
 **⚠️ 跳过**:
 - `hou_hou_bakery` 见 [吼吼饼铺.md](吼吼饼铺.md)(骨架已建,信息源三层;⚠️Transport 卡 3.0 布亚斯特城区未探索,截图待补)
 - `life_on_line`(危局:含战斗 `EnterHddMission` + `KeySimRunner`,**非「不含战斗」app**,不在建档范围)
-- `commission_assistant`(委托助手:对话/钓鱼/战斗**辅助循环器**,含可选 auto_battle 模式,边界;非固定游戏画面)
+- `commission_assistant` 见 [委托助手.md](委托助手.md)(辅助循环器多态识别已建 doc;⚠️含可选 auto_battle,边界;非固定画面)
 - `coffee` 见 [咖啡店.md](咖啡店.md)(已建档非战斗画面;⚠️边界 app,可选挑战副本含战斗)
 
 **不建档(无游戏画面)**:`notify`(只发推送通知,汇总 run_record,不截图/不点 UI)。
