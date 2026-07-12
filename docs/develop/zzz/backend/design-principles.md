@@ -53,7 +53,9 @@ server 给「**事实**」,智能体做「**决策 + 通用理解**」。server 
 ### P3. 操作 vs 观察分离
 操作类 tool 改状态(进游戏 / 停止 / reload / 改配置),观察类只读(窗口 / 截图 / 运行态)。副作用两种标注:
 - **docstring** 文字说明(给智能体读);
-- **MCP tool annotations**(`destructiveHint` / `openWorldHint` 等机器可读,官方推荐)。
+- **MCP tool annotations**(`ToolAnnotations(readOnlyHint=...)` 等,**字段名 camelCase**(mcp sdk 与 JSON 线一致;⚠️ 用 snake_case 会被 pydantic 当 extra 忽略、静默失效);机器可读,官方推荐)。
+
+具体怎么标(分类判据 + 代码写法)见 [mcp-implementation.md](mcp-implementation.md) 第 1 节。
 
 ### P4. 不复制智能体已有的能力(选对 tool)
 少而精,每个 tool 清晰独立目的;合并高频链式操作成单 tool。判断标准:**「智能体自己能做?能 → 不做 MCP」**。
@@ -130,5 +132,6 @@ tool 按服务 / 资源分组前缀(如 `game_*` / `run_*`),帮智能体在多 s
 ## 相关
 
 - 现状 spec:[architecture.md](architecture.md) / [mcp.md](mcp.md) / [http.md](http.md)
+- 实现落地:[mcp-implementation.md](mcp-implementation.md)(本文配对:原则 → 代码写法)
 - 智能体接入:[../setup/ai_coding.md](../setup/ai_coding.md)
 - harness 方法论(分层类比):[../harness/context_layering.md](../harness/context_layering.md)
