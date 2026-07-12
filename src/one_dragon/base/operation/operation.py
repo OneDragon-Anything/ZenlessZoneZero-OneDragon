@@ -704,6 +704,13 @@ class Operation(OperationBase):
             ttl_seconds=45.0,
         )
 
+    def _get_enabled_debug_bus(self) -> OverlayDebugBus | None:
+        """获取已启用的调试总线，不存在或未启用时返回 None。"""
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None or not bus.enabled:
+            return None
+        return bus
+
     def _emit_debug_decision(
         self,
         source: str,
@@ -713,8 +720,8 @@ class Operation(OperationBase):
         status: str,
         ttl_seconds: float,
     ) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None or not bus.enabled:
+        bus = self._get_enabled_debug_bus()
+        if bus is None:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import DecisionTraceItem
@@ -739,8 +746,8 @@ class Operation(OperationBase):
         level: str,
         ttl_seconds: float,
     ) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None or not bus.enabled:
+        bus = self._get_enabled_debug_bus()
+        if bus is None:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import TimelineItem
@@ -757,8 +764,8 @@ class Operation(OperationBase):
         )
 
     def _emit_debug_round_perf(self, elapsed_ms: float) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None or not bus.enabled:
+        bus = self._get_enabled_debug_bus()
+        if bus is None:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample

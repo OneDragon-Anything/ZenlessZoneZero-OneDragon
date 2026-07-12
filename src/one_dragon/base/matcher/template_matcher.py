@@ -153,7 +153,7 @@ class TemplateMatcher:
         :param kwargs: 传递给 match_template 的额外参数
         """
         part = cv2_utils.crop_image_only(source, rect)
-        bus = getattr(self, 'overlay_debug_bus', None)
+        bus = self.debug_trace_bus
         if bus is not None:
             bus.set_crop_offset(rect.x1, rect.y1)
         try:
@@ -180,7 +180,7 @@ class TemplateMatcher:
         :param kwargs: 传递给 match_template_binary 的额外参数
         """
         part = cv2_utils.crop_image_only(source, rect)
-        bus = getattr(self, 'overlay_debug_bus', None)
+        bus = self.debug_trace_bus
         if bus is not None:
             bus.set_crop_offset(rect.x1, rect.y1)
         try:

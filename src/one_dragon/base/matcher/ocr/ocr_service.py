@@ -174,7 +174,7 @@ class OcrService:
             # 执行OCR
             if crop_first and rect is not None:
                 crop_image, crop_rect = cv2_utils.crop_image(processed_image, rect)
-                bus = getattr(self.ocr_matcher, 'overlay_debug_bus', None)
+                bus = getattr(self.ocr_matcher, 'debug_trace_bus', None)
                 if bus is not None:
                     bus.set_crop_offset(crop_rect.x1, crop_rect.y1)
                 try:
