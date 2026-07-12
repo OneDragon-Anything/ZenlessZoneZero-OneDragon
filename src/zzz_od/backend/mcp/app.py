@@ -247,6 +247,9 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         的 ``pc_alt`` 字段;框架内部点击(跑 application)会自动带,经 MCP 手动点击
         pc_alt 画面时需显式传 True。其余画面保持 False。
 
+        ⚠️ 操作后建议 sleep:底层 click 无内置等待,点 UI 常触发画面切换(菜单/弹窗/
+        进画面),连续操作或 ``capture_game_screen`` 前建议 sleep ~1s 等动画(否则截过渡帧)。
+
         Returns:
             ``{success, x, y, in_window, pc_alt, error?}``;backend 抛错时 success=False + error。
         """
@@ -263,6 +266,10 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         ``esc``、``space`` 等(键名沿用框架约定)。press_time>0 长按(如移动长按 1-2s)。
         需游戏窗口就绪。
 
+        ⚠️ 操作后建议 sleep(底层无内置等待):移动 wasd ~1s 等角色到位(不等就 interact
+        可能失效,见 scratch_card issue #2405)、交互 ``f`` ~1-2s 进场景/对话、``esc``
+        ~0.5s 开关菜单。连续操作前按需 sleep。
+
         Returns:
             ``{success, key, press_time, error?}``;backend 抛错时 success=False + error。
         """
@@ -276,6 +283,9 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         """鼠标按住拖拽((x1,y1)→(x2,y2),1080p 游戏坐标,同 screen_info pc_rect)。操作类。
 
         覆盖刮刮卡刮开、八卦收集来回拖、咖啡拖动等。需游戏窗口就绪。
+
+        ⚠️ 操作后建议 sleep:底层 drag 无内置等待,拖后画面变化(刮/滚),连续操作或
+        capture 前建议 sleep ~0.5s。
 
         Returns:
             ``{success, x1, y1, x2, y2, duration, error?}``;backend 抛错时 success=False + error。
