@@ -24,10 +24,11 @@
 | 对话 | [对话.md](对话.md) | 通用兜底画面(大世界 NPC/剧情对话,无固定文字特征);有 NPC 名已建档,旁白对话待补 |
 | 随便观 | [随便观.md](随便观.md) | suibian_temple 经营玩法;自动托管/经营日志 + 7 子玩法全画面(信息源三层)已建档;入口前往/各子玩法截图待补 |
 | 影像店营业 | [影像店营业.md](影像店营业.md) | random_play 录像店经营(无战斗);经营状况/宣传员选择/录像带上架已建档;营业确认弹窗待补 |
+| 丽都周纪 | [丽都周纪.md](丽都周纪.md) | ridu_weekly 周常 BINGO 积分领奖(无战斗);BINGO 主画面已建档 |
 
 ## 非战斗 app 建档进度
 
-**已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)。
+**已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)/ `ridu_weekly`(丽都周纪;BINGO 积分领奖)。
 
 **已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)、`random_play`(影像店营业;Transport POINT_2 + interact 进经营;营业确认弹窗待补)、`suibian_temple`(随便观;自动托管 + 7 子玩法全画面;各子玩法截图待补)。
 
