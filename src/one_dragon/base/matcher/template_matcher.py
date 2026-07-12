@@ -3,6 +3,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus, VisionDrawItem
 from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import cv2_utils
@@ -11,9 +12,13 @@ from one_dragon.utils.log_utils import log
 
 class TemplateMatcher:
 
-    def __init__(self, template_loader: TemplateLoader):
+    def __init__(
+        self,
+        template_loader: TemplateLoader,
+        overlay_debug_bus: OverlayDebugBus | None = None,
+    ):
         self.template_loader: TemplateLoader = template_loader
-        self.overlay_debug_bus = None
+        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
 
     def match_template(self, source: MatLike,
                        template_sub_dir: str,
@@ -49,7 +54,7 @@ class TemplateMatcher:
             mask_usage = cv2.bitwise_or(mask_usage, mask) if mask_usage is not None else mask
         result = cv2_utils.match_template(source, template.get_image(template_type), threshold, mask=mask_usage,
                                           only_best=only_best, ignore_inf=ignore_inf)
-        self._emit_overlay_vision(template_sub_dir, template_id, result)
+        self._emit_debug_vision(template_sub_dir, template_id, result)
         return result
 
     def match_one_by_feature(self, source: MatLike,
@@ -128,7 +133,7 @@ class TemplateMatcher:
             only_best=only_best,
             ignore_inf=ignore_inf
         )
-        self._emit_overlay_vision(template_sub_dir, template_id, result)
+        self._emit_debug_vision(template_sub_dir, template_id, result)
         return result
 
     def crop_and_match_template(
@@ -185,19 +190,14 @@ class TemplateMatcher:
                 bus.reset_crop_offset()
         return result
 
-    def _emit_overlay_vision(
+    def _emit_debug_vision(
         self,
         template_sub_dir: str,
         template_id: str,
         result: MatchResultList,
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
+        bus = self.debug_trace_bus
         if bus is None or not bus.enabled or result is None or len(result.arr) == 0:
-            return
-
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except ImportError:
             return
 
         offset_x, offset_y = bus.crop_offset

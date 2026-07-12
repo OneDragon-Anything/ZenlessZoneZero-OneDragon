@@ -29,9 +29,9 @@ class HollowZeroMapService:
                 gh_proxy=self.ctx.env_config.is_gh_proxy,
                 gh_proxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
-                gpu=use_gpu
+                gpu=use_gpu,
+                overlay_debug_bus=self.ctx.overlay_debug_bus,
             )
-            self.event_model.overlay_debug_bus = self.ctx.overlay_debug_bus
 
     def cal_current_map_by_screen(self, screen: MatLike, screenshot_time: float) -> Optional[HollowZeroMap]:
         """

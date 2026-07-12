@@ -11,6 +11,12 @@ from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
+from one_dragon.base.operation.overlay_debug_bus import (
+    OverlayDebugBus,
+    PerfMetricSample,
+    TimelineItem,
+    VisionDrawItem,
+)
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.utils import os_utils, str_utils
@@ -144,10 +150,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_param: OnnxOcrParam | None =  None):
+    def __init__(self, ocr_param: OnnxOcrParam | None = None,
+                 overlay_debug_bus: OverlayDebugBus | None = None):
         if ocr_param is None:
             ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
+        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
         param = CommonDownloaderParam(
             save_file_path=ocr_param.models_dir,
             save_file_name=f'{ocr_param.ocr_model_name}.zip',
@@ -164,7 +172,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._model = None
         self._init_lock = threading.Lock()
         self._loading: bool = False
-        self.overlay_debug_bus = None
 
     @staticmethod
     def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
@@ -337,8 +344,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                                                                      merge_line_distance=merge_line_distance)
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision(result_map)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
+        self._emit_debug_vision(result_map)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
@@ -465,25 +472,20 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             pass  # TODO
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
+        self._emit_debug_vision_from_ocr_results(ocr_result_list)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(ocr_result_list))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
         return ocr_result_list
 
-    def _emit_overlay_vision(
+    def _emit_debug_vision(
         self,
         result_map: dict[str, MatchResultList],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
+        bus = self.debug_trace_bus
         if bus is None or not bus.enabled or not result_map:
-            return
-
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except ImportError:
             return
 
         ox, oy = bus.crop_offset
@@ -513,17 +515,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 )
                 pushed += 1
 
-    def _emit_overlay_vision_from_ocr_results(
+    def _emit_debug_vision_from_ocr_results(
         self,
         ocr_results: list[OcrMatchResult],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
+        bus = self.debug_trace_bus
         if bus is None or not bus.enabled or not ocr_results:
-            return
-
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except ImportError:
             return
 
         offset_x, offset_y = bus.crop_offset
@@ -545,16 +542,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 )
             )
 
-    def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
+    def _emit_debug_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
+        bus = self.debug_trace_bus
         if bus is None or not bus.enabled:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import (
-                PerfMetricSample,
-                TimelineItem,
-            )
-        except ImportError:
             return
         bus.add_performance(
             PerfMetricSample(

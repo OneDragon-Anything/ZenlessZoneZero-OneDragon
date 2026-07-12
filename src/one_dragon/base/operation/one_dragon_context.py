@@ -69,16 +69,17 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
-        self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        self.tm.overlay_debug_bus = self.overlay_debug_bus
+        self.tm: TemplateMatcher = TemplateMatcher(
+            self.template_loader, overlay_debug_bus=self.overlay_debug_bus
+        )
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            overlay_debug_bus=self.overlay_debug_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -498,9 +499,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 ocr_model_name=self.model_config.ocr,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            overlay_debug_bus=self.overlay_debug_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
