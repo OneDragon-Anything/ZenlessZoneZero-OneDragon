@@ -18,13 +18,15 @@
 | 仓库-驱动仓库-驱动盘拆解 | [驱动盘拆解.md](驱动盘拆解.md) | 驱动盘拆解(快速选择/拆解);默认态误匹配快捷手册;拆解确认待补 |
 | 快捷手册-日常 | [快捷手册-日常.md](快捷手册-日常.md) | 手册日常 tab(今日活跃度奖励);已建模;领取弹窗待补(活跃度已满) |
 | 丽都城募 | [丽都城募.md](丽都城募.md) | 大月卡(菜单→丽都城募);5 tab,成长任务/等级回馈领奖;已建模 |
+| 报刊亭 | [报刊亭.md](报刊亭.md) | scratch_card 场景(F 交互进);报刊亭场景+刮态;嗷呜对话/确认待补 |
 
 ## 非战斗 app 建档进度
 
 **已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)。
 
-**⚠️ 跳过(MCP 无法完整复现 —— 涉及传送/角色移动/拖拽,`click_game`+`input_text` 不足以驱动)**:
-- `scratch_card`(刮刮卡:Transport + move_w + interact + drag_to 刮)
+**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)。
+
+**⚠️ 跳过(待用 key_tap + drag + Transport 分解)**:
 - `hou_hou_bakery`(吼吼饼铺:Transport + interact)
 - `random_play`(随机播放:Transport + move_w + interact + drag_to)
 - `trigrams_collection`(八卦收集:Transport + interact + drag_to)
