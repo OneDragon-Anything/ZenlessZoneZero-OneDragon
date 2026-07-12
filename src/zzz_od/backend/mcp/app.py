@@ -256,6 +256,36 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             return {'success': False, 'x': x, 'y': y, 'in_window': False, 'pc_alt': pc_alt, 'error': str(e)}
 
     @mcp.tool()
+    def key_tap(key: str, press_time: float = 0.0) -> dict:
+        """键盘按键(press_time=0 短按,>0 长按)。操作类。
+
+        覆盖框架 btn_controller 能发的键:移动 ``w``/``a``/``s``/``d``、交互 ``f``、
+        ``esc``、``space`` 等(键名沿用框架约定)。press_time>0 长按(如移动长按 1-2s)。
+        需游戏窗口就绪。
+
+        Returns:
+            ``{success, key, press_time, error?}``;backend 抛错时 success=False + error。
+        """
+        try:
+            return backend.key_tap(key, press_time)
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'success': False, 'key': key, 'press_time': press_time, 'error': str(e)}
+
+    @mcp.tool()
+    def drag(x1: float, y1: float, x2: float, y2: float, duration: float = 1.0) -> dict:
+        """鼠标按住拖拽((x1,y1)→(x2,y2),1080p 游戏坐标,同 screen_info pc_rect)。操作类。
+
+        覆盖刮刮卡刮开、八卦收集来回拖、咖啡拖动等。需游戏窗口就绪。
+
+        Returns:
+            ``{success, x1, y1, x2, y2, duration, error?}``;backend 抛错时 success=False + error。
+        """
+        try:
+            return backend.drag(x1, y1, x2, y2, duration)
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'success': False, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'duration': duration, 'error': str(e)}
+
+    @mcp.tool()
     def input_text(text: str, use_clipboard: bool | None = None) -> dict:
         """向当前焦点输入框输入文本(账号/密码等)。操作类。
 

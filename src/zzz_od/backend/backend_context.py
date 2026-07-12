@@ -667,6 +667,58 @@ class ZzzBackendContext:
         clicked = controller.click(Point(int(x), int(y)), press_time=press_time, pc_alt=pc_alt)
         return {'success': clicked, 'x': int(x), 'y': int(y), 'in_window': clicked, 'pc_alt': pc_alt}
 
+    def key_tap(self, key: str, press_time: float = 0.0) -> dict:
+        """键盘按键:``press_time=0`` 短按(tap),``press_time>0`` 长按(press→保持→release)。操作类。
+
+        覆盖框架 ``btn_controller`` 能发的键:移动 ``w``/``a``/``s``/``d``、交互 ``f``、
+        ``esc``、``space`` 等。键名沿用框架约定。需游戏窗口就绪。
+
+        Args:
+            key: 按键名(如 ``'w'``/``'f'``/``'esc'``/``'space'``)。
+            press_time: >0 时长按若干秒(如移动长按 1-2s);=0 短按。
+
+        Returns:
+            ``{success, key, press_time}``。
+
+        Raises:
+            BackendNotReadyError: ZContext / 游戏窗口未就绪时抛。
+        """
+        self._ensure_ready()
+        controller = self._ctx.controller
+        if controller is None or not controller.is_game_window_ready:
+            raise BackendNotReadyError('游戏窗口未就绪')
+        controller.active_window()
+        if press_time > 0:
+            controller.btn_controller.press(key, press_time=press_time)
+        else:
+            controller.btn_tap(key)
+        return {'success': True, 'key': key, 'press_time': press_time}
+
+    def drag(self, x1: int | float, y1: int | float, x2: int | float, y2: int | float, duration: float = 1.0) -> dict:
+        """鼠标按住拖拽:从 (x1,y1) 拖到 (x2,y2),持续 duration 秒。操作类。
+
+        1080p 游戏空间坐标(同 screen_info ``pc_rect``)。覆盖刮刮卡刮开、八卦收集
+        来回拖、咖啡拖动等。需游戏窗口就绪。
+
+        Args:
+            x1, y1: 起点坐标(1920×1080)。
+            x2, y2: 终点坐标。
+            duration: 拖拽持续秒数(默认 1.0)。
+
+        Returns:
+            ``{success, x1, y1, x2, y2, duration}``。
+
+        Raises:
+            BackendNotReadyError: ZContext / 游戏窗口未就绪时抛。
+        """
+        self._ensure_ready()
+        controller = self._ctx.controller
+        if controller is None or not controller.is_game_window_ready:
+            raise BackendNotReadyError('游戏窗口未就绪')
+        controller.active_window()
+        controller.drag_to(Point(int(x2), int(y2)), start=Point(int(x1), int(y1)), duration=duration)
+        return {'success': True, 'x1': int(x1), 'y1': int(y1), 'x2': int(x2), 'y2': int(y2), 'duration': duration}
+
     def input_text(self, text: str, use_clipboard: bool | None = None) -> dict:
         """向当前焦点输入框输入文本(账号/密码等)。操作类。
 
