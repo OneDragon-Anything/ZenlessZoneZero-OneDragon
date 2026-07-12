@@ -406,11 +406,11 @@ class AutoBattleContext:
 
     def _emit_overlay_action(self, action_name: str) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except Exception:
+        except ImportError:
             return
         bus.add_timeline(
             TimelineItem(

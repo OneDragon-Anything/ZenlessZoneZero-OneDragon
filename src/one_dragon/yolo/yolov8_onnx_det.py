@@ -200,12 +200,12 @@ class Yolov8Detector(OnnxModelLoader):
 
     def _emit_overlay_vision(self, frame_result: DetectFrameResult) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or frame_result is None:
+        if bus is None or not bus.enabled or frame_result is None:
             return
 
         try:
             from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
+        except ImportError:
             return
 
         for result in frame_result.results[:50]:
@@ -238,14 +238,14 @@ class Yolov8Detector(OnnxModelLoader):
         result_count: int,
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import (
                 PerfMetricSample,
                 TimelineItem,
             )
-        except Exception:
+        except ImportError:
             return
 
         total_ms = preprocess_ms + infer_ms + postprocess_ms

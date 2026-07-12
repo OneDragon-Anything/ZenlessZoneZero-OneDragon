@@ -84,6 +84,8 @@ class OverlayDebugBus:
         max_timeline_items: int = 1200,
         max_perf_items: int = 2000,
     ):
+        self.enabled: bool = True
+        """是否启用调试总线，由消费端（如 overlay 面板）控制"""
         self._lock = threading.RLock()
         self._vision_items: deque[VisionDrawItem] = deque(maxlen=max_vision_items)
         self._decision_items: deque[DecisionTraceItem] = deque(maxlen=max_decision_items)

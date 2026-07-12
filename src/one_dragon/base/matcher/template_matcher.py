@@ -192,12 +192,12 @@ class TemplateMatcher:
         result: MatchResultList,
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or result is None or len(result.arr) == 0:
+        if bus is None or not bus.enabled or result is None or len(result.arr) == 0:
             return
 
         try:
             from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
+        except ImportError:
             return
 
         offset_x, offset_y = bus.crop_offset

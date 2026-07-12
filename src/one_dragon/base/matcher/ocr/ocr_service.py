@@ -177,13 +177,15 @@ class OcrService:
                 bus = getattr(self.ocr_matcher, 'overlay_debug_bus', None)
                 if bus is not None:
                     bus.set_crop_offset(crop_rect.x1, crop_rect.y1)
-                ocr_result_list = self.ocr_matcher.ocr(
-                    crop_image,
-                    threshold,
-                    merge_line_distance,
-                )
-                if bus is not None:
-                    bus.reset_crop_offset()
+                try:
+                    ocr_result_list = self.ocr_matcher.ocr(
+                        crop_image,
+                        threshold,
+                        merge_line_distance,
+                    )
+                finally:
+                    if bus is not None:
+                        bus.reset_crop_offset()
                 for ocr_result in ocr_result_list:
                     ocr_result.add_offset(crop_rect.left_top)
             else:

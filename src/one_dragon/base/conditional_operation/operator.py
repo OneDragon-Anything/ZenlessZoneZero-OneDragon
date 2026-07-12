@@ -367,7 +367,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         execution_info: ExecutionInfo,
     ) -> None:
         bus = self._get_overlay_debug_bus()
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
 
         op_name = self._op_list_summary(execution_info)
@@ -376,7 +376,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 DecisionTraceItem,
                 TimelineItem,
             )
-        except Exception:
+        except ImportError:
             return
 
         bus.add_decision(
@@ -408,11 +408,11 @@ class ConditionalOperator(ConditionalOperatorLoader):
         ttl_seconds: float,
     ) -> None:
         bus = self._get_overlay_debug_bus()
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except Exception:
+        except ImportError:
             return
         bus.add_timeline(
             TimelineItem(

@@ -478,12 +478,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         result_map: dict[str, MatchResultList],
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not result_map:
+        if bus is None or not bus.enabled or not result_map:
             return
 
         try:
             from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
+        except ImportError:
             return
 
         ox, oy = bus.crop_offset
@@ -518,12 +518,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         ocr_results: list[OcrMatchResult],
     ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not ocr_results:
+        if bus is None or not bus.enabled or not ocr_results:
             return
 
         try:
             from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
+        except ImportError:
             return
 
         offset_x, offset_y = bus.crop_offset
@@ -547,14 +547,14 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
     def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import (
                 PerfMetricSample,
                 TimelineItem,
             )
-        except Exception:
+        except ImportError:
             return
         bus.add_performance(
             PerfMetricSample(

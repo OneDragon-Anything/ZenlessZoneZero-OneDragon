@@ -88,7 +88,7 @@ class CvService:
 
     def _emit_overlay_vision(self, pipeline_name: str, context: CvPipelineContext) -> None:
         bus = getattr(self.od_ctx, "overlay_debug_bus", None)
-        if bus is None or context is None:
+        if bus is None or not bus.enabled or context is None:
             return
 
         try:
@@ -97,7 +97,7 @@ class CvService:
                 TimelineItem,
                 VisionDrawItem,
             )
-        except Exception:
+        except ImportError:
             return
 
         bus.add_performance(

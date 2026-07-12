@@ -136,6 +136,10 @@ class OverlayManager(QObject):
         self.config = OverlayConfig()
         self._toggle_combo_pressed = False
         self._apply_timer_intervals()
+        # 同步总线启用标志，使生产端在 overlay 关闭时可以跳过构造 trace 对象
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is not None:
+            bus.enabled = self.config.enabled
         for panel_name, panel in self._iter_side_panels():
             if panel is None:
                 continue
