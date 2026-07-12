@@ -1,11 +1,12 @@
 import threading
 from collections.abc import Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TypeVar
+from typing import Callable, TypeVar, ParamSpec
 
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
+P = ParamSpec('P')
 T = TypeVar("T")
 _THREAD_PREFIX = "od_gpu"
 _DML_PROVIDER = "DmlExecutionProvider"
@@ -70,3 +71,11 @@ def run_session(session, output_names, input_feed=None, **kwargs):
 
 def shutdown(wait: bool = True) -> None:
     _executor.shutdown(wait=wait)
+
+
+# 先判断是否使用gpu, 然后执行函数
+def execute_function(is_use_gpu, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:
+    if is_use_gpu:
+        return run_sync(fn, *args, **kwargs)
+    else:
+        return fn(*args, **kwargs)
