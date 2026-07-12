@@ -28,6 +28,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
@@ -61,7 +62,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
+        self.debug_trace_bus: DebugTraceBus = OverlayDebugBus()
+        """通用调试 trace 总线（新）"""
+        self.overlay_debug_bus = self.debug_trace_bus  # type: ignore[assignment]
+        """向后兼容的 overlay 调试总线，与 debug_trace_bus 为同一实例"""
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
