@@ -34,6 +34,18 @@ def test_xxx(test_context):
 ```
 覆盖:识别 + 单节点决策/分支。
 
+### 断言:看 node 返回类型(别照搬 is_success)
+
+node 返回的 `OperationRoundResult` 类型决定 `is_success`,写断言前**先读 node 代码确认返回类型**:
+
+| node 返回 | is_success | 断言用 |
+|---|:---:|---|
+| `round_success` / `round_by_find_area` 命中 / `round_by_ocr_and_click` 命中 | `True` | `assert result.is_success` |
+| `round_wait`(点 area / click 后等下一轮识别) | `False` | `assert result.status == '<匹配词>'` |
+| `round_retry`(未识别重试) | `False` | `assert not result.is_success` 或 `status` |
+
+不同 app 同类 node 返回类型可能不同(如某些 app 领取 node 命中返 `round_success`、另一些点 area 后返 `round_wait` 等下一轮),**别照搬别的 app 的断言**。
+
 ### 多帧流程测试(FixtureController)
 跑 op 的完整 `execute()`(多帧、轮询、重试、恢复性 click),用 `FixtureController`(MockController 子类,"会反应的假游戏")。详见 [fixture_controller.md](fixture_controller.md)。
 覆盖:op 的**流程逻辑**(节点图边、轮询、恢复分支)——单节点测试覆盖不到的部分。

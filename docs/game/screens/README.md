@@ -20,17 +20,17 @@
 | 丽都城募 | [丽都城募.md](丽都城募.md) | 大月卡(菜单→丽都城募);5 tab,成长任务/等级回馈领奖;已建模 |
 | 报刊亭 | [报刊亭.md](报刊亭.md) | scratch_card 场景(F 交互进);报刊亭场景+刮态;嗷呜对话/确认待补 |
 | 3D地图 | [3D地图.md](3D地图.md) | 传送枢纽(大世界点地图进);区域/传送点/前往;选传送点子态待补 |
+| 卦象集录 | [卦象集录.md](卦象集录.md) | trigrams_collection(澄辉坪阿朔交互);主界面+今日已领取已建档;滑动获取卦象/领奖确认待补 |
 
 ## 非战斗 app 建档进度
 
 **已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)。
 
-**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)。
+**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)。
 
 **⚠️ 跳过(待用 key_tap + drag + Transport 分解)**:
-- `hou_hou_bakery`(吼吼饼铺:Transport + interact)
+- `hou_hou_bakery`(吼吼饼铺:Transport + interact;⚠️ 3.0 布亚斯特城区未探索,Transport 失败)
 - `random_play`(随机播放:Transport + move_w + interact + drag_to)
-- `trigrams_collection`(八卦收集:Transport + interact + drag_to)
 - `suibian_temple`(随便观:Transport + drag_to)
 - `commission_assistant`(委托助手:interact)/ `life_on_line`(危局:Transport + interact)
 
