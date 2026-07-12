@@ -41,6 +41,12 @@ class OverlayManager(QObject):
         self.ctx = ctx
         self.config = OverlayConfig()
 
+        # 首次同步 bus.enabled，避免 OverlayConfig.enabled 默认 False 时
+        # 总线仍保持 True，导致启动阶段不必要地构造 trace 对象
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is not None:
+            bus.enabled = self.config.enabled
+
         self._supported = win32_utils.is_windows_build_supported(19041)
         self._warned_unsupported = False
         self._warned_waiting_game_window = False
@@ -628,11 +634,11 @@ class OverlayManager(QObject):
 
     def _emit_overlay_refresh_perf(self, start_time: float) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except Exception:
+        except ImportError:
             return
         elapsed_ms = (time.time() - start_time) * 1000.0
         bus.add_performance(
