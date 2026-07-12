@@ -22,21 +22,21 @@
 | 3D地图 | [3D地图.md](3D地图.md) | 传送枢纽(大世界点地图进);区域/传送点/前往;选传送点子态待补 |
 | 卦象集录 | [卦象集录.md](卦象集录.md) | trigrams_collection(澄辉坪阿朔交互);主界面+今日已领取已建档;滑动获取卦象/领奖确认待补 |
 | 对话 | [对话.md](对话.md) | 通用兜底画面(大世界 NPC/剧情对话,无固定文字特征);有 NPC 名已建档,旁白对话待补 |
-| 随便观 | [随便观.md](随便观.md) | suibian_temple 经营玩法;自动托管/经营日志 + 7 子 op 骨架已建档;入口前往/各子玩法(游历/制造坊等)画面待补 |
+| 随便观 | [随便观.md](随便观.md) | suibian_temple 经营玩法;自动托管/经营日志 + 7 子玩法全画面(信息源三层)已建档;入口前往/各子玩法截图待补 |
+| 影像店营业 | [影像店营业.md](影像店营业.md) | random_play 录像店经营(无战斗);经营状况/宣传员选择/录像带上架已建档;营业确认弹窗待补 |
 
 ## 非战斗 app 建档进度
 
 **已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)。
 
-**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)。
+**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)、`random_play`(影像店营业;Transport POINT_2 + interact 进经营;营业确认弹窗待补)、`suibian_temple`(随便观;自动托管 + 7 子玩法全画面;各子玩法截图待补)。
 
 **已建档(通用兜底画面,无固定文字特征,见 onboarding skill「兜底画面」)**:`对话`(NPC 对话;有 NPC 名已建档,旁白待补)、`加载画面`(通用 lore 轮换)。
 
-**⚠️ 跳过(待用 key_tap + drag + Transport 分解)**:
+**⚠️ 跳过**:
 - `hou_hou_bakery`(吼吼饼铺:Transport + interact;⚠️ 3.0 布亚斯特城区未探索,Transport 失败)
-- `random_play`(随机播放:重 app 20+ 节点 turn/move,待深入)
-- `suibian_temple` 部分建档见 [随便观.md](随便观.md)(自动托管 + 7 子 op 骨架;入口前往/各子玩法画面待补)
-- `commission_assistant`(委托助手:interact)/ `life_on_line`(危局:Transport + interact)
+- `life_on_line`(危局:含战斗 `EnterHddMission` + `KeySimRunner`,**非「不含战斗」app**,不在建档范围)
+- `commission_assistant`(委托助手:对话/钓鱼/战斗**辅助循环器**,含可选 auto_battle 模式,边界;非固定游戏画面)
 
 **不建档(无游戏画面)**:`notify`(只发推送通知,汇总 run_record,不截图/不点 UI)。
 
