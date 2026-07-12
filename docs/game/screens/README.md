@@ -22,6 +22,7 @@
 | 3D地图 | [3D地图.md](3D地图.md) | 传送枢纽(大世界点地图进);区域/传送点/前往;选传送点子态待补 |
 | 卦象集录 | [卦象集录.md](卦象集录.md) | trigrams_collection(澄辉坪阿朔交互);主界面+今日已领取已建档;滑动获取卦象/领奖确认待补 |
 | 对话 | [对话.md](对话.md) | 通用兜底画面(大世界 NPC/剧情对话,无固定文字特征);有 NPC 名已建档,旁白对话待补 |
+| 随便观 | [随便观.md](随便观.md) | suibian_temple 经营玩法;自动托管/经营日志 + 7 子 op 骨架已建档;入口前往/各子玩法(游历/制造坊等)画面待补 |
 
 ## 非战斗 app 建档进度
 
@@ -34,7 +35,7 @@
 **⚠️ 跳过(待用 key_tap + drag + Transport 分解)**:
 - `hou_hou_bakery`(吼吼饼铺:Transport + interact;⚠️ 3.0 布亚斯特城区未探索,Transport 失败)
 - `random_play`(随机播放:重 app 20+ 节点 turn/move,待深入)
-- `suibian_temple`(随便观:重 app 7+ 子 op;入口卡「前往随便观」建筑传送待补;`对话`画面已单独建档)
+- `suibian_temple` 部分建档见 [随便观.md](随便观.md)(自动托管 + 7 子 op 骨架;入口前往/各子玩法画面待补)
 - `commission_assistant`(委托助手:interact)/ `life_on_line`(危局:Transport + interact)
 
 **不建档(无游戏画面)**:`notify`(只发推送通知,汇总 run_record,不截图/不点 UI)。
