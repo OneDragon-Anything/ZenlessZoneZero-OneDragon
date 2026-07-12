@@ -1,4 +1,7 @@
 import time
+
+from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.envs.env_config import ScreenshotMethodEnum
 from typing import ClassVar
 
 import cv2
@@ -24,7 +27,6 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 
 class EnterGame(ZOperation):
-
     STATUS_GAME_DATA_UPDATED: ClassVar[str] = '游戏数据已更新'
     STATUS_LOGIN_SUCCESS: ClassVar[str] = '登录成功'
     STATUS_LOADING: ClassVar[str] = '加载中'
@@ -32,7 +34,7 @@ class EnterGame(ZOperation):
     MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
     def __init__(self, ctx: ZContext, switch: bool = False):
-        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
+        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'), op_callback=self.restore_screenshot_func)
 
         self.force_login: bool = (
             self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
@@ -56,6 +58,9 @@ class EnterGame(ZOperation):
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
+
+        self.screenshot_func = self.ctx.controller.screenshot_method
+        self.modify_screenshot_func()
 
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
@@ -466,7 +471,7 @@ class EnterGame(ZOperation):
             if match_word.find('领取') != -1:
                 self.interact_ignore_word_list.append(match_word)
 
-            time.sleep(0.5) # 等待画面稳定
+            time.sleep(0.5)  # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
@@ -495,7 +500,7 @@ class EnterGame(ZOperation):
             target_word_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
-            time.sleep(0.5) # 等待画面稳定
+            time.sleep(0.5)  # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
@@ -700,6 +705,16 @@ class EnterGame(ZOperation):
             return return_result
 
         return self.round_retry('登录成功后等待加载中或大世界', wait=2)
+
+    # B服登录时采用BitBlt截图
+    def modify_screenshot_func(self):
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
+
+    # B服登录后恢复原有截图方法
+    def restore_screenshot_func(self, result: OperationResult):
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
 
 def __debug():
