@@ -138,6 +138,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         app.ctx.push_service.push_async(
             title=app.ctx.notify_config.title,
             content=message,
+            image=pool.last_image,
         )
     else:
         return
@@ -233,7 +234,7 @@ def send_node_notify(
         next_node: 下一个要执行的节点
     """
     pool = operation.ctx.run_context.notify_pool
-    if not _is_notify_enabled(operation):
+    if not _is_notify_enabled(operation) or current_node is None:
         return
 
     app_id, app_name = _get_app_info(operation)
@@ -242,13 +243,26 @@ def send_node_notify(
         if app_id is None
         else operation.ctx.notify_config.get_app_detail_mode(app_id)
     )
+    app_lifecycle_mode = (
+        NotifyLifecycleMode.FINISH_ONLY.value.value
+        if app_id is None
+        else operation.ctx.notify_config.get_app_lifecycle_mode(app_id)
+    )
     current_fail = round_result.is_fail
 
-    should_collect_notify = detail_mode != NotifyDetailMode.OFF.value.value
+    should_collect_details = detail_mode != NotifyDetailMode.OFF.value.value
     if detail_mode == NotifyDetailMode.ERROR_ONLY.value.value and not current_fail:
-        should_collect_notify = False
+        should_collect_details = False
 
-    if not should_collect_notify or current_node is None:
+    should_keep_lifecycle_image = (
+        operation.ctx.push_service.push_config.send_image
+        and app_lifecycle_mode != NotifyLifecycleMode.OFF.value.value
+    )
+
+    if not should_collect_details:
+        if should_keep_lifecycle_image:
+            pool.max_images = 1
+            pool.add(content='', image=operation.last_screenshot)
         return
 
     # 初始化通知列表

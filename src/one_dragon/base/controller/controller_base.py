@@ -98,7 +98,7 @@ class ControllerBase:
         """
         return screen
 
-    def scroll(self, down: int, pos: Point = None):
+    def scroll(self, down: int, pos: Point | None = None):
         """
         向下滚动
         :param down: 负数时为相上滚动
@@ -107,7 +107,7 @@ class ControllerBase:
         """
         pass
 
-    def drag_to(self, end: Point, start: Point = None, duration: float = 0.5):
+    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5):
         """
         按住拖拽
         :param end: 拖拽目的点

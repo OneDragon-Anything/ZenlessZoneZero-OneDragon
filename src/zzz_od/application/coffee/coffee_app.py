@@ -120,12 +120,13 @@ class CoffeeApp(ZApplication):
             if not result.is_success:
                 return result
             self.ctx.controller.move_w(press=True, press_time=1, release=True)
-            time.sleep(1)
 
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
 
         if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
             return self.round_success(status='对话点单')
+
         return self.round_success()
 
     @node_from(from_name='移动交互')

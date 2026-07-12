@@ -11,10 +11,16 @@ deploy/dist/
 recording.jsonl
 QWEN.md
 GEMINI.md
-CLAUDE.md
+CLAUDE.local.md
 .lingma/
 .qwen/
-.claude/
+.claude/*
+!.claude/CLAUDE.md
+nul
+
+# superpowers
+docs/superpowers/
+.superpowers/
 
 # 用户独有的配置文件
 env.bat

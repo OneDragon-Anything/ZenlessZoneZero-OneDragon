@@ -18,6 +18,10 @@ dependencies = [
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
     "pygit2==1.19.0",
+    "psutil==7.2.2",
+    # pywin32>=312 的 wheel 不再内置 mfc140u.dll，未装 VC++ 2015-2022 Redistributable (x64) 的机器
+    # import win32ui 会闪退（issue #2428）；锁 <312 沿用 311（自带 pythonwin/mfc140u.dll）。等上游 build 313 修复后放开。
+    "pywin32<312",
 ]
 
 [dependency-groups]
@@ -30,6 +34,9 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "ruff>=0.12.10",
     "pyuac==0.0.3",
+    "mcp>=1.0.0",
+    "uvicorn>=0.30.0",
+    "pyright>=1.1.411",
 ]
 
 gamepad = [
@@ -82,3 +89,24 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+# Pyright 配置：供 Claude Code 的 LSP 工具使用（经 `uv run pyright-langserver` 启动，
+# 见 .claude/settings.json 的 lspServers；必须走 uv 方式，勿启用官方全局 pyright 插件）。
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    ".debug",
+    ".install",
+    "zzz-od-test",
+]
+extraPaths = ["src"]  # src-layout + package=false：让 pyright 去 src/ 解析 one_dragon/zzz_od 等导入（同 PYTHONPATH=src 的根因）
+# TODO(type-check): typeCheckingMode 暂 off——只用导航（定义/引用/符号），不刷类型诊断。
+#   现有代码尚未 type-clean，后续随改造逐步提升 → basic → standard。
+typeCheckingMode = "off"
+
+# Pytest 配置：src-layout + package=false，让 pytest 自动把 src/ 加入 sys.path
+# (取代 CI 的 PYTHONPATH=src env 和测试文件里手动的 sys.path.insert)
+[tool.pytest.ini_options]
+pythonpath = ["src"]

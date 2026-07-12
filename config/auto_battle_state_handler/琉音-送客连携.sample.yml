@@ -25,6 +25,8 @@ handlers:
           operations:
           - op_name: "清除状态"
             state: "自定义-琉音-送客"
+          - op_name: "清除状态"
+            state: "自定义-无视闪光"
           - op_name: "设置状态"
             state: "自定义-终结技被强制释放"
           - operation_template: "连携-左"
@@ -32,6 +34,8 @@ handlers:
           operations:
           - op_name: "清除状态"
             state: "自定义-琉音-送客"
+          - op_name: "清除状态"
+            state: "自定义-无视闪光"
           - op_name: "设置状态"
             state: "自定义-终结技被强制释放"
           - operation_template: "连携-右"
@@ -39,6 +43,8 @@ handlers:
           operations:
           - op_name: "清除状态"
             state: "自定义-琉音-送客"
+          - op_name: "清除状态"
+            state: "自定义-无视闪光"
           - op_name: "设置状态"
             state: "自定义-终结技被强制释放"
           - operation_template: "连携-左"
@@ -46,6 +52,8 @@ handlers:
           operations:
           - op_name: "清除状态"
             state: "自定义-琉音-送客"
+          - op_name: "清除状态"
+            state: "自定义-无视闪光"
           - op_name: "设置状态"
             state: "自定义-终结技被强制释放"
           - operation_template: "连携-右"
@@ -53,6 +61,8 @@ handlers:
           operations:
           - op_name: "清除状态"
             state: "自定义-琉音-送客"
+          - op_name: "清除状态"
+            state: "自定义-无视闪光"
           - op_name: "设置状态"
             state: "自定义-终结技被强制释放"
           - operation_template: "连携-左"

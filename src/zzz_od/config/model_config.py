@@ -1,13 +1,17 @@
 import os
-from typing import List
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.basic_model_config import BasicModelConfig
+from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.utils import yolo_config_utils
+from one_dragon.yolo.yolo_utils import (
+    get_gitee_model_download_url,
+    get_github_model_download_url,
+)
 
-_GITHUB_MODEL_DOWNLOAD_URL = 'https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
-_GITEE_MODEL_DOWNLOAD_URL = 'https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
+YOLO_RELEASE_TAG = 'zzz_model'
+YOLO_GITHUB_MODEL_DOWNLOAD_URL = get_github_model_download_url(YOLO_RELEASE_TAG)
+YOLO_GITEE_MODEL_DOWNLOAD_URL = get_gitee_model_download_url(YOLO_RELEASE_TAG)
 
 _DEFAULT_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250921'
 _BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
@@ -15,8 +19,8 @@ _BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
 _DEFAULT_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-0126'
 _BACKUP_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-1130'
 
-_DEFAULT_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250921'
-_BACKUP_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250622'
+_DEFAULT_LOST_VOID_DET = 'yolov26n-736-lost-void-det-20260630'
+_BACKUP_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250921'
 
 
 class ModelConfig(BasicModelConfig):
@@ -115,7 +119,7 @@ class ModelConfig(BasicModelConfig):
                 or self.lost_void_det != _DEFAULT_LOST_VOID_DET
                 )
 
-def get_flash_classifier_opts() -> List[ConfigItem]:
+def get_flash_classifier_opts() -> list[ConfigItem]:
     """
     获取闪光模型的选项
     :return:
@@ -131,8 +135,8 @@ def get_flash_classifier_opts() -> List[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),
@@ -147,7 +151,7 @@ def get_flash_classifier_opts() -> List[ConfigItem]:
 
     return config_list
 
-def get_hollow_zero_event_opts() -> List[ConfigItem]:
+def get_hollow_zero_event_opts() -> list[ConfigItem]:
     """
     获取空洞模型的选项
     :return:
@@ -163,8 +167,8 @@ def get_hollow_zero_event_opts() -> List[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),
@@ -179,7 +183,7 @@ def get_hollow_zero_event_opts() -> List[ConfigItem]:
 
     return config_list
 
-def get_lost_void_det_opts() -> List[ConfigItem]:
+def get_lost_void_det_opts() -> list[ConfigItem]:
     """
     获取迷失之地识别模型的选项
     :return:
@@ -195,8 +199,8 @@ def get_lost_void_det_opts() -> List[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
+            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -13,6 +14,7 @@ from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.utils import cal_utils, os_utils, thread_utils, yolo_config_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
@@ -31,9 +33,10 @@ class AudioRecorder:
     音频录制类，用于录制和处理音频数据。
     """
 
-    def __init__(self):
+    def __init__(self, error_callback: Callable[[RuntimeError], None] | None = None):
         self.running: bool = False  # 标记录制是否正在运行
         self._run_lock = threading.Lock()  # 用于线程安全的锁
+        self._error_callback: Callable[[RuntimeError], None] | None = error_callback
 
         self._sample_rate = 32000  # 采样率
         self._used_channel = 2  # 使用的音频通道数
@@ -76,26 +79,34 @@ class AudioRecorder:
         音频录制循环，持续录制音频数据。
         """
         # 这个在全局导入的话 会导致QT的选择文件无法使用
+        import warnings
+
         import soundcard as sc
         from soundcard.mediafoundation import SoundcardRuntimeWarning
-        import warnings
+
         warnings.filterwarnings('ignore', category=SoundcardRuntimeWarning)
 
-        _mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
-        _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+        try:
+            _mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
+            _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+            with _recorder as audio_recorder:
+                while self.running:
+                    stream_data = audio_recorder.record(numframes=self._chunk_size)
+                    if self._used_channel > 1:
+                        stream_data = librosa.to_mono(stream_data.T)
+                    else:
+                        stream_data = stream_data.T
 
-        with _recorder as audio_recorder:
-            while self.running:
-                stream_data = audio_recorder.record(numframes=self._chunk_size)
-                if self._used_channel > 1:
-                    stream_data = librosa.to_mono(stream_data.T)
-                else:
-                    stream_data = stream_data.T
-
-                with self._update_audio_lock:
-                    # 更新 latest_audio
-                    self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
-                    self.latest_audio[-len(stream_data):] = stream_data
+                    with self._update_audio_lock:
+                        # 更新 latest_audio
+                        self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
+                        self.latest_audio[-len(stream_data):] = stream_data
+        except RuntimeError as e:
+            log.warning('音频录制异常，已停止声音闪避识别', exc_info=True)
+            if self._error_callback is not None:
+                self._error_callback(e)
+        finally:
+            self.running = False
 
     def stop_running(self) -> None:
         """
@@ -129,7 +140,7 @@ class AutoBattleDodgeContext:
         self.ctx: ZContext = ctx  # 上下文对象
 
         self._flash_model: FlashClassifier | None = None  # 闪避分类器
-        self._audio_recorder: AudioRecorder = AudioRecorder()  # 音频录制器
+        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error)  # 音频录制器
         self._audio_template: np.ndarray | None = None  # 音频模板
 
         # 识别锁，保证每种类型只有一个实例在进行识别
@@ -147,6 +158,16 @@ class AutoBattleDodgeContext:
         # 音频事件去重时间间隔
         self._audio_event_interval: float = 0.1
         self._last_audio_event_time: float = 0
+
+    def _on_audio_record_error(self, error: RuntimeError) -> None:
+        """音频录制异常时通知当前运行界面。"""
+        self.ctx.dispatch_event(
+            ContextNotifyEvent.EVENT_ID,
+            ContextNotifyEvent.warning(
+                title='声音闪避已停用',
+                content=f'音频录制异常，请检查音频设备/独占模式/默认输出设备：{error}',
+            ),
+        )
 
     def init_auto_op(
             self,

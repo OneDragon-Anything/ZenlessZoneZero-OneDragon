@@ -1,0 +1,27 @@
+name: Sync to CNB
+
+on:
+  push:
+    branches: [main, test]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Push to CNB
+        env:
+          CNB_TOKEN: ${{ secrets.CNB_GIT_TOKEN }}
+        run: |
+          git remote add cnb "https://cnb:${CNB_TOKEN}@cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
+          git push -f cnb "${GITHUB_REF}:${GITHUB_REF}"

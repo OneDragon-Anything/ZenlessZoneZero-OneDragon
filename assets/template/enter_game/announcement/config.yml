@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: announcement
+template_name: 游戏公告
+template_shape: circle
+auto_mask: true
+point_list:
+- 1820, 910
+- 1843, 910

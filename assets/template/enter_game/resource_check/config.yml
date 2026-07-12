@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: resource_check
+template_name: 资源检测
+template_shape: circle
+auto_mask: true
+point_list:
+- 1820, 738
+- 1843, 738

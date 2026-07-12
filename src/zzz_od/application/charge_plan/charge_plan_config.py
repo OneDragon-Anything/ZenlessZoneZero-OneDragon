@@ -71,16 +71,12 @@ class ChargePlanItem:
             return 60
         return 0  # 未知类型，在副本内检查
 
-    def to_dict(self, *, include_plan_id: bool = True) -> dict[str, str | int | None]:
+    def to_dict(self) -> dict[str, str | int | None]:
         return {
             item.name: getattr(self, item.name)
             for item in fields(self)
             if item.metadata.get('persist', True)
-            and (include_plan_id or item.name != 'plan_id')
         }
-
-    def to_history_dict(self) -> dict[str, str | int | None]:
-        return self.to_dict(include_plan_id=False)
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ChargePlanItem':
@@ -105,29 +101,11 @@ class ChargePlanConfig(ApplicationConfig):
     def save(self):
         plan_list = []
 
-        new_history_list = []
-
         for plan_item in self.plan_list:
             plan_data = plan_item.to_dict()
-            history_data = plan_item.to_history_dict()
-
-            new_history_list.append(history_data)
             plan_list.append(plan_data)
 
-        old_history_list = self.history_list
-        for old_history_data in old_history_list:
-            old_history = ChargePlanItem(**old_history_data)
-            with_new = False
-            for plan in self.plan_list:
-                if self._is_same_plan(plan, old_history, compare_plan_id=False):
-                    with_new = True
-                    break
-
-            if not with_new:
-                new_history_list.append(old_history.to_history_dict())
-
         self.data['plan_list'] = plan_list
-        self.data['history_list'] = new_history_list
 
         YamlConfig.save(self)
 
@@ -297,17 +275,6 @@ class ChargePlanConfig(ApplicationConfig):
             return x.plan_id == y.plan_id
 
         return x == y
-
-    @property
-    def history_list(self) -> list[dict]:
-        return self.get('history_list', [])
-
-    def get_history_by_uid(self, plan: ChargePlanItem) -> ChargePlanItem | None:
-        history_list = self.history_list
-        for history_data in history_list:
-            history = ChargePlanItem(**history_data)
-            if self._is_same_plan(history, plan, compare_plan_id=False):
-                return history
 
     @property
     def loop(self) -> bool:

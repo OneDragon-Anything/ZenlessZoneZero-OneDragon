@@ -855,11 +855,13 @@ class LostVoidApp(ZApplication):
         op_result = op.execute()
         if op_result.success:
             if op_result.status == LostVoidRunLevel.STATUS_NEXT_LEVEL:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 if op_result.data is not None:
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
             elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 self.next_region_type = LostVoidRegionType.ENTRY
 
         return self.round_by_op_result(op_result)

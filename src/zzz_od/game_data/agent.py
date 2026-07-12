@@ -333,11 +333,11 @@ class AgentEnum(Enum):
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                      template_id='yixuan_technique',
-                                     hsv_color=(20, 0, 245), hsv_color_diff=(7, 240, 17),
+                                     hsv_color=(30, 0, 245), hsv_color_diff=(15, 245, 255),
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 255, 255), hsv_color_diff=(20, 175, 50),
+                                     hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
 
@@ -465,12 +465,10 @@ class AgentEnum(Enum):
                 max_length=120,
             ),
             AgentStateDef(
-                "叶瞬光-明心境-标志",
-                AgentStateCheckWay.COLOR_RANGE_CONNECT,
-                template_id="yeshunguang_mingxinjing_sign",
-                hsv_color=(113, 75, 255),
-                hsv_color_diff=(30, 50, 50),
-                connect_cnt=2,
+                "叶瞬光-常态",
+                AgentStateCheckWay.TEMPLATE_FOUND,
+                template_id="yeshunguang_normal",
+                template_threshold=0.7,
             ),
             AgentStateDef(
                 "叶瞬光-青溟剑势-红",
@@ -485,8 +483,8 @@ class AgentEnum(Enum):
                 AgentStateCheckWay.COLOR_RANGE_CONNECT,
                 template_id="yeshunguang_qingming_ex",
                 hsv_color=(0, 0, 255),
-                hsv_color_diff=(10, 10, 10),
-                connect_cnt=2,
+                hsv_color_diff=(0, 0, 0),
+                connect_cnt=10,
             ),
         ],
     )
@@ -531,3 +529,9 @@ class AgentEnum(Enum):
                                                           template_id='starlight_billy_kid',
                                                           hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                                           max_length=120)])
+
+    NORMA = Agent('norma', '诺姆', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['norma'],
+                  state_list=[AgentStateDef('诺姆-预热', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                            template_id='norma',
+                                            hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                            max_length=100)])

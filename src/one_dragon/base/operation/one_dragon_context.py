@@ -484,7 +484,22 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        self.ocr.update_use_gpu(self.model_config.ocr_use_gpu)
+        # 清理旧实例资源
+        if hasattr(self, 'ocr') and self.ocr is not None:
+            if hasattr(self.ocr, 'cleanup'):
+                self.ocr.cleanup()
+
+        self.ocr = OnnxOcrMatcher(
+            OnnxOcrParam(
+                ocr_model_name=self.model_config.ocr,
+                use_gpu=self.model_config.ocr_use_gpu,
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+            )
+        )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
+        self.ocr_service.ocr_matcher = self.ocr
+        if 'cv_service' in self.__dict__:
+            self.cv_service.ocr = self.ocr
         self.ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,

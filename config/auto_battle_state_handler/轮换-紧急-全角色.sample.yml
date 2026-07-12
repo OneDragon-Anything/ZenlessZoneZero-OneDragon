@@ -42,15 +42,12 @@ handlers:
             state: "自定义-非失衡连携"
             add: 2
 
-      - states: "[后台-耀嘉音] & ![前台-耀嘉音] & ![自定义-耀嘉音-唱歌, 0, 180]"
-        debug_name: "耀嘉音补唱歌"
-        operations:
-          - op_name: "按键-切换角色"
-            agent_name: "耀嘉音"
-          - op_name: "按键-移动-前-按下"
-          - op_name: "按键-特殊攻击"
-            post_delay: 0.1
-            repeat: 3
+  - states: "![自定义-耀嘉音-唱歌, 0, 180] & [耀嘉音-能量]{0, 120}"
+    debug_name: "耀嘉音补唱歌"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "耀嘉音"
+      - operation_template: "耀嘉音-强化特殊技"
 
   # 我看啊，是放错了终结技
   - states: "[自定义-耀嘉音-尝试释放终结技, 2, 99] & [耀嘉音-终结技可用]"
@@ -110,16 +107,16 @@ handlers:
         debug_name: "不打断动作切人"
         sub_handlers:
           - states: ""
-            debug_name: "开局紧急补BUFF"
+            debug_name: "补BUFF"
             sub_handlers:
-              - states: "![前台-露西] & [露西-特殊技可用] & ![自定义-露西-加油, 0, 30] & ![自定义-失衡时间, 0, 10]"
+              - states: "[露西-特殊技可用] & ![自定义-露西-加油, 0, 30] & ![自定义-失衡时间, 0, 10]"
                 debug_name: "露西补BUFF"
                 operations:
                   - op_name: "按键-切换角色"
                     agent_name: "露西"
                   - operation_template: "露西-高飞球合轴"
 
-              - states: "![前台-苍角] & ![自定义-苍角-展旗, 0, 30] & [苍角-能量]{00, 120} & ![自定义-失衡时间, 0, 10]"
+              - states: "![自定义-苍角-展旗, 0, 30] & [苍角-能量]{00, 120} & ![自定义-失衡时间, 0, 10]"
                 debug_name: "苍角展旗"
                 operations:
                   - op_name: "按键-切换角色"
@@ -139,13 +136,13 @@ handlers:
                     agent_name: "潘引壶"
                   - operation_template: "潘引壶-特殊攻击合轴"
 
-              - states: "![前台-扳机] & [扳机-能量]{0, 120} & ![扳机-绝意]{10,999} & ![自定义-失衡时间, 0, 20]"
+              - states: "[扳机-能量]{0, 120} & ![扳机-绝意]{10,999} & ![自定义-失衡时间, 0, 20]"
                 debug_name: "扳机紧急切人"
                 operations:
                   - op_name: "按键-切换角色"
                     agent_name: "扳机"
 
-              - states: "[后台-浮波柚叶] & ![自定义-浮波柚叶-狸之愿, 0, 40]"
+              - states: "![自定义-浮波柚叶-狸之愿, 0, 40]"
                 debug_name: "柚叶补BUFF"
                 sub_handlers:
                   - states: "[浮波柚叶-特殊技可用]"
@@ -160,7 +157,7 @@ handlers:
                       agent_name: "浮波柚叶"
                     - operation_template: "浮波柚叶-终结技"
 
-              - states: "![前台-丽娜] & [丽娜-能量]{60, 120} & ![自定义-丽娜-人偶, -30, 0]"
+              - states: "[丽娜-能量]{60, 120} & ![自定义-丽娜-人偶, -30, 0]"
                 debug_name: "丽娜召唤人偶"
                 operations:
                   - op_name: "设置状态"
@@ -173,11 +170,8 @@ handlers:
                     repeat: 4
                   - operation_template: "通用-切人普通攻击"
 
-          - states: ""
-            debug_name: "紧急补buff"
-            sub_handlers:
               # 挨打了或者没盾了补盾
-              - states: "![前台-凯撒] & [凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 30])"
+              - states: "[凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 30])"
                 debug_name: "凯撒补盾"
                 operations:
                   - op_name: "按键-切换角色"
@@ -185,7 +179,7 @@ handlers:
                   - op_name: "清除状态"
                     state_list: ["自定义-血量扣减"]
 
-              - states: "![前台-照] & ![自定义-照-蓄力中,0,10]"
+              - states: "![自定义-照-蓄力中,0,10]"
                 debug_name: "照紧急切入"
                 sub_handlers:
                   - states: "[照-霜寒值]{100, 100}"
@@ -195,9 +189,8 @@ handlers:
                         agent_name: "照"
                       - op_name: "设置状态"
                         state: "自定义-照-蓄力中"
-                      - operation_template: "照-登场技"
 
-                  - states: "[照-特殊技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
+                  - states: "[照-特殊技可用]"
                     debug_name: "照有强化特殊技"
                     operations:
                       - op_name: "按键-切换角色"
@@ -206,7 +199,7 @@ handlers:
                         state: "自定义-照-蓄力中"
                       - operation_template: "照-强化特殊攻击"
 
-                  - states: "[照-终结技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
+                  - states: "[照-终结技可用] & ![自定义-失衡时间, 0, 10]"
                     debug_name: "照有终结技"
                     operations:
                       - op_name: "按键-切换角色"
@@ -215,7 +208,7 @@ handlers:
                         state: "自定义-照-蓄力中"
                       - operation_template: "照-终结技"
 
-              - states: "![前台-南宫羽]"
+              - states: ""
                 debug_name: "南宫羽紧急切入"
                 sub_handlers:
                   - states: "[南宫羽-重拍]{80, 100} & ![自定义-失衡时间, 0, 10]"
@@ -223,9 +216,10 @@ handlers:
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "南宫羽"
+                      - operation_template: "南宫羽-长按普攻"
 
               # 千夏紧急切入
-              - states: "![前台-千夏]"
+              - states: ""
                 debug_name: "千夏紧急切入"
                 sub_handlers:
                   - states: "[千夏-特殊技可用] & ![自定义-失衡时间, 0, 10]"
@@ -233,6 +227,7 @@ handlers:
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "千夏"
+                      - operation_template: "千夏-特殊攻击"
 
                   - states: "[千夏-终结技可用] & ![自定义-失衡时间, 0, 10]"
                     debug_name: "千夏有终结技"
@@ -243,18 +238,23 @@ handlers:
 
 
               # 维琳娜能量切入
-              - states: "![前台-维琳娜]"
-                debug_name: "维琳娜能量切入"
-                sub_handlers:
-                  - states: "[维琳娜-能量]{90, 120}"
-                    debug_name: "能量大于90，切维琳娜"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "维琳娜"
-                      - operation_template: "维琳娜-强化特殊技"
+              - states: "[维琳娜-风华]{85,135}"
+                debug_name: "维琳娜切入"
+                interrupt_states: "[按键可用-快速支援]"  # 不可用时打断
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "维琳娜"
+                  - operation_template: "维琳娜-长按普攻"
+
+              - states: "[维琳娜-特殊技可用] & [维琳娜-风华]{0,85}"
+                debug_name: "强化特殊技"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "维琳娜"
+                  - operation_template: "维琳娜-强化特殊技"
 
               # 星见雅 能量和落霜判断
-              - states: "([雅-能量]{80, 999} | ([雅-能量]{40, 999} & [雅-落霜]{2, 6})) & ![前台-雅] & ![前台-支援]"
+              - states: "([雅-能量]{80, 999} | ([雅-能量]{40, 999} & [雅-落霜]{2, 6})) & ![前台-雅] & [前台-异常]"
                 debug_name: "雅能量豆数切入"
                 operations:
                   - op_name: "按键-切换角色"
@@ -276,6 +276,7 @@ handlers:
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "妮可"
+                      - operation_template: "妮可-快速蓄力炮合轴"
 
           - states: "[前台-击破] & ![自定义-合轴时间, 0, 30] & [自定义-失衡时间, 0, 10]"
             debug_name: "击破连携检查"
