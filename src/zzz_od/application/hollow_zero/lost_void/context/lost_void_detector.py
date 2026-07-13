@@ -1,5 +1,8 @@
 from typing import ClassVar
 
+import cv2
+from cv2.typing import MatLike
+
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
 from one_dragon.yolo.yolo_utils import get_github_model_download_url
@@ -12,6 +15,14 @@ class LostVoidDetector(Yolov8Detector):
     CLASS_INTERACT: ClassVar[str] = '0000-感叹号'
     CLASS_DISTANCE: ClassVar[str] = '0001-距离'
     CLASS_ENTRY: ClassVar[str] = 'xxxx-入口'
+
+    # 战斗画面头像区域(1080p)，与 assets/game_data/screen_info/battle.yml 中 头像-3-1/3-2/3-3 一致
+    # 角色头像易被误检为目标，推理前统一涂黑
+    BATTLE_AVATAR_MASK_RECTS: ClassVar[tuple[tuple[int, int, int, int], ...]] = (
+        (104, 40, 274, 110),  # 头像-3-1
+        (559, 40, 662, 91),   # 头像-3-2
+        (741, 40, 844, 91),   # 头像-3-3
+    )
 
     def __init__(self,
                  model_name: str,
@@ -40,6 +51,39 @@ class LostVoidDetector(Yolov8Detector):
             personal_proxy=personal_proxy,
             gpu=gpu,
             keep_result_seconds=keep_result_seconds
+        )
+
+    def mask_battle_avatars(self, image: MatLike) -> MatLike:
+        """
+        将战斗画面左上角色头像区域涂黑，避免 YOLO 误检
+        :param image: 原始游戏画面
+        :return: 涂黑头像后的画面副本
+        """
+        masked = image.copy()
+        for x1, y1, x2, y2 in LostVoidDetector.BATTLE_AVATAR_MASK_RECTS:
+            cv2.rectangle(masked, (x1, y1), (x2, y2), (0, 0, 0), thickness=-1)
+        return masked
+
+    def run(
+        self,
+        image: MatLike,
+        conf: float = 0.6,
+        iou: float = 0.5,
+        run_time: float | None = None,
+        label_list: list[str] | None = None,
+        category_list: list[str] | None = None,
+    ) -> DetectFrameResult:
+        """
+        对图片进行识别；推理前先涂黑战斗头像区域
+        """
+        return Yolov8Detector.run(
+            self,
+            image=self.mask_battle_avatars(image),
+            conf=conf,
+            iou=iou,
+            run_time=run_time,
+            label_list=label_list,
+            category_list=category_list,
         )
 
     def is_frame_with_all(self, frame_result: DetectFrameResult | None = None) -> tuple[bool, bool, bool]:

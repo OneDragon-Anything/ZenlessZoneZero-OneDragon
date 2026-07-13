@@ -25,7 +25,7 @@
 配置 → 业务检测器 → 框架加载:
 
 1. **配置**:`src/zzz_od/config/model_config.py` 的 `_DEFAULT_LOST_VOID_DET` / `_BACKUP_LOST_VOID_DET`。新模型无法下载时回退 backup。
-2. **业务封装**:`LostVoidDetector`(`src/zzz_od/application/hollow_zero/lost_void/context/lost_void_detector.py`),继承 `Yolov8Detector`,提供"感叹号 / 距离 / 入口"等业务判断。
+2. **业务封装**:`LostVoidDetector`(`src/zzz_od/application/hollow_zero/lost_void/context/lost_void_detector.py`),继承 `Yolov8Detector`,提供"感叹号 / 距离 / 入口"等业务判断。`run()` 在推理前会把战斗画面 `头像-3-1/3-2/3-3` 区域涂黑,避免角色头像被误检为目标。
 3. **框架加载与推理**:`Yolov8Detector`(`src/one_dragon/yolo/yolov8_onnx_det.py`):
    - 预处理 `onnx_utils.scale_input_image_u`:等比缩放、左上对齐的 letterbox,对 736×736 正方形自洽。
    - 后处理 `process_output`:`np.squeeze(output[0]).T` + 动态切片,不硬编码类别数,16 类开箱兼容。
