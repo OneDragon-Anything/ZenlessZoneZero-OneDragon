@@ -31,25 +31,17 @@ def get_after_done_request_from_config(after_done: str) -> AfterDoneRequest:
     return AfterDoneRequest()
 
 
-def should_execute_after_done(
-    run_result: ApplicationRunResult | None,
-    request: AfterDoneRequest,
-) -> bool:
-    """判断结束后动作是否应该执行。"""
-    if run_result is None:
-        return False
-    if run_result.finish_reason != RunFinishReason.COMPLETED:
-        return False
-    return request.close_game or request.shutdown_seconds is not None
-
-
 def execute_after_done(
     ctx: OneDragonContext,
     run_result: ApplicationRunResult | None,
     request: AfterDoneRequest,
 ) -> None:
     """执行结束后动作。"""
-    if not should_execute_after_done(run_result, request):
+    if (
+        run_result is None
+        or run_result.finish_reason != RunFinishReason.COMPLETED
+        or not (request.close_game or request.shutdown_seconds is not None)
+    ):
         return
 
     if request.close_game and ctx.controller is not None:
