@@ -14,7 +14,8 @@
 - 语言与环境：Python 3.11、uv、PySide6。
 - 代码布局：`src-layout`，源码在 `src/`，运行时配置在 `config/`，资源在 `assets/`，开发文档在 `docs/develop/`。
 - 运行基准：1080p；配置以 YAML 为主。
-- 测试仓库独立维护：`zzz-od-test/` 需要单独放在仓库根目录。
+- 所有测试统一在独立仓 `zzz-od-test/test/`(`.gitignore`,须 clone 到仓库根目录才能读/改;clone 见 [quickstart §②](docs/develop/setup/quickstart.md),测试规范见 [testing/](docs/develop/testing/README.md))。主仓不保留测试。AI 查测试用 `Read`/`grep` 显式指定 `zzz-od-test/`(默认搜索会跳过 .gitignore)。
+- 相关仓库全貌(测试仓 / yolo 训练仓 / 数据集 / 官网 blog)见 [相关仓库](docs/develop/setup/repositories.md);外部贡献者需 fork 后开发。
 
 ## 常用命令
 
@@ -52,6 +53,16 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - 操作链基于 `ZOperation` / `Operation` 编排；状态流转沿用现有 round 系列接口与节点声明方式。
 - GPU/onnx session 的异步调用必须通过 `gpu_executor.submit`，不要并发直调多个 session。
 
+## 开发流程（端到端）
+
+游戏自动化功能的开发链路(bug 修复 / 性能 / UI 等其他类型后续补充,详细判据见 [development_workflow.md](docs/develop/development_workflow.md)):
+
+1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。
+2. **开发**:做成 `Application`(`ApplicationFactory` 接入)+ `Operation`,复用现有配置 / 界面模式(架构细则见上方「功能开发优先路径」)。
+3. **测试**:用留档截图在测试仓补流程测试(见 [testing/](docs/develop/testing/))。
+4. **提 PR**:assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review / resolve。
+5. **配套(按需)**:模型 → [yolo/dataset 仓](docs/develop/setup/repositories.md);使用说明 → blog(**用户可见变化**才更新)。
+
 ## 开发硬约束
 
 - 所有函数签名、类成员变量都要有类型注解；使用 `list[str]`、`X | Y`。
@@ -67,6 +78,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 ## 文档与测试要求
 
 - 修改代码后，同步更新对应的 `docs/develop/` 文档与 `zzz-od-test/` 测试。
+- 测试方法论（测试基建 / FixtureController 流程测试 / 画面截图存档）见 [docs/develop/testing/](docs/develop/testing/README.md)。
 - 若测试依赖截图或环境变量，按 [docs/develop/README.md](docs/develop/README.md) 中说明准备 `.env` 与测试仓。
 - 提交前至少验证自己改动直接影响的部分；若无法本地完成，要明确说明缺失前提。
 - 复杂功能、架构调整或新自动化流程，先补设计/说明文档，再继续实现。
@@ -87,4 +99,6 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 只在当前任务确实需要时继续看这些文档：
 - 框架与模块架构：`docs/develop/one_dragon/`、`docs/develop/one_dragon/modules/`
 - 游戏业务与专项设计：`docs/develop/zzz/`
+- 游戏知识库（给智能体理解游戏）：`docs/game/`（画面描述 `screens/` + 玩法 `gameplay/`）
+- 后端服务 / MCP 对外能力：`docs/develop/zzz/backend/`（入口 README；开发 MCP tool 前先看 design-principles）
 - 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`

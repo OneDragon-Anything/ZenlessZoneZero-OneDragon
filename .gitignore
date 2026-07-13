@@ -22,10 +22,6 @@ nul
 docs/superpowers/
 .superpowers/
 
-# skills(暂不提交,等团队 superpowers 统一采用的决定)
-skills/dev-pr-finishing/
-skills/dev-skill-guide/
-
 # 用户独有的配置文件
 env.bat
 config/custom.yml

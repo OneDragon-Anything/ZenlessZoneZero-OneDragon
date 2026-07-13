@@ -16,7 +16,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
-    OperationRoundResultEnum,
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -554,7 +553,7 @@ class EnterGame(ZOperation):
 
         downloading_seconds = now - self.resource_download_start_time
         if downloading_seconds < EnterGame.MAX_RESOURCE_DOWNLOAD_SECONDS:
-            return OperationRoundResult(result=OperationRoundResultEnum.WAIT, status='资源下载中')
+            return self.round_wait('资源下载中', wait=2)
 
         self.resource_download_start_time = None
         return self.round_fail('资源下载超时')
@@ -585,6 +584,7 @@ class EnterGame(ZOperation):
         )
         target_word_list: list[str] = [
             '加载配置数据中',
+            '版本校对中',
             '登录游戏服务器中',
             EnterGame.STATUS_LOGIN_SUCCESS,
             '资源下载中',
@@ -643,7 +643,7 @@ class EnterGame(ZOperation):
                         self.after_second_enter_click = True
                     else:
                         self.after_first_enter_click = True
-                    return self.round_wait(status=match_word, wait=1)
+                    return self.round_wait(status=match_word, wait=2)
                 return click_result
 
             if match_word == '加载配置数据中':

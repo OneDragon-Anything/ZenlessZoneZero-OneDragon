@@ -22,6 +22,9 @@ if __name__ == '__main__':
     work_dir = picker_window.selected_directory
     if not work_dir:
         sys.exit(0)
+    from one_dragon.utils import os_utils
+
+    os_utils.set_work_dir(work_dir)
     os.chdir(work_dir)
 
     # 延迟导入

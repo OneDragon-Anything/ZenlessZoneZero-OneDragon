@@ -44,20 +44,6 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 按键-切换后援
-  id_mark: false
-  pc_rect:
-  - 1615
-  - 776
-  - 1726
-  - 877
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: battle
-  template_id: btn_switch_backup_1
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
 - area_name: 连携技-1
   id_mark: false
   pc_rect:

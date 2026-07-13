@@ -15,6 +15,7 @@ from one_dragon.base.operation.application.application_run_semantics import (
 )
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -92,6 +93,8 @@ class ApplicationRunContext:
         self.current_group_id: str | None = None
         self.current_application: Application | None = None
         self.last_run_result: ApplicationRunResult | None = None
+        # 同步运行应用的最近一次结果，供 backend 运行槽固化终态使用。
+        self.last_application_result: OperationResult | None = None
 
         # 通知池，应用开始时清空重用
         self.notify_pool: NotifyPool = NotifyPool()
@@ -127,6 +130,16 @@ class ApplicationRunContext:
         """
         self._application_factory_map.clear()
         self.default_group_apps.clear()
+
+    def clear_application_cache(self) -> None:
+        """清理已注册应用工厂缓存的配置和运行记录。
+
+        外置 backend server 与 GUI 是不同进程；GUI 保存 YAML 后，本进程内
+        已缓存的 ApplicationConfig / AppRunRecord 不会自动刷新，运行前通过
+        这里清理缓存，让后续读取落到最新配置。
+        """
+        for factory in self._application_factory_map.values():
+            factory.clear_cache()
 
     @property
     def notify_app_map(self) -> dict[str, str]:
@@ -447,6 +460,8 @@ class ApplicationRunContext:
             ApplicationRunResult: 应用运行结束结果。
         """
         self.last_run_result = None
+        # 每次启动前清空旧结果，避免启动失败时被上一轮结果误判。
+        self.last_application_result = None
         start_time = time.time()
         while not self.ctx.ready_for_application:
             now = time.time()
@@ -501,10 +516,14 @@ class ApplicationRunContext:
             self.current_group_id = group_id
             self.current_application = app
 
-            app.execute()
-        except Exception:
+            self.last_application_result = app.execute()
+        except Exception as e:
             finish_reason = RunFinishReason.FAILED
             log.error("运行应用 %s 失败", app_id, exc_info=True)
+            # 异常时固化失败终态，避免 last_application_result 留 None 被误判为成功。
+            self.last_application_result = OperationResult(
+                success=False, status=f'执行异常: {e}'
+            )
         finally:
             if self.last_run_result is None:
                 run_result = self._finish_running(

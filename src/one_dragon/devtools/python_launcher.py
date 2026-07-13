@@ -76,13 +76,15 @@ def _configure_runtime_logger() -> None:
         ),
     )
 
-def verify_working_directory():
-    # 设置当前工作目录
-    if getattr(sys, 'frozen', False):
-        cwd = os.path.dirname(sys.executable)
+def verify_working_directory() -> str:
+    """切换并校验启动器工作目录。
 
-    # 如果目录为空，使用当前工作目录
-    if not cwd:
+    Returns:
+        启动器使用的工作目录。
+    """
+    if getattr(sys, 'frozen', False):
+        cwd = str(Path(sys.executable).resolve().parent)
+    else:
         cwd = os.getcwd()
 
     os.chdir(cwd)
@@ -277,7 +279,7 @@ def execute_python_script(
             ["powershell", "-Command", full_command],
             creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0
         )
-        print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
+        print_message("等待主界面弹出...", "INFO")
 
 def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     """
@@ -294,6 +296,18 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     else:
         print_message(f"{gt('代码更新失败')}: {msg}", "ERROR")
 
+
+def sync_dependencies(ctx: OneDragonEnvContext) -> None:
+    """按需同步运行依赖。"""
+    print_message("开始检查运行环境...", "INFO")
+    success, msg = ctx.python_service.uv_sync_runtime_dependencies()
+    print_message(msg, "PASS" if success else "ERROR")
+    if not success:
+        with contextlib.suppress(EOFError):
+            input("请重新启动程序；若问题仍然存在，请下载最新安装器重新配置运行环境。按回车键退出...")
+        sys.exit(1)
+
+
 def run_python(app_path, no_windows: bool = True, args: list[str] | None = None, piped: bool = False) -> None:
     # 主函数
     try:
@@ -304,10 +318,12 @@ def run_python(app_path, no_windows: bool = True, args: list[str] | None = None,
         ctx = OneDragonEnvContext()
         configure_environment(ctx, cwd)
         fetch_latest_code(ctx)
+        sync_dependencies(ctx)
         execute_python_script(ctx, app_path, no_windows, args, piped)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
+        raise
     except Exception as e:
         print_message(f"出现未处理的异常：{e}", "ERROR")
     finally:
-        time.sleep(3)
+        time.sleep(5)

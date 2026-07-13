@@ -62,7 +62,11 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 ## MCP
 
 - **推荐**：[context7](https://github.com/upstash/context7) — 查询库文档；已在本项目 `.claude/settings.json` 启用（Claude Code 场景）。
-- **项目自有 MCP（4 个感知/操作 tool 已实现，已验证）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001），4 个 tool：`check_game_window` / `capture_game_screen` / `analyze_screen` / `open_and_enter_game`。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
+- **项目自有 MCP（感知/操作 tool 已实现）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏 + 运行态查/停）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001）。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。**工具清单见 [zzz/backend/mcp.md](../zzz/backend/mcp.md)**（不在此列举，避免随实现演进过时）；整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
+
+## 测试仓
+
+测试代码在独立仓 `zzz-od-test/`(`.gitignore`,clone 到项目根目录),不在主仓。Claude Code 的 Grep/Glob 默认尊重 `.gitignore`,**不会自动搜** `zzz-od-test/`——查/改测试须 `Read`/`grep` 显式指定 `zzz-od-test/` 路径。clone 指引见 [quickstart §②](quickstart.md#②-跑测试可选),规范见 [spec/agent_guidelines.md](../spec/agent_guidelines.md#测试代码规范)。
 
 ## LSP
 
@@ -72,15 +76,23 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 
 Skill 是 Claude Code（及 Codex 等少数工具）的可调用能力。要点：**每个工具只读自己目录下的 skill**——Claude Code 读 `.claude/skills/`，**不读根目录 `skills/`**；且 skill 没有 `@import` 之类的引入逃逸口。
 
+### 推荐安装 superpowers
+
+**项目已统一采用 [superpowers](https://github.com/anthropics/superpowers)**（团队共识）—— 它是一整套**开发流程方法论**，指导从需求探索（`brainstorming`）、写计划（`writing-plans`）、TDD 实现（`test-driven-development`）、调试（`systematic-debugging`）、code review、到分支收尾合并（`finishing-a-development-branch`）的全链路；本项目按这套流程开发。
+
+本项目 dev skill（`zzz-od-dev-*`）是叠加在 superpowers 之上的**项目特定补充**（PR 收尾适配 CodeRabbit、本项目 skill 写作硬规范、修复决策框架等），非替代 —— 使用者需同时具备 superpowers。Claude Code 安装：插件市场搜 `superpowers`，或 `/plugin install superpowers`。
+
 ### Skill 分类与命名
 
 Skill 分两类，统一用 `zzz-od-` 项目前缀，开发类再加 `dev-`：
 
-| 类别 | 前缀 | 用途 | 现有 skill（迁移时按此重命名） |
-|---|---|---|---|
-| **开发** | `zzz-od-dev-` | 指引 AI 在本项目开发/配置/构建 | agent-auto-battle-config、agent-definition、new-config |
-| **使用** | `zzz-od-` | 指引使用本项目做游戏自动化 | zzz-one-dragon-player |
+| 类别 | 前缀 | 用途 |
+|---|---|---|
+| **开发** | `zzz-od-dev-` | 指引 AI 在本项目开发/配置/构建（superpowers 风格） |
+| **历史遗留** | 无前缀 | 早期 skill，暂保留原名（迁移价值待评估） |
 
+> 现有 skill 清单见 [`skills/` 目录](../../../skills/)（每个 SKILL.md frontmatter 有触发描述），不在此罗列以免随增减过时。
+>
 > `zzz-od-` 兼作**项目命名空间**——避免和插件/个人 skill 撞名，`/` 列表里本项目 skill 聚一起。命名示例：`zzz-od-dev-character`（新增角色）、`zzz-od-dev-build`（构建配置）、`zzz-od-player`（安装使用）。将来若出现第 3 类（如调试），加对应中缀（`zzz-od-debug-*`）即可。
 
 ### Skill 开发：三级晋升
@@ -95,11 +107,13 @@ Skill 分两类，统一用 `zzz-od-` 项目前缀，开发类再加 `dev-`：
 
 **晋升路径**：① 个人试做 →（验证有用）→ ② 提交到 `.claude/skills/` →（多工具都要）→ ③ 根 `skills/` 作跨工具源。
 
-> ⚠️ 根 `skills/` 不会被工具自动发现，只是③的单一源；要**符号链接**（symlink，目录级；非硬链接）进各工具目录（如 `.claude/skills/`）。Windows 符号链接需管理员或开发者模式。只有 Claude Code 一个消费者时，停在②即可，不必上③。
+> ⚠️ 根 `skills/` 不会被工具自动发现，只是③的单一源；要**目录联接**（junction，`mklink /J`，目录级）进各工具目录（如 `.claude/skills/`）。Windows junction 免管理员（symlink 需特权/开发者模式）。只有 Claude Code 一个消费者时，停在②即可，不必上③。
 
 ### 现状
 
-仓库根 `skills/` 现有 4 个 skill（`agent-auto-battle-config`、`agent-definition`、`new-config`、`zzz-one-dragon-player`），放在根目录、**暂未被 Claude Code 自动加载**；是否迁移到 `.claude/skills/` 待定（价值还在评估）。
+仓库根 [`skills/`](../../../skills/) 是 skill 的单一源（③）；开发类（`zzz-od-dev-*`，superpowers 风格）经 junction（`.claude/skills/<name>` → 根 `skills/<name>`）被 Claude Code 自动加载。**现有 skill 清单见目录本身**（每个 SKILL.md frontmatter 有触发描述），不在此罗列以免随增减过时。
+
+新 skill 按上面的命名规范用 `zzz-od-` 前缀。
 
 ## AI 辅助提交的署名（推荐）
 

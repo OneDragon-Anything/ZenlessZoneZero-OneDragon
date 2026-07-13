@@ -23,6 +23,7 @@ from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
     GamepadActionKeyCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
@@ -32,7 +33,6 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
     ControlMethodEnum,
@@ -60,7 +60,7 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/setting_game.html',
+            url='https://one-dragon.com/zzz/zh/setting/setting_game.html',
             title='设置说明',
             content='游戏路径、输入方式等基础设置，建议首次使用前检查一遍',
         )
