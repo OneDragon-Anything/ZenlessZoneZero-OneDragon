@@ -31,9 +31,9 @@
 
 ## 非战斗 app 建档进度
 
-**已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(活跃奖励)/ `city_fund`(丽都城募)/ `ridu_weekly`(丽都周纪;BINGO 积分领奖)。
+**已建档(纯 UI,MCP 可复现)**:`email`(邮件)/ `redemption_code`(兑换码)/ `drive_disc_dismantle`(驱动盘拆解)/ `engagement_reward`(快捷手册-日常)/ `city_fund`(丽都城募)/ `ridu_weekly`(丽都周纪;BINGO 积分领奖)。
 
-**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)、`random_play`(影像店营业;Transport POINT_2 + interact 进经营;营业确认弹窗待补)、`suibian_temple`(随便观;入口 interact 狮耶 + 8 子画面实拍 11 webp;3 画面无 screen_info 待补)。
+**已建档(move/interact/drag 类,用 `key_tap` + `drag` + `run_operation Transport` 分解,见 onboarding skill「截图获取」)**:`scratch_card`(报刊亭;刮刮卡;嗷呜对话 / 确认弹窗待补)、`trigrams_collection`(卦象集录;滑动获取卦象 / 领奖确认待补)、`random_play`(影像店营业;Transport POINT_2 + interact 进经营;营业确认弹窗待补)、`suibian_temple`(随便观;入口 interact 狮耶 + 8 子画面实拍 11 webp;3 画面无 screen_info 待补)。
 
 **已建档(通用兜底画面,无固定文字特征,见 onboarding skill「兜底画面」)**:`对话`(NPC 对话;有 NPC 名已建档,旁白待补)、`加载画面`(通用 lore 轮换)。
 

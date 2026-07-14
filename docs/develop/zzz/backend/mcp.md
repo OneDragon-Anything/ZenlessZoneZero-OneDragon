@@ -8,7 +8,7 @@
 
 | MCP tool | 委托 | 返回 |
 |---|---|---|
-| `check_game_window` | `backend.check_window()` | 状态文本（`str`） |
+| `check_game_window` | `backend.check_window()` | `WindowStatus`（结构化 JSON；backend 抛错时返 `{'error': ...}`） |
 | `capture_game_screen` | `backend.capture()` | 截图绝对路径（落盘 `.debug/zzz_od_mcp/screenshot/`） |
 | `analyze_screen(screenshot=None, save_image=False)` | `backend.analyze()` | `AnalyzeScreenResult`（结构化 JSON；实时 + `save_image=True` 多回传 `screenshot_path`） |
 | `upsert_screen_area(screen_name, area_name, pc_rect, ...)` | `backend.upsert_screen_area()` | `{success, action(inserted/updated), area_count, error}`（写 yml + reload） |
