@@ -215,11 +215,11 @@ class PcControllerBase(ControllerBase):
 
         if not self.game_win.active():
             return False
-        time.sleep(self.mouse_flash_duration)
+        time.sleep(self.get_mouse_flash_duration())
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
         user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(self.mouse_flash_duration)
+        time.sleep(self.get_mouse_flash_duration())
 
         # 切回原来的前台窗口
         if prev_hwnd and prev_hwnd != hwnd:
@@ -229,6 +229,10 @@ class PcControllerBase(ControllerBase):
         self._game_input_mode = 'keyboard_mouse'
 
         return True
+
+    def get_mouse_flash_duration(self) -> float:
+        """获取闪切键鼠模式时的单步等待时长"""
+        return self.mouse_flash_duration
 
     def _ensure_gamepad_mode(self) -> None:
         """确保游戏处于手柄输入模式。若当前为键鼠模式，先发一次手柄按键让游戏切换。"""
