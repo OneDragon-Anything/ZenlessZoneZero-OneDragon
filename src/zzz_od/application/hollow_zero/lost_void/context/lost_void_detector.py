@@ -129,7 +129,7 @@ def __debug():
     cv2_utils.show_image(result_image, win_name='lost_void_detector', wait=0)
     import cv2
     cv2.destroyAllWindows()
-    print(detector.is_frame_with(frame_result, '感叹号'))
+    print(detector.is_frame_with(frame_result, LostVoidDetector.CLASS_INTERACT))
 
 
 if __name__ == '__main__':
