@@ -36,10 +36,6 @@ class ZPcController(PcControllerBase):
 
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
-            if self.game_config.background_gamepad_type == 'ds4':
-                self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
-            else:
-                self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
         else:
             self.enable_foreground_mode()
             self.active_window()
@@ -72,6 +68,16 @@ class ZPcController(PcControllerBase):
     def enable_keyboard(self):
         PcControllerBase.enable_keyboard(self)
         self.action_keys = self.game_config.get_action_keys('keyboard')
+
+    def enable_background_mode(self, gamepad_type: str = 'xbox') -> None:
+        """启用后台模式并应用当前实例的按键时长配置"""
+        PcControllerBase.enable_background_mode(self, gamepad_type)
+        if not self.background_mode:
+            return
+        if gamepad_type == 'ds4':
+            self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
+        else:
+            self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
 
     def enable_xbox(self):
         PcControllerBase.enable_xbox(self)
