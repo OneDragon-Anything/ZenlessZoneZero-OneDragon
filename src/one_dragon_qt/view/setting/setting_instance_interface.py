@@ -270,9 +270,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.bilibili_account_name.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("bilibili_account_name")
         )
-        self.force_login_opt.init_with_adapter(
-            self.ctx.game_account_config.get_prop_adapter('force_login_before_run')
-        )
+        self.force_login_opt.setValue(self.ctx.one_dragon_config.current_instance_force_login, emit_signal=False)
 
         self.set_ui_of_game_region(self.ctx.game_account_config.game_region)
 
@@ -345,6 +343,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             title="强制重新登录",
             content="开启后，游戏未打开或停在登录页面时，会使用当前账号配置重新登录",
         )
+        self.force_login_opt.value_changed.connect(self.ctx.one_dragon_config.set_current_instance_force_login)
         instance_settings_group.addSettingCard(self.force_login_opt)
 
         self.help_bilibili_opt = HelpCard(title='B服使用提示',

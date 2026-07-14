@@ -35,9 +35,9 @@ class EnterGame(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
 
         self.force_login: bool = (
-            self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1
-            or self.ctx.game_account_config.force_login_before_run
+            (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
+             and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            or self.ctx.one_dragon_config.current_instance_force_login
         )
 
         # 切换账号的情况下 一定需要登录
