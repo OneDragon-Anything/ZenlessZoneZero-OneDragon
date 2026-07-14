@@ -960,7 +960,7 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     self.no_in_battle_times = 0
 
-                if self.no_in_battle_times >= 10:
+                if self.no_in_battle_times >= 3:
                     self.ctx.auto_battle_context.stop_auto_battle()
                     self.no_in_battle_times = 0
 
