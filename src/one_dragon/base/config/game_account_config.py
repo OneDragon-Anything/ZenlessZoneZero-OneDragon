@@ -112,6 +112,14 @@ class GameAccountConfig(YamlConfig):
         self.update('bilibili_account_name', new_value)
 
     @property
+    def force_login_before_run(self) -> bool:
+        return self.get('force_login_before_run', False)
+
+    @force_login_before_run.setter
+    def force_login_before_run(self, new_value: bool) -> None:
+        self.update('force_login_before_run', new_value)
+
+    @property
     def game_refresh_hour_offset(self) -> int:
         if self.game_region == GameRegionEnum.CN.value.value \
                 or self.game_region == GameRegionEnum.CNB.value.value:
