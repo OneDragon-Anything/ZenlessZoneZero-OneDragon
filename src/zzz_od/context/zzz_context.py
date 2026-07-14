@@ -65,7 +65,8 @@ class ZContext(OneDragonContext):
     @cached_property
     def game_config(self):
         from zzz_od.config.game_config import GameConfig
-        return GameConfig(self.current_instance_idx)
+        instance_idx = None if self.one_dragon_config.game_config_global_mode else self.current_instance_idx
+        return GameConfig(instance_idx)
 
     @cached_property
     def team_config(self):
@@ -90,6 +91,12 @@ class ZContext(OneDragonContext):
         for prop in to_clear_props:
             if prop in self.__dict__:
                 del self.__dict__[prop]
+
+    def reload_game_config(self) -> None:
+        if 'game_config' in self.__dict__:
+            del self.__dict__['game_config']
+        if self.controller is not None:
+            self.controller.sync_game_config(self.game_config)
 
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
