@@ -224,10 +224,11 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  # 大量快捷手册样例 CV 结果表明：RGB 下限必须保持在 206～210，过低会识别到 /240，过高会丢失数字边缘
   color_range:
-  - - 200
-    - 200
-    - 200
+  - - 208
+    - 208
+    - 208
   - - 255
     - 255
     - 255
