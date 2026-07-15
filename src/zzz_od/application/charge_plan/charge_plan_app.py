@@ -1,4 +1,3 @@
-import re
 from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
@@ -90,6 +89,7 @@ class ChargePlanApp(ZApplication):
         area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
+            color_range=area.color_range,
             rect=area.rect,
         )
         resource_list = sorted(
@@ -100,22 +100,10 @@ class ChargePlanApp(ZApplication):
         if len(resource_list) != 3:
             return self.round_retry('未识别到电量', wait=1)
 
-        charge_text = resource_list[0].data
-        charge_match = re.search(r'(\d+)\s*/\s*(\d+)', charge_text)
-        if charge_match is not None:
-            battery_charge = int(charge_match.group(1))
-        else:
-            charge_suffix = str(ChargePlanRunRecord.MAX_CHARGE_POWER)
-            battery_charge_text = re.sub(r'\D', '', charge_text).removesuffix(charge_suffix)
-            battery_charge_text = battery_charge_text.removesuffix('1')
-
-            battery_charge = str_utils.get_positive_digits(battery_charge_text, None)
-            if battery_charge is None:
-                return self.round_retry('未识别到电量', wait=1)
-
+        battery_charge = str_utils.get_positive_digits(resource_list[0].data, None)
         backup_battery_charge = str_utils.get_positive_digits(resource_list[1].data, None)
         ether_battery = str_utils.get_positive_digits(resource_list[2].data, None)
-        if backup_battery_charge is None or ether_battery is None:
+        if battery_charge is None or backup_battery_charge is None or ether_battery is None:
             return self.round_retry('未识别到电量', wait=1)
 
         self.battery_charge = battery_charge
