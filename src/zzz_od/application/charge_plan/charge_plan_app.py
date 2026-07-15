@@ -86,6 +86,7 @@ class ChargePlanApp(ZApplication):
         return self.round_by_goto_screen(screen_name='快捷手册-训练')
 
     @node_from(from_name='打开快捷手册')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL)
     @operation_node(name='识别电量')
     def check_battery_charge(self) -> OperationRoundResult:
         """识别快捷手册资源栏中的电量、储蓄电量和以太电池。
