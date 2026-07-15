@@ -86,7 +86,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 ## 提交流程与协作边界
 
 - 默认不要主动执行 `git commit`、`git push`、`git reset`、删分支等版本控制操作，除非用户明确要求。
-- 测试改动在独立仓 `zzz-od-test` 提交:主仓 `git add zzz-od-test/...` 会被 `.gitignore` **静默跳过**(不报错但未加入)→ 须 `git -C zzz-od-test add ... && commit` 单独提交,否则 PR 丢测试。
+- 测试改动在独立仓 `zzz-od-test` 提交:主仓 `git add zzz-od-test/...` 会被 `.gitignore` **静默跳过**(不报错但未加入)→ 须 `git -C zzz-od-test add test/ && commit` 单独提交,否则 PR 丢测试。
 - 如果用户明确要求切换分支，先 `stash` 当前改动，再切换。
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
 - 提交 PR 后，review comment 需要逐条回复或修正。

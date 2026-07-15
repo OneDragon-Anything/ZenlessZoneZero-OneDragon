@@ -184,7 +184,7 @@ assert r2.is_success
 
 测试文件在 `zzz-od-test` 独立仓。主仓 `git add zzz-od-test/...` 会被 `.gitignore` **静默跳过**(不报错但未加入)。必须在测试仓内提交(always-on 提示见 [AGENTS.md](../../../AGENTS.md)「提交流程与协作边界」):
 ```shell
-git -C zzz-od-test add test/... && git -C zzz-od-test commit -m "..."
+git -C zzz-od-test add test/ && git -C zzz-od-test commit -m "..."
 ```
 
 ## 8. 代码规范 / fixture 格式
@@ -203,5 +203,5 @@ git -C zzz-od-test add test/... && git -C zzz-od-test commit -m "..."
 
 - **能压**:整屏画面匹配 / 事件识别(容差大)。
 - **保留 PNG**:精度敏感(小地图角度)、含细文字 OCR(webp q90 致 OCR 空)、**模板裁剪源**(webp lossy → 裁剪放大 artifacts → 模板 conf 降)。
-- **转换**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(中文路径安全,非 `cv2.imwrite`);批量见 [onboard skill 的 `convert_to_webp.py`](../../../.claude/skills/zzz-od-dev-screen-onboarding/convert_to_webp.py)。原 PNG 保留,确认无引用且测试过后手动删。
+- **转换**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(中文路径安全,非 `cv2.imwrite`);批量见 [onboard skill 的 `convert_to_webp.py`](../../../skills/zzz-od-dev-screen-onboarding/convert_to_webp.py)。原 PNG 保留,确认无引用且测试过后手动删。
 - **改引用**:转后同步改测试代码 `.png`→`.webp`(保留 PNG 的不改)。
