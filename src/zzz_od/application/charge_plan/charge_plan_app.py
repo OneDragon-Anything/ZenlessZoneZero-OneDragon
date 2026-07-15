@@ -92,8 +92,10 @@ class ChargePlanApp(ZApplication):
             color_range=area.color_range,
             rect=area.rect,
         )
+        digit_list = [i for i in ocr_result_list if str_utils.get_positive_digits(i.data, None) is not None]
+        max_height = max((i.h for i in digit_list), default=0)
         resource_list = sorted(
-            [i for i in ocr_result_list if str_utils.get_positive_digits(i.data, None) is not None],
+            [i for i in digit_list if i.h >= max_height * 0.5],
             key=lambda i: i.center.x,
         )
         log.debug('快捷手册资源栏 OCR %s', [(i.data, i.x, i.y, i.w, i.h) for i in resource_list])
