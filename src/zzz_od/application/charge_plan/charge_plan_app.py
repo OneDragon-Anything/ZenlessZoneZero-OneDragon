@@ -1,5 +1,7 @@
 from typing import ClassVar
 
+import cv2
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -86,25 +88,25 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='打开快捷手册')
     @operation_node(name='识别电量')
     def check_battery_charge(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            self.last_screenshot,
-            color_range=area.color_range,
-            rect=area.rect,
-        )
-        digit_list = [i for i in ocr_result_list if str_utils.get_positive_digits(i.data, None) is not None]
-        max_height = max((i.h for i in digit_list), default=0)
-        resource_list = sorted(
-            [i for i in digit_list if i.h >= max_height * 0.5],
-            key=lambda i: i.center.x,
-        )
-        log.debug('快捷手册资源栏 OCR %s', [(i.data, i.x, i.y, i.w, i.h) for i in resource_list])
-        if len(resource_list) != 3:
-            return self.round_retry('未识别到电量', wait=1)
+        """识别快捷手册资源栏中的电量、储蓄电量和以太电池。
 
-        battery_charge = str_utils.get_positive_digits(resource_list[0].data, None)
-        backup_battery_charge = str_utils.get_positive_digits(resource_list[1].data, None)
-        ether_battery = str_utils.get_positive_digits(resource_list[2].data, None)
+        框架 OCR 的常规入口会先对整条资源栏检测文字位置，再按检测框筛选数字；图标、分隔线和“/240”会使该步骤漏识单字符或串入上限。
+        由于三个数字的位置固定，这里不直接调用整栏检测入口，而是先按配置颜色提取文字，再按固定位置分成三个互不相交且留有间隔的字段。
+        字段切分后仍复用框架提供的 OCR 模型和识别接口，只对每个已知字段执行单行识别；对比测试表明，该方案准确率、稳定性和执行开销更好。
+        """
+        area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+        mask = cv2.inRange(part, area.color_range_lower, area.color_range_upper)
+        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+        resource_list = [
+            self.ctx.ocr.run_ocr_single_line(mask[y1:y2, x1:x2], strict_one_line=True)
+            for x1, y1, x2, y2 in ((75, 8, 225, 72), (275, 8, 410, 72), (425, 8, 535, 72))
+        ]  # 三个 ROI 互不相交，间隔用于避开图标、分隔线和“/240”
+        log.debug('快捷手册资源栏 OCR %s', resource_list)
+
+        battery_charge = str_utils.get_positive_digits(resource_list[0], None)
+        backup_battery_charge = str_utils.get_positive_digits(resource_list[1], None)
+        ether_battery = str_utils.get_positive_digits(resource_list[2], None)
         if battery_charge is None or backup_battery_charge is None or ether_battery is None:
             return self.round_retry('未识别到电量', wait=1)
 
