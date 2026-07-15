@@ -1,13 +1,15 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
-from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import SuibianTempleAutoManage
+from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import (
+    SuibianTempleAutoManage,
+)
 from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
     SuibianTempleBooBox,
 )
@@ -64,8 +66,10 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='传送')
     @operation_node(name='前往随便观', timeout_seconds=60, node_max_retry_times=999)
     def goto_suibian_temple(self) -> OperationRoundResult:
+        # 「确认」「领取收益」:interact 狮耶进入口时的自动收益弹窗(领取收益→确认)。
+        # ⚠️ 待验证:当前 Transport 落地直达入口(不经 interact),这两个 OCR 不命中;
+        # 若 interact 进入口且有累计收益时仍弹自动收益,则保留。
         target_cn_list: list[str] = [
-            '前往随便观',
             '确认',
             '领取收益',
         ]
