@@ -341,7 +341,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.force_login_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC,
             title="强制重新登录",
-            content="开启后，游戏未打开或停在登录页面时，会使用当前账号配置重新登录",
+            content="单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态",
         )
         self.force_login_opt.value_changed.connect(self.ctx.one_dragon_config.set_current_instance_force_login)
         instance_settings_group.addSettingCard(self.force_login_opt)
