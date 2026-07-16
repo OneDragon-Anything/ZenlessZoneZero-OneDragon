@@ -1,0 +1,128 @@
+{
+    "repo_notes": [
+        {
+            "content": "【语言要求】Wiki 页面的标题、正文、描述和图表标签统一使用简体中文。代码标识符、命令、日志和错误信息保留原文；外部文档优先引用中文版本。",
+            "author": "maintainer"
+        },
+        {
+            "content": "本项目是面向 Windows 的《绝区零》自动化工具，核心能力是图像识别、OCR、YOLO 与输入控制，提供自动战斗、闪避助手、日常任务、空洞作战、定时任务和多账号等功能。用户向功能说明以 .github/README.md 和官网为准。",
+            "author": "maintainer"
+        },
+        {
+            "content": "项目采用 Python 3.11、uv、PySide6 和 src-layout。src/one_dragon 是通用框架，src/one_dragon_qt 是通用 Qt 层，src/onnxocr 是 OCR 支持，src/zzz_od 是绝区零业务代码；assets/ 存放游戏画面、模板、模型和配置数据。",
+            "author": "maintainer"
+        },
+        {
+            "content": "业务流程由 Application 和 Operation 组成。Operation 使用带起始节点、状态结果、重试和失败边的节点图执行；Application 在此基础上增加配置、运行记录和应用组编排。应用通过 ApplicationFactoryManager 从内置目录和 plugins/ 动态发现。",
+            "author": "maintainer"
+        },
+        {
+            "content": "游戏画面识别以 1920×1080 基准布局为主，screen_info YAML 定义画面、区域和路由，模板与模型位于 assets/。docs/game/ 是供开发和 AI 使用的离线游戏知识库，不等同于用户操作手册。",
+            "author": "maintainer"
+        },
+        {
+            "content": "测试代码与截图存档位于独立的 zzz-od-test 仓库，主仓的 tests/ 已废弃且主仓 .gitignore 会忽略该目录。修改 Python 后只对变更文件运行 uv 驱动的 ruff check；没有 .env 或测试仓时必须明确说明。",
+            "author": "maintainer"
+        },
+        {
+            "content": "运行层之上的 headless 后端由 ZzzBackendContext 收敛 ZContext 能力，同时提供 MCP 和 HTTP 适配器；GUI 是独立入口。后端细节以 docs/develop/zzz/backend/README.md 及其分文档为准。",
+            "author": "maintainer"
+        },
+        {
+            "content": "项目还维护官网文档仓 onedragon-anything.github.io、测试仓 zzz-od-test、YOLO 训练仓 OneDragon-YOLO 和 ModelScope 数据集。代码实现、测试素材、模型训练和用户文档应按职责修改对应仓库。",
+            "author": "maintainer"
+        }
+    ],
+    "pages": [
+        {
+            "title": "项目概述",
+            "purpose": "介绍绝区零一条龙的定位、支持平台、核心能力、技术栈和主要入口。引用 .github/README.md、AGENTS.md 和 docs/develop/README.md。"
+        },
+        {
+            "title": "系统架构",
+            "purpose": "描述 OneDragonContext、ZContext、控制器、画面上下文、OCR/模板服务、ApplicationRunContext 与 GUI 的关系，区分通用框架层和绝区零业务层。引用 docs/develop/one_dragon/one_dragon_architecture.md，并以当前源码校正其中标注为待实现的旧规划。",
+            "parent": "项目概述"
+        },
+        {
+            "title": "目录结构",
+            "purpose": "说明 src/one_dragon、src/one_dragon_qt、src/zzz_od、src/onnxocr、assets/、config/、docs/、plugins/、deploy/ 和 skills/ 的职责，并指出测试仓、官网仓和训练仓的边界。引用 AGENTS.md、docs/develop/setup/repositories.md。",
+            "parent": "项目概述"
+        },
+        {
+            "title": "开发环境与快速开始",
+            "purpose": "说明 Windows、Python 3.11、uv、.env、依赖同步、源码启动和常用检查命令。引用 docs/develop/setup/quickstart.md、docs/develop/README.md 和 AGENTS.md。",
+            "parent": "项目概述"
+        },
+        {
+            "title": "Operation 操作引擎",
+            "purpose": "深入解释 Operation 的节点图执行模型：operation_node、node_from、OperationRoundResult、成功/失败/重试/等待、超时和节点重试。引用 docs/develop/one_dragon/modules/operation.md 和实际 src/one_dragon/base/operation/ 实现。"
+        },
+        {
+            "title": "Application 与应用组",
+            "purpose": "说明 Application 如何组合 Operation，ApplicationFactory、ApplicationConfig、ApplicationRunRecord、ApplicationRunContext 和 ApplicationGroupManager 如何协作，以及 app_id、instance_idx、group_id 配置维度。引用 docs/develop/one_dragon/modules/application.md。",
+            "parent": "Operation 操作引擎"
+        },
+        {
+            "title": "应用插件系统",
+            "purpose": "文档化内置应用和 plugins/ 第三方应用的发现、导入、元数据、APP_ID 冲突、热刷新、设置页发现与失败记录机制。引用 docs/develop/one_dragon/modules/application_plugin_system.md 和 docs/develop/guides/application_plugin_guide.md。",
+            "parent": "Application 与应用组"
+        },
+        {
+            "title": "配置、实例与运行记录",
+            "purpose": "说明 config/{instance_idx}/ 下的实例配置、应用组配置、YamlConfig、配置缓存刷新、账号切换和运行记录持久化规则。引用 docs/develop/one_dragon/modules/application.md、docs/develop/harness/settings_scope.md 和当前 config/ 源码。"
+        },
+        {
+            "title": "GUI 与设置系统",
+            "purpose": "说明 PySide6 GUI 的主界面、应用设置发现、SettingCard、YamlConfigAdapter、实例设置和开发工具入口。引用 src/zzz_od/gui、src/one_dragon_qt、docs/develop/guides/application_setting_guide.md。"
+        },
+        {
+            "title": "游戏画面识别与知识库",
+            "purpose": "说明 screen_info 画面模型、区域类型、模板/OCR 匹配、画面路由和 docs/game/screens 与 docs/game/gameplay 的双向引用关系。引用 assets/game_data/screen_info/、docs/game/README.md 和 docs/develop/zzz/screenshot_archive.md。"
+        },
+        {
+            "title": "截图存档与画面建模",
+            "purpose": "说明如何从真实画面建立 screen_info、保存 1080p 截图、转 webp fixture、记录 OCR 快照并在测试仓复用。引用 docs/develop/zzz/screenshot_archive.md、docs/develop/testing/README.md。",
+            "parent": "游戏画面识别与知识库"
+        },
+        {
+            "title": "自动战斗与条件操作",
+            "purpose": "文档化自动战斗上下文、角色和战斗状态识别、技能/闪避策略，以及条件操作模块的状态表达式、场景优先级、原子操作和任务打断机制。引用 docs/develop/zzz/auto_battle.md、docs/develop/one_dragon/modules/conditional_operation.md 和 src/zzz_od/auto_battle/。"
+        },
+        {
+            "title": "绝区零功能应用总览",
+            "purpose": "总览 src/zzz_od/application/ 下的用户功能应用，包括电量计划、锄大地、自动战斗、空洞零/迷失之地、情报板、恶名狩猎、式舆防卫战、随便观、咖啡店、录像店和其他日常任务。每个模块的准确入口以对应 application factory、config 和设置页为准。"
+        },
+        {
+            "title": "电量计划与日常任务",
+            "purpose": "说明电量识别、储蓄电量/电池恢复、快捷手册资源栏、任务计划和通知分支；引用 docs/develop/zzz/application/charge_plan.md 与 src/zzz_od/application/charge_plan/。"
+        },
+        {
+            "title": "零号空洞与迷失之地",
+            "purpose": "说明零号空洞相关应用、事件决策、寻路、检测模型和战斗结束判断的代码组织与资源来源。引用 src/zzz_od/hollow_zero、src/zzz_od/application/hollow_zero/ 和 docs/develop/zzz/application/lost_void/。"
+        },
+        {
+            "title": "后端服务与 MCP/HTTP",
+            "purpose": "描述 headless backend 的 ZzzBackendContext、RunSlot、MCP streamable-http、HTTP /game/*、/health、服务入口和 GUI 的 MCP 服务页。引用 docs/develop/zzz/backend/README.md、architecture.md、mcp.md、http.md、entry.md。"
+        },
+        {
+            "title": "测试与调试",
+            "purpose": "说明 zzz-od-test 的测试布局、test_context、MockController、FixtureController、单节点测试、多帧流程测试、截图 fixture 和运行命令。引用 docs/develop/testing/README.md、fixture_controller.md。"
+        },
+        {
+            "title": "第三方插件开发",
+            "purpose": "说明如何在 plugins/ 创建第三方应用，补齐 factory、const、config、run record 和起始 operation 节点，如何让插件接入默认应用组或独立界面。引用 docs/develop/guides/application_plugin_guide.md 和 plugins/README.md。"
+        },
+        {
+            "title": "打包与 RuntimeLauncher",
+            "purpose": "文档化 PyInstaller 安装器、原始启动器和集成 RuntimeLauncher 的区别、运行时目录、依赖 manifest、代码同步和打包命令。引用 docs/develop/one_dragon/runtime_launcher.md、docs/develop/README.md、deploy/。"
+        },
+        {
+            "title": "开发规范与贡献流程",
+            "purpose": "汇总类型注解、导入、GUI 组件、注释、CRLF、uv、ruff、测试仓、提交和 PR review 约定。引用 AGENTS.md、docs/develop/spec/agent_guidelines.md、docs/develop/RECRUITING.md。"
+        },
+        {
+            "title": "相关仓库与文档生态",
+            "purpose": "说明主仓、zzz-od-test、OneDragon-YOLO、ModelScope 数据集和 onedragon-anything.github.io 官网的职责、目录关系和何时修改哪个仓库。引用 docs/develop/setup/repositories.md。"
+        }
+    ]
+}
