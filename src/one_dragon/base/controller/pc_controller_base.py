@@ -43,6 +43,7 @@ class PcControllerBase(ControllerBase):
 
     def __init__(self,
                  screenshot_method: str,
+                 force_active_window: bool = False,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
@@ -57,6 +58,7 @@ class PcControllerBase(ControllerBase):
         self.btn_controller: PcButtonController = self.keyboard_controller
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
+        self.force_active_window: bool = force_active_window
         self.background_mode: bool = False
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
@@ -158,6 +160,8 @@ class PcControllerBase(ControllerBase):
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
+            if self.force_active_window and not self.background_mode and not self.game_win.is_win_active:
+                self.active_window()
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)
