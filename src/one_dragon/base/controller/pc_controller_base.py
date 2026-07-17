@@ -97,11 +97,7 @@ class PcControllerBase(ControllerBase):
         前置窗口
         """
         self.game_win.init_win()
-        if not self.background_mode:
-            return self.game_win.active(
-                minimize_others_on_repeated_failure=self.force_active_window
-            )
-        return True
+        return self.background_mode or self.game_win.active(retry_until_active=self.force_active_window)
 
     def set_window_title(self, new_title: str) -> None:
         """设置窗口标题。

@@ -23,7 +23,7 @@ class PcGameWindow:
         self.standard_game_rect: Rect = Rect(0, 0, standard_width, standard_height)
 
         self._win: Win32Window | None = None
-        self._hWnd = None
+        self._hWnd: int | None = None
 
     def _clear_cached_window(self) -> None:
         self._win = None
@@ -34,18 +34,16 @@ class PcGameWindow:
         初始化窗口
         :return:
         """
+        self._clear_cached_window()
         if self.win_title is None:
             return
 
         windows = pyautogui.getWindowsWithTitle(self.win_title)
-        if len(windows) > 0:
-            for win in windows:
-                if win.title == self.win_title:
-                    self._win = win
-                    self._hWnd = win._hWnd
-        else:
-            self._win = None
-            self._hWnd = None
+        for win in windows:
+            if win.title == self.win_title:
+                self._win = win
+                self._hWnd = win._hWnd
+                return
 
     def update_win_title(self, new_title: str) -> None:
         """
@@ -57,7 +55,6 @@ class PcGameWindow:
             self._clear_cached_window()
 
     def refresh_win(self) -> None:
-        self._clear_cached_window()
         self.init_win()
 
     def get_win(self) -> Win32Window | None:
@@ -65,15 +62,10 @@ class PcGameWindow:
             self.init_win()
         return self._win
 
-    def get_hwnd(self) -> int:
+    def get_hwnd(self) -> int | None:
         if self._hWnd is None:
             self.init_win()
         return self._hWnd
-
-    def _reset_cached_window(self) -> None:
-        """清空缓存窗口对象与句柄，触发后续重新查找窗口。"""
-        self._win = None
-        self._hWnd = None
 
     @staticmethod
     def _try_get_client_rect(hwnd: int) -> tuple[bool, RECT]:
@@ -92,8 +84,11 @@ class PcGameWindow:
         :return:
         """
         win = self.get_win()
-        hwnd = self.get_hwnd()
-        return win is not None and hwnd is not None and ctypes.windll.user32.IsWindow(hwnd) != 0
+        hwnd = self._hWnd
+        is_valid = win is not None and hwnd is not None and win32gui.IsWindow(hwnd)
+        if not is_valid:
+            self._clear_cached_window()
+        return is_valid
 
     @property
     def is_win_active(self) -> bool:
@@ -101,8 +96,7 @@ class PcGameWindow:
         是否当前激活的窗口
         :return:
         """
-        win = self.get_win()
-        return win.isActive if win is not None else False
+        return self.is_win_valid and win32gui.GetForegroundWindow() == self._hWnd
 
     @property
     def is_win_scale(self) -> bool:
@@ -116,35 +110,33 @@ class PcGameWindow:
         else:
             return not (win_rect.width == self.standard_width and win_rect.height == self.standard_height)
 
-    def active(self, minimize_others_on_repeated_failure: bool = False) -> bool:
+    def active(self, retry_until_active: bool = False) -> bool:
         """
         显示并激活当前窗口
-        :return:
+        :param retry_until_active: 是否持续重试，并在多次失败后最小化其他窗口
+        :return: 是否已确认游戏窗口位于前台
         """
-        win = self.get_win()
-        if win is None:
+        if not self.is_win_valid:
             return False
         if self.is_win_active:
             return True
 
-        if not minimize_others_on_repeated_failure:
-            self._focus_window()
-            if self._wait_until_active():
-                return True
-            log.error('切换到游戏窗口失败，Windows 未允许窗口获得前台焦点')
-            return False
-
         attempt = 0
         while self.is_win_valid:
-            if attempt >= 10 and attempt % 10 == 0:
+            if retry_until_active and attempt >= 10 and attempt % 10 == 0:
                 log.info('多次尝试未恢复，尝试最小化其他窗口后激活游戏窗口')
                 self._minimize_other_windows()
             else:
                 log.info('游戏窗口未获得焦点，尝试恢复窗口')
 
             self._focus_window()
-            if self._wait_until_active():
+            time.sleep(0.05)
+            if win32gui.GetForegroundWindow() == self._hWnd:
+                log.info('游戏窗口已恢复前台焦点')
                 return True
+            if not retry_until_active:
+                log.error('切换到游戏窗口失败，Windows 未允许窗口获得前台焦点')
+                return False
             attempt += 1
             time.sleep(1)
 
@@ -156,40 +148,42 @@ class PcGameWindow:
         try:
             shell_hwnd = win32gui.FindWindow('Shell_TrayWnd', None)
             if shell_hwnd:
-                win32gui.SendMessage(shell_hwnd, win32con.WM_COMMAND, 419, 0)
+                win32gui.PostMessage(shell_hwnd, win32con.WM_COMMAND, 419, 0)
                 time.sleep(0.5)
         except Exception:
             log.debug('最小化其他窗口失败', exc_info=True)
 
     def _focus_window(self) -> None:
         """恢复并激活窗口。"""
-        if self._hWnd is None or not win32gui.IsWindow(self._hWnd):
+        hwnd = self._hWnd
+        if hwnd is None or not win32gui.IsWindow(hwnd):
+            self._clear_cached_window()
             return
 
         try:
-            win32gui.SendMessage(self._hWnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
-            win32gui.SetForegroundWindow(self._hWnd)
+            win32gui.PostMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+
+            try:
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                log.debug('SetForegroundWindow 调用失败，继续尝试其他激活方式', exc_info=True)
 
             for _ in range(10):
-                if not win32gui.IsIconic(self._hWnd):
+                if not win32gui.IsIconic(hwnd):
                     break
                 time.sleep(0.05)
 
-            if win32gui.IsIconic(self._hWnd):
-                win32gui.ShowWindow(self._hWnd, win32con.SW_RESTORE)
+            if win32gui.IsIconic(hwnd):
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
 
-            win32gui.BringWindowToTop(self._hWnd)
-            win32gui.SetActiveWindow(self._hWnd)
+            win32gui.BringWindowToTop(hwnd)
+            win32gui.SetActiveWindow(hwnd)
         except Exception as error:
-            if getattr(error, 'args', None) and '1400' in str(error.args[0]):
+            if error.args and error.args[0] == 1400:
                 log.warning('无效的窗口句柄，尝试重置窗口')
-                self._reset_cached_window()
+                self._clear_cached_window()
                 return
-            log.debug('激活游戏窗口失败', exc_info=True)
-
-    def _wait_until_active(self) -> bool:
-        time.sleep(0.05)
-        return win32gui.GetForegroundWindow() == self._hWnd
+            log.debug('请求激活游戏窗口时出现异常，继续确认前台状态', exc_info=True)
 
     @property
     def win_rect(self) -> Rect | None:
@@ -199,7 +193,7 @@ class PcGameWindow:
         :return: 游戏窗口信息
         """
         win = self.get_win()
-        hwnd = self.get_hwnd()
+        hwnd = self._hWnd
         if win is None or hwnd is None:
             return None
 
@@ -208,9 +202,9 @@ class PcGameWindow:
         # 句柄失效时重置缓存并重试一次，避免永久复用坏句柄
         if not got_rect and ctypes.windll.user32.IsWindow(hwnd) == 0:
             log.warning('检测到失效窗口句柄，重置缓存后重试')
-            self._reset_cached_window()
+            self._clear_cached_window()
             win = self.get_win()
-            hwnd = self.get_hwnd()
+            hwnd = self._hWnd
             if win is None or hwnd is None:
                 return None
             got_rect, client_rect = self._try_get_client_rect(hwnd)

@@ -213,9 +213,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
 
         self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
-        self.force_active_window_switch.init_with_adapter(
-            self.ctx.env_config.get_prop_adapter('force_active_window')
-        )
+        self.force_active_window_switch.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_active_window'))
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
 
