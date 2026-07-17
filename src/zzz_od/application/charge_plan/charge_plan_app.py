@@ -92,17 +92,19 @@ class ChargePlanApp(ZApplication):
         """识别快捷手册资源栏中的电量、储蓄电量和以太电池。
 
         框架 OCR 的常规入口会先对整条资源栏检测文字位置，再按检测框筛选数字；图标、分隔线和“/240”会使该步骤漏识单字符或串入上限。
-        由于三个数字的位置固定，这里不直接调用整栏检测入口，而是先按配置颜色提取文字，再按固定位置分成三个互不相交且留有间隔的字段。
+        由于三个数字的活动范围固定，这里不直接调用整栏检测入口，而是先按配置颜色提取文字，再按固定位置分成三个互不相交且留有间隔的字段。
         字段切分后仍复用框架提供的 OCR 模型和识别接口，只对每个已知字段执行单行识别；对比测试表明，该方案准确率、稳定性和执行开销更好。
         """
         area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         mask = cv2.inRange(part, area.color_range_lower, area.color_range_upper)
         mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+        # 资源栏右对齐，某项数字变长时会推动自身及左侧字段左移；
+        # 三个 ROI 按电量 3 位、储蓄电量 4 位（2400）、以太电池 3 位（300）的上限预留，仍不会相互串入。
         resource_list = [
             self.ctx.ocr.run_ocr_single_line(mask[y1:y2, x1:x2], strict_one_line=True)
             for x1, y1, x2, y2 in ((75, 8, 225, 72), (275, 8, 410, 72), (425, 8, 535, 72))
-        ]  # 三个 ROI 互不相交，间隔用于避开图标、分隔线和“/240”
+        ]
         log.debug('快捷手册资源栏 OCR %s', resource_list)
 
         battery_charge = str_utils.get_positive_digits(resource_list[0], None)
