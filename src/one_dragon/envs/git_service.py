@@ -285,10 +285,9 @@ class GitService:
         attempts: list[FetchAttempt] = []
         try:
             repo = self._open_repo()
-            primary_remote = self._ensure_remote()
         except Exception as e:
             error = str(e)
-            log.error(f'准备 GitHub 远程仓库失败: {error}', exc_info=True)
+            log.error(f'打开本地仓库失败: {error}', exc_info=True)
             return FetchResult([FetchAttempt('GitHub', error)])
 
         remote_name = self.env_config.git_remote
@@ -306,7 +305,7 @@ class GitService:
             fallback_ref: str | None = None
             try:
                 if source.is_primary:
-                    remote = primary_remote
+                    remote = self._ensure_remote()
                     target_ref = primary_ref
                 else:
                     remote = repo.remotes.create_anonymous(source.url)
