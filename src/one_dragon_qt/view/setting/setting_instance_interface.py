@@ -114,10 +114,10 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.login.emit(self.instance.idx)
 
     def _on_delete_clicked(self) -> None:
-        _mb = MessageBox(gt('警告'), gt('确定要删除吗'), self.parent())
-        _mb.yesButton.setText(gt("确定"))
-        _mb.cancelButton.setText(gt("取消"))
-        if _mb.exec():
+        dialog = Dialog(gt('警告'), gt('确定要删除吗'), self.parent())
+        dialog.yesButton.setText(gt("确定"))
+        dialog.cancelButton.setText(gt("取消"))
+        if dialog.exec():
             self.delete.emit(self.instance.idx)
 
     def check_active(self, active_idx: int) -> None:
