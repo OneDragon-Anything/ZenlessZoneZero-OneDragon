@@ -92,13 +92,16 @@ class PcControllerBase(ControllerBase):
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
-    def active_window(self) -> None:
+    def active_window(self) -> bool:
         """
         前置窗口
         """
         self.game_win.init_win()
         if not self.background_mode:
-            self.game_win.active()
+            return self.game_win.active(
+                minimize_others_on_repeated_failure=self.force_active_window
+            )
+        return True
 
     def set_window_title(self, new_title: str) -> None:
         """设置窗口标题。
@@ -161,7 +164,8 @@ class PcControllerBase(ControllerBase):
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
             if self.force_active_window and not self.background_mode and not self.game_win.is_win_active:
-                self.active_window()
+                if not self.active_window():
+                    raise RuntimeError('游戏窗口激活失败，已停止本轮操作以避免误点其他窗口')
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)

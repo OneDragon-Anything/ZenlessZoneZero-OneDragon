@@ -70,7 +70,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.force_active_window_switch = SwitchSettingCard(
             icon=FluentIcon.FULL_SCREEN, title='强制激活游戏窗口',
-            content='前台模式下检测到游戏失去焦点时，自动恢复游戏窗口激活状态',
+            content='任务运行时失去焦点会自动恢复；需要切出游戏时请先暂停，多次恢复失败会最小化其他窗口',
         )
         self.force_active_window_switch.value_changed.connect(lambda: self.ctx.init_controller())
         basic_group.addSettingCard(self.force_active_window_switch)

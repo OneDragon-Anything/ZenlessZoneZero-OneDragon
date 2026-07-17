@@ -1,8 +1,10 @@
 import ctypes
+import time
 from ctypes.wintypes import RECT
 
 import pyautogui
-import win32ui
+import win32con
+import win32gui
 from pygetwindow import Win32Window
 
 from one_dragon.base.geometry.point import Point
@@ -114,7 +116,7 @@ class PcGameWindow:
         else:
             return not (win_rect.width == self.standard_width and win_rect.height == self.standard_height)
 
-    def active(self) -> bool:
+    def active(self, minimize_others_on_repeated_failure: bool = False) -> bool:
         """
         显示并激活当前窗口
         :return:
@@ -125,32 +127,69 @@ class PcGameWindow:
         if self.is_win_active:
             return True
 
+        if not minimize_others_on_repeated_failure:
+            self._focus_window()
+            if self._wait_until_active():
+                return True
+            log.error('切换到游戏窗口失败，Windows 未允许窗口获得前台焦点')
+            return False
+
+        attempt = 0
+        while self.is_win_valid:
+            if attempt >= 10 and attempt % 10 == 0:
+                log.info('多次尝试未恢复，尝试最小化其他窗口后激活游戏窗口')
+                self._minimize_other_windows()
+            else:
+                log.info('游戏窗口未获得焦点，尝试恢复窗口')
+
+            self._focus_window()
+            if self._wait_until_active():
+                return True
+            attempt += 1
+            time.sleep(1)
+
+        log.error('游戏窗口已失效，无法恢复前台焦点')
+        return False
+
+    def _minimize_other_windows(self) -> None:
+        """通过任务栏命令最小化其他窗口。"""
         try:
-            win.restore()
-            win.activate()
-            return True
+            shell_hwnd = win32gui.FindWindow('Shell_TrayWnd', None)
+            if shell_hwnd:
+                win32gui.SendMessage(shell_hwnd, win32con.WM_COMMAND, 419, 0)
+                time.sleep(0.5)
+        except Exception:
+            log.debug('最小化其他窗口失败', exc_info=True)
+
+    def _focus_window(self) -> None:
+        """恢复并激活窗口。"""
+        if self._hWnd is None or not win32gui.IsWindow(self._hWnd):
+            return
+
+        try:
+            win32gui.SendMessage(self._hWnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+            win32gui.SetForegroundWindow(self._hWnd)
+
+            for _ in range(10):
+                if not win32gui.IsIconic(self._hWnd):
+                    break
+                time.sleep(0.05)
+
+            if win32gui.IsIconic(self._hWnd):
+                win32gui.ShowWindow(self._hWnd, win32con.SW_RESTORE)
+
+            win32gui.BringWindowToTop(self._hWnd)
+            win32gui.SetActiveWindow(self._hWnd)
         except Exception as error:
             if getattr(error, 'args', None) and '1400' in str(error.args[0]):
                 log.warning('无效的窗口句柄，尝试重置窗口')
                 self._reset_cached_window()
-                return False
-            if isinstance(error, win32ui.error):
-                log.error('激活窗口失败', exc_info=True)
-                return False
+                return
+            log.debug('激活游戏窗口失败', exc_info=True)
 
-            try:
-                # 直接 activate 偶发失败，最小化再恢复可提高成功率
-                win.minimize()
-                win.restore()
-                win.activate()
-                return True
-            except Exception as fallback_error:
-                if getattr(fallback_error, 'args', None) and '1400' in str(fallback_error.args[0]):
-                    log.warning('无效的窗口句柄，尝试重置窗口')
-                    self._reset_cached_window()
-                    return False
-                log.error('切换到游戏窗口失败', exc_info=True)
-                return False
+    def _wait_until_active(self) -> bool:
+        time.sleep(0.05)
+        return win32gui.GetForegroundWindow() == self._hWnd
 
     @property
     def win_rect(self) -> Rect | None:
