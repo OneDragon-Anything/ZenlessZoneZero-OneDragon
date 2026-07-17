@@ -59,7 +59,7 @@ class EnterGame(ZOperation):
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
 
-        self.screenshot_func = self.ctx.controller.screenshot_method
+        self.screenshot_func: str = self.ctx.controller.screenshot_method
         self.modify_screenshot_func()
 
     def handle_init(self):
@@ -707,12 +707,13 @@ class EnterGame(ZOperation):
         return self.round_retry('登录成功后等待加载中或大世界', wait=2)
 
     # B服登录时采用BitBlt截图
-    def modify_screenshot_func(self):
+    def modify_screenshot_func(self) -> None:
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
             self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
 
     # B服登录后恢复原有截图方法
-    def restore_screenshot_func(self, result: OperationResult):
+    # noinspection PyUnusedLocal
+    def restore_screenshot_func(self, result: OperationResult) -> None:
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
             self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
