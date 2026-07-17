@@ -16,13 +16,9 @@ class LostVoidDetector(Yolov8Detector):
     CLASS_DISTANCE: ClassVar[str] = '0001-距离'
     CLASS_ENTRY: ClassVar[str] = 'xxxx-入口'
 
-    # 战斗画面头像区域(1080p)，与 assets/game_data/screen_info/battle.yml 中 头像-3-1/3-2/3-3 一致
+    # 战斗画面左上头像整片区域(1080p)，包住 头像-3-1/3-2/3-3
     # 角色头像易被误检为目标，推理前统一涂黑
-    BATTLE_AVATAR_MASK_RECTS: ClassVar[tuple[tuple[int, int, int, int], ...]] = (
-        (104, 40, 274, 110),  # 头像-3-1
-        (559, 40, 662, 91),   # 头像-3-2
-        (741, 40, 844, 91),   # 头像-3-3
-    )
+    BATTLE_AVATAR_MASK_RECT: ClassVar[tuple[int, int, int, int]] = (104, 40, 844, 110)
 
     def __init__(self,
                  model_name: str,
@@ -60,8 +56,8 @@ class LostVoidDetector(Yolov8Detector):
         :return: 涂黑头像后的画面副本
         """
         masked = image.copy()
-        for x1, y1, x2, y2 in LostVoidDetector.BATTLE_AVATAR_MASK_RECTS:
-            cv2.rectangle(masked, (x1, y1), (x2, y2), (0, 0, 0), thickness=-1)
+        x1, y1, x2, y2 = LostVoidDetector.BATTLE_AVATAR_MASK_RECT
+        cv2.rectangle(masked, (x1, y1), (x2, y2), (0, 0, 0), thickness=-1)
         return masked
 
     def run(
