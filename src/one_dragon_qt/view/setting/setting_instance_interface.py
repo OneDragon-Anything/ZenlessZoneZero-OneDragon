@@ -115,6 +115,7 @@ class InstanceSettingCard(MultiPushSettingCard):
 
     def _on_delete_clicked(self) -> None:
         dialog = Dialog(gt('警告'), gt('确定要删除吗'), self.parent())
+        dialog.setTitleBarVisible(False)
         dialog.yesButton.setText(gt("确定"))
         dialog.cancelButton.setText(gt("取消"))
         if dialog.exec():
