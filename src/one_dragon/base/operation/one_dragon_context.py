@@ -24,7 +24,6 @@ from one_dragon.base.operation.application.application_group_manager import (
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
-    RunFinishReason,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
@@ -342,7 +341,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if key == self.key_start_running:
             self.run_context.switch_context_pause_and_run()
         elif key == self.key_stop_running:
-            self.run_context.stop_running(RunFinishReason.STOPPED_BY_USER)
+            self.run_context.stop_running()
         elif key == self.key_screenshot:
             self.screenshot_and_save_debug(self.env_config.copy_screenshot)
 

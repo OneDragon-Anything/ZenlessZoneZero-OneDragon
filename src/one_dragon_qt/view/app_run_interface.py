@@ -15,7 +15,6 @@ from one_dragon.base.operation.application.application_finalizer import (
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContextStateEventEnum,
-    RunFinishReason,
 )
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import (
@@ -203,7 +202,7 @@ class AppRunInterface(VerticalScrollInterface):
             self.ctx.run_context.switch_context_pause_and_run()
 
     def _on_stop_clicked(self) -> None:
-        self.ctx.run_context.stop_running(RunFinishReason.STOPPED_BY_USER)
+        self.ctx.run_context.stop_running()
 
 
 class SplitAppRunInterface(AppRunInterface):

@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum
-from one_dragon.base.operation.application.application_run_semantics import (
-    ApplicationRunResult,
-    RunFinishReason,
-)
 from one_dragon.utils import cmd_utils
 
 if TYPE_CHECKING:
+    from one_dragon.base.operation.application.application_run_context import (
+        ApplicationRunResult,
+    )
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
@@ -37,6 +36,10 @@ def execute_after_done(
     request: AfterDoneRequest,
 ) -> None:
     """执行结束后动作。"""
+    from one_dragon.base.operation.application.application_run_context import (
+        RunFinishReason,
+    )
+
     if (
         run_result is None
         or run_result.finish_reason != RunFinishReason.COMPLETED

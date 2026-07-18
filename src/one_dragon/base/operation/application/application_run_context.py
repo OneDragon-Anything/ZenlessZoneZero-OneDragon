@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypeVar
 
 from one_dragon.base.operation.application.application_finalizer import (
     AfterDoneRequest,
     execute_after_done,
-)
-from one_dragon.base.operation.application.application_run_semantics import (
-    ApplicationRunResult,
-    RunFinishReason,
 )
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
@@ -30,6 +27,25 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+
+class RunFinishReason(StrEnum):
+    """应用结束原因。"""
+
+    COMPLETED = "COMPLETED"  # 正常完成
+    STOPPED = "STOPPED"  # 用户、流程或程序停止
+    FAILED = "FAILED"  # 执行失败或运行异常
+    NOT_STARTED = "NOT_STARTED"  # 初始化失败、超时或未取得运行权
+
+
+@dataclass(slots=True)
+class ApplicationRunResult:
+    """应用运行结果。"""
+
+    finish_reason: RunFinishReason
+    app_id: str
+    instance_idx: int | None
+    group_id: str | None
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -344,6 +360,11 @@ class ApplicationRunContext:
         dispatch_event: bool = True,
     ) -> ApplicationRunResult:
         """统一收口运行结束逻辑。"""
+        if self.is_context_stop:
+            if self.last_run_result is None:
+                self.last_run_result = result
+            return self.last_run_result
+
         self.last_run_result = result
         if self.is_context_running:
             self.switch_context_pause_and_run()
@@ -394,16 +415,14 @@ class ApplicationRunContext:
             log.error("运行前初始化失败")
             return False
 
-    def stop_running(
-        self,
-        finish_reason: RunFinishReason = RunFinishReason.STOPPED_BY_FLOW,
-    ) -> ApplicationRunResult:
+    def stop_running(self) -> ApplicationRunResult:
         """
         停止运行。
 
         将上下文状态设置为停止，如果正在运行则先暂停，然后发送停止事件。
+        已经停止时返回首次收口结果，不重复发送停止事件或覆盖结束原因。
         """
-        result = self._create_run_result(finish_reason)
+        result = self._create_run_result(RunFinishReason.STOPPED)
         return self._finish_running(result)
 
     def switch_context_pause_and_run(self):
@@ -459,44 +478,36 @@ class ApplicationRunContext:
         Returns:
             ApplicationRunResult: 应用运行结束结果。
         """
-        self.last_run_result = None
-        # 每次启动前清空旧结果，避免启动失败时被上一轮结果误判。
-        self.last_application_result = None
         start_time = time.time()
         while not self.ctx.ready_for_application:
             now = time.time()
             if now - start_time >= init_timeout:
                 log.error("等待应用 %s 初始化超时", app_id)
-                return self._finish_running(
-                    self._create_run_result(
-                        RunFinishReason.INIT_TIMEOUT, app_id, instance_idx, group_id
-                    )
+                return self._create_run_result(
+                    RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
                 )
 
             time.sleep(1)
 
         if not self.is_app_registered(app_id):
             log.error("应用 %s 未注册", app_id)
-            return self._finish_running(
-                self._create_run_result(
-                    RunFinishReason.INIT_FAILED, app_id, instance_idx, group_id
-                )
+            return self._create_run_result(
+                RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
             )
 
         if not self.start_running():
-            return self._finish_running(
-                self._create_run_result(
-                    RunFinishReason.INIT_FAILED, app_id, instance_idx, group_id
-                )
+            return self._create_run_result(
+                RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
             )
 
+        self.last_application_result = None
         try:
             app = self.get_application(app_id, instance_idx, group_id)
         except Exception:
             log.error("创建应用 %s 失败", app_id, exc_info=True)
             return self._finish_running(
                 self._create_run_result(
-                    RunFinishReason.INIT_FAILED, app_id, instance_idx, group_id
+                    RunFinishReason.FAILED, app_id, instance_idx, group_id
                 )
             )
 
@@ -504,7 +515,7 @@ class ApplicationRunContext:
             log.error("应用 %s 未注册", app_id)
             return self._finish_running(
                 self._create_run_result(
-                    RunFinishReason.INIT_FAILED, app_id, instance_idx, group_id
+                    RunFinishReason.FAILED, app_id, instance_idx, group_id
                 )
             )
 
@@ -517,6 +528,8 @@ class ApplicationRunContext:
             self.current_application = app
 
             self.last_application_result = app.execute()
+            if not self.last_application_result.success:
+                finish_reason = RunFinishReason.FAILED
         except Exception as e:
             finish_reason = RunFinishReason.FAILED
             log.error("运行应用 %s 失败", app_id, exc_info=True)
@@ -594,7 +607,7 @@ class ApplicationRunContext:
         """
         # 首先停止当前运行的应用，清除运行状态
         if not self.is_context_stop:
-            self.stop_running(RunFinishReason.APP_SHUTDOWN)
+            self.stop_running()
 
         # 关闭执行器
         self._executor.shutdown(wait=False, cancel_futures=True)

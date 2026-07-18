@@ -27,6 +27,9 @@ from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.application_run_context import (
+    RunFinishReason,
+)
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_match import find_screen_matches
@@ -218,12 +221,18 @@ class RunSlot:
                 run_result = run_context.run_application(
                     app_id, run_context.current_instance_idx, group_id
                 )
-                result = run_context.last_application_result
-                if result is None:
+                if run_result.finish_reason == RunFinishReason.NOT_STARTED:
                     result = OperationResult(
                         success=False,
                         status=f'应用运行失败: {run_result.finish_reason}',
                     )
+                else:
+                    result = run_context.last_application_result
+                    if result is None:
+                        result = OperationResult(
+                            success=False,
+                            status=f'应用运行失败: {run_result.finish_reason}',
+                        )
             else:
                 # —— op 路径:槽自管生命周期(open_game / 自定义 op 通用)——
                 run_context.current_instance_idx = instance_idx if instance_idx is not None else ctx.current_instance_idx
