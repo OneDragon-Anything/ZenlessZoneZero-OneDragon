@@ -63,6 +63,7 @@ New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "AGENTS.md"
 
 - **推荐**：[context7](https://github.com/upstash/context7) — 查询库文档；已在本项目 `.claude/settings.json` 启用（Claude Code 场景）。
 - **项目自有 MCP（感知/操作 tool 已实现）**：把游戏感知/操作（窗口状态 / 截图 / OCR / 进游戏 + 运行态查/停）经 MCP 暴露给 agent，辅助开发与调试。传输 streamable-http（端点 `/mcp`，默认端口 23001）。先起服务（`uv run --env-file .env python -m zzz_od.backend.entry.server`），再 `claude mcp add --transport http zzz_od http://127.0.0.1:23001/mcp`。**工具清单见 [zzz/backend/mcp.md](../zzz/backend/mcp.md)**（不在此列举，避免随实现演进过时）；整体设计见 [zzz/backend/](../zzz/backend/)，路线图见 [harness/README.md](../harness/README.md)。
+- **浏览器（chrome-devtools-mcp）**：让 agent 经 CDP 驱动本机浏览器，读/操作 WebSearch 搜不到或抓不到的页面（米游社攻略、需登录活动页等）。connect 模式 + 调试 Edge，装法与会话坑见 [chrome-devtools-mcp.md](chrome-devtools-mcp.md)。
 
 ## 测试仓
 
