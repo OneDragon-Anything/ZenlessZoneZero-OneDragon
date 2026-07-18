@@ -1,34 +1,35 @@
-import os
+from pathlib import Path
 
 import polib
 
 from one_dragon.utils import os_utils
 
 
-def compile_lang(model: str, lang: str):
+def compile_lang(model: str, lang: str) -> None:
     """
     将特定语言的文件编译成mo文件
     :param model: 模块 不同模块的多语言文本区分
     :param lang: 语言 cn
     :return: None
     """
-    base_dir = os_utils.get_path_under_work_dir('assets', 'text')
-    po_file_path = os.path.join(base_dir, model, '%s.po' % lang)
+    base_dir = Path(os_utils.get_path_under_work_dir('assets', 'text'))
+    po_file_path = base_dir / model / f'{lang}.po'
 
-    output_dir = os_utils.get_path_under_work_dir('assets', 'text', 'output', lang, 'LC_MESSAGES')
-    mo_file_path = os.path.join(output_dir, '%s.mo' % model)
+    output_dir = Path(os_utils.get_path_under_work_dir('assets', 'text', 'output', lang, 'LC_MESSAGES'))
+    mo_file_path = output_dir / f'{model}.mo'
 
+    output_dir.mkdir(parents=True, exist_ok=True)
     po = polib.pofile(po_file_path)
     po.save_as_mofile(mo_file_path)
 
 
-def compile_po_files():
+def compile_po_files() -> None:
     """
     将不同语言的po文件编译成mo
     :return:
     """
     for model in ['game', 'ui']:
-        for lang in ['zh', 'en']:
+        for lang in ['zh', 'en', 'ja']:
             compile_lang(model, lang)
 
 

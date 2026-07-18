@@ -72,7 +72,7 @@ class AppRunCard(DraggableListItem):
         content_widget = MultiPushSettingCard(
             btn_list=[self.setting_btn, self.more_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
-            title=self.app.app_name,
+            title=gt(self.app.app_name),
             parent=parent,
         )
 

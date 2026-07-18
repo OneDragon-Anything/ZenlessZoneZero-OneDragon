@@ -265,6 +265,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 i18_utils.detect_and_set_default_language()
             else:
                 i18_utils.update_default_lang(self.custom_config.ui_language)
+            i18_utils.update_model_lang('ui', i18_utils.get_default_lang())
+
+            game_lang = self.game_account_config.game_language
+            if game_lang == 'cn':
+                game_lang = 'zh'
+            i18_utils.update_model_lang('game', game_lang)
 
             log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
 
