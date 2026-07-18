@@ -40,7 +40,8 @@ LauncherBase          → 基础参数解析、run() 入口
 ├── OneDragon-RuntimeLauncher.exe    ← 启动入口
 ├── .runtime/                        ← Python 运行时 + 冻结模块
 │   ├── module_manifest.py           ← 外部依赖清单
-│   ├── config/project.yml           ← 项目配置
+│   ├── config/project.yml           ← 项目配置与运行时协议字段
+│   ├── config/repository.yml        ← 项目仓库列表、回退策略和地区预设
 │   └── ...                          ← Python DLL、so、pyd 等
 └── src/                             ← 源代码目录（通过 git 同步）
     ├── one_dragon/
@@ -84,6 +85,8 @@ LauncherBase          → 基础参数解析、run() 入口
 - 相同 → 兼容，允许更新
 - 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
 
+GitService 会优先尝试用户指定的代码源，并按 `config/repository.yml` 中的声明顺序自动回退；一次拉取结束后，将本地 remote 恢复为 YAML 指定的主仓库 HTTPS 地址。框架统一加载并校验该文件，项目只需配置仓库列表、回退策略和地区预设，不需要创建项目级 `RepoConfig`。地区预设包含显示标题、代码源和环境源配置，设置界面按预设 ID 应用，不依赖框架内置的供应商或地区枚举。CNB 由 GitHub Actions 同步全部分支和标签，并清理 GitHub 已删除的 refs。
+
 ### 清单路径配置
 
 远程清单的路径不是硬编码的，而是从目标 commit 的 `config/project.yml` 中的 `manifest_path` 字段读取。这样即使清单文件改名或移动位置，只要 `project.yml` 正确指向它就能找到。
@@ -98,7 +101,7 @@ LauncherBase          → 基础参数解析、run() 入口
 集成启动器的 `_sync_code()` 方法在每次启动时执行：
 
 1. 记录当前 `sys.modules` 快照（用于后续清理）
-2. 延迟导入 `EnvConfig`、`GitService`、`ProjectConfig`（来自 `src/`）
+2. 延迟导入并创建框架 `OneDragonEnvContext`（来自 `src/`），由它统一加载环境、项目和仓库配置
 3. 判断是否首次运行（检查 `.git` 目录是否存在）
 4. 首次运行 → 克隆仓库；非首次 → 根据 `auto_update_code` 配置决定是否更新
 5. 成功后清除同步过程中加载的模块（`del sys.modules[...]`），调用 `importlib.invalidate_caches()`

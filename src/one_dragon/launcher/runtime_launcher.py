@@ -20,16 +20,15 @@ class RuntimeLauncher(ExeLauncher):
         """同步代码：首次运行时克隆，后续运行时自动更新"""
         pre_modules = set(sys.modules)
 
-        from one_dragon.envs.env_config import EnvConfig
-        from one_dragon.envs.git_service import GitService
-        from one_dragon.envs.project_config import ProjectConfig
+        from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
         from one_dragon.utils.i18_utils import gt
         from one_dragon.utils.log_utils import log
         from one_dragon.version import __version__
         log.info(f"OneDragon 集成启动器 {__version__}")
 
-        env_config = EnvConfig()
-        git_service = GitService(ProjectConfig(), env_config)
+        env_context = OneDragonEnvContext()
+        env_config = env_context.env_config
+        git_service = env_context.git_service
         first_run = not git_service.check_repo_exists()
 
         if not first_run and not env_config.auto_update_code:

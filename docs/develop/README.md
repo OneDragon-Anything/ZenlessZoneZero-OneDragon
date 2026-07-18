@@ -75,7 +75,7 @@ uv run --env-file .env pytest zzz-od-test/
 生成spec文件并打包
 
 ```shell
-uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/installer_logo.ico" --add-data "../config/project.yml;config" ../src/zzz_od/gui/zzz_installer.py -n "OneDragon-Installer"
+uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/installer_logo.ico" --add-data "../config/project.yml;config" --add-data "../config/repository.yml;config" ../src/zzz_od/gui/zzz_installer.py -n "OneDragon-Installer"
 ```
 
 使用spec打包
