@@ -87,6 +87,9 @@ OCR服务，负责职责包括：
 - 获取和缓存应用配置、运行记录
 - 管理应用运行、相关事件发送
 - 产出统一的运行结束结果，区分正常完成、停止、失败和未启动等原因
+- 通过 `last_run_result` 保存最近一次已经确定的 `ApplicationRunResult`，用于重复停止和并发收口时复用首次结果，避免重复派发 STOP 事件或覆盖结束原因
+
+`ApplicationRunResult` 描述运行生命周期结果；应用自身 `execute()` 返回的 `OperationResult` 则保存在 `last_application_result`，供需要读取应用具体执行状态的调用方使用。两者分别回答“运行如何结束”和“应用执行返回了什么”。
 
 需持有组件：
 
@@ -95,8 +98,8 @@ OCR服务，负责职责包括：
 ### 一条龙结束后动作
 
 一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机等收尾动作。
-GUI 配置和 CLI 参数都只负责描述“希望执行的动作”，并先构造成 `AfterDoneRequest`；真正执行由 `ApplicationRunContext.run_application()` 在统一收口处调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
-其中“关闭游戏”和“关机”只在 `COMPLETED` 时执行；如果用户或流程停止、运行失败、初始化未完成，或程序退出清理导致结束，则不会关闭游戏或关机。
+GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作。两者都由一条龙 GUI/CLI 入口在 `ApplicationRunContext.run_application()` 返回后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
+通用运行上下文只返回运行结果，不感知关闭游戏或关机；单项应用运行也不会触发一条龙的结束后动作。
 `STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
 
 ### SqliteDataSource (未实现)

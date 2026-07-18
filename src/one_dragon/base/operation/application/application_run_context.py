@@ -6,10 +6,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypeVar
 
-from one_dragon.base.operation.application.application_finalizer import (
-    AfterDoneRequest,
-    execute_after_done,
-)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.notify_pool import NotifyPool
 from one_dragon.base.operation.operation_base import OperationResult
@@ -377,16 +373,6 @@ class ApplicationRunContext:
             )
         return result
 
-    def _execute_after_done_if_needed(
-        self,
-        run_result: ApplicationRunResult,
-        after_done_request: AfterDoneRequest | None,
-    ) -> None:
-        """在统一收口处按运行结果执行结束后动作。"""
-        if after_done_request is None:
-            return
-        execute_after_done(self.ctx, run_result, after_done_request)
-
     def start_running(self) -> bool:
         """
         开始运行。
@@ -461,7 +447,6 @@ class ApplicationRunContext:
         instance_idx: int,
         group_id: str,
         init_timeout: int = 60,
-        after_done_request: AfterDoneRequest | None = None,
     ) -> ApplicationRunResult:
         """
         同步运行指定的应用。
@@ -473,7 +458,6 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标
             group_id: 应用组ID，可将应用分组运行
             init_timeout: 等待初始化的超时时间(秒)
-            after_done_request: 运行结束后希望执行的统一收尾动作
 
         Returns:
             ApplicationRunResult: 应用运行结束结果。
@@ -544,7 +528,6 @@ class ApplicationRunContext:
                 )
             else:
                 run_result = self.last_run_result
-            self._execute_after_done_if_needed(run_result, after_done_request)
             self.current_app_id = None
             self.current_instance_idx = None
             self.current_group_id = None
