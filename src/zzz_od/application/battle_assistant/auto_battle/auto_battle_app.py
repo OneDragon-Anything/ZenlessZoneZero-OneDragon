@@ -105,5 +105,9 @@ class AutoBattleApp(ZApplication):
             self.ctx.auto_battle_context.resume_auto_battle()
 
     def after_operation_done(self, result: OperationResult) -> None:
-        self.ctx.auto_battle_context.stop_auto_battle()
-        ZApplication.after_operation_done(self, result)
+        # try/finally 保证基类 after_operation_done 必跑(运行记录/通知/APPLICATION_STOP),
+        # 即便 stop_auto_battle(多步收尾)抛异常也不跳过(CodeRabbit review)。
+        try:
+            self.ctx.auto_battle_context.stop_auto_battle()
+        finally:
+            ZApplication.after_operation_done(self, result)
