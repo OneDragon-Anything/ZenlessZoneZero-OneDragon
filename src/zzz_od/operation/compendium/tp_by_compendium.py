@@ -37,7 +37,8 @@ class TransportByCompendium(ZOperation):
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
-        if self.check_screen_with_can_go(self.last_screenshot, f'快捷手册-{self.tab_name}')[1]:
+        _, can_go = self.check_screen_with_can_go(self.last_screenshot, f'快捷手册-{self.tab_name}')
+        if can_go:
             return self.round_success()
 
         # 先回到大世界
