@@ -5,6 +5,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.enter_game import EnterGame
 from zzz_od.operation.zzz_operation import ZOperation
@@ -64,11 +65,13 @@ class SwitchAccount(ZOperation):
     # B服登录时采用BitBlt截图
     def modify_screenshot_func(self):
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            log.info('检测到B服登录, 使用Bitblt截图方式')
             self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
 
     # B服登录后恢复原有截图方法
     def restore_screenshot_func(self, result: OperationResult):
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            log.info('恢复原来的截图方式:' + self.screenshot_func)
             self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
 
