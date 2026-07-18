@@ -2,14 +2,12 @@ import os.path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, ToolButton
+from qfluentwidgets import FluentIcon, InfoBar, ToolButton
 
+from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.application import application_const
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
-    ComboBoxSettingCard,
-)
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
     EditableComboBoxSettingCard,
 )
@@ -24,7 +22,6 @@ from zzz_od.application.devtools.operation_debug import operation_debug_const
 from zzz_od.application.devtools.operation_debug.operation_debug_config import (
     OperationDebugConfig,
 )
-from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -67,13 +64,13 @@ class OperationDebugInterface(AppRunInterface):
         self.repeat_opt.value_changed.connect(self._on_repeat_changed)
         top_widget.add_widget(self.repeat_opt)
 
-        self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='操作方式',
-            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
-            options_enum=ControlMethodEnum
+        self.background_mode_opt = SwitchSettingCard(
+            icon=FluentIcon.ROBOT,
+            title='后台模式（专享版）',
+            content='仅决定当前功能是否启用后台模式，配置与全局的后台模式共享。配置更改请前往「设置 → 游戏设置」',
         )
-        self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
-        top_widget.add_widget(self.gamepad_type_opt)
+        self.background_mode_opt.value_changed.connect(self._on_background_mode_changed)
+        top_widget.add_widget(self.background_mode_opt)
 
         return top_widget
 
@@ -90,7 +87,7 @@ class OperationDebugInterface(AppRunInterface):
         )
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.config.operation_template)
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
+        self.background_mode_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('background_mode'))
         self.repeat_opt.setValue(self.config.repeat_enabled)
 
     def _update_auto_battle_config_opts(self) -> None:
@@ -130,5 +127,13 @@ class OperationDebugInterface(AppRunInterface):
 
         self._update_auto_battle_config_opts()
 
-    def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.control_method = value
+    def _on_background_mode_changed(self, value: bool) -> None:
+        if value and not pc_button_utils.is_vgamepad_installed():
+            self.background_mode_opt.setValue(False, emit_signal=False)
+            self.ctx.battle_assistant_config.background_mode = False
+            InfoBar.warning(
+                title='后台模式不可用',
+                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                parent=self,
+                duration=5000,
+            )

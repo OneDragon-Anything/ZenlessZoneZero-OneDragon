@@ -183,17 +183,7 @@ class GameConfig(BasicGameConfig):
     def __init__(self, instance_idx: int):
         BasicGameConfig.__init__(self, instance_idx)
         # TODO 迁移旧配置 2026-9 删除
-        self._migrate_legacy_keys()
         self._migrate_legacy_gamepad_keys()
-
-    def _migrate_legacy_keys(self) -> None:
-        """迁移旧键名到新键名。"""
-        _RENAMES = {'gamepad_type': 'control_method'}
-        for old_key, new_key in _RENAMES.items():
-            old_val = self.get(old_key)
-            if old_val is not None and self.get(new_key) is None:
-                self.update(new_key, old_val)
-                self.update(old_key, None)
 
     def _migrate_legacy_gamepad_keys(self) -> None:
         """初始化时一次性迁移所有旧数字格式的手柄按键配置。"""
@@ -208,14 +198,6 @@ class GameConfig(BasicGameConfig):
                 )
                 if migrated != value:
                     self.update(prop, migrated)
-
-    @property
-    def control_method(self) -> str:
-        return self.get('control_method', ControlMethodEnum.KEYBOARD.value.value)
-
-    @control_method.setter
-    def control_method(self, new_value: str) -> None:
-        self.update('control_method', new_value)
 
     @property
     def xbox_key_press_time(self) -> float:
