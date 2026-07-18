@@ -244,7 +244,7 @@ class AutoBattleContext:
         self.ctx.controller.dodge(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def switch_next(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
@@ -272,7 +272,7 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def switch_prev(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
@@ -300,7 +300,7 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def switch_backup(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
@@ -313,7 +313,7 @@ class AutoBattleContext:
         self.ctx.controller.switch_backup(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
@@ -326,7 +326,7 @@ class AutoBattleContext:
         self.ctx.controller.normal_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def special_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
@@ -339,7 +339,7 @@ class AutoBattleContext:
         self.ctx.controller.special_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def ultimate(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
@@ -352,7 +352,7 @@ class AutoBattleContext:
         self.ctx.controller.ultimate(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def chain_left(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
@@ -377,7 +377,7 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
     def chain_right(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
@@ -402,15 +402,15 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
-        self._emit_overlay_action(e)
+        self._emit_debug_action(e)
 
-    def _emit_overlay_action(self, action_name: str) -> None:
+    def _emit_debug_action(self, action_name: str) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except Exception:
+        except ImportError:
             return
         bus.add_timeline(
             TimelineItem(

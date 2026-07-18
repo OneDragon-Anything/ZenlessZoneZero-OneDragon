@@ -1,10 +1,21 @@
 from __future__ import annotations
 
-import threading
 import time
-from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
+
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    DebugTraceSnapshot,
+    PerfTraceItem,
+    VisionTraceItem,
+)
+from one_dragon.base.debug.debug_trace_bus import (
+    DecisionTraceItem as NewDecisionTraceItem,
+)
+from one_dragon.base.debug.debug_trace_bus import (
+    TimelineTraceItem as NewTimelineTraceItem,
+)
 
 
 def _normalize_created(created: float | None) -> float:
@@ -70,11 +81,12 @@ class OverlayDebugSnapshot:
     performance_items: list[PerfMetricSample]
 
 
-class OverlayDebugBus:
-    """
-    Thread-safe runtime debug bus used by overlay modules.
+class OverlayDebugBus(DebugTraceBus):
+    """向后兼容的 overlay 调试总线。
 
-    This bus has no Qt dependency and can be safely used in worker threads.
+    继承自 DebugTraceBus，保留旧 API 兼容（VisionDrawItem 等旧数据类）。
+    内部委托给父类队列存储新格式数据，snapshot() 转换回旧格式。
+    逐步迁移调用方后删除此类。
     """
 
     def __init__(
@@ -84,98 +96,169 @@ class OverlayDebugBus:
         max_timeline_items: int = 1200,
         max_perf_items: int = 2000,
     ):
-        self._lock = threading.RLock()
-        self._vision_items: deque[VisionDrawItem] = deque(maxlen=max_vision_items)
-        self._decision_items: deque[DecisionTraceItem] = deque(maxlen=max_decision_items)
-        self._timeline_items: deque[TimelineItem] = deque(maxlen=max_timeline_items)
-        self._performance_items: deque[PerfMetricSample] = deque(maxlen=max_perf_items)
-        self._thread_local = threading.local()
+        DebugTraceBus.__init__(
+            self,
+            max_vision=max_vision_items,
+            max_decision=max_decision_items,
+            max_timeline=max_timeline_items,
+            max_perf=max_perf_items,
+        )
+        self.enabled: bool = True
+        """是否启用调试总线，由消费端（如 overlay 面板）控制"""
 
-    def set_crop_offset(self, x: int, y: int) -> None:
-        self._thread_local.crop_offset = (x, y)
-
-    def reset_crop_offset(self) -> None:
-        self._thread_local.crop_offset = (0, 0)
-
-    @property
-    def crop_offset(self) -> tuple[int, int]:
-        return getattr(self._thread_local, 'crop_offset', (0, 0))
+    # --- 兼容旧 API（接受旧数据类，转换为新格式存储） ---
 
     def add_vision(self, item: VisionDrawItem) -> None:
+        """接受旧格式 VisionDrawItem，转换为 VisionTraceItem 存储。
+
+        直接存到父类队列，不经父类 add_vision，避免重复应用 crop_offset
+        （旧调用方在外层已手动加过偏移）。
+        """
         item.created = _normalize_created(item.created)
+        meta: dict | None = dict(item.meta) if item.meta else None
+        if item.color:
+            meta = meta or {}
+            meta["_color"] = item.color
+        if item.ttl_seconds:
+            meta = meta or {}
+            meta["_ttl_seconds"] = item.ttl_seconds
+        new_item = VisionTraceItem(
+            source=item.source,
+            label=item.label,
+            x1=item.x1,
+            y1=item.y1,
+            x2=item.x2,
+            y2=item.y2,
+            score=item.score or 0.0,
+            meta=meta,
+            created=item.created,
+        )
         with self._lock:
-            self._vision_items.append(item)
+            self._vision.append(new_item)
 
     def add_decision(self, item: DecisionTraceItem) -> None:
+        """接受旧格式 DecisionTraceItem，转换为新格式存储。"""
         item.created = _normalize_created(item.created)
+        meta: dict | None = dict(item.meta) if item.meta else None
+        if item.ttl_seconds:
+            meta = meta or {}
+            meta["_ttl_seconds"] = item.ttl_seconds
+        new_item = NewDecisionTraceItem(
+            source=item.source,
+            trigger=item.trigger,
+            expression=item.expression,
+            operation=item.operation,
+            status=item.status,
+            meta=meta,
+            created=item.created,
+        )
         with self._lock:
-            self._decision_items.append(item)
+            self._decision.append(new_item)
 
     def add_timeline(self, item: TimelineItem) -> None:
+        """接受旧格式 TimelineItem，转换为 TimelineTraceItem 存储。"""
         item.created = _normalize_created(item.created)
+        meta: dict | None = dict(item.meta) if item.meta else None
+        if item.ttl_seconds:
+            meta = meta or {}
+            meta["_ttl_seconds"] = item.ttl_seconds
+        new_item = NewTimelineTraceItem(
+            category=item.category,
+            title=item.title,
+            detail=item.detail,
+            level=item.level,
+            meta=meta,
+            created=item.created,
+        )
         with self._lock:
-            self._timeline_items.append(item)
+            self._timeline.append(new_item)
 
     def add_performance(self, item: PerfMetricSample) -> None:
+        """接受旧格式 PerfMetricSample，转换为 PerfTraceItem 存储。"""
         item.created = _normalize_created(item.created)
+        meta: dict | None = dict(item.meta) if item.meta else None
+        if item.ttl_seconds:
+            meta = meta or {}
+            meta["_ttl_seconds"] = item.ttl_seconds
+        new_item = PerfTraceItem(
+            metric=item.metric,
+            value=item.value,
+            unit=item.unit,
+            meta=meta,
+            created=item.created,
+        )
         with self._lock:
-            self._performance_items.append(item)
+            self._perf.append(new_item)
 
-    def clear(self) -> None:
-        with self._lock:
-            self._vision_items.clear()
-            self._decision_items.clear()
-            self._timeline_items.clear()
-            self._performance_items.clear()
-
-    def offset_recent_vision(self, source: str, dx: int, dy: int) -> None:
-        """Shift x/y of recent VisionDrawItems matching *source*.
-
-        Used by run_ocr_with_offset to correct crop-relative coords
-        that were already pushed by _emit_overlay_vision.
-        """
-        if dx == 0 and dy == 0:
-            return
-        now = time.time()
-        with self._lock:
-            for item in reversed(self._vision_items):
-                if item.source != source:
-                    continue
-                # Only patch items created very recently (within 2 sec)
-                if now - item.created > 2.0:
-                    break
-                item.x1 += dx
-                item.y1 += dy
-                item.x2 += dx
-                item.y2 += dy
+    # --- 快照（返回旧格式，兼容现有 overlay 面板） ---
 
     def snapshot(self) -> OverlayDebugSnapshot:
-        now = time.time()
-        with self._lock:
-            self._drop_expired(now)
-            return OverlayDebugSnapshot(
-                created=now,
-                vision_items=list(self._vision_items),
-                decision_items=list(self._decision_items),
-                timeline_items=list(self._timeline_items),
-                performance_items=list(self._performance_items),
-            )
-
-    def _drop_expired(self, now: float) -> None:
-        self._drop_expired_from_deque(self._vision_items, now)
-        self._drop_expired_from_deque(self._decision_items, now)
-        self._drop_expired_from_deque(self._timeline_items, now)
-        self._drop_expired_from_deque(self._performance_items, now)
+        """返回旧格式 OverlayDebugSnapshot，兼容现有 overlay 面板。"""
+        snap: DebugTraceSnapshot = DebugTraceBus.snapshot(self)
+        return OverlayDebugSnapshot(
+            created=snap.created,
+            vision_items=[self._to_old_vision(v) for v in snap.vision_items],
+            decision_items=[self._to_old_decision(d) for d in snap.decision_items],
+            timeline_items=[self._to_old_timeline(t) for t in snap.timeline_items],
+            performance_items=[self._to_old_perf(p) for p in snap.perf_items],
+        )
 
     @staticmethod
-    def _drop_expired_from_deque(items: deque, now: float) -> None:
-        while items:
-            head = items[0]
-            ttl = max(0.1, float(getattr(head, "ttl_seconds", 0.0) or 0.0))
-            created = float(getattr(head, "created", 0.0) or 0.0)
-            if created <= 0:
-                items.popleft()
-                continue
-            if now - created <= ttl:
-                break
-            items.popleft()
+    def _to_old_vision(item: VisionTraceItem) -> VisionDrawItem:
+        meta = item.meta or {}
+        return VisionDrawItem(
+            source=item.source,
+            label=item.label,
+            x1=item.x1,
+            y1=item.y1,
+            x2=item.x2,
+            y2=item.y2,
+            score=item.score,
+            color=meta.get("_color"),
+            created=item.created,
+            ttl_seconds=meta.get("_ttl_seconds", 1.8),
+            meta={k: v for k, v in meta.items() if not k.startswith("_")},
+        )
+
+    @staticmethod
+    def _to_old_decision(item: NewDecisionTraceItem) -> DecisionTraceItem:
+        meta = item.meta or {}
+        return DecisionTraceItem(
+            source=item.source,
+            trigger=item.trigger,
+            expression=item.expression,
+            operation=item.operation,
+            status=item.status,
+            created=item.created,
+            ttl_seconds=meta.get("_ttl_seconds", 30.0),
+            meta={k: v for k, v in meta.items() if not k.startswith("_")},
+        )
+
+    @staticmethod
+    def _to_old_timeline(item: NewTimelineTraceItem) -> TimelineItem:
+        meta = item.meta or {}
+        return TimelineItem(
+            category=item.category,
+            title=item.title,
+            detail=item.detail,
+            created=item.created,
+            level=item.level,
+            ttl_seconds=meta.get("_ttl_seconds", 60.0),
+            meta={k: v for k, v in meta.items() if not k.startswith("_")},
+        )
+
+    @staticmethod
+    def _to_old_perf(item: PerfTraceItem) -> PerfMetricSample:
+        meta = item.meta or {}
+        return PerfMetricSample(
+            metric=item.metric,
+            value=item.value,
+            unit=item.unit,
+            created=item.created,
+            ttl_seconds=meta.get("_ttl_seconds", 30.0),
+            meta={k: v for k, v in meta.items() if not k.startswith("_")},
+        )
+
+    # --- 以下继承自 DebugTraceBus，无需覆盖 ---
+    # set_crop_offset / reset_crop_offset / crop_offset
+    # clear

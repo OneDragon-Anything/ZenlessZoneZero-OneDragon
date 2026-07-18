@@ -6,6 +6,12 @@ import os
 from cv2.typing import MatLike
 from typing import Optional, List
 
+from one_dragon.base.operation.overlay_debug_bus import (
+    OverlayDebugBus,
+    PerfMetricSample,
+    TimelineItem,
+    VisionDrawItem,
+)
 from one_dragon.yolo import onnx_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectClass, DetectContext, DetectObjectResult, xywh2xyxy, \
     multiclass_nms
@@ -23,7 +29,8 @@ class Yolov8Detector(OnnxModelLoader):
                  personal_proxy: Optional[str] = None,
                  gpu: bool = False,
                  backup_model_name: Optional[str] = None,
-                 keep_result_seconds: float = 2
+                 keep_result_seconds: float = 2,
+                 overlay_debug_bus: OverlayDebugBus | None = None
                  ):
         """
         yolov8 detect 导出 onnx 后使用
@@ -48,7 +55,7 @@ class Yolov8Detector(OnnxModelLoader):
 
         self.keep_result_seconds: float = keep_result_seconds  # 保留识别结果的秒数
         self.run_result_history: List[DetectFrameResult] = []  # 历史识别结果
-        self.overlay_debug_bus = None
+        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
 
         self.idx_2_class: dict[int, DetectClass] = {}  # 分类
         self.class_2_idx: dict[str, int] = {}
@@ -97,8 +104,8 @@ class Yolov8Detector(OnnxModelLoader):
         # log.info(f'识别完毕 得到结果 {len(results)}个。预处理耗时 {t2 - t1:.3f}s, 推理耗时 {t3 - t2:.3f}s, 后处理耗时 {t4 - t3:.3f}s')
 
         frame_result = self.record_result(context, results)
-        self._emit_overlay_vision(frame_result)
-        self._emit_overlay_perf_and_timeline(
+        self._emit_debug_vision(frame_result)
+        self._emit_debug_perf_and_timeline(
             preprocess_ms=(t2 - t1) * 1000.0,
             infer_ms=(t3 - t2) * 1000.0,
             postprocess_ms=(t4 - t3) * 1000.0,
@@ -198,14 +205,9 @@ class Yolov8Detector(OnnxModelLoader):
 
         return new_frame
 
-    def _emit_overlay_vision(self, frame_result: DetectFrameResult) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or frame_result is None:
-            return
-
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
+    def _emit_debug_vision(self, frame_result: DetectFrameResult) -> None:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled or frame_result is None:
             return
 
         for result in frame_result.results[:50]:
@@ -230,22 +232,15 @@ class Yolov8Detector(OnnxModelLoader):
                 )
             )
 
-    def _emit_overlay_perf_and_timeline(
+    def _emit_debug_perf_and_timeline(
         self,
         preprocess_ms: float,
         infer_ms: float,
         postprocess_ms: float,
         result_count: int,
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import (
-                PerfMetricSample,
-                TimelineItem,
-            )
-        except Exception:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled:
             return
 
         total_ms = preprocess_ms + infer_ms + postprocess_ms

@@ -28,6 +28,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
@@ -61,20 +62,24 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
+        self.debug_trace_bus: DebugTraceBus = OverlayDebugBus()
+        """通用调试 trace 总线（新）"""
+        self.overlay_debug_bus = self.debug_trace_bus  # type: ignore[assignment]
+        """向后兼容的 overlay 调试总线，与 debug_trace_bus 为同一实例"""
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
-        self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        self.tm.overlay_debug_bus = self.overlay_debug_bus
+        self.tm: TemplateMatcher = TemplateMatcher(
+            self.template_loader, overlay_debug_bus=self.overlay_debug_bus
+        )
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            overlay_debug_bus=self.overlay_debug_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -494,9 +499,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 ocr_model_name=self.model_config.ocr,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            overlay_debug_bus=self.overlay_debug_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
