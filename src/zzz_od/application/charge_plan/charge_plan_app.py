@@ -134,7 +134,7 @@ class ChargePlanApp(ZApplication):
            这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
         """
 
-        op = TransportByCompendium(self.ctx, '训练', '实战模拟室', try_current_screen_first=True)
+        op = TransportByCompendium(self.ctx, '训练', '实战模拟室')
         result1 = self.round_by_op_result(op.execute())
         if not result1.is_success:
             return result1
@@ -251,8 +251,7 @@ class ChargePlanApp(ZApplication):
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
-                                   self.current_plan.mission_type_name,
-                                   try_current_screen_first=True)
+                                   self.current_plan.mission_type_name)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
