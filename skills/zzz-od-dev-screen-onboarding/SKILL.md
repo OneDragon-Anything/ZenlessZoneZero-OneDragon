@@ -30,6 +30,8 @@ description: 当拿到一张待建档的游戏截图时用。
 
 **Transport 失败排查**:`run_operation Transport` 失败(尤其「执行传送」节点卡 OCR 地图、重试到超时),常见根因是**目标传送点未解锁 = 该地图未探索**(新版本玩法 / 新城区需先跑图解锁传送点;其他地图同理)。判据:Transport 打开了地图但选不中目标点 → 先确认目标地图已探索、传送点已解锁,否则换已解锁的 app 建档。
 
+**传送流程/入口**(普通地图按 `N` vs 3D 地图按 `M`、传送点类型、传送行为等)是**具体游戏知识,归 doc** —— 见 [地图](docs/game/screens/地图.md) + [3D地图](docs/game/screens/3D地图.md);本 skill 只记**建档方法论**,不记具体键位/流程。
+
 **操作后等动画再 capture**(否则截过渡帧):底层 `click_game` / `key_tap` / `drag` **无内置等待**(等待在框架 operation round 层 `success_wait`,MCP 不经 round)。操作后画面/角色变化需 sleep 再 `capture`。关键 sleep 点:move 后等角色到位(不等就紧接 interact 会失效);interact(F)长按(`press_time>0`)非短按 tap。具体 sleep 建议值见 design.md。
 
 ## 1. 客观识别:跑 `analyze_screen`

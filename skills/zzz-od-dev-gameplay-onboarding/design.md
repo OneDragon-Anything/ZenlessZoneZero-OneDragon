@@ -8,7 +8,7 @@
 - **不管**:单画面(zzz-od-dev-screen-onboarding);新玩法从 0 设计 spec(待实践补);运行时识别。
 
 ## 关键决策
-1. **编排权威是代码(`@operation_node`)**:已有功能,代码是流程真相,doc 描述现状;截图只补入口 / 条件态(代码不体现的)。别靠截图反推流程(易错)。
+1. **玩法权威是游戏机制(目标 / 资源 / 循环),不是代码**:gameplay doc 写玩家视角的玩法机制(这是什么 / 目标 / 资源 / 经济循环 / 子玩法游戏含义),给智能体理解游戏做决策。代码(`@operation_node` / config)是**反推玩法的工具**,编排降为附录;读代码是为了反推玩法,不是搬代码结构。**教训**:随便观.md 第一版写成「app 节点链 + config 开关」说明书(代码视角),用户指出「只是描述 app/op 编排,没写玩法本身」后翻转 —— 加「理解游戏机制」为信息源顶层(网络攻略优先米游社 + 实拍交叉验证),doc 结构改玩法视角,代码降附录。
 2. **参考 vs spec**:已有功能 = 参考 doc(现状,`docs/game/gameplay/`);新玩法 = 设计 spec(预期,`superpowers/specs/`,待实践)。本 skill 只管前者(参考)。区分:参考 doc 写当前现状,spec 写设计预期。
 3. **不重复 screen doc**:gameplay 写跨画面编排 / 分支 / 入口出口,screen 写单画面细节;互相引用(involves_screens / appears_in)。
 4. **config 开关必记**:决定哪些子玩法条件跑(随便观 `auto_manage_enabled` / `yum_cha_sin` / `good_goods_purchase_enabled` / `boo_box_purchase_enabled`);测试 config 守卫也靠它(monkeypatch config 关分支 → 守住下游 `@node_from` status 匹配词契约)。

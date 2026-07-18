@@ -57,7 +57,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 
 游戏自动化功能的开发链路(bug 修复 / 性能 / UI 等其他类型后续补充,详细判据见 [development_workflow.md](docs/develop/development_workflow.md)):
 
-1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。
+1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。功能知识按**三文档分工**(gameplay 玩法机制 / screen 画面 / develop application 自动化方案,见 [doc_organization.md](docs/develop/harness/doc_organization.md))。
 2. **开发**:做成 `Application`(`ApplicationFactory` 接入)+ `Operation`,复用现有配置 / 界面模式(架构细则见上方「功能开发优先路径」)。
 3. **测试**:用留档截图在测试仓补流程测试(见 [testing/](docs/develop/testing/))。
 4. **提 PR**:assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review / resolve。
