@@ -369,6 +369,13 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_retry('移动失败')
 
+        # 没找到目标时，先瞬检是否已进入战斗（战斗关卡无图标，只会落到转圈分支）
+        if self.ctx.lost_void.check_battle_encounter(self.last_screenshot, self.last_screenshot_time):
+            return self.enter_battle(
+                screenshot_time=self.last_screenshot_time,
+                end_boss_pre_battle=self.boss_pre_battle,
+            )
+
         # 没找到目标 转动
         self.ctx.controller.turn_by_distance(-200)
         self.nothing_times += 1
@@ -960,7 +967,7 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     self.no_in_battle_times = 0
 
-                if self.no_in_battle_times >= 10:
+                if self.no_in_battle_times >= 3:
                     self.ctx.auto_battle_context.stop_auto_battle()
                     self.no_in_battle_times = 0
 

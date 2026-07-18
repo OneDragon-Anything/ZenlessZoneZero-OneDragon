@@ -4,6 +4,7 @@ import shutil
 import time
 import urllib.parse
 from collections.abc import Callable
+from pathlib import Path
 
 from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import (
@@ -18,7 +19,7 @@ from one_dragon.envs.env_config import (
     PipSourceEnum,
 )
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.utils import cmd_utils, file_utils
+from one_dragon.utils import cmd_utils, file_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -98,6 +99,11 @@ class PythonService:
 
         return success
 
+    def _configure_uv_environment(self) -> None:
+        """配置 UV 使用的 Python 与虚拟环境路径。"""
+        os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
+        os.environ["VIRTUAL_ENV"] = DEFAULT_VENV_DIR_PATH
+
     def uv_sync(
         self,
         progress_callback: Callable[[float, str], None] | None = None,
@@ -123,9 +129,7 @@ class PythonService:
                 log.info(msg)
 
         os.makedirs(DEFAULT_WHEELS_DIR_PATH, exist_ok=True)
-
-        os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        os.environ["VIRTUAL_ENV"] = DEFAULT_VENV_DIR_PATH
+        self._configure_uv_environment()
 
         command = [
             self.env_config.uv_path,
@@ -148,6 +152,59 @@ class PythonService:
             progress_callback(1, msg)
         return success, msg
 
+    def _uv_runtime_environment_synced(self) -> bool:
+        """检查运行环境是否满足仓库锁文件，并保留额外依赖。"""
+        self._configure_uv_environment()
+        return_code = cmd_utils.run_command_with_code(
+            [
+                self.env_config.uv_path,
+                'sync',
+                '--frozen',
+                '--inexact',
+                '--check',
+            ],
+            quiet=True,
+            mute=True,
+        )
+        return return_code == 0
+
+    def uv_sync_runtime_dependencies(self) -> tuple[bool, str]:
+        """按需同步运行依赖，并恢复同步前的仓库锁文件。"""
+        self._configure_uv_environment()
+        if self._uv_runtime_environment_synced():
+            return True, gt('运行环境已同步')
+
+        lock_path = Path(os_utils.get_work_dir()) / 'uv.lock'
+        if not lock_path.is_file():
+            return False, gt('找不到 uv.lock，无法同步运行环境')
+
+        try:
+            lock_content = lock_path.read_bytes()
+        except OSError:
+            log.error('读取 uv.lock 失败', exc_info=True)
+            return False, gt('读取 uv.lock 失败')
+        try:
+            cmd_utils.run_command_with_code(
+                [
+                    self.env_config.uv_path,
+                    'sync',
+                    '--inexact',
+                    '--default-index',
+                    self.env_config.pip_source,
+                ],
+                mute=True,
+            )
+        finally:
+            try:
+                lock_path.write_bytes(lock_content)
+            except OSError:
+                log.error('恢复 uv.lock 失败', exc_info=True)
+
+        if not self._uv_runtime_environment_synced():
+            return False, gt('运行环境同步失败')
+
+        return True, gt('运行环境同步完成')
+
     def uv_check_sync_status(
         self,
         progress_callback: Callable[[float, str], None] | None = None,
@@ -163,8 +220,7 @@ class PythonService:
             progress_callback(-1, msg)
         log.info(msg)
 
-        os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        os.environ["VIRTUAL_ENV"] = DEFAULT_VENV_DIR_PATH
+        self._configure_uv_environment()
 
         command = [self.env_config.uv_path, 'sync', '--check']
 

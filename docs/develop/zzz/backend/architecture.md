@@ -1,112 +1,113 @@
 # 后端服务层架构
 
-> `ZzzBackendContext` —— 绝区零一条龙的运行层（`ZContext`）之上的一层**传输无关**后端，把游戏感知 / 操作能力对外暴露给 MCP 与 HTTP 适配器。本文描述**当前已实现**的能力（3 个感知方法 + 运行态三件套 + `close_game`）；未实现的扩展见 [§路线图](#路线图尚未实现)。MCP / HTTP 适配器见 [mcp.md](mcp.md) / [http.md](http.md)，进程入口见 [entry.md](entry.md)，MCP tool 设计规范见 [design-principles.md](design-principles.md)。
+> `ZzzBackendContext` 是 `ZContext` 之上的传输无关 backend。它不关心调用方来自 MCP、HTTP 还是 GUI 管理页，只提供稳定的业务方法和运行状态。
 
-## 概述
+## 概览
 
-后端服务层是一个 **headless 服务进程**：自己持有 `ZContext`（截图 / OCR / YOLO / 控制器 / 执行引擎），通过 `ZzzBackendContext` 收敛成一组**传输无关**方法，再由 MCP、HTTP 两个适配器并行对外暴露。GUI 是另一个独立入口，不经过本层。
-
-三层：
-
-- **Layer 0** —— `ZContext`（成熟运行核心，不改动）。
-- **收敛层** —— `ZzzBackendContext`：持有 `ZContext`，管生命周期，暴露感知 / 操作方法。
-- **适配器** —— MCP（`@mcp.tool`，原生 tool-call）+ HTTP（`/game/*`，通用 REST）；两者共享同一 backend，各自序列化。
+```mermaid
+flowchart TB
+    Entry["entry/server.py"] --> Backend["backend_context.py<br/>ZzzBackendContext + RunSlot"]
+    Backend --> ZContext["ZContext<br/>截图/OCR/控制器/Application"]
+    Backend --> RunSlot["RunSlot(单跑道)<br/>app 路径委托 run_application<br/>op 路径自管 start_running/execute/stop_running"]
+    Backend --> OpRegistry["operation_registry.py<br/>自定义 op 扫描/op_id 解析/args 校验"]
+    Backend --> Schemas["schemas.py<br/>传输无关 dataclass"]
+    Backend --> MCPBase["mcp/app.py<br/>基础 MCP tools"]
+    Backend --> MCPService["mcp/service_app.py<br/>应用运行 + 自定义 op tools"]
+    MCPBase --> MCPPrompts["mcp/prompts.py<br/>MCP prompts"]
+    Backend --> HTTPBase["http/routes.py<br/>基础 HTTP routes"]
+    Backend --> HTTPService["http/service_routes.py<br/>应用运行 + 自定义 op routes + /health"]
+```
 
 ## 模块布局
 
-```
+```text
 src/zzz_od/backend/
-  __init__.py
-  schemas.py             # 传输无关返回结构：WindowStatus / OcrText / AnalyzeScreenResult / RunStatusResult
-  backend_context.py     # ZzzBackendContext + BackendNotReadyError + RunState + RunSlot
+  schemas.py             # WindowStatus / AnalyzeScreenResult / RunStatusResult / ApplicationListResult / OperationListResult
+  backend_context.py     # ZzzBackendContext + RunSlot（单槽，app/op 分派）
+  operation_registry.py  # 自定义 op 扫描 / op_id 解析 / args 校验（纯反射，不实例化）
   mcp/
-    __init__.py
-    app.py               # create_mcp_server + 7 个 @mcp.tool + _save_screenshot
+    app.py               # create_mcp_server + 基础 game tools
+    service_app.py       # list_applications / run_one_dragon / run_standalone_app / list_operations / describe_operation / run_operation
+    prompts.py           # MCP prompt 案例与注册
   http/
-    __init__.py
-    routes.py            # register_http_routes + 7 个 /game/* 处理器
+    routes.py            # register_http_routes + 基础 /game/* handler
+    service_routes.py    # /health + 应用运行 + 自定义 op HTTP handler
   entry/
-    __init__.py
-    server.py            # create_app + _serve + main（uvicorn，默认 23001）
+    server.py            # create_app / uvicorn 入口
 ```
 
 ## ZzzBackendContext
 
-`ZzzBackendContext` 在构造时持有（不继承）一个 `ZContext`，由服务入口注入（不用全局单例）。
+`ZzzBackendContext` 持有一个 `ZContext`，由服务入口注入。所有对外方法在进入业务逻辑前先检查 `ctx.ready_for_application`。
 
-### 生命周期
+| 方法 | 作用 | 返回 |
+|---|---|---|
+| `check_window()` | 查询游戏窗口状态 | `WindowStatus` |
+| `capture()` | 截取当前游戏画面 | RGB `MatLike` |
+| `analyze()` | 截图 + OCR + 画面匹配 | `AnalyzeScreenResult` |
+| `start_run(source, op_factory, display_name=None)` | 启动 operation（op 路径，供 `open_game` / `run_operation` 经适配器调用） | `(ok, future)` |
+| `run_one_dragon(source)` | 按当前配置启动完整一条龙（app 路径） | `(ok, future)` |
+| `run_standalone_app(source, app_id=None)` | 启动独立应用（app 路径） | `(ok, future)` |
+| `list_applications()` | 列出当前实例可运行应用和独立应用选择状态（只读，不刷新配置） | `ApplicationListResult` |
+| `query_status()` | 查询当前或最近一次运行状态（单槽，直接委托） | `RunStatusResult` |
+| `stop()` | 发出停止信号（单槽） | `dict` |
+| `close_game()` | 发关闭窗口信号，不走运行槽 | `str` |
 
-服务启动 / 关闭在线程池执行（`asyncio.to_thread`），不阻塞事件循环。
+> 自定义 operation 运行入口（`list_operations` / `describe_operation` / `run_operation`）不经过 `ZzzBackendContext` 方法，而是由 MCP / HTTP 适配器直接调用 `operation_registry`（扫描 / 解析 / 校验）+ `run_slot._start`（op 路径），详见 [mcp.md](mcp.md) / [http.md](http.md)。
 
-> `ctx.init_async()` 返回 `None`（fire-and-forget），**不可 await**；要等初始化完成须 `asyncio.to_thread(ctx.init)`。
+## 运行槽
 
-所有方法前置校验 `ctx.ready_for_application`，未就绪抛 `BackendNotReadyError`。
+`ZzzBackendContext` 只持有**一个** `RunSlot`，所有运行（一条龙 / 独立应用 / `open_game` / 自定义 op）都经 `run_slot._start` 进入同一条单跑道。槽只做两件事：**单跑道调度** + **终态固化**；执行序列在槽内按 app / op 分派。
 
-### 感知 / 操作方法
+| 路径 | 触发入口 | 执行序列 | 进度句柄 | 结果来源 |
+|---|---|---|---|---|
+| **app** | `run_one_dragon` / `run_standalone_app` | 委托 `run_application`（复用 GUI/CLI 共享入口，内含 `start_running` / 绑定 / `execute` / `stop_running`） | `run_context.current_application` | `run_context.last_application_result` |
+| **op** | `open_game` / `run_operation`（自定义 op） | 槽自己 `start_running → op_factory(ctx) → op.execute() → stop_running` | 槽内 `current_op` | `op.execute()` 返回值 |
 
-| 方法 | 作用 | Layer 0 调用 | 返回 |
-|---|---|---|---|
-| `check_window()` | 游戏窗口状态 | `ctx.controller.game_win`（title / valid / active / scale / rect） | `WindowStatus` |
-| `capture()` | 截图 | `controller.is_game_window_ready` + `get_screenshot(independent=False)` | RGB `MatLike` |
-| `analyze()` | 截图 + OCR | `get_screenshot` + `ctx.ocr_service.get_ocr_result_list(image=)` | `AnalyzeScreenResult` |
-| `start_run(source, op_factory)` | 派发长耗时 operation 到共享 `RunSlot` | 委托 `run_slot._start_run`：后台线程内 `run_context.start_running()` → `op_factory(ctx).execute()` → `finally stop_running()` 并固化终态 | `(ok, future)`：`ok=False` 表已有运行；`ok=True` 表已启动 |
-| `query_status()` | 查询当前/最近一次运行状态 | 委托 `run_slot._query_status` | `RunStatusResult` |
-| `stop()` | 发出停止信号 | 委托 `run_slot._stop` | `dict`（`{"stopped": bool, ...}`） |
-| `close_game()` | 关闭游戏（秒级，**不走 RunSlot**） | `controller.close_game()`（`win.close`，吞异常不返） | `str`（已发送关闭信号；用 `check_window` 验证） |
+- **单跑道互斥**收进 `_start` 锁内：`future` 未完成检查与 `executor.submit` 在同一把锁中原子完成（check-then-submit），消除跨槽 check-then-act 竞态；框架层 `run_context.start_running` 不可重入是第二重保证。
+- **字段**（单一事实源）：`source`、`op_id`（app 路径=app_id、op 路径=`package.path.ClassName` 或类名）、`run_type`（`APPLICATION` / `OPERATION`）、`app`（展示名，`_run` 内固化）、`started_at` / `finished_at`、`terminal_state`、`last_status`、`failed_node`、`current_op`（op 路径回填，app 路径为 `None`）。
+- **终态固化**：`_run` 用顶层 try/except/finally 包裹，任何路径（含 `refresh_config` / `run_application` 抛异常）都固化 `terminal_state`，避免卡 `RUNNING`。
+- **进度读取**统一：`_query_status` 在运行态读 `progress = current_op or run_context.current_application`（Application 也是 Operation，都有 `_current_node` / `node_retry_times`）；终态读固化的 `terminal_state`。
+- **配置刷新**：app 路径把 `_refresh_runtime_config` 作为 `refresh_config` 钩子注入 `_run`（槽线程内、`_start` 已赢锁后、`run_application` 前执行）——拒绝路径不进 `_run`，因此不刷新，修原跨方法刷新竞态；`current_instance_idx` 在刷新后重读（可能切实例）。`list_applications` 是只读路径，**不**刷新配置。
+- **stop**：`_stop` 对未完成运行调 `run_context.stop_running()` 发信号；operation 实际退出有过渡期，期间 `_query_status` 仍报 `running`（`RunState` 无 `STOPPING` 态，沿用现状）。
 
-- backend 返回**原始数据**（图像 / 结构），持久化与协议格式交给适配器（MCP 落盘返路径、HTTP 直传字节）。
-- 长耗时 operation 经 `start_run` 异步派发：适配器 `block=True` 时 `await asyncio.wrap_future(future)` 取结果，`block=False` 立刻返回、用 `query_status` 查进度。MCP / HTTP 对称暴露（[design-principles.md](design-principles.md) P11）。
+`ZzzBackendContext.query_status()` 和 `ZzzBackendContext.stop()` 各自塌缩为一次 `run_slot._query_status()` / `_stop()`，不再跨槽仲裁。
 
-### RunSlot（单跑道运行槽）
+## 自定义 operation 运行入口
 
-`RunSlot`（`backend_context.py`）是跨 MCP / HTTP 共享的运行态载体，由 `ZzzBackendContext` 持有一个实例（`backend.run_slot`）。设计要点：
+`operation_registry.py` 提供「按 operation 运行」的通用能力（不框死为调试；当前主用于开发者复现 bug 时逐个 op 精确定位，未来智能体可经此自由组合 op）：
 
-- **单跑道**：单线程 `ThreadPoolExecutor(max_workers=1)`，`_start_run` 在锁内检查 `future` 未完成才派发，否则返回 `ok=False`（并发拒绝），保证独占资源不冲突。
-- **固化终态**：状态判据用固化字段 `terminal_state`（`RunState` 枚举：`IDLE` / `RUNNING` / `SUCCESS` / `FAILED` / `STOPPED`），不读 `run_context` 推中间态；`_run` 在 `finally` 锁内固化 `terminal_state` / `last_status` / `failed_node` / `finished_at`，清空 `current_op`。
-- **运行中读 operation**：运行期间 `_run` 在锁内把 `current_op` 暴露给 `_query_status`，可读当前节点 / 重试次数（终态后 `current_op` 销毁，仅留固化字段）。
-- **跨适配器共享**：MCP（`source='mcp'`）与 HTTP（`source='http'`）调同一 `RunSlot`，HTTP 触发的运行 MCP 也能 `query_status` 查到。
-- **停止语义**：`_stop` 只发停止信号，operation 在当前节点完成后退出（`OperationResult.status == '人工结束'` → `RunState.STOPPED`），非强杀；过渡期 `query_status` 仍报 `RUNNING`。
+- `scan_operations(ctx, refresh=False)`：扫描 `zzz_od.operation` + `zzz_od.hollow_zero` 承载包，三重过滤（`__module__` 守卫 + 显式抽象基类集 + `*Base` 兜底 + 排除 `Application` 子类），纯反射 `__init__` 参数（**不实例化**），结果缓存。
+- `resolve_op_class(op_id)`：按 `<dotted module path>.<ClassName>` 解析出 Operation 子类（`importlib` + `__module__` 守卫 + `issubclass(cls, Operation)`）。
+- `validate_args(cls, args)`：校验必填参数齐全 + 无复杂数据类参数（`ChargePlanItem` 等拒绝，提示走 application）+ 值可 JSON 序列化。
+- `describe_operation(ctx, op_id)`：纯反射返回单个 op 的参数 schema（每个参数标 `json_serializable`）。
 
-### 返回结构（`schemas.py`）
+`run_operation` 在适配器侧组合上述能力：`resolve_op_class` + `validate_args` 先校验，通过后把 `cls` + `args` 烤进闭包 `op_factory = lambda ctx: cls(ctx, **args)`，提交 `run_slot._start`（op 路径，`display_name=op_id`）。槽只认统一签名 `op_factory(ctx) → Operation`，对 `open_game` 与自定义 op 一视同仁。
 
-三个 dataclass（具体定义见源码）：
+## 适配器
 
-- **`WindowStatus`**：`win_title` / `is_win_valid` / `is_win_active` / `is_win_scale`，可选 `x` / `y` / `width` / `height`。
-- **`OcrText`**：`text` / `x` / `y` / `width` / `height`。
-- **`AnalyzeScreenResult`**：`success` / `ocr_texts: list[OcrText]` / `error: str | None`。
+MCP 与 HTTP 只做传输适配：
 
-## 有状态资源约束
-
-backend 独占持有 `ZContext`，适配器 / 前端不可并发直调其内部：
-
-| 资源 | 约束 |
-|---|---|
-| `gpu_executor` | 单线程，强制串行 DirectML onnx session（YOLO 等） |
-| 游戏窗口句柄 | `ZPcController → PcGameWindow`，win32 句柄，1080p，独占 |
-| 输入注入 | `pyautogui` / `pydirectinput` 需管理员权限 + 交互式桌面会话 |
-| OCR / YOLO session | onnxruntime InferenceSession，重资源 |
+- MCP 基础工具在 `mcp/app.py`，应用运行 + 自定义 op 工具在 `mcp/service_app.py`，prompt 在 `mcp/prompts.py`。
+- HTTP 基础端点在 `http/routes.py`，应用运行 + 自定义 op 和 `/health` 在 `http/service_routes.py`。
+- 应用运行类 tool / 端点只调 `ZzzBackendContext` 公开方法；自定义 op 类 tool / 端点额外经 `operation_registry` 校验后调 `run_slot._start`（op 路径）。
 
 ## 进程模型
 
-- 后端是**独立的 headless 服务入口**（`entry/server.py`），自己 `ZContext()` 再包 `ZzzBackendContext`；GUI 是另一个入口，二者择一运行（同 onedragon headless 模式）。
-- 每进程独占一个 `ZContext` → `gpu_executor` / 窗口句柄天然不冲突。
-- 服务进程常驻 `ZContext`，规避冷启动（OCR / YOLO 装载数秒）。
+- `entry/server.py` 是 headless server 入口，会创建独立 `ZContext`。
+- GUI 主程序仍是另一个入口；「开发工具 -> MCP 服务」页面启动的是本机 server 子进程。
+- 当前只保证同一 backend 进程内的运行互斥；GUI 主进程与外置 server 子进程之间不做跨进程互斥。
 
 ## 路线图（尚未实现）
 
-当前已实现：上述 3 个感知方法 + 运行态三件套（`start_run` / `query_status` / `stop`，经共享 `RunSlot`）+ `close_game`（独立同步关游戏）+ MCP / HTTP 适配器 + 入口 + 远程 SSH daemon（见 [remote-ssh.md](remote-ssh.md)）。后续扩展：
-
-- **run-as-service**：`run_application` / `pause` —— 把一条龙 Application 当可控服务跑。`status` / `stop` 已实现（本次，经 `RunSlot` 暴露的运行态三件套）。
-- **事件桥**：`subscribe_events` —— 把日志 / 运行状态 / overlay-debug 事件桥成可订阅流（WS 推 web、MCP notifications 推 AI）。
-- **多实例**：`list_instances` / `switch_instance` —— 账号实例切换。
-- **更多 game 能力**：`identify_current_screen`（屏幕识别）、`click_at_position`（按坐标点击）。
-- **GUI 收敛**：将来 GUI 入口改走 backend（接口形状已对齐：`run_application` / `pause` / `subscribe_events`）。
+- 事件推送：WebSocket / SSE 或 MCP notifications。
+- 多实例：`list_instances` / `switch_instance`。
+- 更多 game 感知与交互 tool。
+- 更完整的 AI 操作范式。
 
 ## 相关文档
 
-- [README.md](README.md) — 总览
-- [mcp.md](mcp.md) — MCP 适配器
-- [http.md](http.md) — HTTP 适配器
-- [design-principles.md](design-principles.md) — MCP tool 设计规范（P1–P12）
-- [entry.md](entry.md) — 服务入口
-- [一条龙整体架构](../../one_dragon/one_dragon_architecture.md) — Layer 0 运行层
+- [README.md](README.md) - 总览
+- [mcp.md](mcp.md) - MCP 适配器
+- [http.md](http.md) - HTTP 适配器
+- [entry.md](entry.md) - 服务入口
