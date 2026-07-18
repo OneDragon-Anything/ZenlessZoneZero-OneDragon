@@ -1,6 +1,9 @@
+from one_dragon.base.config.game_account_config import GameRegionEnum
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
@@ -12,7 +15,10 @@ class SwitchAccount(ZOperation):
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        ZOperation.__init__(self, ctx, op_name=gt('切换账号'))
+        ZOperation.__init__(self, ctx, op_name=gt('切换账号'), op_callback=self.restore_screenshot_func)
+
+        self.screenshot_func = self.ctx.controller.screenshot_method
+        self.modify_screenshot_func()
 
     @operation_node(name='打开菜单', is_start_node=True)
     def open_menu(self) -> OperationRoundResult:
@@ -57,6 +63,16 @@ class SwitchAccount(ZOperation):
     def enter_game(self) -> OperationRoundResult:
         op = EnterGame(self.ctx, switch=True)
         return self.round_by_op_result(op.execute())
+
+    # B服登录时采用BitBlt截图
+    def modify_screenshot_func(self):
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
+
+    # B服登录后恢复原有截图方法
+    def restore_screenshot_func(self, result: OperationResult):
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
 
 def __debug():
