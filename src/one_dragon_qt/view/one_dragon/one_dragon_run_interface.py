@@ -56,7 +56,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self._context_event_signal = ContextEventSignal()
         self.help_url: str = help_url
         self.need_multiple_instance: bool = need_multiple_instance
-        self.after_done_request: AfterDoneRequest | None = None
         self._runner_finished_connected: bool = False
 
         SplitAppRunInterface.__init__(
@@ -176,26 +175,26 @@ class OneDragonRunInterface(SplitAppRunInterface):
             cmd_utils.cancel_shutdown_sys()
 
     def _on_app_runner_finished(self) -> None:
-        request = self.after_done_request
-        self.after_done_request = None
-        if request is not None:
-            execute_after_done(self.ctx, self.app_runner.run_result, request)
-
-    def run_app(self) -> None:
-        if self.app_runner.isRunning():
-            log.error('已有应用在运行中')
+        if self.app_runner.app_id != self.app_id:
             return
         after_done = self.ctx.one_dragon_config.after_done
-        self.after_done_request = (
+        if after_done == AfterDoneOpEnum.NONE.value.value:
+            return
+        execute_after_done(
+            self.ctx,
+            self.app_runner.run_result,
             AfterDoneRequest(
                 close_game=after_done == AfterDoneOpEnum.CLOSE_GAME.value.value,
                 shutdown_seconds=(
                     60 if after_done == AfterDoneOpEnum.SHUTDOWN.value.value else None
                 ),
-            )
-            if after_done != AfterDoneOpEnum.NONE.value.value
-            else None
+            ),
         )
+
+    def run_app(self) -> None:
+        if self.app_runner.isRunning():
+            log.error('已有应用在运行中')
+            return
         self.app_runner.app_id = self.app_id
         self.app_runner.start()
 
@@ -203,7 +202,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
             return
-        self.after_done_request = None
         self.app_runner.app_id = app.app_id
         self.app_runner.start()
 
