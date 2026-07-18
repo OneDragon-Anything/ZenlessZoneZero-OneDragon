@@ -1,10 +1,5 @@
 import time
 
-from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.envs.env_config import ScreenshotMethodEnum
-from one_dragon.utils.log_utils import log
-from typing import ClassVar
-
 import cv2
 import numpy as np
 from cv2.typing import MatLike
@@ -16,13 +11,17 @@ from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
 )
+from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
+from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -71,6 +70,15 @@ class EnterGame(ZOperation):
         self.resource_download_start_time = None
         self.interact_ignore_word_list.clear()
 
+    # B服登录时采用BitBlt截图
+    @operation_node(name='设置截图方式', is_start_node=True)
+    def modify_screenshot_func(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            log.info('检测到B服登录, 使用Bitblt截图方式')
+            self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
+        return self.round_success()
+
+    @node_from(from_name='设置截图方式')
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
     @node_from(from_name='B服新-选择登录过的账号')
@@ -78,7 +86,7 @@ class EnterGame(ZOperation):
     @node_from(from_name='点击进入游戏', status=STATUS_GAME_DATA_UPDATED)
     @node_from(from_name='点击进入游戏', status='切换账号确定')
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
-    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
+    @operation_node(name='画面识别', node_max_retry_times=60)
     def check_screen(self) -> OperationRoundResult:
         # self.screenshot()
         # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
@@ -707,17 +715,11 @@ class EnterGame(ZOperation):
 
         return self.round_retry('登录成功后等待加载中或大世界', wait=2)
 
-    # B服登录时采用BitBlt截图
-    def modify_screenshot_func(self) -> None:
-        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
-            log.info('检测到B服登录, 使用Bitblt截图方式')
-            self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
-
     # B服登录后恢复原有截图方法
     # noinspection PyUnusedLocal
     def restore_screenshot_func(self, result: OperationResult) -> None:
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
-            log.info('恢复原来的截图方式:' + self.screenshot_func)
+            log.info('B服登录结束, 恢复原来的截图方式: ' + self.screenshot_func)
             self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
 
