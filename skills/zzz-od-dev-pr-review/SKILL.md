@@ -17,6 +17,7 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 - merge 冲突 → 见 §6(先解冲突再审,解的过程本身也暴露集成影响)。
 - **审完再决定改不改**:看到 review comment(CodeRabbit / 人)不要先改代码——先在 merged 代码上审(理解改动 + 框架语义),再决定 comment 采纳(改)还是驳回(说明理由)。顺序:merge → 审 → 评 comment → 改。
 - 每个 PR 开一个 notes,记:背景核实 / 改动合理性 / 每级验证结果 / 结论 / 给 reviewer 的要点。
+- **测试仓对应**:每个 PR 检查 `zzz-od-test` 有无对应分支 + 截图 fixture;**没有则自己建**(`git -C zzz-od-test checkout -b <同名分支>` + 相关画面截图拷到 `screens/<画面名>/默认.png`)。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
 
 ## 1. L0 分诊
 
