@@ -132,16 +132,46 @@ def _zip_dir_contents(
     if zip_path.exists():
         zip_path.unlink()
 
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        _write_dir_contents(
+            zf,
+            root_dir,
+            root_prefix=root_prefix,
+            exclude_prefixes=exclude_prefixes,
+        )
+
+
+def _write_dir_contents(
+    zf: zipfile.ZipFile,
+    root_dir: Path,
+    *,
+    root_prefix: str,
+    exclude_prefixes: set[str] | None = None,
+) -> None:
+    """把目录内容写入已打开的 zip，支持多个来源复用同一压缩包。"""
     prefix = root_prefix.strip("/\\")
 
+    for path in root_dir.rglob("*"):
+        if not path.is_file():
+            continue
+
+        relative_path = path.relative_to(root_dir).as_posix()
+        if exclude_prefixes and any(relative_path.startswith(item) for item in exclude_prefixes):
+            continue
+
+        arcname = f"{prefix}/{relative_path}" if prefix else relative_path
+        zf.write(path, arcname)
+
+
+def _zip_runtime_with_models(runtime_launcher_dir: Path, model_dir: Path, zip_path: Path) -> None:
+    """打包集成启动器，并把 Full 包已准备好的模型叠加到 assets/models。"""
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    if zip_path.exists():
+        zip_path.unlink()
+
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-        for p in root_dir.rglob("*"):
-            if p.is_file():
-                rel = p.relative_to(root_dir).as_posix()
-                if exclude_prefixes and any(rel.startswith(ep) for ep in exclude_prefixes):
-                    continue
-                arcname = f"{prefix}/{rel}" if prefix else rel
-                zf.write(p, arcname)
+        _write_dir_contents(zf, runtime_launcher_dir, root_prefix="")
+        _write_dir_contents(zf, model_dir, root_prefix="assets/models")
 
 
 def _zip_single_file(file_path: Path, zip_path: Path) -> None:
@@ -216,7 +246,9 @@ def _download_models(model_base: Path, temp_dir: Path, *, token: str | None) -> 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Prepare release assets and package Full/Full-Environment.")
+    parser = argparse.ArgumentParser(
+        description="Prepare release assets and package Full/Full-Environment/WithRuntime-Full."
+    )
     parser.add_argument("--repo-root", default=".", help="Repository root (default: .)")
     parser.add_argument("--release-version", required=True, help="Release version")
     parser.add_argument("--dist-src", default="deploy/dist", help="Downloaded dist artifact directory")
@@ -314,12 +346,18 @@ def main() -> int:
         shutil.rmtree(temp_dir)
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    _download_models(repo_root / "assets/models", temp_dir, token=token or None)
+    model_dir = repo_root / "assets/models"
+    _download_models(model_dir, temp_dir, token=token or None)
 
-    # 清理临时模型目录（避免打包进 Full/Full-Environment）
+    # 清理模型下载临时目录，只保留解压后的模型用于后续多个完整包
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-    # 7. Full 包清单 + 打包（在 repo_root 下打包全部内容；zip 输出在 dist_dir 以避免自包含）
+    # 7. WithRuntime-Full：复用 Full 已准备的模型，不重复下载或复制到构建目录
+    with_runtime_full_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-WithRuntime-Full.zip"
+    _log(f"Create WithRuntime-Full zip: {with_runtime_full_zip}")
+    _zip_runtime_with_models(runtime_launcher_dir, model_dir, with_runtime_full_zip)
+
+    # 8. Full 包清单 + 打包（在 repo_root 下打包全部内容；zip 输出在 dist_dir 以避免自包含）
     _log("Generate install manifest (Full)")
     _run([sys.executable, "tools/ci/generate_install_manifest.py"], cwd=repo_root)
 
@@ -327,7 +365,7 @@ def main() -> int:
     _log(f"Create Full zip: {full_zip}")
     _zip_dir_contents(repo_root, full_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full")
 
-    # 8. Full-Environment：把环境包放入 .install 后重新生成清单并打包
+    # 9. Full-Environment：把环境包放入 .install 后重新生成清单并打包
     env_zip = dist_dir / "ZenlessZoneZero-OneDragon-Environment.zip"
     if not env_zip.exists():
         raise SystemExit(f"Missing {env_zip}")
@@ -341,10 +379,10 @@ def main() -> int:
     _log(f"Create Full-Environment zip: {full_env_zip}")
     _zip_dir_contents(repo_root, full_env_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment")
 
-    # 9. 复制安装器到版本化文件名
+    # 10. 复制安装器到版本化文件名
     shutil.copy2(repo_root / "OneDragon-Installer.exe", repo_root / f"ZenlessZoneZero-OneDragon-{release_version}-Installer.exe")
 
-    # 10. 把 dist_dir 下所有 zip 移到 repo_root，供 release step 上传
+    # 11. 把 dist_dir 下所有 zip 移到 repo_root，供 release step 上传
     for z in dist_dir.glob("*.zip"):
         _log(f"Move zip to repo root: {z.name}")
         shutil.move(str(z), str(repo_root / z.name))

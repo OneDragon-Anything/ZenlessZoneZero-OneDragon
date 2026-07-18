@@ -24,7 +24,7 @@ jobs:
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
-          filename: ${{ format('ZenlessZoneZero-OneDragon-*-{0}*', matrix.type) }}
+          filename: ${{ format('ZenlessZoneZero-OneDragon-*-{0}.zip', matrix.type) }}
           mirrorchyan_rid: ZZZ-OneDragon
 
           arch: ${{ matrix.arch }}
