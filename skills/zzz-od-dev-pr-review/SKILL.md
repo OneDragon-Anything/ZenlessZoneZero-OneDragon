@@ -12,9 +12,10 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 
 **原则:在"PR + 当前 main"的集成结果上审查,不在旧 base 上审。** PR 基于旧 main,旧 base 上审会漏集成问题(API 不兼容、被 main 改过的同文件、依赖 main 新加的文件等)。
 
-- 用提交者分支(`gh pr checkout <n>`)。
+- 用提交者分支(`gh pr checkout <n>`,拉的是 PR 当前 HEAD;不要用可能被本地 merge 污染的旧本地分支)。
 - **先 `git merge origin/main`**:确保改动在当前代码上成立。老 PR 不 merge 可能缺文件 / 跑崩;merge 后才有"这个 PR 真能合、合了不崩"的判断基线。
 - merge 冲突 → 见 §6(先解冲突再审,解的过程本身也暴露集成影响)。
+- **审完再决定改不改**:看到 review comment(CodeRabbit / 人)不要先改代码——先在 merged 代码上审(理解改动 + 框架语义),再决定 comment 采纳(改)还是驳回(说明理由)。顺序:merge → 审 → 评 comment → 改。
 - 每个 PR 开一个 notes,记:背景核实 / 改动合理性 / 每级验证结果 / 结论 / 给 reviewer 的要点。
 
 ## 1. L0 分诊
@@ -26,7 +27,7 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 读 diff + 相关代码。查:逻辑错误、回归、死循环、资源泄漏、是否复用现有模式(Application / Operation / config / setting card)、类型注解、1080p 硬编码合理性。
 
 **框架语义必查项**(任一错就运行时崩,逐条对照源码确认):
-- **生命周期钩子 `after_operation_done` / `op_callback`**:在 success 和 fail 都会触发(在结果判断之外)。若 PR 在此做清理/还原,确认基类清理不被跳过——子步骤抛异常时用 `try/finally` 兜底,保证运行记录/通知/`APPLICATION_STOP` 等基类清理必跑。
+- **生命周期钩子 `after_operation_done` / `op_callback`**:在 success 和 fail 都会触发(在结果判断之外)。**必查**:若 PR 在此做了自定义清理(如 stop_xxx),该清理有**几个子步骤**?任一步骤抛异常的概率?若有异常风险 → **基类调用必须在 `finally` 里**(try 包自定义清理,finally 包基类清理),否则 run_record/notify/`APPLICATION_STOP` 等基类清理被跳过。这是"代码看着对但异常路径漏"的高发点,不要只看 happy path。
 - **节点重试预算**:`round_wait` 重置 `node_retry_times`(无界),只有 `round_retry` 消耗、超 `node_max_retry_times`(默认 3)才 FAIL。审"删除大 `node_max_retry_times`"的重构时,确认主路径走 `round_wait`(否则默认 3 不够)。
 - **`@operation_node` 装饰器**:只挂元数据、原样返回 func → 可直接调用被装饰方法;节点调度读元数据。删/改节点不影响直接调用。
 - **`execute()` 重复调用安全**:每次开头全重置(节点图 + 重试计数 + `handle_init`)。retry 包 `execute` 的模式安全。
