@@ -47,6 +47,11 @@ gameplay-onboarding 要「米游社优先」查玩法,但 WebSearch 搜不到米
 - **取码**:DOM `innerText` 里「兑换码:<码> 复制」;实测当前码 `0729XUSHOU`(菲林×300 / 资深调查员记录×2 / 音擎能源模块×3 / 丁尼×30000)。前瞻通常 3 码,直播结束后「查看回顾」可能还有(另两个或已过期,未深挖)。
 - **兑换**:国服 ZZZ **无 web 兑换**(搜索 + 官网无入口、user.mihoyo.com 要重登),码去**游戏内**兑(设置 → 更多 → 兑换码)。国际服才有 `zenless.hoyoverse.com/redemption` 网页兑换。
 - **定位坑**:「3.1前瞻」是 Vue `div`,`addEventListener` 挂点击 → `cursor`/`onclick` 检测不到;按文本找叶子 div + `.click()`(已抽象进 SKILL.md 总则)。
+- **公开活动 API(脚本化 / 无人值守优先,见 SKILL.md ①)**:直播间 H5 背后的 `event/miyolive/*` 是**公开活动接口**,匿名 + 仅需 `x-rpc-act_id` 头,**无 DS / 无 cookie / 不触发人机**——对照「风控与请求头」里要 DS 的社区业务接口,是两类东西(活动接口给直播间页面拉码用,本就匿名可访问;社区接口要签名 + 登录)。三段串起来取码(2026-07-18 从 `tools/ci/update_redemption_code.py` 提取,该脚本 + workflow `update-redemption-code.yml` 是现成实现,CI 每天 21 点跑):
+  1. `GET bbs-api.miyoushe.com/apihub/api/home/new?gids=8&parts=1,3,4` → `data.navigator[]` 找名字含「前瞻」项,正则 `act_id=(.*?)&` 从其 `app_path` 抠出 `act_id`(等价于浏览器点「<版本>前瞻」入口)。
+  2. `GET api-takumi.mihoyo.com/event/miyolive/index`(头 `x-rpc-act_id: <act_id>`)→ `data.live.{code_ver, title, is_end, start}`;过期时间 = `start` +1 天 23:59:59(北京时间);`code_ver` 缺则码未放出。
+  3. `GET api-takumi-static.mihoyo.com/event/miyolive/refreshCode?version=<code_ver>&time=<unix秒>`(头 `x-rpc-act_id`)→ `data.code_list[].code`。
+  实测 2026-07-18 抓到 `0729XUSHOU`(deadline `20260718`);CI 落盘前会 `clean_expired_sample_codes` 清过期再 `add_sample_code` 加新码。**要拉码复用该脚本,勿重造。**
 
 ## roadmap(待用户指引、验证后补进 SKILL.md)
 - ✅ 搜索(已进 SKILL.md):搜索框内联触发 searchPosts;读浏览器已加载结果避风控。
