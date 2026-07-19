@@ -230,6 +230,8 @@ class ChargePlanCard(DraggableListItem):
         self.init_mission_combo_box()
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
+        self.init_predefined_team_opt()
+        self.init_auto_battle_box()
 
         self._emit_value()
 
