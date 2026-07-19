@@ -6,18 +6,20 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 # PR 审查验证
 
 审查一个 PR 时,按 L0→L4 逐级验证,每级有则记无则跳,最终给"可合并 / 可合并但有建议 / 需返工 / 无法验证(写明缺什么)"结论。
-**先做 L1/L2(总做、不依赖环境),再按 PR 类型决定是否 L3/L4。** 游戏流程类 PR,L4 live 是硬性要求(不是可选项)。
+**先 L0 分诊(判是否适用)→ 适用 PR 做 L1/L2(总做、不依赖环境)→ 再按 PR 类型决定 L3/L4。** L0 判定 skip 的(前端/CI/纯 git 启动逻辑)不做 L1/L2。游戏流程类 PR,L4 live 是硬性要求(不是可选项)。
 
 ## 0. 准备:分支与基线(每个 PR 必做)
 
 **原则:在"PR + 当前 main"的集成结果上审查,不在旧 base 上审。** PR 基于旧 main,旧 base 上审会漏集成问题(API 不兼容、被 main 改过的同文件、依赖 main 新加的文件等)。
 
 - 用提交者分支(`gh pr checkout <n>`,拉的是 PR 当前 HEAD;不要用可能被本地 merge 污染的旧本地分支)。
-- **先 `git merge origin/main`**:确保改动在当前代码上成立。老 PR 不 merge 可能缺文件 / 跑崩;merge 后才有"这个 PR 真能合、合了不崩"的判断基线。
+- **先 `git fetch origin main` 再 `git merge origin/main`**:fetch 确保 remote 引用最新(否则 merge 的是旧 `origin/main`,审查基线仍落后);merge 后确保改动在当前代码上成立——老 PR 不 merge 可能缺文件 / 跑崩,merge 后才有"这个 PR 真能合、合了不崩"的判断基线。
 - merge 冲突 → 见 §6(先解冲突再审,解的过程本身也暴露集成影响)。
 - **审完再决定改不改**:看到 review comment(CodeRabbit / 人)不要先改代码——先在 merged 代码上审(理解改动 + 框架语义),再决定 comment 采纳(改)还是驳回(说明理由)。顺序:merge → 审 → 评 comment → 改。
 - 每个 PR 开一个 notes,记:背景核实 / 改动合理性 / 每级验证结果 / 结论 / 给 reviewer 的要点。
-- **测试仓对应**:每个 PR 检查 `zzz-od-test` 有无对应分支 + 截图 fixture;**没有则自己建**(`git -C zzz-od-test checkout -b <同名分支>` + 相关画面截图拷到 `screens/<画面名>/默认.png`)。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
+- **测试仓也必须切到 PR 同名分支**(和主仓 `gh pr checkout` 对应):处理每个 PR 前,`git -C zzz-od-test checkout <PR 同名分支>`(无则 `checkout -b` 新建),再 `git -C zzz-od-test fetch origin && git merge origin/main`(和主仓一样,确保测试改动在最新测试仓 main 上成立)。PR 的测试改动(新测试 / 截图 fixture)**只进该分支,绝不直接 commit/push 测试仓 `main`**。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
+  - **为什么**:测试仓 `main` 是 test-check 的基准,必须与主仓 `main` 同步。若把**未合 PR** 的测试直接合到测试仓 `main` → 测试仓 `main` 领先主仓(测了还不存在的代码)→ **所有 PR 的 test-check 全红**(实测:#2348 的测试 `4ca301d` 误合测试仓 `main`,致 `main` 自己 + 所有后续 PR 的 test-check fail)。正确时序:该 PR 合进主仓 `main` 后,再把它的测试分支合进测试仓 `main`。
+  - **截图 fixture 路径契约**:与 `zzz-od-dev-screen-onboarding` 一致,`screens/<画面名>/默认.png`;同一画面多状态用状态子名(如 `默认` / `精英`)。
 
 ## 1. L0 分诊
 
