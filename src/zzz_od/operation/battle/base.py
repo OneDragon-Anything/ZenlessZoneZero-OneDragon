@@ -181,7 +181,7 @@ class BattleOpBase(ZOperation):
             press_time = (target.distance or self._default_move_distance) / 7.2
             press_time = min(press_time, cap if cap is not None else self._move_press_time_cap)
             self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
-        self._move_times += 1
+            self._move_times += 1    # 只在前进计数(对齐原 shiyu_defense_battle.py:96,222;转向不计,避免提前触顶 ExitInBattle)
 
     def _on_no_target(self) -> None:
         """无目标盲转(防卫战距离/传送点都没找到的兜底)。"""
@@ -189,11 +189,11 @@ class BattleOpBase(ZOperation):
 
     # ===== pause/resume 回调(非节点,框架 _on_pause/_on_resume 调)=====
 
-    def handle_pause(self, e=None) -> None:
-        """暂停 → 停 auto_battle。"""
+    def handle_pause(self) -> None:
+        """暂停 → 停 auto_battle(对齐基类 Operation.handle_pause 签名,无 e)。"""
         self.ctx.auto_battle_context.stop_auto_battle()
 
-    def handle_resume(self, e=None) -> None:
-        """恢复 → 若在自动战斗节点,resume auto_battle。"""
+    def handle_resume(self) -> None:
+        """恢复 → 若在自动战斗节点,resume auto_battle(对齐基类 Operation.handle_resume 签名,无 e)。"""
         if self.current_node.node is not None and self.current_node.node.cn == '自动战斗':
             self.ctx.auto_battle_context.resume_auto_battle()

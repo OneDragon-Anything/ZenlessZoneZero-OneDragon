@@ -8,6 +8,7 @@ check_shiyu_countdown + start_move/move_after_battle 逻辑。原 ShiyuDefenseBa
 from typing import TYPE_CHECKING
 
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -25,9 +26,11 @@ class ShiyuDefenseBattleOp(BattleOpBase):
     """式舆防卫战战斗 op。
 
     shadow 基类「战前移动」/「开始自动战斗」(防卫战用「开始移动」循环 + start_auto_battle 内嵌条件触发);
-    重定义「开始移动」/「自动战斗」(加 back-edge)/「战斗后移动」/「战斗结束」;
+    重定义「开始移动」/「自动战斗」(加 back-edge)/「战斗后移动」/「战斗结束」/「战斗超时」;
     覆写 _check_battle_state(normal+defense) + _check_in_battle_secondary(倒计时副判)。
     """
+
+    _move_after_battle_times_limit: int = 60    # move_after_battle 的 _move_times 上限(对齐原 shiyu_defense_battle.py:224;start_move 用基类 _move_times_limit=20)
 
     def __init__(self, ctx: ZContext, predefined_team_idx: int) -> None:
         """Args:
@@ -105,7 +108,7 @@ class ShiyuDefenseBattleOp(BattleOpBase):
         switch_to_best_agent_for_moving(self.ctx)
         target = self._detect_move_target()
         self._move_one_step(target, cap=1)    # target None → _on_no_target 盲转(基类处理,spec §8.1 三层)
-        if self._move_times >= 60:
+        if self._move_times >= self._move_after_battle_times_limit:
             return self.round_by_op_result(
                 ExitInBattle(self.ctx, '式舆防卫战', '前哨档案').execute())
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
@@ -121,6 +124,13 @@ class ShiyuDefenseBattleOp(BattleOpBase):
         if status == '战斗结束-退出':
             return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出', success_wait=1, retry_wait=1)
         return self.round_success(status=status)
+
+    @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
+    @operation_node(name='战斗超时')
+    def battle_timeout(self) -> OperationRoundResult:
+        """auto_battle 连续 600s 未结束 → 退到前哨档案(对齐原 ShiyuDefenseBattle battle_timeout→voluntary_exit→wait_exit 等前哨档案)。"""
+        return self.round_by_op_result(
+            ExitInBattle(self.ctx, '式舆防卫战', '前哨档案').execute())
 
     # ===== hook 覆写 =====
 
