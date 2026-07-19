@@ -502,7 +502,8 @@ class ZzzBackendContext:
 
         Returns:
             分析结果:成功标志、OCR 文本列表、画面匹配列表、错误描述、
-            screenshot_path(本次新存的截图路径,实时+save_image=True 时有值)。
+            screenshot_path(本次新存的截图路径,实时+save_image=True 时有值)、
+            vision_hint(成功时填的能力边界提示,失败时 None)。
         """
         self._ensure_ready()
         should_save: bool = save_image and screenshot is None
