@@ -30,7 +30,7 @@ screens/
 1. **抓图**:MCP `capture_game_screen` 或真机截图。
 2. **转 webp q90**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(**非 `cv2.imwrite`**——Windows 中文路径会挂;`cv2_utils.read_image`/`save_image` 已兼容)。
 3. **放**:`zzz-od-test/screens/<screen_name>/<state>.webp`。
-4. **更新溯源**:`docs/game/screens/<screen>.md` frontmatter `source_image` 写测试仓归档路径 `screens/<screen>/<state>.webp` + `zzz-od-test/screens/README.md` 索引。
+4. **更新溯源**:`docs/game/screens/<screen>.md` frontmatter + 多子态画面各子态标题的 `source_image` 都写测试仓归档路径 `screens/<screen>/<state>.webp` + `zzz-od-test/screens/README.md` 索引。
 
 ## 已归档 / 待补
 见 `zzz-od-test/screens/README.md`。
