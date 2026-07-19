@@ -127,6 +127,7 @@ async def handle_game_analyze(backend: ZzzBackendContext, request: Request | Non
         "screens": [asdict(s) for s in result.screens],
         "error": result.error,
         "screenshot_path": result.screenshot_path,
+        "vision_hint": result.vision_hint,
     })
 
 

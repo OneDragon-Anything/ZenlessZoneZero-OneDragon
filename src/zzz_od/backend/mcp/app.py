@@ -177,9 +177,11 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
 
         Returns:
             ``AnalyzeScreenResult``(成功标志、OCR 文本列表、画面匹配结果、错误描述、
-            screenshot_path)。
+            screenshot_path、vision_hint)。
             决策优先看 ``screens``(精准命中 1 个 ``is_precise=True``;否则 top_n 个候选);
             需要散落文本(未归类到任何 area 的 OCR 文本)再看 ``ocr_texts``。
+            ``vision_hint``(success 时):本结果仅含 OCR + 模板匹配的部分识别,不等同完整
+            视觉理解;需要全面判断画面时配合视觉工具 / 多模态再看(能力边界提醒,非错误)。
         """
         try:
             return backend.analyze(screenshot, save_image)

@@ -48,6 +48,15 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.operation import Operation
 
 
+# analyze_screen 返回的能力边界提示:本结果仅含 OCR + 模板匹配的部分识别,
+# 提醒调用方(智能体)需要全面判断画面时,补一步视觉工具 / 多模态再看。
+# 见 docs/develop/zzz/backend/design-principles.md P6/P13。
+_VISION_HINT = (
+    '本结果仅包含 OCR 识别的文字与模板匹配的命中项,是画面的部分识别结果,'
+    '不等同于对画面的完整视觉理解。需要全面判断画面时,请用视觉工具或多模态大模型再看一遍该画面。'
+)
+
+
 def _iso(ts: float | None) -> str | None:
     """epoch 秒 → ISO 字符串(None 透传)。"""
     if ts is None:
@@ -527,7 +536,8 @@ class ZzzBackendContext:
             screens = find_screen_matches(self._ctx, image)
             if write_back and screens and screens[0].is_precise:
                 self._ctx.screen_loader.update_current_screen_name(screens[0].screen_name)
-            return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, screens=screens, error=None, screenshot_path=saved_path)
+            return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, screens=screens, error=None,
+                                       screenshot_path=saved_path, vision_hint=_VISION_HINT)
         except Exception as e:  # noqa: BLE001 OCR/匹配/存盘异常兜底:不回写,返失败(存盘已成功的仍回传路径排障)
             return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error=str(e), screenshot_path=saved_path)
 
