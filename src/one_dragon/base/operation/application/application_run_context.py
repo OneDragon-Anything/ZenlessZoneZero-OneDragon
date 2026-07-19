@@ -495,16 +495,7 @@ class ApplicationRunContext:
                 )
             )
 
-        if app is None:
-            log.error("应用 %s 未注册", app_id)
-            return self._finish_running(
-                self._create_run_result(
-                    RunFinishReason.FAILED, app_id, instance_idx, group_id
-                )
-            )
-
-        finish_reason: RunFinishReason = RunFinishReason.COMPLETED
-        run_result: ApplicationRunResult | None = None
+        finish_reason: RunFinishReason
         try:
             self.current_app_id = app_id
             self.current_instance_idx = instance_idx
@@ -512,8 +503,11 @@ class ApplicationRunContext:
             self.current_application = app
 
             self.last_application_result = app.execute()
-            if not self.last_application_result.success:
-                finish_reason = RunFinishReason.FAILED
+            finish_reason = (
+                RunFinishReason.COMPLETED
+                if self.last_application_result.success
+                else RunFinishReason.FAILED
+            )
         except Exception as e:
             finish_reason = RunFinishReason.FAILED
             log.error("运行应用 %s 失败", app_id, exc_info=True)
