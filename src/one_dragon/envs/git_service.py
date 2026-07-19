@@ -1,8 +1,13 @@
 import contextlib
+import multiprocessing
+import shutil
 import sys
+import tempfile
 import time
+import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from multiprocessing.connection import Connection
 from pathlib import Path
 
 import yaml
@@ -28,7 +33,129 @@ from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
-REMOTE_FETCH_TIMEOUT = 30.0
+REMOTE_FETCH_INITIAL_TIMEOUT = 10.0
+REMOTE_FETCH_IDLE_TIMEOUT = 30.0
+REMOTE_FETCH_TIMEOUT = 120.0
+
+
+def _get_repository_objects_path(repo: Repository) -> Path:
+    """获取仓库实际使用的 Git 对象目录，兼容 linked worktree。"""
+    repo_path = Path(repo.path)
+    commondir_path = repo_path / 'commondir'
+    if commondir_path.is_file():
+        common_dir_value = commondir_path.read_text(encoding='utf-8').strip()
+        common_dir = Path(common_dir_value)
+        if not common_dir.is_absolute():
+            common_dir = repo_path / common_dir
+        return common_dir.resolve() / 'objects'
+    return repo_path / 'objects'
+
+
+def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
+    """让临时仓库只读复用正式仓库的 Git 对象。"""
+    if not source_objects_dir:
+        return False
+
+    source_path = Path(source_objects_dir).resolve()
+    if not source_path.is_dir():
+        return False
+
+    alternates_path = Path(temp_repo.path) / 'objects' / 'info' / 'alternates'
+    alternates_path.parent.mkdir(parents=True, exist_ok=True)
+    alternates_path.write_text(f'{source_path}\n', encoding='utf-8')
+    return True
+
+
+@contextlib.contextmanager
+def _temporary_fetch_timeout_context() -> Iterator[None]:
+    """临时设置 pygit2 的连接和网络读写超时，并恢复原值。"""
+    timeout_ms = int(REMOTE_FETCH_IDLE_TIMEOUT * 1000)
+    setting_names = ('server_connect_timeout', 'server_timeout')
+    original_values: dict[str, int] = {}
+    try:
+        effective_values: dict[str, int] = {}
+        for setting_name in setting_names:
+            if hasattr(settings, setting_name):
+                original_values[setting_name] = int(getattr(settings, setting_name))
+                setattr(settings, setting_name, timeout_ms)
+                effective_values[setting_name] = int(getattr(settings, setting_name))
+        log.info(
+            'Git fetch 超时设置: server_connect_timeout=%sms, server_timeout=%sms',
+            effective_values.get('server_connect_timeout', '不可用'),
+            effective_values.get('server_timeout', '不可用'),
+        )
+        yield
+    finally:
+        for setting_name, original_value in original_values.items():
+            setattr(settings, setting_name, original_value)
+
+
+def _send_fetch_worker_message(connection: Connection, message: dict[str, object]) -> None:
+    """向 fetch worker 的父进程发送可序列化消息。"""
+    with contextlib.suppress(BrokenPipeError, EOFError, OSError):
+        connection.send(message)
+
+
+def _fetch_remote_worker(
+    temp_repo_dir: str,
+    source_objects_dir: str | None,
+    remote_url: str,
+    branch_name: str,
+    depth: int,
+    proxy: str | None,
+    connection: Connection,
+) -> None:
+    """在独立临时 bare 仓库中执行网络 fetch。"""
+    try:
+        GitService._ensure_config_search_path()
+        temp_repo = init_repository(temp_repo_dir, bare=True)
+        refspec = f'+refs/heads/{branch_name}:refs/heads/{branch_name}'
+        actual_depth = depth
+
+        if depth == 0 and not _configure_alternate_objects(temp_repo, source_objects_dir):
+            actual_depth = 1
+            log.warning('正式仓库对象目录不可用，降级为 shallow fetch')
+
+        remote = temp_repo.remotes.create('origin', remote_url)
+        def report_progress(progress: float, message: str) -> None:
+            _send_fetch_worker_message(
+                connection,
+                {'type': 'progress', 'progress': progress, 'message': message},
+            )
+
+        callbacks = _FetchProgressRemoteCallbacks(report_progress)
+
+        try:
+            log.info(
+                f'worker 开始 Git fetch: branch={branch_name}, '
+                f'depth={actual_depth}, proxy={bool(proxy)}'
+            )
+            with _temporary_fetch_timeout_context():
+                remote.fetch(
+                    refspecs=[refspec],
+                    proxy=proxy,
+                    depth=actual_depth,
+                    callbacks=callbacks,
+                )
+            log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
+        except KeyError as error:
+            if 'object not found' not in str(error) or actual_depth != 0:
+                raise
+            with _temporary_fetch_timeout_context():
+                remote.fetch(refspecs=[refspec], proxy=proxy, depth=1, callbacks=callbacks)
+            actual_depth = 1
+
+        _send_fetch_worker_message(
+            connection,
+            {'type': 'result', 'success': True, 'depth': actual_depth},
+        )
+    except Exception as error:
+        _send_fetch_worker_message(
+            connection,
+            {'type': 'result', 'success': False, 'error': repr(error)},
+        )
+    finally:
+        connection.close()
 
 
 @dataclass
@@ -232,18 +359,8 @@ class GitService:
     @contextlib.contextmanager
     def _temporary_fetch_timeout(self) -> Iterator[None]:
         """临时设置 pygit2 的连接和网络读写超时，并恢复原值。"""
-        timeout_ms = int(REMOTE_FETCH_TIMEOUT * 1000)
-        setting_names = ('server_connect_timeout', 'server_timeout')
-        original_values: dict[str, int] = {}
-        try:
-            for setting_name in setting_names:
-                if hasattr(settings, setting_name):
-                    original_values[setting_name] = int(getattr(settings, setting_name))
-                    setattr(settings, setting_name, timeout_ms)
+        with _temporary_fetch_timeout_context():
             yield
-        finally:
-            for setting_name, original_value in original_values.items():
-                setattr(settings, setting_name, original_value)
 
     def _get_proxy_address(self) -> str | None:
         """获取代理地址"""
@@ -273,6 +390,37 @@ class GitService:
 
         return _FetchProgressRemoteCallbacks(stage_progress_callback, REMOTE_FETCH_TIMEOUT)
 
+    def _import_fetch_result(
+        self,
+        temp_repo_dir: str,
+        progress_callback: Callable[[float, str], None] | None,
+        stage_start: float,
+        stage_end: float,
+    ) -> None:
+        """将临时 bare 仓库中的目标分支导入正式仓库。"""
+        repo = self._open_repo()
+        branch_name = self.env_config.git_branch
+        remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
+        remote_url = Path(temp_repo_dir).resolve().as_uri()
+        refspec = f'+refs/heads/{branch_name}:refs/remotes/{self.env_config.git_remote}/{branch_name}'
+        def report_progress(progress: float, message: str) -> None:
+            if progress_callback is not None:
+                progress_callback(
+                    stage_start + (stage_end - stage_start) * progress,
+                    message,
+                )
+
+        callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
+
+        try:
+            log.info(f'开始导入临时 Git 仓库: {remote_url}')
+            remote = repo.remotes.create(remote_name, remote_url)
+            remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
+        finally:
+            with contextlib.suppress(Exception):
+                repo.remotes.delete(remote_name)
+
     def _fetch_remote_once(
         self,
         remote_url: str,
@@ -280,29 +428,125 @@ class GitService:
         stage_start: float,
         stage_end: float,
     ) -> None:
-        """从单个代码源拉取远程代码。"""
+        """在临时仓库中拉取单个代码源并导入正式仓库。"""
         repo = self._open_repo()
-        remote = self._ensure_remote(remote_url)
         branch_name = self.env_config.git_branch
-        refspecs = [f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}']
-        proxy = self._get_proxy_address()
-        callbacks = self._create_fetch_callbacks(progress_callback, stage_start, stage_end)
-
-        depth = 1
         local_ref = f'refs/heads/{branch_name}'
-        if local_ref in repo.references and repo.references[local_ref].target is not None:
-            depth = 0
+        depth = 0 if local_ref in repo.references and repo.references[local_ref].target is not None else 1
+        proxy = self._get_proxy_address()
+        temp_repo_dir = tempfile.mkdtemp(prefix='one_dragon_git_fetch_')
+        context = multiprocessing.get_context('spawn')
+        parent_connection, child_connection = context.Pipe(duplex=True)
+        source_objects_dir = (
+            str(_get_repository_objects_path(repo))
+            if depth == 0
+            else None
+        )
+        process = context.Process(
+            target=_fetch_remote_worker,
+            args=(
+                temp_repo_dir,
+                source_objects_dir,
+                remote_url,
+                branch_name,
+                depth,
+                proxy,
+                child_connection,
+            ),
+        )
+        result: dict[str, object] | None = None
+        process_started = False
+        has_message = False
+        last_message_at: float | None = None
+
+        def handle_messages() -> None:
+            nonlocal has_message, last_message_at, result
+            try:
+                while parent_connection.poll():
+                    message = parent_connection.recv()
+                    has_message = True
+                    last_message_at = time.monotonic()
+                    message_type = message.get('type')
+                    if message_type == 'progress':
+                        progress = float(message.get('progress', 0.0))
+                        mapped_progress = stage_start + (stage_end - stage_start) * progress
+                        if progress_callback is not None:
+                            progress_callback(mapped_progress, str(message.get('message', '')))
+                    elif message_type == 'result':
+                        result = message
+            except (BrokenPipeError, EOFError, OSError):
+                return
 
         try:
-            with self._temporary_fetch_timeout():
-                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
-        except KeyError as e:
-            if 'object not found' in str(e) and depth == 0:
-                log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
-                with self._temporary_fetch_timeout():
-                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
-            else:
-                raise
+            log.info(
+                f'启动 Git fetch worker: branch={branch_name}, depth={depth}, '
+                f'proxy={bool(proxy)}, timeout={REMOTE_FETCH_TIMEOUT:g}s'
+            )
+            process.start()
+            process_started = True
+            started_at = time.monotonic()
+
+            while result is None and process.is_alive():
+                handle_messages()
+                now = time.monotonic()
+                total_remaining = REMOTE_FETCH_TIMEOUT - (now - started_at)
+                if has_message:
+                    assert last_message_at is not None
+                    activity_remaining = REMOTE_FETCH_IDLE_TIMEOUT - (now - last_message_at)
+                    activity_timeout_message = (
+                        f'Git 远程拉取消息空闲超过 {REMOTE_FETCH_IDLE_TIMEOUT:g} 秒'
+                    )
+                else:
+                    activity_remaining = REMOTE_FETCH_INITIAL_TIMEOUT - (now - started_at)
+                    activity_timeout_message = (
+                        f'Git 远程拉取首条消息超过 {REMOTE_FETCH_INITIAL_TIMEOUT:g} 秒'
+                    )
+
+                if total_remaining <= 0:
+                    timeout_message = f'Git 远程拉取超过 {REMOTE_FETCH_TIMEOUT:g} 秒'
+                elif activity_remaining <= 0:
+                    timeout_message = activity_timeout_message
+                else:
+                    timeout_message = ''
+
+                if timeout_message:
+                    log.warning(f'Git fetch worker 超时，终止进程: url={remote_url}, {timeout_message}')
+                    process.terminate()
+                    process.join(timeout=2)
+                    if process.is_alive():
+                        process.kill()
+                        process.join()
+                    raise TimeoutError(timeout_message)
+
+                parent_connection.poll(min(total_remaining, activity_remaining, 0.1))
+
+            handle_messages()
+            process.join(timeout=2)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+                raise RuntimeError('Git fetch worker 返回结果后未能退出')
+
+            if result is None:
+                raise RuntimeError(f'Git fetch worker 异常退出，exitcode={process.exitcode}')
+            if not bool(result.get('success')):
+                raise RuntimeError(str(result.get('error', '未知错误')))
+
+            self._import_fetch_result(temp_repo_dir, progress_callback, stage_start, stage_end)
+        finally:
+            if process_started and process.is_alive():
+                with contextlib.suppress(Exception):
+                    process.terminate()
+                process.join(timeout=2)
+                if process.is_alive():
+                    with contextlib.suppress(Exception):
+                        process.kill()
+                    process.join()
+            with contextlib.suppress(Exception):
+                parent_connection.close()
+            with contextlib.suppress(Exception):
+                child_connection.close()
+            shutil.rmtree(temp_repo_dir, ignore_errors=True)
 
     def _fetch_remote(
         self,

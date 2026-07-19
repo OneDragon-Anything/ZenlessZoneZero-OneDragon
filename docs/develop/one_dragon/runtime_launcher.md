@@ -85,7 +85,7 @@ LauncherBase          → 基础参数解析、run() 入口
 - 相同 → 兼容，允许更新
 - 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
 
-GitService 会优先尝试用户指定的代码源，并按 `config/repository.yml` 中的声明顺序自动回退；一次拉取结束后，将本地 remote 恢复为 YAML 指定的主仓库 HTTPS 地址。框架统一加载并校验该文件，项目只需配置仓库列表、回退策略和地区预设，不需要创建项目级 `RepoConfig`。地区预设包含显示标题、代码源和环境源配置，设置界面按预设 ID 应用，不依赖框架内置的供应商或地区枚举。CNB 由 GitHub Actions 同步全部分支和标签，并清理 GitHub 已删除的 refs。
+代码源配置、候选源顺序和 fetch 回退机制见 [Git 服务与代码源回退](modules/git_service.md)。
 
 ### 清单路径配置
 
