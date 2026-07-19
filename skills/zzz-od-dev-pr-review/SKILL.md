@@ -17,7 +17,8 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 - merge 冲突 → 见 §6(先解冲突再审,解的过程本身也暴露集成影响)。
 - **审完再决定改不改**:看到 review comment(CodeRabbit / 人)不要先改代码——先在 merged 代码上审(理解改动 + 框架语义),再决定 comment 采纳(改)还是驳回(说明理由)。顺序:merge → 审 → 评 comment → 改。
 - 每个 PR 开一个 notes,记:背景核实 / 改动合理性 / 每级验证结果 / 结论 / 给 reviewer 的要点。
-- **测试仓也必须切到 PR 同名分支**(和主仓 `gh pr checkout` 对应):处理每个 PR 前,`git -C zzz-od-test checkout <PR 同名分支>`(无则 `checkout -b` 新建),再 `git -C zzz-od-test fetch origin && git merge origin/main`(和主仓一样,确保测试改动在最新测试仓 main 上成立)。PR 的测试改动(新测试 / 截图 fixture)**只进该分支,绝不直接 commit/push 测试仓 `main`**。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
+- **测试仓也必须切到 PR 同名分支**(和主仓 `gh pr checkout` 对应):处理每个 PR 前,**无论该 PR 有无配套测试仓 PR,都先在测试仓确保有同名分支**——`git -C zzz-od-test checkout <PR 同名分支>`(无则 `checkout -b` 本地新建,不必等测试 PR),再 `git -C zzz-od-test fetch origin && git merge origin/main`(和主仓一样,确保测试改动在最新测试仓 main 上成立)。PR 的测试改动(新测试 / 截图 fixture)**只进该分支,绝不直接 commit/push 测试仓 `main`**。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
+  - **先建分支的目的**:人一上来就在正确分支,后续补测试时不会忘记切分支 → 误 commit 测试仓 `main`(就是 #2348 的 `4ca301d` 教训:测试直接进 main → 所有 PR test-check 红)。哪怕该 PR 暂时没测试,也先把分支建好占位。
   - **为什么**:测试仓 `main` 是 test-check 的基准,必须与主仓 `main` 同步。若把**未合 PR** 的测试直接合到测试仓 `main` → 测试仓 `main` 领先主仓(测了还不存在的代码)→ **所有 PR 的 test-check 全红**(实测:#2348 的测试 `4ca301d` 误合测试仓 `main`,致 `main` 自己 + 所有后续 PR 的 test-check fail)。正确时序:该 PR 合进主仓 `main` 后,再把它的测试分支合进测试仓 `main`。
   - **截图 fixture 路径契约**:与 `zzz-od-dev-screen-onboarding` 一致,`screens/<screen_name>/<state>.webp`(screen_name 目录 + 可读状态名 + `.webp`,如 `战斗画面/默认.webp`、`战斗画面/精英.webp`);勿用 `.png` 或时间戳文件名。
 
@@ -73,3 +74,4 @@ PR 收尾(处理 review comment、推到可合并)走 `zzz-od-dev-pr-finishing`;
 - **删配置项/重构类**:grep 全量残留引用 + 确认迁移完备 + 测试仓同步检查。
 - **巨型 PR**:抽查高风险模块(有测试的优先 L3 实跑),诚实标注未深审范围,建议拆分而非整体背书。
 - **性能**:涉及热路径(战斗循环/OCR 推理)的改动,看锁粒度与阻塞——`Future.result()` 同步等、推理期持锁串行化,默认配置下影响所有用户时尤其要标。
+- **PR 合并后**:可**提示**用户删该 PR 的本地 + remote 分支(`git branch -d <branch>` + `git push origin --delete <branch>`)——只提示,**不主动做**(分支可能还在用 / 由用户决定时机)。详见 `zzz-od-dev-pr-finishing` §5。
