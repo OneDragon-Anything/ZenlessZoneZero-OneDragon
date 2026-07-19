@@ -44,6 +44,15 @@ class BaseInterface(QWidget):
         """
         pass
 
+    def preload_interface(self) -> None:
+        """
+        预加载界面内容。
+
+        用于窗口首帧显示后，在主线程空闲时间提前创建高频页面的 UI。
+        预加载不应该触发运行、网络请求等用户可感知的业务动作。
+        """
+        pass
+
     def show_info_bar(
             self,
             title: str,

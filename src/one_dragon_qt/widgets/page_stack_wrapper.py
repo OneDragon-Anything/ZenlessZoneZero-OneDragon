@@ -60,6 +60,10 @@ class PageStackWrapper(QWidget):
         else:
             self._sub_interface.on_interface_hidden()
 
+    def preload_interface(self) -> None:
+        """预加载根页面内容，不触发二级页面显示回调。"""
+        self._sub_interface.preload_interface()
+
     def _clear_secondary(self) -> None:
         if self._secondary_content is not None:
             self._page_stack.removeWidget(self._secondary_content)

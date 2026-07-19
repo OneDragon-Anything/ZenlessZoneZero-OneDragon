@@ -1,5 +1,3 @@
-import os
-
 from PySide6.QtGui import QImage, Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, HyperlinkCard, ImageLabel

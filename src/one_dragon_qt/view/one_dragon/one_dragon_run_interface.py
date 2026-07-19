@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     FluentIcon,
     PushButton,
-    SettingCardGroup,
 )
 
 from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum, InstanceRun
@@ -39,6 +38,7 @@ from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 class OneDragonRunInterface(SplitAppRunInterface):
 
     run_all_apps_signal = Signal()
+    PRELOAD_CARD_CAPACITY: int = 24
 
     def __init__(self, ctx: OneDragonContext,
                  nav_text_cn: str = '一条龙运行',
@@ -73,29 +73,26 @@ class OneDragonRunInterface(SplitAppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top = Column()
 
-        run_group = SettingCardGroup(gt('运行设置'))
-        top.add_widget(run_group)
-
         if self.help_url is not None:
             self.help_opt = HelpCard(url=self.help_url)
-            run_group.addSettingCard(self.help_opt)
+            top.add_widget(self.help_opt)
 
         self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='应用通知')
         self.notify_btn = PushButton(text=gt('设置'), icon=FluentIcon.SETTING)
         self.notify_btn.clicked.connect(self._on_notify_setting_clicked)
         self.notify_switch.hBoxLayout.addWidget(self.notify_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.notify_switch.hBoxLayout.addSpacing(16)
-        run_group.addSettingCard(self.notify_switch)
+        top.add_widget(self.notify_switch)
 
         self.instance_run_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='运行实例',
                                                     options_enum=InstanceRun)
         self.instance_run_opt.value_changed.connect(self._on_instance_run_changed)
-        run_group.addSettingCard(self.instance_run_opt)
+        top.add_widget(self.instance_run_opt)
 
         self.after_done_opt = ComboBoxSettingCard(icon=FluentIcon.CALENDAR, title='结束后',
                                                   options_enum=AfterDoneOpEnum)
         self.after_done_opt.value_changed.connect(self._on_after_done_changed)
-        run_group.addSettingCard(self.after_done_opt)
+        top.add_widget(self.after_done_opt)
 
         return top
 
@@ -154,6 +151,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         if isinstance(window, MainAppWindowBase):
             with contextlib.suppress(RuntimeError):
                 window.app_setting_manager.ready.disconnect(self._on_app_setting_manager_ready)
+
+    def preload_interface(self) -> None:
+        """预加载一条龙运行页 UI，不读取业务数据。"""
+        self._init_layout()
+        self.app_run_list.ensure_card_capacity(self.PRELOAD_CARD_CAPACITY)
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:
         """
@@ -294,8 +296,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
         return None
 
     def _find_app_card_notify_btn(self, app_id: str):
-        """找到对应 app_id 的卡片的通知设置按钮"""
+        """找到对应 app_id 的卡片，作为通知设置弹窗锚点。"""
         for card in self.app_run_list._app_cards:
             if card.app.app_id == app_id:
-                return card.more_btn
+                return card
         return None

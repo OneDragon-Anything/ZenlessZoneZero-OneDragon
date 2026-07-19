@@ -282,6 +282,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         ctx: ZContext,
         plan: ChargePlanItem | None = None,
         category_name: str = '实战模拟室',
+        init_on_create: bool = True,
     ) -> None:
         self.ctx: ZContext = ctx
         self.plan: ChargePlanItem = plan if plan is not None else ChargePlanItem()
@@ -317,7 +318,8 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
             ]
         )
 
-        self.init_with_plan(self.plan)
+        if init_on_create:
+            self.init_with_plan(self.plan)
 
     def init_with_plan(self, plan: ChargePlanItem) -> None:
         """
@@ -437,6 +439,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.combat_simulation_double_reward_config_card = DoubleRewardEventConfigCard(
             self.ctx,
             category_name='实战模拟室',
+            init_on_create=False,
         )
         self.combat_simulation_double_reward_config_card.changed.connect(
             self.set_combat_simulation_double_reward_config
@@ -511,8 +514,17 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
+    def preload_interface(self) -> None:
+        """预加载体力计划页面 UI，不读取业务数据。"""
+        self._init_layout()
+
     def update_plan_list_display(self):
         plan_list = self.config.plan_list
+
+        if len(self.card_list) == len(plan_list):
+            for idx, plan in enumerate(plan_list):
+                self.card_list[idx].update_item(plan, idx)
+            return
 
         # 清空原来的卡片再创建新的卡片, 以防止部分信息未更新
         self.drag_list.clear()
@@ -529,10 +541,6 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
             # 使用 DraggableList 的 add_list_item 方法直接添加 ChargePlanCard
             self.drag_list.add_list_item(card)
             idx += 1
-
-        # 更新所有卡片的显示
-        for idx, plan in enumerate(plan_list):
-            self.card_list[idx].update_item(plan, idx)
 
     def _on_add_clicked(self) -> None:
         from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog

@@ -168,6 +168,7 @@ class TeamSettingCard(SettingCardBase):
 
 
 class PredefinedTeamInterface(SplitAppRunInterface):
+    PRELOAD_TEAM_CARD_COUNT: int = 20
 
     def __init__(self, ctx: ZContext, parent=None):
         SplitAppRunInterface.__init__(
@@ -194,8 +195,7 @@ class PredefinedTeamInterface(SplitAppRunInterface):
     def get_left_widget(self) -> QWidget:
         left_widget = Column(margins=Margins(0, 0, 16, 0))
         self.team_opt_list: list[TeamSettingCard] = []
-        team_list = self.ctx.team_config.team_list
-        for _ in team_list:
+        for _ in range(self.PRELOAD_TEAM_CARD_COUNT):
             card = TeamSettingCard()
             card.changed.connect(self._on_team_info_changed)
             self.team_opt_list.append(card)
@@ -228,6 +228,10 @@ class PredefinedTeamInterface(SplitAppRunInterface):
             if i >= len(self.team_opt_list):
                 break
             self.team_opt_list[i].init_setting_card(auto_battle_list, team_list[i])
+
+    def preload_interface(self) -> None:
+        """预加载预备编队页面 UI，不读取业务数据。"""
+        self._init_layout()
 
     def _on_team_info_changed(self, team: PredefinedTeamInfo) -> None:
         self.ctx.team_config.update_team(team)
