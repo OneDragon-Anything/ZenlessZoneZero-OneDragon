@@ -27,6 +27,7 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
+from zzz_od.operation.exchange_ether_battery import ExchangeEtherBattery
 
 
 class ChargePlanApp(ZApplication):
@@ -248,11 +249,23 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
         # 使用已经在查找候选计划节点中设置好的 self.current_plan
+        if self.current_plan.category_name == '合成电池':
+            return self.round_success('合成电池')
+
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
                                    self.current_plan.mission_type_name)
         return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='传送', status='合成电池')
+    @operation_node(name='合成电池')
+    def exchange_ether_battery(self) -> OperationRoundResult:
+        op = ExchangeEtherBattery(self.ctx)
+        result = self.round_by_op_result(op.execute())
+        if result.is_success and result.status == ExchangeEtherBattery.STATUS_EXCHANGE_SUCCESS:
+            self.config.add_plan_run_times(self.current_plan)
+        return result
 
     @node_from(from_name='传送')
     @operation_node(name='识别副本分类')
@@ -291,6 +304,8 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', success=False)
     @node_from(from_name='恶名狩猎', success=True)
     @node_from(from_name='恶名狩猎', success=False)
+    @node_from(from_name='合成电池', success=True)
+    @node_from(from_name='合成电池', success=False)
     @operation_node(name='挑战完成')
     def challenge_complete(self) -> OperationRoundResult:
         # 成功后继续正常轮转；失败则标记当前计划已跳过，避免在同一轮里死循环重试
@@ -312,6 +327,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='区域巡防', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='专业挑战室', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
+    @node_from(from_name='合成电池', status=ExchangeEtherBattery.STATUS_MATERIAL_NOT_ENOUGH)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:

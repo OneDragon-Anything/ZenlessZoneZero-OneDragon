@@ -69,6 +69,8 @@ class ChargePlanItem:
             return 40
         if self.category_name == '恶名狩猎':
             return 60
+        if self.category_name == '合成电池':
+            return 60
         return 0  # 未知类型，在副本内检查
 
     def to_dict(self) -> dict[str, str | int | None]:
