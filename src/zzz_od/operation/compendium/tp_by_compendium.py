@@ -32,12 +32,15 @@ class TransportByCompendium(ZOperation):
         self.tab_name: str = tab_name
         self.category_name: str = category_name
         self.mission_type_name: str | None = mission_type_name
-
         if self.mission_type_name == '自定义模板':  # 没法直接传送到自定义
             self.mission_type_name = '基础材料'
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
+        _, can_go = self.check_screen_with_can_go(self.last_screenshot, f'快捷手册-{self.tab_name}')
+        if can_go:
+            return self.round_success()
+
         # 先回到大世界
         op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
         return self.round_by_op_result(op.execute())
@@ -65,6 +68,7 @@ class TransportByCompendium(ZOperation):
             return self.round_by_op_result(op.execute())
 
         return self.round_success(status='无需选择副本')
+
 
 def __debug():
     ctx = ZContext()

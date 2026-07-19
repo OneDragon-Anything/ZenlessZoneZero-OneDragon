@@ -15,6 +15,7 @@ CLAUDE.local.md
 .lingma/
 .qwen/
 .claude/*
+.pai/
 !.claude/CLAUDE.md
 nul
 
