@@ -79,6 +79,14 @@ class NotoriousHunt(ZOperation):
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
         self.can_run_times: int = -1
 
+    @operation_node(name='初始化加载', is_start_node=True)
+    def init_for_notorious_hunt(self) -> OperationRoundResult:
+        try:
+            self.ctx.lost_void.init_lost_void_det_model()
+        except Exception:
+            return self.round_fail('初始化失败')
+        return self.round_success()
+
     def _match_mission_type(self, target_name: str, ocr_result: str) -> bool:
         """
         匹配任务类型名称（支持别名双向查找）
@@ -94,6 +102,7 @@ class NotoriousHunt(ZOperation):
                     break
         return any(str_utils.find_by_lcs(gt(n, 'game'), ocr_result, percent=0.5) for n in names)
 
+    @node_from(from_name='初始化加载')
     @operation_node(name='等待入口加载', node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
         r1 = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '当期剩余奖励次数')

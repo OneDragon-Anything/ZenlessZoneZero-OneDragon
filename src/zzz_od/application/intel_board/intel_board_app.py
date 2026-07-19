@@ -44,7 +44,16 @@ class IntelBoardApp(ZApplication):
         self.current_commission_type: CommissionType | None = None
         self.has_filtered: bool = False
 
-    @operation_node(name='返回录像店', is_start_node=True)
+    @operation_node(name='初始化加载', is_start_node=True)
+    def init_for_intel_board(self) -> OperationRoundResult:
+        try:
+            self.ctx.lost_void.init_lost_void_det_model()
+        except Exception:
+            return self.round_fail('初始化失败')
+        return self.round_success()
+
+    @node_from(from_name='初始化加载')
+    @operation_node(name='返回录像店')
     def back_to_world(self) -> OperationRoundResult:
         op = Transport(self.ctx, '录像店', '房间')
         return self.round_by_op_result(op.execute())
