@@ -43,6 +43,7 @@ class ApplicationFactory:
             - APP_NAME: 显示用的应用名称
             - DEFAULT_GROUP: 是否属于默认应用组
             - NEED_NOTIFY: 应用是否需要通知
+            - PRIORITY: 默认组排序优先级（可选）
 
         Args:
             app_const: 应用常量模块
@@ -51,6 +52,12 @@ class ApplicationFactory:
         self.app_name: str = app_const.APP_NAME
         self.default_group: bool = app_const.DEFAULT_GROUP
         self.need_notify: bool = app_const.NEED_NOTIFY
+        priority = getattr(app_const, 'PRIORITY', None)
+        if priority is not None and (
+            not isinstance(priority, int) or isinstance(priority, bool)
+        ):
+            raise ValueError(f'应用 {self.app_id} 的 PRIORITY 必须为整数')
+        self.priority: int | None = priority
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 

@@ -1,4 +1,5 @@
 APP_ID = "email"
 APP_NAME = "邮件"
 DEFAULT_GROUP = True
+PRIORITY = 200
 NEED_NOTIFY = True
