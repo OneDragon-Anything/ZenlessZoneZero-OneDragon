@@ -366,7 +366,6 @@ class ApplicationRunContext:
             self.switch_context_pause_and_run()
 
         self._run_state = ApplicationRunContextStateEnum.STOP
-        log.info("停止运行 原因 %s", result.finish_reason)
         if dispatch_event:
             self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.STOP, result
