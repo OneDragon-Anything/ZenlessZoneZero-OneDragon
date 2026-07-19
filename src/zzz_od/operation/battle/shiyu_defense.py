@@ -136,7 +136,7 @@ class ShiyuDefenseBattleOp(BattleOpBase):
 
     def _get_auto_battle_op_name(self) -> str | None:
         """防卫战用 team_config.auto_battle(对齐原 shiyu_defense_battle.py:51)。"""
-        return self.team_config.auto_battle
+        return self.team_config.auto_battle if self.team_config else None
 
     def _check_battle_state(self) -> bool:
         """开 normal + defense(防卫战结算 area)。"""
