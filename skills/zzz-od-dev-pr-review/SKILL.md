@@ -19,7 +19,7 @@ description: 当要审查/验证一个 open PR 是否可合并时用。英文 re
 - 每个 PR 开一个 notes,记:背景核实 / 改动合理性 / 每级验证结果 / 结论 / 给 reviewer 的要点。
 - **测试仓也必须切到 PR 同名分支**(和主仓 `gh pr checkout` 对应):处理每个 PR 前,`git -C zzz-od-test checkout <PR 同名分支>`(无则 `checkout -b` 新建),再 `git -C zzz-od-test fetch origin && git merge origin/main`(和主仓一样,确保测试改动在最新测试仓 main 上成立)。PR 的测试改动(新测试 / 截图 fixture)**只进该分支,绝不直接 commit/push 测试仓 `main`**。测试改动走 `git -C zzz-od-test`(主仓 gitignore 会静默跳过)。
   - **为什么**:测试仓 `main` 是 test-check 的基准,必须与主仓 `main` 同步。若把**未合 PR** 的测试直接合到测试仓 `main` → 测试仓 `main` 领先主仓(测了还不存在的代码)→ **所有 PR 的 test-check 全红**(实测:#2348 的测试 `4ca301d` 误合测试仓 `main`,致 `main` 自己 + 所有后续 PR 的 test-check fail)。正确时序:该 PR 合进主仓 `main` 后,再把它的测试分支合进测试仓 `main`。
-  - **截图 fixture 路径契约**:与 `zzz-od-dev-screen-onboarding` 一致,`screens/<画面名>/默认.png`;同一画面多状态用状态子名(如 `默认` / `精英`)。
+  - **截图 fixture 路径契约**:与 `zzz-od-dev-screen-onboarding` 一致,`screens/<screen_name>/<state>.webp`(screen_name 目录 + 可读状态名 + `.webp`,如 `战斗画面/默认.webp`、`战斗画面/精英.webp`);勿用 `.png` 或时间戳文件名。
 
 ## 1. L0 分诊
 
