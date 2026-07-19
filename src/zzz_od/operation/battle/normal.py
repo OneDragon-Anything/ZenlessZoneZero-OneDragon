@@ -2,6 +2,7 @@
 
 纯继承 BattleOpBase 节点图,只覆写 _get_auto_battle_op_name。经 run_operation 跑。
 """
+from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.battle.base import BattleOpBase
 
 
@@ -12,7 +13,7 @@ class NormalBattleOp(BattleOpBase):
     不重定义/不 shadow 任何节点;只覆写 _get_auto_battle_op_name。
     """
 
-    def __init__(self, ctx, auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1,
+    def __init__(self, ctx: ZContext, auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1,
                  try_next: bool = False, is_agent_plan: bool = False) -> None:
         """默认 op_name='普通战斗'。"""
         BattleOpBase.__init__(self, ctx, op_name='普通战斗',

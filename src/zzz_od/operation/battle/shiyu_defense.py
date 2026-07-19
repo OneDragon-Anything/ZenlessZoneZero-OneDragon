@@ -13,6 +13,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.auto_battle.auto_battle_utils import switch_to_best_agent_for_moving
 from zzz_od.config.team_config import PredefinedTeamInfo
+from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.battle.base import BattleOpBase, MoveTarget
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 
@@ -28,7 +29,7 @@ class ShiyuDefenseBattleOp(BattleOpBase):
     覆写 _check_battle_state(normal+defense) + _check_in_battle_secondary(倒计时副判)。
     """
 
-    def __init__(self, ctx, predefined_team_idx: int) -> None:
+    def __init__(self, ctx: ZContext, predefined_team_idx: int) -> None:
         """Args:
             ctx: ZContext。
             predefined_team_idx: 预备编队下标(必传)。
@@ -39,11 +40,11 @@ class ShiyuDefenseBattleOp(BattleOpBase):
 
     # ===== shadow:移除基类「战前移动」/「开始自动战斗」节点(保留 start_auto_battle 方法体)=====
 
-    def pre_battle_move(self) -> OperationRoundResult:
+    def pre_battle_move(self) -> None:
         """shadow:移除基类「战前移动」节点(防卫战用「开始移动」替代)。"""
         pass
 
-    def start_auto_battle(self) -> OperationRoundResult:
+    def start_auto_battle(self) -> None:
         """shadow:移除基类「开始自动战斗」节点,但保留方法体(供「开始移动」条件触发调用)。"""
         self.ctx.auto_battle_context.start_auto_battle()
 
@@ -116,9 +117,9 @@ class ShiyuDefenseBattleOp(BattleOpBase):
         """按 last_check_end_result status 分流:撤退/退出点对应 area。战斗结束-下一防线是 area(由 app 处理)。"""
         status = self.ctx.auto_battle_context.last_check_end_result
         if status == '战斗结束-撤退':
-            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-撤退')
+            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-撤退', success_wait=1, retry_wait=1)
         if status == '战斗结束-退出':
-            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出')
+            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出', success_wait=1, retry_wait=1)
         return self.round_success(status=status)
 
     # ===== hook 覆写 =====

@@ -12,6 +12,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
@@ -57,7 +58,7 @@ class BattleOpBase(ZOperation):
     _blind_turn_step: int = 200
     _move_times_limit: int = 20
 
-    def __init__(self, ctx, op_name: str = '战斗',
+    def __init__(self, ctx: ZContext, op_name: str = '战斗',
                  auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1,
                  try_next: bool = False, is_agent_plan: bool = False) -> None:
         """通用参数。
