@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
-
 from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -34,7 +32,7 @@ class ApplicationGroupManager:
         """
         return [DEFAULT_GROUP_ID]
 
-    def get_group_config(self, instance_idx: int, group_id: str) -> Optional[ApplicationGroupConfig]:
+    def get_group_config(self, instance_idx: int, group_id: str) -> ApplicationGroupConfig | None:
         """
         获取分组配置
 
@@ -86,7 +84,17 @@ class ApplicationGroupManager:
         """
         config = ApplicationGroupConfig(instance_idx=instance_idx, group_id=DEFAULT_GROUP_ID)
         need_migration = not config.is_file_exists
-        config.update_full_app_list(self._default_app_id_list)
+
+        # 默认组应用自动加入，配置中已有的非默认组应用继续保留显示
+        app_id_list = list(self._default_app_id_list)
+        default_app_ids = set(app_id_list)
+        app_id_list.extend(
+            item.app_id
+            for item in config._all_apps
+            if item.app_id not in default_app_ids
+            and self.ctx.run_context.is_app_registered(item.app_id)
+        )
+        config.update_full_app_list(app_id_list)
 
         # 从旧的配置文件迁移过来 2026-09-21 可删除
         if need_migration:
