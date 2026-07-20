@@ -95,6 +95,8 @@ class CommonDownloader:
         Returns:
             bool: 是否都存在
         """
+        if not self.param.check_existed_list:
+            return False
         all_existed: bool = True
         for file_name in self.param.check_existed_list:
             if not os.path.exists(file_name):

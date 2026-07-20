@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: account_dropdown_expand
+template_name: 账号下拉-点击展开
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1218, 497
+- 1233, 512

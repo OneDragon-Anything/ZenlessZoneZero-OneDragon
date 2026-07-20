@@ -1,7 +1,13 @@
+import time
+
 import numpy as np
-from onnxocr.imaug import transform, create_operators
+
 from onnxocr.db_postprocess import DBPostProcess
+from onnxocr.imaug import create_operators, transform
+from onnxocr.logger import get_logger
 from onnxocr.predict_base import PredictBase
+
+log = get_logger("predict_det")
 
 
 class TextDetector(PredictBase):
@@ -30,22 +36,27 @@ class TextDetector(PredictBase):
         postprocess_params["name"] = "DBPostProcess"
         postprocess_params["thresh"] = args.det_db_thresh
         postprocess_params["box_thresh"] = args.det_db_box_thresh
-        postprocess_params["max_candidates"] = 1000
+        postprocess_params["max_candidates"] = getattr(args, "det_db_max_candidates", 1000)
         postprocess_params["unclip_ratio"] = args.det_db_unclip_ratio
         postprocess_params["use_dilation"] = args.use_dilation
         postprocess_params["score_mode"] = args.det_db_score_mode
         postprocess_params["box_type"] = args.det_box_type
 
-        # 实例化预处理操作类
+        # 实例化前处理操作类
         self.preprocess_op = create_operators(pre_process_list)
         # self.postprocess_op = build_post_process(postprocess_params)
         # 实例化后处理操作类
         self.postprocess_op = DBPostProcess(**postprocess_params)
 
         # 初始化模型
-        self.det_onnx_session = self.get_onnx_session(args.det_model_dir, args.use_gpu)
+        self.det_onnx_session = self.get_onnx_session(args.det_model_dir, args.use_gpu, gpu_id = args.gpu_id)
         self.det_input_name = self.get_input_name(self.det_onnx_session)
         self.det_output_name = self.get_output_name(self.det_onnx_session)
+        log.info("Detection model loaded: {}", args.det_model_dir)
+
+        # 预热模型，避免因为算子懒加载导致前几次推理耗时增加 2-10 倍
+        dummy = np.zeros((1, 3, int(args.det_limit_side_len), int(args.det_limit_side_len)), dtype=np.float32)
+        self.det_onnx_session.run(self.det_output_name, {self.det_input_name[0]: dummy})
 
     def order_points_clockwise(self, pts):
         rect = np.zeros((4, 2), dtype="float32")
@@ -92,7 +103,7 @@ class TextDetector(PredictBase):
         return dt_boxes
 
     def __call__(self, img):
-        ori_im = img.copy()
+        ori_shape = img.shape
         data = {"image": img}
 
         data = transform(data, self.preprocess_op)
@@ -104,7 +115,9 @@ class TextDetector(PredictBase):
         img = img.copy()
 
         input_feed = self.get_input_feed(self.det_input_name, img)
-        outputs = self.det_onnx_session.run(self.det_output_name, input_feed=input_feed)
+        t0 = time.time()
+        outputs = self.run_onnx_session(self.det_onnx_session, self.det_output_name, input_feed=input_feed)
+        # log.debug("Detection inference time: {:.3f}s", time.time() - t0)
 
         preds = {}
         preds["maps"] = outputs[0]
@@ -113,8 +126,8 @@ class TextDetector(PredictBase):
         dt_boxes = post_result[0]["points"]
 
         if self.args.det_box_type == "poly":
-            dt_boxes = self.filter_tag_det_res_only_clip(dt_boxes, ori_im.shape)
+            dt_boxes = self.filter_tag_det_res_only_clip(dt_boxes, ori_shape)
         else:
-            dt_boxes = self.filter_tag_det_res(dt_boxes, ori_im.shape)
+            dt_boxes = self.filter_tag_det_res(dt_boxes, ori_shape)
 
         return dt_boxes

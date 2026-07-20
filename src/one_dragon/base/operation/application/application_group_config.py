@@ -31,7 +31,7 @@ class ApplicationGroupConfig(YamlOperator):
         """
         file_path = os.path.join(
             os_utils.get_path_under_work_dir(
-                "config", ("%02d" % instance_idx), group_id
+                "config", f"{instance_idx:02d}", group_id
             ),
             "_group.yml",
         )
@@ -115,6 +115,15 @@ class ApplicationGroupConfig(YamlOperator):
                 break
 
         if changed:
+            self.save_app_list()
+
+    def remove_app(self, app_id: str) -> None:
+        """从应用组配置中永久移除应用。"""
+        old_all_apps = self._all_apps
+        self._all_apps = [item for item in old_all_apps if item.app_id != app_id]
+        self.app_list = [item for item in self.app_list if item.app_id != app_id]
+
+        if len(self._all_apps) != len(old_all_apps):
             self.save_app_list()
 
     def set_app_order(self, app_id_list: list[str]) -> None:

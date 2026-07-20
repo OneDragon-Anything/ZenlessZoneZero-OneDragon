@@ -9,14 +9,15 @@ from one_dragon.base.operation.operation_round_result import (
     OperationRoundResultEnum,
 )
 from one_dragon.utils import cv2_utils
+from one_dragon.utils.log_utils import log
 from zzz_od.application.intel_board import intel_board_const
 from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
+from zzz_od.operation.transport import Transport
 
 
 class CommissionType(StrEnum):
@@ -43,12 +44,21 @@ class IntelBoardApp(ZApplication):
         self.current_commission_type: CommissionType | None = None
         self.has_filtered: bool = False
 
-    @operation_node(name='返回大世界', is_start_node=True)
+    @operation_node(name='初始化加载', is_start_node=True)
+    def init_for_intel_board(self) -> OperationRoundResult:
+        try:
+            self.ctx.lost_void.init_lost_void_det_model()
+        except Exception:
+            return self.round_fail('初始化失败')
+        return self.round_success()
+
+    @node_from(from_name='初始化加载')
+    @operation_node(name='返回录像店')
     def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
+        op = Transport(self.ctx, '录像店', '房间')
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='返回大世界')
+    @node_from(from_name='返回录像店')
     @operation_node(name='打开情报板')
     def open_board(self) -> OperationRoundResult:
         if self.config.exp_grind_mode:
@@ -194,7 +204,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        result = self.round_by_ocr(self.last_screenshot, '接取失败')
+        result = self.round_by_ocr(self.last_screenshot, '接取失败', lcs_percent=0.75)
         if result.is_success:
             return self.round_success('接取失败')
 
@@ -222,6 +232,7 @@ class IntelBoardApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='选择预备编队')
+    @node_from(from_name='选择任意预备编队')
     @operation_node(name='点击出战')
     def click_deploy(self) -> OperationRoundResult:
         # 9. 编队选择完成后点击出战进入战斗
@@ -231,10 +242,25 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='委托代行中弹窗')
     def click_commission_agent(self) -> OperationRoundResult:
         # 点击委托代行中弹窗的确定按钮（如果有的话）
+        result = self.round_by_ocr(self.last_screenshot, '至少选择1位代理人出战')
+        if result.is_success:
+            result = self.round_by_ocr_and_click(self.last_screenshot, '确认')
+            if result.is_success:
+                return self.round_success('未选择代理人', wait=1)
+            return result
+
         result = self.round_by_ocr(self.last_screenshot, '委托代行中')
         if result.is_success:
             return self.round_by_ocr_and_click(self.last_screenshot, '确认')
         return self.round_success('无弹窗')
+
+    @node_from(from_name='委托代行中弹窗', status='未选择代理人')
+    @operation_node(name='选择任意预备编队')
+    def choose_any_predefined_team(self) -> OperationRoundResult:
+        fallback_team = self.ctx.team_config.team_list[0]
+        log.warning(f'因未选择预备编队，当前副本没有代理人出战，使用预备编队 {fallback_team.name} 重新出战')
+        op = ChoosePredefinedTeam(self.ctx, [fallback_team.idx])
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='委托代行中弹窗')
     @operation_node(name='加载自动战斗指令')

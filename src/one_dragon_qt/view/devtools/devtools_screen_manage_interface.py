@@ -22,9 +22,7 @@ from qfluentwidgets import (
     InfoBarIcon,
     LineEdit,
     PushButton,
-    ScrollArea,
     SimpleCardWidget,
-    SingleDirectionScrollArea,
     TableWidget,
     ToolButton,
 )
@@ -47,6 +45,7 @@ from one_dragon_qt.mixins.history_mixin import HistoryMixin
 from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
@@ -156,7 +155,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         return main_widget
 
     def _init_left_part(self) -> QWidget:
-        scroll_area = SingleDirectionScrollArea()
+        scroll_area = FastScrollArea()
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
@@ -251,8 +250,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._popup_win: QDialog | None = None
 
         scroll_area.setWidget(control_widget)
-        scroll_area.setWidgetResizable(True)
-
         return scroll_area
 
     def _init_area_table_widget(self) -> QWidget:
@@ -265,10 +262,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         layout.setSpacing(8)
 
         # 创建横向滚动区域
-        scroll_area = ScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area = FastScrollArea(orient=Qt.Orientation.Horizontal)
 
         self.area_table = TableWidget()
         self.area_table.cellChanged.connect(self._on_area_table_cell_changed)

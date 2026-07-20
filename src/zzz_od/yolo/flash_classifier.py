@@ -1,8 +1,7 @@
-import os
-from typing import Optional
-
-from one_dragon.yolo.yolo_utils import ZZZ_MODEL_DOWNLOAD_URL
+from one_dragon.utils import yolo_config_utils
+from one_dragon.yolo.yolo_utils import get_github_model_download_url
 from one_dragon.yolo.yolov8_onnx_cls import Yolov8Classifier
+from zzz_od.config.model_config import YOLO_RELEASE_TAG
 
 
 class FlashClassifier(Yolov8Classifier):
@@ -11,10 +10,10 @@ class FlashClassifier(Yolov8Classifier):
             self,
             model_name: str = 'yolov8n-640-flash-20250906',
             backup_model_name: str = 'yolov8n-640-flash-20250622',
-            model_parent_dir_path: Optional[str] = os.path.abspath(__file__),  # 默认使用本文件的目录
+            model_parent_dir_path: str = yolo_config_utils.get_model_category_dir('flash_classifier'),
             gh_proxy: bool = True,
-            gh_proxy_url: Optional[str] = None,
-            personal_proxy: Optional[str] = None,
+            gh_proxy_url: str | None = None,
+            personal_proxy: str | None = None,
             gpu: bool = False,
             keep_result_seconds: float = 2
     ):
@@ -29,7 +28,7 @@ class FlashClassifier(Yolov8Classifier):
             model_name=model_name,
             backup_model_name=backup_model_name,
             model_parent_dir_path=model_parent_dir_path,
-            model_download_url=ZZZ_MODEL_DOWNLOAD_URL,
+            model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
             gh_proxy=gh_proxy,
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,

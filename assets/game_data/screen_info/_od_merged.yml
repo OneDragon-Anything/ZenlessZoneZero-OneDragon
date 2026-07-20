@@ -1,5 +1,6 @@
 - screen_id: 3d_map
   screen_name: 3D地图
+  app_id: world_patrol
   pc_alt: false
   area_list:
   - area_name: 按钮-快捷导航
@@ -491,6 +492,20 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 战斗结果-已达成
+    id_mark: false
+    pc_rect:
+    - 610
+    - 1000
+    - 690
+    - 1055
+    text: 已达成
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 距离显示区域
     id_mark: false
     pc_rect:
@@ -660,6 +675,34 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 按键-切换后援标记
+    id_mark: false
+    pc_rect:
+    - 1658
+    - 891
+    - 1661
+    - 897
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按键-切换后援灰度区域
+    id_mark: false
+    pc_rect:
+    - 1660
+    - 860
+    - 1681
+    - 862
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: battle_menu
   screen_name: 战斗-菜单
   pc_alt: false
@@ -810,6 +853,7 @@
     goto_list: []
 - screen_id: city_fund
   screen_name: 丽都城募
+  app_id: city_fund
   pc_alt: false
   area_list:
   - area_name: 成长任务
@@ -898,6 +942,7 @@
     goto_list: []
 - screen_id: coffee_shop
   screen_name: 咖啡店
+  app_id: coffee
   pc_alt: false
   area_list:
   - area_name: 点单
@@ -973,9 +1018,9 @@
   - area_name: 电量确认
     id_mark: false
     pc_rect:
-    - 876
-    - 706
-    - 1080
+    - 875
+    - 640
+    - 1200
     - 754
     text: 确认
     lcs_percent: 0.5
@@ -992,6 +1037,48 @@
     - 1084
     - 690
     text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 右侧选项区域
+    id_mark: false
+    pc_rect:
+    - 1438
+    - 536
+    - 1914
+    - 830
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 对话框-明天再来
+    id_mark: false
+    pc_rect:
+    - 1110
+    - 890
+    - 1340
+    - 970
+    text: 明天再来吧
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 对话框标题-汀曼大师
+    id_mark: false
+    pc_rect:
+    - 880
+    - 800
+    - 1040
+    - 840
+    text: 汀曼大师
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -1228,6 +1315,7 @@
     goto_list: []
 - screen_id: commission_assistant
   screen_name: 委托助手
+  app_id: commission_assistant
   pc_alt: false
   area_list:
   - area_name: 对话框标题
@@ -1238,10 +1326,24 @@
     - 1110
     - 830
     text: ''
-    lcs_percent: 0.5
+    lcs_percent: null
     template_sub_dir: ''
     template_id: ''
-    template_match_threshold: 0.7
+    template_match_threshold: null
+    color_range: null
+    goto_list: []
+  - area_name: 对话框内容
+    id_mark: false
+    pc_rect:
+    - 418
+    - 831
+    - 1500
+    - 980
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 右侧选项区域
@@ -1252,10 +1354,10 @@
     - 1914
     - 830
     text: ''
-    lcs_percent: 0.5
+    lcs_percent: null
     template_sub_dir: ''
     template_id: ''
-    template_match_threshold: 0.7
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 中间选项区域
@@ -1340,6 +1442,20 @@
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 玩法引导
+    id_mark: false
+    pc_rect:
+    - 342
+    - 213
+    - 565
+    - 285
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: null
     color_range: null
     goto_list: []
   - area_name: 按钮-短信-关闭
@@ -1525,10 +1641,10 @@
   - area_name: TAB列表
     id_mark: false
     pc_rect:
-    - 716
-    - 100
-    - 1630
-    - 178
+    - 708
+    - 140
+    - 1636
+    - 220
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1582,9 +1698,9 @@
     id_mark: false
     pc_rect:
     - 1532
-    - 234
+    - 250
     - 1602
-    - 308
+    - 350
     text: ''
     lcs_percent: 0.5
     template_sub_dir: compendium
@@ -1624,9 +1740,9 @@
     id_mark: false
     pc_rect:
     - 417
-    - 221
+    - 250
     - 646
-    - 274
+    - 320
     text: 今日最大活跃度
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1637,10 +1753,10 @@
   - area_name: 按钮-退出
     id_mark: false
     pc_rect:
-    - 1730
-    - 206
-    - 1794
-    - 266
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1690,6 +1806,68 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 目标列表-训练-恶名狩猎
+    id_mark: false
+    pc_rect:
+    - 1254
+    - 552
+    - 1312
+    - 894
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 每日怪物卡双倍掉落次数
+    id_mark: false
+    pc_rect:
+    - 1000
+    - 316
+    - 1400
+    - 356
+    text: 每日怪物卡双倍掉落次数
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 怪物卡双倍剩余次数
+    id_mark: false
+    pc_rect:
+    - 1270
+    - 316
+    - 1380
+    - 356
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 资源栏
+    id_mark: false
+    pc_rect:
+    - 1220
+    - 35
+    - 1770
+    - 110
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range:
+    - - 208
+      - 208
+      - 208
+    - - 255
+      - 255
+      - 255
+    goto_list: []
 - screen_id: compendium_combat
   screen_name: 快捷手册-作战
   pc_alt: false
@@ -1698,9 +1876,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 训练
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1713,9 +1891,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 目标
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1728,9 +1906,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 日常
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1743,9 +1921,9 @@
     id_mark: true
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 作战
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1764,9 +1942,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 战术
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1778,10 +1956,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1799,9 +1977,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 训练
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1814,9 +1992,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 目标
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1829,9 +2007,9 @@
     id_mark: true
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 日常
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1850,9 +2028,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 作战
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1865,9 +2043,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 战术
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1879,10 +2057,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1900,9 +2078,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 训练
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1915,9 +2093,9 @@
     id_mark: true
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 目标
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1936,9 +2114,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 日常
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1951,9 +2129,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 作战
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1966,9 +2144,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 战术
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1980,10 +2158,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2001,9 +2179,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 训练
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2016,9 +2194,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 目标
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2031,9 +2209,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 日常
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2046,9 +2224,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 作战
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2061,9 +2239,9 @@
     id_mark: true
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 战术
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2081,10 +2259,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2102,9 +2280,9 @@
     id_mark: true
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 训练
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2123,9 +2301,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 目标
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2138,9 +2316,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 日常
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2153,9 +2331,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 作战
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2168,9 +2346,9 @@
     id_mark: false
     pc_rect:
     - 708
-    - 100
+    - 140
     - 1636
-    - 178
+    - 220
     text: 战术
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2182,10 +2360,10 @@
   - area_name: 按钮-关闭
     id_mark: false
     pc_rect:
-    - 1728
-    - 206
-    - 1796
-    - 268
+    - 1721
+    - 229
+    - 1799
+    - 307
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2195,20 +2373,6 @@
     goto_list:
     - 菜单
     - 大世界-普通
-  - area_name: 文本-电量
-    id_mark: false
-    pc_rect:
-    - 1346
-    - 214
-    - 1406
-    - 268
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 按钮-奖励
     id_mark: false
     pc_rect:
@@ -2217,20 +2381,6 @@
     - 1566
     - 266
     text: 奖励
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 文本-电量2
-    id_mark: false
-    pc_rect:
-    - 1048
-    - 214
-    - 1110
-    - 268
-    text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -2299,16 +2449,17 @@
     goto_list: []
 - screen_id: drive_disc_dismantle
   screen_name: 仓库-驱动仓库-驱动盘拆解
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-驱动盘拆解
     id_mark: true
     pc_rect:
-    - 184
-    - 4
-    - 326
-    - 102
-    text: 驱动盘拆解
+    - 168
+    - 17
+    - 432
+    - 92
+    text: 驱动
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -2318,10 +2469,10 @@
   - area_name: 按钮-快速选择
     id_mark: true
     pc_rect:
-    - 166
-    - 1000
-    - 342
-    - 1054
+    - 134
+    - 968
+    - 407
+    - 1068
     text: 快速选择
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2429,6 +2580,7 @@
     goto_list: []
 - screen_id: email
   screen_name: 邮件
+  app_id: email
   pc_alt: false
   area_list:
   - area_name: 全部领取
@@ -2500,6 +2652,48 @@
     - 1136
     - 1032
     text: 点击进入游戏
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 进入游戏点击后状态
+    id_mark: false
+    pc_rect:
+    - 700
+    - 820
+    - 1220
+    - 1032
+    text: ''
+    lcs_percent: null
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏数据更新提示
+    id_mark: false
+    pc_rect:
+    - 760
+    - 520
+    - 1160
+    - 590
+    text: 游戏数据已更新
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏数据更新-确定
+    id_mark: false
+    pc_rect:
+    - 820
+    - 610
+    - 1120
+    - 700
+    text: 确定
     lcs_percent: 0.6
     template_sub_dir: ''
     template_id: ''
@@ -2582,7 +2776,7 @@
     - 1036
     - 604
     - 1226
-    - 652
+    - 812
     text: 确定
     lcs_percent: 1.0
     template_sub_dir: ''
@@ -2593,14 +2787,14 @@
   - area_name: 切换账号
     id_mark: false
     pc_rect:
-    - 1796
-    - 974
-    - 1852
-    - 1022
+    - 1790
+    - 965
+    - 1853
+    - 1029
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
+    template_sub_dir: enter_game
+    template_id: switch_account
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -3027,15 +3221,141 @@
   - area_name: 国服-返回按钮
     id_mark: false
     pc_rect:
-    - 538
-    - 222
-    - 575
-    - 265
+    - 527
+    - 210
+    - 588
+    - 271
     text: ''
     lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: login_back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 资源检测
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 705
+    - 1853
+    - 771
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: resource_check
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 设置
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 791
+    - 1853
+    - 857
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: settings
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 游戏公告
+    id_mark: false
+    pc_rect:
+    - 1787
+    - 877
+    - 1853
+    - 943
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: announcement
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 退出登录-清除登录记录
+    id_mark: false
+    pc_rect:
+    - 662
+    - 432
+    - 877
+    - 460
+    text: 退出并清除登录记录
+    lcs_percent: 0.6
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 退出登录-保留登录记录
+    id_mark: false
+    pc_rect:
+    - 662
+    - 510
+    - 877
+    - 537
+    text: 退出并保留登录记录
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-退出登录-取消
+    id_mark: false
+    pc_rect:
+    - 791
+    - 760
+    - 848
+    - 791
+    text: 取消
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 账号确认-进入游戏
+    id_mark: false
+    pc_rect:
+    - 907
+    - 608
+    - 1014
+    - 643
+    text: 进入游戏
+    lcs_percent: 0.6
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 账号下拉-点击展开
+    id_mark: false
+    pc_rect:
+    - 1208
+    - 487
+    - 1243
+    - 522
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: account_dropdown_expand
+    template_match_threshold: 0.9
+    color_range: null
+    goto_list: []
+  - area_name: 账号下拉-点击收起
+    id_mark: false
+    pc_rect:
+    - 1208
+    - 487
+    - 1243
+    - 522
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: enter_game
+    template_id: account_dropdown_collapse
+    template_match_threshold: 0.9
     color_range: null
     goto_list: []
 - screen_id: expert_challenge
@@ -3072,6 +3392,7 @@
     goto_list: []
 - screen_id: fishing
   screen_name: 钓鱼
+  app_id: commission_assistant
   pc_alt: false
   area_list:
   - area_name: 指令文本区域
@@ -3346,6 +3667,7 @@
     goto_list: []
 - screen_id: hollow_zero_battle
   screen_name: 零号空洞-战斗
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 鸣徽-确定
@@ -3448,6 +3770,7 @@
     goto_list: []
 - screen_id: hollow_zero_entry
   screen_name: 零号空洞-入口
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 街区
@@ -3578,6 +3901,7 @@
     goto_list: []
 - screen_id: hollow_zero_event
   screen_name: 零号空洞-事件
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 事件文本
@@ -3946,6 +4270,7 @@
     goto_list: []
 - screen_id: hollow_zero_merchant
   screen_name: 零号空洞-商店
+  app_id: withered_domain
   pc_alt: false
   area_list:
   - area_name: 右上角-返回
@@ -4102,8 +4427,28 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: hou_hou_bakery
+  screen_name: 吼吼饼铺
+  app_id: hou_hou_bakery
+  pc_alt: false
+  area_list:
+  - area_name: 盲盒
+    id_mark: false
+    pc_rect:
+    - 1100
+    - 430
+    - 1260
+    - 570
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: intel_board
   screen_name: 情报板
+  app_id: intel_board
   pc_alt: false
   area_list:
   - area_name: 点数兑换
@@ -4206,6 +4551,7 @@
     goto_list: []
 - screen_id: inter_knot
   screen_name: 绳网
+  app_id: world_patrol
   pc_alt: false
   area_list:
   - area_name: 按钮-GO
@@ -4266,6 +4612,7 @@
     goto_list: []
 - screen_id: life_on_line
   screen_name: 真拿命验收
+  app_id: life_on_line
   pc_alt: false
   area_list:
   - area_name: 第二章间章
@@ -4324,8 +4671,27 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: loading
+  screen_name: 加载中
+  pc_alt: false
+  area_list:
+  - area_name: 加载中
+    id_mark: false
+    pc_rect:
+    - 1161
+    - 724
+    - 1929
+    - 1055
+    text: NOW LOADING
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: lostvoid_indexpanel
   screen_name: 迷失之地-藏品面板
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 返回按钮
@@ -4414,6 +4780,7 @@
     goto_list: []
 - screen_id: lostvoid_investigativeStrategy
   screen_name: 迷失之地-调查战略选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 战略等级
@@ -4432,6 +4799,7 @@
     goto_list: []
 - screen_id: lost_void_bangboo_store
   screen_name: 迷失之地-邦布商店
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 文本-详情
@@ -4610,6 +4978,7 @@
     goto_list: []
 - screen_id: lost_void_battle_fail
   screen_name: 迷失之地-战斗失败
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-撤退
@@ -4656,15 +5025,16 @@
     goto_list: []
 - screen_id: lost_void_battle_result
   screen_name: 迷失之地-挑战结果
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 标题-挑战结果
     id_mark: true
     pc_rect:
-    - 566
-    - 92
-    - 1340
-    - 286
+    - 581
+    - 24
+    - 1354
+    - 289
     text: 挑战结果
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -4675,10 +5045,10 @@
   - area_name: 按钮-确定
     id_mark: false
     pc_rect:
-    - 1054
-    - 900
-    - 1276
-    - 966
+    - 936
+    - 855
+    - 1338
+    - 997
     text: 确定
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -4730,6 +5100,7 @@
     goto_list: []
 - screen_id: lost_void_choose_common
   screen_name: 迷失之地-通用选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 文本-详情
@@ -4749,10 +5120,10 @@
   - area_name: 按钮-确定
     id_mark: true
     pc_rect:
-    - 847
-    - 762
-    - 1125
-    - 975
+    - 466
+    - 758
+    - 1406
+    - 977
     text: 确定
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -4881,6 +5252,7 @@
     goto_list: []
 - screen_id: lost_void_entry
   screen_name: 迷失之地-入口
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-更新弹窗-关闭
@@ -4898,7 +5270,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-悬赏委托
-    id_mark: true
+    id_mark: false
     pc_rect:
     - 1181
     - 19
@@ -4996,7 +5368,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-常规
-    id_mark: true
+    id_mark: false
     pc_rect:
     - 1616
     - 19
@@ -5022,7 +5394,8 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
-    goto_list: []
+    goto_list:
+    - 迷失之地-战线肃清
   - area_name: 按钮-特遣调查
     id_mark: false
     pc_rect:
@@ -5036,7 +5409,8 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
-    goto_list: []
+    goto_list:
+    - 迷失之地-特遣调查
   - area_name: 按钮-周期
     id_mark: false
     pc_rect:
@@ -5051,8 +5425,23 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 探索收集
+    id_mark: true
+    pc_rect:
+    - 1658
+    - 991
+    - 1804
+    - 1064
+    text: 探索收集
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: lost_void_entry_task_force
   screen_name: 迷失之地-特遣调查
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-街区
@@ -5143,6 +5532,7 @@
     goto_list: []
 - screen_id: lost_void_gear
   screen_name: 迷失之地-武备选择
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-携带
@@ -5229,8 +5619,37 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 确认
+    id_mark: false
+    pc_rect:
+    - 1055
+    - 656
+    - 1196
+    - 701
+    text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 不再提示
+    id_mark: false
+    pc_rect:
+    - 882
+    - 552
+    - 1037
+    - 598
+    text: 不再提示
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: lost_void_lottery
   screen_name: 迷失之地-抽奖机
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -5305,6 +5724,7 @@
     goto_list: []
 - screen_id: lost_void_normal_world
   screen_name: 迷失之地-大世界
+  app_id: lost_void
   pc_alt: true
   area_list:
   - area_name: 区域-文本提示
@@ -5479,6 +5899,7 @@
     goto_list: []
 - screen_id: lost_void_purge
   screen_name: 迷失之地-战线肃清
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 标题-战线肃清
@@ -5596,6 +6017,7 @@
     goto_list: []
 - screen_id: lost_void_route_change
   screen_name: 迷失之地-路径迭换
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -5674,6 +6096,7 @@
     goto_list: []
 - screen_id: matrix_action
   screen_name: 迷失之地-矩阵行动
+  app_id: lost_void
   pc_alt: false
   area_list:
   - area_name: 预备编队
@@ -5978,21 +6401,6 @@
     color_range: null
     goto_list:
     - 菜单-更多功能
-  - area_name: 文本-电量
-    id_mark: false
-    pc_rect:
-    - 1200
-    - 25
-    - 1260
-    - 75
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list:
-    - 恢复电量
   - area_name: 底部-绳网
     id_mark: false
     pc_rect:
@@ -6084,6 +6492,7 @@
     goto_list: []
 - screen_id: news_stand
   screen_name: 报刊亭
+  app_id: scratch_card
   pc_alt: false
   area_list:
   - area_name: 刮刮卡
@@ -6379,9 +6788,9 @@
   - area_name: 小地图
     id_mark: false
     pc_rect:
-    - 1565
+    - 1554
     - 200
-    - 1775
+    - 1764
     - 410
     text: ''
     lcs_percent: 0.5
@@ -6556,24 +6965,24 @@
     color_range: null
     goto_list: []
     gamepad_key: function_menu
+  - area_name: 预备编队
+    id_mark: true
+    pc_rect:
+    - 1225
+    - 44
+    - 1505
+    - 102
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: normal_world
+    template_id: preset_config
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: normal_world_investigation
   screen_name: 大世界-勘域
   pc_alt: true
   area_list:
-  - area_name: 勘域-功能导览
-    id_mark: true
-    pc_rect:
-    - 1776
-    - 28
-    - 1869
-    - 117
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: normal_world_investigation
-    template_id: function_menu
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 勘域-菜单
     id_mark: true
     pc_rect:
@@ -6606,6 +7015,20 @@
     goto_list:
     - 快捷手册-训练
     gamepad_key: compendium
+  - area_name: 功能导览
+    id_mark: true
+    pc_rect:
+    - 1791
+    - 43
+    - 1855
+    - 107
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: normal_world_investigation
+    template_id: function_menu
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: notorious_hunt
   screen_name: 恶名狩猎
   pc_alt: false
@@ -6968,6 +7391,7 @@
     goto_list: []
 - screen_id: random_play
   screen_name: 影像店营业
+  app_id: random_play
   pc_alt: false
   area_list:
   - area_name: 昨日账本
@@ -7306,6 +7730,20 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 右侧选项区域
+    id_mark: false
+    pc_rect:
+    - 1438
+    - 536
+    - 1914
+    - 830
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: restore_charge
   screen_name: 恢复电量
   pc_alt: false
@@ -7332,6 +7770,20 @@
     - 1200
     - 800
     text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 取消
+    id_mark: false
+    pc_rect:
+    - 720
+    - 650
+    - 1200
+    - 800
+    text: 取消
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -7424,15 +7876,16 @@
     goto_list: []
 - screen_id: ridu_weekly
   screen_name: 丽都周纪
+  app_id: ridu_weekly
   pc_alt: false
   area_list:
   - area_name: 丽都周纪
     id_mark: false
     pc_rect:
     - 414
-    - 812
+    - 840
     - 596
-    - 858
+    - 900
     text: 丽都周纪
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -7568,6 +8021,7 @@
     goto_list: []
 - screen_id: shiyu_defense
   screen_name: 式舆防卫战
+  app_id: shiyu_defense
   pc_alt: false
   area_list:
   - area_name: 节点区域
@@ -7613,7 +8067,7 @@
     color_range: null
     goto_list: []
   - area_name: 前哨档案
-    id_mark: false
+    id_mark: true
     pc_rect:
     - 1521
     - 27
@@ -7864,6 +8318,21 @@
     template_match_threshold: 0.9
     color_range: null
     goto_list: []
+  - area_name: 节点-05
+    id_mark: false
+    pc_rect:
+    - 100
+    - 174
+    - 1806
+    - 720
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: shiyu_defense
+    template_id: node_05
+    template_match_threshold: 0.9
+    color_range: null
+    goto_list:
+    - 式舆防卫战-三间选择
   - area_name: 奖励入口
     id_mark: false
     pc_rect:
@@ -7895,10 +8364,10 @@
   - area_name: 领取奖励-界面
     id_mark: false
     pc_rect:
-    - 442
-    - 220
-    - 678
-    - 257
+    - 426
+    - 207
+    - 690
+    - 271
     text: 剧变节点奖励领取
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -7962,7 +8431,7 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 剧变节点5/5
+  - area_name: 剧变节点进度
     id_mark: false
     pc_rect:
     - 529
@@ -7971,218 +8440,23 @@
     - 945
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: shiyu_defense
-    template_id: critical_node
+    template_sub_dir: ''
+    template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-- screen_id: shiyu_defense_new
-  screen_name: 新式舆防卫战
+- screen_id: shiyu_defense_select_3
+  screen_name: 式舆防卫战-三间选择
+  app_id: shiyu_defense
   pc_alt: false
   area_list:
-  - area_name: 节点区域
-    id_mark: false
-    pc_rect:
-    - 100
-    - 174
-    - 1806
-    - 720
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 节点-05
-    id_mark: false
-    pc_rect:
-    - 100
-    - 174
-    - 1806
-    - 720
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: shiyu_defense
-    template_id: node_05
-    template_match_threshold: 0.9
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-1-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 260
-    - 1530
-    - 310
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-1-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 260
-    - 1770
-    - 310
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-2-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 490
-    - 1530
-    - 540
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-2-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 490
-    - 1770
-    - 540
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-3-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 710
-    - 1530
-    - 760
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 弱点-3-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 710
-    - 1770
-    - 760
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-1-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 350
-    - 1530
-    - 400
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-1-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 350
-    - 1770
-    - 400
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-2-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 570
-    - 1530
-    - 620
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-2-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 570
-    - 1770
-    - 620
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-3-1
-    id_mark: false
-    pc_rect:
-    - 1400
-    - 800
-    - 1530
-    - 850
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 抗性-3-2
-    id_mark: false
-    pc_rect:
-    - 1640
-    - 800
-    - 1770
-    - 850
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 第一间
     id_mark: false
     pc_rect:
-    - 755
-    - 210
-    - 1805
-    - 420
+    - 907
+    - 224
+    - 1024
+    - 272
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -8193,10 +8467,10 @@
   - area_name: 第二间
     id_mark: false
     pc_rect:
-    - 755
-    - 440
-    - 1805
-    - 650
+    - 907
+    - 447
+    - 1036
+    - 496
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -8207,10 +8481,10 @@
   - area_name: 第三间
     id_mark: false
     pc_rect:
-    - 755
-    - 665
-    - 1805
-    - 875
+    - 907
+    - 669
+    - 1045
+    - 720
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -8218,42 +8492,141 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 预备编队
+  - area_name: 第一间属性
     id_mark: false
     pc_rect:
-    - 1566
-    - 1006
-    - 1828
-    - 1050
-    text: 预备编队
+    - 1317
+    - 258
+    - 1791
+    - 406
+    text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 预备出战
+  - area_name: 第二间属性
     id_mark: false
     pc_rect:
-    - 1566
-    - 1006
-    - 1828
-    - 1050
-    text: 预备出战
+    - 1318
+    - 481
+    - 1788
+    - 631
+    text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 出战
+  - area_name: 第三间属性
     id_mark: false
     pc_rect:
-    - 1566
-    - 1006
-    - 1828
-    - 1050
-    text: 出战
+    - 1317
+    - 703
+    - 1788
+    - 847
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第一间
+    id_mark: false
+    pc_rect:
+    - 1319
+    - 224
+    - 1425
+    - 264
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第二间
+    id_mark: false
+    pc_rect:
+    - 1315
+    - 446
+    - 1419
+    - 486
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 前往第三间
+    id_mark: false
+    pc_rect:
+    - 1313
+    - 664
+    - 1433
+    - 707
+    text: 属性
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 返回
+    id_mark: false
+    pc_rect:
+    - 62
+    - 15
+    - 173
+    - 94
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: menu
+    template_id: back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 式舆防卫战
+  - area_name: 本期最佳总分
+    id_mark: true
+    pc_rect:
+    - 122
+    - 218
+    - 322
+    - 268
+    text: 总分
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 重置全部
+    id_mark: false
+    pc_rect:
+    - 1248
+    - 1009
+    - 1495
+    - 1045
+    text: 重置
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 确认
+    id_mark: false
+    pc_rect:
+    - 1038
+    - 624
+    - 1222
+    - 665
+    text: 确认
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -8262,6 +8635,7 @@
     goto_list: []
 - screen_id: storage_drive_disc
   screen_name: 仓库-驱动仓库
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-驱动仓库
@@ -8310,6 +8684,7 @@
     - 大世界-普通
 - screen_id: storage_wengine
   screen_name: 仓库-音擎仓库
+  app_id: drive_disc_dismantle
   pc_alt: false
   area_list:
   - area_name: 标题-音擎仓库
@@ -8372,6 +8747,7 @@
     - 仓库-驱动仓库
 - screen_id: suibian_temple_adventure
   screen_name: 随便观-游历
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-游历小队
@@ -8516,6 +8892,7 @@
     goto_list: []
 - screen_id: suibian_temple_boobox
   screen_name: 随便观-邦巢
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-跳过
@@ -8660,6 +9037,7 @@
     goto_list: []
 - screen_id: suibian_temple_craft
   screen_name: 随便观-制造坊
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 标题-制造坊
@@ -8861,6 +9239,7 @@
     goto_list: []
 - screen_id: suibian_temple_entry
   screen_name: 随便观-入口
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-邻里街坊
@@ -8977,6 +9356,7 @@
     goto_list: []
 - screen_id: suibian_temple_pawnshop
   screen_name: 随便观-德丰大押
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-返回
@@ -9108,6 +9488,7 @@
     goto_list: []
 - screen_id: suibian_temple_sales_stall
   screen_name: 随便观-售卖铺
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 标题-售卖铺
@@ -9211,6 +9592,7 @@
     goto_list: []
 - screen_id: suibian_temple_yumchaxian
   screen_name: 随便观-饮茶仙
+  app_id: suibian_temple
   pc_alt: false
   area_list:
   - area_name: 按钮-定期采办
@@ -9411,6 +9793,7 @@
     goto_list: []
 - screen_id: trigrams_collection
   screen_name: 卦象集录
+  app_id: trigrams_collection
   pc_alt: false
   area_list:
   - area_name: 区域-获取卦象

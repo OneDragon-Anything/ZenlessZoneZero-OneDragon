@@ -6,13 +6,13 @@ from qfluentwidgets import (
     FluentIconBase,
     PrimaryPushButton,
     PushButton,
-    SingleDirectionScrollArea,
     SubtitleLabel,
 )
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContextStateEventEnum,
+    ApplicationRunResult,
 )
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import (
@@ -21,6 +21,7 @@ from one_dragon.base.operation.one_dragon_context import (
 )
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -33,6 +34,7 @@ class AppRunner(QThread):
         QThread.__init__(self)
         self.ctx: OneDragonContext = ctx
         self.app_id: str = ''
+        self.run_result: ApplicationRunResult | None = None
 
     def run(self):
         """
@@ -44,7 +46,7 @@ class AppRunner(QThread):
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_state_changed)
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_state_changed)
 
-        self.ctx.run_context.run_application(
+        self.run_result = self.ctx.run_context.run_application(
             app_id=self.app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -238,12 +240,10 @@ class SplitAppRunInterface(AppRunInterface):
         outer_layout.setSpacing(10)
 
         # 左侧：滚动区域（无底边距）
-        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        scroll_area = FastScrollArea(orient=Qt.Orientation.Vertical)
         left_widget = self.get_left_widget()
         left_widget.setStyleSheet("QWidget { background-color: transparent; }")
         scroll_area.setWidget(left_widget)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
         outer_layout.addWidget(scroll_area, stretch=self._left_stretch)
 
         # 右侧：运行控件（由 AppRunInterface.get_content_widget 创建）

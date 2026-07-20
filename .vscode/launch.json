@@ -1,0 +1,45 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "当前文件",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": ".\\src"
+            }
+        },
+        {
+            "name": "主程序",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".\\src\\zzz_od\\gui\\app.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": ".\\src"
+            }
+        },
+        {
+            "name": "安装器",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".\\src\\zzz_od\\gui\\zzz_installer.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": ".\\src"
+            }
+        },
+        {
+            "name": "开发工具",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".\\src\\one_dragon_qt\\app\\devtools\\devtools_app.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": ".\\src"
+            }
+        }
+    ]
+}

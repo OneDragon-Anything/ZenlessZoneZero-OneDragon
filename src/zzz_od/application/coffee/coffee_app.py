@@ -5,6 +5,7 @@ from typing import ClassVar
 import cv2
 import numpy as np
 
+from one_dragon.base.config.config_item import get_config_item_from_enum
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
@@ -24,6 +25,7 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeChallengeWay,
     CoffeeChooseWay,
     CoffeeConfig,
+    CoffeeTransportPoint,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -34,7 +36,7 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.transport import Transport
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
-from zzz_od.operation.turning.turn_to_interact import turn_to_angle_and_interact
+from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
@@ -87,7 +89,8 @@ class CoffeeApp(ZApplication):
             self.retried_transport = True
 
         self.turn_compensator.clear_pending_sample()
-        op = Transport(self.ctx, '六分街', '咖啡店', wait_at_last=False)
+        item = get_config_item_from_enum(CoffeeTransportPoint, self.config.transport_point)
+        op = Transport(self.ctx, item.area_name, item.tp_name, wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
@@ -108,18 +111,26 @@ class CoffeeApp(ZApplication):
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        传送之后先将视角转向正西，再往前移动一下方便交互
+        六分街-咖啡店：转向正西后前移再交互
+        澄辉坪-汀曼咖啡：传送落点已正对入口，直接交互 派发 status 走对话点单分支
         :return:
         """
-        return turn_to_angle_and_interact(
-            self,
-            self.turn_compensator,
-            target_angle=180,
-            turn_status='转向正西',
-        )
+        if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:
+            result = turn_to_angle(self, target_angle=180, turn_status='转向正西')
+            if not result.is_success:
+                return result
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
+
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
+        self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+
+        if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
+            return self.round_success(status='对话点单')
+
+        return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='等待咖啡店加载', node_max_retry_times=20)
+    @operation_node(name='等待咖啡店加载', node_max_retry_times=10)
     def wait_coffee_shop(self) -> OperationRoundResult:
         # 画面加载的时候，是滑动出现的，点单出现的时候，还未必能点击选中咖啡，因此要success_wait
         return self.round_by_find_area(self.last_screenshot, '咖啡店', '点单',
@@ -225,7 +236,10 @@ class CoffeeApp(ZApplication):
                         to_choose_list.append(coffee.coffee_name)
                         break
 
-        day_config_coffee = self.config.get_coffee_by_day(day)
+        if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
+            day_config_coffee = self.config.get_coffee_by_day(day)
+        else:
+            day_config_coffee = self.config.choose_way
         if day_config_coffee not in self.had_coffee_list:
             to_choose_list.append(day_config_coffee)
 
@@ -259,9 +273,9 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             self.had_coffee_list.add(self.chosen_coffee.coffee_name)
             if self.chosen_coffee.extra:
-                return self.round_success(status=CoffeeApp.STATUS_EXTRA_COFFEE, wait=1)
+                return self.round_success(status=CoffeeApp.STATUS_EXTRA_COFFEE, wait=0.5)
             elif self.chosen_coffee.without_benefit:
-                return self.round_success(status=CoffeeApp.STATUS_WITHOUT_BENEFIT, wait=1)
+                return self.round_success(status=CoffeeApp.STATUS_WITHOUT_BENEFIT, wait=0.5)
             else:
                 return self.round_success(wait=3)
         return self.round_retry(wait=1)
@@ -288,9 +302,13 @@ class CoffeeApp(ZApplication):
             return self.round_success(result.status)
 
         # 这个点击很怪 需要多点几次
-        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
+        # 原因是绝区零逆天按钮, 需要先拖鼠标, 让鼠标显形才能点击
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
+            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
+            self.ctx.controller.click()
+            return self.round_success(result.status, wait=1)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:
@@ -298,7 +316,30 @@ class CoffeeApp(ZApplication):
 
         return self.round_retry(result.status, wait=1)
 
+    @node_from(from_name='移动交互', status='对话点单')
+    @operation_node(name='对话选咖啡', node_max_retry_times=20)
+    def dialog_choose_coffee(self) -> OperationRoundResult:
+        """处理澄辉坪-汀曼咖啡交互后的专属点单对话框，对话框包含"明天再来"（无选项）即视作已喝过"""
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
+        if not result.is_success:
+            return self.round_retry(status='等待对话框加载', wait=0.5)  # issue #2301
+
+        if self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框-明天再来').is_success:
+            return self.round_success(status='已喝过', wait=1)
+
+        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
+        to_choose_list = self._get_coffee_to_choose(day)
+
+        area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
+        result = self.round_by_ocr_and_click_by_priority(to_choose_list, area=area)
+        if result.is_success:
+            self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
+            self.had_coffee_list.add(result.status)
+            return self.round_success(status='已点单', wait=1)
+        return self.round_retry(status='等待对话框', wait=1)
+
     @node_from(from_name='点单后跳过')
+    @node_from(from_name='对话选咖啡', status='已点单')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
@@ -396,6 +437,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='不占用点单确认', status='不可贪杯确认')  # 已经喝过了
     @node_from(from_name='点单后跳过', status='不可贪杯确认')  # 已经喝过了
+    @node_from(from_name='对话选咖啡', status='已喝过')  # 澄辉坪-汀曼咖啡：剧情气泡 已喝过咖啡 BackToNormalWorld 兜底回大世界
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')

@@ -1,5 +1,6 @@
 screen_id: storage_drive_disc
 screen_name: 仓库-驱动仓库
+app_id: drive_disc_dismantle
 pc_alt: false
 area_list:
 - area_name: 标题-驱动仓库

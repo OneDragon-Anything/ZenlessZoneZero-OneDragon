@@ -3,11 +3,32 @@ from functools import partial
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QApplication
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import (
-    ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
-    FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
-    ListWidget, SimpleCardWidget, SingleDirectionScrollArea
+    BodyLabel,
+    CheckBox,
+    ComboBox,
+    Dialog,
+    DoubleSpinBox,
+    FluentIcon,
+    InfoBar,
+    InfoBarPosition,
+    LineEdit,
+    ListWidget,
+    MessageBoxBase,
+    PlainTextEdit,
+    PushButton,
+    SimpleCardWidget,
+    SpinBox,
+    SubtitleLabel,
+    ToolButton,
 )
 
 from one_dragon.base.cv_process.cv_step import CvStep
@@ -16,6 +37,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.logic.image_analysis_logic import ImageAnalysisLogic
 from one_dragon_qt.widgets.color_channel_dialog import ColorChannelDialog
 from one_dragon_qt.widgets.color_tip import ColorTip
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
@@ -116,7 +138,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         初始化左侧的控制面板 (容器B)，垂直布局
         """
         # 容器B，垂直布局
-        scroll_area = SingleDirectionScrollArea()
+        scroll_area = FastScrollArea()
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
@@ -141,8 +163,6 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         control_layout.addWidget(result_widget)
 
         scroll_area.setWidget(control_widget)
-        scroll_area.setWidgetResizable(True)
-
         return scroll_area
 
     def _init_display_panel(self) -> QWidget:
@@ -346,7 +366,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         param_type = definition['type']
         label_text = definition.get('label', param_name)
-        tooltip_text = definition.get('tooltip', None)
+        tooltip_text = definition.get('tooltip')
 
         def _set_tooltip(widget: QWidget):
             if tooltip_text:
@@ -359,7 +379,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             component_labels = ['R', 'G', 'B'] if 'rgb' in param_name else ['H', 'S', 'V']
             current_value = step.params.get(param_name, definition.get('default', (0, 0, 0)))
 
-            if not isinstance(current_value, (list, tuple)):
+            if not isinstance(current_value, list | tuple):
                 current_value = definition.get('default', (0, 0, 0))
                 step.params[param_name] = current_value
 

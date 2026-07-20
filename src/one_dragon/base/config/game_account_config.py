@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -30,6 +29,15 @@ class GameAccountConfig(YamlConfig):
 
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
+
+    @classmethod
+    def is_different_game_path(cls, current_idx: int, next_idx: int) -> bool:
+        """
+        判断两个实例配置的游戏路径是否不同
+        """
+        current_game_path = cls(current_idx).game_path
+        next_game_path = cls(next_idx).game_path
+        return bool(current_game_path and next_game_path and current_game_path != next_game_path)
 
     @property
     def platform(self) -> str:
@@ -102,6 +110,12 @@ class GameAccountConfig(YamlConfig):
     @bilibili_account_name.setter
     def bilibili_account_name(self, new_value: str) -> None:
         self.update('bilibili_account_name', new_value)
+
+    @property
+    def has_login_info(self) -> bool:
+        if self.game_region == GameRegionEnum.CNB.value.value:
+            return bool(self.bilibili_account_name.strip())
+        return bool(self.account.strip() and self.password.strip())
 
     @property
     def game_refresh_hour_offset(self) -> int:

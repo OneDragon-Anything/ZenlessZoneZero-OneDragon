@@ -28,11 +28,11 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
@@ -70,7 +70,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
+                use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
@@ -201,6 +201,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if default_factories:
             self.run_context.registry_application(default_factories, default_group=True)
 
+    def _load_plugin_screens(self) -> None:
+        """加载插件的 screen_info
+
+        遍历所有已注册插件，从其 screen_info/ 子目录加载 screen YAML。
+        未设 app_id 的 screen 自动使用插件的 app_id。
+        应在 screen_loader.reload() 之后调用。
+        """
+        for plugin_info in self.factory_manager.plugin_infos:
+            if plugin_info.plugin_dir is None:
+                continue
+            screen_dir = plugin_info.plugin_dir / 'screen_info'
+            self.screen_loader.load_extra_screen_dir(
+                str(screen_dir), default_app_id=plugin_info.app_id
+            )
+
     def refresh_application_registration(self) -> None:
         """刷新应用注册
 
@@ -220,6 +235,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         if default_factories:
             self.run_context.registry_application(default_factories, default_group=True)
+
+        # 重新加载插件 screen
+        self.screen_loader.reload()
+        self._load_plugin_screens()
 
         # 更新默认应用组
         self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
@@ -257,6 +276,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.init_ocr()
 
             self.screen_loader.reload()
+            self._load_plugin_screens()
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()
@@ -448,7 +468,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         注意如果有缓存需要清理缓存
         子类需要继承加载更多的配置
         """
-        log.info('开始加载实例配置 %d' % self.current_instance_idx)
+        log.info('开始加载实例配置 %d', self.current_instance_idx)
 
         to_clear_props = [
             'game_account_config',
@@ -464,7 +484,22 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
+        # 清理旧实例资源
+        if hasattr(self, 'ocr') and self.ocr is not None:
+            if hasattr(self.ocr, 'cleanup'):
+                self.ocr.cleanup()
+
+        self.ocr = OnnxOcrMatcher(
+            OnnxOcrParam(
+                ocr_model_name=self.model_config.ocr,
+                use_gpu=self.model_config.ocr_use_gpu,
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+            )
+        )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
+        self.ocr_service.ocr_matcher = self.ocr
+        if 'cv_service' in self.__dict__:
+            self.cv_service.ocr = self.ocr
         self.ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
@@ -483,9 +518,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         OneDragonEnvContext.after_app_shutdown(self)
         from one_dragon.base.conditional_operation.operator import ConditionalOperator
         ConditionalOperator.after_app_shutdown()
-        from one_dragon.base.conditional_operation.operation_executor import OperationExecutor
+        from one_dragon.base.conditional_operation.operation_executor import (
+            OperationExecutor,
+        )
         OperationExecutor.after_app_shutdown()
-        from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+        from one_dragon.base.conditional_operation.state_record_service import (
+            StateRecordService,
+        )
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)

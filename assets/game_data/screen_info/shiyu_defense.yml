@@ -1,5 +1,6 @@
 screen_id: shiyu_defense
 screen_name: 式舆防卫战
+app_id: shiyu_defense
 pc_alt: false
 area_list:
 - area_name: 节点区域
@@ -45,7 +46,7 @@ area_list:
   color_range: null
   goto_list: []
 - area_name: 前哨档案
-  id_mark: false
+  id_mark: true
   pc_rect:
   - 1521
   - 27
@@ -296,6 +297,21 @@ area_list:
   template_match_threshold: 0.9
   color_range: null
   goto_list: []
+- area_name: 节点-05
+  id_mark: false
+  pc_rect:
+  - 100
+  - 174
+  - 1806
+  - 720
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: shiyu_defense
+  template_id: node_05
+  template_match_threshold: 0.9
+  color_range: null
+  goto_list:
+  - 式舆防卫战-三间选择
 - area_name: 奖励入口
   id_mark: false
   pc_rect:
@@ -327,10 +343,10 @@ area_list:
 - area_name: 领取奖励-界面
   id_mark: false
   pc_rect:
-  - 442
-  - 220
-  - 678
-  - 257
+  - 426
+  - 207
+  - 690
+  - 271
   text: 剧变节点奖励领取
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -394,7 +410,7 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 剧变节点5/5
+- area_name: 剧变节点进度
   id_mark: false
   pc_rect:
   - 529
@@ -403,8 +419,8 @@ area_list:
   - 945
   text: ''
   lcs_percent: 0.5
-  template_sub_dir: shiyu_defense
-  template_id: critical_node
+  template_sub_dir: ''
+  template_id: ''
   template_match_threshold: 0.7
   color_range: null
   goto_list: []

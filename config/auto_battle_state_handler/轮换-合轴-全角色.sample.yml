@@ -211,7 +211,7 @@ handlers:
 
               - states: "![前台-妮可]" # 妮可能量场过期了，有EQ之一就切
                 sub_handlers:
-                  - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -5, 3.5]"
+                  - states: "([妮可-特殊技可用] | [妮可-终结技可用])"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "妮可"
@@ -283,6 +283,15 @@ handlers:
                   - op_name: "按键-切换角色-上一个"
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
+
+              - states: "![前台-诺姆]"
+                sub_handlers:
+                  - states: "[诺姆-特殊技可用]"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "诺姆"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"

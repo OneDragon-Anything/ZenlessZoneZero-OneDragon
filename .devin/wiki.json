@@ -1,0 +1,300 @@
+{
+    "repo_notes": [
+        {
+            "content": "【语言要求】Wiki 页面的标题、正文、描述和图表标签统一使用简体中文。代码标识符、命令、日志和错误信息保留原文；外部文档优先引用中文版本。",
+            "author": "maintainer"
+        },
+        {
+            "content": "【Wiki 优先级】页面生成和阅读优先顺序为：项目总览与运行架构 → OneDragon 通用框架 → 绝区零核心业务 → GUI 与后端接入 → 开发、测试与发布附录。使用 pages 数组顺序和 parent 层级表达优先级，不新增未经验证的 schema 字段。",
+            "author": "maintainer"
+        },
+        {
+            "content": "本项目是面向 Windows 的《绝区零》自动化工具，核心能力是图像识别、OCR、YOLO 与输入控制，提供自动战斗、闪避助手、日常任务、空洞作战、定时任务和多账号等功能。用户向功能说明以 .github/README.md 和官网为准。",
+            "author": "maintainer"
+        },
+        {
+            "content": "项目采用 Python 3.11、uv、PySide6 和 src-layout。src/one_dragon 是通用框架，src/one_dragon_qt 是通用 Qt 层，src/onnxocr 是 OCR 支持，src/zzz_od 是绝区零业务代码；assets/ 存放游戏画面、模板、模型和配置数据。",
+            "author": "maintainer"
+        },
+        {
+            "content": "运行时事实以当前源码、真实运行行为和实际资源为准；docs/develop 中标注为待实现或待改造的内容可能是历史设计，不能直接当作现状。Wiki 页面应同时指出实现入口、状态生产者、状态消费者和配置来源。",
+            "author": "maintainer"
+        },
+        {
+            "content": "业务流程由 Application 和 Operation 组成。Operation 使用带起始节点、状态结果、重试和失败边的节点图执行；Application 在此基础上增加配置、运行记录和应用组编排。应用通过 ApplicationFactoryManager 从内置目录和 plugins/ 动态发现。",
+            "author": "maintainer"
+        },
+        {
+            "content": "游戏画面识别以项目配置的标准分辨率为基准，当前常用基准为 1920×1080；screen_info YAML 定义画面、区域和路由，模板、CV 流水线和模型位于 assets/。docs/game/ 是供开发和 AI 使用的离线游戏知识库，不等同于用户操作手册。",
+            "author": "maintainer"
+        },
+        {
+            "content": "测试代码与截图存档位于独立的 zzz-od-test 仓库，主仓的 tests/ 已废弃且主仓 .gitignore 会忽略该目录。修改 Python 后只对变更文件运行 uv 驱动的 ruff check；没有 .env 或测试仓时必须明确说明。",
+            "author": "maintainer"
+        },
+        {
+            "content": "运行层之上的 headless 后端由 ZzzBackendContext 收敛 ZContext 能力，同时提供 MCP 和 HTTP 适配器；GUI 是独立入口。后端细节以 docs/develop/zzz/backend/README.md 及其分文档为准。",
+            "author": "maintainer"
+        },
+        {
+            "content": "项目还维护官网文档仓 onedragon-anything.github.io、测试仓 zzz-od-test、YOLO 训练仓 OneDragon-YOLO 和 ModelScope 数据集。代码实现、测试素材、模型训练和用户文档应按职责修改对应仓库。",
+            "author": "maintainer"
+        }
+    ],
+    "pages": [
+        {
+            "title": "项目总览",
+            "purpose": "作为 Wiki 首页，说明项目定位、支持平台、核心能力、主要运行入口、文档边界和六个 Wiki 主题域。引用 .github/README.md、AGENTS.md 和 docs/develop/README.md。"
+        },
+        {
+            "title": "系统架构与运行分层",
+            "purpose": "描述 one_dragon 通用层、one_dragon_qt GUI 层、zzz_od 业务层、资源层和后端适配层的关系，说明哪些能力属于通用框架、哪些能力只能在绝区零业务层实现。引用 AGENTS.md、docs/develop/one_dragon/one_dragon_architecture.md 和当前源码。",
+            "parent": "项目总览"
+        },
+        {
+            "title": "项目定位与功能",
+            "purpose": "从用户可见角度总结自动战斗、闪避助手、日常清理、空洞作战、定时启动、多账号和通知等能力，并区分内置功能、开发工具和实验性能力。引用 .github/README.md、src/zzz_od/application/。",
+            "parent": "项目总览"
+        },
+        {
+            "title": "目录结构",
+            "purpose": "按职责说明 src/、assets/、config/、docs/、plugins/、deploy/、skills/ 和本地运行目录的作用，避免只按文件夹名称罗列。引用 AGENTS.md、docs/develop/README.md 和 docs/develop/setup/repositories.md。",
+            "parent": "项目总览"
+        },
+        {
+            "title": "多仓协作生态",
+            "purpose": "说明主仓、zzz-od-test、OneDragon-YOLO、ModelScope 数据集和 onedragon-anything.github.io 的职责边界、推荐本地布局和修改时机。引用 docs/develop/setup/repositories.md。",
+            "parent": "项目总览"
+        },
+        {
+            "title": "OneDragon 通用框架",
+            "purpose": "总览通用上下文、操作引擎、应用系统、配置、感知、控制器、条件操作和通知等基础设施，明确这些模块如何被 zzz_od 业务复用。引用 src/one_dragon/base/ 和 docs/develop/one_dragon/。"
+        },
+        {
+            "title": "上下文与初始化",
+            "purpose": "解释 OneDragonContext、OneDragonEnvContext、ZContext 的职责、懒加载服务、异步初始化、应用级初始化、实例切换和关闭清理顺序。引用 src/one_dragon/base/operation/one_dragon_context.py、src/zzz_od/context/zzz_context.py、docs/develop/one_dragon/initialization.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "Operation 节点图执行引擎",
+            "purpose": "深入说明 Operation、OperationNode、OperationEdge、OperationRoundResult、operation_node/node_from 注解、起始节点、重试、等待、超时和失败路由。引用 src/one_dragon/base/operation/、docs/develop/one_dragon/modules/operation.md 和 docs/develop/spec/agent_guidelines.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "Application 与应用组",
+            "purpose": "说明 Application 如何组合 Operation，ApplicationFactory、ApplicationConfig、ApplicationRunRecord、ApplicationRunContext、ApplicationGroupManager 和 GroupApplication 如何协作，以及 app_id、instance_idx、group_id 的配置维度。引用 src/one_dragon/base/operation/application/、docs/develop/one_dragon/modules/application.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "应用插件发现与热刷新",
+            "purpose": "文档化内置应用和 plugins/ 第三方应用的扫描、动态导入、元数据、APP_ID 冲突、模块卸载、应用设置发现和刷新注册流程。引用 src/one_dragon/base/operation/application/application_factory_manager.py、src/one_dragon_qt/services/app_setting/、docs/develop/one_dragon/modules/application_plugin_system.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "配置、实例与运行记录",
+            "purpose": "说明 YAML 配置体系、账号实例、应用组配置、配置缓存、实例切换、ApplicationRunRecord 和通知配置迁移，区分全局配置、实例配置和应用配置。引用 src/one_dragon/base/config/、src/one_dragon/base/operation/application/、docs/develop/harness/settings_scope.md、docs/develop/one_dragon/modules/notify.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "画面模型、识别与路由",
+            "purpose": "解释 ScreenInfo、ScreenArea、ScreenContext、ScreenLoader、TemplateLoader 和画面跳转列表如何共同完成画面判断与导航，说明 screen_info YAML 的真实数据结构。引用 src/one_dragon/base/screen/、assets/game_data/screen_info/、src/zzz_od/screen_area/。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "CV 流水线、OCR 与模板匹配",
+            "purpose": "说明 CvPipeline/CvStep/CvService、OCR matcher/service、TemplateMatcher 的职责、流水线 YAML、图像分析工具和生产代码调用方式。引用 src/one_dragon/base/cv_process/、src/one_dragon/base/matcher/、assets/image_analysis_pipelines/、docs/develop/one_dragon/modules/cv_pipeline_architecture.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "控制器、截图与输入设备",
+            "purpose": "描述 ControllerBase、PC 截图实现、键盘鼠标、Xbox/DS4/虚拟手柄、窗口控制和 ZPcController 的分层，说明截图和输入如何进入业务 Operation。引用 src/one_dragon/base/controller/、src/zzz_od/controller/zzz_pc_controller.py。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "条件操作与状态系统",
+            "purpose": "文档化 ConditionalOperator、Scene、StateHandler、StateCalTree、StateRecorder、AtomicOp 和 OperationTask 的状态表达式、优先级、任务打断与线程安全机制。引用 src/one_dragon/base/conditional_operation/、docs/develop/one_dragon/modules/conditional_operation.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "通知与消息推送",
+            "purpose": "解释应用通知与节点通知的双层语义、Operation 通知标注、PushService、PushChannel、应用组完成推送、异步推送和旧配置迁移。引用 src/one_dragon/base/push/、src/one_dragon/base/operation/operation_notify.py、docs/develop/one_dragon/modules/notify.md、docs/develop/one_dragon/modules/push.md。",
+            "parent": "OneDragon 通用框架"
+        },
+        {
+            "title": "绝区零业务系统",
+            "purpose": "总览 zzz_od 的游戏上下文、登录与导航、screen scope、内置 Application、自动战斗、空洞与地图业务、灵敏度和后台模式，明确业务代码如何调用通用框架。引用 src/zzz_od/、docs/develop/zzz/。"
+        },
+        {
+            "title": "ZContext 与游戏数据服务",
+            "purpose": "说明 ZContext 在通用上下文之上挂载的游戏配置、队伍、地图、快捷手册、自动战斗、空洞、遥测等懒加载服务，以及实例配置刷新和应用级初始化。引用 src/zzz_od/context/zzz_context.py、src/zzz_od/game_data/。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "启动游戏与登录流程",
+            "purpose": "跟踪从启动器/GUI 到 OpenGame、游戏命令行参数、窗口就绪、标题页、登录确认、加载画面和大世界的实际状态链路。引用 src/zzz_od/operation/enter_game/、docs/develop/zzz/enter_game.md、docs/game/gameplay/登录游戏.md、docs/game/screens/。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "Screen Scope 与业务画面隔离",
+            "purpose": "说明全局 screen、应用局部 screen、Application 生命周期 scope、插件 screen 加载、冲突处理和 `_od_merged.yml` 的边界，重点区分直接指定画面名称与自动匹配的行为。引用 docs/develop/screen_scope_design.md、docs/develop/screen_scope_rollout.md、src/one_dragon/base/screen/。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "内置应用总览",
+            "purpose": "根据各应用的 *_const.py、*_factory.py、配置和设置入口，整理当前内置应用的 APP_ID、显示名称、默认应用组归属和主要职责；不把目录名直接当作功能结论。引用 src/zzz_od/application/。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "一条龙编排与日常应用",
+            "purpose": "说明一条龙应用组如何按顺序调度日常任务，并归纳咖啡店、录像店营业、邮件、活跃度奖励、丽都周纪、刮刮卡、丽都城募、吼吼饼铺、兑换码和驱动盘拆解等轻量应用的共同模式。引用 src/zzz_od/application/one_dragon_app/、src/zzz_od/application/coffee/、src/zzz_od/application/random_play/ 及其他对应应用目录。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "体力计划与恢复电量",
+            "purpose": "深入说明快捷手册资源栏电量识别、任务选择、传送、副本执行、战斗后路由、储蓄电量/电池恢复、循环结束和通知分支。引用 src/zzz_od/application/charge_plan/、src/zzz_od/operation/restore_charge.py、docs/develop/zzz/application/charge_plan.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "战斗助手与自动战斗",
+            "purpose": "说明自动战斗配置、战斗上下文、操作模板、角色识别、闪避助手、战斗按钮状态、自动战斗界面和后台模式之间的调用关系。引用 src/zzz_od/auto_battle/、src/zzz_od/application/battle_assistant/、docs/develop/zzz/auto_battle.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "目标状态检测与战斗感知",
+            "purpose": "解释目标锁定、敌人类型、失衡值和异常状态等 DetectionTask/TargetStateDef 如何通过 CV 流水线异步检测、解码并写入状态记录，再被自动战斗条件消费。引用 src/zzz_od/game_data/target_state.py、src/zzz_od/auto_battle/target_state/、docs/develop/zzz/target_state_module_developer_guide.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "零号空洞、枯萎之都与迷失之地",
+            "purpose": "整理 Hollow Zero、Withered Domain 和 Lost Void 的应用入口、挑战配置、事件/格子识别、寻路、战斗、资源模型和运行记录，区分共用战斗能力与玩法专属流程。引用 src/zzz_od/hollow_zero/、src/zzz_od/application/hollow_zero/、docs/develop/zzz/application/lost_void/。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "锄大地与地图导航",
+            "purpose": "说明世界巡游的路线名单、地图录制、坐标/道路匹配、小地图朝向、转向补偿、刷怪周期和运行记录，并指出路线业务与通用移动控制的边界。引用 src/zzz_od/application/world_patrol/、src/zzz_od/game_data/map_area.py、docs/develop/zzz/application/world_patrol.md、docs/develop/zzz/turn_sensitivity.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "挑战类应用",
+            "purpose": "归纳恶名狩猎、式舆防卫战、委托助手、情报板等具有周期上限、委托发布、挑战和奖励结算的业务，重点说明它们如何复用体力计划、战斗和通知能力。引用 src/zzz_od/application/notorious_hunt/、src/zzz_od/application/shiyu_defense/、src/zzz_od/application/commission_assistant/、src/zzz_od/application/intel_board/、docs/develop/zzz/application/intel_board.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "随便观与其他复杂日常玩法",
+            "purpose": "说明随便观的饮茶仙、自动托管、制造坊、好物铺、邦巢和德丰大押流程，以及它与配置优先级、弹窗确认和资源购买的关系；同时标注其他复杂日常应用的实际入口。引用 src/zzz_od/application/suibian_temple/、docs/develop/zzz/application/suibian_temple.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "转向、灵敏度与移动控制",
+            "purpose": "解释 turn_dx、gamepad_turn_speed、AngleTurnCompensator、角度型/像素型转向、学习样本、路线方向验收和各业务模块的复用边界。引用 src/zzz_od/operation/turning/、src/zzz_od/application/world_patrol/、docs/develop/zzz/turn_sensitivity.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "后台模式与虚拟手柄",
+            "purpose": "说明后台点击、gamepad_key、Xbox/DS4 虚拟手柄、键盘输入限制、按键映射配置和控制器初始化/实例切换时的同步逻辑。引用 src/one_dragon/base/controller/、src/zzz_od/controller/、docs/develop/one_dragon/background_mode_design.md。",
+            "parent": "绝区零业务系统"
+        },
+        {
+            "title": "GUI 与开发工具",
+            "purpose": "总览 PySide6/Fluent UI 的主窗口、导航、应用设置、游戏设置、账号实例、画中画、覆盖层和开发工具页面，说明 GUI 如何监听上下文事件而不承载业务流程。引用 src/zzz_od/gui/、src/one_dragon_qt/。"
+        },
+        {
+            "title": "主窗口导航与页面生命周期",
+            "purpose": "按实际 create_sub_interface 顺序说明主页、游戏助手、一条龙、独立应用、画中画、开发工具、代码同步、账号管理和设置页面的导航位置，以及上下文初始化完成前后的 UI 行为。引用 src/zzz_od/gui/app.py、src/one_dragon_qt/windows/。",
+            "parent": "GUI 与开发工具"
+        },
+        {
+            "title": "应用运行与设置发现",
+            "purpose": "解释通用应用运行页、独立应用页、AppSettingManager、设置 Provider、INTERFACE/FLYOUT、GroupIdMixin 和第三方插件设置页的发现与显示。引用 src/one_dragon_qt/services/app_setting/、src/zzz_od/gui/view/standalone/、docs/develop/guides/application_setting_guide.md。",
+            "parent": "GUI 与开发工具"
+        },
+        {
+            "title": "账号、实例与游戏设置",
+            "purpose": "说明账号实例切换、游戏窗口标题、分辨率/全屏/启动参数、键盘手柄映射、后台模式、资源下载和设置缓存刷新如何在 GUI 与 ZContext 之间传递。引用 src/zzz_od/gui/view/accounts/、src/zzz_od/gui/view/setting/、src/one_dragon/base/config/game_account_config.py。",
+            "parent": "GUI 与开发工具"
+        },
+        {
+            "title": "画中画与覆盖层",
+            "purpose": "说明 PiP 按钮、PipModeManager、截图工作线程、OverlayManager、调试总线和窗口关闭时的资源清理，区分展示层与游戏自动化执行层。引用 src/one_dragon_qt/widgets/、src/one_dragon_qt/overlay/、docs/develop/one_dragon/pip_mode_design.md。",
+            "parent": "GUI 与开发工具"
+        },
+        {
+            "title": "开发工具与调试界面",
+            "purpose": "整理指令调试、截图助手、模板编辑、图像分析、Agent 模板生成、MCP 服务和代码同步等开发工具的入口、数据流和适用场景。引用 src/zzz_od/gui/view/devtools/、src/one_dragon_qt/view/devtools/、docs/develop/one_dragon/modules/cv_pipeline_architecture.md。",
+            "parent": "GUI 与开发工具"
+        },
+        {
+            "title": "后端与智能体接入",
+            "purpose": "总览 headless backend、ZzzBackendContext、MCP、HTTP、远程 SSH 和 AI Coding Harness，明确 GUI、后端和智能体的进程边界。引用 docs/develop/zzz/backend/README.md、docs/develop/harness/README.md。"
+        },
+        {
+            "title": "Backend Context 与运行槽",
+            "purpose": "说明 ZzzBackendContext 如何持有 ZContext、统一应用/operation 运行生命周期、使用 RunSlot 防止并发冲突，并提供状态查询和停止能力。引用 src/zzz_od/backend/backend_context.py、docs/develop/zzz/backend/architecture.md。",
+            "parent": "后端与智能体接入"
+        },
+        {
+            "title": "MCP 能力与设计原则",
+            "purpose": "文档化 MCP tool、prompt、streamable-http 传输、能力边界、观察与操作分离、长耗时运行态和 docstring 作为筛选提示的规则。引用 src/zzz_od/backend/mcp/、docs/develop/zzz/backend/mcp.md、docs/develop/zzz/backend/design-principles.md。",
+            "parent": "后端与智能体接入"
+        },
+        {
+            "title": "HTTP 接口与服务入口",
+            "purpose": "说明 HTTP /game/*、/health、schemas、MCP/HTTP 共享 backend 的关系，覆盖命令行启动、GUI 启动、端口和 .env 行为。引用 src/zzz_od/backend/http/、src/zzz_od/backend/entry/、docs/develop/zzz/backend/http.md、docs/develop/zzz/backend/entry.md。",
+            "parent": "后端与智能体接入"
+        },
+        {
+            "title": "AI Coding Harness 与 Skills",
+            "purpose": "说明 AGENTS.md、工具 rules、上下文分层、MCP、LSP、Skills、Plugin 和入口文件维护规范如何协同，区分项目能力与个人工具配置。引用 docs/develop/harness/、docs/develop/setup/ai_coding.md、AGENTS.md。",
+            "parent": "后端与智能体接入"
+        },
+        {
+            "title": "开发、测试与发布",
+            "purpose": "总览从环境搭建、画面建档、Application/Operation 开发、测试、插件、GUI 设置、打包到代码同步的完整贡献链路。引用 docs/develop/development_workflow.md、docs/develop/README.md。"
+        },
+        {
+            "title": "开发环境与快速开始",
+            "purpose": "说明 Windows、Python 3.11、uv、src-layout、.env、依赖同步、源码启动、测试仓准备和 AI 工具接入。引用 docs/develop/setup/quickstart.md、docs/develop/spec/agent_guidelines.md、AGENTS.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "开发流程与编码规范",
+            "purpose": "总结画面建档、实现 Application/Operation、测试、提 PR、文档配套、类型注解、导入、线程/GPU、配置、注释、CRLF 和最小 diff 等约束。引用 docs/develop/development_workflow.md、docs/develop/spec/agent_guidelines.md、AGENTS.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "测试体系与 FixtureController",
+            "purpose": "说明独立 zzz-od-test 仓库、test_context、MockController、FixtureController、单节点测试、多帧流程测试、测试路径和提交边界。引用 docs/develop/testing/README.md、docs/develop/testing/fixture_controller.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "画面建档、截图存档与回归",
+            "purpose": "说明真实截图到 screen_info、模板、OCR 快照、gameplay 文档和 webp fixture 的完整链路，记录分辨率、命名、溯源和回归原则。引用 docs/develop/zzz/screenshot_archive.md、docs/game/README.md、docs/game/screens/、docs/develop/screen_scope_rollout.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "第三方插件开发",
+            "purpose": "提供 plugins/ 第三方应用的目录约定、factory/const/config/run record、起始 operation 节点、默认应用组、插件 screen 和运行时自动拉起游戏的开发指引。引用 docs/develop/guides/application_plugin_guide.md、plugins/README.md、docs/develop/screen_scope_design.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "应用设置界面开发",
+            "purpose": "说明如何创建 AppSettingProvider、INTERFACE/FLYOUT、多标签页面、SettingCard、YamlConfigAdapter、配置适配器和第三方插件设置页。引用 docs/develop/guides/application_setting_guide.md、src/one_dragon_qt/services/app_setting/。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "模型、资源与训练数据",
+            "purpose": "说明 OCR、闪光分类、空洞事件、迷失之地检测等模型在 assets/models/ 的消费方式，以及 image_analysis_pipelines、template、game_data、YOLO 训练仓和 ModelScope 数据集之间的关系。引用 assets/models/、assets/image_analysis_pipelines/、assets/template/、docs/develop/setup/repositories.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "打包、启动器与代码同步",
+            "purpose": "文档化安装器、原始启动器、RuntimeLauncher、PyInstaller、运行时依赖 manifest、代码同步、发行目录和常见失败分支。引用 deploy/、src/zzz_od/win_exe/、docs/develop/one_dragon/runtime_launcher.md、docs/develop/README.md。",
+            "parent": "开发、测试与发布"
+        },
+        {
+            "title": "游戏知识库与文档生态",
+            "purpose": "说明 docs/game/screens 与 gameplay 的双向引用、screen_info 溯源、docs/develop 开发文档、官网用户文档和排障文档的职责差异，避免把离线知识库当作运行时配置。引用 docs/game/README.md、docs/develop/README.md、docs/develop/setup/repositories.md。",
+            "parent": "开发、测试与发布"
+        }
+    ]
+}

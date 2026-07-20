@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: login_back
+template_name: 返回(登录)
+template_shape: circle
+auto_mask: true
+point_list:
+- 557, 241
+- 580, 241

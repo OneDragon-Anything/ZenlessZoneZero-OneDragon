@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 
@@ -14,7 +15,6 @@ from one_dragon.base.screen import screen_utils
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidRegionType,
@@ -64,15 +64,12 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
-        self._entry_nav_click_cooldown_sec: float = 1.0
-        self._entry_nav_last_click_at: float = 0.0
 
         # debug
         self.lost_void_debug = lost_void_debug
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
-        self._reset_entry_nav_click_cooldown()
         # 检查分配给今天的任务是否完成
         if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
@@ -139,13 +136,6 @@ class LostVoidApp(ZApplication):
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
-        # 新入口UI：战线肃清/特遣调查需要先在“矩阵探索”页点击“常规”再点目标副本
-        # 到达入口的判定只认“常规”，后续分流由入口导航节点按副本目标处理
-        if self.config.mission_name in ['战线肃清', '特遣调查']:
-            result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
-            if result.is_success:
-                return self.round_success(status='迷失之地-入口')
-
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
             return self.round_wait(status='等待画面加载', wait=1)
@@ -170,6 +160,10 @@ class LostVoidApp(ZApplication):
             if self.config.mission_name == '矩阵行动':
                 return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
             return self.round_success(LostVoidApp.STATUS_AGAIN)
+
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
+        if not result.is_success:
+            return self.round_retry('未识别到常规按钮', wait=0.5)
 
         TARGET_SCORE = '8000'  # 目标分数文本
 
@@ -206,7 +200,7 @@ class LostVoidApp(ZApplication):
         return self.round_by_goto_screen(screen_name='迷失之地-入口')
 
     @node_from(from_name='矩阵行动-前往入口')
-    @operation_node(name='入口OCR-点击周期', node_max_retry_times=300)
+    @operation_node(name='入口OCR-点击周期')
     def click_period_in_entry(self) -> OperationRoundResult:
         """在入口页点击周期标签。"""
         result = self.round_by_find_area(
@@ -215,22 +209,19 @@ class LostVoidApp(ZApplication):
             '按钮-前往挑战',
         )
         if result.is_success:
-            self._reset_entry_nav_click_cooldown()
             return self.round_success('已开放前往挑战')
-
-        if self._is_entry_nav_click_on_cooldown():
-            return self.round_retry('点击周期冷却', wait=0.1)
 
         result = self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-入口',
             '按钮-周期',
+            until_find_all=[('迷失之地-入口', '按钮-前往挑战')],
+            success_wait=0.3,
             retry_wait=0.1,
         )
         if result.is_success:
-            self._record_entry_nav_click()
-            return self.round_wait('点击周期', wait=0.3)
-        return self.round_retry('点击周期失败', wait=0.1)
+            return self.round_success('已开放前往挑战')
+        return result
 
     @node_from(from_name='入口OCR-点击周期', status='已开放前往挑战')
     @operation_node(name='矩阵行动-前往挑战')
@@ -490,68 +481,43 @@ class LostVoidApp(ZApplication):
         return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
 
     @node_from(from_name='前往副本画面', status='需OCR入口导航')
-    @operation_node(name='入口OCR-点击常规', node_max_retry_times=300)
+    @operation_node(name='入口OCR-点击常规')
     def click_regular_in_matrix_explore(self) -> OperationRoundResult:
         """在入口页点击常规标签。"""
-        mission_name = self.config.mission_name
-        mission_area_name = f'按钮-{mission_name}'
+        mission_area_name = f'按钮-{self.config.mission_name}'
 
-        # 条件通过：检测到下一步按钮文字（战线肃清/特遣调查）
+        # 已显示目标副本时，常规按钮可能不会显示，直接进入下一步
         result = self.round_by_find_area(
             self.last_screenshot,
             '迷失之地-入口',
             mission_area_name,
         )
         if result.is_success:
-            self._reset_entry_nav_click_cooldown()
             return self.round_success('已显示目标副本入口')
-
-        if self._is_entry_nav_click_on_cooldown():
-            return self.round_retry('点击常规冷却', wait=0.1)
 
         result = self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-入口',
             '按钮-常规',
+            until_find_all=[('迷失之地-入口', mission_area_name)],
+            success_wait=0.3,
             retry_wait=0.1,
         )
         if result.is_success:
-            self._record_entry_nav_click()
-            return self.round_wait('点击常规', wait=0.3)
-        return self.round_retry('点击常规失败', wait=0.1)
+            return self.round_success('已显示目标副本入口')
+        return result
 
     @node_from(from_name='入口OCR-点击常规', status='已显示目标副本入口')
-    @operation_node(name='入口OCR-点击目标副本', node_max_retry_times=300)
+    @operation_node(name='入口OCR-点击目标副本')
     def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
         """在入口页点击目标副本入口。"""
-        mission_name = self.config.mission_name
-        target_screen_name = f'迷失之地-{mission_name}'
-        mission_area_name = f'按钮-{mission_name}'
-
-        screen_name = self.check_and_update_current_screen(
-            self.last_screenshot,
-            screen_name_list=[target_screen_name],
+        return self.round_by_goto_screen(
+            screen_name=f'迷失之地-{self.config.mission_name}',
+            retry_wait=0.5,
         )
-        if screen_name == target_screen_name:
-            self._reset_entry_nav_click_cooldown()
-            return self.round_success('已进入目标副本')
-
-        if self._is_entry_nav_click_on_cooldown():
-            return self.round_retry('点击目标副本冷却', wait=0.1)
-
-        result = self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            mission_area_name,
-            retry_wait=0.1,
-        )
-        if result.is_success:
-            self._record_entry_nav_click()
-            return self.round_wait('点击目标副本', wait=0.5)
-        return self.round_retry('点击目标副本失败', wait=0.1)
 
     @node_from(from_name='前往副本画面')
-    @node_from(from_name='入口OCR-点击目标副本', status='已进入目标副本')
+    @node_from(from_name='入口OCR-点击目标副本')
     @operation_node(name='副本画面识别')
     def check_for_mission(self) -> OperationRoundResult:
         """
@@ -855,11 +821,13 @@ class LostVoidApp(ZApplication):
         op_result = op.execute()
         if op_result.success:
             if op_result.status == LostVoidRunLevel.STATUS_NEXT_LEVEL:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 if op_result.data is not None:
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
             elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 self.next_region_type = LostVoidRegionType.ENTRY
 
         return self.round_by_op_result(op_result)
@@ -892,15 +860,6 @@ class LostVoidApp(ZApplication):
                 return mrl.max
 
         return None
-
-    def _reset_entry_nav_click_cooldown(self) -> None:
-        self._entry_nav_last_click_at = 0.0
-
-    def _is_entry_nav_click_on_cooldown(self) -> bool:
-        return time.monotonic() - self._entry_nav_last_click_at < self._entry_nav_click_cooldown_sec
-
-    def _record_entry_nav_click(self) -> None:
-        self._entry_nav_last_click_at = time.monotonic()
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')

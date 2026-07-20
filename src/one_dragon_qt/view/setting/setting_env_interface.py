@@ -23,7 +23,11 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
+from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
+    PasswordSwitchSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -47,6 +51,11 @@ class SettingEnvInterface(VerticalScrollInterface):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        self.help_opt = HelpCard(
+            title='设置说明',
+            content='不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整',
+        )
+        content_layout.addWidget(self.help_opt)
         content_layout.addWidget(self._init_basic_group())
         content_layout.addWidget(self._init_code_group())
         content_layout.addWidget(self._init_python_group())
@@ -89,10 +98,12 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_type_opt)
 
-        self.auto_update_opt = SwitchSettingCard(
+        self.auto_update_code_opt = PasswordSwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
+            password_hash='69fec7ebc9c57ba044c55deb4e30aa1a6d6788f1da67b824ef96a590f526d20a',
+            reverse_mode=True
         )
-        code_group.addSettingCard(self.auto_update_opt)
+        code_group.addSettingCard(self.auto_update_code_opt)
 
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
@@ -202,7 +213,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
+        self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 

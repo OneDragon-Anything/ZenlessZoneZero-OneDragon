@@ -5,6 +5,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils.log_utils import log
 from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.application.world_patrol.operation.world_patrol_run_route import (
     WorldPatrolRunRoute,
@@ -71,6 +72,14 @@ class WorldPatrolApp(ZApplication):
                         for route in self.route_list
                         if route.full_id in route_id_list
                     ]
+        self.run_record.total_rounds = self.config.daily_loop_count
+        self.run_record.set_routes_per_round(len(self.route_list))
+        # 基于当日已完成轮数计算起始轮次，使重启任务能从下一轮继续
+        self.run_record.current_round = self.run_record.completed_rounds + 1
+        # 仅清本轮的计时字段，保留 finished 以支持任务中途停止后的续跑
+        self.run_record.reset_round_timing()
+        if self.run_record.current_round > self.run_record.total_rounds:
+            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.run_record.total_rounds} 轮，无需再跑')
         return self.round_success(status=f'加载路线 {len(self.route_list)}')
 
     @node_from(from_name='初始化')
@@ -113,9 +122,19 @@ class WorldPatrolApp(ZApplication):
 
     @node_from(from_name='前往绳网', status='无任务追踪')
     @node_from(from_name='停止追踪后返回大世界')
+    @node_from(from_name='准备下一轮', status='进入下一轮')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
+        # 当日已完成的轮数已达上限，直接走「全部完成」分支
+        if self.run_record.current_round > self.run_record.total_rounds:
+            return self.round_success(status='路线已全部完成')
+
+        # 轮次首次进入：记录起始时间并打印开场日志
+        if self.run_record.round_start_time is None:
+            self.run_record.round_start_time = time.monotonic()
+            log.info(f'开始第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮锄大地')
+
         if self.route_idx >= len(self.route_list):
             return self.round_success(status='路线已全部完成')
 
@@ -129,11 +148,13 @@ class WorldPatrolApp(ZApplication):
 
         route_finished = False
         fail_status = None
-        retry_times = self.config.route_retry_times
-        attempt_idx = 0
+        retry_times = self.config.route_retry_times  # 同一条路线允许传送回当前路线起点重跑的最大次数
+        attempt_idx = 0  # 当前是第几次尝试，0 表示首次执行，大于 0 表示已进入重试态
 
         while True:
-            op = WorldPatrolRunRoute(self.ctx, route, is_restarted=attempt_idx > 0)
+            # 首次执行始终正常脱困；进入重试态后，是否仍尝试脱困由「路线重试处理方式」决定
+            is_restarted = attempt_idx > 0 and self.config.route_retry_action == WorldPatrolConfig.ROUTE_RETRY_ACTION_SKIP
+            op = WorldPatrolRunRoute(self.ctx, route, is_restarted=is_restarted)
             result = op.execute()
 
             if result.success:
@@ -143,6 +164,10 @@ class WorldPatrolApp(ZApplication):
             if result.status == WorldPatrolRunRoute.STATUS_UI_DISAPPEARED:
                 action = self.config.ui_disappear_action
                 if action == WorldPatrolConfig.UI_DISAPPEAR_SILENT_FAIL:
+                    log.warning(
+                        f'第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮因界面消失静默失败终止任务 '
+                        f'路线 {route.full_id}'
+                    )
                     self._stop_route_actions()
                     return self.round_fail(status=f'{WorldPatrolRunRoute.STATUS_UI_DISAPPEARED} {route.full_id}')
 
@@ -160,16 +185,16 @@ class WorldPatrolApp(ZApplication):
                 return self.round_wait(status=f'界面消失已重开游戏并跳过路线 {route.full_id}')
 
             if _is_stuck_over_limit_status(result.status):
+                # 「单条路线重试上限」是硬上限：还有额度就传送回当前路线起点重跑，额度用完则跳过该路线
                 if attempt_idx < retry_times:
                     attempt_idx += 1
                     continue
 
                 route_finished = False
-                fail_status = (
-                    f'重试后仍卡住: {result.status}'
-                    if attempt_idx > 0
-                    else result.status
-                )
+                if attempt_idx > 0:
+                    fail_status = f'重试 {attempt_idx} 次后仍卡住: {result.status}'
+                else:
+                    fail_status = result.status
                 break
 
             fail_status = result.status
@@ -182,6 +207,70 @@ class WorldPatrolApp(ZApplication):
         else:
             self.route_idx += 1
             return self.round_wait(status=f'路线失败 {fail_status} {route.full_id}')
+
+    @node_from(from_name='执行路线', status='路线已全部完成')
+    @operation_node(name='轮次结束判定')
+    def decide_next_round(self) -> OperationRoundResult:
+        """一轮路线跑完后的分流：
+
+        - 当日已完成轮数已满 → 直接结束，本次不计入完成数
+        - 本轮是最后一轮 → 计入当日已完成轮数后结束
+        - 还有下一轮 → 计入当日已完成轮数后按配置间隔算出还要等多久
+        """
+        if self.run_record.current_round > self.run_record.total_rounds:
+            log.info(f'锄大地当日已完成 {self.run_record.completed_rounds}/{self.run_record.total_rounds} 轮，无需再跑')
+            return self.round_success(status='全部完成')
+
+        # 本轮真实跑完，加入当日已完成轮数
+        self.run_record.inc_completed_rounds()
+
+        if self.run_record.current_round >= self.run_record.total_rounds:
+            log.info(f'锄大地全部循环已完成 共 {self.run_record.total_rounds} 轮')
+            return self.round_success(status='全部完成')
+
+        loop_interval_seconds = self.config.loop_interval_seconds
+        round_duration = time.monotonic() - self.run_record.round_start_time
+        self.run_record.round_wait_seconds = max(0.0, loop_interval_seconds - round_duration)
+
+        if self.run_record.round_wait_seconds > 0:
+            log.info(
+                f'第 {self.run_record.current_round}/{self.run_record.total_rounds} 轮耗时 {round_duration:.0f}s '
+                f'最少占用 {loop_interval_seconds}s 将等待 {self.run_record.round_wait_seconds:.0f}s'
+            )
+        return self.round_success(status='进入轮间等待')
+
+    @node_from(from_name='轮次结束判定', status='进入轮间等待')
+    @operation_node(name='传送回录像店')
+    def goto_video_shop(self) -> OperationRoundResult:
+        """轮间等待前先离开野怪刷新点，离开勘域以避免怪物刷新后攻击我们。"""
+        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='传送回录像店')
+    @operation_node(name='轮间等待')
+    def wait_between_rounds(self) -> OperationRoundResult:
+        """以 1 秒为粒度轮询等待，借助 round_wait 让暂停/停止信号能及时响应。"""
+        if self.run_record.round_wait_start_time is None:
+            self.run_record.round_wait_start_time = time.monotonic()
+
+        elapsed = time.monotonic() - self.run_record.round_wait_start_time
+        if elapsed >= self.run_record.round_wait_seconds:
+            return self.round_success(status='等待完成')
+
+        return self.round_wait(
+            status=f'轮间等待中 {elapsed:.0f}/{self.run_record.round_wait_seconds:.0f}s',
+            wait=min(1.0, self.run_record.round_wait_seconds - elapsed),
+        )
+
+    @node_from(from_name='轮间等待', status='等待完成')
+    @operation_node(name='准备下一轮')
+    def prepare_next_round(self) -> OperationRoundResult:
+        """跨轮重置：清空 finished 让下一轮所有路线重新执行，并重置本轮的时间字段。"""
+        self.run_record.current_round += 1
+        self.route_idx = 0
+        self.run_record.reset_finished()
+        self.run_record.reset_round_timing()
+        return self.round_success(status='进入下一轮')
 
     def _stop_route_actions(self) -> None:
         self.ctx.auto_battle_context.stop_auto_battle()

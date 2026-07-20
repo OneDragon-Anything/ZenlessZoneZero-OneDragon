@@ -39,14 +39,7 @@ class NotoriousHuntMove(ZOperation):
         self.move_times: int = 0
         self.no_dis_times: int = 0
 
-    @operation_node(name='初始化模型', is_start_node=True)
-    def init_model(self) -> OperationRoundResult:
-        """加载迷失之地检测模型 用于识别距离白点"""
-        self.ctx.lost_void.init_lost_void_det_model()
-        return self.round_success()
-
-    @node_from(from_name='初始化模型')
-    @operation_node(name='移动靠近交互', node_max_retry_times=10)
+    @operation_node(name='移动靠近交互', node_max_retry_times=10, is_start_node=True)
     def first_move(self) -> OperationRoundResult:
         result = self._move_by_hint()
         if result.is_success:
@@ -83,6 +76,7 @@ class NotoriousHuntMove(ZOperation):
             return self.round_success(battle_result.status)
 
         if distance_pos is None:
+            self.ctx.controller.move_w(press=True, press_time=1, release=True)
             return self.round_retry(wait=1)
 
         current_distance = self.ctx.auto_battle_context.last_check_distance

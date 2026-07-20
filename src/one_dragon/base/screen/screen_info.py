@@ -13,6 +13,7 @@ class ScreenInfo:
         self.old_screen_id: str = data.get('screen_id', '')  # 旧的画面ID 用于保存时删掉旧文件
         self.screen_id: str = data.get('screen_id', '')  # 画面ID 用于加载文件
         self.screen_name: str = data.get('screen_name', '')  # 画面名称 用于显示
+        self.app_id: str = data.get('app_id', '')  # 所属应用ID 空字符串表示全局 screen
 
         self.screen_image: MatLike | None = None
 
@@ -92,10 +93,43 @@ class ScreenInfo:
             return
         self.area_list.pop(idx)
 
+    def upsert_area(self, area: ScreenArea) -> str:
+        """按 area_name 插入或更新 area(存在则整体替换,否则追加)。
+
+        Args:
+            area: 要写入的区域;以 ``area_name`` 作为匹配键。
+
+        Returns:
+            ``'updated'`` 表示替换了既有同名 area;``'inserted'`` 表示新追加。
+        """
+        for idx, cur in enumerate(self.area_list):
+            if cur.area_name == area.area_name:
+                self.area_list[idx] = area
+                return 'updated'
+        self.area_list.append(area)
+        return 'inserted'
+
+    def remove_area_by_name(self, area_name: str) -> bool:
+        """按 area_name 删除 area。
+
+        Args:
+            area_name: 区域名(同 screen 内唯一)。
+
+        Returns:
+            找到并删除返 ``True``;不存在返 ``False``。
+        """
+        for idx, cur in enumerate(self.area_list):
+            if cur.area_name == area_name:
+                self.area_list.pop(idx)
+                return True
+        return False
+
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         data['screen_id'] = self.screen_id
         data['screen_name'] = self.screen_name
+        if self.app_id:
+            data['app_id'] = self.app_id
         data['pc_alt'] = self.pc_alt
         data['area_list'] = [area.to_dict() for area in self.area_list]
 

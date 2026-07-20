@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -12,18 +14,32 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class ChooseNextOrFinishAfterBattle(ZOperation):
 
-    def __init__(self, ctx: ZContext, try_next: bool) -> None:
+    STATUS_AGENT_PLAN_FINISHED: ClassVar[str] = '特训目标已达成'
+
+    def __init__(self, ctx: ZContext, try_next: bool, is_agent_plan: bool = False) -> None:
         """
-        在战斗结束画面 尝试点击 【再来一次】 或者 【结束】
+        在战斗结束画面 尝试点击 【再来一次】 或者 【完成】
         :param ctx: 上下文
         :param try_next: 是否尝试点击下一次
+        :param is_agent_plan: 当前是否特训目标(代理人方案培养) 用于判断是否已达成
         """
         ZOperation.__init__(self, ctx, op_name=gt('战斗后选择'))
         self.try_next: bool = try_next
+        self.is_agent_plan: bool = is_agent_plan
 
     @node_from(from_name='恢复电量', status='战斗结果-完成')
     @operation_node(name='判断再来一次', is_start_node=True)
     def check_next(self) -> OperationRoundResult:
+        # 特训目标(代理人方案培养)结算画面左下角显示“已达成”时 说明本条计划无需再打 直接点完成结束
+        if self.try_next and self.is_agent_plan:
+            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '战斗结果-已达成')
+            if result.is_success:
+                result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
+                                                           success_wait=5, retry_wait=1)
+                if result.is_success:
+                    return self.round_success(status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
+                return result
+
         if self.try_next:
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-再来一次',
                                                        success_wait=1, retry_wait=1)
@@ -57,6 +73,10 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
             self.try_next = op_result.status == RestoreCharge.STATUS_RESTORE_SUCCESS
         else:
             self.try_next = False
+            result = self.round_by_find_and_click_area(self.last_screenshot, '恢复电量', '取消',
+                                                       success_wait=1, retry_wait=1)
+            if not result.is_success:
+                return result
 
         # 恢复流程结束后回到“判断再来一次”；是否继续由 try_next 决定，这里不直接点“完成”
         return self.round_success(status='战斗结果-完成', wait=0.5)

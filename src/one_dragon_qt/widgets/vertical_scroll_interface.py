@@ -1,8 +1,9 @@
 from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
-from qfluentwidgets import FluentIconBase, SingleDirectionScrollArea
+from qfluentwidgets import FluentIconBase
 
 from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
 
 class VerticalScrollInterface(BaseInterface):
@@ -60,7 +61,7 @@ class VerticalScrollInterface(BaseInterface):
             top_wrapper_layout.addWidget(top_widget)
             main_layout.addWidget(top_wrapper, stretch=0)
 
-        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        scroll_area = FastScrollArea(orient=Qt.Orientation.Vertical)
         scroll_area.setViewportMargins(11, 0, 11, 0)
         main_layout.addWidget(scroll_area, stretch=1)
 
@@ -74,9 +75,6 @@ class VerticalScrollInterface(BaseInterface):
         wrapper_layout.addWidget(content_widget)
 
         scroll_area.setWidget(wrapper)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
-
         self._init = True
 
     def get_content_widget(self) -> QWidget:

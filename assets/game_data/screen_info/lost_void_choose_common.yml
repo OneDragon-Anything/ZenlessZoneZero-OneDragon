@@ -1,5 +1,6 @@
 screen_id: lost_void_choose_common
 screen_name: 迷失之地-通用选择
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 文本-详情
@@ -19,10 +20,10 @@ area_list:
 - area_name: 按钮-确定
   id_mark: true
   pc_rect:
-  - 847
-  - 762
-  - 1125
-  - 975
+  - 466
+  - 758
+  - 1406
+  - 977
   text: 确定
   lcs_percent: 0.5
   template_sub_dir: ''
