@@ -369,12 +369,12 @@ class LostVoidApp(ZApplication):
 
         # 3. 选人
         # noinspection PyUnboundLocalVariable
-        self.swipe_multiple_times(agent_area, 1 + page, 0.2, 'up')
+        self.swipe_multiple_times(agent_area, page, 0.1, 'up')
         for agent_loc in range(len(agent_page_match_list)):
-            self.swipe_multiple_times(agent_area, agent_page_match_list[agent_loc][0], 0.2, 'down')
+            self.swipe_multiple_times(agent_area, agent_page_match_list[agent_loc][0], 0.1, 'down')
             self.ctx.controller.click(agent_page_match_list[agent_loc][1])
             time.sleep(0.5)
-            self.swipe_multiple_times(agent_area, 1 + agent_page_match_list[agent_loc][0], 0.2, 'up')
+            self.swipe_multiple_times(agent_area, agent_page_match_list[agent_loc][0], 0.1, 'up')
 
         return self.round_success()
 
