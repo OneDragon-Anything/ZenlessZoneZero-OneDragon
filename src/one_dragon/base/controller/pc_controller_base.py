@@ -37,9 +37,9 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTUP = 0x0004
 
     # 拖动后的等待时间 (用于消除拖动惯性)
-    SLEEP_BEFORE_DRAG_END = 0.2
+    SLEEP_BEFORE_DRAG_END:float = 0.2
     # (DRAG_MIN_DURATION + SLEEP_BEFORE_DRAG_END) 为整个拖动过程的最小时间
-    DRAG_MIN_DURATION = 0.1
+    DRAG_MIN_DURATION:float = 0.1
 
     def __init__(self,
                  screenshot_method: str,
@@ -598,9 +598,6 @@ def drag_mouse(start: Point, end: Point, duration: float = 0.5):
         cy = int(start.y + (end.y - start.y) * t)
         pyautogui.moveTo(cx, cy)
         time.sleep(duration_drag / steps)
-        if i > 8:
-            pass
-
     # 松开之前先定住鼠标以消除滑动惯性
     time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)
     # 松开
