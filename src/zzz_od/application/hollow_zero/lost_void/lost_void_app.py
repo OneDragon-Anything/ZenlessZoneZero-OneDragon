@@ -101,7 +101,7 @@ class LostVoidApp(ZApplication):
             return self.round_success('可前往副本画面')
 
         # 特殊兼容：在入口区域开始，接力运行
-        if screen_name == '迷失之地-入口':
+        if screen_name in ['迷失之地-入口-周期', '迷失之地-入口-常规']:
             return self.round_success('迷失之地-入口')
 
         # 未识别到画面；走快捷手册传送流程
@@ -136,8 +136,9 @@ class LostVoidApp(ZApplication):
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
-        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
-        if screen_name != '迷失之地-入口':
+        screen_name_list = ['迷失之地-入口-周期', '迷失之地-入口-常规']
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=screen_name_list)
+        if screen_name not in screen_name_list:
             return self.round_wait(status='等待画面加载', wait=1)
         return self.round_success(status=screen_name)
 
@@ -161,9 +162,9 @@ class LostVoidApp(ZApplication):
                 return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
             return self.round_success(LostVoidApp.STATUS_AGAIN)
 
-        result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-悬赏委托')
         if not result.is_success:
-            return self.round_retry('未识别到常规按钮', wait=0.5)
+            return self.round_retry('未识别到悬赏委托', wait=0.5)
 
         TARGET_SCORE = '8000'  # 目标分数文本
 
@@ -197,7 +198,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
     @operation_node(name='矩阵行动-前往入口')
     def matrix_goto_entry(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='迷失之地-入口')
+        return self.round_by_goto_screen(screen_name='迷失之地-入口-周期')
 
     @node_from(from_name='矩阵行动-前往入口')
     @operation_node(name='入口OCR-点击周期')
@@ -205,7 +206,7 @@ class LostVoidApp(ZApplication):
         """在入口页点击周期标签。"""
         result = self.round_by_find_area(
             self.last_screenshot,
-            '迷失之地-入口',
+            '迷失之地-入口-周期',
             '按钮-前往挑战',
         )
         if result.is_success:
@@ -213,9 +214,9 @@ class LostVoidApp(ZApplication):
 
         result = self.round_by_find_and_click_area(
             self.last_screenshot,
-            '迷失之地-入口',
+            '迷失之地-入口-周期',
             '按钮-周期',
-            until_find_all=[('迷失之地-入口', '按钮-前往挑战')],
+            until_find_all=[('迷失之地-入口-周期', '按钮-前往挑战')],
             success_wait=0.3,
             retry_wait=0.1,
         )
@@ -229,7 +230,7 @@ class LostVoidApp(ZApplication):
         """在矩阵行动入口点击前往挑战。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
-            '迷失之地-入口',
+            '迷失之地-入口-周期',
             '按钮-前往挑战',
             success_wait=1,
             retry_wait=1,
@@ -277,7 +278,6 @@ class LostVoidApp(ZApplication):
         # 初始为较高的匹配阈值，如果超过5次匹配失败则改用0.5的阈值兜底
         lcs_percent = 0.7 if self.node_retry_times < 5 else 0.5
 
-        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
         main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
 
         # 获取目标编队名称
@@ -489,7 +489,7 @@ class LostVoidApp(ZApplication):
         # 已显示目标副本时，常规按钮可能不会显示，直接进入下一步
         result = self.round_by_find_area(
             self.last_screenshot,
-            '迷失之地-入口',
+            '迷失之地-入口-常规',
             mission_area_name,
         )
         if result.is_success:
@@ -499,7 +499,7 @@ class LostVoidApp(ZApplication):
             self.last_screenshot,
             '迷失之地-入口',
             '按钮-常规',
-            until_find_all=[('迷失之地-入口', mission_area_name)],
+            until_find_all=[('迷失之地-入口-常规', mission_area_name)],
             success_wait=0.3,
             retry_wait=0.1,
         )
@@ -623,7 +623,8 @@ class LostVoidApp(ZApplication):
                 if digit_context.is_success and digit_context.contours:
                     for digit_contour in digit_context.contours:
                         M = cv2.moments(digit_contour)
-                        if M["m00"] == 0: continue
+                        if M["m00"] == 0:
+                            continue
                         center_x = int(M["m10"] / M["m00"])
                         center_y = int(M["m01"] / M["m00"])
 
