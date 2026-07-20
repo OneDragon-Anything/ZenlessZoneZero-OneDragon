@@ -14,6 +14,8 @@ from one_dragon.utils.log_utils import log
 
 class PcGameWindow:
 
+    MAX_ACTIVE_ATTEMPTS = 30
+
     def __init__(self,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
@@ -113,7 +115,7 @@ class PcGameWindow:
     def active(self, retry_until_active: bool = False) -> bool:
         """
         显示并激活当前窗口
-        :param retry_until_active: 是否持续重试，并在多次失败后最小化其他窗口
+        :param retry_until_active: 是否最多重试 30 次，并在多次失败后最小化其他窗口
         :return: 是否已确认游戏窗口位于前台
         """
         if not self.is_win_valid:
@@ -138,6 +140,9 @@ class PcGameWindow:
                 log.error('切换到游戏窗口失败，Windows 未允许窗口获得前台焦点')
                 return False
             attempt += 1
+            if attempt >= self.MAX_ACTIVE_ATTEMPTS:
+                log.error('多次尝试仍未恢复游戏窗口前台焦点')
+                return False
             time.sleep(1)
 
         log.error('游戏窗口已失效，无法恢复前台焦点')

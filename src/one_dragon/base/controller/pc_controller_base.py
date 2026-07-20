@@ -93,9 +93,12 @@ class PcControllerBase(ControllerBase):
         self.screenshot_controller.cleanup()
 
     def active_window(self) -> bool:
-        """
-        前置窗口
-        """
+        """尝试一次将游戏窗口切到前台。"""
+        self.game_win.init_win()
+        return self.background_mode or self.game_win.active()
+
+    def ensure_active_window(self) -> bool:
+        """运行期间按配置恢复游戏窗口焦点。"""
         self.game_win.init_win()
         return self.background_mode or self.game_win.active(retry_until_active=self.force_active_window)
 
@@ -160,7 +163,7 @@ class PcControllerBase(ControllerBase):
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
             if self.force_active_window and not self.background_mode and not self.game_win.is_win_active:
-                if not self.active_window():
+                if not self.ensure_active_window():
                     raise RuntimeError('游戏窗口激活失败，已停止本轮操作以避免误点其他窗口')
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
