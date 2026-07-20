@@ -107,7 +107,11 @@ class AppRunList(DraggableList):
                     app_id=app.app_id,
                     instance_idx=instance_idx
                 )
-                card.set_app(app, run_record)
+                card.set_app(
+                    app,
+                    run_record,
+                    is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
+                )
                 card.set_switch_on(app.enabled)
                 card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
 
@@ -136,6 +140,7 @@ class AppRunList(DraggableList):
                 index=idx,
                 run_record=run_record,
                 switch_on=app.enabled,
+                is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
                 enable_opacity_effect=self._enable_opacity_effect,
             )
             self._app_cards.append(card)

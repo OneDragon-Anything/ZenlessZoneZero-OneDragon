@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 from qfluentwidgets import (
     Action,
+    CaptionLabel,
     FluentIcon,
     FluentThemeColor,
     RoundMenu,
@@ -37,10 +38,12 @@ class AppRunCard(DraggableListItem):
         run_record: AppRunRecord | None = None,
         switch_on: bool = False,
         parent: QWidget | None = None,
-        enable_opacity_effect: bool = True
+        enable_opacity_effect: bool = True,
+        is_migrated: bool = False,
     ):
         self.app: ApplicationGroupConfigItem = app
         self.run_record: AppRunRecord | None = run_record
+        self.is_migrated: bool = is_migrated
 
         self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
         self.setting_btn.setToolTip(gt('应用设置'))
@@ -76,6 +79,28 @@ class AppRunCard(DraggableListItem):
             parent=parent,
         )
 
+        self.migrated_label = CaptionLabel(gt('已迁移'), content_widget)
+        self.migrated_label.setTextColor('#B26A00', '#FFD166')
+        self.migrated_info_btn = QLabel(content_widget)
+        self.migrated_info_btn.setPixmap(
+            FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value).pixmap(QSize(14, 14))
+        )
+        self.migrated_info_btn.setFixedSize(18, 18)
+        self.migrated_info_btn.setContentsMargins(0, 3, 0, 0)
+        self.migrated_info_btn.setToolTip(gt('关闭后将从一条龙列表中永久移除'))
+        self.migrated_label.setVisible(is_migrated)
+        self.migrated_info_btn.setVisible(is_migrated)
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+        content_widget.vBoxLayout.removeWidget(content_widget.titleLabel)
+        title_layout.addWidget(content_widget.titleLabel, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        title_layout.addSpacing(8)
+        title_layout.addWidget(self.migrated_info_btn, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        title_layout.addWidget(self.migrated_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+        title_layout.addStretch(1)
+        content_widget.vBoxLayout.insertLayout(0, title_layout)
+
         # 调用 DraggableListItem 的 __init__
         DraggableListItem.__init__(
             self,
@@ -91,7 +116,10 @@ class AppRunCard(DraggableListItem):
         更新显示的状态
         :return:
         """
-        self.content_widget.setTitle(gt(self.app.app_name))
+        title = gt(self.app.app_name)
+        self.content_widget.setTitle(title)
+        self.migrated_label.setVisible(self.is_migrated)
+        self.migrated_info_btn.setVisible(self.is_migrated)
         if self.run_record is None:
             self.content_widget.setContent('')
         else:
@@ -140,7 +168,8 @@ class AppRunCard(DraggableListItem):
         self,
         app: ApplicationGroupConfigItem,
         run_record: AppRunRecord | None = None,
-    ):
+        is_migrated: bool = False,
+    ) -> None:
         """
         更新对应的app
         :param app:
@@ -148,6 +177,7 @@ class AppRunCard(DraggableListItem):
         """
         self.app = app
         self.run_record = run_record
+        self.is_migrated = is_migrated
         self.update_display()
 
     def setDisabled(self, arg__1: bool) -> None:
