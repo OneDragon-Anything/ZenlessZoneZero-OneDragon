@@ -57,8 +57,12 @@
 
 - 注册应用工厂并按需创建应用、配置和运行记录
 - 记录当前应用、实例、应用组和运行状态
-- 同步运行应用，并保存最终 `OperationResult`
-- 通过线程池提供异步运行入口
+- 管理应用运行及相关事件
+- 同步运行应用，并通过线程池提供异步运行入口
+- 产出统一的 `ApplicationRunResult`，区分正常完成、停止、失败和未启动等原因
+- 通过 `last_run_result` 保存最近一次已经确定的运行结果，用于重复停止和并发收口时复用首次结果，避免重复派发 STOP 事件或覆盖结束原因
+
+`ApplicationRunResult` 描述运行生命周期结果；应用自身 `execute()` 返回的 `OperationResult` 保存在 `last_application_result`，供需要读取应用具体执行状态的调用方使用。两者分别回答“运行如何结束”和“应用执行返回了什么”。
 
 ### ApplicationGroupManager
 
@@ -72,6 +76,13 @@
 2. 跳过未启用或运行记录已完成的应用。
 3. 设置当前应用和应用组上下文后执行应用。
 4. 恢复上层上下文并继续下一个应用。
+
+### 一条龙结束后动作
+
+一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机等收尾动作。
+GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
+通用运行上下文只返回运行结果，不感知关闭游戏或关机；单项应用运行也不会触发一条龙的结束后动作。
+`STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
 
 ## 核心流程
 

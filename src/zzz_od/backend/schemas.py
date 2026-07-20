@@ -34,6 +34,9 @@ class AnalyzeScreenResult:
             is_precise=False 候选)。决策优先看 screens;需看散落文本再看 ocr_texts。
         screenshot_path: 本次 analyze 新存的截图绝对路径;实时+save_image=True 时有值,
             其余 None。**有值 ⟺ 这次实时模式新存了张图**(离线模式不存)。
+        vision_hint: 能力边界提示(仅 ``success=True`` 时填):提醒本结果仅含 OCR 文字 +
+            模板匹配命中项,是画面的部分识别,不等同完整视觉理解;需要全面判断画面时配合
+            视觉工具 / 多模态再看。失败(截图 / 分析失败)时为 None。
     """
 
     success: bool
@@ -41,6 +44,7 @@ class AnalyzeScreenResult:
     error: str | None = None
     screens: list[ScreenMatch] = field(default_factory=list)
     screenshot_path: str | None = None
+    vision_hint: str | None = None
 
 
 @dataclass

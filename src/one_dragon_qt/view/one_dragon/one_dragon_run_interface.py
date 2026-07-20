@@ -10,7 +10,10 @@ from qfluentwidgets import (
     SettingCardGroup,
 )
 
-from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum, InstanceRun
+from one_dragon.base.config.one_dragon_config import (
+    AfterDoneOpEnum,
+    InstanceRun,
+)
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -20,6 +23,10 @@ from one_dragon.base.operation.application_base import ApplicationEventId
 from one_dragon.base.operation.one_dragon_context import (
     ContextInstanceEventEnum,
     OneDragonContext,
+)
+from one_dragon.base.operation.one_dragon_finalizer import (
+    AfterDoneRequest,
+    execute_after_done,
 )
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
@@ -44,13 +51,12 @@ class OneDragonRunInterface(SplitAppRunInterface):
                  nav_text_cn: str = '一条龙运行',
                  object_name: str = 'one_dragon_run_interface',
                  need_multiple_instance: bool = True,
-                 need_after_done_opt: bool = True,
                  help_url: str | None = None, parent=None):
         self.config: ApplicationGroupConfig | None = None
         self._context_event_signal = ContextEventSignal()
         self.help_url: str = help_url
         self.need_multiple_instance: bool = need_multiple_instance
-        self.need_after_done_opt: bool = need_after_done_opt
+        self._runner_finished_connected: bool = False
 
         SplitAppRunInterface.__init__(
             self,
@@ -117,6 +123,9 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def on_interface_shown(self) -> None:
         SplitAppRunInterface.on_interface_shown(self)
+        if not self._runner_finished_connected:
+            self.app_runner.finished.connect(self._on_app_runner_finished)
+            self._runner_finished_connected = True
         self._refresh_app_config()
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
@@ -130,7 +139,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.blockSignals(False)
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
-        self.after_done_opt.setVisible(self.need_after_done_opt)
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
         self.run_all_apps_signal.connect(self.run_app)
@@ -166,6 +174,30 @@ class OneDragonRunInterface(SplitAppRunInterface):
             log.info('已取消关机计划')
             cmd_utils.cancel_shutdown_sys()
 
+    def _on_app_runner_finished(self) -> None:
+        if self.app_runner.app_id != self.app_id:
+            return
+        after_done = self.ctx.one_dragon_config.after_done
+        if after_done == AfterDoneOpEnum.NONE.value.value:
+            return
+        execute_after_done(
+            self.ctx,
+            self.app_runner.run_result,
+            AfterDoneRequest(
+                close_game=after_done == AfterDoneOpEnum.CLOSE_GAME.value.value,
+                shutdown_seconds=(
+                    60 if after_done == AfterDoneOpEnum.SHUTDOWN.value.value else None
+                ),
+            ),
+        )
+
+    def run_app(self) -> None:
+        if self.app_runner.isRunning():
+            log.error('已有应用在运行中')
+            return
+        self.app_runner.app_id = self.app_id
+        self.app_runner.start()
+
     def run_app_by_item(self, app: ApplicationGroupConfigItem) -> None:
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
@@ -176,12 +208,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
     def on_context_state_changed(self) -> None:
         SplitAppRunInterface.on_context_state_changed(self)
         self.app_run_list.update_cards_display()
-
-        if self.ctx.run_context.is_context_stop and self.need_after_done_opt:
-            if self.ctx.one_dragon_config.after_done == AfterDoneOpEnum.SHUTDOWN.value.value:
-                cmd_utils.shutdown_sys(60)
-            elif self.ctx.one_dragon_config.after_done == AfterDoneOpEnum.CLOSE_GAME.value.value:
-                self.ctx.controller.close_game()
 
     def _on_app_state_changed(self, event) -> None:
         self.app_run_list.update_cards_display()

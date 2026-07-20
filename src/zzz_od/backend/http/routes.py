@@ -113,7 +113,7 @@ async def handle_game_analyze(backend: ZzzBackendContext, request: Request | Non
         request: Starlette 请求对象(读 query 中的 save_image)。
 
     Returns:
-        200 + 分析结果 JSON(success / ocr_texts / screens / error / screenshot_path);
+        200 + 分析结果 JSON(success / ocr_texts / screens / error / screenshot_path / vision_hint);
         backend 未就绪时返回 503。决策优先看 ``screens``,散落文本看 ``ocr_texts``。
     """
     try:
@@ -127,6 +127,7 @@ async def handle_game_analyze(backend: ZzzBackendContext, request: Request | Non
         "screens": [asdict(s) for s in result.screens],
         "error": result.error,
         "screenshot_path": result.screenshot_path,
+        "vision_hint": result.vision_hint,
     })
 
 

@@ -81,7 +81,7 @@ class OneDragonConfig(YamlConfig):
             if not existed:
                 break
 
-        new_instance = OneDragonInstance(idx, '%02d' % idx, first, True)
+        new_instance = OneDragonInstance(idx, f'{idx:02d}', first, True)
         self.instance_list.append(new_instance)
 
         dict_instance_list = self.dict_instance_list
@@ -137,7 +137,7 @@ class OneDragonConfig(YamlConfig):
             dict_instance_list.pop(idx)
         self.dict_instance_list = dict_instance_list
 
-        instance_dir = os_utils.get_path_under_work_dir('config', ('%02d' % instance_idx))
+        instance_dir = os_utils.get_path_under_work_dir('config', f'{instance_idx:02d}')
         if os.path.exists(instance_dir):
             shutil.rmtree(instance_dir)
 

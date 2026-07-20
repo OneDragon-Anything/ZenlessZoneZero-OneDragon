@@ -100,6 +100,12 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - **共享先确认**：入口文件团队共享，改前问用户，不静默重写。
 - **写得清晰易懂**：改入口文件 / 方法论文档时，用直白表述（首次出现的术语给定义 + 给例子），让首次接触的 AI 也读得懂；术语定义指向 [context_layering](docs/develop/harness/context_layering.md) / [entry_files](docs/develop/harness/entry_files.md)。
 
+## 改/建 skill
+
+**创建 / 修改任何 skill 前，先触发 `zzz-od-dev-skill-guide`**（即使你正在另一个 skill 的流程里，如改 `zzz-od-dev-screen-onboarding` 时 —— 改 skill = 触发 skill-guide，不论当前在哪个流程）。它的 4 条硬规范里两条最易漏、现普遍未遵循：
+- **同步该 skill 的 `design.md`（若有）**：改重要决策时，在该 skill 的 `design.md` 记「为什么这么定」（不只改 SKILL.md），避免后续不知道原意改坏。**这是项目 `zzz-od-dev-*` skill 的约定**（`zzz-od-dev-skill-guide` 规范 1），第三方 / `superpowers:*` skill 无此约定 → **先看 skill 目录有没有 design.md，有就更新**。⚠️ skill **本体在根 `skills/<name>/`**（项目源、稳定）；各 AI 工具用各自方式加载（可能映射 / 链接到别处，那是工具特定的加载路径）→ **查 / 改 skill 文件到本体（根 `skills/`），别查工具的加载映射路径**（映射不一定是真文件，搜索会漏）。
+- **SKILL.md 写方法论，不写跟外部代码强相关的具体内容**（函数名 / 测试 API / 具体路径 / 行号）—— 易变，外部代码改了 skill 没跟上会误导；具体例子 / 踩坑进 design.md。
+
 ## 产出前先判断：信息放哪、写什么
 
 写 doc / skill 前（以及信息重复、边界不清时），先判断放哪层、写什么，别盲目堆：

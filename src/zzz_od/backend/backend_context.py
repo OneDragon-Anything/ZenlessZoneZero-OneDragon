@@ -27,6 +27,9 @@ from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.application_run_context import (
+    RunFinishReason,
+)
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_match import find_screen_matches
@@ -46,6 +49,15 @@ if TYPE_CHECKING:
     from cv2.typing import MatLike
 
     from one_dragon.base.operation.operation import Operation
+
+
+# analyze_screen 返回的能力边界提示:本结果仅含 OCR + 模板匹配的部分识别,
+# 提醒调用方(智能体)需要全面判断画面时,补一步视觉工具 / 多模态再看。
+# 见 docs/develop/zzz/backend/design-principles.md P6/P13。
+_VISION_HINT = (
+    '本结果仅包含 OCR 识别的文字与模板匹配的命中项,是画面的部分识别结果,'
+    '不等同于对画面的完整视觉理解。需要全面判断画面时,请用视觉工具或多模态大模型再看一遍该画面。'
+)
 
 
 def _iso(ts: float | None) -> str | None:
@@ -215,10 +227,21 @@ class RunSlot:
                     self.app = run_context.get_application_name(app_id)   # 固化应用中文名
                 except Exception:  # noqa: BLE001
                     self.app = app_id
-                started = run_context.run_application(app_id, run_context.current_instance_idx, group_id)
-                result = run_context.last_application_result
-                if not started and result is None:
-                    result = OperationResult(success=False, status='应用启动失败')
+                run_result = run_context.run_application(
+                    app_id, run_context.current_instance_idx, group_id
+                )
+                if run_result.finish_reason == RunFinishReason.NOT_STARTED:
+                    result = OperationResult(
+                        success=False,
+                        status=f'应用运行失败: {run_result.finish_reason}',
+                    )
+                else:
+                    result = run_context.last_application_result
+                    if result is None:
+                        result = OperationResult(
+                            success=False,
+                            status=f'应用运行失败: {run_result.finish_reason}',
+                        )
             else:
                 # —— op 路径:槽自管生命周期(open_game / 自定义 op 通用)——
                 run_context.current_instance_idx = instance_idx if instance_idx is not None else ctx.current_instance_idx
@@ -493,7 +516,8 @@ class ZzzBackendContext:
 
         Returns:
             分析结果:成功标志、OCR 文本列表、画面匹配列表、错误描述、
-            screenshot_path(本次新存的截图路径,实时+save_image=True 时有值)。
+            screenshot_path(本次新存的截图路径,实时+save_image=True 时有值)、
+            vision_hint(成功时填的能力边界提示,失败时 None)。
         """
         self._ensure_ready()
         should_save: bool = save_image and screenshot is None
@@ -527,7 +551,8 @@ class ZzzBackendContext:
             screens = find_screen_matches(self._ctx, image)
             if write_back and screens and screens[0].is_precise:
                 self._ctx.screen_loader.update_current_screen_name(screens[0].screen_name)
-            return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, screens=screens, error=None, screenshot_path=saved_path)
+            return AnalyzeScreenResult(success=True, ocr_texts=ocr_texts, screens=screens, error=None,
+                                       screenshot_path=saved_path, vision_hint=_VISION_HINT)
         except Exception as e:  # noqa: BLE001 OCR/匹配/存盘异常兜底:不回写,返失败(存盘已成功的仍回传路径排障)
             return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error=str(e), screenshot_path=saved_path)
 
