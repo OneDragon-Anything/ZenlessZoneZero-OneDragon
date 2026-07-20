@@ -53,7 +53,9 @@ server 给「**事实**」,智能体做「**决策 + 通用理解**」。server 
 ### P3. 操作 vs 观察分离
 操作类 tool 改状态(进游戏 / 停止 / reload / 改配置),观察类只读(窗口 / 截图 / 运行态)。副作用两种标注:
 - **docstring** 文字说明(给智能体读);
-- **MCP tool annotations**(`destructiveHint` / `openWorldHint` 等机器可读,官方推荐)。
+- **MCP tool annotations**(`ToolAnnotations(readOnlyHint=...)` 等,**字段名 camelCase**(mcp sdk 与 JSON 线一致;⚠️ 用 snake_case 会被 pydantic 当 extra 忽略、静默失效);机器可读,官方推荐)。
+
+具体怎么标(分类判据 + 代码写法)见 [mcp-implementation.md](mcp-implementation.md) 第 1 节。
 
 ### P4. 不复制智能体已有的能力(选对 tool)
 少而精,每个 tool 清晰独立目的;合并高频链式操作成单 tool。判断标准:**「智能体自己能做?能 → 不做 MCP」**。
@@ -99,6 +101,11 @@ tool 按服务 / 资源分组前缀(如 `game_*` / `run_*`),帮智能体在多 s
 观察类 tool(如 `analyze_screen`)默认只在内存处理观测(截图 → OCR / 匹配),**不落盘**。但调用方若想对**同一帧**做二次分析(典型:喂给 vision double-check),重新取观测 = 第二次截图、且画面可能已变。故观察类 tool 可**可选地**把已取的观测样本顺手持久化并回传路径(例 `analyze_screen(save_image=True)` → `screenshot_path`),供调用方复用 —— **默认关闭、opt-in**,避免无谓落盘。
 (与 P6「返回智能体友好」协同:路径锚点让智能体关联观测样本;与 P3「操作 vs 观察分离」协同:持久化是观察的可选副作用,docstring 标注,不改变观察语义。)
 
+### P14. 观察类工具可返回能力边界提示
+观察类 tool(如 `analyze_screen`)的输出是**部分识别**(OCR 文字 + 已建模模板命中项),不保证覆盖画面全部视觉信息。智能体易把它当「画面全貌」下判断 → 状态 / 布局判断不完整。故观察类 tool 可在返回里**主动带能力边界提示**(如 `vision_hint`),引导智能体在需要全面理解时补一步视觉工具 / 多模态。
+
+与 P1「capability over compensation」的边界:这不是**新增 tool 补偿模型弱点**(那是债),而是**陈述该 tool 的客观固有能力边界**(它本就只做部分识别,边界永远成立)—— 即使模型变强到总自觉用 vision,字段描述的事实仍真实。承载引导的事实独立成立,故非临时补丁。与 P6(返回智能体友好)/ P13(可选持久化复用同帧)协同:路径给复用入口、提示给「为什么该复用」,形成完整 nudge 链路。
+
 ## 4. 能力分配总表
 
 | 需求 | 智能体自己 | MCP | skill |
@@ -130,5 +137,6 @@ tool 按服务 / 资源分组前缀(如 `game_*` / `run_*`),帮智能体在多 s
 ## 相关
 
 - 现状 spec:[architecture.md](architecture.md) / [mcp.md](mcp.md) / [http.md](http.md)
+- 实现落地:[mcp-implementation.md](mcp-implementation.md)(本文配对:原则 → 代码写法)
 - 智能体接入:[../setup/ai_coding.md](../setup/ai_coding.md)
 - harness 方法论(分层类比):[../harness/context_layering.md](../harness/context_layering.md)

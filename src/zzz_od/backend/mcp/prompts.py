@@ -5,6 +5,7 @@ MCP prompt 属于协议中的独立能力，但部分客户端不会主动展示
 """
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 
 def render_check_status_guide() -> str:
@@ -130,14 +131,14 @@ def register_prompts(mcp: FastMCP) -> None:
 def register_prompt_tools(mcp: FastMCP) -> None:
     """把 prompt 模板以普通 MCP tool 形式暴露，便于客户端发现。"""
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出操作指南"))
     def list_mcp_usage_guides() -> list[dict[str, str]]:
-        """列出 zzz_od MCP 可用操作指南，相当于帮助目录。"""
+        """列出 zzz_od MCP 可用操作指南，相当于帮助目录。观察类。"""
         return list_prompt_guides()
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取操作指南"))
     def get_mcp_usage_guide(name: str, app_id: str | None = None) -> str:
-        """读取 zzz_od MCP 操作指南，相当于某个任务的 --help。
+        """读取 zzz_od MCP 操作指南，相当于某个任务的 --help。观察类。
 
         Args:
             name: 指南名称，可先调用 ``list_mcp_usage_guides`` 查看。
