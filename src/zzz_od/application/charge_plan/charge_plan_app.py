@@ -261,11 +261,8 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', status='合成电池')
     @operation_node(name='合成电池')
     def exchange_ether_battery(self) -> OperationRoundResult:
-        op = ExchangeEtherBattery(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        if result.is_success and result.status == ExchangeEtherBattery.STATUS_EXCHANGE_SUCCESS:
-            self.config.add_plan_run_times(self.current_plan)
-        return result
+        op = ExchangeEtherBattery(self.ctx, self.current_plan)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
     @operation_node(name='识别副本分类')
