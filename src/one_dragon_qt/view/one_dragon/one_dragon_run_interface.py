@@ -240,7 +240,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
         :param value:
         :return:
         """
-        self.config.set_app_enable(app_id, value)
+        removed = self.ctx.app_group_manager.set_one_dragon_app_enable(
+            config=self.config,
+            app_id=app_id,
+            enabled=value,
+        )
+        if removed:
+            self._init_app_list()
 
     def _on_instance_event(self, event) -> None:
         """
@@ -257,6 +263,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self._refresh_app_config()
 
     def _on_app_setting_manager_ready(self) -> None:
+        self.ctx.app_group_manager.clear_config_cache()
         self._refresh_app_config()
         self._update_setting_btn_visibility()
 
