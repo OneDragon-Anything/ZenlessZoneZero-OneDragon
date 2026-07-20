@@ -30,7 +30,7 @@ class MonitorEnum(Enum):
 
 class BasicGameConfig(YamlConfig):
 
-    def __init__(self, instance_idx: int | None):
+    def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game', instance_idx=instance_idx)
 
     @property

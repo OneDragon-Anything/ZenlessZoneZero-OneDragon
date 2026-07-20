@@ -66,14 +66,6 @@ class SettingGameInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.help_opt)
 
-        self.global_mode_switch = SwitchSettingCard(
-            icon=FluentIcon.SYNC,
-            title='全局模式',
-            content='开启后使用独立的全局游戏设置，所有账号实例共同使用',
-        )
-        self.global_mode_switch.value_changed.connect(self.on_global_mode_changed)
-        content_widget.add_widget(self.global_mode_switch)
-
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_key_settings_group())
         content_widget.add_stretch(1)
@@ -253,12 +245,6 @@ class SettingGameInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.global_mode_switch.init_with_adapter(
-            self.ctx.one_dragon_config.get_prop_adapter('game_config_global_mode')
-        )
-        self.init_game_config_cards()
-
-    def init_game_config_cards(self) -> None:
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
 
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
@@ -289,10 +275,6 @@ class SettingGameInterface(VerticalScrollInterface):
         self.ds4_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_press_time'))
         for action, card in self._ds4_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_key_{action.value.value}'))
-
-    def on_global_mode_changed(self) -> None:
-        self.ctx.reload_game_config()
-        self.init_game_config_cards()
 
     def _toggle_gamepad_cards(self, index: int) -> None:
         """根据头部下拉框切换 Xbox/DS4 卡片可见性"""
