@@ -1,5 +1,7 @@
 import json
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
@@ -276,22 +278,27 @@ class SettingPushInterface(VerticalScrollInterface):
             self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _get_test_screenshot(self) -> MatLike | None:
+        """生成通知测试用标准色相图。"""
         if not self.ctx.push_service.push_config.send_image:
             return None
 
-        if self.ctx.controller is None:
-            self.ctx.init_controller()
+        size = 600
+        center = size // 2
+        y, x = np.ogrid[:size, :size]
+        dx = x - center
+        dy = center - y
+        radius = np.sqrt(dx * dx + dy * dy)
+        angle = (np.arctan2(dy, dx) + 2 * np.pi) % (2 * np.pi)
 
-        if self.ctx.controller is None:
-            return None
+        hsv = np.zeros((size, size, 3), dtype=np.uint8)
+        hsv[:, :, 0] = (angle * 180 / np.pi / 2).astype(np.uint8)
+        hsv[:, :, 1] = np.clip(radius / (size / 2) * 255, 0, 255).astype(np.uint8)
+        hsv[:, :, 2] = 255
 
-        if not self.ctx.controller.is_game_window_ready:
-            if not self.ctx.controller.init_game_win():
-                return None
-
-        _, screen = self.ctx.controller.screenshot(independent=True)
-
-        return screen
+        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        image[radius > center] = (45, 45, 45)
+        cv2.circle(image, (center, center), center - 2, (255, 255, 255), 2)
+        return image
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))
