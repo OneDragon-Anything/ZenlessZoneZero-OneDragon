@@ -60,7 +60,6 @@ class EnterGame(ZOperation):
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
 
         self.screenshot_func: str = self.ctx.controller.screenshot_method
-        self.modify_screenshot_func()
 
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录

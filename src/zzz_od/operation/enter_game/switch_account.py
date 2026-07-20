@@ -18,7 +18,6 @@ class SwitchAccount(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('切换账号'), op_callback=self.restore_screenshot_func)
 
         self.screenshot_func = self.ctx.controller.screenshot_method
-        self.modify_screenshot_func()
 
     @operation_node(name='打开菜单', is_start_node=True)
     def open_menu(self) -> OperationRoundResult:
