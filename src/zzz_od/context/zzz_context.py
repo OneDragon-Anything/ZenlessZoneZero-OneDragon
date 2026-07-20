@@ -106,10 +106,15 @@ class ZContext(OneDragonContext):
         """
         切换实例后更新 controller 的窗口标题和账号配置
         """
-        if self.controller is not None:
-            new_win_title = self._get_win_title()
-            self.controller.set_window_title(new_win_title)
-            self.controller.sync_game_config(self.game_config)
+        from zzz_od.controller.zzz_pc_controller import ZPcController
+
+        controller = self.controller
+        if not isinstance(controller, ZPcController):
+            return
+
+        new_win_title = self._get_win_title()
+        controller.set_window_title(new_win_title)
+        controller.sync_game_config(self.game_config)
 
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum

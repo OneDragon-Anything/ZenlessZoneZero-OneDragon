@@ -215,11 +215,13 @@ class PcControllerBase(ControllerBase):
 
         if not self.game_win.active():
             return False
-        time.sleep(self.get_mouse_flash_duration())
+
+        mouse_flash_duration = self.get_mouse_flash_duration()
+        time.sleep(mouse_flash_duration)
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
         user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(self.get_mouse_flash_duration())
+        time.sleep(mouse_flash_duration)
 
         # 切回原来的前台窗口
         if prev_hwnd and prev_hwnd != hwnd:
