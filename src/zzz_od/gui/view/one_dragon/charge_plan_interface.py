@@ -144,6 +144,9 @@ class ChargePlanCard(DraggableListItem):
     def init_mission_type_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_mission_type_list(self.plan.category_name)
         self.mission_type_combo_box.set_items(config_list, self.plan.mission_type_name)
+        self.mission_type_combo_box.setVisible(
+            self.plan.category_name != '合成电池'
+        )
 
     def init_mission_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_mission_list(self.plan.category_name, self.plan.mission_type_name)
@@ -170,11 +173,17 @@ class ChargePlanCard(DraggableListItem):
         config_list = ([ConfigItem('游戏内配队', -1)] +
                        [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
         self.predefined_team_opt.set_items(config_list, self.plan.predefined_team_idx)
+        self.predefined_team_opt.setVisible(
+            self.plan.category_name != '合成电池'
+        )
 
     def init_auto_battle_box(self) -> None:
         config_list = get_auto_battle_op_config_list(sub_dir='auto_battle')
         self.auto_battle_combo_box.set_items(config_list, self.plan.auto_battle_config)
-        self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
+        self.auto_battle_combo_box.setVisible(
+            self.plan.category_name != '合成电池'
+            and self.plan.predefined_team_idx == -1
+        )
 
     def init_run_times_input(self) -> None:
         self.run_times_input.blockSignals(True)
@@ -213,11 +222,16 @@ class ChargePlanCard(DraggableListItem):
         category_name = self.category_combo_box.itemData(idx)
         self.plan.category_name = category_name
         self.plan.tab_name = '训练'
+        if category_name == '合成电池':
+            self.plan.mission_type_name = ''
+            self.plan.mission_name = None
 
         self.init_mission_type_combo_box()
         self.init_mission_combo_box()
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
+        self.init_predefined_team_opt()
+        self.init_auto_battle_box()
 
         self._emit_value()
 

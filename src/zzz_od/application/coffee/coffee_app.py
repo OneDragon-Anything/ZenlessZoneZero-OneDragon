@@ -252,6 +252,9 @@ class CoffeeApp(ZApplication):
         :param plan:
         :return:
         """
+        if plan.category_name == '合成电池':
+            return False
+
         if plan.category_name == '实战模拟室' and coffee.coffee_name == '浓缩咖啡':
             return True
 
@@ -261,10 +264,7 @@ class CoffeeApp(ZApplication):
         if coffee.mission_type.mission_type_name != plan.mission_type_name:
             return False
 
-        if coffee.mission is not None and coffee.mission.mission_name != plan.mission_name:
-            return False
-
-        return True
+        return not (coffee.mission is not None and coffee.mission.mission_name != plan.mission_name)
 
     @node_from(from_name='选择咖啡')
     @operation_node(name='点单')
@@ -392,10 +392,7 @@ class CoffeeApp(ZApplication):
                 coffee_plan = plan
                 break
 
-        if coffee_plan is None:
-            card_num = self.config.card_num
-        else:
-            card_num = coffee_plan.card_num
+        card_num = self.config.card_num if coffee_plan is None else coffee_plan.card_num
 
         self.charge_plan = ChargePlanItem(
             tab_name=self.chosen_coffee.tab.tab_name,
