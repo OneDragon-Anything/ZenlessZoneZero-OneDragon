@@ -326,8 +326,11 @@ class GitService:
         return repository_url
 
     def _get_repository_candidates(self) -> list[tuple[RepositoryItem, str]]:
-        """按用户首选和 YAML 声明顺序生成代码源候选列表。"""
+        """按用户选择、上次成功源和 YAML 声明顺序生成候选列表。"""
         preferred_repository = self._find_repository(self.env_config.repository_url)
+        if preferred_repository is None:
+            preferred_repository = self._find_repository(self.env_config.last_repository_url)
+
         candidates: list[tuple[RepositoryItem, str]] = []
         for repository in [preferred_repository, *self.repo_config.repositories]:
             if repository is None or any(candidate[0] is repository for candidate in candidates):
@@ -338,11 +341,11 @@ class GitService:
         return candidates
 
     def _get_git_repository(self) -> str:
-        """获取首选代码源地址。"""
-        preferred_repository = self._find_repository(self.env_config.repository_url)
-        if preferred_repository is None:
-            preferred_repository = self.repo_config.primary_repository
-        return self._get_repository_url(preferred_repository)
+        """获取当前选择模式下首个候选代码源地址。"""
+        candidates = self._get_repository_candidates()
+        if not candidates:
+            raise ValueError('未能获取有效的远程仓库地址')
+        return candidates[0][1]
 
     def _restore_origin(self) -> bool:
         """将当前本地 remote 恢复为项目主仓库 HTTPS 地址。"""
@@ -581,6 +584,12 @@ class GitService:
         if not success:
             log.error('所有代码源均拉取失败')
             return False
+
+        if used_repository is not None:
+            try:
+                self.env_config.last_repository_url = used_repository.url
+            except Exception:
+                log.warning('记录上次成功代码源失败', exc_info=True)
 
         used_repository_name = self._get_repository_item(used_repository).ui_text if used_repository else ''
         log.info(f'远程代码拉取成功，实际代码源: {used_repository_name}')

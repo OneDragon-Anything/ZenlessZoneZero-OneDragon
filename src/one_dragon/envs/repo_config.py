@@ -79,6 +79,7 @@ class RepoConfig(YamlConfig):
             values: {}
     """
 
+    AUTO_REPOSITORY_VALUE = 'auto'
     _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions'}
 
     def __init__(self) -> None:
@@ -226,8 +227,11 @@ class RepoConfig(YamlConfig):
 
     @property
     def repository_options(self) -> list[ConfigItem]:
-        """获取供设置界面使用的代码源选项。"""
-        return [repository.config_item for repository in self.repositories]
+        """获取供设置界面使用的自动和具体代码源选项。"""
+        return [
+            ConfigItem('自动', self.AUTO_REPOSITORY_VALUE),
+            *(repository.config_item for repository in self.repositories),
+        ]
 
     @property
     def region_options(self) -> list[ConfigItem]:

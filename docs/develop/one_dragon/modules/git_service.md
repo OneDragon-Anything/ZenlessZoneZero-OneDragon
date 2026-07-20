@@ -4,6 +4,22 @@
 
 `GitService` 负责本地代码仓库的初始化、代码源 fetch、候选代码源回退，以及 fetch 完成后的分支同步。代码源列表和主仓库由项目级 `repository.yml` 提供，框架不写死具体代码托管平台。
 
+## 代码源选择与自动模式
+
+设置界面的代码源下拉框包含“自动”和项目 `repository.yml` 声明的全部具体代码源。配置字段分工如下：
+
+- `repository_url`：保存用户选择；值为 `auto` 时启用自动模式，具体 URL 时表示用户手动指定的首选源；旧配置缺失该字段时按自动模式处理。
+- `last_repository_url`：记录最近一次成功 fetch 使用的原始仓库 URL。
+
+候选顺序为：
+
+```text
+自动模式：上次成功源 → 其余代码源按 YAML 顺序
+手动模式：用户指定源 → 其余代码源按 YAML 顺序
+```
+
+候选源失败或超时后仍继续回退。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
+
 ## fetch 进程隔离
 
 Git 网络拉取不直接在正式仓库中执行。单个候选代码源的 fetch 由 `multiprocessing` 的 `spawn` worker 执行，worker 只打开独立临时目录中的 bare Git 仓库。临时仓库通过 Git `objects/info/alternates` 只读复用正式仓库已有对象，因此不需要先复制一遍本地历史：

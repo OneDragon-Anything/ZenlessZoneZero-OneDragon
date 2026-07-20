@@ -132,13 +132,24 @@ class EnvConfig(YamlConfig):
 
     @property
     def repository_url(self) -> str:
-        """代码源 URL。"""
-        return self.get('repository_url', '')
+        """代码源选择，自动模式由 GitService 记录并优先使用上次成功源。"""
+        value = self.get('repository_url', RepoConfig.AUTO_REPOSITORY_VALUE)
+        return value if isinstance(value, str) and value else RepoConfig.AUTO_REPOSITORY_VALUE
 
     @repository_url.setter
     def repository_url(self, new_value: str) -> None:
-        """更新代码源 URL。"""
+        """更新代码源选择。"""
         self.update('repository_url', new_value)
+
+    @property
+    def last_repository_url(self) -> str:
+        """最近一次成功 fetch 使用的原始仓库 URL。"""
+        return self.get('last_repository_url', '')
+
+    @last_repository_url.setter
+    def last_repository_url(self, new_value: str) -> None:
+        """记录最近一次成功 fetch 使用的原始仓库 URL。"""
+        self.update('last_repository_url', new_value)
 
     @property
     def force_update(self) -> bool:

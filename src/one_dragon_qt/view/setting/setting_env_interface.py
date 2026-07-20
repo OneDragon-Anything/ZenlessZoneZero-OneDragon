@@ -86,8 +86,10 @@ class SettingEnvInterface(VerticalScrollInterface):
         code_group = SettingCardGroup(gt('Git相关'))
 
         self.repository_url_opt = ComboBoxSettingCard(
-            icon=FluentIcon.APPLICATION, title='代码源', content='首选代码源拉取失败或超时后，会自动尝试其他代码源',
-            options_list=self.ctx.repo_config.repository_options
+            icon=FluentIcon.APPLICATION,
+            title='代码源',
+            content='自动模式优先使用上次成功源，失败或超时后继续尝试其他代码源',
+            options_list=self.ctx.repo_config.repository_options,
         )
         self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_url_opt)

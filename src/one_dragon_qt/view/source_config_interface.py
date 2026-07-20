@@ -93,7 +93,8 @@ class SourceConfigInterface(VerticalScrollInterface):
         self.repository_url_opt = ComboBoxSettingCard(
             icon=FluentIcon.CODE,
             title='代码仓库',
-            options_list=self.ctx.repo_config.repository_options
+            content='自动模式优先使用上次成功源',
+            options_list=self.ctx.repo_config.repository_options,
         )
         self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
 
