@@ -35,7 +35,7 @@ uv run --group dev pre-commit run --files src/你修改的文件.py
 
 ⚠️ **不要** 对整个 `src/` 目录运行 ruff，现有代码库尚未全面适配 ruff 规则，全量运行会导致大量文件被意外格式化。
 
-项目已通过 `.pre-commit-config.yaml` 提供 Ruff 提交前检查。执行 `uv sync --group dev` 安装开发依赖后，首次使用再执行 `uv run --group dev pre-commit install`；之后提交时会自动运行 `ruff-check` 和 `ruff-format`。钩子只接收 Git 本次提交的文件，不会扫描整个 `src/`。如需手动检查指定文件，使用上面的 `pre-commit run --files` 命令。
+项目已通过 `.pre-commit-config.yaml` 提供 Ruff 提交前检查。执行 `uv sync --group dev` 安装开发依赖后，首次使用再执行 `uv run --group dev pre-commit install`；之后提交时会自动运行带 `--fix` 参数的 `ruff-check`。钩子只接收 Git 本次提交的文件，不会扫描整个 `src/`。如需手动检查指定文件，使用上面的 `pre-commit run --files` 命令。
 
 ### 其他
 
