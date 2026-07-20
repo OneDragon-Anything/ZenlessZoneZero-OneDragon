@@ -39,7 +39,7 @@ class ExchangeEtherBattery(ZOperation):
     def click_synthesize_entry(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click(
             self.last_screenshot,
-            '合成',
+            '[获取]合成',
             success_wait=1,
             retry_wait=0.5,
         )
