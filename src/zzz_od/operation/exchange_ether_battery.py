@@ -62,6 +62,7 @@ class ExchangeEtherBattery(ZOperation):
         return self.round_success()
 
     @node_from(from_name='等待道具处理')
+    @node_from(from_name='兑换完成', status=STATUS_CONTINUE_EXCHANGE)
     @operation_node(name='检查合成素材')
     def check_material(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('道具处理', '详情标题')
@@ -73,10 +74,10 @@ class ExchangeEtherBattery(ZOperation):
         if result.is_success:
             # 返回失败让体力计划app自动跳过计划
             return self.round_fail('合成素材不足')
+
         return self.round_success()
 
     @node_from(from_name='检查合成素材')
-    @node_from(from_name='兑换完成', status=STATUS_CONTINUE_EXCHANGE)
     @operation_node(name='点击合成')
     def click_synthesize(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
