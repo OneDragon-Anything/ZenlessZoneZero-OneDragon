@@ -11,10 +11,18 @@
 | 项 | 类型 | 位置 | 用途 | 何时去动 |
 |---|---|---|---|---|
 | 主仓 | git | [`OneDragon-Anything/ZenlessZoneZero-OneDragon`](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon) | 业务代码、GUI、文档 | 日常开发 |
+| CNB 镜像 | git | [`OneDragon-Anything/ZenlessZoneZero-OneDragon`](https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon) | 国内代码镜像、Release 附件镜像 | 发布链路维护 |
 | 测试仓 | git | [`OneDragon-Anything/zzz-od-test`](https://github.com/OneDragon-Anything/zzz-od-test) | 测试代码 + 画面截图存档 | 跑/改测试、加截图 |
 | yolo 训练仓 | git | [`OneDragon-Anything/OneDragon-YOLO`](https://github.com/OneDragon-Anything/OneDragon-YOLO) | YOLO 模型训练 + release 发布 | 训练/发模型 |
 | 数据集 | 非git(ModelScope) | 见下 | YOLO 训练数据 | 训练时拉取 |
 | 官网 blog | git | [`onedragon-anything.github.io`](https://github.com/OneDragon-Anything/onedragon-anything.github.io) | 官网 / 用户向文档站(Pages) | 改官网内容 |
+
+## CNB 镜像
+
+- `.github/workflows/sync-cnb.yml` 负责把 GitHub 分支和 Tag 镜像到 CNB。
+- GitHub Release 创建成功后，`build-release.yml` 使用仓库 Secret `CNB_TOKEN` 调用 CNB OpenAPI，触发 `api_trigger_release`。该 Token 需要目标仓库的 `repo-cnb-trigger:rw` 权限；触发失败只标记该步骤异常，不阻断 GitHub Release 和其他发布渠道。
+- CNB 按根目录 `.cnb.yml` 执行 `tools/ci/sync_github_release_to_cnb.py`，使用流水线内置的临时 `CNB_TOKEN` 创建或更新同 Tag Release，并逐个下载、上传 GitHub Release 附件。同名附件会覆盖，因此流水线可安全重跑。
+- CNB 页面上的 `web_trigger_release` 可手动同步 GitHub 最新正式版；API 触发时通过环境变量 `RELEASE_TAG` 指定版本。
 
 ## 测试仓 `zzz-od-test`
 

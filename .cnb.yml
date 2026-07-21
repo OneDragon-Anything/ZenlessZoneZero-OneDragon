@@ -1,0 +1,20 @@
+main:
+  web_trigger_release:
+    - docker:
+        image: python:3.11
+      stages:
+        - name: 同步最新 GitHub Release
+          timeout: 21600000
+          script: |
+            python -m pip install --disable-pip-version-check requests==2.32.3
+            python tools/ci/sync_github_release_to_cnb.py
+  api_trigger_release:
+    - docker:
+        image: python:3.11
+      stages:
+        - name: 同步指定 GitHub Release
+          timeout: 21600000
+          script: |
+            test -n "$RELEASE_TAG"
+            python -m pip install --disable-pip-version-check requests==2.32.3
+            python tools/ci/sync_github_release_to_cnb.py --release-tag "$RELEASE_TAG"
