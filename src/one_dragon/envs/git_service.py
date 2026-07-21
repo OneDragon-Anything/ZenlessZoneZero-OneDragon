@@ -51,6 +51,19 @@ def _get_repository_objects_path(repo: Repository) -> Path:
     return repo_path / 'objects'
 
 
+def _sync_shallow_file(repo: Repository, temp_repo_dir: str) -> None:
+    """将临时仓库的浅克隆边界(shallow 文件)同步到正式仓库。
+
+    临时仓库以 depth=1 拉取时会生成 shallow 文件标记历史边界；导入正式仓库后若不同步，
+    正式仓库会误以为历史完整，后续遍历提交历史时越过边界即报 object not found。
+    """
+    source_shallow = Path(temp_repo_dir) / 'shallow'
+    if not source_shallow.is_file():
+        return
+    target_shallow = _get_repository_objects_path(repo).parent / 'shallow'
+    target_shallow.write_text(source_shallow.read_text(encoding='utf-8'), encoding='utf-8')
+
+
 def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
     """让临时仓库只读复用正式仓库的 Git 对象。"""
     if not source_objects_dir:
@@ -419,6 +432,7 @@ class GitService:
             log.info(f'开始导入临时 Git 仓库: {remote_url}')
             remote = repo.remotes.create(remote_name, remote_url)
             remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            _sync_shallow_file(repo, temp_repo_dir)
             log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
         finally:
             with contextlib.suppress(Exception):
