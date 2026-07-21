@@ -13,12 +13,10 @@ class NormalBattleOp(BattleOpBase):
     不重定义/不 shadow 任何节点;只覆写 _get_auto_battle_op_name。
     """
 
-    def __init__(self, ctx: ZContext, auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1,
-                 try_next: bool = False, is_agent_plan: bool = False) -> None:
+    def __init__(self, ctx: ZContext, auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1) -> None:
         """默认 op_name='普通战斗'。"""
         BattleOpBase.__init__(self, ctx, op_name='普通战斗',
-                              auto_battle_config=auto_battle_config, predefined_team_idx=predefined_team_idx,
-                              try_next=try_next, is_agent_plan=is_agent_plan)
+                              auto_battle_config=auto_battle_config, predefined_team_idx=predefined_team_idx)
 
     def _get_auto_battle_op_name(self) -> str | None:
         """predefined_team_idx==-1 → auto_battle_config;否则 team_list[idx].auto_battle。"""

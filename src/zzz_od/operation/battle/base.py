@@ -13,9 +13,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import (
-    ChooseNextOrFinishAfterBattle,
-)
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -26,7 +23,7 @@ class MoveTarget:
     Attributes:
         pos: 目标屏幕坐标(``_move_one_step`` 用 pos.x 判偏离中心)。
         distance: OCR 距离(算 move_w press_time);None=无距离(用默认步长)。
-        source: 来源标识('distance'/'teleport'/'detector'/...),便于调试。
+        source: 来源标识('distance'),便于调试。
     """
     pos: Point
     distance: float | None
@@ -37,16 +34,13 @@ class BattleOpBase(ZOperation):
     """战斗 op 基类。
 
     固定节点图(朴素类线性流,NormalBattleOp 纯继承):
-    加载自动战斗指令 → 等待战斗画面加载 → 战前移动 → 开始自动战斗 → 自动战斗 → 战斗结束。
+    加载自动战斗指令 → 等待战斗画面加载 → 战前移动 → 开始自动战斗 → 自动战斗(判断结束返回 status;结束后操作交外层)。
 
     特化类(ShiyuDefenseBattleOp)shadow 不要的基类节点 + 重定义特化节点 + 覆写 hook。
     基类不感知 ``check_battle_state`` 的 flag 参数空间(子类自调,见 ``_check_battle_state``)。
     """
 
-    STATUS_NEED_MOVE: str = '需要移动'        # 一层清完需移动(复用 ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE 同值同义)
-    STATUS_NEXT_LEVEL: str = '进入下层'       # 外层递归实例化(迷失之地式)
-    STATUS_COMPLETE: str = '通关'             # 整场结束
-    STATUS_TO_NEXT_PHASE: str = '下一阶段'    # 防卫战阶段胜利(交外层)
+    STATUS_NEED_MOVE: str = '需要移动'        # 一层清完需移动(战中副判;结束后操作交外层)
 
     # 类属性(子类可覆写)
     _auto_battle_sub_dir: str | None = 'auto_battle'
@@ -59,8 +53,7 @@ class BattleOpBase(ZOperation):
     _move_times_limit: int = 20
 
     def __init__(self, ctx: ZContext, op_name: str = '战斗',
-                 auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1,
-                 try_next: bool = False, is_agent_plan: bool = False) -> None:
+                 auto_battle_config: str = '全配队通用', predefined_team_idx: int = -1) -> None:
         """通用参数。
 
         Args:
@@ -68,14 +61,10 @@ class BattleOpBase(ZOperation):
             op_name: op 显示名(避免 display_name='指令[ ]')。
             auto_battle_config: 自动战斗脚本名(predefined_team_idx==-1 时用)。
             predefined_team_idx: 预备编队下标;-1=不指定(用 auto_battle_config)。
-            try_next: 战斗结束后是否「再来一次」(ChooseNextOrFinishAfterBattle 入参)。
-            is_agent_plan: 是否代理人计划(ChooseNextOrFinishAfterBattle 入参)。
         """
         ZOperation.__init__(self, ctx, op_name=op_name)
         self.auto_battle_config: str = auto_battle_config
         self.predefined_team_idx: int = predefined_team_idx
-        self._try_next: bool = try_next
-        self._is_agent_plan: bool = is_agent_plan
         self._move_times: int = 0
         self._no_countdown_start_time: float | None = None
         self._find_interact_btn_times: int = 0
@@ -125,13 +114,6 @@ class BattleOpBase(ZOperation):
         """自动战斗主循环(一轮)。"""
         return self._do_auto_battle_round()
 
-    @node_from(from_name='自动战斗')
-    @operation_node(name='战斗结束')
-    def route_after_battle(self) -> OperationRoundResult:
-        """战斗后收尾(默认 ChooseNextOrFinishAfterBattle;特化类覆写)。"""
-        return self.round_by_op_result(
-            ChooseNextOrFinishAfterBattle(self.ctx, try_next=self._try_next, is_agent_plan=self._is_agent_plan).execute())
-
     # ===== 主循环一轮 =====
 
     def _do_auto_battle_round(self) -> OperationRoundResult:
@@ -164,10 +146,6 @@ class BattleOpBase(ZOperation):
         return None
 
     # ===== 辅助方法(特化类移动复用)=====
-
-    def _detect_move_target(self) -> MoveTarget | None:
-        """检测移动目标。默认 None(不移动);特化类覆写。"""
-        return None
 
     def _move_one_step(self, target: MoveTarget | None, cap: float | None = None) -> None:
         """按目标移动一步(turn 偏离 / move_w press_time=distance/7.2 capped)。target=None → _on_no_target 盲转。"""

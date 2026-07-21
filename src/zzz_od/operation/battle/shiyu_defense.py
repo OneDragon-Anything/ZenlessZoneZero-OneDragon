@@ -1,22 +1,21 @@
 """式舆防卫战战斗 op(shadow 基类节点 + 重定义特化节点 + 覆写 hook)。
 
-从 ``application/shiyu_defense/shiyu_defense_battle.py`` 复制 check_distance/check_teleport_point/
-check_shiyu_countdown + start_move/move_after_battle 逻辑。原 ShiyuDefenseBattle 不动。
+从 ``application/shiyu_defense/shiyu_defense_battle.py`` 复制 check_distance/check_shiyu_countdown + start_move 逻辑。
+原 ShiyuDefenseBattle 不动。
 
-设计依据:docs/superpowers/specs/2026-07-20-battle-op-base-design.md §8。
+op 边界:等战斗画面 → start_move(战前移动,倒计时/距离驱动)→ auto_battle(判断结束返回 status)。
+结束后(层间 F 交互 move_after_battle / 撤退·退出 route / 超时 battle_timeout)交外层。
+设计依据:docs/superpowers/specs/2026-07-21-battle-op-boundary-design.md。
 """
 from typing import TYPE_CHECKING
 
 from one_dragon.base.geometry.rectangle import Rect
-from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from zzz_od.auto_battle.auto_battle_utils import switch_to_best_agent_for_moving
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.battle.base import BattleOpBase, MoveTarget
-from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
@@ -26,11 +25,10 @@ class ShiyuDefenseBattleOp(BattleOpBase):
     """式舆防卫战战斗 op。
 
     shadow 基类「战前移动」/「开始自动战斗」(防卫战用「开始移动」循环 + start_auto_battle 内嵌条件触发);
-    重定义「开始移动」/「自动战斗」(加 back-edge)/「战斗后移动」/「战斗结束」/「战斗超时」;
-    覆写 _check_battle_state(normal+defense) + _check_in_battle_secondary(倒计时副判)。
+    重定义「开始移动」(战前移动) + 「自动战斗」;
+    覆写 _check_battle_state(normal+defense) + _check_in_battle_secondary(倒计时/交互键副判)。
+    结束后(层间 F 交互 / 撤退·退出 / 超时)交外层。
     """
-
-    _move_after_battle_times_limit: int = 60    # move_after_battle 的 _move_times 上限(对齐原 shiyu_defense_battle.py:224;start_move 用基类 _move_times_limit=20)
 
     def __init__(self, ctx: ZContext, predefined_team_idx: int) -> None:
         """Args:
@@ -56,9 +54,9 @@ class ShiyuDefenseBattleOp(BattleOpBase):
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='开始移动')
     def start_move(self) -> OperationRoundResult:
-        """战前移动循环:倒计时出现→进战斗;否则距离驱动移动;距离持续失败→兜底开战。"""
+        """战前移动循环:倒计时出现→进战斗;否则距离驱动移动;距离持续失败→兜底开战;移动超限→失败。"""
         now = self.last_screenshot_time
-        if now - self._last_countdown_check_time >= 1:    # 倒计时节流(每 1s,有意新增减压,spec §8.1)
+        if now - self._last_countdown_check_time >= 1:    # 倒计时节流(每 1s)
             self._last_countdown_check_time = now
             if self.check_shiyu_countdown(self.last_screenshot):
                 self.start_auto_battle()
@@ -77,60 +75,14 @@ class ShiyuDefenseBattleOp(BattleOpBase):
         else:
             return self.round_wait(wait=0.02)                          # 纯等待,不盲转(对齐原)
         if self._move_times >= self._move_times_limit:
-            return self.round_by_op_result(
-                ExitInBattle(self.ctx, '式舆防卫战', '前哨档案').execute())
+            return self.round_fail(status='战前移动失败')    # 移动超限 → op 失败,外层处理(ExitInBattle 等)
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='开始移动', status='返回战斗')
-    @node_from(from_name='战斗后移动', status='返回战斗')
     @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
     def auto_battle(self) -> OperationRoundResult:
-        """重定义加 back-edge;直接透传基类 auto_battle 的 OperationRoundResult(不包 round_by_op_result)。"""
+        """重定义(给 start_move 入口);直接透传基类 auto_battle(判断结束返回 status)。"""
         return super().auto_battle()
-
-    @node_from(from_name='自动战斗', status=BattleOpBase.STATUS_NEED_MOVE)
-    @operation_node(name='战斗后移动')
-    def move_after_battle(self) -> OperationRoundResult:
-        """战后移动:countdown 重现回战斗 / 交互键进下一层 / 无普攻+无交互→阶段胜利 / 否则 switch+移动。"""
-        if self.check_shiyu_countdown(self.last_screenshot):
-            self.start_auto_battle()                # 倒计时重现 → 重启 auto_battle 后台脚本(对齐原 :163-169)
-            self._move_times = 0
-            self._no_countdown_start_time = None
-            return self.round_success(status='返回战斗')
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-        if result.is_success:
-            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            return self.round_wait(wait=0.5)
-        normal = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
-        if not normal.is_success:
-            return self.round_success(status=BattleOpBase.STATUS_TO_NEXT_PHASE)   # 阶段胜利
-        # 确认要移动 → switch + detect + move(switch 放这,对齐原 line 180「确认移动前」)
-        switch_to_best_agent_for_moving(self.ctx)
-        target = self._detect_move_target()
-        self._move_one_step(target, cap=1)    # target None → _on_no_target 盲转(基类处理,spec §8.1 三层)
-        if self._move_times >= self._move_after_battle_times_limit:
-            return self.round_by_op_result(
-                ExitInBattle(self.ctx, '式舆防卫战', '前哨档案').execute())
-        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
-
-    @node_from(from_name='自动战斗', status='战斗结束-撤退')
-    @node_from(from_name='自动战斗', status='战斗结束-退出')
-    @operation_node(name='战斗结束')
-    def route_after_battle(self) -> OperationRoundResult:
-        """按 last_check_end_result status 分流:撤退/退出点对应 area。战斗结束-下一防线是 area(由 app 处理)。"""
-        status = self.ctx.auto_battle_context.last_check_end_result
-        if status == '战斗结束-撤退':
-            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-撤退', success_wait=1, retry_wait=1)
-        if status == '战斗结束-退出':
-            return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出', success_wait=1, retry_wait=1)
-        return self.round_success(status=status)
-
-    @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
-    @operation_node(name='战斗超时')
-    def battle_timeout(self) -> OperationRoundResult:
-        """auto_battle 连续 600s 未结束 → 退到前哨档案(对齐原 ShiyuDefenseBattle battle_timeout→voluntary_exit→wait_exit 等前哨档案)。"""
-        return self.round_by_op_result(
-            ExitInBattle(self.ctx, '式舆防卫战', '前哨档案').execute())
 
     # ===== hook 覆写 =====
 
@@ -145,7 +97,7 @@ class ShiyuDefenseBattleOp(BattleOpBase):
             check_battle_end_normal_result=True, check_battle_end_defense_result=True)
 
     def _check_in_battle_secondary(self, in_battle: bool) -> str | None:
-        """倒计时连续 5s 无(战斗中)/ 交互键连续 10 次(非战斗中) → STATUS_NEED_MOVE。"""
+        """倒计时连续 5s 无(战斗中)/ 交互键连续 10 次(非战斗中) → STATUS_NEED_MOVE(交外层级间)。"""
         now = self.last_screenshot_time
         if in_battle:
             if now - self._last_countdown_check_time >= 1:
@@ -165,19 +117,8 @@ class ShiyuDefenseBattleOp(BattleOpBase):
                 return BattleOpBase.STATUS_NEED_MOVE
         return None
 
-    def _detect_move_target(self) -> MoveTarget | None:
-        """三层目标:距离 → 传送点 → None(无目标,move_after_battle 走 _on_no_target)。"""
-        self.check_distance(self.last_screenshot)
-        if self.distance_pos is not None:
-            return MoveTarget(pos=self.distance_pos.center,
-                              distance=self.ctx.auto_battle_context.last_check_distance, source='distance')
-        rect = self.check_teleport_point(self.last_screenshot)
-        if rect is not None:
-            return MoveTarget(pos=rect.center, distance=None, source='teleport')
-        return None
-
-    # ===== 从原 ShiyuDefenseBattle 复制(check_distance / check_shiyu_countdown / check_teleport_point)=====
-    # 整段复制自 src/zzz_od/application/shiyu_defense/shiyu_defense_battle.py:230,238,259(签名/实现照原;原方法无前导下划线)。
+    # ===== 从原 ShiyuDefenseBattle 复制(check_distance / check_shiyu_countdown)=====
+    # 复制自 src/zzz_od/application/shiyu_defense/shiyu_defense_battle.py:230,238(签名/实现照原)。
 
     def check_distance(self, screen: 'MatLike') -> None:
         """[复制自 shiyu_defense_battle.py:230] 同步调 check_battle_distance,更新 distance_pos。"""
@@ -204,23 +145,3 @@ class ShiyuDefenseBattleOp(BattleOpBase):
 
         except Exception:
             return False
-
-    def check_teleport_point(self, screen: 'MatLike') -> Rect | None:
-        """[复制自 shiyu_defense_battle.py:259] 防卫战空洞传送点 pipeline。"""
-        try:
-            result = self.ctx.cv_service.run_pipeline('防卫战空洞传送点', screen, timeout=1.0)
-
-            if result is None or not result.is_success:
-                return None
-
-            rect_pairs = result.get_absolute_rect_pairs()
-
-            if len(rect_pairs) > 0:
-                max_pair = max(rect_pairs, key=lambda pair: len(pair[0]))
-                _, (x1, y1, x2, y2) = max_pair
-                return Rect(x1, y1, x2, y2)
-            else:
-                return None
-
-        except Exception:
-            return None
