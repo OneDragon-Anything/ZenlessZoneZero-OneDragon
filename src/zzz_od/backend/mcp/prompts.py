@@ -1,12 +1,12 @@
 """MCP 引导内容注册:instructions(server 级)+ prompts(user-controlled)+ help tool(prompt 的 tool 镜像)。
 
-三通道分工(MCP 协议对应):
-- ``instructions``:server 级「用户手册」,握手时注入客户端 system prompt,**常驻**(智能体一定有)。
-  放两边共通的操作哲学(三件套 / scope / 安全);详细步骤不进,保持精炼。
-- ``prompts``(``@mcp.prompt()``):协议设计给**终端用户在 UI 手动选**(user-controlled)。
-  Claude Code 等客户端把它映射成 slash command,智能体平时看不到。
+三通道分工(MCP 协议对应;可见性均为客户端实现行为,非协议强制——spec 用 Optional/MAY):
+- ``instructions``:server 级「用户手册」,握手时返回;客户端**可选**注入 system prompt
+  (协议 Optional/MAY;Claude Code 等会注入)。放两边共通的操作哲学(三件套 / scope / 安全);详细步骤不进,保持精炼。
+- ``prompts``(``@mcp.prompt()``):协议设计为 user-controlled(终端用户在 UI 手动选)。
+  是否展示给模型由客户端决定;Claude Code 映射成 slash command,智能体平时不自动看到。
 - help tool(``list_mcp_usage_guides`` / ``get_mcp_usage_guide``):prompt 模板的 tool 镜像,
-  给智能体一个 ``--help`` 入口(协议保证 tool 一定进模型上下文,弥补 prompts 对智能体不可见)。
+  给智能体一个 ``--help`` 入口(客户端通常把 tools 暴露给模型,弥补 prompts 不一定可见)。
 
 模式差异(开发者 / 使用者)走 guide item 的 ``mode`` 字段分流,不进 instructions
 (instructions 是 server 级全局、启动时定,不支持运行时按消费者切;且两套会膨胀违背精炼)。

@@ -49,19 +49,19 @@
 
 ## Instructions
 
-`FastMCP(name, instructions=...)` 传 server 级 `instructions`，握手时注入客户端 system prompt，**常驻**（智能体连上即有，不需发现/选择/重连后调）。放两边共通的操作哲学（保持精炼，决策见 `docs/superpowers/specs/2026-07-22-mcp-instructions-design.md`）：工具分类（观察/操作）、操作三件套（`analyze_screen` → 操作 → 等 ~1s 后验）、实机约束（`pc_alt`）、出错查 log、安全边界。
+`FastMCP(name, instructions=...)` 传 server 级 `instructions`，握手时返回；客户端**通常注入** system prompt（协议 Optional/MAY，Claude Code 会注入；非协议强制）。放两边共通的操作哲学（保持精炼，决策见 `docs/superpowers/specs/2026-07-22-mcp-instructions-design.md`）：工具分类（观察/操作）、操作三件套（`analyze_screen` → 操作 → 等 ~1s 后验）、实机约束（`pc_alt`）、出错查 log、安全边界。
 
 ## 引导内容三通道
 
-引导内容分三条通道，分工互补：
+引导内容分三条通道，分工互补（可见性均为客户端行为，非协议强制——spec 用 Optional/MAY）：
 
 | 通道 | 智能体可见性 | 内容 |
 |---|---|---|
-| `instructions` | **常驻注入**（握手即有） | 共通操作哲学（上节） |
-| `prompts`（`@mcp.prompt()`） | 看客户端；Claude Code 里是 slash 命令，**智能体平时看不到** | 按场景剧本（见下） |
-| help tool（`list_mcp_usage_guides` / `get_mcp_usage_guide`） | 一定可见（tool 必进模型上下文） | 同 prompts 模板，给智能体 `--help` 入口 |
+| `instructions` | 客户端**通常注入** system prompt（协议 Optional/MAY；Claude Code 会） | 共通操作哲学（上节） |
+| `prompts`（`@mcp.prompt()`） | 由客户端决定；Claude Code 是 slash 命令，智能体平时不自动看到 | 按场景剧本（见下） |
+| help tool（`list_mcp_usage_guides` / `get_mcp_usage_guide`） | 通常可见（客户端一般暴露 tools） | 同 prompts 模板，给智能体 `--help` 入口 |
 
-`prompts` 协议设计给人手动选，智能体平时看不到 → 同份模板再做成 tool 镜像补；但 tool 要智能体「想到去调」，故核心操作哲学放 `instructions` 常驻注入。guide item 带 `mode`（`user`/`dev`）：user 项（跑龙/独立应用）也有对应 prompt，dev 项（`zzz_dev_validate_op`：op 实操验证 / 战斗 op 边界）只走 tool。模式差异不进 instructions（server 级全局、不支持运行时切；且两套会膨胀违背精炼）。
+`prompts` 协议设计给人手动选，智能体平时不自动看到 → 同份模板再做成 tool 镜像补；但 tool 要智能体「想到去调」，故核心操作哲学放 `instructions`（通常注入，最贴近常驻）。guide item 带 `mode`（`user`/`dev`）：user 项（跑龙/独立应用）也有对应 prompt，dev 项（`zzz_dev_validate_op`：op 实操验证 / 战斗 op 边界）只走 tool。模式差异不进 instructions（server 级全局、不支持运行时切；且两套会膨胀违背精炼）。
 
 ## Prompts
 
