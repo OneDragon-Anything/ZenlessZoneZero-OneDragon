@@ -12,13 +12,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.envs.env_config import (
-    CpythonSourceEnum,
-    PipSourceEnum,
-    ProxyTypeEnum,
-    RepositoryTypeEnum,
-    ScreenshotMethodEnum,
-)
+from one_dragon.envs.env_config import ProxyTypeEnum, ScreenshotMethodEnum
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -91,12 +85,14 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_code_group(self) -> SettingCardGroup:
         code_group = SettingCardGroup(gt('Git相关'))
 
-        self.repository_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
-            options_enum=RepositoryTypeEnum
+        self.repository_url_opt = ComboBoxSettingCard(
+            icon=FluentIcon.APPLICATION,
+            title='代码源',
+            content='自动模式优先使用上次成功源，失败或超时后继续尝试其他代码源',
+            options_list=self.ctx.repo_config.repository_options,
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
-        code_group.addSettingCard(self.repository_type_opt)
+        self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
+        code_group.addSettingCard(self.repository_url_opt)
 
         self.auto_update_code_opt = PasswordSwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
@@ -115,14 +111,22 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_python_group(self) -> SettingCardGroup:
         python_group = SettingCardGroup(gt('Python相关'))
 
-        self.cpython_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Python下载源', options_enum=CpythonSourceEnum)
+        self.cpython_source_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='Python下载源',
+            options_list=self.ctx.repo_config.get_source_options('cpython_source'),
+        )
         self.cpython_build_choose_best_btn = PushButton(gt('自动测速选择'), self)
         self.cpython_build_choose_best_btn.clicked.connect(self.on_cpython_build_choose_best_clicked)
         self.cpython_source_opt.hBoxLayout.addWidget(self.cpython_build_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.cpython_source_opt.hBoxLayout.addSpacing(16)
         python_group.addSettingCard(self.cpython_source_opt)
 
-        self.pip_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Pip源', options_enum=PipSourceEnum)
+        self.pip_source_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='Pip源',
+            options_list=self.ctx.repo_config.get_source_options('pip_source'),
+        )
         self.pip_choose_best_btn = PushButton(gt('自动测速选择'), self)
         self.pip_choose_best_btn.clicked.connect(self.on_pip_choose_best_clicked)
         self.pip_source_opt.hBoxLayout.addWidget(self.pip_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
@@ -210,7 +214,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_screenshot_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_screenshot'))
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
 
-        self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
+        self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))

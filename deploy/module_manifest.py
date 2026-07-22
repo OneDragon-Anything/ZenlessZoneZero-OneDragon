@@ -40,6 +40,7 @@ if not getattr(sys, 'frozen', False):
     import pyclipper
     import pyuac
     import pywintypes
+    import queue
     import random
     import re
     import requests
@@ -78,7 +79,7 @@ if not getattr(sys, 'frozen', False):
     from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterator, Sequence
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
     from contextlib import suppress
@@ -129,5 +130,5 @@ if not getattr(sys, 'frozen', False):
     from threading import Event, Lock
     from types import ModuleType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, NamedTuple, Optional, Sequence, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
-    from urllib.parse import urlencode
+    from urllib.parse import urlencode, urlparse
     from yaml import CSafeLoader, SafeLoader

@@ -1,7 +1,12 @@
 import contextlib
+import queue
+import shutil
 import sys
+import tempfile
+import threading
 import time
-from collections.abc import Callable
+import uuid
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,11 +25,157 @@ from pygit2 import (
 )
 from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
-from one_dragon.envs.env_config import EnvConfig, RepositoryTypeEnum
+from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+REMOTE_FETCH_INITIAL_TIMEOUT = 10.0
+REMOTE_FETCH_IDLE_TIMEOUT = 30.0
+REMOTE_FETCH_TIMEOUT = 120.0
+
+
+_FETCH_TIMEOUT_SETTING_NAMES = ('server_connect_timeout', 'server_timeout')
+_fetch_timeout_settings_lock = threading.Lock()
+_fetch_timeout_settings_configured = False
+
+
+def _get_repository_objects_path(repo: Repository) -> Path:
+    """获取仓库实际使用的 Git 对象目录，兼容 linked worktree。"""
+    repo_path = Path(repo.path)
+    commondir_path = repo_path / 'commondir'
+    if commondir_path.is_file():
+        common_dir_value = commondir_path.read_text(encoding='utf-8').strip()
+        common_dir = Path(common_dir_value)
+        if not common_dir.is_absolute():
+            common_dir = repo_path / common_dir
+        return common_dir.resolve() / 'objects'
+    return repo_path / 'objects'
+
+
+def _sync_shallow_file(repo: Repository, temp_repo_dir: str) -> None:
+    """将临时仓库的浅克隆边界(shallow 文件)同步到正式仓库。
+
+    临时仓库以 depth=1 拉取时会生成 shallow 文件标记历史边界；导入正式仓库后若不同步，
+    正式仓库会误以为历史完整，后续遍历提交历史时越过边界即报 object not found。
+    """
+    source_shallow = Path(temp_repo_dir) / 'shallow'
+    if not source_shallow.is_file():
+        return
+    target_shallow = _get_repository_objects_path(repo).parent / 'shallow'
+    target_shallow.write_text(source_shallow.read_text(encoding='utf-8'), encoding='utf-8')
+
+
+def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
+    """让临时仓库只读复用正式仓库的 Git 对象。"""
+    if not source_objects_dir:
+        return False
+
+    source_path = Path(source_objects_dir).resolve()
+    if not source_path.is_dir():
+        return False
+
+    alternates_path = Path(temp_repo.path) / 'objects' / 'info' / 'alternates'
+    alternates_path.parent.mkdir(parents=True, exist_ok=True)
+    alternates_path.write_text(f'{source_path}\n', encoding='utf-8')
+    return True
+
+
+@contextlib.contextmanager
+def _temporary_fetch_timeout_context() -> Iterator[None]:
+    """设置 pygit2 的连接和网络读写超时，只设置一次且不恢复。"""
+    global _fetch_timeout_settings_configured
+    with _fetch_timeout_settings_lock:
+        if not _fetch_timeout_settings_configured:
+            timeout_ms = int(REMOTE_FETCH_IDLE_TIMEOUT * 1000)
+            effective_values: dict[str, int] = {}
+            for setting_name in _FETCH_TIMEOUT_SETTING_NAMES:
+                if hasattr(settings, setting_name):
+                    setattr(settings, setting_name, timeout_ms)
+                    effective_values[setting_name] = int(getattr(settings, setting_name))
+            log.info(
+                'Git fetch 超时设置: server_connect_timeout=%sms, server_timeout=%sms',
+                effective_values.get('server_connect_timeout', '不可用'),
+                effective_values.get('server_timeout', '不可用'),
+            )
+            _fetch_timeout_settings_configured = True
+    yield
+
+
+def _send_fetch_worker_message(
+    message_callback: Callable[[dict[str, object]], None],
+    message: dict[str, object],
+) -> None:
+    """向 fetch worker 的线程消息队列发送消息。"""
+    message_callback(message)
+
+
+def _fetch_remote_worker(
+    temp_repo_dir: str,
+    source_objects_dir: str | None,
+    remote_url: str,
+    branch_name: str,
+    depth: int,
+    proxy: str | None,
+    message_callback: Callable[[dict[str, object]], None],
+    abandoned: threading.Event,
+) -> None:
+    """在线程中执行网络 fetch，作废后只清理自己的临时仓库。"""
+    try:
+        GitService._ensure_config_search_path()
+        temp_repo = init_repository(temp_repo_dir, bare=True)
+        refspec = f'+refs/heads/{branch_name}:refs/heads/{branch_name}'
+        actual_depth = depth
+
+        if depth == 0 and not _configure_alternate_objects(temp_repo, source_objects_dir):
+            actual_depth = 1
+            log.warning('正式仓库对象目录不可用，降级为 shallow fetch')
+
+        remote = temp_repo.remotes.create('origin', remote_url)
+
+        def report_progress(progress: float, message: str) -> None:
+            _send_fetch_worker_message(
+                message_callback,
+                {'type': 'progress', 'progress': progress, 'message': message},
+            )
+
+        callbacks = _FetchProgressRemoteCallbacks(report_progress)
+
+        try:
+            log.info(
+                f'worker 开始 Git fetch: branch={branch_name}, '
+                f'depth={actual_depth}, proxy={bool(proxy)}'
+            )
+            with _temporary_fetch_timeout_context():
+                remote.fetch(
+                    refspecs=[refspec],
+                    proxy=proxy,
+                    depth=actual_depth,
+                    callbacks=callbacks,
+                )
+            log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
+        except KeyError as error:
+            if 'object not found' not in str(error) or actual_depth != 0:
+                raise
+            with _temporary_fetch_timeout_context():
+                remote.fetch(refspecs=[refspec], proxy=proxy, depth=1, callbacks=callbacks)
+            actual_depth = 1
+
+        _send_fetch_worker_message(
+            message_callback,
+            {'type': 'result', 'success': True, 'depth': actual_depth},
+        )
+    except Exception as error:
+        _send_fetch_worker_message(
+            message_callback,
+            {'type': 'result', 'success': False, 'error': repr(error)},
+        )
+    finally:
+        if abandoned.is_set():
+            shutil.rmtree(temp_repo_dir, ignore_errors=True)
 
 
 @dataclass
@@ -37,18 +188,34 @@ class GitLog:
 
 
 class _FetchProgressRemoteCallbacks(RemoteCallbacks):
-    """将 pygit2 的传输进度转发给外部进度回调。"""
+    """转发 Git 传输进度、服务端消息和引用更新信息。"""
 
     def __init__(
         self,
-        progress_callback: Callable[[float, str], None],
+        progress_callback: Callable[[float, str], None] | None,
+        timeout: float | None = REMOTE_FETCH_TIMEOUT,
     ) -> None:
         super().__init__()
-        self._progress_callback: Callable[[float, str], None] = progress_callback
+        self._progress_callback: Callable[[float, str], None] | None = progress_callback
+        self._timeout: float | None = timeout
+        self._started_at: float = time.monotonic()
+        self._progress: float = 0.0
         self._last_message: str | None = None
+        self._last_sideband_message: str | None = None
         self._last_log_at: float | None = None
 
+    def _check_timeout(self) -> None:
+        if self._timeout is not None and time.monotonic() - self._started_at >= self._timeout:
+            raise TimeoutError(f'Git 远程拉取超过 {self._timeout:g} 秒')
+
+    def _emit(self, message: str, progress: float | None = None) -> None:
+        if self._progress_callback is not None:
+            self._progress_callback(self._progress if progress is None else progress, message)
+        else:
+            log.info(message)
+
     def transfer_progress(self, stats: object) -> None:
+        self._check_timeout()
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
         received_objects = int(getattr(stats, 'received_objects', 0) or 0)
         received_bytes = int(getattr(stats, 'received_bytes', 0) or 0)
@@ -63,6 +230,7 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
             received_mb = received_bytes / 1024 / 1024
             message = f'{fetch_message} {received_mb:.2f} MB'
 
+        self._progress = progress
         if message == self._last_message:
             return
 
@@ -72,14 +240,33 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
 
         self._last_log_at = now
         self._last_message = message
-        self._progress_callback(progress, message)
+        self._emit(message, progress)
+
+    def sideband_progress(self, string: str) -> None:
+        self._check_timeout()
+        message = string.strip()
+        if not message or message == self._last_sideband_message:
+            return
+        self._last_sideband_message = message
+        self._emit(f'远程消息: {message}')
+
+    def update_tips(self, refname: str, old: Oid, new: Oid) -> None:
+        self._check_timeout()
+        self._emit(f'更新引用: {refname}')
 
 
 class GitService:
 
-    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig, repo_dir: str | None = None):
+    def __init__(
+        self,
+        project_config: ProjectConfig,
+        env_config: EnvConfig,
+        repo_config: RepoConfig,
+        repo_dir: str | None = None,
+    ):
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
+        self.repo_config: RepoConfig = repo_config
 
         if repo_dir:
             if not Path(repo_dir).is_absolute():
@@ -89,6 +276,7 @@ class GitService:
         self.repo_dir: str = repo_dir
 
         self._repo: Repository | None = None
+        self._rebuilding_repository: bool = False
         self._ensure_config_search_path()
 
     # ================== 私有辅助方法 ==================
@@ -120,51 +308,83 @@ class GitService:
 
         return self._repo
 
-    def _ensure_remote(self) -> Remote:
-        """确保远程仓库配置正确
-
-        Returns:
-            Remote 对象
-        """
-        remote_url = self._get_git_repository()
+    def _ensure_remote(self, remote_url: str | None = None) -> Remote:
+        """确保指定远程仓库地址配置到当前本地 remote。"""
+        if remote_url is None:
+            remote_url = self._get_git_repository()
         if not remote_url:
             raise ValueError('未能获取有效的远程仓库地址')
 
         repo = self._open_repo()
         remote_name = self.env_config.git_remote
 
-        # 检查远程是否已存在
         if remote_name in repo.remotes.names():
             remote = repo.remotes[remote_name]
-
-            # URL相同，直接返回
             if remote.url == remote_url:
                 return remote
 
-            # URL不同，需要更新
             log.info(f'更新远程仓库地址: {remote.url} -> {remote_url}')
             repo.remotes.set_url(remote_name, remote_url)
             return repo.remotes[remote_name]
 
-        # 远程不存在，创建新的
         log.info(f'创建远程仓库: {remote_name} -> {remote_url}')
         repo.remotes.create(remote_name, remote_url)
         return repo.remotes[remote_name]
 
+    def _get_repository_item(self, repository: RepositoryItem) -> ConfigItem:
+        """获取代码源配置项。"""
+        return repository.config_item
+
+    def _find_repository(self, value: str) -> RepositoryItem | None:
+        """按仓库 ID、显示标题或 URL 查找代码源。"""
+        return self.repo_config.find_repository(value)
+
+    def _get_repository_url(self, repository: RepositoryItem, use_gh_proxy: bool = True) -> str:
+        """获取指定代码源的 HTTPS 地址。"""
+        repository_url = repository.url
+        if use_gh_proxy and repository.use_proxy and self.env_config.is_gh_proxy:
+            return f'{self.env_config.gh_proxy_url.rstrip("/")}/{repository_url}'
+        return repository_url
+
+    def _get_repository_candidates(self) -> list[tuple[RepositoryItem, str]]:
+        """按用户选择、上次成功源和 YAML 声明顺序生成候选列表。"""
+        preferred_repository = self._find_repository(self.env_config.repository_url)
+        if preferred_repository is None:
+            preferred_repository = self._find_repository(self.env_config.last_repository_url)
+
+        candidates: list[tuple[RepositoryItem, str]] = []
+        for repository in [preferred_repository, *self.repo_config.repositories]:
+            if repository is None or any(candidate[0] is repository for candidate in candidates):
+                continue
+            repository_url = self._get_repository_url(repository)
+            if repository_url:
+                candidates.append((repository, repository_url))
+        return candidates
+
     def _get_git_repository(self) -> str:
-        """获取仓库地址"""
-        repo_type = self.env_config.repository_type
+        """获取当前选择模式下首个候选代码源地址。"""
+        candidates = self._get_repository_candidates()
+        if not candidates:
+            raise ValueError('未能获取有效的远程仓库地址')
+        return candidates[0][1]
 
-        if repo_type == RepositoryTypeEnum.GITHUB.value.value:
-            repo = self.project_config.github_https_repository
-            if self.env_config.is_gh_proxy:
-                return f'{self.env_config.gh_proxy_url}/{repo}'
-            return repo
+    def _restore_origin(self) -> bool:
+        """将当前本地 remote 恢复为项目主仓库 HTTPS 地址。"""
+        primary_url = self._get_repository_url(self.repo_config.primary_repository, use_gh_proxy=False)
+        if not primary_url:
+            return False
+        try:
+            self._ensure_remote(primary_url)
+            return True
+        except Exception:
+            log.error('恢复主仓库远程地址失败', exc_info=True)
+            return False
 
-        elif repo_type == RepositoryTypeEnum.GITEE.value.value:
-            return self.project_config.gitee_https_repository
-
-        return ''
+    @contextlib.contextmanager
+    def _temporary_fetch_timeout(self) -> Iterator[None]:
+        """设置 pygit2 的连接和网络读写超时，只设置一次且不恢复。"""
+        with _temporary_fetch_timeout_context():
+            yield
 
     def _get_proxy_address(self) -> str | None:
         """获取代理地址"""
@@ -185,16 +405,210 @@ class GitService:
         progress_callback: Callable[[float, str], None] | None,
         stage_start: float,
         stage_end: float,
-    ) -> RemoteCallbacks | None:
-        """创建远程拉取进度回调。"""
-        if progress_callback is None:
-            return None
-
+    ) -> RemoteCallbacks:
+        """创建远程拉取回调。"""
         def stage_progress_callback(progress: float, message: str) -> None:
             mapped_progress = stage_start + (stage_end - stage_start) * progress
-            progress_callback(mapped_progress, message)
+            if progress_callback is not None:
+                progress_callback(mapped_progress, message)
 
-        return _FetchProgressRemoteCallbacks(stage_progress_callback)
+        return _FetchProgressRemoteCallbacks(stage_progress_callback, REMOTE_FETCH_TIMEOUT)
+
+    def _import_fetch_result(
+        self,
+        temp_repo_dir: str,
+        progress_callback: Callable[[float, str], None] | None,
+        stage_start: float,
+        stage_end: float,
+    ) -> None:
+        """将临时 bare 仓库中的目标分支导入正式仓库。"""
+        repo = self._open_repo()
+        branch_name = self.env_config.git_branch
+        remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
+        remote_url = Path(temp_repo_dir).resolve().as_uri()
+        refspec = f'+refs/heads/{branch_name}:refs/remotes/{self.env_config.git_remote}/{branch_name}'
+        def report_progress(progress: float, message: str) -> None:
+            if progress_callback is not None:
+                progress_callback(
+                    stage_start + (stage_end - stage_start) * progress,
+                    message,
+                )
+
+        callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
+
+        try:
+            log.info(f'开始导入临时 Git 仓库: {remote_url}')
+            remote = repo.remotes.create(remote_name, remote_url)
+            remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            _sync_shallow_file(repo, temp_repo_dir)
+            log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
+        finally:
+            with contextlib.suppress(Exception):
+                repo.remotes.delete(remote_name)
+
+    def _fetch_remote_once(
+        self,
+        remote_url: str,
+        progress_callback: Callable[[float, str], None] | None,
+        stage_start: float,
+        stage_end: float,
+    ) -> None:
+        """在线程中拉取单个代码源，超时后作废本次尝试。"""
+        repo = self._open_repo()
+        branch_name = self.env_config.git_branch
+        local_ref = f'refs/heads/{branch_name}'
+        depth = 0 if local_ref in repo.references and repo.references[local_ref].target is not None else 1
+        proxy = self._get_proxy_address()
+        temp_root = Path(os_utils.get_path_under_work_dir('.install', 'git_fetch_tmp'))
+        temp_root.mkdir(parents=True, exist_ok=True)
+        temp_repo_dir = tempfile.mkdtemp(prefix='fetch_', dir=temp_root)
+        source_objects_dir = (
+            str(_get_repository_objects_path(repo))
+            if depth == 0
+            else None
+        )
+        messages: queue.Queue[dict[str, object]] = queue.Queue()
+        abandoned = threading.Event()
+        worker = threading.Thread(
+            target=_fetch_remote_worker,
+            args=(
+                temp_repo_dir,
+                source_objects_dir,
+                remote_url,
+                branch_name,
+                depth,
+                proxy,
+                messages.put,
+                abandoned,
+            ),
+            daemon=True,
+            name='git-fetch-worker',
+        )
+        result: dict[str, object] | None = None
+        has_message = False
+        last_message_at: float | None = None
+
+        def handle_message(message: dict[str, object]) -> None:
+            nonlocal has_message, last_message_at, result
+            has_message = True
+            last_message_at = time.monotonic()
+            message_type = message.get('type')
+            if message_type == 'progress':
+                progress = float(message.get('progress', 0.0))
+                mapped_progress = stage_start + (stage_end - stage_start) * progress
+                if progress_callback is not None:
+                    progress_callback(mapped_progress, str(message.get('message', '')))
+            elif message_type == 'result':
+                result = message
+
+        try:
+            log.info(
+                f'启动 Git fetch worker: branch={branch_name}, depth={depth}, '
+                f'proxy={bool(proxy)}, timeout={REMOTE_FETCH_TIMEOUT:g}s'
+            )
+            worker.start()
+            started_at = time.monotonic()
+
+            while result is None:
+                if not worker.is_alive() and messages.empty():
+                    break
+
+                now = time.monotonic()
+                total_remaining = REMOTE_FETCH_TIMEOUT - (now - started_at)
+                if has_message:
+                    assert last_message_at is not None
+                    activity_remaining = REMOTE_FETCH_IDLE_TIMEOUT - (now - last_message_at)
+                    activity_timeout_message = (
+                        f'Git 远程拉取消息空闲超过 {REMOTE_FETCH_IDLE_TIMEOUT:g} 秒'
+                    )
+                else:
+                    activity_remaining = REMOTE_FETCH_INITIAL_TIMEOUT - (now - started_at)
+                    activity_timeout_message = (
+                        f'Git 远程拉取首条消息超过 {REMOTE_FETCH_INITIAL_TIMEOUT:g} 秒'
+                    )
+
+                if total_remaining <= 0:
+                    timeout_message = f'Git 远程拉取超过 {REMOTE_FETCH_TIMEOUT:g} 秒'
+                elif activity_remaining <= 0:
+                    timeout_message = activity_timeout_message
+                else:
+                    timeout_message = ''
+
+                if timeout_message:
+                    abandoned.set()
+                    log.warning(
+                        f'Git fetch worker 超时，作废本次尝试: url={remote_url}, {timeout_message}'
+                    )
+                    raise TimeoutError(timeout_message)
+
+                wait_timeout = min(total_remaining, activity_remaining, 0.1)
+                with contextlib.suppress(queue.Empty):
+                    handle_message(messages.get(timeout=max(wait_timeout, 0.001)))
+
+            while not messages.empty():
+                handle_message(messages.get_nowait())
+
+            if result is None:
+                raise RuntimeError('Git fetch worker 异常退出，未返回结果')
+            if not bool(result.get('success')):
+                raise RuntimeError(str(result.get('error', '未知错误')))
+
+            worker.join(timeout=2)
+            if worker.is_alive():
+                abandoned.set()
+                raise RuntimeError('Git fetch worker 返回结果后未能退出')
+
+            self._import_fetch_result(temp_repo_dir, progress_callback, stage_start, stage_end)
+        except BaseException:
+            if worker.is_alive():
+                abandoned.set()
+            raise
+        finally:
+            if not worker.is_alive():
+                shutil.rmtree(temp_repo_dir, ignore_errors=True)
+
+    @staticmethod
+    def _is_missing_object_error(error: BaseException) -> bool:
+        """判断异常是否明确表示本地 Git 对象缺失。"""
+        return isinstance(error, KeyError) and 'object not found' in str(error)
+
+    def _rebuild_repository(
+        self,
+        progress_callback: Callable[[float, str], None] | None,
+    ) -> bool:
+        """备份损坏的 Git 目录并重新克隆仓库。"""
+        try:
+            repo = self._open_repo()
+            git_dir = Path(repo.path).resolve()
+            if (git_dir / 'commondir').is_file():
+                log.error('检测到 linked worktree，暂不自动重建本地 Git 仓库')
+                return False
+            if not git_dir.is_dir():
+                log.error(f'本地 Git 目录不存在，无法备份: {git_dir}')
+                return False
+
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}')
+            if backup_dir.exists():
+                backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}.{uuid.uuid4().hex[:8]}')
+
+            log.warning(f'检测到本地 Git 对象缺失，备份旧 Git 目录: {git_dir} -> {backup_dir}')
+            git_dir.rename(backup_dir)
+            self._repo = None
+            self._rebuilding_repository = True
+            try:
+                success, message = self._clone_repository(progress_callback)
+            finally:
+                self._rebuilding_repository = False
+
+            if not success:
+                log.error(f'本地 Git 仓库重建失败，旧目录已保留: {message}')
+                return False
+            log.info(f'本地 Git 仓库重建完成，旧目录备份于: {backup_dir}')
+            return True
+        except Exception:
+            log.error('备份或重建本地 Git 仓库失败，保留现场', exc_info=True)
+            return False
 
     def _fetch_remote(
         self,
@@ -202,57 +616,54 @@ class GitService:
         stage_start: float = 0.0,
         stage_end: float = 1.0,
     ) -> bool:
-        """拉取远程代码
-
-        根据本地是否存在有内容的同名分支来决定拉取深度：
-        - 若本地不存在该分支或分支为空，则使用深度1（拉取最新1条）
-        - 若本地已有该分支且有提交历史，则使用深度0（增量拉取）
-
-        Args:
-            progress_callback: 进度回调
-            stage_start: 当前阶段起始进度
-            stage_end: 当前阶段结束进度
-
-        Returns:
-            是否成功
-        """
+        """按候选代码源顺序拉取远程代码，失败后自动回退。"""
         log.info(gt('拉取远程代码...'))
+        success = False
+        used_repository: RepositoryItem | None = None
+        failure_is_missing_object: list[bool] = []
 
         try:
-            repo = self._open_repo()
-            remote = self._ensure_remote()
-            branch_name = self.env_config.git_branch
-            refspecs = [f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}']
-            proxy = self._get_proxy_address()
-            callbacks = self._create_fetch_callbacks(progress_callback, stage_start, stage_end)
+            for repository, repository_url in self._get_repository_candidates():
+                repository_name = self._get_repository_item(repository).ui_text
+                log.info(f'尝试代码源: {repository_name}')
+                if progress_callback is not None:
+                    progress_callback(stage_start, f'尝试代码源: {repository_name}')
+                try:
+                    self._fetch_remote_once(repository_url, progress_callback, stage_start, stage_end)
+                    success = True
+                    used_repository = repository
+                    break
+                except Exception as error:
+                    failure_is_missing_object.append(self._is_missing_object_error(error))
+                    log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
+        finally:
+            restored = self._restore_origin()
 
-            # 检查本地是否存在该分支且有提交历史
-            depth = 1  # 默认深度为1
-            local_ref = f'refs/heads/{branch_name}'
-            if local_ref in repo.references:
-                # 分支存在，检查是否有提交历史
-                branch_target = repo.references[local_ref].target
-                if branch_target is not None:
-                    # 有提交历史，使用增量拉取
-                    depth = 0
-
-            try:
-                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
-            except KeyError as e:
-                # 如果是因为找不到对象导致的错误，使用 depth=1 重试
-                if 'object not found' in str(e) and depth == 0:
-                    log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
-                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
-                else:
-                    raise
-
-            log.info(gt('拉取远程代码成功'))
-            if progress_callback is not None:
-                progress_callback(stage_end, gt('拉取远程代码成功'))
-            return True
-        except Exception:
-            log.error('拉取远程代码失败', exc_info=True)
+        if not restored:
+            log.error('拉取结束后无法恢复主仓库远程地址')
             return False
+        if not success:
+            if (
+                not self._rebuilding_repository
+                and failure_is_missing_object
+                and all(failure_is_missing_object)
+            ):
+                log.warning('所有候选代码源均因对象缺失失败，开始自动备份并重建本地 Git 仓库')
+                return self._rebuild_repository(progress_callback)
+            log.error('所有代码源均拉取失败')
+            return False
+
+        if used_repository is not None:
+            try:
+                self.env_config.last_repository_url = used_repository.url
+            except Exception:
+                log.warning('记录上次成功代码源失败', exc_info=True)
+
+        used_repository_name = self._get_repository_item(used_repository).ui_text if used_repository else ''
+        log.info(f'远程代码拉取成功，实际代码源: {used_repository_name}')
+        if progress_callback is not None:
+            progress_callback(stage_end, gt('拉取远程代码成功'))
+        return True
 
     def _reset_hard(self, target_id: str | Oid) -> bool:
         """硬重置仓库到指定提交
@@ -818,11 +1229,24 @@ class GitService:
         if not self.check_repo_exists():
             return '', ''
 
+        heads = None
         try:
-            remote = self._ensure_remote()
-            heads = remote.list_heads(proxy=self._get_proxy_address())
-        except Exception:
-            log.error('获取最新标签失败', exc_info=True)
+            for repository, repository_url in self._get_repository_candidates():
+                repository_name = self._get_repository_item(repository).ui_text
+                try:
+                    remote = self._ensure_remote(repository_url)
+                    callbacks = self._create_fetch_callbacks(None, 0.0, 1.0)
+                    with self._temporary_fetch_timeout():
+                        heads = remote.list_heads(callbacks=callbacks, proxy=self._get_proxy_address())
+                    log.info(f'标签查询使用代码源: {repository_name}')
+                    break
+                except Exception:
+                    log.warning(f'代码源 {repository_name} 获取标签失败，尝试下一个代码源', exc_info=True)
+        finally:
+            restored = self._restore_origin()
+
+        if heads is None or not restored:
+            log.error('获取最新标签失败')
             return '', ''
 
         # 提取标签名称并解析为 Version 对象
@@ -852,13 +1276,3 @@ class GitService:
                     break
 
         return latest_stable, latest_beta
-
-
-def __fetch_latest_code():
-    project_config = ProjectConfig()
-    env_config = EnvConfig()
-    git_service = GitService(project_config, env_config)
-    return git_service.fetch_latest_code(progress_callback=None)
-
-if __name__ == '__main__':
-    __fetch_latest_code()
