@@ -1,8 +1,6 @@
 import argparse
 import sys
 
-import pyuac
-
 from one_dragon.launcher.launcher_base import LauncherBase
 
 
@@ -19,8 +17,8 @@ class ExeLauncher(LauncherBase):
         parser.add_argument("-o", "--onedragon", action="store_true", help="一条龙运行")
 
     def show_version(self) -> None:
-        """显示版本信息"""
-        print(f"{self.description} {self.version}")
+        """仅输出版本号"""
+        print(self.version)
         sys.exit(0)
 
     def build_launch_args(self, args) -> list[str]:
@@ -51,6 +49,8 @@ class ExeLauncher(LauncherBase):
         if not args.onedragon and (args.close_game or args.shutdown or args.instance):
             print("错误：参数 --close-game, --shutdown, --instance 只能在指定 --onedragon 时使用")
             sys.exit(1)
+
+        import pyuac
 
         if not pyuac.isUserAdmin():
             pyuac.runAsAdmin(sys.argv, wait=False)
