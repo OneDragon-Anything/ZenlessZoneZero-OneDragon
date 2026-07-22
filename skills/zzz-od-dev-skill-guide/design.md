@@ -6,7 +6,7 @@
 **为什么是 skill 而非 docs**:skill 触发时自动注入执行上下文(主动),docs 要记得翻(被动);写 skill 的规范本身也该在「要写 skill 时」被主动注入,故做成 skill。
 
 ## 4 条硬规范的决策理由
-1. **design.md 必需**:防后续修改者不懂当初决策、盲目改动。决策记「为什么」才有指导意义。
+1. **design.md 必需**:防后续修改者不懂当初决策、盲目改动。决策记「为什么」才有指导意义。**design.md 是维护者存档,不进智能体执行上下文** —— 故 SKILL.md 不应「见 design.md」让智能体读它获取使用信息(命令 / 参数 / 接口);使用信息内联 SKILL.md 或放 skill 内其他辅助文件(脚本 / `api_reference.md`)。论据:#2300 review 时 screen-onboarding SKILL.md 写「转换工具见 design.md」,AI 漏读 design.md、手写了重复转换脚本;`zzz-od-miyoushe` SKILL.md「端点 / 参数 / 过期算法见 design.md」同理违反(待修)。design.md 只给维护者,不给执行。
 2. **给智能体看(指令式)**:skill 正文注入智能体上下文执行,指令式有效、文档式无效。description 只写触发(不写流程),否则智能体照 description 走、不读正文(writing-skills 的 SDO 实测结论)。
 3. **自包含(分场景:独立发布 vs 项目内)**:skill 独立发布时,被引 skill 使用者同时具备即可;docs/代码等文件发布不含、目标环境可能没有 → 禁。但**项目内 dev skill**(放项目 `skills/`,跟项目走、不独立发布)可引用项目 **runtime 资产路径**(skill 要读/写的操作对象:screen_info / application 源码 / docs/game,本项目必有、稳定);具体代码文件 / 实现行 / 易变文档(如 `devtools_xxx` L640、「详见某 README」)仍抽象化。判据:**操作资产路径可引(稳定),佐证性代码/文档位置抽象(易变)**。引用 skill 用完整标识符含命名空间。
 4. **方法论非例子(限 SKILL.md 与智能体读的辅助文件)**:具体例子以偏概全 —— 智能体会把例子偶然细节当必然规则;抽象成判据才跨场景适用。范围限定 SKILL.md + 注入执行上下文的辅助文件;design.md 是维护者的设计记录,允许具体例子作论据。
