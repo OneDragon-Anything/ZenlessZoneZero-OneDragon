@@ -64,7 +64,6 @@ graph LR
 - `is_cloud_game` 根据 `client_type == "cloud"` 判断当前实例是否为云游戏。
 - `local_game_path` 保存本地游戏路径，`cloud_game_path` 保存云游戏客户端路径。
 - `game_path` 是兼容入口：云游戏模式下返回或写入 `cloud_game_path`，否则返回或写入 `local_game_path`。
-- 初始化配置时会兼容旧键 `game_path`：如果旧配置存在且 `local_game_path` 为空，会迁移到 `local_game_path`。
 - `prefer_bangbang_points` 作为账号实例级配置，决定云排队时是否优先选择邦邦点快速队列。
 
 ### 上下文扩展 (`zzz_context.py`)

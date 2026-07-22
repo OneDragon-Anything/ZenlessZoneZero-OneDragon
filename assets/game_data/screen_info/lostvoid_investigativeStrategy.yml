@@ -1,5 +1,6 @@
 screen_id: lostvoid_investigativeStrategy
 screen_name: 迷失之地-调查战略选择
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 战略等级

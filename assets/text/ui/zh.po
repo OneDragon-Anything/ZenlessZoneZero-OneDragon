@@ -86,6 +86,30 @@ msgstr "开始运行"
 msgid "停止运行"
 msgstr "停止运行"
 
+msgid "运行设置"
+msgstr "运行设置"
+
+msgid "运行实例"
+msgstr "运行实例"
+
+msgid "结束后"
+msgstr "结束后"
+
+msgid "无"
+msgstr "无"
+
+msgid "关闭游戏"
+msgstr "关闭游戏"
+
+msgid "关机"
+msgstr "关机"
+
+msgid "全部实例"
+msgstr "全部实例"
+
+msgid "仅运行当前"
+msgstr "仅运行当前"
+
 msgid "游戏截图"
 msgstr "游戏截图"
 

@@ -1,5 +1,6 @@
 screen_id: intel_board
 screen_name: 情报板
+app_id: intel_board
 pc_alt: false
 area_list:
 - area_name: 点数兑换

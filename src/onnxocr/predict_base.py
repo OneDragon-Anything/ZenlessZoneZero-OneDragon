@@ -1,25 +1,16 @@
-import onnxruntime
+from onnxocr.inference_engine import InferenceSession, create_session
+from onnxocr.logger import get_logger
 
-class PredictBase(object):
-    def __init__(self):
+log = get_logger("predict_base")
+from one_dragon.utils import gpu_executor
+
+
+class PredictBase:
+    def __init__(self) -> None:
         pass
 
-    def get_onnx_session(self, model_dir, use_gpu):
-        availables = onnxruntime.get_available_providers()
-        if use_gpu:
-            if 'CUDAExecutionProvider' in availables:
-                providers = ['CUDAExecutionProvider']
-            elif 'DmlExecutionProvider' in availables:
-                providers = ['DmlExecutionProvider']
-            else:
-                providers = ['CPUExecutionProvider']
-        else:
-            providers = ['CPUExecutionProvider']
-
-        onnx_session = onnxruntime.InferenceSession(model_dir, providers=providers)
-
-        # print("providers:", onnxruntime.get_device())
-        return onnx_session
+    def get_onnx_session(self, model_dir: str, use_gpu: bool, gpu_id: int = 0) -> InferenceSession:
+        return create_session(model_dir, use_gpu=use_gpu, gpu_id=gpu_id)
 
     def get_output_name(self, onnx_session):
         """
@@ -54,3 +45,6 @@ class PredictBase(object):
         for name in input_name:
             input_feed[name] = image_numpy
         return input_feed
+
+    def run_onnx_session(self, onnx_session, output_names, input_feed):
+        return gpu_executor.run_session(onnx_session, output_names, input_feed=input_feed)

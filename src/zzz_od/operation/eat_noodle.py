@@ -79,7 +79,7 @@ class EatNoodle(ZOperation):
     @operation_node(name='点单后确认')
     def confirm_after_order(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '拉面店', '点单确认',
-                                                 success_wait=1, retry_wait=1)
+                                                 success_wait=0.5, retry_wait=1)
 
     @node_from(from_name='点单后确认')
     @operation_node(name='点单后跳过')
@@ -89,9 +89,13 @@ class EatNoodle(ZOperation):
             return self.round_success(result.status, wait=1)
 
         # 这个点击很怪 需要多点几次 直到出现效果确认
-        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
+        # 原因是绝区零逆天按钮, 需要先拖鼠标, 让鼠标显形才能点击
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            area = self.ctx.screen_loader.get_area('咖啡店', '点单后跳过')
+            self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
+            self.ctx.controller.click()
+            return self.round_success(result.status, wait=1)
 
         return self.round_retry(result.status, wait=1)
 

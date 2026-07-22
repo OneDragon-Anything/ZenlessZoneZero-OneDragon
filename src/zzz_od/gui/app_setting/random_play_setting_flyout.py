@@ -5,11 +5,15 @@ from PySide6.QtWidgets import QVBoxLayout
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
     EditableComboBoxSettingCard,
 )
 from zzz_od.application.random_play.random_play_config import (
     RANDOM_AGENT_NAME,
+    RandomPlayTransportPoint,
 )
 from zzz_od.game_data.agent import AgentEnum
 
@@ -18,6 +22,13 @@ class RandomPlaySettingFlyout(AppSettingFlyout):
     """录像店配置弹出框"""
 
     def _setup_ui(self, layout: QVBoxLayout) -> None:
+        self.transport_point_opt = ComboBoxSettingCard(
+            icon='', title='传送地点',
+            options_enum=RandomPlayTransportPoint,
+            margins=self.card_margins,
+        )
+        layout.addWidget(self.transport_point_opt)
+
         agents_list = [ConfigItem(RANDOM_AGENT_NAME)] + [
             ConfigItem(agent_enum.value.agent_name)
             for agent_enum in AgentEnum
@@ -43,5 +54,6 @@ class RandomPlaySettingFlyout(AppSettingFlyout):
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
+        self.transport_point_opt.init_with_adapter(get_prop_adapter(config, 'transport_point'))
         self.random_play_agent_1.init_with_adapter(get_prop_adapter(config, 'agent_name_1'))
         self.random_play_agent_2.init_with_adapter(get_prop_adapter(config, 'agent_name_2'))

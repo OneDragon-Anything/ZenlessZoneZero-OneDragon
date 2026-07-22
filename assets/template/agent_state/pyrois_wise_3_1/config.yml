@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: pyrois_wise_3_1
+template_name: 角色状态-佩洛伊斯-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 143, 125
+- 215, 126

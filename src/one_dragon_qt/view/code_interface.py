@@ -71,10 +71,12 @@ class CodeInterface(VerticalScrollInterface):
     def get_content_widget(self) -> Column:
         content_widget = Column()
 
-        self.auto_update_opt = SwitchSettingCard(
+        self.auto_update_code_opt = PasswordSwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
+            password_hash='69fec7ebc9c57ba044c55deb4e30aa1a6d6788f1da67b824ef96a590f526d20a',
+            reverse_mode=True
         )
-        content_widget.add_widget(self.auto_update_opt)
+        content_widget.add_widget(self.auto_update_code_opt)
 
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
@@ -139,7 +141,7 @@ class CodeInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
-        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
+        self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)

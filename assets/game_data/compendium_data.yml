@@ -55,6 +55,8 @@
               mission_name_display: "冰属性"
             - mission_name: "电流测试"
               mission_name_display: "电属性"
+            - mission_name: "风切测试"
+              mission_name_display: "风属性"
             - mission_name: "共鸣测试"
               mission_name_display: "以太"
         - mission_type_name: "自定义模板"
@@ -98,6 +100,8 @@
           mission_type_name_display: "沧浪行歌 流光咏叹"
         - mission_type_name: "伏龙与战车"
           mission_type_name_display: "雪兔梦游仙境 囚徒手记"
+        - mission_type_name: "机师与叛甲"
+          mission_type_name_display: "呼啸沙龙 拂晓行纪"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
@@ -117,6 +121,7 @@
         - mission_type_name: "秽蚀·狛野真斗"
         - mission_type_name: "秽息行者·蝎骸"
         - mission_type_name: "牲鬼·卫律使者"
+        - mission_type_name: "空域戒戍者"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
@@ -133,6 +138,7 @@
           alias_list:
             - "魇缚者·???"
         - mission_type_name: "猎血清道夫"
+        - mission_type_name: "基塔布鲁"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 

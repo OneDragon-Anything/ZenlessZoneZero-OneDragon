@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: switch_account
+template_name: 切换账号
+template_shape: circle
+auto_mask: true
+point_list:
+- 1821, 997
+- 1844, 997

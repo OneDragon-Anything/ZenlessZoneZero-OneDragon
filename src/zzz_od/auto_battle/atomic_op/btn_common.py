@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import threading
 import time
-from enum import StrEnum, IntEnum
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from enum import IntEnum, StrEnum
+from typing import TYPE_CHECKING
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.operation_def import OperationDef
@@ -62,6 +63,8 @@ class AtomicBtnCommon(AtomicOp):
             self._method = self.ctx.switch_next
         elif op_name == BattleStateEnum.BTN_SWITCH_PREV.value:
             self._method = self.ctx.switch_prev
+        elif op_name == BattleStateEnum.BTN_SWITCH_BACKUP.value:
+            self._method = self.ctx.switch_backup
         elif op_name == BattleStateEnum.BTN_SWITCH_NORMAL_ATTACK.value:
             self._method = self.ctx.normal_attack
         elif op_name == BattleStateEnum.BTN_SWITCH_SPECIAL_ATTACK.value:
@@ -93,7 +96,7 @@ class AtomicBtnCommon(AtomicOp):
                 return
             self._status = BtnRunStatus.RUNNING
 
-        for i in range(self.repeat_times):
+        for _i in range(self.repeat_times):
             if self._status != BtnRunStatus.RUNNING:
                 break
 

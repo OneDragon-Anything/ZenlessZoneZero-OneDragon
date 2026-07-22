@@ -1,4 +1,3 @@
-from abc import ABC
 from types import ModuleType
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
@@ -6,7 +5,7 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 
 
-class ApplicationFactory(ABC):
+class ApplicationFactory:
     """
     应用工厂抽象基类。
 
@@ -153,3 +152,11 @@ class ApplicationFactory(ABC):
             self._run_record_cache[key] = record
 
         return record
+
+    def clear_cache(self) -> None:
+        """清理工厂缓存的配置和运行记录。
+
+        主要供 backend server 在应用运行前刷新 GUI 已保存到 YAML 的配置。
+        """
+        self._config_cache.clear()
+        self._run_record_cache.clear()

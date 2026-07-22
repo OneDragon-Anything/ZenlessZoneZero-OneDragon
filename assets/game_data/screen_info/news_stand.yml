@@ -1,5 +1,6 @@
 screen_id: news_stand
 screen_name: 报刊亭
+app_id: scratch_card
 pc_alt: false
 area_list:
 - area_name: 刮刮卡

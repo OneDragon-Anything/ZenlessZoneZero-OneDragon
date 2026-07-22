@@ -1,5 +1,6 @@
 screen_id: lost_void_lottery
 screen_name: 迷失之地-抽奖机
+app_id: lost_void
 pc_alt: false
 area_list:
 - area_name: 按钮-返回

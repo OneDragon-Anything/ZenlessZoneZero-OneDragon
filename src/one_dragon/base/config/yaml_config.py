@@ -41,16 +41,18 @@ class YamlConfig(YamlOperator):
         self._read_sample_only: bool = read_sample_only
         """是否只读取sample文件（即使.yml文件存在也只读sample）"""
 
-        YamlOperator.__init__(self, self._get_yaml_file_path())
+        file_path, write_file_path, copy_on_write_source_path = self._get_yaml_file_paths()
+        YamlOperator.__init__(self, file_path)
+        self._write_file_path = write_file_path
+        self._copy_on_write_source_path = copy_on_write_source_path
 
-    def _get_yaml_file_path(self) -> str | None:
+    def _get_yaml_file_paths(self) -> tuple[str | None, str | None, str | None]:
         """
-        获取配置文件的路径
-        如果只有sample文件，就复制一个到实例文件夹下
+        获取配置文件的读取路径、写入路径
         :return:
         """
         if self.is_mock:
-            return None
+            return None, None, None
         sub_dir = ['config']
         if self.instance_idx is not None:
             sub_dir.append('%02d' % self.instance_idx)
@@ -64,31 +66,38 @@ class YamlConfig(YamlOperator):
 
         # 只读sample文件模式
         if self._read_sample_only and os.path.exists(sample_yml_path):
-            return sample_yml_path
+            return sample_yml_path, sample_yml_path, None
 
         # 指定文件存在时 直接使用
         if os.path.exists(yml_path):
-            return yml_path
+            return yml_path, yml_path, None
 
         # 备用文件存在时 复制使用
         if self.backup_module_name is not None:
             backup_yml_path = os.path.join(dir_path, f'{self.backup_module_name}.yml')
             if os.path.exists(backup_yml_path):
                 shutil.copyfile(backup_yml_path, yml_path)
-                return yml_path
+                return yml_path, yml_path, None
 
         # 最后看是否有示例文件
         if self._sample and os.path.exists(sample_yml_path):
             if self._copy_from_sample:
                 shutil.copyfile(sample_yml_path, yml_path)
-            return sample_yml_path
+                return yml_path, yml_path, None
+            return sample_yml_path, yml_path, sample_yml_path
 
         # 冻结环境回退到 MEIPASS/resources
         frozen_path = os_utils.get_resource_path(*sub_dir, f'{self.module_name}.yml')
         if os.path.exists(frozen_path):
-            return frozen_path
+            return frozen_path, yml_path, frozen_path
 
-        return yml_path
+        return yml_path, yml_path, None
+
+    def _get_yaml_file_path(self) -> str | None:
+        file_path, write_file_path, copy_on_write_source_path = self._get_yaml_file_paths()
+        self._write_file_path = write_file_path
+        self._copy_on_write_source_path = copy_on_write_source_path
+        return file_path
 
     @property
     def is_sample(self) -> bool:

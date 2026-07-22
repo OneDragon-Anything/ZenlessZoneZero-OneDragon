@@ -1,12 +1,11 @@
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
-from typing import Tuple
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import GitBranchEnum
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
-from one_dragon.utils.i18_utils import gt
 
 
 class CodeInstallCard(BaseInstallCard):
@@ -50,7 +49,7 @@ class CodeInstallCard(BaseInstallCard):
             msg = msg + ' 可考虑设置-脚本环境-代码源选择Gitee 但不能保证是最新版本'
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
-    def get_display_content(self) -> Tuple[QIcon, str]:
+    def get_display_content(self) -> tuple[QIcon, str]:
         """
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
@@ -66,7 +65,7 @@ class CodeInstallCard(BaseInstallCard):
             latest, msg = self.ctx.git_service.is_current_branch_latest()
             if latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已同步代码')}" + ' ' + current_branch
+                msg = f"{gt('代码已同步')}" + ' ' + current_branch
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
 

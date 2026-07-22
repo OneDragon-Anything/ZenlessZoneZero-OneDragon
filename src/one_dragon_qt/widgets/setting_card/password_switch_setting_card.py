@@ -36,7 +36,8 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
                  password_hash: str = "",
                  dialog_title: str = "提示",
                  dialog_content: str = "密码错误，请重新输入",
-                 dialog_button_text: str = "确定"):
+                 dialog_button_text: str = "确定",
+                 reverse_mode: bool = False):
 
         SettingCardBase.__init__(
             self,
@@ -55,6 +56,7 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
         self.dialog_title = gt(dialog_title)
         self.dialog_content = gt(dialog_content)
         self.dialog_button_text = gt(dialog_button_text)
+        self.reverse_mode: bool = reverse_mode
 
         # 创建按钮并设置相关属性
         self.btn = SwitchButton(parent=self, indicatorPos=IndicatorPosition.RIGHT)
@@ -93,11 +95,11 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
         self.hBoxLayout.addSpacing(16)
         self.hBoxLayout.insertLayout(4, self.password_layout, 0)
 
-    def _set_extra_button_enabled(self, value: bool):
+    def _set_extra_button_enabled(self, value: bool) -> None:
         if self.extra_btn is not None:
             self.extra_btn.setEnabled(value)
 
-    def _toggle_password_visibility(self):
+    def _toggle_password_visibility(self) -> None:
         """切换密码显示模式"""
         if self.toggle_button.isChecked():
             self.password.setEchoMode(QLineEdit.EchoMode.Normal)  # 显示明文
@@ -106,28 +108,37 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
             self.password.setEchoMode(QLineEdit.EchoMode.Password)  # 隐藏明文
             self.toggle_button.setIcon(FluentIcon.HIDE)
 
-    def _on_value_changed(self, value: bool):
-        # 更新配置适配器中的值并发出信号
-        if value:
-            if hashlib.sha256(self.password.text().encode()).hexdigest() != self.password_hash:
-                dialog = Dialog(self.dialog_title, self.dialog_content, self)
-                dialog.setTitleBarVisible(False)
-                dialog.yesButton.setText(self.dialog_button_text)
-                dialog.cancelButton.hide()
-                dialog.exec()
+    def _is_password_required(self, value: bool) -> bool:
+        """判断当前切换方向是否需要校验密码"""
+        return value != self.reverse_mode
 
-                self.setValue(False, emit_signal=False)
-                self._set_extra_button_enabled(False)
-                value = False
-            else:
-                self._set_extra_button_enabled(True)
-        else:
-            self._set_extra_button_enabled(False)
+    def _is_password_valid(self) -> bool:
+        """判断当前输入的密码是否正确"""
+        password_hash = hashlib.sha256(self.password.text().encode()).hexdigest()
+        return password_hash == self.password_hash
+
+    def _show_password_error_dialog(self) -> None:
+        """显示密码错误提示"""
+        dialog = Dialog(self.dialog_title, self.dialog_content, self)
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText(self.dialog_button_text)
+        dialog.cancelButton.hide()
+        dialog.exec()
+
+    def _on_value_changed(self, value: bool) -> None:
+        # 更新配置适配器中的值并发出信号
+        if self._is_password_required(value) and not self._is_password_valid():
+            self._show_password_error_dialog()
+            value = not value
+            self.setValue(value, emit_signal=False)
+            return
+
+        self._set_extra_button_enabled(value)
         if self.adapter is not None:
             self.adapter.set_value(value)
         self.value_changed.emit(value)
 
-    def setValue(self, value: bool, emit_signal: bool = True):
+    def setValue(self, value: bool, emit_signal: bool = True) -> None:
         """设置开关状态并更新文本"""
         if not emit_signal:
             self.btn.blockSignals(True)

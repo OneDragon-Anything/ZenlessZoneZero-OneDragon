@@ -21,10 +21,13 @@ class NotifyPool:
     last_image 属性从 items 尾部遍历获取，用于 APP 级别结束通知附带截图。
     """
 
+    DEFAULT_MAX_ITEMS: int = 200
+    DEFAULT_MAX_IMAGES: int = 10
+
     def __init__(self) -> None:
         self.items: list[NotifyPoolItem] = []
-        self.max_items: int = 200
-        self.max_images: int = 10
+        self.max_items: int = self.DEFAULT_MAX_ITEMS
+        self.max_images: int = self.DEFAULT_MAX_IMAGES
         self._image_count: int = 0
 
     def add(self, content: str, image: MatLike | None = None) -> None:
@@ -62,4 +65,6 @@ class NotifyPool:
 
     def clear(self) -> None:
         self.items.clear()
+        self.max_items = self.DEFAULT_MAX_ITEMS
+        self.max_images = self.DEFAULT_MAX_IMAGES
         self._image_count = 0

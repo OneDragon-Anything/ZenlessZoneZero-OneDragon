@@ -23,6 +23,9 @@ from one_dragon_qt.widgets.horizontal_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
@@ -216,8 +219,6 @@ class ChargePlanCard(DraggableListItem):
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
 
-        self.update_by_history()
-
         self._emit_value()
 
     def _on_mission_type_changed(self, idx: int) -> None:
@@ -226,14 +227,12 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_mission_combo_box()
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_mission_changed(self, idx: int) -> None:
         mission_name = self.mission_combo_box.itemData(idx)
         self.plan.mission_name = mission_name
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_card_num_changed(self, idx: int) -> None:
@@ -272,25 +271,118 @@ class ChargePlanCard(DraggableListItem):
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
 
-    def update_by_history(self) -> None:
-        """
-        根据历史记录更新
-        """
-        history = self.config.get_history_by_uid(self.plan)
-        if history is None:
-            return
 
-        self.plan.card_num = history.card_num
-        self.plan.notorious_hunt_buff_num = history.notorious_hunt_buff_num
-        self.plan.predefined_team_idx = history.predefined_team_idx
-        self.plan.auto_battle_config = history.auto_battle_config
-        self.plan.plan_times = history.plan_times
 
-        self.init_card_num_box()
-        self.init_notorious_hunt_buff_num_opt()
+class DoubleRewardEventConfigCard(MultiLineSettingCard):
+
+    changed = Signal(ChargePlanItem)
+
+    def __init__(
+        self,
+        ctx: ZContext,
+        plan: ChargePlanItem | None = None,
+        category_name: str = '实战模拟室',
+    ) -> None:
+        self.ctx: ZContext = ctx
+        self.plan: ChargePlanItem = plan if plan is not None else ChargePlanItem()
+        self.category_name: str = category_name
+
+        self.category_combo_box = ComboBox()
+        self.category_combo_box.setDisabled(True)
+
+        self.mission_type_combo_box = ComboBox()
+        self.mission_type_combo_box.currentIndexChanged.connect(self._on_mission_type_changed)
+
+        self.mission_combo_box = ComboBox()
+        self.mission_combo_box.currentIndexChanged.connect(self._on_mission_changed)
+
+        self.predefined_team_opt = ComboBox()
+        self.predefined_team_opt.currentIndexChanged.connect(self.on_predefined_team_changed)
+
+        self.auto_battle_combo_box = ComboBox()
+        self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
+
+        MultiLineSettingCard.__init__(
+            self,
+            icon=FluentIcon.CALENDAR,
+            title=self.category_name,
+            line_list=[
+                [
+                    self.category_combo_box,
+                    self.mission_type_combo_box,
+                    self.mission_combo_box,
+                    self.predefined_team_opt,
+                    self.auto_battle_combo_box,
+                ]
+            ]
+        )
+
+        self.init_with_plan(self.plan)
+
+    def init_with_plan(self, plan: ChargePlanItem) -> None:
+        """
+        以双倍活动配置初始化。
+        """
+        self.plan = plan
+        self.plan.tab_name = '训练'
+        self.plan.category_name = self.category_name
+
+        self.init_category_combo_box()
+        self.init_mission_type_combo_box()
+        self.init_mission_combo_box()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
-        self.init_plan_times_input()
+
+    def init_category_combo_box(self) -> None:
+        self.category_combo_box.set_items([ConfigItem(self.category_name, self.category_name)], self.category_name)
+
+    def init_mission_type_combo_box(self) -> None:
+        config_list = self.ctx.compendium_service.get_charge_plan_mission_type_list(self.plan.category_name)
+        config_list = [
+            config for config in config_list
+            if config.label != '特训目标' and config.value != '特训目标'
+        ]
+        self.mission_type_combo_box.set_items(config_list, self.plan.mission_type_name)
+
+    def init_mission_combo_box(self) -> None:
+        config_list = self.ctx.compendium_service.get_charge_plan_mission_list(
+            self.plan.category_name, self.plan.mission_type_name
+        )
+        self.mission_combo_box.set_items(config_list, self.plan.mission_name)
+
+    def init_predefined_team_opt(self) -> None:
+        """
+        初始化预备编队的下拉框。
+        """
+        config_list = ([ConfigItem('游戏内配队', -1)] +
+                       [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
+        self.predefined_team_opt.set_items(config_list, self.plan.predefined_team_idx)
+
+    def init_auto_battle_box(self) -> None:
+        config_list = get_auto_battle_op_config_list(sub_dir='auto_battle')
+        self.auto_battle_combo_box.set_items(config_list, self.plan.auto_battle_config)
+        self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
+
+    def _on_mission_type_changed(self, idx: int) -> None:
+        self.plan.mission_type_name = self.mission_type_combo_box.itemData(idx)
+        self.init_mission_combo_box()
+        self._emit_value()
+
+    def _on_mission_changed(self, idx: int) -> None:
+        self.plan.mission_name = self.mission_combo_box.itemData(idx)
+        self._emit_value()
+
+    def on_predefined_team_changed(self, idx: int) -> None:
+        self.plan.predefined_team_idx = self.predefined_team_opt.currentData()
+        self.init_auto_battle_box()
+        self._emit_value()
+
+    def _on_auto_battle_changed(self, idx: int) -> None:
+        self.plan.auto_battle_config = self.auto_battle_combo_box.itemData(idx)
+        self._emit_value()
+
+    def _emit_value(self) -> None:
+        self.changed.emit(self.plan)
 
 
 class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
@@ -311,18 +403,47 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
+            url='https://one-dragon.com/zzz/zh/feat/feat_one_dragon/charge_plan.html',
             title='体力计划说明',
             content='合理安排每日体力消耗，支持自定义优先级和循环执行',
         )
         self.content_widget.add_widget(self.help_opt)
 
         self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮')
-        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，当前计划因体力不足或次数限制无法继续时，会依次尝试后续计划')
+        self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
-        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
-        self.content_widget.add_widget(self.restore_charge_opt)
+        self.daily_reset_plan_times_opt = SwitchSettingCard(icon=FluentIcon.HISTORY, title='每日重置', content='开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零')
+        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', content='电量不足时尝试按所选方式有效补足缺口', options_enum=RestoreChargeEnum)
+        self.content_widget.add_widget(HorizontalSettingCardGroup([self.daily_reset_plan_times_opt, self.restore_charge_opt], spacing=6))
+
+        self.double_reward_group = ExpandSettingCardGroup(
+            icon=FluentIcon.FLAG,
+            title='双倍活动',
+            content='有活动时自动添加对应任务',
+        )
+        self.content_widget.add_widget(self.double_reward_group)
+
+        # 自动识别实战模拟室双倍活动开关
+        self.double_reward_opt = SwitchSettingCard(
+            icon=FluentIcon.FLAG, title='启用双倍活动'
+        )
+        self.double_reward_opt.value_changed.connect(
+            self.on_double_reward_changed
+        )
+        self.double_reward_group.addHeaderWidget(
+            self.double_reward_opt.btn
+        )
+        self.combat_simulation_double_reward_config_card = DoubleRewardEventConfigCard(
+            self.ctx,
+            category_name='实战模拟室',
+        )
+        self.combat_simulation_double_reward_config_card.changed.connect(
+            self.set_combat_simulation_double_reward_config
+        )
+        self.double_reward_group.addSettingCard(
+            self.combat_simulation_double_reward_config_card
+        )
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
@@ -369,9 +490,23 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.update_plan_list_display()
 
+        self.combat_simulation_double_reward_config_card.init_with_plan(
+            self.config.combat_simulation_double_reward_config
+        )
+
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
+        self.daily_reset_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'daily_reset_plan_times'))
+        self.double_reward_opt.init_with_adapter(get_prop_adapter(self.config, 'double_reward'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
+
+        self.combat_simulation_double_reward_config_card.setEnabled(self.config.double_reward)
+
+    def on_double_reward_changed(self, value: bool) -> None:
+        self.combat_simulation_double_reward_config_card.setEnabled(value)
+
+    def set_combat_simulation_double_reward_config(self, config: ChargePlanItem) -> None:
+        self.config.combat_simulation_double_reward_config = config
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)

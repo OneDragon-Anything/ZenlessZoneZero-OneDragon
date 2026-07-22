@@ -252,10 +252,10 @@ class SuibianTempleBooBox(ZOperation):
         if any('聘用' in text for text in ocr_result_map):
             return self.round_success(status='已返回邦巢界面')
 
-        self.ctx.controller.click(
-            pos=self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过').center,
-            press_time=0.5,  # 长按一点
-        )
+        # 绝区零逆天按钮, 需要先拖鼠标, 让鼠标显形才能点击
+        area = self.ctx.screen_loader.get_area('随便观-邦巢', '按钮-跳过')
+        self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
+        self.ctx.controller.click()
         return self.round_wait(status='点击跳过', wait=0.5)
 
     @node_from(from_name='处理购买动画', status='点击跳过')

@@ -1,5 +1,6 @@
 screen_id: 3d_map
 screen_name: 3D地图
+app_id: world_patrol
 pc_alt: false
 area_list:
 - area_name: 按钮-快捷导航

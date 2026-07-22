@@ -19,7 +19,6 @@ from qfluentwidgets import (
     InfoBarIcon,
     LineEdit,
     PushButton,
-    SingleDirectionScrollArea,
     TableWidget,
     TeachingTipTailPosition,
     ToolButton,
@@ -37,6 +36,7 @@ from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
@@ -83,7 +83,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         return main_widget
 
     def _init_left_part(self) -> QWidget:
-        scroll_area = SingleDirectionScrollArea()
+        scroll_area = FastScrollArea()
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
@@ -212,12 +212,10 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         control_layout.addStretch(1)
 
         scroll_area.setWidget(control_widget)
-        scroll_area.setWidgetResizable(True)
-
         return scroll_area
 
     def _init_mid_part(self) -> QWidget:
-        scroll_area = SingleDirectionScrollArea()
+        scroll_area = FastScrollArea()
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
@@ -251,8 +249,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         control_layout.addStretch(1)
 
         scroll_area.setWidget(control_widget)
-        scroll_area.setWidgetResizable(True)
-
         return scroll_area
 
     def _init_right_part(self) -> QWidget:

@@ -1,5 +1,6 @@
 screen_id: inter_knot
 screen_name: 绳网
+app_id: world_patrol
 pc_alt: false
 area_list:
 - area_name: 按钮-GO

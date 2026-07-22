@@ -1,9 +1,18 @@
-# coding: utf-8
 import cv2
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QDialog, QPushButton, QFrame, QScrollArea
+from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
 
 class ColorChannelDialog(QDialog):
@@ -30,20 +39,19 @@ class ColorChannelDialog(QDialog):
     def _init_ui(self):
         """初始化UI布局"""
         main_layout = QVBoxLayout(self)
-        
+
         # 创建滚动区域
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        scroll_area = FastScrollArea()
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        
+
         # 创建内容容器
         content_widget = QWidget()
         self.content_layout = QVBoxLayout(content_widget)
         self.content_layout.setSpacing(20)
-        
+
         scroll_area.setWidget(content_widget)
         main_layout.addWidget(scroll_area)
-        
+
         # 确定按钮
         self.confirm_button = QPushButton('确定')
         self.confirm_button.clicked.connect(self.accept)
@@ -53,14 +61,14 @@ class ColorChannelDialog(QDialog):
         """生成各种色彩空间的通道图像"""
         if self.image is None:
             return
-            
+
         # 确保图像是RGB格式
         if len(self.image.shape) == 2:
             # 如果是灰度图，转换为RGB
             rgb_image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2RGB)
         else:
             rgb_image = self.image.copy()
-        
+
         # 生成各色彩空间的通道
         color_spaces = {
             'RGB': self._get_rgb_channels(rgb_image),
@@ -68,7 +76,7 @@ class ColorChannelDialog(QDialog):
             'YUV': self._get_yuv_channels(rgb_image),
             'LAB': self._get_lab_channels(rgb_image)
         }
-        
+
         # 为每个色彩空间创建显示行
         for space_name, (channels, channel_names) in color_spaces.items():
             self._create_color_space_row(space_name, channels, channel_names)
@@ -110,21 +118,21 @@ class ColorChannelDialog(QDialog):
         row_frame = QFrame()
         row_frame.setFrameShape(QFrame.Shape.StyledPanel)
         row_layout = QVBoxLayout(row_frame)
-        
+
         # 色彩空间标题
         title_label = QLabel(f"{space_name} 色彩空间")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("font-weight: bold; font-size: 14px; margin: 5px;")
         row_layout.addWidget(title_label)
-        
+
         # 通道图像容器
         channels_layout = QHBoxLayout()
         channels_layout.setSpacing(10)
-        
-        for i, (channel, name) in enumerate(zip(channels, channel_names)):
+
+        for channel, name in zip(channels, channel_names, strict=False):
             channel_widget = self._create_channel_widget(channel, f"{space_name} - {name}")
             channels_layout.addWidget(channel_widget)
-        
+
         row_layout.addLayout(channels_layout)
         self.content_layout.addWidget(row_frame)
 
@@ -166,6 +174,6 @@ class ColorChannelDialog(QDialog):
         # 创建QImage
         height, width = channel.shape
         q_image = QImage(channel_copy.data, width, height, width, QImage.Format.Format_Grayscale8)
-        
+
         # 转换为QPixmap
         return QPixmap.fromImage(q_image)

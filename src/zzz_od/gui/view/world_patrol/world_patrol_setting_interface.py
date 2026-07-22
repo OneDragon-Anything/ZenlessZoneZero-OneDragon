@@ -58,10 +58,10 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
         layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/world_patrol.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat/feat_one_dragon/world_patrol.html')
         layout.addWidget(self.help_opt)
 
-        self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.SEARCH, title='自动战斗')
+        self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动战斗')
         layout.addWidget(self.auto_battle_opt)
 
         self.ui_disappear_seconds_opt = SpinBoxSettingCard(
@@ -72,12 +72,19 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
         )
         layout.addWidget(self.ui_disappear_seconds_opt)
 
-        self.ui_disappear_action_opt = ComboBoxSettingCard(
-            icon=FluentIcon.SETTING,
-            title='界面消失处理方式',
-            content='判定为疑似卡电梯后的处理方式',
+        self.route_retry_times_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SYNC,
+            title='单条路线重试上限',
+            content='单条路线累计重试次数，超限后跳过该路线',
         )
-        layout.addWidget(self.ui_disappear_action_opt)
+        layout.addWidget(self.route_retry_times_opt)
+
+        self.daily_loop_count_opt = SpinBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='锄地每日循环次数',
+            content='一次任务执行内总共执行的轮数',
+        )
+        layout.addWidget(self.daily_loop_count_opt)
 
         layout.addStretch(1)
         return widget
@@ -90,22 +97,39 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
         widget.setLayout(layout)
 
         self.run_record_opt = PushSettingCard(
-            icon=FluentIcon.SYNC,
+            icon=FluentIcon.HISTORY,
             title='运行记录',
             text='重置记录'
         )
+        self.run_record_opt.setFixedHeight(50)
         self.run_record_opt.clicked.connect(self._on_reset_record_clicked)
         layout.addWidget(self.run_record_opt)
 
-        self.route_list_opt = ComboBoxSettingCard(icon=FluentIcon.SEARCH, title='路线名单')
+        self.route_list_opt = ComboBoxSettingCard(icon=FluentIcon.MENU, title='路线名单')
         layout.addWidget(self.route_list_opt)
 
-        self.route_retry_times_opt = SpinBoxSettingCard(
-            icon=FluentIcon.SYNC,
-            title='单条路线重试上限',
-            content='任何原因卡住的最多重试次数，超限后跳过该条小路线',
+        self.ui_disappear_action_opt = ComboBoxSettingCard(
+            icon=FluentIcon.POWER_BUTTON,
+            title='界面消失处理方式',
+            content='判定为疑似卡电梯后的处理方式',
         )
-        layout.addWidget(self.route_retry_times_opt)
+        layout.addWidget(self.ui_disappear_action_opt)
+
+        self.route_retry_action_opt = ComboBoxSettingCard(
+            icon=FluentIcon.ROTATE,
+            title='路线重试处理方式',
+            content='路线脱困失败，重试后再次卡住时的处理方式',
+        )
+        layout.addWidget(self.route_retry_action_opt)
+
+        self.loop_interval_seconds_opt = SpinBoxSettingCard(
+            icon=FluentIcon.QUIET_HOURS,
+            title='每轮最少占用时长（敌人刷新时间）',
+            content='每轮跑完：不足则补等到该秒数，超过则立即开始下一轮',
+            minimum=0,
+            maximum=86400,
+        )
+        layout.addWidget(self.loop_interval_seconds_opt)
 
         layout.addStretch(1)
         return widget
@@ -149,9 +173,36 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.route_retry_times_opt.init_with_adapter(get_prop_adapter(self.config, 'route_retry_times'))
 
+        self.route_retry_action_opt.set_options_by_list(
+            [
+                ConfigItem('若再次卡住则跳过脱困', WorldPatrolConfig.ROUTE_RETRY_ACTION_SKIP),
+                ConfigItem('若再次卡住仍尝试脱困', WorldPatrolConfig.ROUTE_RETRY_ACTION_RETRY),
+            ]
+        )
+        self.route_retry_action_opt.init_with_adapter(get_prop_adapter(self.config, 'route_retry_action'))
+
+        self.daily_loop_count_opt.init_with_adapter(get_prop_adapter(self.config, 'daily_loop_count'))
+        self.loop_interval_seconds_opt.init_with_adapter(get_prop_adapter(self.config, 'loop_interval_seconds'))
+
+        self._update_run_record_display()
+
+    def _update_run_record_display(self) -> None:
+        """刷新「运行记录」卡片的副标题，显示当日进度。"""
+        if self.run_record is None:
+            return
+        total = self.config.daily_loop_count if self.config is not None else 1
+        # 当日已完成的整数轮数 + 当前轮已完成路线占整轮的小数部分
+        per_round = self.run_record.routes_per_round
+        # finished 满额代表该轮已结束并已计入 completed_rounds，取模避免与整轮重复计数
+        partial = (len(self.run_record.finished) % per_round) / per_round if per_round > 0 else 0.0
+        progress = min(self.run_record.completed_rounds + partial, total)
+        content = f'当日进度 {progress:.2f}/{total}'
+        self.run_record_opt.setContent(content)
+
     def _on_reset_record_clicked(self) -> None:
         if self.run_record is None:
             log.warning('运行记录未初始化')
             return
         self.run_record.reset_record()
         log.info('已重置记录')
+        self._update_run_record_display()

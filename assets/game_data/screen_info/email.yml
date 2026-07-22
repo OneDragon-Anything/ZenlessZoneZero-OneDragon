@@ -1,5 +1,6 @@
 screen_id: email
 screen_name: 邮件
+app_id: email
 pc_alt: false
 area_list:
 - area_name: 全部领取

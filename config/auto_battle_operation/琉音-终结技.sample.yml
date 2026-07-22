@@ -5,7 +5,7 @@ operations:
     seconds_add: -3
   - op_name: "设置状态"
     state: "自定义-动作不打断"
-    seconds: 5
+    seconds: 4.8
   - op_name: "设置状态"
     state: "自定义-琉音-好评如潮"
     seconds_add: -10
@@ -18,4 +18,4 @@ operations:
     post_delay: 0.1
     repeat: 20
   - op_name: "等待秒数"
-    seconds: 1
+    seconds: 0.8

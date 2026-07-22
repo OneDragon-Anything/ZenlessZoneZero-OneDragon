@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 import cv2
 from cv2.typing import MatLike
@@ -11,9 +10,15 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import (
+    LostVoidArtifact,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import (
+    LostVoidArtifactPos,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import (
+    LostVoidChooseCommon,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -80,8 +85,10 @@ class LostVoidBangbooStore(ZOperation):
                     return self.round_retry(status='武备升级失败', wait=1)
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
-        art_list: List[LostVoidArtifactPos] = self.get_artifact_pos(self.last_screenshot)
+        all_artifact_list, art_list = self.get_artifact_pos(self.last_screenshot)
         if len(art_list) == 0:
+            if len(all_artifact_list) >= 4:
+                return self.round_fail('已识别藏品但无可购买项')
             if not self.slide_to_right:
                 start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
                 end = start + Point(-400, 0)
@@ -90,7 +97,7 @@ class LostVoidBangbooStore(ZOperation):
                 return self.round_wait(status='向右滑动')
             return self.round_retry(status='未识别可购买藏品', wait=1)
 
-        priority_list: List[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
+        priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
             art_list, 1,
             consider_priority_1=True, consider_priority_2=self.refresh_times > self.ctx.lost_void.challenge_config.buy_only_priority_1,
             consider_not_in_priority=self.refresh_times > self.ctx.lost_void.challenge_config.buy_only_priority_2,
@@ -122,11 +129,11 @@ class LostVoidBangbooStore(ZOperation):
         self.ctx.controller.click(target.store_buy_rect.center)
         return self.round_success(target_item.name, wait=1)
 
-    def get_artifact_pos(self, screen: MatLike) -> List[LostVoidArtifactPos]:
+    def get_artifact_pos(self, screen: MatLike) -> tuple[list[LostVoidArtifactPos], list[LostVoidArtifactPos]]:
         """
         获取藏品的位置
         @param screen: 游戏画面
-        @return: 识别到的藏品
+        @return: 全部识别到的藏品、可购买的藏品
         """
         artifact_pos_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_pos(
             screen,
@@ -170,7 +177,7 @@ class LostVoidBangbooStore(ZOperation):
         display_text = ', '.join([i.artifact.display_name for i in can_buy_list]) if len(can_buy_list) > 0 else '无'
         log.info(f'当前可购买藏品 {display_text}')
 
-        return can_buy_list
+        return artifact_pos_list, can_buy_list
 
     def check_min_blood_valid(self, screen: MatLike) -> bool:
         """
@@ -182,7 +189,7 @@ class LostVoidBangbooStore(ZOperation):
 
         area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '区域-角色头像')
         ocr_result_map = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
-        for ocr_result, mrl in ocr_result_map.items():
+        for ocr_result, _mrl in ocr_result_map.items():
             blood = str_utils.get_positive_digits(ocr_result)
             if blood is None:
                 continue

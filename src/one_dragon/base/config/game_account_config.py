@@ -36,12 +36,21 @@ class GameAccountConfig(YamlConfig):
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
 
-        # 兼容旧配置：如果存在旧键 'game_path' 且新键为空，则进行一次性迁移
+        # 兼容旧配置：如果存在旧键 'game_path' 且新键为空，则进行一次性迁移 2027-01-01 可删除
         old_game_path = self.get('game_path', None)
         if old_game_path:
             local = self.get('local_game_path', '')
             if not local:
                 self.update('local_game_path', old_game_path)
+
+    @classmethod
+    def is_different_game_path(cls, current_idx: int, next_idx: int) -> bool:
+        """
+        判断两个实例配置的游戏路径是否不同
+        """
+        current_game_path = cls(current_idx).game_path
+        next_game_path = cls(next_idx).game_path
+        return bool(current_game_path and next_game_path and current_game_path != next_game_path)
 
     @property
     def platform(self) -> str:
@@ -155,6 +164,12 @@ class GameAccountConfig(YamlConfig):
     @bilibili_account_name.setter
     def bilibili_account_name(self, new_value: str) -> None:
         self.update('bilibili_account_name', new_value)
+
+    @property
+    def has_login_info(self) -> bool:
+        if self.game_region == GameRegionEnum.CNB.value.value:
+            return bool(self.bilibili_account_name.strip())
+        return bool(self.account.strip() and self.password.strip())
 
     @property
     def game_refresh_hour_offset(self) -> int:

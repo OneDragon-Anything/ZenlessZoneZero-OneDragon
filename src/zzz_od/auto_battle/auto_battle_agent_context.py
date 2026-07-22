@@ -161,6 +161,15 @@ class TeamInfo:
 
         return True
 
+    def request_check_all_agents(self) -> None:
+        """
+        请求下一次识别时重新全量匹配所有角色
+        """
+        with self.update_agent_lock:
+            self.should_check_all_agents = True
+            self.check_agent_same_times = 0
+            self.check_agent_diff_times = 0
+
     def switch_next_agent(self, update_time: float) -> bool:
         """
         切换到下一个代理人
@@ -358,6 +367,10 @@ class AutoBattleAgentContext:
             self._last_check_agent_time = screenshot_time
 
             screen_agent_list = self._check_agent_in_parallel(screen)
+            if self._should_force_check_all_agents(screen_agent_list):
+                self.team_info.request_check_all_agents()
+                self._last_check_agent_time = 0
+
             energy_state_list, special_state_list, ultimate_state_list, other_state_list = self._check_all_agent_state(screen, screenshot_time, screen_agent_list)
 
             update_state_record_list = []
@@ -381,6 +394,21 @@ class AutoBattleAgentContext:
             log.error('识别画面角色失败', exc_info=True)
         finally:
             self._check_agent_lock.release()
+
+    def _should_force_check_all_agents(self, screen_agent_list: List[Tuple[Agent | None, str | None]]) -> bool:
+        """
+        当前处于战斗画面，但一个角色都识别不到时，下一次强制重新全量识别。
+        这样可以兼容战斗内队伍循环切换的新模式，同时避免常驻全量识别带来的性能压力。
+        """
+        if self.team_info.should_check_all_agents:
+            return False
+
+        for agent, _ in screen_agent_list:
+            if agent is not None:
+                return False
+
+        log.debug('当前识别不到任何角色，下一次截图强制重新识别所有角色')
+        return True
 
     def _check_agent_in_parallel(self, screen: MatLike) -> List[Tuple[Agent, Optional[str]]]:
         """

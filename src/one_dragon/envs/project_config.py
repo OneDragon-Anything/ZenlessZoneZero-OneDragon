@@ -14,6 +14,8 @@ class ProjectConfig(YamlConfig):
         self.gitee_https_repository = self.get('gitee_https_repository')
         self.gitee_ssh_repository = self.get('gitee_ssh_repository')
         self.project_git_branch = self.get('project_git_branch')
+        self.env_archive_name = f'{self.project_name}-Environment.zip'
+        self.game_executable_name = self.get('game_executable_name', '')
 
         self.screen_standard_width = int(self.get('screen_standard_width'))
         self.screen_standard_height = int(self.get('screen_standard_height'))

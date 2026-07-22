@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from one_dragon.base.controller.pc_button import pc_button_utils
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -102,3 +103,11 @@ class AutoBattleApp(ZApplication):
     def handle_resume(self, e=None):
         if self.current_node.node is not None and self.current_node.node.cn == '画面识别':
             self.ctx.auto_battle_context.resume_auto_battle()
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        # try/finally 保证基类 after_operation_done 必跑(运行记录/通知/APPLICATION_STOP),
+        # 即便 stop_auto_battle(多步收尾)抛异常也不跳过(CodeRabbit review)。
+        try:
+            self.ctx.auto_battle_context.stop_auto_battle()
+        finally:
+            ZApplication.after_operation_done(self, result)

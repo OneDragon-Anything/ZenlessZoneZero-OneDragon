@@ -17,9 +17,11 @@ jobs:
 
     steps:
       - name: Lock closed issues
-        uses: dessant/lock-threads@v2
+        uses: dessant/lock-threads@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-lock-inactive-days: 0 # Issue关闭后立即锁定，不等待
-          pr-lock-inactive-days: 3    # Pull Request关闭后保留3天
+          github-token: ${{ github.token }}
+          process-only: issues,prs
+          issue-inactive-days: 0 # Issue关闭后立即锁定，不等待
+          pr-inactive-days: 3    # Pull Request关闭后保留3天
           issue-lock-reason: "resolved"
+          pr-lock-reason: "resolved"

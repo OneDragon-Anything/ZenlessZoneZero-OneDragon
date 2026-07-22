@@ -10,7 +10,10 @@ from qfluentwidgets import (
     SettingCardGroup,
 )
 
-from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum, InstanceRun
+from one_dragon.base.config.one_dragon_config import (
+    AfterDoneOpEnum,
+    InstanceRun,
+)
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -21,6 +24,10 @@ from one_dragon.base.operation.one_dragon_context import (
     ContextInstanceEventEnum,
     OneDragonContext,
 )
+from one_dragon.base.operation.one_dragon_finalizer import (
+    AfterDoneRequest,
+    execute_after_done,
+)
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -28,7 +35,6 @@ from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.app_run_list import AppRunList
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -45,13 +51,12 @@ class OneDragonRunInterface(SplitAppRunInterface):
                  nav_text_cn: str = '一条龙运行',
                  object_name: str = 'one_dragon_run_interface',
                  need_multiple_instance: bool = True,
-                 need_after_done_opt: bool = True,
                  help_url: str | None = None, parent=None):
         self.config: ApplicationGroupConfig | None = None
         self._context_event_signal = ContextEventSignal()
         self.help_url: str = help_url
         self.need_multiple_instance: bool = need_multiple_instance
-        self.need_after_done_opt: bool = need_after_done_opt
+        self._runner_finished_connected: bool = False
 
         SplitAppRunInterface.__init__(
             self,
@@ -68,6 +73,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.app_run_list.app_run_clicked.connect(self._on_app_card_run)
         self.app_run_list.app_switch_changed.connect(self.on_app_switch_run)
         self.app_run_list.app_setting_clicked.connect(self.on_app_setting_clicked)
+        self.app_run_list.app_notify_clicked.connect(self.on_app_notify_clicked)
         return self.app_run_list
 
     def get_widget_at_top(self) -> QWidget:
@@ -80,7 +86,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
             self.help_opt = HelpCard(url=self.help_url)
             run_group.addSettingCard(self.help_opt)
 
-        self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='单应用通知')
+        self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='应用通知')
         self.notify_btn = PushButton(text=gt('设置'), icon=FluentIcon.SETTING)
         self.notify_btn.clicked.connect(self._on_notify_setting_clicked)
         self.notify_switch.hBoxLayout.addWidget(self.notify_btn, 0, Qt.AlignmentFlag.AlignRight)
@@ -109,12 +115,18 @@ class OneDragonRunInterface(SplitAppRunInterface):
             instance_idx=self.ctx.current_instance_idx
         )
 
-    def on_interface_shown(self) -> None:
-        SplitAppRunInterface.on_interface_shown(self)
+    def _refresh_app_config(self) -> None:
         self.config = self.ctx.app_group_manager.get_one_dragon_group_config(
             instance_idx=self.ctx.current_instance_idx,
         )
         self._init_app_list()
+
+    def on_interface_shown(self) -> None:
+        SplitAppRunInterface.on_interface_shown(self)
+        if not self._runner_finished_connected:
+            self.app_runner.finished.connect(self._on_app_runner_finished)
+            self._runner_finished_connected = True
+        self._refresh_app_config()
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
         self.ctx.listen_event(ApplicationEventId.APPLICATION_START.value, self._on_app_state_changed)
@@ -127,7 +139,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.blockSignals(False)
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
-        self.after_done_opt.setVisible(self.need_after_done_opt)
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
         self.run_all_apps_signal.connect(self.run_app)
@@ -141,7 +152,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
         window = self.window()
         if isinstance(window, MainAppWindowBase):
-            window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
+            window.app_setting_manager.ready.connect(self._on_app_setting_manager_ready)
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
@@ -150,7 +161,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             with contextlib.suppress(RuntimeError):
-                window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
+                window.app_setting_manager.ready.disconnect(self._on_app_setting_manager_ready)
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:
         """
@@ -163,6 +174,30 @@ class OneDragonRunInterface(SplitAppRunInterface):
             log.info('已取消关机计划')
             cmd_utils.cancel_shutdown_sys()
 
+    def _on_app_runner_finished(self) -> None:
+        if self.app_runner.app_id != self.app_id:
+            return
+        after_done = self.ctx.one_dragon_config.after_done
+        if after_done == AfterDoneOpEnum.NONE.value.value:
+            return
+        execute_after_done(
+            self.ctx,
+            self.app_runner.run_result,
+            AfterDoneRequest(
+                close_game=after_done == AfterDoneOpEnum.CLOSE_GAME.value.value,
+                shutdown_seconds=(
+                    60 if after_done == AfterDoneOpEnum.SHUTDOWN.value.value else None
+                ),
+            ),
+        )
+
+    def run_app(self) -> None:
+        if self.app_runner.isRunning():
+            log.error('已有应用在运行中')
+            return
+        self.app_runner.app_id = self.app_id
+        self.app_runner.start()
+
     def run_app_by_item(self, app: ApplicationGroupConfigItem) -> None:
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
@@ -173,12 +208,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
     def on_context_state_changed(self) -> None:
         SplitAppRunInterface.on_context_state_changed(self)
         self.app_run_list.update_cards_display()
-
-        if self.ctx.run_context.is_context_stop and self.need_after_done_opt:
-            if self.ctx.one_dragon_config.after_done == AfterDoneOpEnum.SHUTDOWN.value.value:
-                cmd_utils.shutdown_sys(60)
-            elif self.ctx.one_dragon_config.after_done == AfterDoneOpEnum.CLOSE_GAME.value.value:
-                self.ctx.controller.close_game()
 
     def _on_app_state_changed(self, event) -> None:
         self.app_run_list.update_cards_display()
@@ -211,7 +240,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
         :param value:
         :return:
         """
-        self.config.set_app_enable(app_id, value)
+        removed = self.ctx.app_group_manager.set_one_dragon_app_enable(
+            config=self.config,
+            app_id=app_id,
+            enabled=value,
+        )
+        if removed:
+            self._init_app_list()
 
     def _on_instance_event(self, event) -> None:
         """
@@ -225,7 +260,12 @@ class OneDragonRunInterface(SplitAppRunInterface):
         实例变更 这是signal 可以改ui
         :return:
         """
-        self._init_app_list()
+        self._refresh_app_config()
+
+    def _on_app_setting_manager_ready(self) -> None:
+        self.ctx.app_group_manager.clear_config_cache()
+        self._refresh_app_config()
+        self._update_setting_btn_visibility()
 
     def _on_instance_run_changed(self, idx: int, value: str) -> None:
         self.ctx.one_dragon_config.instance_run = value
@@ -234,14 +274,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         pass
 
     def _on_notify_setting_clicked(self) -> None:
-        self.show_notify_dialog()
-
-    def show_notify_dialog(self) -> None:
-        """
-        显示通知设置对话框。配置更新由对话框内部处理。
-        """
-        dialog = NotifyDialog(self.ctx, self.window())
-        dialog.exec()
+        """处理通知设置按钮被点击，委托给 app_setting_manager。"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        window.app_setting_manager.show_notify_setting(parent=self)
 
     def on_app_setting_clicked(self, app_id: str) -> None:
         """处理应用设置按钮被点击，委托给 app_setting_manager"""
@@ -258,6 +295,20 @@ class OneDragonRunInterface(SplitAppRunInterface):
             target=target,
         )
 
+    def on_app_notify_clicked(self, app_id: str) -> None:
+        """处理应用通知设置按钮被点击，委托给 app_setting_manager。"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        target = self._find_app_card_notify_btn(app_id)
+        if target is None:
+            return
+        window.app_setting_manager.show_app_notify_setting(
+            app_id=app_id,
+            parent=self.window(),
+            target=target,
+        )
+
     def _update_setting_btn_visibility(self) -> None:
         """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
         window = self.window()
@@ -266,10 +317,18 @@ class OneDragonRunInterface(SplitAppRunInterface):
         settable = window.app_setting_manager.settable_app_ids
         for card in self.app_run_list._app_cards:
             card.setting_btn.setVisible(card.app.app_id in settable)
+            card.set_notify_visible(card.app.app_id in self.ctx.notify_config.app_map)
 
     def _find_app_card_setting_btn(self, app_id: str):
         """找到对应 app_id 的卡片的设置按钮"""
         for card in self.app_run_list._app_cards:
             if card.app.app_id == app_id:
                 return card.setting_btn
+        return None
+
+    def _find_app_card_notify_btn(self, app_id: str):
+        """找到对应 app_id 的卡片的通知设置按钮"""
+        for card in self.app_run_list._app_cards:
+            if card.app.app_id == app_id:
+                return card.more_btn
         return None

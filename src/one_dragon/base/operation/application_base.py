@@ -6,7 +6,7 @@ from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from one_dragon.base.config.notify_config import NotifyLevel
+from one_dragon.base.config.notify_config import NotifyDetailMode
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
@@ -28,13 +28,13 @@ class Application(Operation):
 
     def __init__(self, ctx: OneDragonContext, app_id: str,
                  node_max_retry_times: int = 1,
-                 op_name: str = None,
+                 op_name: str | None = None,
                  timeout_seconds: float = -1,
                  op_callback: Callable[[OperationResult], None] | None = None,
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
-                 ):
+                 ) -> None:
         Operation.__init__(
             self,
             ctx,
@@ -64,26 +64,38 @@ class Application(Operation):
         运行前初始化
         """
         Operation.handle_init(self)
+
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
             send_application_notify(self, None)
-            # 清空通知池，根据通知等级设置图片保留数量
+            # 清空通知池，根据节点细节通知模式设置图片保留数量
             pool = self.ctx.run_context.notify_pool
             pool.clear()
-            notify_level = self.ctx.notify_config.get_app_notify_level(self.app_id)
-            pool.max_images = 10 if notify_level >= NotifyLevel.ALL else 1
+            detail_mode = self.ctx.notify_config.get_app_detail_mode(self.app_id)
+            pool.max_images = 10 if detail_mode == NotifyDetailMode.MERGE.value.value else 1
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
-    def after_operation_done(self, result: OperationResult):
+    def execute(self) -> OperationResult:
+        """
+        执行应用，并确保异常路径也退出 screen scope。
+        """
+        self.ctx.screen_loader.enter_scope(self.app_id)
+        try:
+            return Operation.execute(self)
+        finally:
+            self.ctx.screen_loader.exit_scope()
+
+    def after_operation_done(self, result: OperationResult) -> None:
         """
         停止后的处理
         :return:
         """
         Operation.after_operation_done(self, result)
+
         self._update_record_after_stop(result)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
