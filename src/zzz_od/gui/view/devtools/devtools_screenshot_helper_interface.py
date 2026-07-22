@@ -50,7 +50,7 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
         top_widget.add_widget(self.key_save_opt)
 
         self.dodge_detect_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='闪避检测',
-                                                  content='脚本识别黄光红光时，自动截图，用于捕捉误判')
+                                                  content='脚本识别黄光红光时，自动截图，用于捕捉误判；开启后自动战斗也会同步保存闪光截图')
         top_widget.add_widget(self.dodge_detect_opt)
 
         self.screenshot_before_key_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='按键前截图',
