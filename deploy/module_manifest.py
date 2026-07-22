@@ -29,7 +29,6 @@ if not getattr(sys, 'frozen', False):
     import math
     import matplotlib.font_manager
     import matplotlib.pyplot
-    import multiprocessing
     import numpy
     import onnxruntime
     import os
@@ -41,6 +40,7 @@ if not getattr(sys, 'frozen', False):
     import pyclipper
     import pyuac
     import pywintypes
+    import queue
     import random
     import re
     import requests
@@ -101,7 +101,6 @@ if not getattr(sys, 'frozen', False):
     from logging.handlers import TimedRotatingFileHandler
     from mss import mss
     from mss.base import MSSBase
-    from multiprocessing.connection import Connection
     from packaging import version
     from pathlib import Path
     from pyautogui import screenshot
