@@ -1824,9 +1824,9 @@
     id_mark: false
     pc_rect:
     - 1000
-    - 316
+    - 346
     - 1400
-    - 356
+    - 386
     text: 每日怪物卡双倍掉落次数
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1838,9 +1838,9 @@
     id_mark: false
     pc_rect:
     - 1270
-    - 316
+    - 346
     - 1380
-    - 356
+    - 386
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
