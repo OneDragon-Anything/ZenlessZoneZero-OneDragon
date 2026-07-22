@@ -1,5 +1,4 @@
 import argparse
-import multiprocessing
 
 
 class LauncherBase:
@@ -30,7 +29,6 @@ class LauncherBase:
 
     def run(self) -> None:
         """运行启动器"""
-        multiprocessing.freeze_support()
         self.setup_parser()
         self.main(self.args)
 

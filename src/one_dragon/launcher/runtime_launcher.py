@@ -39,7 +39,7 @@ class RuntimeLauncher(ExeLauncher):
 
         def log_progress(_progress: float, message: str) -> None:
             nonlocal last_progress_printed
-            refresh = message.startswith(gt('拉取对象')) and not message.endswith('(100%)')
+            refresh = '%' in message and 'done' not in message.lower()
             if refresh:
                 print(message, end='\r', flush=True)
                 last_progress_printed = True
