@@ -1,9 +1,12 @@
+import concurrent.futures
 import contextlib
+import re
 import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 import yaml
 from packaging import version
@@ -27,6 +30,38 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
+_T = TypeVar('_T')
+
+# git 网络操作超时时间（秒），防止网络异常时无限期阻塞
+GIT_FETCH_TIMEOUT: float = 120.0
+GIT_LIST_HEADS_TIMEOUT: float = 30.0
+
+
+def _run_network_with_timeout(fn: Callable[[], _T], timeout: float, operation_name: str) -> _T:
+    """在独立线程中执行网络操作并设置超时。
+
+    Args:
+        fn: 要执行的网络操作（无参数可调用对象）
+        timeout: 超时时间（秒）
+        operation_name: 操作名称，用于超时日志
+
+    Returns:
+        操作返回值
+
+    Raises:
+        TimeoutError: 操作超时
+    """
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    try:
+        future = executor.submit(fn)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError as err:
+            raise TimeoutError(f'{operation_name} 超时（{timeout}秒）') from err
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
 @dataclass
 class GitLog:
     """Git 提交日志"""
@@ -37,7 +72,7 @@ class GitLog:
 
 
 class _FetchProgressRemoteCallbacks(RemoteCallbacks):
-    """将 pygit2 的传输进度转发给外部进度回调。"""
+    """将 pygit2 的传输进度和远端消息转发给外部进度回调。"""
 
     def __init__(
         self,
@@ -47,6 +82,17 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         self._progress_callback: Callable[[float, str], None] = progress_callback
         self._last_message: str | None = None
         self._last_log_at: float | None = None
+
+    def sideband_progress(self, string: str) -> None:
+        """远端 git 的实时输出（如 "Compressing objects", "Counting objects"）。"""
+        # 空行/空白仅作换行占位，不转发
+        if not string or not string.strip():
+            return
+        text = string.strip()
+        # 过滤进度行（含百分比/完成标记），这些由 transfer_progress 负责展示
+        if re.search(r'\d+%', text) or text.endswith('done.'):
+            return
+        self._progress_callback(0.0, text)
 
     def transfer_progress(self, stats: object) -> None:
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
@@ -237,12 +283,27 @@ class GitService:
                     depth = 0
 
             try:
-                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth, callbacks=callbacks)
+                _run_network_with_timeout(
+                    lambda d=depth: remote.fetch(refspecs=refspecs, proxy=proxy, depth=d, callbacks=callbacks),
+                    timeout=GIT_FETCH_TIMEOUT,
+                    operation_name=gt('拉取远程代码'),
+                )
+            except TimeoutError:
+                log.error(f'拉取远程代码超时（{GIT_FETCH_TIMEOUT}秒）')
+                return False
             except KeyError as e:
                 # 如果是因为找不到对象导致的错误，使用 depth=1 重试
                 if 'object not found' in str(e) and depth == 0:
                     log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
-                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks)
+                    try:
+                        _run_network_with_timeout(
+                            lambda: remote.fetch(refspecs=refspecs, proxy=proxy, depth=1, callbacks=callbacks),
+                            timeout=GIT_FETCH_TIMEOUT,
+                            operation_name=gt('拉取远程代码（depth=1 重试）'),
+                        )
+                    except TimeoutError:
+                        log.error(f'拉取远程代码重试超时（{GIT_FETCH_TIMEOUT}秒）')
+                        return False
                 else:
                     raise
 
@@ -820,7 +881,15 @@ class GitService:
 
         try:
             remote = self._ensure_remote()
-            heads = remote.list_heads(proxy=self._get_proxy_address())
+            proxy = self._get_proxy_address()
+            heads = _run_network_with_timeout(
+                lambda: remote.list_heads(proxy=proxy),
+                timeout=GIT_LIST_HEADS_TIMEOUT,
+                operation_name=gt('获取远程标签'),
+            )
+        except TimeoutError:
+            log.error(f'获取远程标签超时（{GIT_LIST_HEADS_TIMEOUT}秒）')
+            return '', ''
         except Exception:
             log.error('获取最新标签失败', exc_info=True)
             return '', ''
