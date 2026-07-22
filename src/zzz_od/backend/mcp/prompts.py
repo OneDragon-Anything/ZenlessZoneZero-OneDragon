@@ -10,8 +10,6 @@
 
 模式差异(开发者 / 使用者)走 guide item 的 ``mode`` 字段分流,不进 instructions
 (instructions 是 server 级全局、启动时定,不支持运行时按消费者切;且两套会膨胀违背精炼)。
-
-设计依据:docs/superpowers/specs/2026-07-22-mcp-instructions-design.md。
 """
 
 from mcp.server.fastmcp import FastMCP

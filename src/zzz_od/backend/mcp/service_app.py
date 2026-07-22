@@ -127,7 +127,7 @@ def make_get_predefined_teams(backend: ZzzBackendContext) -> Callable[[], Predef
         返回每队的 idx/name/auto_battle/agent_id_list/agent_name_list(中文)/weakness_list
         (中文,防卫战配置优先,没配取角色伤害属性);按 idx 选配队用
         ``run_operation(zzz_od.operation.choose_predefined_team.ChoosePredefinedTeam,
-        {target_team_idx_list:[idx]})``。
+        {target_team_idx_list:[idx]})``。读当前实例缓存(只读不刷;GUI 改 yml 后需重载/跑 app)。
         """
         try:
             return backend.list_predefined_teams()

@@ -19,7 +19,7 @@
 | `key_tap(key, press_time=0)` | `backend.key_tap()` | `{success, key, press_time}`（框架键名 `w`/`a`/`s`/`d`/`f`/`esc`/`space`；`press_time>0` 长按） |
 | `drag(x1, y1, x2, y2, duration=1)` | `backend.drag()` | `{success, x1, y1, x2, y2, duration}`（`(x1,y1)→(x2,y2)` 1080p 游戏坐标拖拽，覆盖刮刮卡 / 收集来回拖等） |
 | `list_applications` | `backend.list_applications()` | 当前实例可运行应用、独立应用列表和当前选中项（只读，不刷新配置） |
-| `get_predefined_teams` | `backend.list_predefined_teams()` | 当前实例预备编队(`idx`/`name`/`auto_battle`/`agent_id_list`/`agent_name_list`/`weakness_list`,过滤占位;`agent_name_list` 角色中文名;`weakness_list` 中文=防卫战配置优先,没配取角色伤害属性;`idx` 喂给 `run_operation(ChoosePredefinedTeam)` 选配队) |
+| `get_predefined_teams` | `backend.list_predefined_teams()` | 当前实例预备编队(`idx`/`name`/`auto_battle`/`agent_id_list`/`agent_name_list`/`weakness_list`,过滤占位;`agent_name_list` 角色中文名;`weakness_list` 中文=防卫战配置优先,没配取角色伤害属性;`idx` 喂给 `run_operation(op_id='zzz_od.operation.choose_predefined_team.ChoosePredefinedTeam', args={'target_team_idx_list': [idx]})` 选配队) |
 | `run_one_dragon(block=False)` | `backend.run_one_dragon('mcp')` | 默认立刻返回启动状态；`block=True` 等待一条龙结束 |
 | `run_standalone_app(app_id=None, block=False)` | `backend.run_standalone_app('mcp', app_id)` | `app_id=None` 时使用 GUI「应用运行」当前选中项 |
 | `list_operations` | `operation_registry.scan_operations(ctx)` | 可运行自定义 op 列表（`op_id` + 参数 schema，纯反射不实例化） |
@@ -50,7 +50,7 @@
 
 ## Instructions
 
-`FastMCP(name, instructions=...)` 传 server 级 `instructions`，握手时返回；客户端**通常注入** system prompt（协议 Optional/MAY，Claude Code 会注入；非协议强制）。放两边共通的操作哲学（保持精炼，决策见 `docs/superpowers/specs/2026-07-22-mcp-instructions-design.md`）：工具分类（观察/操作）、操作三件套（`analyze_screen` → 操作 → 等 ~1s 后验）、实机约束（`pc_alt`）、出错查 log、安全边界。
+`FastMCP(name, instructions=...)` 传 server 级 `instructions`，握手时返回；客户端**通常注入** system prompt（协议 Optional/MAY，Claude Code 会注入；非协议强制）。放两边共通的操作哲学（保持精炼）：工具分类（观察/操作）、操作三件套（`analyze_screen` → 操作 → 等 ~1s 后验）、实机约束（`pc_alt`）、出错查 log、安全边界。
 
 ## 引导内容三通道
 

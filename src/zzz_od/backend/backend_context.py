@@ -890,6 +890,9 @@ class ZzzBackendContext:
         返回真实配队(idx/name/auto_battle/agent_id_list/weakness_list);
         ``weakness_list`` 为中文弱点(防卫战配置优先,没配取角色伤害属性);
         ``idx`` 可直接喂给 ``ChoosePredefinedTeam`` op 的 ``target_team_idx_list``。
+
+        快照语义(对齐 ``list_applications``):读当前进程缓存的 ``team_config``,
+        不主动刷新;GUI 改 yml 后需重载实例 / 跑 app 触发刷新缓存才反映。
         """
         self._ensure_ready()
         team_cfg = self._ctx.team_config
@@ -908,15 +911,18 @@ class ZzzBackendContext:
         )
 
     def _get_shiyu_defense_config(self) -> 'ShiyuDefenseConfig | None':
-        """取当前实例的防卫战配置(没配过 / app 未注册时返 None)。"""
-        try:
-            return self._ctx.run_context.get_config(
-                app_id=shiyu_defense_const.APP_ID,
-                instance_idx=self._ctx.current_instance_idx,
-                group_id=application_const.DEFAULT_GROUP_ID,
-            )
-        except Exception:  # noqa: BLE001 没配防卫战 / app 未注册 → 无弱点配置
+        """取当前实例的防卫战配置(app 未注册 → None;已注册则加载失败向上抛,不吞)。
+
+        先用 ``is_app_registered`` 判(对齐 ``list_applications``),避免框架裸 ``Exception``
+        下宽 ``except`` 把 YAML / 类型 / I/O 加载错误也当「未配置」静默吞掉、错误回退弱点。
+        """
+        if not self._ctx.run_context.is_app_registered(shiyu_defense_const.APP_ID):
             return None
+        return self._ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self._ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
     def _weakness_of_team(self, team: 'PredefinedTeamInfo') -> list[str]:
         """推导队伍弱点(中文):① 防卫战配置的 weakness_list 优先;② 没配取角色伤害属性。"""
