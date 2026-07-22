@@ -33,6 +33,7 @@ from zzz_od.backend.mcp.prompts import (
 )
 from zzz_od.backend.mcp.service_app import (
     make_describe_operation,
+    make_get_predefined_teams,
     make_list_applications,
     make_list_operations,
     make_run_one_dragon,
@@ -347,6 +348,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     mcp.tool(annotations=ToolAnnotations(title="运行一条龙"))(make_run_one_dragon(backend))
     mcp.tool(annotations=ToolAnnotations(title="运行独立应用"))(make_run_standalone_app(backend))
     mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可运行应用"))(make_list_applications(backend))
+    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取预备编队列表"))(make_get_predefined_teams(backend))
     mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="查询运行状态"))(make_get_run_status(backend))
     mcp.tool(annotations=ToolAnnotations(title="停止运行"))(make_stop_run(backend))
     mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可运行 operation"))(make_list_operations(backend))

@@ -127,6 +127,32 @@ class ApplicationListResult:
 
 
 @dataclass
+class PredefinedTeamItem:
+    """预备编队单项(``get_predefined_teams`` / ``GET /game/predefined-teams`` 返回)。
+
+    选配队依据:``idx`` 喂给 ``run_operation(ChoosePredefinedTeam, target_team_idx_list=[idx])``;
+    ``name`` 供按名称匹配;``auto_battle`` 是该队对应的自动战斗脚本名;
+    ``agent_name_list`` 是角色中文名(对应 ``agent_id_list``,便于和攻略/资料匹配);
+    ``weakness_list`` 是该队弱点(中文,防卫战配置优先,没配取角色伤害属性)。
+    """
+
+    idx: int
+    name: str
+    auto_battle: str
+    agent_id_list: list[str]
+    agent_name_list: list[str] = field(default_factory=list)
+    weakness_list: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PredefinedTeamListResult:
+    """预备编队列表(当前实例的真实配队,已过滤 ``TeamConfig`` 补的占位)。"""
+
+    current_instance_idx: int
+    teams: list[PredefinedTeamItem]
+
+
+@dataclass
 class OperationParam:
     """自定义 operation 的单个参数(纯反射得到,不实例化类)。
 

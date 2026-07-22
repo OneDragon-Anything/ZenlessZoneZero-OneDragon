@@ -8,7 +8,11 @@ from pydantic import Field
 
 from zzz_od.backend import operation_registry
 from zzz_od.backend.backend_context import ZzzBackendContext
-from zzz_od.backend.schemas import ApplicationListResult, OperationListResult
+from zzz_od.backend.schemas import (
+    ApplicationListResult,
+    OperationListResult,
+    PredefinedTeamListResult,
+)
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_base import OperationResult
@@ -113,6 +117,23 @@ def make_list_applications(backend: ZzzBackendContext) -> Callable[[], Applicati
         except Exception as e:  # noqa: BLE001 工具层兜底
             return {'error': str(e)}
     return list_applications
+
+
+def make_get_predefined_teams(backend: ZzzBackendContext) -> Callable[[], PredefinedTeamListResult | dict]:
+    """构造 ``get_predefined_teams`` tool。"""
+    def get_predefined_teams() -> PredefinedTeamListResult | dict:
+        """列出当前实例的预备编队(真实配队,过滤占位)。观察类。
+
+        返回每队的 idx/name/auto_battle/agent_id_list/agent_name_list(中文)/weakness_list
+        (中文,防卫战配置优先,没配取角色伤害属性);按 idx 选配队用
+        ``run_operation(zzz_od.operation.choose_predefined_team.ChoosePredefinedTeam,
+        {target_team_idx_list:[idx]})``。
+        """
+        try:
+            return backend.list_predefined_teams()
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'error': str(e)}
+    return get_predefined_teams
 
 
 def make_list_operations(backend: ZzzBackendContext) -> Callable[[], OperationListResult | dict]:

@@ -34,6 +34,15 @@ async def handle_game_applications(backend: ZzzBackendContext, _request: Request
     return JSONResponse(asdict(result))
 
 
+async def handle_game_predefined_teams(backend: ZzzBackendContext, _request: Request | None = None) -> Response:
+    """处理 ``GET /game/predefined-teams``：返回当前实例的预备编队。"""
+    try:
+        result = await asyncio.to_thread(backend.list_predefined_teams)
+    except BackendNotReadyError as e:
+        return _err(str(e))
+    return JSONResponse(asdict(result))
+
+
 async def handle_game_run_one_dragon(backend: ZzzBackendContext, request: Request | None = None) -> Response:
     """处理 ``POST /game/run/one-dragon?block=``：启动完整一条龙运行。"""
     block = False
@@ -211,6 +220,11 @@ def register_service_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
     async def _game_applications(request: Request) -> Response:
         """GET /game/applications 路由分发。"""
         return await handle_game_applications(backend, request)
+
+    @mcp.custom_route("/game/predefined-teams", methods=["GET"])
+    async def _game_predefined_teams(request: Request) -> Response:
+        """GET /game/predefined-teams 路由分发。"""
+        return await handle_game_predefined_teams(backend, request)
 
     @mcp.custom_route("/game/run/one-dragon", methods=["POST"])
     async def _game_run_one_dragon(request: Request) -> Response:
