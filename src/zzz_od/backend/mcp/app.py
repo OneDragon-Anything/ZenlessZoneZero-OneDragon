@@ -26,7 +26,11 @@ from pydantic import Field
 
 from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext, _save_screenshot
-from zzz_od.backend.mcp.prompts import register_prompt_tools, register_prompts
+from zzz_od.backend.mcp.prompts import (
+    register_prompt_tools,
+    register_prompts,
+    render_instructions,
+)
 from zzz_od.backend.mcp.service_app import (
     make_describe_operation,
     make_list_applications,
@@ -124,7 +128,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     Returns:
         注册好工具的 ``FastMCP`` 实例。
     """
-    mcp = FastMCP(name)
+    mcp = FastMCP(name, instructions=render_instructions())
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="检查游戏窗口"))
     def check_game_window() -> WindowStatus | dict:
