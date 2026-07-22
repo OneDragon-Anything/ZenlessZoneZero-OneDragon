@@ -72,7 +72,10 @@ def _response_json(response: requests.Response) -> dict[str, Any]:
     return cast(dict[str, Any], data)
 
 
-def _build_release_payload(release: dict[str, Any]) -> dict[str, object]:
+def _build_release_payload(
+    release: dict[str, Any],
+    latest_release_tag: str | None,
+) -> dict[str, object]:
     tag_name = release.get('tag_name')
     if not isinstance(tag_name, str) or not tag_name:
         raise ValueError('GitHub Release 缺少 tag_name')
@@ -81,6 +84,7 @@ def _build_release_payload(release: dict[str, Any]) -> dict[str, object]:
     body = release.get('body')
     target_commitish = release.get('target_commitish')
     prerelease = bool(release.get('prerelease'))
+    make_latest = not prerelease and tag_name == latest_release_tag
 
     return {
         'tag_name': tag_name,
@@ -89,7 +93,7 @@ def _build_release_payload(release: dict[str, Any]) -> dict[str, object]:
         'draft': False,
         'prerelease': prerelease,
         'target_commitish': target_commitish if isinstance(target_commitish, str) else 'main',
-        'make_latest': 'false' if prerelease else 'true',
+        'make_latest': 'true' if make_latest else 'false',
     }
 
 
@@ -156,8 +160,12 @@ class ReleaseSynchronizer:
         print(f"获取 GitHub Release: {release.get('tag_name')}", flush=True)
         return release
 
-    def ensure_cnb_release(self, release: dict[str, Any]) -> dict[str, Any]:
-        payload = _build_release_payload(release)
+    def ensure_cnb_release(
+        self,
+        release: dict[str, Any],
+        latest_release_tag: str | None,
+    ) -> dict[str, Any]:
+        payload = _build_release_payload(release, latest_release_tag)
         tag_name = cast(str, payload['tag_name'])
         encoded_tag = quote(tag_name, safe='')
         release_url = f'{CNB_API_URL}/{CNB_REPOSITORY}/-/releases/tags/{encoded_tag}'
@@ -265,7 +273,16 @@ class ReleaseSynchronizer:
     def sync(self, release_tag: str | None) -> None:
         release = self.get_github_release(release_tag)
         assets = _select_assets(release)
-        cnb_release = self.ensure_cnb_release(release)
+
+        latest_release_tag: str | None = None
+        if not bool(release.get('prerelease')):
+            latest_release = release if release_tag is None else self.get_github_release(None)
+            latest_release_tag_value = latest_release.get('tag_name')
+            if not isinstance(latest_release_tag_value, str) or not latest_release_tag_value:
+                raise ValueError('GitHub 最新正式版缺少 tag_name')
+            latest_release_tag = latest_release_tag_value
+
+        cnb_release = self.ensure_cnb_release(release, latest_release_tag)
         release_id = cnb_release.get('id')
         if not isinstance(release_id, str) or not release_id:
             raise RuntimeError('CNB Release 缺少 id')

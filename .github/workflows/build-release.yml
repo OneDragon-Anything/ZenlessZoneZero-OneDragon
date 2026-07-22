@@ -327,6 +327,7 @@ jobs:
           -Method Post `
           -Headers $headers `
           -ContentType 'application/json' `
+          -TimeoutSec 60 `
           -Body $body
         $response | ConvertTo-Json -Depth 5
         if ($response.success -ne $true) {
