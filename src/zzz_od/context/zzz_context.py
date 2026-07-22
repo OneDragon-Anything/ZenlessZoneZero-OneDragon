@@ -10,10 +10,29 @@ class ZContext(OneDragonContext):
     def __init__(self,):
 
         OneDragonContext.__init__(self)
+        self._init_managed_ocr()
 
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
+
+    def _init_managed_ocr(self) -> None:
+        """替换基础 OCR 为绝区零侧的懒加载管理实现。"""
+        from one_dragon.base.matcher.ocr.ocr_service import OcrService
+        from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrParam
+        from zzz_od.context.managed_ocr_matcher import ManagedOnnxOcrMatcher
+
+        self.ocr = ManagedOnnxOcrMatcher(
+            OnnxOcrParam(
+                use_gpu=self.model_config.ocr_use_gpu,
+                det_limit_side_len=max(
+                    self.project_config.screen_standard_width,
+                    self.project_config.screen_standard_height,
+                ),
+            )
+        )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
+        self.ocr_service = OcrService(ocr_matcher=self.ocr)
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -130,6 +149,20 @@ class ZContext(OneDragonContext):
         self.compendium_service.reload()  # 快捷手册
         self.auto_battle_context.init_screen_area()  # 自动战斗相关的区域 依赖 ScreenLoader
 
+    def init_ocr(self) -> None:
+        """配置 OCR 运行参数，不在 GUI 启动阶段加载 ONNX 会话。"""
+        from zzz_od.context.managed_ocr_matcher import ManagedOnnxOcrMatcher
+
+        if isinstance(self.ocr, ManagedOnnxOcrMatcher):
+            self.ocr.configure_runtime(
+                use_gpu=self.model_config.ocr_use_gpu,
+                proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+                ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+            )
+            return
+
+        OneDragonContext.init_ocr(self)
+
     def init_others(self) -> None:
         self.telemetry.initialize()  # 遥测
 
@@ -146,5 +179,8 @@ class ZContext(OneDragonContext):
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         AutoBattleOperator.after_app_shutdown()
+
+        if hasattr(self.ocr, 'shutdown'):
+            self.ocr.shutdown()
 
         OneDragonContext.after_app_shutdown(self)
