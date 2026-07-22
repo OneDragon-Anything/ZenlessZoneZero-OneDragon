@@ -100,10 +100,6 @@ class LostVoidApp(ZApplication):
         if can_go or screen_name == f'迷失之地-{mission_name}':
             return self.round_success('可前往副本画面')
 
-        # 特殊兼容：在入口区域开始，接力运行
-        if screen_name == '迷失之地-入口':
-            return self.round_success('迷失之地-入口')
-
         # 未识别到画面；走快捷手册传送流程
         can_go = self.check_current_can_go('快捷手册-作战')
         if can_go:
@@ -123,7 +119,6 @@ class LostVoidApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别初始画面', status='可前往副本画面')
-    @node_from(from_name='识别初始画面', status='迷失之地-入口')
     @node_from(from_name='前往迷失之地-入口')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
@@ -136,8 +131,9 @@ class LostVoidApp(ZApplication):
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
-        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
-        if screen_name != '迷失之地-入口':
+        screen_name_list = ['迷失之地-入口-周期', '迷失之地-入口-常规']
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=screen_name_list)
+        if screen_name not in screen_name_list:
             return self.round_wait(status='等待画面加载', wait=1)
         return self.round_success(status=screen_name)
 
@@ -161,9 +157,9 @@ class LostVoidApp(ZApplication):
                 return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
             return self.round_success(LostVoidApp.STATUS_AGAIN)
 
-        result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-悬赏委托')
         if not result.is_success:
-            return self.round_retry('未识别到常规按钮', wait=0.5)
+            return self.round_retry('未识别到悬赏委托', wait=0.5)
 
         TARGET_SCORE = '8000'  # 目标分数文本
 
@@ -197,62 +193,14 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
     @operation_node(name='矩阵行动-前往入口')
     def matrix_goto_entry(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='迷失之地-入口')
+        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
 
     @node_from(from_name='矩阵行动-前往入口')
-    @operation_node(name='入口OCR-点击周期')
-    def click_period_in_entry(self) -> OperationRoundResult:
-        """在入口页点击周期标签。"""
-        result = self.round_by_find_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            '按钮-前往挑战',
-        )
-        if result.is_success:
-            return self.round_success('已开放前往挑战')
-
-        result = self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            '按钮-周期',
-            until_find_all=[('迷失之地-入口', '按钮-前往挑战')],
-            success_wait=0.3,
-            retry_wait=0.1,
-        )
-        if result.is_success:
-            return self.round_success('已开放前往挑战')
-        return result
-
-    @node_from(from_name='入口OCR-点击周期', status='已开放前往挑战')
-    @operation_node(name='矩阵行动-前往挑战')
-    def matrix_goto_challenge(self) -> OperationRoundResult:
-        """在矩阵行动入口点击前往挑战。"""
-        return self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            '按钮-前往挑战',
-            success_wait=1,
-            retry_wait=1,
-        )
-
-    @node_from(from_name='矩阵行动-前往挑战')
-    @operation_node(name='矩阵行动-点击下一步')
-    def matrix_click_next_step(self) -> OperationRoundResult:
-        """在矩阵行动入口点击下一步。"""
-        return self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            '按钮-下一步',
-            success_wait=1,
-            retry_wait=1,
-        )
-
-    @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
         if self.ctx.lost_void.challenge_config.manually_choose_agent:
             return self.round_success('手动选取角色')
-        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '预备编队')
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '预备编队')
         if area is not None:
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
             if cv2_utils.is_colorful(part):
@@ -262,7 +210,7 @@ class LostVoidApp(ZApplication):
         # 按钮还是灰度，需要点击
         result = self.round_by_find_and_click_area(
             self.last_screenshot,
-            '迷失之地-矩阵行动',
+            '迷失之地-矩阵行动-编队选择',
             '预备编队',
             success_wait=1,
         )
@@ -277,8 +225,7 @@ class LostVoidApp(ZApplication):
         # 初始为较高的匹配阈值，如果超过5次匹配失败则改用0.5的阈值兜底
         lcs_percent = 0.7 if self.node_retry_times < 5 else 0.5
 
-        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
-        main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
+        main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '主战编队槽')
 
         # 获取目标编队名称
         predefined_idx = self.ctx.lost_void.challenge_config.predefined_team_idx
@@ -312,7 +259,7 @@ class LostVoidApp(ZApplication):
                     return self.round_success(success_msg, wait=1)
             return self.round_retry('未找到主战', wait=0.5)
 
-        self.scroll_area(screen_name='迷失之地-矩阵行动', area_name='编队列表', direction='down')
+        self.scroll_area(screen_name='迷失之地-矩阵行动-编队选择', area_name='编队列表', direction='down')
         return self.round_retry(f'未找到{team_name}, 尝试向下滚动', wait=0.3)
 
     @node_from(from_name='矩阵行动-点击预备编队', status='手动选取角色')
@@ -324,8 +271,8 @@ class LostVoidApp(ZApplication):
         # 记录角色在第几页的哪个位置
         agent_page_match_list: list[[int, Point] | None] = [None] * len(agent_list_str)
 
-        agent_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
-        main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
+        agent_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '代理人列表')
+        main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '主战编队槽')
 
         # 1. 取消主战代理人
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
@@ -391,7 +338,7 @@ class LostVoidApp(ZApplication):
         """在矩阵行动页面点击协战代理人。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
-            '迷失之地-矩阵行动',
+            '迷失之地-矩阵行动-编队选择',
             '协战代理人',
             success_wait=1,
             retry_wait=1,
@@ -408,9 +355,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-等待代理人列表')
     @operation_node(name='矩阵行动-选择协战代理人')
     def matrix_select_support_agent(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
-        support_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战编队槽')
-        support_team_property = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战代理人属性')
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '代理人列表')
+        support_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '协战编队槽')
+        support_team_property = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '协战代理人属性')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
@@ -464,7 +411,7 @@ class LostVoidApp(ZApplication):
         """在矩阵行动页面点击开始挑战。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
-            '迷失之地-矩阵行动',
+            '迷失之地-矩阵行动-编队选择',
             '按钮-开始挑战',
             success_wait=1,
             retry_wait=1,
@@ -473,51 +420,11 @@ class LostVoidApp(ZApplication):
     # ========== 常规副本入口流程节点 ==========
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN)
-    @operation_node(name='前往副本画面', node_max_retry_times=60)
+    @operation_node(name='前往副本画面')
     def goto_mission_screen(self) -> OperationRoundResult:
-        mission_name = self.config.mission_name
-        if mission_name in ['战线肃清', '特遣调查']:
-            return self.round_success('需OCR入口导航')
-        return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
-
-    @node_from(from_name='前往副本画面', status='需OCR入口导航')
-    @operation_node(name='入口OCR-点击常规')
-    def click_regular_in_matrix_explore(self) -> OperationRoundResult:
-        """在入口页点击常规标签。"""
-        mission_area_name = f'按钮-{self.config.mission_name}'
-
-        # 已显示目标副本时，常规按钮可能不会显示，直接进入下一步
-        result = self.round_by_find_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            mission_area_name,
-        )
-        if result.is_success:
-            return self.round_success('已显示目标副本入口')
-
-        result = self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-入口',
-            '按钮-常规',
-            until_find_all=[('迷失之地-入口', mission_area_name)],
-            success_wait=0.3,
-            retry_wait=0.1,
-        )
-        if result.is_success:
-            return self.round_success('已显示目标副本入口')
-        return result
-
-    @node_from(from_name='入口OCR-点击常规', status='已显示目标副本入口')
-    @operation_node(name='入口OCR-点击目标副本')
-    def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
-        """在入口页点击目标副本入口。"""
-        return self.round_by_goto_screen(
-            screen_name=f'迷失之地-{self.config.mission_name}',
-            retry_wait=0.5,
-        )
+        return self.round_by_goto_screen(screen_name=f'迷失之地-{self.config.mission_name}')
 
     @node_from(from_name='前往副本画面')
-    @node_from(from_name='入口OCR-点击目标副本')
     @operation_node(name='副本画面识别')
     def check_for_mission(self) -> OperationRoundResult:
         """
@@ -623,7 +530,8 @@ class LostVoidApp(ZApplication):
                 if digit_context.is_success and digit_context.contours:
                     for digit_contour in digit_context.contours:
                         M = cv2.moments(digit_contour)
-                        if M["m00"] == 0: continue
+                        if M["m00"] == 0:
+                            continue
                         center_x = int(M["m10"] / M["m00"])
                         center_y = int(M["m01"] / M["m00"])
 

@@ -2,20 +2,20 @@
     "version": "0.1.0",
     "configurations": [
         {
-            "name": "当前文件",
+            "name": "主程序",
             "type": "debugpy",
             "request": "launch",
-            "program": "${file}",
+            "program": ".\\src\\zzz_od\\gui\\app.py",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": ".\\src"
             }
         },
         {
-            "name": "主程序",
+            "name": "当前文件",
             "type": "debugpy",
             "request": "launch",
-            "program": ".\\src\\zzz_od\\gui\\app.py",
+            "program": "${file}",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": ".\\src"
