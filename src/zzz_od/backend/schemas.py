@@ -163,6 +163,9 @@ class OperationParam:
         default: 默认值的字符串表示;必填参数为 None。
         json_serializable: 该参数类型是否可经 JSON 标量/列表/字典传入
             (str/int/float/bool/list/dict/Optional → True;自定义数据类 → False)。
+        coercible: 该参数虽非 JSON 原生类型,但可从 dict 反序列化构造
+            (``@dataclass`` + 有 ``from_dict``,如 ``ChargePlanItem``)。``run_operation``
+            对这类参数接受 dict 值,实例化前用 ``from_dict`` 转成实例。
     """
 
     name: str
@@ -170,6 +173,7 @@ class OperationParam:
     required: bool
     default: str | None = None
     json_serializable: bool = True
+    coercible: bool = False
 
 
 @dataclass

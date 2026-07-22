@@ -179,14 +179,14 @@ def make_run_operation(backend: ZzzBackendContext) -> Callable:
     """
     async def run_operation(
         op_id: Annotated[str, Field(description="operation 定位标识 <module>.<ClassName>,可从 list_operations 获取")],
-        args: Annotated[dict | None, Field(description="构造参数 dict;仅限 JSON 可序列化标量/列表/字典,复杂数据类参数走 application")] = None,
+        args: Annotated[dict | None, Field(description="构造参数 dict;JSON 标量/列表/字典,@dataclass+from_dict 参数(如 ChargePlanItem)传 dict 自动反序列化;其余复杂数据类走 application")] = None,
         block: Annotated[bool, Field(description="False=立刻返回用 get_run_status 查进度(默认);True=阻塞到结束")] = False,
     ) -> dict | str:
         """按 op_id(package.path.ClassName)运行任意 operation;args 传构造参数。
 
         单个 operation 用本 tool;全套用 ``run_one_dragon``;单个应用用 ``run_standalone_app``。
 
-        args 仅限 JSON 可序列化标量/列表/字典(复杂数据类参数请走 application);
+        args 传 JSON 标量/列表/字典;``@dataclass``+``from_dict`` 参数(如 ChargePlanItem)传 dict,实例化前自动反序列化;其余复杂数据类走 application。
         用 list_operations / describe_operation 查 op_id 与参数。
         block=False(默认)立刻返回,用 get_run_status 查进度;block=True 阻塞到结束。
         副作用:操作游戏;单跑道,已有运行时返回错误(含 source + 提示)。
@@ -196,9 +196,11 @@ def make_run_operation(backend: ZzzBackendContext) -> Callable:
             err = operation_registry.validate_args(cls, args or {})
             if err:
                 return {'started': False, 'error': err}
+            # @dataclass+from_dict 参数的 dict 值反序列化为实例(如 ChargePlanItem)
+            coerced_args = operation_registry.coerce_dataclass_params(cls, args or {})
             # 闭包把 cls + args bake 进 op_factory(槽只认统一签名 op_factory(ctx) → Operation)
             def op_factory(ctx):  # noqa: ANN202 闭包签名固定 Callable[[ZContext], Operation]
-                return cls(ctx, **(args or {}))
+                return cls(ctx, **coerced_args)
             ok, future = backend.run_slot._start(
                 'mcp', op_factory=op_factory, display_name=op_id,
             )

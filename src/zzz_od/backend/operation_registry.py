@@ -120,6 +120,40 @@ def _annotation_json_serializable(annotation: 'Any') -> bool:
     return False
 
 
+def _annotation_coercible(annotation: 'Any') -> bool:
+    """判断类型注解是否可从 dict 反序列化(``@dataclass`` + 有可调用 ``from_dict``)。
+
+    这类参数 ``run_operation`` 接受 dict 值,实例化前用 ``from_dict`` 转成实例
+    (如 ``ChargePlanItem``)。非 dataclass / 无 ``from_dict`` → False(仍需走 application)。
+    """
+    if not isinstance(annotation, type):
+        return False
+    if not hasattr(annotation, '__dataclass_fields__'):
+        return False
+    return callable(getattr(annotation, 'from_dict', None))
+
+
+def coerce_dataclass_params(cls: type, args: dict) -> dict:
+    """实例化前,把 ``@dataclass + from_dict`` 参数的 dict 值反序列化为实例。
+
+    仅处理「注解是 dataclass 且有 ``from_dict``」且当前值为 dict 的参数;
+    其余参数原样保留。返回新 dict(不就地改调用方传入的 args)。
+    """
+    try:
+        sig = inspect.signature(cls.__init__)
+    except (TypeError, ValueError):
+        return args
+    coerced = dict(args)
+    for p in sig.parameters.values():
+        if p.name in ('self', 'ctx'):
+            continue
+        if p.name not in coerced:
+            continue
+        if _annotation_coercible(p.annotation) and isinstance(coerced[p.name], dict):
+            coerced[p.name] = p.annotation.from_dict(coerced[p.name])
+    return coerced
+
+
 def _reflect_params(cls: type) -> list[OperationParam]:
     """纯反射 ``cls.__init__`` 参数 schema(不实例化),剔除 self/ctx 与 *args/**kwargs。"""
     try:
@@ -139,6 +173,7 @@ def _reflect_params(cls: type) -> list[OperationParam]:
             required=required,
             default=None if required else repr(p.default),
             json_serializable=_annotation_json_serializable(p.annotation),
+            coercible=_annotation_coercible(p.annotation),
         ))
     return params
 
@@ -259,7 +294,7 @@ def validate_args(cls: type, args: dict) -> str | None:
         required = p.default is inspect.Parameter.empty
         if required and p.name not in args:
             return f'缺少必填参数: {p.name}'
-        if p.name in args and not _annotation_json_serializable(p.annotation):
+        if p.name in args and not _annotation_json_serializable(p.annotation) and not _annotation_coercible(p.annotation):
             return f'参数 {p.name} 为不支持的数据类型({_annotation_display(p.annotation)}),请走 application'
 
     # 校验提供的值本身可 JSON 序列化(防御:调用方传入非 JSON 原生对象)
@@ -284,8 +319,10 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
     """
     cls = resolve_op_class(op_id)
     params = _reflect_params(cls)
-    # 所有必填参数 json_serializable → debuggable=True
-    debuggable = all(p.json_serializable for p in params if p.required)
+    # 所有必填参数 json_serializable 或 coercible(可从 dict 反序列化) → debuggable=True
+    debuggable = all(
+        p.json_serializable or p.coercible for p in params if p.required
+    )
     return {
         'op_id': op_id,
         'class_name': cls.__name__,
@@ -297,6 +334,7 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
                 'required': p.required,
                 'default': p.default,
                 'json_serializable': p.json_serializable,
+                'coercible': p.coercible,
             }
             for p in params
         ],
