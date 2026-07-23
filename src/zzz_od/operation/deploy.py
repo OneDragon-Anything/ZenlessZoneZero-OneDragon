@@ -17,7 +17,8 @@ class Deploy(ZOperation):
         """
         ZOperation.__init__(self, ctx, op_name=gt('出战', 'game'))
 
-    @operation_node(name='出战', is_start_node=True)
+    @operation_node(name='出战', is_start_node=True, timeout_seconds=60)
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     def deploy(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
             self.last_screenshot, '通用-出战', '按钮-出战',
