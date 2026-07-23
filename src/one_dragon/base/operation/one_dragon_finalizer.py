@@ -18,6 +18,8 @@ class AfterDoneRequest:
 
     close_game: bool = False
     shutdown_seconds: int | None = None
+    hibernate: bool = False
+    sleep: bool = False
 
 
 def execute_after_done(
@@ -33,7 +35,12 @@ def execute_after_done(
     if (
         run_result is None
         or run_result.finish_reason != RunFinishReason.COMPLETED
-        or not (request.close_game or request.shutdown_seconds is not None)
+        or not (
+            request.close_game
+            or request.shutdown_seconds is not None
+            or request.hibernate
+            or request.sleep
+        )
     ):
         return
 
@@ -41,3 +48,7 @@ def execute_after_done(
         ctx.controller.close_game()
     if request.shutdown_seconds is not None:
         cmd_utils.shutdown_sys(request.shutdown_seconds)
+    if request.hibernate:
+        cmd_utils.hibernate_sys()
+    if request.sleep:
+        cmd_utils.sleep_sys()
