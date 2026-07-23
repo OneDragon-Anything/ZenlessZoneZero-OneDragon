@@ -40,7 +40,7 @@ class BasicModelConfig(YamlConfig):
         pass
 
 def get_ocr_opts() -> list[ConfigItem]:
-    models_list = [DEFAULT_OCR_MODEL_NAME, PPOCRV6_MODEL_NAME]
+    models_list = ['ppocrv5', PPOCRV6_MODEL_NAME]
     config_list: list[ConfigItem] = []
     for model in models_list:
         model_dir = get_ocr_model_dir(model)
