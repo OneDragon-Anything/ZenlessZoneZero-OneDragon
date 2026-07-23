@@ -74,6 +74,12 @@ class AutoBattleContext:
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
+        # 普攻输出保护（哪怕游戏内开启"日常战斗结束动画加速"，普攻消失后也有长达4s才出现"再来一次"）
+        self._normal_attack_block_delay: float = 3.5
+        self._normal_attack_missing_since: float | None = None
+        self._normal_attack_blocked: bool = True
+        self._normal_attack_lock: threading.Lock = threading.Lock()
+
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
         self.last_check_end_result: str | None = None  # 最后一次识别的结束结果
@@ -150,6 +156,11 @@ class AutoBattleContext:
         if self.auto_op is not None:
             # 清空之前检测到的状态
 
+            with self._normal_attack_lock:
+                self._normal_attack_locked(release=True)
+                self._normal_attack_missing_since = None
+                self._normal_attack_blocked = True
+
             self.auto_op.start_running_async()
             self.start_context_async()
             self.clear_all_states()
@@ -197,6 +208,11 @@ class AutoBattleContext:
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
         self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
+
+        with self._normal_attack_lock:
+            self._normal_attack_locked(release=True)
+            self._normal_attack_missing_since = None
+            self._normal_attack_blocked = True
 
         # 识别结果
         self.last_check_end_result: str | None = None  # 识别战斗结束的结果
@@ -315,7 +331,15 @@ class AutoBattleContext:
         self.state_record_service.update_state(StateRecord(e, finish_time))
         self._emit_overlay_action(e)
 
-    def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
+    def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
+        with self._normal_attack_lock:
+            self._normal_attack_locked(press=press, press_time=press_time, release=release)
+
+    def _normal_attack_locked(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
+        """在持有普攻锁时执行普攻输入。"""
+        if self._normal_attack_blocked and not release:
+            return
+
         if press:
             e = BattleStateEnum.BTN_SWITCH_NORMAL_ATTACK.value + '-按下'
         elif release:
@@ -550,6 +574,7 @@ class AutoBattleContext:
         :return: 当前是否在战斗画面
         """
         in_battle = self.is_normal_attack_btn_available(screen)
+        self._update_normal_attack_block(in_battle, screenshot_time)
         self.last_check_in_battle = in_battle
 
         future_list: list[Future] = []
@@ -606,6 +631,25 @@ class AutoBattleContext:
                 future.result()
 
         return in_battle
+
+    def _update_normal_attack_block(self, in_battle: bool, screenshot_time: float) -> None:
+        """
+        根据普攻按钮识别结果保护普攻输出，避免战斗结束后残留按键误触结算页。
+        """
+        with self._normal_attack_lock:
+            if in_battle:
+                should_log_resume = self._normal_attack_blocked and self._normal_attack_missing_since is not None
+                self._normal_attack_missing_since = None
+                self._normal_attack_blocked = False
+                if should_log_resume:
+                    log.info('重新识别到普攻按钮，恢复普攻输出')
+            elif not self._normal_attack_blocked:
+                if self._normal_attack_missing_since is None:
+                    self._normal_attack_missing_since = screenshot_time
+                elif screenshot_time - self._normal_attack_missing_since >= self._normal_attack_block_delay:
+                    self._normal_attack_blocked = True
+                    self._normal_attack_locked(release=True)
+                    log.info(f'连续 {self._normal_attack_block_delay:g} 秒未识别到普攻按钮，停止普攻输出')
 
     def check_chain_attack(self, screen: MatLike, screenshot_time: float) -> None:
         """
