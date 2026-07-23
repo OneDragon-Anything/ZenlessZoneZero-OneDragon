@@ -2,7 +2,6 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from zzz_od.game_data.map_area import TransportPoint
 
 
@@ -14,21 +13,16 @@ class CoffeeTransportPoint(Enum):
 
 class CoffeeChooseWay(Enum):
 
-    PLAN_PRIORITY = ConfigItem('优先体力计划', desc='优先选择符合体力计划的咖啡，实战模拟室计划会选浓缩咖啡，没有匹配时选择汀曼特调')
+    PLAN_PRIORITY = ConfigItem('优先双倍活动', desc='喝后挑战沿用体力计划且双倍活动开启时选择浓缩咖啡等，否则选择汀曼特调')
     TINMAN_ONLY = ConfigItem('汀曼特调', desc='只选择汀曼特调')
     ESPRESSO_ONLY = ConfigItem('浓缩咖啡', desc='只选择浓缩咖啡')
 
 
 class CoffeeChallengeWay(Enum):
 
-    ALL = ConfigItem('全都挑战')
-    ONLY_PLAN = ConfigItem('只挑战体力计划')
-    NONE = ConfigItem('不挑战')
-
-class CoffeeCardNumEnum(Enum):
-    # 注意需要跟charge_plan_config.CardNumEnum一致
-    DEFAULT = ConfigItem('默认数量', desc='挑战体力计划外的副本时，按游戏内设数量')
-    NUM_1 = ConfigItem('1', desc='挑战体力计划外的副本时，选择最少数量')
+    DEFAULT = ConfigItem('沿用体力计划', desc='喝完咖啡后运行体力计划，优先处理已开启的双倍活动')
+    NO_DOUBLE = ConfigItem('沿用体力计划（不考虑双倍活动）', desc='喝完咖啡后运行体力计划，本次跳过双倍活动')
+    NONE = ConfigItem('不挑战', desc='只喝咖啡，不自动进入副本')
 
 
 class CoffeeConfig(ApplicationConfig):
@@ -41,6 +35,24 @@ class CoffeeConfig(ApplicationConfig):
             group_id=group_id,
         )
 
+        # 旧配置清理，2026-10-12 可删除
+        self._clear_legacy_config()
+
+    def _clear_legacy_config(self) -> None:
+        changed = False
+        if self.get('challenge_way', None) in ['全都挑战', '只挑战体力计划']:
+            self.data.pop('challenge_way')
+            changed = True
+        if self.get('choose_way', None) == '优先体力计划':
+            self.data.pop('choose_way')
+            changed = True
+        for key in ['card_num', 'predefined_team_idx', 'auto_battle', 'run_charge_plan_afterwards']:
+            if key in self.data:
+                self.data.pop(key)
+                changed = True
+        if changed:
+            self.save()
+
     @property
     def transport_point(self) -> str:
         return self.get('transport_point', CoffeeTransportPoint.POINT_1.value.value)
@@ -51,7 +63,7 @@ class CoffeeConfig(ApplicationConfig):
 
     @property
     def choose_way(self) -> str:
-        return self.get('choose_way', CoffeeChooseWay.PLAN_PRIORITY.value.value)
+        return self.get('choose_way', CoffeeChooseWay.TINMAN_ONLY.value.value)
 
     @choose_way.setter
     def choose_way(self, new_value: str) -> None:
@@ -59,27 +71,11 @@ class CoffeeConfig(ApplicationConfig):
 
     @property
     def challenge_way(self) -> str:
-        return self.get('challenge_way', CoffeeChallengeWay.ALL.value.value)
+        return self.get('challenge_way', CoffeeChallengeWay.DEFAULT.value.value)
 
     @challenge_way.setter
     def challenge_way(self, new_value: str) -> None:
         self.update('challenge_way', new_value)
-
-    @property
-    def card_num(self) -> str:
-        return self.get('card_num', CoffeeCardNumEnum.NUM_1.value.value)
-
-    @card_num.setter
-    def card_num(self, new_value: str) -> None:
-        self.update('card_num', new_value)
-
-    @property
-    def auto_battle(self) -> str:
-        return self.get('auto_battle', '全配队通用')
-
-    @auto_battle.setter
-    def auto_battle(self, new_value: str) -> None:
-        self.update('auto_battle', new_value)
 
     @property
     def day_coffee_1(self) -> str:
@@ -157,27 +153,3 @@ class CoffeeConfig(ApplicationConfig):
             return self.day_coffee_6
         elif day == 7:
             return self.day_coffee_7
-
-    @property
-    def predefined_team_idx(self) -> int:
-        """
-        预备编队 -1代表游戏内默认
-        @return:
-        """
-        return self.get('predefined_team_idx', -1)
-
-    @predefined_team_idx.setter
-    def predefined_team_idx(self, new_value: int) -> None:
-        self.update('predefined_team_idx', new_value)
-
-    @property
-    def run_charge_plan_afterwards(self) -> bool:
-        """
-        咖啡后 再次挑战体力计划
-        @return:
-        """
-        return self.get('run_charge_plan_afterwards', False)
-
-    @run_charge_plan_afterwards.setter
-    def run_charge_plan_afterwards(self, new_value: bool) -> None:
-        self.update('run_charge_plan_afterwards', new_value)

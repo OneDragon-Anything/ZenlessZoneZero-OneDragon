@@ -108,7 +108,7 @@ class Coffee:
         这种咖啡没有增益
         :return:
         """
-        return self.mission_type is None
+        return self.category is None
 
 
 class CompendiumService:

@@ -3,6 +3,7 @@ from typing import ClassVar
 import cv2
 
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
@@ -58,6 +59,7 @@ class ChargePlanApp(ZApplication):
         self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
+        self.ignore_double_reward: bool = False
         self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
 
     @operation_node(name='开始体力计划', is_start_node=True)
@@ -118,7 +120,7 @@ class ChargePlanApp(ZApplication):
         self.ether_battery = ether_battery
         self.run_record.record_current_charge_power(self.battery_charge)
         log.info('剩余电量 %s 储蓄电量 %s 以太电池 %s', self.battery_charge, self.backup_battery_charge, self.ether_battery)
-        if self.config.double_reward and not self.double_reward_checked:
+        if self.config.double_reward and not self.ignore_double_reward and not self.double_reward_checked:
             self.double_reward_checked = True
             return self.round_success('查看双倍活动')
         return self.round_success('查找候选计划')
@@ -343,6 +345,12 @@ class ChargePlanApp(ZApplication):
         op = BackToNormalWorld(self.ctx)
         op_result = op.execute()
         return self.round_by_op_result(op_result, status=f'剩余电量 {self.battery_charge}')
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        self.ignore_double_reward = False
+        for plan in self.config.plan_list:
+            plan.skipped = False
+        ZApplication.after_operation_done(self, result)
 
 
 def __debug():
