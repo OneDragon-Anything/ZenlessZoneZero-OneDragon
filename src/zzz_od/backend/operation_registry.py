@@ -294,6 +294,14 @@ def validate_args(cls: type, args: dict) -> str | None:
         required = p.default is inspect.Parameter.empty
         if required and p.name not in args:
             return f'缺少必填参数: {p.name}'
+        # coercible 参数(@dataclass+from_dict)只接受 dict 值(实例化前用 from_dict 反序列化);
+        # 传标量/列表/None 会绕过 coerce,错误类型进 op 构造 → 在此明确拒绝。
+        if (
+            p.name in args
+            and _annotation_coercible(p.annotation)
+            and not isinstance(args[p.name], dict)
+        ):
+            return f'参数 {p.name} 必须为 dict'
         if p.name in args and not _annotation_json_serializable(p.annotation) and not _annotation_coercible(p.annotation):
             return f'参数 {p.name} 为不支持的数据类型({_annotation_display(p.annotation)}),请走 application'
 
