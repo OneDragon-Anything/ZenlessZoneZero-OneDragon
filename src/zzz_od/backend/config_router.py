@@ -93,6 +93,62 @@ def _notorious_hunt_validate_item(ctx: 'ZContext', item: object) -> str | None:
     return NotoriousHuntConfig.validate_item(ctx, item)
 
 
+def _standalone_app_get_config(
+    ctx: 'ZContext', instance_idx: int | None, group_id: str | None,
+) -> object:
+    """写穿:standalone_app_config 是 @cached_property(绑定 current_instance_idx)。"""
+    return ctx.standalone_app_config
+
+
+def _standalone_app_item_from_dict(data: dict) -> str:
+    """standalone_app 的 item 是 app_id 字符串(非 dataclass)。"""
+    return data.get('app_id', '')
+
+
+def _standalone_app_validate_item(ctx: 'ZContext', item: str) -> str | None:
+    if not ctx.run_context.is_app_registered(item):
+        return f'app_id {item} 未注册(不在应用列表)'
+    return None
+
+
+def _standalone_app_add(config: object, item: str) -> None:
+    """read-modify-write 经 setter(直接改 list 不落盘)。"""
+    config.app_list = config.app_list + [item]  # type: ignore[attr-defined]
+
+
+def _standalone_app_delete(config: object, item: str) -> bool:
+    old_len = len(config.app_list)  # type: ignore[attr-defined]
+    config.app_list = [a for a in config.app_list if a != item]  # type: ignore[attr-defined]
+    return len(config.app_list) < old_len  # type: ignore[attr-defined]
+
+
+def _group_get_config(
+    ctx: 'ZContext', instance_idx: int | None, group_id: str | None,
+) -> object:
+    """写穿:经 app_group_manager.get_one_dragon_group_config 拿同一缓存实例。"""
+    idx = instance_idx if instance_idx is not None else ctx.current_instance_idx
+    return ctx.app_group_manager.get_one_dragon_group_config(idx)
+
+
+def _group_validate_item(ctx: 'ZContext', item: str) -> str | None:
+    if not ctx.run_context.is_app_registered(item):
+        return f'app_id {item} 未注册(不在应用列表)'
+    return None
+
+
+def _group_add(_config: object, _item: str) -> None:
+    """_group 不支持 add(app 由注册注入,无 add_app 领域方法)。"""
+    raise ValueError('_group 不支持 add(app 由注册注入)')
+
+
+def _group_delete(config: object, app_id: str) -> bool:
+    for item in config._all_apps:  # type: ignore[attr-defined]
+        if item.app_id == app_id:  # type: ignore[attr-defined]
+            config.remove_app(app_id)  # type: ignore[attr-defined]
+            return True
+    return False
+
+
 ROUTES: dict[str, RouterEntry] = {
     'charge_plan': RouterEntry(
         app_id='charge_plan',
@@ -111,6 +167,24 @@ ROUTES: dict[str, RouterEntry] = {
         add=_charge_plan_add,
         delete=_charge_plan_delete,
         id_kind='plan_id',
+    ),
+    'standalone_app': RouterEntry(
+        app_id='standalone_app',
+        item_from_dict=_standalone_app_item_from_dict,
+        get_config=_standalone_app_get_config,
+        validate_item=_standalone_app_validate_item,
+        add=_standalone_app_add,
+        delete=_standalone_app_delete,
+        id_kind='app_id',
+    ),
+    '_group': RouterEntry(
+        app_id='_group',
+        item_from_dict=_standalone_app_item_from_dict,
+        get_config=_group_get_config,
+        validate_item=_group_validate_item,
+        add=_group_add,
+        delete=_group_delete,
+        id_kind='app_id',
     ),
 }
 
