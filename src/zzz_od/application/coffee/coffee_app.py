@@ -331,6 +331,8 @@ class CoffeeApp(ZApplication):
         to_choose_list = self._get_coffee_to_choose(day)
 
         area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
+        # 先让鼠标显形（绝区零按钮特性：需要先拖鼠标才能让按钮响应点击）
+        self.ctx.controller.drag_to(start=area.left_top, end=area.center, duration=0.2)
         result = self.round_by_ocr_and_click_by_priority(to_choose_list, area=area)
         if result.is_success:
             self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
