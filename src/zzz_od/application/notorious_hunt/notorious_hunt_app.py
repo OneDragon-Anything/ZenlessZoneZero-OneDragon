@@ -85,6 +85,12 @@ class NotoriousHuntApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='查找下一条计划')
+    @operation_node(name='前往大世界')  # 特训目标查找失败可能把快捷手册列表滑到底部，返回大世界后重置列表位置
+    def back_before_open_compendium(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='前往大世界')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,
