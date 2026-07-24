@@ -105,6 +105,14 @@ class ApplicationFactoryManager:
             non_default_factories.extend(non_default)
             default_factories.extend(default)
 
+        default_factories.sort(
+            key=lambda factory: (
+                factory.priority is None,
+                factory.priority if factory.priority is not None else 0,
+                factory.app_id,
+            )
+        )
+
         log.info(
             f"发现 {len(non_default_factories)} 个非默认组应用, "
             f"{len(default_factories)} 个默认组应用, "
