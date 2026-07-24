@@ -74,12 +74,40 @@ def _charge_plan_delete(config: object, plan_id: str) -> bool:
     return False
 
 
+def _notorious_hunt_get_config(
+    ctx: 'ZContext', instance_idx: int | None, group_id: str | None,
+) -> object:
+    """写穿:经 run_context.get_config 拿 factory._config_cache 同一实例。"""
+    from one_dragon.base.operation.application import application_const
+    from zzz_od.application.notorious_hunt import notorious_hunt_const
+
+    idx = instance_idx if instance_idx is not None else ctx.current_instance_idx
+    gid = group_id if group_id is not None else application_const.DEFAULT_GROUP_ID
+    return ctx.run_context.get_config(
+        app_id=notorious_hunt_const.APP_ID, instance_idx=idx, group_id=gid,
+    )
+
+
+def _notorious_hunt_validate_item(ctx: 'ZContext', item: object) -> str | None:
+    from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+    return NotoriousHuntConfig.validate_item(ctx, item)
+
+
 ROUTES: dict[str, RouterEntry] = {
     'charge_plan': RouterEntry(
         app_id='charge_plan',
         item_from_dict=_charge_plan_item_from_dict,
         get_config=_charge_plan_get_config,
         validate_item=_charge_plan_validate_item,
+        add=_charge_plan_add,
+        delete=_charge_plan_delete,
+        id_kind='plan_id',
+    ),
+    'notorious_hunt': RouterEntry(
+        app_id='notorious_hunt',
+        item_from_dict=_charge_plan_item_from_dict,
+        get_config=_notorious_hunt_get_config,
+        validate_item=_notorious_hunt_validate_item,
         add=_charge_plan_add,
         delete=_charge_plan_delete,
         id_kind='plan_id',
