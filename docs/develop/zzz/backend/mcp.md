@@ -24,7 +24,7 @@
 | `run_standalone_app(app_id=None, block=False)` | `backend.run_standalone_app('mcp', app_id)` | `app_id=None` 时使用 GUI「应用运行」当前选中项 |
 | `list_operations` | `operation_registry.scan_operations(ctx)` | 可运行自定义 op 列表（`op_id` + 参数 schema，纯反射不实例化） |
 | `describe_operation(op_id)` | `operation_registry.describe_operation(ctx, op_id)` | 单个 op 参数 schema（每个参数标 `json_serializable` + 整体 `debuggable`） |
-| `run_operation(op_id, args=None, block=False)` | `operation_registry` 校验 + `run_slot._start`（op 路径） | 默认立刻返回；`block=True` 等结束；非 Operation / 缺参 / 复杂数据类 / 并发拒绝返错误 JSON |
+| `run_operation(op_id, args=None, block=False)` | `operation_registry` 校验 + 反序列化 + `run_slot._start`（op 路径） | 默认立刻返回；`block=True` 等结束；非 Operation / 缺参 / 不支持的数据类 / 并发拒绝返错误 JSON。`@dataclass`+`from_dict` 参数(如 `ChargePlanItem`)可从 dict 传入 |
 | `get_run_status` | `backend.query_status()` | `RunStatusResult`（运行中返当前节点/重试；终态返结果/失败定位） |
 | `stop_run` | `backend.stop()` | `{"stopped": bool, ...}`（仅表信号已发出，过渡期 `get_run_status` 仍显示 running） |
 | `close_game` | `backend.close_game()` | 文本（`str`，已发送关闭信号；controller 吞异常，用 `check_game_window` 验证） |
@@ -39,7 +39,7 @@
 - `analyze_screen(save_image=True)`（实时模式）把已截的内存图顺手存盘 + 回传 `screenshot_path`，供调用方喂 vision double-check；默认 `false` 不落盘，离线模式忽略。
 - `analyze_screen` 成功时返回 `vision_hint`：提醒本结果仅含 OCR + 模板匹配的部分识别，不等同完整视觉理解，需要全面判断画面时配合视觉工具 / 多模态再看（能力边界提示，[design-principles.md](design-principles.md) P14；防智能体把部分识别当画面全貌）。失败时为 `null`。
 - 所有运行（`open_game` / 一条龙 / 独立应用 / 自定义 op）经**同一个 `RunSlot`** 派发：op 路径（`open_game` / `run_operation`）槽自管 `start_running/execute/stop_running`，app 路径（`run_one_dragon` / `run_standalone_app`）委托 `run_application`（复用 GUI/CLI 共享入口）。`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。
-- `run_operation` 是**通用 operation 运行入口**（不框死为调试）：`op_id` 格式 `<dotted module path>.<ClassName>`（可从 `list_operations` 获取）；`args` 传构造参数，以 `cls(ctx, **args)` 烤进闭包——仅限 JSON 可序列化标量/列表/字典，复杂数据类参数（`ChargePlanItem` 等）拒绝并提示走 application；先用 `describe_operation` 看参数 schema。
+- `run_operation` 是**通用 operation 运行入口**（不框死为调试）：`op_id` 格式 `<dotted module path>.<ClassName>`（可从 `list_operations` 获取）；`args` 传构造参数,以 `cls(ctx, **args)` 烤进闭包——JSON 标量/列表/字典直接传;`@dataclass`+`from_dict` 参数(如 `ChargePlanItem`)传 dict,实例化前用 `coerce_dataclass_params` 自动反序列化;其余复杂数据类拒绝(提示走 application);先用 `describe_operation` 看参数 schema(`coercible=True` 的可传 dict)。
 - 配置刷新：app 路径在 `run_application` 前（槽线程内、`_start` 已赢锁后）刷新当前进程的 YAML 配置缓存，对齐 GUI 已保存设置；`list_applications` 与 `list_operations` 是只读路径，不刷新。
 - `get_run_status` / `stop_run` 是统一入口：无论最近一次运行来自 op 路径还是 app 路径，都通过同一组工具查询和停止。
 - 单进程内已有运行时会返回并发拒绝，避免同一个 backend 内重复操作游戏资源。

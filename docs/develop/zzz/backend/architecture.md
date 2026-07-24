@@ -79,8 +79,9 @@ src/zzz_od/backend/
 
 - `scan_operations(ctx, refresh=False)`：扫描 `zzz_od.operation` + `zzz_od.hollow_zero` 承载包，三重过滤（`__module__` 守卫 + 显式抽象基类集 + `*Base` 兜底 + 排除 `Application` 子类），纯反射 `__init__` 参数（**不实例化**），结果缓存。
 - `resolve_op_class(op_id)`：按 `<dotted module path>.<ClassName>` 解析出 Operation 子类（`importlib` + `__module__` 守卫 + `issubclass(cls, Operation)`）。
-- `validate_args(cls, args)`：校验必填参数齐全 + 无复杂数据类参数（`ChargePlanItem` 等拒绝，提示走 application）+ 值可 JSON 序列化。
-- `describe_operation(ctx, op_id)`：纯反射返回单个 op 的参数 schema（每个参数标 `json_serializable`）。
+- `validate_args(cls, args)`：校验必填参数齐全 + 参数类型可传入(JSON 标量/列表/字典,或 `@dataclass`+`from_dict` 可从 dict 反序列化);其余复杂数据类拒绝(提示走 application)+ 值可 JSON 序列化。
+- `coerce_dataclass_params(cls, args)`：实例化前把 `@dataclass`+`from_dict` 参数的 dict 值用 `from_dict` 反序列化为实例(如 `ChargePlanItem`);`run_operation` 构造 op 前调用,使这类参数可经 JSON dict 传入。
+- `describe_operation(ctx, op_id)`：纯反射返回单个 op 的参数 schema(每个参数标 `json_serializable` + `coercible`——后者表示 `@dataclass`+`from_dict` 可从 dict 反序列化;整体 `debuggable` = 必填参数都可传入)。
 
 `run_operation` 在适配器侧组合上述能力：`resolve_op_class` + `validate_args` 先校验，通过后把 `cls` + `args` 烤进闭包 `op_factory = lambda ctx: cls(ctx, **args)`，提交 `run_slot._start`（op 路径，`display_name=op_id`）。槽只认统一签名 `op_factory(ctx) → Operation`，对 `open_game` 与自定义 op 一视同仁。
 
