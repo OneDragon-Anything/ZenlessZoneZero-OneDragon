@@ -82,3 +82,62 @@ def make_delete_config_item(backend: ZzzBackendContext) -> Callable:
         except Exception as e:  # noqa: BLE001 工具层兜底
             return {'ok': False, 'error': str(e)}
     return delete_config_item
+
+
+def make_get_config(backend: ZzzBackendContext) -> Callable:
+    """构造 ``get_config`` tool(读配置字段/全 data)。"""
+    async def get_config(
+        app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
+        key: Annotated[str | None, Field(description="字段名;None=返全 data")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        group_id: Annotated[str | None, Field(description="组 id;None=默认")] = None,
+    ) -> dict:
+        """读配置字段或全部 data。观察类,不改配置。
+
+        Returns:
+            ``{ok, app_id, key?, value?/data, error?}``。
+        """
+        ctx = backend.ctx
+        entry = get_entry(app_id)
+        if entry is None:
+            return {'ok': False, 'error': f'不支持的 app_id: {app_id}'}
+        try:
+            config = entry.get_config(ctx, instance_idx, group_id)
+            if key:
+                return {'ok': True, 'app_id': app_id, 'key': key, 'value': config.data.get(key)}
+            return {'ok': True, 'app_id': app_id, 'data': dict(config.data)}
+        except Exception as e:  # noqa: BLE001
+            return {'ok': False, 'error': str(e)}
+    return get_config
+
+
+def make_set_config(backend: ZzzBackendContext) -> Callable:
+    """构造 ``set_config`` tool(写简单/enum 字段 + 校验只读)。"""
+    async def set_config(
+        app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
+        key: Annotated[str, Field(description="字段名(如 loop/skip_plan/restore_charge)")],
+        value: Annotated[str | int | bool, Field(description="字段值")],
+        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        group_id: Annotated[str | None, Field(description="组 id;None=默认")] = None,
+    ) -> dict:
+        """写配置的简单字段(开关/下拉/输入)。操作类,改配置。
+
+        只读字段(run_times/plan_id 等)拒绝。写穿 ctx 缓存实例。
+
+        Returns:
+            ``{ok, app_id, key, value, error?}``。
+        """
+        ctx = backend.ctx
+        entry = get_entry(app_id)
+        if entry is None:
+            return {'ok': False, 'error': f'不支持的 app_id: {app_id}'}
+        try:
+            config = entry.get_config(ctx, instance_idx, group_id)
+            if hasattr(config, '_RO_FIELDS') and key in config._RO_FIELDS:
+                return {'ok': False, 'error': f'{key} 是只读字段(运行态/身份),不可 set'}
+            config.update(key, value)
+            config.save()
+            return {'ok': True, 'app_id': app_id, 'key': key, 'value': value}
+        except Exception as e:  # noqa: BLE001
+            return {'ok': False, 'error': str(e)}
+    return set_config
