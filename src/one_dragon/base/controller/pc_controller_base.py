@@ -38,6 +38,7 @@ class PcControllerBase(ControllerBase):
 
     def __init__(self,
                  screenshot_method: str,
+                 force_active_window: bool = False,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
@@ -52,6 +53,7 @@ class PcControllerBase(ControllerBase):
         self.btn_controller: PcButtonController = self.keyboard_controller
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
+        self.force_active_window: bool = force_active_window
         self.background_mode: bool = False
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
@@ -85,13 +87,15 @@ class PcControllerBase(ControllerBase):
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
-    def active_window(self) -> None:
-        """
-        前置窗口
-        """
+    def active_window(self) -> bool:
+        """尝试一次将游戏窗口切到前台。"""
         self.game_win.init_win()
-        if not self.background_mode:
-            self.game_win.active()
+        return self.background_mode or self.game_win.active()
+
+    def ensure_active_window(self) -> bool:
+        """运行期间按配置恢复游戏窗口焦点。"""
+        self.game_win.init_win()
+        return self.background_mode or self.game_win.active(retry_until_active=self.force_active_window)
 
     def set_window_title(self, new_title: str) -> None:
         """设置窗口标题。
@@ -153,6 +157,9 @@ class PcControllerBase(ControllerBase):
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
+            if self.force_active_window and not self.background_mode and not self.game_win.is_win_active:
+                if not self.ensure_active_window():
+                    raise RuntimeError('游戏窗口激活失败，已停止本轮操作以避免误点其他窗口')
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)

@@ -389,6 +389,14 @@ class EnvConfig(YamlConfig):
         self.update('screenshot_method', new_value)
 
     @property
+    def force_active_window(self) -> bool:
+        return self.get('force_active_window', False)
+
+    @force_active_window.setter
+    def force_active_window(self, new_value: bool) -> None:
+        self.update('force_active_window', new_value)
+
+    @property
     def key_start_running(self) -> str:
         """
         开始、暂停、恢复运行的按键

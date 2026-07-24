@@ -74,6 +74,13 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
         basic_group.addSettingCard(self.screenshot_method_opt)
 
+        self.force_active_window_switch = SwitchSettingCard(
+            icon=FluentIcon.FULL_SCREEN, title='运行时恢复游戏窗口焦点',
+            content='仅前台模式运行期间生效；需要切出游戏时请先暂停，多次恢复失败会最小化其他窗口',
+        )
+        self.force_active_window_switch.value_changed.connect(lambda: self.ctx.init_controller())
+        basic_group.addSettingCard(self.force_active_window_switch)
+
         self.debug_opt = SwitchSettingCard(
             icon=FluentIcon.SEARCH, title='调试模式', content='正常无需开启'
         )
@@ -202,6 +209,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
 
         self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
+        self.force_active_window_switch.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_active_window'))
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
 
