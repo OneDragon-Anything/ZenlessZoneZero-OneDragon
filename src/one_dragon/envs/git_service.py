@@ -66,7 +66,7 @@ def _sync_shallow_file(repo: Repository, temp_repo_dir: str) -> None:
     if not source_shallow.is_file():
         return
     target_shallow = _get_repository_objects_path(repo).parent / 'shallow'
-    target_shallow.write_text(source_shallow.read_text(encoding='utf-8'), encoding='utf-8')
+    target_shallow.write_bytes(source_shallow.read_bytes())
 
 
 def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
@@ -593,8 +593,9 @@ class GitService:
                 backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}.{uuid.uuid4().hex[:8]}')
 
             log.warning(f'检测到本地 Git 对象缺失，备份旧 Git 目录: {git_dir} -> {backup_dir}')
-            git_dir.rename(backup_dir)
             self._repo = None
+            repo.free()
+            git_dir.rename(backup_dir)
             self._rebuilding_repository = True
             try:
                 success, message = self._clone_repository(progress_callback)

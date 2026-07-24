@@ -20,25 +20,45 @@
 
 候选源失败或超时后仍继续回退。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
 
-## fetch 进程隔离
+## fetch 线程隔离与作废式超时
 
-Git 网络拉取不直接在正式仓库中执行。单个候选代码源的 fetch 由 `multiprocessing` 的 `spawn` worker 执行，worker 只打开独立临时目录中的 bare Git 仓库。临时仓库通过 Git `objects/info/alternates` 只读复用正式仓库已有对象，因此不需要先复制一遍本地历史：
+Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
 
 ```text
-主进程
-  └─ 启动 fetch worker
-       └─ 临时 bare 仓库 ──网络──> 候选代码源
+主线程
+  └─ 启动 fetch 线程
+       └─ .install/git_fetch_tmp/fetch_* ──网络──> 候选代码源
 
-worker 正常退出
-  └─ 主进程从临时 bare 仓库本地 fetch 到正式仓库
+线程成功并退出
+  └─ 主线程从临时 bare 仓库导入正式仓库
 
-worker 超时
-  └─ 主进程终止 worker，清理临时目录，尝试下一个候选源
+线程超时
+  └─ 标记本次尝试作废，立即尝试下一个候选源
+       └─ 原线程之后只清理自己的临时目录，不再导入
 ```
 
-这样即使 libgit2 在首次进度回调之前不返回，主进程也能按硬时限终止 worker；被终止的原生调用不会直接持有正式仓库或 linked worktree。主进程对单个候选源同时执行三层监控：worker 启动后 10 秒内必须收到首条消息；收到消息后连续 30 秒没有新消息则终止；无论消息是否持续产生，单个 worker 总运行时间最多 120 秒。只有 worker 正常完成并退出后，主进程才会把目标分支导入正式仓库。导入完成后，临时 remote 会被删除。
+线程模型不能强制终止正在执行的 libgit2 原生调用。主线程超时后不等待、不 `join`，只设置作废标记并继续下一个候选源；作废线程以后即使 fetch 成功，也不得导入正式仓库或更新 `last_repository_url`。残留线程数的自然上界是候选代码源数量。
 
-worker 内部的 `server_connect_timeout` 和 `server_timeout` 使用 30 秒，回调累计超时使用 120 秒。它们只是 libgit2 的尽力而为保护，不能替代主进程的进程级硬时限；进程级时限不是整个候选源链的总时限。超时后只清理临时仓库，不对正式仓库执行恢复、重置或删除操作；候选链结束时仍按既有逻辑恢复主仓库 remote。
+单个候选源仍执行三层应用超时：
+
+- 启动后 10 秒内没有首条消息：作废；
+- 已收到消息后连续 30 秒没有新消息：作废；
+- 无论是否持续产生消息，总运行时间超过 120 秒：作废。
+
+pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒，只在进程内设置一次，不在线程间反复保存和恢复。`server_timeout` 是单次远程读写超时；持续有数据但速度很慢时通常不会触发，因此应用层 120 秒总时限仍负责兜底。
+
+首次浅拉取完成后，临时仓库的 `shallow` 文件必须按原始字节复制到正式仓库，不能使用 Windows 文本写入，否则 LF 会被转换为 CRLF，libgit2 下次打开仓库会报 `invalid parent OID at line 1`。该处理只防止新写入产生 CRLF，不自动修改已经存在的 `shallow` 文件。
+
+## 本地对象库损坏自愈
+
+如果临时仓库网络 fetch 已成功，但导入正式仓库时抛出 `KeyError: object not found`，该候选源记为“本地对象缺失”。只有所有候选源都以这一原因失败，才判定正式仓库对象库损坏：
+
+1. 释放当前 `Repository`；
+2. 将实际 Git 目录重命名为 `.git.corrupted.<时间戳>`；
+3. 用现有 clone 流程重新初始化和拉取；
+4. 重建失败时保留备份，不递归再次重建。
+
+超时、网络错误和对象缺失混合出现时不触发重建。linked worktree 暂不执行自动备份重建。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
 
 ## fetch、兼容性检查与 checkout 顺序
 
@@ -81,26 +101,10 @@ checkout 目标本地分支
 
 ## Windows 与 PyInstaller 入口
 
-Windows 的 `multiprocessing` 使用 `spawn` 启动子进程。子进程会重新启动当前 Python 程序，再由 multiprocessing 内部参数切换到 worker 逻辑。PyInstaller 冻结后的程序也必须能识别这种 worker 启动，而不能再次执行完整的 GUI 或启动器流程。
+fetch 已改为线程模型，不再创建 `multiprocessing.spawn` 子进程，因此公共启动器不再调用 `multiprocessing.freeze_support()`。这减少了 PyInstaller 冻结程序重新进入启动入口和额外收集 multiprocessing worker 依赖的风险。
 
-因此，公共启动器基类在进入参数解析前统一调用：
-
-```python
-class LauncherBase:
-    def run(self) -> None:
-        multiprocessing.freeze_support()
-        self.setup_parser()
-        self.main(self.args)
-```
-
-它的作用只是处理 PyInstaller/Windows multiprocessing 的 worker 启动兼容性：
-
-- 不创建子进程；
-- 不设置超时时间；
-- 不负责终止 worker；
-- 不负责代码源回退；
-- 在普通源码运行中通常没有实际动作。
+该变化不表示线程能够可靠终止 libgit2：超时语义是“主流程作废并继续”，不是“终止原生 fetch”。
 
 ## 回退边界
 
-当前硬时限只针对单个候选代码源的一次 fetch。一个源超时或失败后，主进程才能继续尝试下一个源；所有候选源的总耗时可能是多个单源时限之和。正常 fetch 的对象导入、分支更新和工作区同步仍在主进程的既有流程中完成。
+应用超时只针对单个候选代码源的一次 fetch。一个源被作废或失败后，主线程继续尝试下一个源；所有候选源的总耗时可能是多个单源时限之和。被作废线程可能在后台继续占用 socket 和线程，直到 libgit2 返回。正常 fetch 的对象导入、分支更新和工作区同步仍只由当前有效尝试在主线程完成。
