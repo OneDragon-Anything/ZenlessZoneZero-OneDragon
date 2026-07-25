@@ -43,7 +43,9 @@ from zzz_od.backend.mcp.service_app import (
 from zzz_od.backend.mcp.config_app import (
     make_add_config_item,
     make_delete_config_item,
+    make_describe_config,
     make_get_config,
+    make_list_app_configs,
     make_set_config,
 )
 from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult, WindowStatus
@@ -364,6 +366,8 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     mcp.tool(annotations=ToolAnnotations(destructiveHint=True, title="删除配置列表项"))(make_delete_config_item(backend))
     mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取配置"))(make_get_config(backend))
     mcp.tool(annotations=ToolAnnotations(title="修改配置字段"))(make_set_config(backend))
+    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="描述配置结构"))(make_describe_config(backend))
+    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可改配置"))(make_list_app_configs(backend))
     register_prompts(mcp)
     register_prompt_tools(mcp)
 
