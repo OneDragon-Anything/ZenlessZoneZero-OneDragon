@@ -1,7 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
@@ -37,7 +37,7 @@ class DriveDiscDismantleApp(ZApplication):
 
     @operation_node(name='开始前返回', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
+        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)  # 仓库-驱动仓库左上角若不是"街区"而是"勘域”则画面不连通
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='开始前返回')
@@ -99,7 +99,7 @@ class DriveDiscDismantleApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = DriveDiscDismantleApp(ctx)
     app.execute()
 
