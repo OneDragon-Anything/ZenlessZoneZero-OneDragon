@@ -68,11 +68,10 @@ class BackToNormalWorld(ZOperation):
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
 
-        # 大部分画面都有街区或勘域可以直接返回
-        for area_name in ['左上角-街区', '左上角-勘域']:
-            result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', area_name)
-            if result.is_success:
-                return self.round_retry(result.status, wait=1)
+        # 大部分画面都有街区或勘域可以直接返回，“区域”通过 0.5 LCS 匹配“街区”的“区”或“勘域”的“域”
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-区域')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
 
 
         # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
