@@ -90,15 +90,27 @@ def _build_list_fields(
     """组装 list_fields(item 结构 + add_example)。
 
     item_schema 优先(提供 enum/options/applicability/note);反射补 name+default。
-    add_example 过滤 ro_item_fields。
+    add_example 过滤 ro_item_fields。enum_cls 展开为 options。
     """
     if entry.item_schema is None:
         return []
 
-    # add_example: 从 item_schema 构造最小 dict(过滤 ro)
+    # 深拷贝 item_schema 并展开 enum_cls → options
+    expanded_fields: list[dict] = []
+    for f in entry.item_schema:
+        ef = dict(f)
+        if 'enum_cls' in ef:
+            enum_cls = ef.pop('enum_cls')
+            if isinstance(enum_cls, type) and issubclass(enum_cls, Enum):
+                ef['options'] = _enum_options(enum_cls)
+            elif isinstance(enum_cls, str):
+                ef['options_source'] = enum_cls  # '从 compendium 取' 等描述
+        expanded_fields.append(ef)
+
+    # add_example: 从 expanded_fields 构造最小 dict(过滤 ro)
     ro = set(ro_item_fields or [])
     example: dict[str, Any] = {}
-    for f in entry.item_schema:
+    for f in expanded_fields:
         if f['name'] in ro:
             continue
         if f.get('required') or 'default' in f:
@@ -109,7 +121,8 @@ def _build_list_fields(
         'id_kind': entry.id_kind,
         'id_source': f"get_config 读 list.{entry.id_kind}(add 时自动生成,不要传)" if entry.id_kind == 'plan_id' else f"get_config 读 list",
         'item_kind': entry.item_kind,
-        'item_fields': entry.item_schema,
+        'item_fields': expanded_fields,
+        'note': '未列字段(tab_name 等)由 dataclass 默认值自动补,add 时可不传',
         'ro_item_fields': ro_item_fields or [],
         'add_example': example,
         'validate_hint': _validate_hint_for(entry.app_id),
@@ -281,9 +294,9 @@ def _build_routes() -> dict[str, RouterEntry]:
                 'daily_reset_plan_times': {'type': 'bool', 'desc': '每日重置'},
             },
             item_schema=[
-                {'name': 'category_name', 'type': 'enum', 'required': True, 'note': '从 compendium 取(category 实战模拟室/区域巡防/...)'},
+                {'name': 'category_name', 'type': 'enum', 'required': True, 'enum_cls': '从 compendium 取(charge_plan category: 实战模拟室/区域巡防/专业挑战室/恶名狩猎/定期清剿/合成电池)'},
                 {'name': 'mission_type_name', 'type': 'str', 'required': True, 'note': '合法值依赖 category,describe_config 传 category 参数查'},
-                {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '部分 category/mission_type 必填'},
+                {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '部分 category/mission_type 必填(如实战模拟室/基础材料 需要传)'},
                 {'name': 'plan_times', 'type': 'int', 'required': False, 'default': 1},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
