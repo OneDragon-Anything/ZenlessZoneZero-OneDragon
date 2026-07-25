@@ -24,8 +24,8 @@ def make_add_config_item(backend: ZzzBackendContext) -> Callable:
     """构造 ``add_config_item`` tool。"""
     async def add_config_item(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
-        list_field: Annotated[str, Field(description="列表字段名(如 plan_list/app_list)")] = 'plan_list',
-        item_dict: Annotated[dict, Field(description="列表项 dict(经 from_dict 反序列化)")] = None,
+        list_field: Annotated[str, Field(description="列表字段名(plan_list/app_list)")],
+        item_dict: Annotated[dict, Field(description="列表项 dict(经 from_dict 反序列化)")],
         instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
