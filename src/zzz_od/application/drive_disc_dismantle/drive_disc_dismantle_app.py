@@ -37,7 +37,7 @@ class DriveDiscDismantleApp(ZApplication):
 
     @operation_node(name='开始前返回', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)  # 仓库-驱动仓库左上角若不是"街区"而是"勘域”则画面不连通
+        op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='开始前返回')
