@@ -241,7 +241,7 @@ class NotoriousHuntConfig(ApplicationConfig):
                 and x.mission_name == y.mission_name)
 
     # 运行态/身份字段(set_config 拒绝;详见 spec v5 _RO_FIELDS)
-    _RO_FIELDS: ClassVar[set[str]] = {'run_times', 'plan_id'}
+    _RO_FIELDS: ClassVar[set[str]] = {'plan_id'}
 
     @classmethod
     def validate_item(cls, ctx: 'ZContext', item: ChargePlanItem) -> str | None:

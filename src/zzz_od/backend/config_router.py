@@ -143,9 +143,9 @@ def _validate_hint_for(app_id: str) -> str:
 def _ro_item_fields_for(app_id: str) -> list[str]:
     """各 config 的 item 级只读字段。"""
     if app_id in ('charge_plan',):
-        return ['run_times', 'plan_id', 'skipped']
+        return ['plan_id', 'skipped']
     if app_id in ('notorious_hunt',):
-        return ['run_times', 'plan_id']
+        return ['plan_id']
     return []
 
 
@@ -298,6 +298,7 @@ def _build_routes() -> dict[str, RouterEntry]:
                 {'name': 'mission_type_name', 'type': 'str', 'required': True, 'note': '合法值依赖 category,describe_config 传 category 参数查'},
                 {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '部分 category/mission_type 必填(如实战模拟室/基础材料 需要传)'},
                 {'name': 'plan_times', 'type': 'int', 'required': False, 'default': 1},
+                {'name': 'run_times', 'type': 'int', 'required': False, 'default': 0, 'note': '运行次数(可手工修正,如手工跑了一次后调整)'},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
                 {'name': 'card_num', 'type': 'enum', 'required': False, 'enum_cls': CardNumEnum, 'applicability': '仅实战模拟室'},
@@ -325,6 +326,7 @@ def _build_routes() -> dict[str, RouterEntry]:
                 {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '常为 None'},
                 {'name': 'level', 'type': 'enum', 'required': False, 'enum_cls': NotoriousHuntLevelEnum, 'default': '默认等级'},
                 {'name': 'plan_times', 'type': 'int', 'required': False, 'default': 1},
+                {'name': 'run_times', 'type': 'int', 'required': False, 'default': 0, 'note': '运行次数(可手工修正)'},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
                 {'name': 'notorious_hunt_buff_num', 'type': 'enum', 'required': False, 'enum_cls': NotoriousHuntBuffEnum, 'default': 1},
