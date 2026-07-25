@@ -357,6 +357,8 @@ class ChargePlanConfig(ApplicationConfig):
         if item.mission_type_name not in mission_types:
             return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
         missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)]
+        if missions and item.mission_name is None:
+            return f'mission_name 必填(合法: {missions})'
         if item.mission_name is not None and item.mission_name not in missions:
             return f'mission {item.mission_name} 不合法(合法: {missions})'
         return None

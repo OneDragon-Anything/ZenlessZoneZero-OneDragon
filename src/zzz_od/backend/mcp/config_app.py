@@ -24,8 +24,8 @@ def make_add_config_item(backend: ZzzBackendContext) -> Callable:
     """构造 ``add_config_item`` tool。"""
     async def add_config_item(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
-        list_field: Annotated[str, Field(description="列表字段名(如 plan_list/app_list)")],
-        item_dict: Annotated[dict, Field(description="列表项 dict(经 from_dict 反序列化)")],
+        list_field: Annotated[str, Field(description="列表字段名(如 plan_list/app_list)")] = 'plan_list',
+        item_dict: Annotated[dict, Field(description="列表项 dict(经 from_dict 反序列化)")] = None,
         instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
@@ -38,6 +38,9 @@ def make_add_config_item(backend: ZzzBackendContext) -> Callable:
         entry = get_entry(app_id)
         if entry is None:
             return {'ok': False, 'error': f'不支持的 app_id: {app_id}'}
+        expected_list = 'plan_list' if entry.item_kind == 'dataclass' else 'app_list'
+        if list_field != expected_list:
+            return {'ok': False, 'error': f'list_field 应为 {expected_list},实际 {list_field}'}
         try:
             config = entry.get_config(ctx, instance_idx, group_id)
             item = entry.item_from_dict(item_dict)
@@ -61,7 +64,7 @@ def make_delete_config_item(backend: ZzzBackendContext) -> Callable:
     async def delete_config_item(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         list_field: Annotated[str, Field(description="列表字段名")],
-        id: Annotated[str, Field(description="项标识:charge_plan/notorious_hunt 用 plan_id;standalone_app/_group 用 app_id")],
+        item_id: Annotated[str, Field(description="项标识:charge_plan/notorious_hunt 用 plan_id;standalone_app/_group 用 app_id", alias="id")],
         instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
@@ -73,12 +76,15 @@ def make_delete_config_item(backend: ZzzBackendContext) -> Callable:
         entry = get_entry(app_id)
         if entry is None:
             return {'ok': False, 'error': f'不支持的 app_id: {app_id}'}
+        expected_list = 'plan_list' if entry.item_kind == 'dataclass' else 'app_list'
+        if list_field != expected_list:
+            return {'ok': False, 'error': f'list_field 应为 {expected_list},实际 {list_field}'}
         try:
             config = entry.get_config(ctx, instance_idx, group_id)
-            deleted = entry.delete(config, id)
+            deleted = entry.delete(config, item_id)
             if not deleted:
-                return {'ok': False, 'error': f'未找到 id={id}'}
-            return {'ok': True, 'app_id': app_id, 'list_field': list_field, 'id': id}
+                return {'ok': False, 'error': f'未找到 id={item_id}'}
+            return {'ok': True, 'app_id': app_id, 'list_field': list_field, 'id': item_id}
         except Exception as e:  # noqa: BLE001
             return {'ok': False, 'error': str(e)}
     return delete_config_item
@@ -128,10 +134,20 @@ def make_set_config(backend: ZzzBackendContext) -> Callable:
         entry = get_entry(app_id)
         if entry is None:
             return {'ok': False, 'error': f'不支持的 app_id: {app_id}'}
+        if 'set' not in entry.supported_ops:
+            return {'ok': False, 'error': f'{app_id} 不支持 set'}
         try:
             config = entry.get_config(ctx, instance_idx, group_id)
             if hasattr(config, '_RO_FIELDS') and key in config._RO_FIELDS:
                 return {'ok': False, 'error': f'{key} 是只读字段(运行态/身份),不可 set'}
+            if entry.field_schema and key not in entry.field_schema:
+                return {'ok': False, 'error': f'{key} 不在 {app_id} 的可改字段中(可用: {list(entry.field_schema.keys())})'}
+            if entry.field_schema and key in entry.field_schema:
+                field_meta = entry.field_schema[key]
+                if field_meta.get('type') == 'enum' and 'enum_cls' in field_meta:
+                    valid_values = [m.value.value for m in field_meta['enum_cls']]
+                    if value not in valid_values:
+                        return {'ok': False, 'error': f'{key} 值 {value} 不合法(可用: {valid_values})'}
             config.update(key, value)
             config.save()
             return {'ok': True, 'app_id': app_id, 'key': key, 'value': value}

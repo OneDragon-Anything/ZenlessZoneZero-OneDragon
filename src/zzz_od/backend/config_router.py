@@ -73,7 +73,7 @@ def _build_set_fields(
         field: dict[str, Any] = {
             'name': name,
             'type': meta.get('type', 'str'),
-            'value': config.data.get(name) if hasattr(config, 'data') else None,  # type: ignore[attr-defined]
+            'value': getattr(config, name, None) if not isinstance(getattr(config, name, None), property) else config.data.get(name),  # type: ignore[attr-defined]
             'desc': meta.get('desc', ''),
         }
         if meta.get('type') == 'enum' and 'enum_cls' in meta:
