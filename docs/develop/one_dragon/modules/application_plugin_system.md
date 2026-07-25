@@ -64,6 +64,7 @@
 **类常量**:
 - `REQUIRED_CONST_FIELDS`: app_const 模块必须定义的字段（`APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`）
 - `OPTIONAL_PLUGIN_FIELDS`: 可选的插件元数据字段（`PLUGIN_AUTHOR`, `PLUGIN_HOMEPAGE`, `PLUGIN_VERSION`, `PLUGIN_DESCRIPTION`）
+- 可选 app 常量字段：`PRIORITY`（整数，默认组 app 的排序优先级）
 
 ## 目录结构
 
@@ -99,6 +100,16 @@ project_root/
 - 会出现在"一条龙"运行列表中
 - 可以被用户排序和启用/禁用
 - 适用于：体力刷本、咖啡店、邮件等日常任务
+- 可选定义 `PRIORITY` 整数；数值越小越靠前。显式 priority 相同的 app 按 `app_id` 排序，未定义 priority 的 app 排在全部显式 priority app 之后。
+- priority 只决定初始默认/候选顺序，不会覆盖用户保存的应用组顺序。
+
+可运行以下开发入口查看内置应用与 `plugins/` 中第三方应用的实际 priority：
+
+```shell
+uv run python src/zzz_od/application/devtools/application_priority_scanner.py
+```
+
+入口只解析应用目录中的 factory/const 文件，不会初始化游戏上下文或启动 GUI。输出按 priority 排序，并包含默认组、来源、app ID、名称和 const 文件位置。
 
 ### 非默认组应用 (default_group=False)
 

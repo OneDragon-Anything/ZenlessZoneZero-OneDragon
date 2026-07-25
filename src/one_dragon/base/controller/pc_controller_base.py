@@ -36,6 +36,11 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
 
+    # 拖动后的等待时间 (用于消除拖动惯性)
+    SLEEP_BEFORE_DRAG_END:float = 0.2
+    # (DRAG_MIN_DURATION + SLEEP_BEFORE_DRAG_END) 为整个拖动过程的最小时间
+    DRAG_MIN_DURATION:float = 0.1
+
     def __init__(self,
                  screenshot_method: str,
                  standard_width: int = 1920,
@@ -438,6 +443,7 @@ class PcControllerBase(ControllerBase):
 
     def _background_drag(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """后台拖拽：用 SetCursorPos 移动光标，配合 PostMessage WM_LBUTTONDOWN/UP。
+        消除拖动后的惯性。
 
         Args:
             start: 拖拽起点（游戏坐标）
@@ -480,15 +486,19 @@ class PcControllerBase(ControllerBase):
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
             time.sleep(0.02)
 
+            # 减去 SLEEP_BEFORE_DRAG_END 之后的间隔
+            duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
             # 分步移动到终点
-            steps = max(int(duration / 0.02), 5)
+            steps = max(int(duration_drag / 0.02), 5)
             for i in range(1, steps + 1):
                 t = i / steps
                 cx = int(sx + (ex - sx) * t)
                 cy = int(sy + (ey - sy) * t)
                 self._set_cursor_to(hwnd, cx, cy)
-                time.sleep(duration / steps)
+                time.sleep(duration_drag / steps)
 
+            # 松开之前先定住鼠标以消除滑动惯性
+            time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)
             # 松开
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
         except Exception:
@@ -572,15 +582,32 @@ def get_mouse_sensitivity():
 
 
 def drag_mouse(start: Point, end: Point, duration: float = 0.5):
-    """按住鼠标左键进行画面拖动。
+    """按住鼠标左键进行画面拖动 (消除拖动后的惯性)。
 
     Args:
         start: 原位置
         end: 拖动位置
         duration: 拖动鼠标到目标位置，持续秒数
     """
-    pyautogui.moveTo(start.x, start.y)  # 将鼠标移动到起始位置
-    pyautogui.dragTo(end.x, end.y, duration=duration)
+
+    # 移动到起点并按下
+    pyautogui.moveTo(start.x, start.y)
+    pyautogui.mouseDown()
+
+    # 减去 PcControllerBase.SLEEP_BEFORE_DRAG_END 之后的间隔
+    duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
+    # 分步移动到终点
+    steps = max(int(duration_drag / 0.02), 5)
+    for i in range(1, steps + 1):
+        t = i / steps
+        cx = int(start.x + (end.x - start.x) * t)
+        cy = int(start.y + (end.y - start.y) * t)
+        pyautogui.moveTo(cx, cy)
+        time.sleep(duration_drag / steps)
+    # 松开之前先定住鼠标以消除滑动惯性
+    time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)
+    # 松开
+    pyautogui.mouseUp()
 
 
 def get_current_mouse_pos() -> Point:
