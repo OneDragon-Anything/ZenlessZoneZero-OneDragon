@@ -97,35 +97,25 @@ class ShiyuDefenseApp(ZApplication):
                     break
             if not progress_text:
                 progress_text = list(ocr_results.keys())[0]
-            match = re.search(r'(\d+)\s*/\s*(\d+)', progress_text)
-            if match:
-                total = int(match.group(2))
-                current = int(match.group(1))
+            # OCR 可能将 "2/5" 连写为 "215"，取首尾数字分别作为当前和总节点数。
+            digits = re.findall(r'\d', progress_text)
+            if len(digits) >= 2:
+                current = int(digits[0])
+                total = int(digits[-1])
                 log.info('剧变节点进度 %d/%d', current, total)
                 self.config.critical_max_node_idx = total
                 next_idx = current + 1
                 if next_idx > total:
                     return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
+            elif len(digits) == 1:
+                # 只有一个数字，可能是 "5"，说明已完成
+                total = int(digits[0])
+                log.info('剧变节点进度 已完成 %d', total)
+                self.config.critical_max_node_idx = total
+                return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
             else:
-                # 解析失败，回退到单数字（全部完成时可能只显示总节点数）
-                digits = re.findall(r'\d+', progress_text)
-                if len(digits) >= 2:
-                    current = int(digits[0])
-                    total = int(digits[1])
-                    log.info('剧变节点进度 %d/%d', current, total)
-                    self.config.critical_max_node_idx = total
-                    next_idx = current + 1
-                    if next_idx > total:
-                        return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
-                elif len(digits) == 1:
-                    # 只有一个数字，可能是 "5"，说明已完成
-                    total = int(digits[0])
-                    log.info('剧变节点进度 已完成 %d', total)
-                    self.config.critical_max_node_idx = total
-                    return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
-                else:
-                    log.info('OCR 进度解析失败: %s', progress_text)
-                    next_idx = 1
+                log.info('OCR 进度解析失败: %s', progress_text)
+                next_idx = 1
         else:
             log.info('未读到剧变节点进度，尝试从 run_record 获取')
             next_idx = self.run_record.next_node_idx()

@@ -15,11 +15,12 @@ class RunInOneDragonApp(Enum):
 
 class OneDragonInstance:
 
-    def __init__(self, idx: int, name: str, active: bool, active_in_od: bool):
+    def __init__(self, idx: int, name: str, active: bool, active_in_od: bool, force_login_before_run: bool = False):
         self.idx: int = idx
         self.name: str = name
         self.active: bool = active
         self.active_in_od: bool = active_in_od
+        self.force_login_before_run: bool = force_login_before_run
 
 
 class AfterDoneOpEnum(Enum):
@@ -80,7 +81,7 @@ class OneDragonConfig(YamlConfig):
             if not existed:
                 break
 
-        new_instance = OneDragonInstance(idx, '%02d' % idx, first, True)
+        new_instance = OneDragonInstance(idx, f'{idx:02d}', first, True)
         self.instance_list.append(new_instance)
 
         dict_instance_list = self.dict_instance_list
@@ -136,7 +137,7 @@ class OneDragonConfig(YamlConfig):
             dict_instance_list.pop(idx)
         self.dict_instance_list = dict_instance_list
 
-        instance_dir = os_utils.get_path_under_work_dir('config', ('%02d' % instance_idx))
+        instance_dir = os_utils.get_path_under_work_dir('config', f'{instance_idx:02d}')
         if os.path.exists(instance_dir):
             shutil.rmtree(instance_dir)
 
@@ -161,6 +162,18 @@ class OneDragonConfig(YamlConfig):
             if instance.active:
                 return instance
         return None
+
+    @property
+    def current_instance_force_login(self) -> bool:
+        instance = self.current_active_instance
+        return instance is not None and instance.force_login_before_run
+
+    def set_current_instance_force_login(self, new_value: bool) -> None:
+        instance = self.current_active_instance
+        if instance is None:
+            return
+        instance.force_login_before_run = new_value
+        self.dict_instance_list = [vars(instance) for instance in self.instance_list]
 
     @property
     def instance_list_in_od(self) -> list[OneDragonInstance]:

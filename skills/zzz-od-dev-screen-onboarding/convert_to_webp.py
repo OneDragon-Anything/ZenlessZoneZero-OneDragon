@@ -27,6 +27,8 @@ def convert(target: Path, quality: int, out_dir: Path | None) -> None:
         ok, buf = cv2.imencode(".webp", img, [cv2.IMWRITE_WEBP_QUALITY, quality])
         assert ok, f"编码失败: {p}"
         w = p.with_suffix(".webp") if out_dir is None else out_dir / p.with_suffix(".webp").name
+        if w.exists():
+            print(f"⚠️ 覆盖已存在: {w}(归档覆盖前请确认未被测试 fixture 引用,见 zzz-od-dev-screen-onboarding「覆盖检查」)")
         buf.tofile(str(w))
         sw = w.stat().st_size
         tot_p += sp

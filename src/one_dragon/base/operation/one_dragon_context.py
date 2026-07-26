@@ -12,6 +12,7 @@ from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
@@ -28,12 +29,11 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
-from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
@@ -473,7 +473,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         注意如果有缓存需要清理缓存
         子类需要继承加载更多的配置
         """
-        log.info('开始加载实例配置 %d' % self.current_instance_idx)
+        log.info('开始加载实例配置 %d', self.current_instance_idx)
 
         to_clear_props = [
             'game_account_config',
@@ -523,9 +523,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         OneDragonEnvContext.after_app_shutdown(self)
         from one_dragon.base.conditional_operation.operator import ConditionalOperator
         ConditionalOperator.after_app_shutdown()
-        from one_dragon.base.conditional_operation.operation_executor import OperationExecutor
+        from one_dragon.base.conditional_operation.operation_executor import (
+            OperationExecutor,
+        )
         OperationExecutor.after_app_shutdown()
-        from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+        from one_dragon.base.conditional_operation.state_record_service import (
+            StateRecordService,
+        )
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)

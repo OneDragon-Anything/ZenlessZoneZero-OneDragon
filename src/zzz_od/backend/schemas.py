@@ -34,6 +34,9 @@ class AnalyzeScreenResult:
             is_precise=False 候选)。决策优先看 screens;需看散落文本再看 ocr_texts。
         screenshot_path: 本次 analyze 新存的截图绝对路径;实时+save_image=True 时有值,
             其余 None。**有值 ⟺ 这次实时模式新存了张图**(离线模式不存)。
+        vision_hint: 能力边界提示(仅 ``success=True`` 时填):提醒本结果仅含 OCR 文字 +
+            模板匹配命中项,是画面的部分识别,不等同完整视觉理解;需要全面判断画面时配合
+            视觉工具 / 多模态再看。失败(截图 / 分析失败)时为 None。
     """
 
     success: bool
@@ -41,6 +44,7 @@ class AnalyzeScreenResult:
     error: str | None = None
     screens: list[ScreenMatch] = field(default_factory=list)
     screenshot_path: str | None = None
+    vision_hint: str | None = None
 
 
 @dataclass
@@ -123,6 +127,32 @@ class ApplicationListResult:
 
 
 @dataclass
+class PredefinedTeamItem:
+    """预备编队单项(``get_predefined_teams`` / ``GET /game/predefined-teams`` 返回)。
+
+    选配队依据:``idx`` 喂给 ``run_operation(ChoosePredefinedTeam, target_team_idx_list=[idx])``;
+    ``name`` 供按名称匹配;``auto_battle`` 是该队对应的自动战斗脚本名;
+    ``agent_name_list`` 是角色中文名(对应 ``agent_id_list``,便于和攻略/资料匹配);
+    ``weakness_list`` 是该队弱点(中文,防卫战配置优先,没配取角色伤害属性)。
+    """
+
+    idx: int
+    name: str
+    auto_battle: str
+    agent_id_list: list[str]
+    agent_name_list: list[str] = field(default_factory=list)
+    weakness_list: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PredefinedTeamListResult:
+    """预备编队列表(当前实例的真实配队,已过滤 ``TeamConfig`` 补的占位)。"""
+
+    current_instance_idx: int
+    teams: list[PredefinedTeamItem]
+
+
+@dataclass
 class OperationParam:
     """自定义 operation 的单个参数(纯反射得到,不实例化类)。
 
@@ -133,6 +163,9 @@ class OperationParam:
         default: 默认值的字符串表示;必填参数为 None。
         json_serializable: 该参数类型是否可经 JSON 标量/列表/字典传入
             (str/int/float/bool/list/dict/Optional → True;自定义数据类 → False)。
+        coercible: 该参数虽非 JSON 原生类型,但可从 dict 反序列化构造
+            (``@dataclass`` + 有 ``from_dict``,如 ``ChargePlanItem``)。``run_operation``
+            对这类参数接受 dict 值,实例化前用 ``from_dict`` 转成实例。
     """
 
     name: str
@@ -140,6 +173,7 @@ class OperationParam:
     required: bool
     default: str | None = None
     json_serializable: bool = True
+    coercible: bool = False
 
 
 @dataclass

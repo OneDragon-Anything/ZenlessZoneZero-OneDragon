@@ -12,6 +12,7 @@ from qfluentwidgets import (
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContextStateEventEnum,
+    ApplicationRunResult,
 )
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import (
@@ -33,6 +34,7 @@ class AppRunner(QThread):
         QThread.__init__(self)
         self.ctx: OneDragonContext = ctx
         self.app_id: str = ''
+        self.run_result: ApplicationRunResult | None = None
 
     def run(self):
         """
@@ -44,7 +46,7 @@ class AppRunner(QThread):
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_state_changed)
         self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_state_changed)
 
-        self.ctx.run_context.run_application(
+        self.run_result = self.ctx.run_context.run_application(
             app_id=self.app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

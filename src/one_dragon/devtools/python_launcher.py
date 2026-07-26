@@ -303,9 +303,8 @@ def sync_dependencies(ctx: OneDragonEnvContext) -> None:
     success, msg = ctx.python_service.uv_sync_runtime_dependencies()
     print_message(msg, "PASS" if success else "ERROR")
     if not success:
-        print_message("运行环境同步失败", "ERROR")
         with contextlib.suppress(EOFError):
-            input("请重新启动程序；若问题仍然存在，请下载最新安装器重新安装。按回车键退出...")
+            input("请重新启动程序；若问题仍然存在，请下载最新安装器重新配置运行环境。按回车键退出...")
         sys.exit(1)
 
 

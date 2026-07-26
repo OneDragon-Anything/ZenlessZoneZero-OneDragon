@@ -27,22 +27,30 @@ class ZPcController(PcControllerBase):
         self.game_config: GameConfig = game_config
         self.action_keys = self.game_config.get_action_keys('keyboard')
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
-        self.mouse_flash_duration: float = game_config.mouse_flash_duration
 
         self.is_moving: bool = False  # 是否正在移动
-        self.turn_dx: float = game_config.turn_dx
-        self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
 
-    def init_before_context_run(self) -> bool:
-        """运行前根据配置启用后台/前台模式，刷新快照配置"""
+    def sync_game_config(self, game_config: GameConfig) -> None:
+        """切换实例后同步控制器持有的账号级配置"""
+        self.game_config = game_config
+
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
             self.enable_foreground_mode()
-        self.turn_dx = self.game_config.turn_dx
-        self.gamepad_turn_speed = self.game_config.gamepad_turn_speed
-        self.mouse_flash_duration = self.game_config.mouse_flash_duration
+            self.active_window()
+
+    def init_before_context_run(self) -> bool:
+        """运行前根据配置启用后台/前台模式"""
+        if self.game_config.background_mode:
+            self.enable_background_mode(self.game_config.background_gamepad_type)
+        else:
+            self.enable_foreground_mode()
         return PcControllerBase.init_before_context_run(self)
+
+    def get_mouse_flash_duration(self) -> float:
+        """从当前实例配置获取闪切键鼠模式时的单步等待时长"""
+        return self.game_config.mouse_flash_duration
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
@@ -60,6 +68,16 @@ class ZPcController(PcControllerBase):
     def enable_keyboard(self):
         PcControllerBase.enable_keyboard(self)
         self.action_keys = self.game_config.get_action_keys('keyboard')
+
+    def enable_background_mode(self, gamepad_type: str = 'xbox') -> None:
+        """启用后台模式并应用当前实例的按键时长配置"""
+        PcControllerBase.enable_background_mode(self, gamepad_type)
+        if not self.background_mode:
+            return
+        if gamepad_type == 'ds4':
+            self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
+        else:
+            self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
 
     def enable_xbox(self):
         PcControllerBase.enable_xbox(self)
@@ -179,7 +197,7 @@ class ZPcController(PcControllerBase):
         Returns:
             None
         """
-        self.turn_by_distance(self.turn_dx * angle_diff)
+        self.turn_by_distance(self.game_config.turn_dx * angle_diff)
 
     def turn_vertical_by_distance(self, d: float):
         """
@@ -219,7 +237,8 @@ class ZPcController(PcControllerBase):
         """
         if dx == 0 and dy == 0:
             return
-        if self.gamepad_turn_speed <= 0:
+        gamepad_turn_speed = self.game_config.gamepad_turn_speed
+        if gamepad_turn_speed <= 0:
             return
 
         self._ensure_gamepad_mode()
@@ -228,7 +247,7 @@ class ZPcController(PcControllerBase):
         stick_x = dx / max_d
         stick_y = -dy / max_d  # 鼠标下(+) → 摇杆下(-y)
 
-        duration = max_d / self.gamepad_turn_speed
+        duration = max_d / gamepad_turn_speed
 
         pad = self.btn_controller.pad
         try:

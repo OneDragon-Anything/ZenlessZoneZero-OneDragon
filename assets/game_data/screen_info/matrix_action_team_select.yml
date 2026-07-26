@@ -1,5 +1,5 @@
-screen_id: matrix_action
-screen_name: 迷失之地-矩阵行动
+screen_id: matrix_action_team_select
+screen_name: 迷失之地-矩阵行动-编队选择
 app_id: lost_void
 pc_alt: false
 area_list:

@@ -126,10 +126,11 @@ CI 构建生成以下集成启动器相关产物：
 
 | 文件 | 内容 | 用途 |
 |------|------|------|
-| `{version}-WithRuntime.zip` | 集成启动器 exe + .runtime + src | 首次部署，解压即用 |
+| `{version}-WithRuntime-Full.zip` | 集成启动器 exe + .runtime + src + 模型 | 首次部署，解压即用且无需额外下载模型 |
+| `{version}-WithRuntime.zip` | 集成启动器 exe + .runtime + src | 首次部署，模型按需下载 |
 | `RuntimeLauncher.zip` | 集成启动器 exe + .runtime（不含 src） | 就地升级已有环境 |
 
-WithRuntime 包含 src/ 是因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压 WithRuntime 后首次启动，集成启动器会自动初始化 git 仓库并设置远程跟踪。
+两个 WithRuntime 包都包含 src/，因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压后首次启动，集成启动器会自动初始化 git 仓库并设置远程跟踪。WithRuntime-Full 复用普通 Full 包准备好的模型，将其写入压缩包的 `assets/models/`；CI 不会因此重复下载模型。
 
 ## 启动器下载卡（UI）
 
