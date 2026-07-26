@@ -73,6 +73,30 @@ msgstr "Start Running"
 msgid "停止运行"
 msgstr "Stop Running"
 
+msgid "运行设置"
+msgstr "Run Settings"
+
+msgid "运行实例"
+msgstr "Run Instances"
+
+msgid "结束后"
+msgstr "After Completion"
+
+msgid "无"
+msgstr "None"
+
+msgid "关闭游戏"
+msgstr "Close Game"
+
+msgid "关机"
+msgstr "Shut Down"
+
+msgid "全部实例"
+msgstr "All Instances"
+
+msgid "仅运行当前"
+msgstr "Current Only"
+
 msgid "游戏截图"
 msgstr "Game Screenshot"
 

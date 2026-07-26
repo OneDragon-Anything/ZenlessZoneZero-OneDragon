@@ -112,6 +112,12 @@ class GameAccountConfig(YamlConfig):
         self.update('bilibili_account_name', new_value)
 
     @property
+    def has_login_info(self) -> bool:
+        if self.game_region == GameRegionEnum.CNB.value.value:
+            return bool(self.bilibili_account_name.strip())
+        return bool(self.account.strip() and self.password.strip())
+
+    @property
     def game_refresh_hour_offset(self) -> int:
         if self.game_region == GameRegionEnum.CN.value.value \
                 or self.game_region == GameRegionEnum.CNB.value.value:

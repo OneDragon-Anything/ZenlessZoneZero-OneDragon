@@ -19,6 +19,7 @@ from one_dragon.base.operation.operation_round_result import (
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -35,18 +36,20 @@ class EnterGame(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
 
         self.force_login: bool = (
-            self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1
+            (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
+             and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            or self.ctx.one_dragon_config.current_instance_force_login
         )
 
         # 切换账号的情况下 一定需要登录
         if switch:
             self.force_login = True
 
-        # 未配置账号密码时，无法主动切换账号，依赖游戏保存的登录状态直接进入
+        # 未配置登录信息时，无法主动切换账号，依赖游戏保存的登录状态直接进入
         # switch=True 时前置流程已执行游戏内登出，不能跳过 force_login
         cfg = self.ctx.game_account_config
-        if not switch and not cfg.account and not cfg.password and not cfg.bilibili_account_name:
+        if not switch and self.force_login and not cfg.has_login_info:
+            log.warning('登录信息未配置完整，跳过强制重新登录，将使用游戏当前登录状态')
             self.force_login = False
 
         self.already_login: bool = False  # 是否已经提交账号登录

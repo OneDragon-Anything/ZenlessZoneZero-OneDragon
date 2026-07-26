@@ -6,9 +6,9 @@ area_list:
 - area_name: 按钮-撤退
   id_mark: true
   pc_rect:
-  - 530
+  - 700
   - 850
-  - 860
+  - 930
   - 912
   text: 撤退
   lcs_percent: 0.5
@@ -20,9 +20,9 @@ area_list:
 - area_name: 按钮-重播
   id_mark: true
   pc_rect:
-  - 878
+  - 1050
   - 850
-  - 1200
+  - 1270
   - 912
   text: 重播
   lcs_percent: 0.5

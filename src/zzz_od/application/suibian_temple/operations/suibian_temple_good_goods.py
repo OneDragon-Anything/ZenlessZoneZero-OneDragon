@@ -83,7 +83,7 @@ class SuibianTempleGoodGoods(ZOperation):
             return self.round_success(status='购买成功')
 
         # 处理弹窗
-        if self.round_by_ocr(self.last_screenshot, '兑换确认').is_success:
+        if self.round_by_ocr(self.last_screenshot, '兑换确认', lcs_percent=0.75).is_success:
             # 直接使用精确坐标拖拽滑块到最大值
             start_point = Point(755, 672)
             end_point = Point(1300, 672)
@@ -201,7 +201,7 @@ class SuibianTempleGoodGoods(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
