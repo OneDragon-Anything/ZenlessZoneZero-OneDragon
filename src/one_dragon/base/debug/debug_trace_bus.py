@@ -101,6 +101,8 @@ class DebugTraceBus:
         self._timeline: deque[TimelineTraceItem] = deque(maxlen=max_timeline)
         self._perf: deque[PerfTraceItem] = deque(maxlen=max_perf)
         self._local = threading.local()
+        self.enabled: bool = True
+        """是否启用调试总线 由消费端（如 overlay 面板）控制 关闭时生产端应跳过 trace 构造"""
 
     # --- crop_offset（每线程） ---
 

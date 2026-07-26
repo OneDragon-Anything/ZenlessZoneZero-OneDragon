@@ -45,6 +45,9 @@ DebugTraceSnapshot — 以上四类的快照集合
 - `add_decision()` / `add_timeline()` / `add_perf()` 纯追加。
 - `snapshot()` 返回浅拷贝，避免锁内耗时操作。
 - `crop_offset` 为 thread-local，通过 `set_crop_offset()` / `reset_crop_offset()` 管理。
+- `enabled` 标志（默认 `True`）：核心层生产端唯一可读的通用开关，
+  关闭时生产者跳过 trace 构造；由消费端（如 `OverlayManager` 同步
+  `OverlayConfig.enabled`）控制。
 
 ### 兼容壳（`OverlayDebugBus`）
 
@@ -55,8 +58,9 @@ DebugTraceSnapshot — 以上四类的快照集合
 - `snapshot()` 返回旧格式 `OverlayDebugSnapshot`，兼容现有 overlay 面板。
 - `color` / `ttl_seconds` 暂存 `meta["_color"]` / `meta["_ttl_seconds"]`，
   转换时恢复。
-- 新增 `enabled` 标志（默认 `True`），由 `OverlayManager` 同步
-  `OverlayConfig.enabled`，关闭时生产者跳过 trace 构造。
+- `snapshot()` 前按 TTL 清理过期项：现有 overlay 消费端不做过期处理，
+  兼容壳保留旧总线的过期语义，避免陈旧 trace 无限累积并持续参与
+  快照转换；阶段 5 消费端自行处理过期后一并删除。
 
 ## Producer / Consumer 边界
 

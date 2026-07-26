@@ -33,6 +33,7 @@ from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 
 
 class NodeStateProxy:
@@ -228,7 +229,7 @@ class Operation(OperationBase):
         node_name_map: dict[str, OperationNode] = {}
         edge_desc_list: list[OperationEdgeDesc] = []
 
-        for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
+        for _name, method in inspect.getmembers(self, predicate=inspect.ismethod):
             # 从方法对象上直接获取 @operation_node 附加的节点信息
             node: OperationNode = getattr(method, 'operation_node_annotation', None)
             if node is None:
@@ -253,10 +254,10 @@ class Operation(OperationBase):
         for edge_desc in edge_desc_list:
             node_from = node_name_map.get(edge_desc.node_from_name, None)
             if node_from is None:
-                raise ValueError('找不到节点 %s' % edge_desc.node_from_name)
+                raise ValueError(f'找不到节点 {edge_desc.node_from_name}')
             node_to = node_name_map.get(edge_desc.node_to_name, None)
             if node_to is None:
-                raise ValueError('找不到节点 %s' % edge_desc.node_to_name)
+                raise ValueError(f'找不到节点 {edge_desc.node_to_name}')
 
             new_node = OperationEdge(
                 node_from,
@@ -366,7 +367,7 @@ class Operation(OperationBase):
         if self.ctx.is_game_window_ready:
             return self.round_success()
         else:
-            return self.round_fail('未打开游戏窗口 %s' % self.ctx.controller.game_win.win_title)
+            return self.round_fail(f'未打开游戏窗口 {self.ctx.controller.game_win.win_title}')
 
     def open_and_enter_game(self) -> OperationRoundResult:
         """打开并进入游戏。
@@ -662,7 +663,7 @@ class Operation(OperationBase):
         Returns:
             str: 格式化的显示名称。
         """
-        return '指令[ %s ]' % self.op_name
+        return f'指令[ {self.op_name} ]'
 
     def after_operation_done(self, result: OperationResult):
         """处理操作完成后的处理。
@@ -1121,10 +1122,7 @@ class Operation(OperationBase):
         if area is None:
             return self.round_fail(status=f'区域未配置 {area_name}')
 
-        if click_left_top:
-            to_click = area.left_top
-        else:
-            to_click = area.center
+        to_click = area.left_top if click_left_top else area.center
         time.sleep(pre_delay)
         click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
         if click:

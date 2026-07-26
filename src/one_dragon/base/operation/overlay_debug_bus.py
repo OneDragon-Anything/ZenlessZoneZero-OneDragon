@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -103,8 +104,6 @@ class OverlayDebugBus(DebugTraceBus):
             max_timeline=max_timeline_items,
             max_perf=max_perf_items,
         )
-        self.enabled: bool = True
-        """是否启用调试总线，由消费端（如 overlay 面板）控制"""
 
     # --- 兼容旧 API（接受旧数据类，转换为新格式存储） ---
 
@@ -193,7 +192,13 @@ class OverlayDebugBus(DebugTraceBus):
     # --- 快照（返回旧格式，兼容现有 overlay 面板） ---
 
     def snapshot(self) -> OverlayDebugSnapshot:
-        """返回旧格式 OverlayDebugSnapshot，兼容现有 overlay 面板。"""
+        """返回旧格式 OverlayDebugSnapshot，兼容现有 overlay 面板。
+
+        现有 overlay 消费端不做过期处理，快照前先按 TTL 清理过期项，
+        保持旧总线的过期语义；阶段 5 移交消费端后删除。
+        """
+        with self._lock:
+            self._drop_expired(time.time())
         snap: DebugTraceSnapshot = DebugTraceBus.snapshot(self)
         return OverlayDebugSnapshot(
             created=snap.created,
@@ -202,6 +207,31 @@ class OverlayDebugBus(DebugTraceBus):
             timeline_items=[self._to_old_timeline(t) for t in snap.timeline_items],
             performance_items=[self._to_old_perf(p) for p in snap.perf_items],
         )
+
+    def _drop_expired(self, now: float) -> None:
+        """按 TTL 清理各队列头部的过期项，需在持锁状态下调用。
+
+        默认 TTL 与 _to_old_* 的兜底值保持一致。
+        """
+        self._drop_expired_from_deque(self._vision, now, 1.8)
+        self._drop_expired_from_deque(self._decision, now, 30.0)
+        self._drop_expired_from_deque(self._timeline, now, 60.0)
+        self._drop_expired_from_deque(self._perf, now, 30.0)
+
+    @staticmethod
+    def _drop_expired_from_deque(items: deque, now: float, default_ttl: float) -> None:
+        """从队列头部清理过期项，遇到首个未过期项即停止（队列按时间追加）。"""
+        while items:
+            head = items[0]
+            meta = head.meta or {}
+            ttl = max(0.1, float(meta.get("_ttl_seconds", default_ttl) or default_ttl))
+            created = float(head.created or 0.0)
+            if created <= 0:
+                items.popleft()
+                continue
+            if now - created <= ttl:
+                break
+            items.popleft()
 
     @staticmethod
     def _to_old_vision(item: VisionTraceItem) -> VisionDrawItem:

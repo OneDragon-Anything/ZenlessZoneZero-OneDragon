@@ -62,9 +62,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.debug_trace_bus: DebugTraceBus = OverlayDebugBus()
+        _debug_bus = OverlayDebugBus()
+        self.debug_trace_bus: DebugTraceBus = _debug_bus
         """通用调试 trace 总线（新）"""
-        self.overlay_debug_bus = self.debug_trace_bus  # type: ignore[assignment]
+        self.overlay_debug_bus: OverlayDebugBus = _debug_bus
         """向后兼容的 overlay 调试总线，与 debug_trace_bus 为同一实例"""
 
         self.screen_loader: ScreenContext = ScreenContext()
