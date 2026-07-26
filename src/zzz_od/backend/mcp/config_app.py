@@ -64,7 +64,7 @@ def make_delete_config_item(backend: ZzzBackendContext) -> Callable:
     async def delete_config_item(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         list_field: Annotated[str, Field(description="列表字段名")],
-        item_id: Annotated[str, Field(description="项标识:charge_plan/notorious_hunt 用 plan_id;standalone_app/_group 用 app_id", alias="id")],
+        item_id: Annotated[str, Field(description="项标识:charge_plan/notorious_hunt 用 plan_id;standalone_app/_group 用 app_id")],
         instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
