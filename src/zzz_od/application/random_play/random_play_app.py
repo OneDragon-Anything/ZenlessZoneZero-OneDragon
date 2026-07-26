@@ -80,11 +80,14 @@ class RandomPlayApp(ZApplication):
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        录像店-柜台：转向正东后前移再交互
+        录像店-柜台 / 布亚斯特城区-录像店营业点：转向正东后前移再交互
         澄辉坪-录像店营业点：传送落点已正对入口，直接交互
         :return:
         """
-        if self.config.transport_point == RandomPlayTransportPoint.POINT_1.value.value:
+        if self.config.transport_point in {
+            RandomPlayTransportPoint.POINT_1.value.value,
+            RandomPlayTransportPoint.POINT_3.value.value,
+        }:
             result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
             if not result.is_success:
                 return result
@@ -107,7 +110,7 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况')
         if result.is_success:
             return self.round_success()
-        # 澄辉坪-录像店营业点交互后的专属对话框。前面都没识别到说明被对话框挡住了，点击 "查看经营状况" 推进
+        # 录像店营业点交互后的专属对话框。前面都没识别到说明被对话框挡住了，点击 "查看经营状况" 推进
         area = self.ctx.screen_loader.get_area('影像店营业', '右侧选项区域')
         result = self.round_by_ocr_and_click(self.last_screenshot, '查看经营状况', area=area)
         if result.is_success:

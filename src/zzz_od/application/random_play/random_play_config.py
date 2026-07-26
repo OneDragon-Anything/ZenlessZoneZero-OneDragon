@@ -11,6 +11,7 @@ class RandomPlayTransportPoint(Enum):
 
     POINT_1 = TransportPoint('录像店', '柜台')
     POINT_2 = TransportPoint('澄辉坪', '录像店营业点')
+    POINT_3 = TransportPoint('布亚斯特城区', '录像店营业点')
 
 
 class RandomPlayConfig(ApplicationConfig):
