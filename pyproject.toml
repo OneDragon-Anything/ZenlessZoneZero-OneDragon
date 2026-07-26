@@ -52,6 +52,10 @@ default-groups = []
 
 # Ruff configuration
 [tool.ruff]
+extend-exclude = [
+    "deploy/module_manifest.py",
+]
+
 # Same as Black.
 line-length = 88
 indent-width = 4

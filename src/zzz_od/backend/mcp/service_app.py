@@ -8,7 +8,11 @@ from pydantic import Field
 
 from zzz_od.backend import operation_registry
 from zzz_od.backend.backend_context import ZzzBackendContext
-from zzz_od.backend.schemas import ApplicationListResult, OperationListResult
+from zzz_od.backend.schemas import (
+    ApplicationListResult,
+    OperationListResult,
+    PredefinedTeamListResult,
+)
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_base import OperationResult
@@ -115,6 +119,23 @@ def make_list_applications(backend: ZzzBackendContext) -> Callable[[], Applicati
     return list_applications
 
 
+def make_get_predefined_teams(backend: ZzzBackendContext) -> Callable[[], PredefinedTeamListResult | dict]:
+    """构造 ``get_predefined_teams`` tool。"""
+    def get_predefined_teams() -> PredefinedTeamListResult | dict:
+        """列出当前实例的预备编队(真实配队,过滤占位)。观察类。
+
+        返回每队的 idx/name/auto_battle/agent_id_list/agent_name_list(中文)/weakness_list
+        (中文,防卫战配置优先,没配取角色伤害属性);按 idx 选配队用
+        ``run_operation(zzz_od.operation.choose_predefined_team.ChoosePredefinedTeam,
+        {target_team_idx_list:[idx]})``。读当前实例缓存(只读不刷;GUI 改 yml 后需重载/跑 app)。
+        """
+        try:
+            return backend.list_predefined_teams()
+        except Exception as e:  # noqa: BLE001 工具层兜底
+            return {'error': str(e)}
+    return get_predefined_teams
+
+
 def make_list_operations(backend: ZzzBackendContext) -> Callable[[], OperationListResult | dict]:
     """构造 ``list_operations`` tool(自定义 operation 运行入口)。"""
     def list_operations() -> OperationListResult | dict:
@@ -158,14 +179,14 @@ def make_run_operation(backend: ZzzBackendContext) -> Callable:
     """
     async def run_operation(
         op_id: Annotated[str, Field(description="operation 定位标识 <module>.<ClassName>,可从 list_operations 获取")],
-        args: Annotated[dict | None, Field(description="构造参数 dict;仅限 JSON 可序列化标量/列表/字典,复杂数据类参数走 application")] = None,
+        args: Annotated[dict | None, Field(description="构造参数 dict;JSON 标量/列表/字典,@dataclass+from_dict 参数(如 ChargePlanItem)传 dict 自动反序列化;其余复杂数据类走 application")] = None,
         block: Annotated[bool, Field(description="False=立刻返回用 get_run_status 查进度(默认);True=阻塞到结束")] = False,
     ) -> dict | str:
         """按 op_id(package.path.ClassName)运行任意 operation;args 传构造参数。
 
         单个 operation 用本 tool;全套用 ``run_one_dragon``;单个应用用 ``run_standalone_app``。
 
-        args 仅限 JSON 可序列化标量/列表/字典(复杂数据类参数请走 application);
+        args 传 JSON 标量/列表/字典;``@dataclass``+``from_dict`` 参数(如 ChargePlanItem)传 dict,实例化前自动反序列化;其余复杂数据类走 application。
         用 list_operations / describe_operation 查 op_id 与参数。
         block=False(默认)立刻返回,用 get_run_status 查进度;block=True 阻塞到结束。
         副作用:操作游戏;单跑道,已有运行时返回错误(含 source + 提示)。
@@ -175,9 +196,11 @@ def make_run_operation(backend: ZzzBackendContext) -> Callable:
             err = operation_registry.validate_args(cls, args or {})
             if err:
                 return {'started': False, 'error': err}
+            # @dataclass+from_dict 参数的 dict 值反序列化为实例(如 ChargePlanItem)
+            coerced_args = operation_registry.coerce_dataclass_params(cls, args or {})
             # 闭包把 cls + args bake 进 op_factory(槽只认统一签名 op_factory(ctx) → Operation)
             def op_factory(ctx):  # noqa: ANN202 闭包签名固定 Callable[[ZContext], Operation]
-                return cls(ctx, **(args or {}))
+                return cls(ctx, **coerced_args)
             ok, future = backend.run_slot._start(
                 'mcp', op_factory=op_factory, display_name=op_id,
             )

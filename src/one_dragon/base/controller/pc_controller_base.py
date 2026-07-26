@@ -38,6 +38,11 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_VIRTUALDESK = 0x4000
     MOUSEEVENTF_ABSOLUTE = 0x8000
 
+    # 拖动后的等待时间 (用于消除拖动惯性)
+    SLEEP_BEFORE_DRAG_END:float = 0.2
+    # (DRAG_MIN_DURATION + SLEEP_BEFORE_DRAG_END) 为整个拖动过程的最小时间
+    DRAG_MIN_DURATION:float = 0.1
+
     def __init__(self,
                  screenshot_method: str,
                  standard_width: int = 1920,
@@ -217,11 +222,13 @@ class PcControllerBase(ControllerBase):
 
         if not self.game_win.active():
             return False
-        time.sleep(self.mouse_flash_duration)
+
+        mouse_flash_duration = self.get_mouse_flash_duration()
+        time.sleep(mouse_flash_duration)
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
         user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(self.mouse_flash_duration)
+        time.sleep(mouse_flash_duration)
 
         # 切回原来的前台窗口
         if prev_hwnd and prev_hwnd != hwnd:
@@ -231,6 +238,10 @@ class PcControllerBase(ControllerBase):
         self._game_input_mode = 'keyboard_mouse'
 
         return True
+
+    def get_mouse_flash_duration(self) -> float:
+        """获取闪切键鼠模式时的单步等待时长"""
+        return self.mouse_flash_duration
 
     def _ensure_gamepad_mode(self) -> None:
         """确保游戏处于手柄输入模式。若当前为键鼠模式，先发一次手柄按键让游戏切换。"""
@@ -434,6 +445,7 @@ class PcControllerBase(ControllerBase):
 
     def _background_drag(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """后台拖拽：用 SetCursorPos 移动光标，配合 PostMessage WM_LBUTTONDOWN/UP。
+        消除拖动后的惯性。
 
         Args:
             start: 拖拽起点（游戏坐标）
@@ -476,15 +488,19 @@ class PcControllerBase(ControllerBase):
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
             time.sleep(0.02)
 
+            # 减去 SLEEP_BEFORE_DRAG_END 之后的间隔
+            duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
             # 分步移动到终点
-            steps = max(int(duration / 0.02), 5)
+            steps = max(int(duration_drag / 0.02), 5)
             for i in range(1, steps + 1):
                 t = i / steps
                 cx = int(sx + (ex - sx) * t)
                 cy = int(sy + (ey - sy) * t)
                 self._set_cursor_to(hwnd, cx, cy)
-                time.sleep(duration / steps)
+                time.sleep(duration_drag / steps)
 
+            # 松开之前先定住鼠标以消除滑动惯性
+            time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)
             # 松开
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
         except Exception:
@@ -575,7 +591,7 @@ def drag_mouse(
     screen_width: int | None = None,
     screen_height: int | None = None,
 ) -> None:
-    """按住鼠标左键进行画面拖动。
+    """按住鼠标左键进行画面拖动 (消除拖动后的惯性)。
 
     Args:
         start: 原位置
@@ -607,8 +623,11 @@ def drag_mouse(
     user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
     time.sleep(0.05)
 
+    # 减去 PcControllerBase.SLEEP_BEFORE_DRAG_END 之后的间隔
+    duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
+
     # 计算每步的延迟时间和移动距离
-    step_delay = duration / steps
+    step_delay = duration_drag / steps
     dx = (end.x - start.x) / steps
     dy = (end.y - start.y) / steps
 
@@ -635,6 +654,8 @@ def drag_mouse(
 
         time.sleep(step_delay)
 
+    # 松开之前先定住鼠标以消除滑动惯性
+    time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)
     # 松开鼠标左键
     user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
 

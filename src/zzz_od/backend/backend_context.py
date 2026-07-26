@@ -35,20 +35,30 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_match import find_screen_matches
 from one_dragon.utils import cv2_utils, debug_utils, os_utils
 from one_dragon.utils.log_utils import mask_text
+from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.backend.schemas import (
     AnalyzeScreenResult,
     ApplicationInfo,
     ApplicationListResult,
     OcrText,
+    PredefinedTeamItem,
+    PredefinedTeamListResult,
     RunStatusResult,
     WindowStatus,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data.agent import Agent, AgentEnum, DmgTypeEnum
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
 
     from one_dragon.base.operation.operation import Operation
+    from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+    from zzz_od.config.team_config import PredefinedTeamInfo
+
+
+# agent_id(主 id)→ Agent 映射;team_config 存的是 agent_id 主 id,用于查 dmg_type 推导弱点。
+_AGENT_MAP: dict[str, Agent] = {e.value.agent_id: e.value for e in AgentEnum}
 
 
 # analyze_screen 返回的能力边界提示:本结果仅含 OCR + 模板匹配的部分识别,
@@ -873,6 +883,67 @@ class ZzzBackendContext:
             active_standalone_app_id=active_standalone_app_id,
             applications=applications,
         )
+
+    def list_predefined_teams(self) -> PredefinedTeamListResult:
+        """列出当前实例的预备编队(只读,过滤 ``TeamConfig`` 自动补的占位)。
+
+        返回真实配队(idx/name/auto_battle/agent_id_list/weakness_list);
+        ``weakness_list`` 为中文弱点(防卫战配置优先,没配取角色伤害属性);
+        ``idx`` 可直接喂给 ``ChoosePredefinedTeam`` op 的 ``target_team_idx_list``。
+
+        快照语义(对齐 ``list_applications``):读当前进程缓存的 ``team_config``,
+        不主动刷新;GUI 改 yml 后需重载实例 / 跑 app 触发刷新缓存才反映。
+        """
+        self._ensure_ready()
+        team_cfg = self._ctx.team_config
+        raw_count = len(team_cfg.get('team_list', []))  # yml 真实队数(不含自动补的占位)
+        teams: list[PredefinedTeamItem] = []
+        for t in team_cfg.team_list[:raw_count]:
+            teams.append(PredefinedTeamItem(
+                idx=t.idx, name=t.name, auto_battle=t.auto_battle,
+                agent_id_list=list(t.agent_id_list),
+                agent_name_list=[getattr(_AGENT_MAP.get(aid), 'agent_name', aid) for aid in t.agent_id_list],
+                weakness_list=self._weakness_of_team(t),
+            ))
+        return PredefinedTeamListResult(
+            current_instance_idx=self._ctx.current_instance_idx,
+            teams=teams,
+        )
+
+    def _get_shiyu_defense_config(self) -> 'ShiyuDefenseConfig | None':
+        """取当前实例的防卫战配置(app 未注册 → None;已注册则加载失败向上抛,不吞)。
+
+        先用 ``is_app_registered`` 判(对齐 ``list_applications``),避免框架裸 ``Exception``
+        下宽 ``except`` 把 YAML / 类型 / I/O 加载错误也当「未配置」静默吞掉、错误回退弱点。
+        """
+        if not self._ctx.run_context.is_app_registered(shiyu_defense_const.APP_ID):
+            return None
+        return self._ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self._ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
+    def _weakness_of_team(self, team: 'PredefinedTeamInfo') -> list[str]:
+        """推导队伍弱点(中文):① 防卫战配置的 weakness_list 优先;② 没配取角色伤害属性。"""
+        # ① 防卫战配置
+        defense_cfg = self._get_shiyu_defense_config()
+        if defense_cfg is not None:
+            dc = defense_cfg.get_config_by_team_idx(team.idx)
+            if dc is not None and dc.weakness_list:
+                weakness = [w.value for w in dc.weakness_list if w != DmgTypeEnum.UNKNOWN]
+                if weakness:
+                    return weakness
+        # ② 没配 → 角色伤害属性(去重,跳过 unknown)
+        weakness: list[str] = []
+        for agent_id in team.agent_id_list:
+            if agent_id == 'unknown':
+                continue
+            agent = _AGENT_MAP.get(agent_id)
+            if agent is not None and agent.dmg_type != DmgTypeEnum.UNKNOWN:
+                if agent.dmg_type.value not in weakness:
+                    weakness.append(agent.dmg_type.value)
+        return weakness
 
     def query_status(self) -> RunStatusResult:
         """查询当前或最近一次运行状态(单槽,直接委托)。"""

@@ -1429,6 +1429,48 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 战斗结果-获得
+    id_mark: false
+    pc_rect:
+    - 919
+    - 395
+    - 999
+    - 451
+    text: 获得
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 战斗结果-获得-确认
+    id_mark: false
+    pc_rect:
+    - 1091
+    - 701
+    - 1169
+    - 756
+    text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 战斗结果-获得-前往
+    id_mark: false
+    pc_rect:
+    - 788
+    - 702
+    - 866
+    - 756
+    text: 前往
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: commission_assistant
   screen_name: 委托助手
   app_id: commission_assistant
@@ -1908,20 +1950,6 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 目标列表-作战
-    id_mark: false
-    pc_rect:
-    - 1254
-    - 552
-    - 1312
-    - 894
-    text: ''
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
   - area_name: 目标列表-训练-恶名狩猎
     id_mark: false
     pc_rect:
@@ -1940,9 +1968,9 @@
     id_mark: false
     pc_rect:
     - 1000
-    - 316
+    - 346
     - 1400
-    - 356
+    - 386
     text: 每日怪物卡双倍掉落次数
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -1954,9 +1982,9 @@
     id_mark: false
     pc_rect:
     - 1270
-    - 316
+    - 346
     - 1380
-    - 356
+    - 386
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -2489,20 +2517,6 @@
     goto_list:
     - 菜单
     - 大世界-普通
-  - area_name: 按钮-奖励
-    id_mark: false
-    pc_rect:
-    - 1334
-    - 214
-    - 1566
-    - 266
-    text: 奖励
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
 - screen_id: coupon
   screen_name: 家政券
   pc_alt: false
@@ -5100,9 +5114,9 @@
   - area_name: 按钮-撤退
     id_mark: true
     pc_rect:
-    - 530
+    - 700
     - 850
-    - 746
+    - 930
     - 912
     text: 撤退
     lcs_percent: 0.5
@@ -5114,25 +5128,11 @@
   - area_name: 按钮-重播
     id_mark: true
     pc_rect:
-    - 878
+    - 1050
     - 850
-    - 1086
+    - 1270
     - 912
     text: 重播
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list: []
-  - area_name: 按钮-分析
-    id_mark: true
-    pc_rect:
-    - 1226
-    - 848
-    - 1428
-    - 916
-    text: 分析
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''

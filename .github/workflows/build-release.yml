@@ -296,3 +296,40 @@ jobs:
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Trigger CNB Release sync
+      if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
+      continue-on-error: true
+      shell: pwsh
+      env:
+        CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+        RELEASE_TAG: ${{ needs.version.outputs.version }}
+      run: |
+        if ([string]::IsNullOrWhiteSpace($env:CNB_TOKEN)) {
+          throw 'Missing GitHub Actions secret: CNB_TOKEN'
+        }
+
+        $headers = @{
+          Accept = 'application/vnd.cnb.api+json'
+          Authorization = "Bearer $env:CNB_TOKEN"
+        }
+        $body = @{
+          branch = 'main'
+          event = 'api_trigger_release'
+          title = "Sync GitHub Release $env:RELEASE_TAG"
+          env = @{
+            RELEASE_TAG = $env:RELEASE_TAG
+          }
+        } | ConvertTo-Json -Depth 3
+
+        $response = Invoke-RestMethod `
+          -Uri 'https://api.cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon/-/build/start' `
+          -Method Post `
+          -Headers $headers `
+          -ContentType 'application/json' `
+          -TimeoutSec 60 `
+          -Body $body
+        $response | ConvertTo-Json -Depth 5
+        if ($response.success -ne $true) {
+          throw "CNB build trigger failed: $($response.message)"
+        }

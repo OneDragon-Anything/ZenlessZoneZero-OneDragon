@@ -1,6 +1,10 @@
 import uuid
 from dataclasses import dataclass, field, fields
 from enum import Enum
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -336,3 +340,25 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    # 运行态/身份字段(set_config 拒绝;详见 spec v5 _RO_FIELDS)
+    _RO_FIELDS: ClassVar[set[str]] = {'plan_id', 'last_daily_reset_dt', 'skip_plan'}
+
+    @classmethod
+    def validate_item(cls, ctx: 'ZContext', item: 'ChargePlanItem') -> str | None:
+        """校验 plan item 业务合法性:category / mission_type / mission_name 在 compendium 合法。
+
+        合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
+        """
+        categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
+        if item.category_name not in categories:
+            return f'category {item.category_name} 不合法(合法: {categories})'
+        mission_types = [m.value for m in ctx.compendium_service.get_charge_plan_mission_type_list(item.category_name)]
+        if item.mission_type_name not in mission_types:
+            return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
+        missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)]
+        if missions and item.mission_name is None:
+            return f'mission_name 必填(合法: {missions})'
+        if item.mission_name is not None and item.mission_name not in missions:
+            return f'mission {item.mission_name} 不合法(合法: {missions})'
+        return None

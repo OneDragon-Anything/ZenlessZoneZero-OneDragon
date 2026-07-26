@@ -1,4 +1,5 @@
 APP_ID = "lost_void"
 APP_NAME = "迷失之地"
 DEFAULT_GROUP = True
+PRIORITY = 1110
 NEED_NOTIFY = True
