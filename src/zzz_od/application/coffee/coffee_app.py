@@ -112,7 +112,7 @@ class CoffeeApp(ZApplication):
     def move_and_interact(self) -> OperationRoundResult:
         """
         六分街-咖啡店：转向正西后前移再交互
-        澄辉坪-汀曼咖啡：传送落点已正对入口，直接交互 派发 status 走对话点单分支
+        澄辉坪-汀曼咖啡 / 布亚斯特城区-片刻闲：传送落点已正对入口，直接交互 派发 status 走对话点单分支
         :return:
         """
         if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:
@@ -124,7 +124,10 @@ class CoffeeApp(ZApplication):
         time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
 
-        if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
+        if self.config.transport_point in {
+            CoffeeTransportPoint.POINT_2.value.value,
+            CoffeeTransportPoint.POINT_3.value.value,
+        }:
             return self.round_success(status='对话点单')
 
         return self.round_success()
