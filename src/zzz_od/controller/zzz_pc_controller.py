@@ -40,6 +40,7 @@ class ZPcController(PcControllerBase):
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
             self.enable_foreground_mode()
+            # 切换实例可能从后台转为前台模式，先激活游戏窗口以免后续键鼠输入误发
             self.active_window()
 
     def init_before_context_run(self) -> bool:
