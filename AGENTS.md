@@ -98,7 +98,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - **只留每次会话总要看的**：逐条问「删了会出错吗」，不会错就砍（入口要精简，不是知识库）；特定任务流程转 skill / 指针。
 - **一处维护**：`AGENTS.md` 是源，其他入口（CLAUDE.md 等）`@import` 引入，不复制。
 - **共享先确认**：入口文件团队共享，改前问用户，不静默重写。
-- **写得清晰易懂**：改入口文件 / 方法论文档时，用直白表述（首次出现的术语给定义 + 给例子），让首次接触的 AI 也读得懂；术语定义指向 [context_layering](docs/develop/harness/context_layering.md) / [entry_files](docs/develop/harness/entry_files.md)。
+- **写得清晰易懂**：写文档 / skill / 代码注释 / 入口文件等**给人或 AI 读的文字**时，用直白表述 —— **避免自造黑话 / 项目内部缩写（行业通用术语可用）**，首次出现的项目术语给定义 + 例子，让首次接触的人或 AI 也读得懂；术语定义指向 [context_layering](docs/develop/harness/context_layering.md) / [entry_files](docs/develop/harness/entry_files.md)。
 
 ## 改/建 skill
 
