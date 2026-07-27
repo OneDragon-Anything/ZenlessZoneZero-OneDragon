@@ -206,6 +206,7 @@ class LostVoidBangbooStore(ZOperation):
                                                  until_not_find_all=[('迷失之地-邦布商店', '按钮-购买-确认')])
 
     @node_from(from_name='点击确认')
+    @node_from(from_name='点击确认', success=False)  # 小概率购买按钮会没点着
     @operation_node(name='确认后处理')
     def after_confirm(self) -> OperationRoundResult:
         """
