@@ -298,6 +298,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='点单')
     @node_from(from_name='不占用点单确认')
+    @node_from(from_name='对话选咖啡', status='点单后跳过')  # 片刻闲首次点单后的动画可在此跳过
     @operation_node(name='点单后跳过')
     def skip_after_order(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -341,6 +342,8 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
             self.had_coffee_list.add(result.status)
+            if self.config.transport_point == CoffeeTransportPoint.POINT_3.value.value:
+                return self.round_success(status='点单后跳过', wait=1)
             return self.round_success(status='已点单', wait=1)
 
         # 没有命中候选咖啡时说明当前是纯对话框，识别并点击标题推进，不依赖具体台词
