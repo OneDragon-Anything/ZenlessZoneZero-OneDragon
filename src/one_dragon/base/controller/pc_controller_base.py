@@ -108,6 +108,14 @@ class PcControllerBase(ControllerBase):
         """
         self.game_win.update_win_title(new_title)
 
+    def set_window_hwnd(self, hwnd: int) -> None:
+        """设置业务层已经确认的游戏窗口句柄。
+
+        Args:
+            hwnd: 业务层已经确认的窗口句柄。
+        """
+        self.game_win.update_hwnd(hwnd)
+
     def enable_xbox(self):
         if pc_button_utils.is_vgamepad_installed():
             if self.xbox_controller is None:

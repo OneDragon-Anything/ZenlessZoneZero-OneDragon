@@ -21,7 +21,7 @@ class PcGameWindow:
         self.standard_game_rect: Rect = Rect(0, 0, standard_width, standard_height)
 
         self._win: Win32Window | None = None
-        self._hWnd = None
+        self._hWnd: int | None = None
 
     def _clear_cached_window(self) -> None:
         self._win = None
@@ -53,6 +53,16 @@ class PcGameWindow:
         if self.win_title != new_title:
             self.win_title = new_title
             self._clear_cached_window()
+
+    def update_hwnd(self, hwnd: int) -> None:
+        """使用业务层选定的窗口句柄更新窗口缓存。
+
+        Args:
+            hwnd: 业务层已经确认的窗口句柄。
+        """
+        win = Win32Window(hwnd)
+        self._win = win
+        self._hWnd = hwnd
 
     def refresh_win(self) -> None:
         self._clear_cached_window()
