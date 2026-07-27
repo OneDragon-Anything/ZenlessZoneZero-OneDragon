@@ -141,6 +141,14 @@ node 返回的 `OperationRoundResult` 类型决定 `is_success`,写断言前**�
 - **OCR/area 检测目标**:node 的 `round_by_ocr('X')` / `round_by_find_and_click_area(screen, area)` 检测的是**哪种画面的什么元素** —— 决定 mock 哪帧。
 - **失败别急着归因绕过**:测试失败先回 node 代码确认检测目标,别直接「OCR 不到 → 换图绕过」。⚠️ **注意 LCS 误匹配**:mock 帧里若含与 target 部分相似的文字(如入口「游历」tab vs target「游历小队」),LCS 会误命中——换个不含干扰文字的帧(范例:`test_click_squad_team_miss` 用「制造坊」而非「入口」)。
 
+### 多分支用例:参数化 vs 独立方法(按逻辑同质性)
+
+一个节点的多个分支,按**分支逻辑是否同质**选写法(pytest 行业惯例,旧约定非教条):
+- **逻辑同质**(同一套 mock → 调节点 → 断言,只输入/期望不同)→ **参数化** `@pytest.mark.parametrize` + 数据表;每行一个分支,带 `ids=` 让失败用例名可读。例:某节点按标题 OCR 分多个子态,识别逻辑一样、只是标题 + 期望标志不同 → 一张表搞定(同质硬拆独立方法反而是反模式)。
+- **逻辑异质**(断言类型不同 `is_success` vs `status` / 搭建不同 / 改 config / mock 子 op)→ **独立方法** `test_<场景>_<分支>`,每个方法断言自己的返回。
+
+「每个分支一个单测」:参数化每行 / 独立方法每个,都算一个单测,两种都满足。下方「薄包装节点:命中/不命中」是**异质**例子(命中看 `is_success`、不命中看 `status` → 拆独立方法);同质多分支用参数化。
+
 ### 薄包装节点:mock 命中 / 不命中两帧
 
 薄包装节点(`return self.round_by_X(...)`)按 helper 契约(§3 动作一)mock 两种帧:
