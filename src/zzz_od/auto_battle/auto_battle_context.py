@@ -551,6 +551,9 @@ class AutoBattleContext:
         """
         in_battle = self.is_normal_attack_btn_available(screen)
         self.last_check_in_battle = in_battle
+        if in_battle:
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
 
         future_list: list[Future] = []
 
