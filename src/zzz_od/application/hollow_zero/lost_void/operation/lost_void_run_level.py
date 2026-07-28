@@ -241,6 +241,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='战斗中', status='识别需移动交互')  # 战斗后出现距离 或者下层入口
     @node_from(from_name='尝试交互', success=False)  # 没能交互到
     @node_from(from_name='更新优先级')  # 更新优先级后
+    @node_from(from_name='追加代理人类型优先级', status='非战斗区域')
     @operation_node(name='非战斗画面识别', timeout_seconds=180)
     def non_battle_check(self) -> OperationRoundResult:
         # 不在大世界处理
