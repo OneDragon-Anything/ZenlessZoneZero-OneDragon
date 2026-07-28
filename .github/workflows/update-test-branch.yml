@@ -204,8 +204,8 @@ jobs:
           fi
 
           {
-            printf '[测试] %s (#%s)\n\nSquashed from #%s (%s) by update-test-branch workflow.\n' \
-              "$title" "$pr" "$pr" "$head_sha"
+            printf '[测试] %s\n\nSquashed from PR: https://github.com/%s/pull/%s (%s) by update-test-branch workflow.\n' \
+              "$title" "$GITHUB_REPOSITORY" "$pr" "$head_sha"
             if [ "${#authors[@]}" -gt 1 ]; then
               printf '\n'
               for a in "${authors[@]}"; do
