@@ -159,7 +159,7 @@ jobs:
 
                   related_prs="$(
                     git log --format='%B' "origin/main..HEAD" -- "$path" |
-                      sed -nE 's/^Squashed from #([0-9]+) .*/\1/p' |
+                      sed -nE 's#^Squashed from PR: https://github.com/[^/]+/[^/]+/pull/([0-9]+) .*#\1#p' |
                       sort -nu |
                       awk 'NF { printf "%s#%s", separator, $0; separator = ", " }'
                   )"
