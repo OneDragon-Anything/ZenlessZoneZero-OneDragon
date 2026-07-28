@@ -89,6 +89,8 @@ jobs:
         applied=()
         conflicted=()
         skipped=()
+        conflict_report="$RUNNER_TEMP/test-branch-conflicts.md"
+        : > "$conflict_report"
 
         normalize_line() {
           printf '%s' "$1" | tr '\r\n' '  '
@@ -112,7 +114,62 @@ jobs:
           head_sha="$(git rev-parse --short "refs/remotes/pr/$pr")"
 
           if ! git merge --squash "refs/remotes/pr/$pr"; then
-            # --squash 冲突时没有 MERGE_HEAD,只能靠 reset 清场
+            # reset 前保留冲突现场；--squash 冲突时没有 MERGE_HEAD
+            mapfile -t conflict_files < <(git diff --name-only --diff-filter=U)
+            if git merge-tree --write-tree origin/main "refs/remotes/pr/$pr" >/dev/null 2>&1; then
+              conflicts_with_main=false
+            else
+              conflicts_with_main=true
+            fi
+
+            {
+              if [ "$conflicts_with_main" = true ]; then
+                printf '### PR #%s 与 main 冲突\n\n' "$pr"
+                echo '当前 PR 单独合入 `main` 已有冲突；若冲突文件也被此前 PR 修改，下表会列出相关 PR。'
+              else
+                printf '### PR #%s 与此前已合入 PR 冲突\n\n' "$pr"
+                echo '当前 PR 单独合入 `main` 无冲突，因此冲突来自当前 `test` 基线中此前已合入的 PR。'
+              fi
+              echo
+              echo '| 文件 | 冲突行号 | 相关已合入 PR |'
+              echo '| --- | --- | --- |'
+              if [ "${#conflict_files[@]}" -eq 0 ]; then
+                echo '| 未能从 Git index 读取冲突文件 | 行号不可用 | 未定位 |'
+              else
+                for path in "${conflict_files[@]}"; do
+                  conflict_lines=""
+                  if [ -f "$path" ]; then
+                    conflict_lines="$(awk '
+                      /^<<<<<<< / { start = NR }
+                      /^>>>>>>> / && start > 0 {
+                        if (ranges != "") ranges = ranges ", "
+                        ranges = ranges start "-" NR
+                        start = 0
+                      }
+                      END {
+                        if (start > 0) {
+                          if (ranges != "") ranges = ranges ", "
+                          ranges = ranges start "-" NR
+                        }
+                        print ranges
+                      }
+                    ' "$path")"
+                  fi
+                  [ -n "$conflict_lines" ] || conflict_lines="文件级冲突（无行号）"
+
+                  related_prs="$(
+                    git log --format='%B' "origin/main..HEAD" -- "$path" |
+                      sed -nE 's/^Squashed from #([0-9]+) .*/\1/p' |
+                      sort -nu |
+                      awk 'NF { printf "%s#%s", separator, $0; separator = ", " }'
+                  )"
+                  [ -n "$related_prs" ] || related_prs="无"
+                  printf '| `%s` | %s | %s |\n' "$path" "$conflict_lines" "$related_prs"
+                done
+              fi
+              echo
+            } >> "$conflict_report"
+
             git reset --hard HEAD
             git clean -fd
             conflicted+=("$pr|$title")
@@ -147,7 +204,7 @@ jobs:
           fi
 
           {
-            printf '%s (#%s)\n\nSquashed from #%s (%s) by update-test-branch workflow.\n' \
+            printf '[测试] %s (#%s)\n\nSquashed from #%s (%s) by update-test-branch workflow.\n' \
               "$title" "$pr" "$pr" "$head_sha"
             if [ "${#authors[@]}" -gt 1 ]; then
               printf '\n'
@@ -165,6 +222,10 @@ jobs:
             echo
             echo "PR 已按顺序处理完,但 \`git push --force origin test\` 被拒绝,\`test\` 分支**未更新**。"
             echo "请检查 \`test\` 分支的保护规则是否禁止强制推送。"
+            if [ -s "$conflict_report" ]; then
+              echo
+              cat "$conflict_report"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
@@ -202,11 +263,13 @@ jobs:
             echo
             echo "### 冲突跳过(${#conflicted[@]})"
             echo
-            echo "> 已打上 \`$CONFLICT_LABEL\` 标签,需作者 rebase 到最新 \`main\` 后重跑。"
+            echo "> 已打上 \`$CONFLICT_LABEL\` 标签，请根据下方冲突关系处理后重跑。"
             echo
             for item in "${conflicted[@]}"; do
               echo "- #${item%%|*} ${item#*|}"
             done
+            echo
+            cat "$conflict_report"
           fi
           if [ "${#skipped[@]}" -gt 0 ]; then
             echo
