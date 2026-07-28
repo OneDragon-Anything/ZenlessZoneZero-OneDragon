@@ -27,10 +27,18 @@ class ScreenInfo:
                 area_name=data_area.get('area_name', ''),
                 pc_rect=Rect(pc_rect[0], pc_rect[1], pc_rect[2], pc_rect[3]),
                 text=data_area.get('text', ''),
-                lcs_percent=data_area.get('lcs_percent', 0.5),
+                lcs_percent=(
+                    data_area.get('lcs_percent')
+                    if data_area.get('lcs_percent') is not None
+                    else 0.5
+                ),
                 template_id=data_area.get('template_id', ''),
                 template_sub_dir=data_area.get('template_sub_dir', ''),
-                template_match_threshold=data_area.get('template_match_threshold', 0.7),
+                template_match_threshold=(
+                    data_area.get('template_match_threshold')
+                    if data_area.get('template_match_threshold') is not None
+                    else 0.7
+                ),
                 color_range=data_area.get('color_range'),
                 pc_alt=self.pc_alt,
                 id_mark=data_area.get('id_mark', False),

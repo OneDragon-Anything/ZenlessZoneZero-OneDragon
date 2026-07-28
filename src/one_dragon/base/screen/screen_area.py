@@ -121,7 +121,7 @@ class ScreenArea:
             order_dict['template_id'] = self.template_id
         if self.template_match_threshold != 0.7:
             order_dict['template_match_threshold'] = self.template_match_threshold
-        if self.color_range is not None:
+        if self.color_range:
             order_dict['color_range'] = self.color_range
         if self.goto_list:
             order_dict['goto_list'] = self.goto_list
