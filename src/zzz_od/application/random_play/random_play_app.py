@@ -128,6 +128,7 @@ class RandomPlayApp(ZApplication):
         return self.round_retry(status='等待营业状态', wait=1)
 
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
+    @node_from(from_name='点击宣传员入口', success=False)
     @operation_node(name='关闭经营页面')
     def close_business_page(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
