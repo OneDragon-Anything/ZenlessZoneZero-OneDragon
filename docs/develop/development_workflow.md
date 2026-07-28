@@ -43,7 +43,7 @@
 2. 主仓开 PR,**描述里带上测试仓 PR 链接**(reviewer 可跳转看测试改动);主仓与测试仓用**同分支名**(CI 按分支名 clone 测试仓)。
 3. assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review(逐条回复 / 修正、清 unresolved thread、处理 CodeRabbit);**关联 PR 一起收尾、合并顺序(测试仓先)见该 skill §6**。
 
-> **想让 PR 合并前先进 `test` 分支给人试用**:给 PR 打 `test-branch` 标签即可。CI 每天(也可手动触发)基于最新 `main` 把带该标签的 open PR 按 PR 号升序 squash 重建 `test` 并强制推送;有冲突的 PR 自动跳过并打上 `test-conflict` 标签,rebase 到最新 `main` 后下次会自动重试。squash 出来的提交**保留原作者**(committer 是 bot)。手动触发时可填 PR 列表临时覆盖标签(按填写顺序合入)。见 [update-test-branch.yml](../../.github/workflows/update-test-branch.yml)。
+> **想让 PR 合并前进入 `test` 分支给人试用**:为 PR 添加 `test-branch` 标签,或手动触发 [Update Test Branch](../../.github/workflows/update-test-branch.yml) 并填写 PR 列表。
 
 ### 5. 配套产出(按需)
 

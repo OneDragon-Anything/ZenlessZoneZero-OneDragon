@@ -90,6 +90,10 @@ jobs:
         conflicted=()
         skipped=()
 
+        normalize_line() {
+          printf '%s' "$1" | tr '\r\n' '  '
+        }
+
         for pr in $PRS; do
           # PR 号写错 / 已删除时 gh 会非 0 退出,兜住它,让这个 PR 跳过而不是中断整个 job
           state="$(gh pr view "$pr" --json state --jq .state 2>/dev/null || true)"
@@ -99,6 +103,7 @@ jobs:
           fi
 
           title="$(gh pr view "$pr" --json title --jq .title)"
+          title="$(normalize_line "$title")"
 
           if ! git fetch origin "refs/pull/$pr/head:refs/remotes/pr/$pr" --force; then
             skipped+=("$pr|拉取 PR 分支失败")
@@ -122,15 +127,18 @@ jobs:
           # 保留原作者(committer 仍是 bot,因为 squash 动作是 CI 做的)
           # 单作者 PR 直接用其提交里的真实署名;多作者 PR 归给 PR 发起人,其余进 Co-authored-by
           # --reverse:按提交先后排,兜底时取到的是 PR 第一个提交的作者
-          mapfile -t authors < <(git log --reverse --format='%aN <%aE>' "origin/main..refs/remotes/pr/$pr" | awk 'NF && !seen[$0]++')
+          mapfile -t authors < <(git log --reverse --format='%aN <%aE>' "origin/main..refs/remotes/pr/$pr" | while IFS= read -r a; do normalize_line "$a"; printf '\n'; done | awk 'NF && !seen[$0]++')
           if [ "${#authors[@]}" -eq 1 ]; then
             author="${authors[0]}"
           else
             login="$(gh pr view "$pr" --json author --jq .author.login)"
+            login="$(normalize_line "$login")"
             # GitHub 自己 squash 时用的就是 <id>+<login>@users.noreply.github.com,能正确计入贡献
             user_info="$(gh api "users/$login" --jq '[.id, (.name // .login)] | @tsv' 2>/dev/null || true)"
             uid="$(printf '%s' "$user_info" | cut -f1)"
             uname="$(printf '%s' "$user_info" | cut -f2)"
+            uid="$(normalize_line "$uid")"
+            uname="$(normalize_line "$uname")"
             if [ -n "$uid" ]; then
               author="$uname <$uid+$login@users.noreply.github.com>"
             else
