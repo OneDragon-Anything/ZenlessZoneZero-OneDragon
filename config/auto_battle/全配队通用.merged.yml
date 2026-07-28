@@ -11794,7 +11794,7 @@
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
-          "states": ""
+          "states": "[按键可用-普通攻击]"
     - "debug_name": "失衡被琉音延长了"
       "operations":
       - "op_name": "设置状态"
@@ -22377,7 +22377,7 @@
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
-        "states": ""
+        "states": "[按键可用-普通攻击]"
   "interval": 0.02
   "priority": 9
   "triggers": []
