@@ -72,7 +72,6 @@ class ScreenshotMethodEnum(Enum):
     AUTO = ConfigItem('自动', 'auto')
     PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
     BITBLT = ConfigItem('BitBlt', 'bitblt')
-    MSS = ConfigItem('MSS', 'mss')
     PIL = ConfigItem('PIL', 'pil')
 
 
