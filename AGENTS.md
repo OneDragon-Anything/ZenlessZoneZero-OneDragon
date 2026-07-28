@@ -55,7 +55,13 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 
 ## 开发流程（端到端）
 
-游戏自动化功能的开发链路(bug 修复 / 性能 / UI 等其他类型后续补充,详细判据见 [development_workflow.md](docs/develop/development_workflow.md)):
+**涉及游戏流程的改动(新功能 / debug / 修 bug)—— 先理解玩法 + 画面,再动手;知识缺失主动补档**:
+- 先读 gameplay(玩法机制)+ screen(画面)doc + screen_info + 相关代码,弄清「自动化当前走到哪个画面、按什么玩法逻辑走」。
+- 知识缺失 / 过期(没建档、doc 陈旧、screen_info 没该画面)→ 主动按 skill 补档(画面 `zzz-od-dev-screen-onboarding`、玩法 `zzz-od-dev-gameplay-onboarding`),别凭猜改。
+- 判据:改动碰自动化与游戏的交互 / 游戏机制 → 适用;纯代码改动(重构 / 性能 / UI / 基建)不适用。详细判据见 [development_workflow.md](docs/develop/development_workflow.md)。
+- 为什么:不理解就改 → 只覆盖一种情况、漏另一种 → 回归(battle_fail rect 教训)。
+
+游戏自动化功能的开发链路(涉及游戏流程的 bug 修复 / debug 也走这流程;纯代码改动不强制):
 
 1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。功能知识按**四文档分工**(gameplay 玩法 / mechanics 通用机制 / screen 画面 / develop application 自动化,见 [doc_organization.md](docs/develop/harness/doc_organization.md))。
 2. **开发**:做成 `Application`(`ApplicationFactory` 接入)+ `Operation`,复用现有配置 / 界面模式(架构细则见上方「功能开发优先路径」)。
