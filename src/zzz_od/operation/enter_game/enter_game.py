@@ -71,9 +71,7 @@ class EnterGame(ZOperation):
         self.resource_download_start_time = None
         self.interact_ignore_word_list.clear()
 
-    # B服登录时采用BitBlt截图
-    @operation_node(name='设置截图方式', is_start_node=True)
-    def modify_screenshot_func(self) -> OperationRoundResult:
+        # B服登录时采用BitBlt截图
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
             log.info('检测到B服登录, 使用Bitblt截图方式')
             self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
@@ -87,7 +85,7 @@ class EnterGame(ZOperation):
     @node_from(from_name='点击进入游戏', status=STATUS_GAME_DATA_UPDATED)
     @node_from(from_name='点击进入游戏', status='切换账号确定')
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
-    @operation_node(name='画面识别', node_max_retry_times=60)
+    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
         # self.screenshot()
         # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
