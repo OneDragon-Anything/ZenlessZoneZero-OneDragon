@@ -1,0 +1,12 @@
+sub_dir: agent_state
+template_id: remielle_voidflare_2_2
+template_name: 角色状态-蕾米埃尔-虚曜-22
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 628, 104
+- 629, 106
+- 638, 104
+- 639, 106
+- 647, 104
+- 648, 106

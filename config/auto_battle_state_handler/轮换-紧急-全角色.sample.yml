@@ -237,6 +237,13 @@ handlers:
                       - operation_template: "千夏-终结技"
 
 
+              # 蕾米埃尔虚曜满点切入，后续由速切模板先长按普攻再长按强化特殊技
+              - states: "[蕾米埃尔-虚曜]{3,3} & ![前台-蕾米埃尔]"
+                debug_name: "蕾米埃尔虚曜满点切入"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "蕾米埃尔"
+
               # 维琳娜能量切入
               - states: "[维琳娜-风华]{85,135}"
                 debug_name: "维琳娜切入"
@@ -246,7 +253,14 @@ handlers:
                     agent_name: "维琳娜"
                   - operation_template: "维琳娜-长按普攻"
 
-              - states: "[维琳娜-特殊技可用] & [维琳娜-风华]{0,85}"
+              - states: "[维琳娜-能量]{90, 150}"
+                debug_name: "强化特殊技"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "维琳娜"
+                  - operation_template: "维琳娜-强化特殊技"
+
+              - states: "[维琳娜-能量]{45, 150} & [维琳娜-风华]{40,135}"
                 debug_name: "强化特殊技"
                 operations:
                   - op_name: "按键-切换角色"

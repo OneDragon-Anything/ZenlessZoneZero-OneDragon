@@ -1,0 +1,66 @@
+handlers:
+  - states: "[前台-蕾米埃尔]"
+    debug_name: "前台：蕾米埃尔"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-蕾米埃尔]"
+    sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        debug_name: "强制终结技"
+        operations:
+          - operation_template: "蕾米埃尔-终结技"
+
+      - states: "[自定义-黄光切人, 0, 1]"
+        debug_name: "黄光切人：设置保护"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-动作不打断", "自定义-无视闪光"]
+            seconds: 10
+          - operation_template: "通用-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        debug_name: "红光闪避"
+        operations:
+          - operation_template: "通用-闪A"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        debug_name: "连携换人：设置保护"
+        operations:
+          - operation_template: "蕾米埃尔-连携攻击"
+
+      - states: "([按键-切换角色-下一个, 0, 0.3] | [按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "普通切人：设置保护并等待"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-动作不打断", "自定义-无视闪光"]
+            seconds: 10
+          - op_name: "等待秒数"
+            seconds: 0.3
+
+      - states: "[蕾米埃尔-终结技可用]"
+        debug_name: "释放终结技"
+        operations:
+          - operation_template: "蕾米埃尔-终结技"
+
+      - states: "[蕾米埃尔-虚曜]{3,3}"
+        interrupt_states: "[蕾米埃尔-虚曜]{0,0}"
+        debug_name: "长按普攻"
+        operations:
+          - operation_template: "蕾米埃尔-长按普攻"
+
+      - states: "[按键可用-快速支援]"
+        debug_name: "等待快速支援出现"
+        operations:
+          - op_name: "清除状态"
+            state_list: ["自定义-动作不打断", "自定义-无视闪光", "自定义-蕾米埃尔-长按强化特殊技"]
+          - op_name: "按键-快速支援"
+
+      - states: "[蕾米埃尔-浮晖]{100,100}"
+        interrupt_states: "[按键可用-快速支援]"
+        debug_name: "长按强化特殊技"
+        operations:
+          - operation_template: "蕾米埃尔-长按强化特殊技"
+
+      - states: ""
+        interrupt_states: "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
+        debug_name: "其他情况：普通攻击"
+        operations:
+          - operation_template: "蕾米埃尔-普通攻击"
