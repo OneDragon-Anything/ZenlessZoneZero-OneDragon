@@ -95,7 +95,7 @@ class WitheredDomainApp(ZApplication):
     def tp(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,
                                    '作战',
-                                   '周期征讨',
+                                   '零号空洞',
                                    '迷失之地')
         return self.round_by_op_result(op.execute())
 

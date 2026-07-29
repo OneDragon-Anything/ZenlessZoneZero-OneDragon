@@ -20,6 +20,7 @@ class TransportByCompendium(ZOperation):
         使用快捷手册传送 最后不会等待加载完毕
         :param ctx:
         """
+        category_name = ctx.compendium_service.resolve_category_name(tab_name, category_name)
         ZOperation.__init__(
             self, ctx,
             op_name='{} {} {}-{}-{}'.format(
