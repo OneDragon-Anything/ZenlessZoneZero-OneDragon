@@ -31,12 +31,12 @@ handlers:
                 seconds: 0.1
 
       # 终结技时刻，需要注意出场第一秒可能识别错误
-      - states: "[简-终结技可用] & [简-狂热心流]{0, 10}"
+      - states: "[简-终结技可用] & [简-狂热心流]{0, 30}"
         operations:
           - operation_template: "简-终结技"
 
       # 朴实无华
-      - states: "[简-特殊技可用] & [简-狂热心流]{10, 101}"
+      - states: "[简-特殊技可用] & [简-狂热心流]{30, 101}"
         operations:
           - operation_template: "简-强化特殊攻击"
 
