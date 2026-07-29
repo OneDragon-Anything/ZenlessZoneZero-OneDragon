@@ -7166,10 +7166,10 @@
   - area_name: 小地图
     id_mark: false
     pc_rect:
-    - 1554
-    - 200
-    - 1764
-    - 410
+    - 1534
+    - 201
+    - 1744
+    - 411
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
