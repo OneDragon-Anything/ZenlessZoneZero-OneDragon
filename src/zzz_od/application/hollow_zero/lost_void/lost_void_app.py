@@ -110,20 +110,27 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别初始画面', status='可前往快捷手册')
     @node_from(from_name='识别初始画面', status=Operation.STATUS_SCREEN_UNKNOWN)
     @node_from(from_name='识别初始画面', status='未识别初始画面')
-    @operation_node(name='前往迷失之地-入口')
+    @operation_node(name='前往零号空洞-入口')
     def tp_to_lost_void(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,
                                    '作战',
-                                   '零号空洞',
+                                   '周期征讨',
                                    '迷失之地')
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别初始画面', status='可前往副本画面')
-    @node_from(from_name='前往迷失之地-入口')
-    @operation_node(name='开始前等待入口加载')
-    def wait_lost_void_entry(self) -> OperationRoundResult:
-        """等待迷失之地入口加载。"""
-        return self._wait_for_lost_void_entry()
+    @node_from(from_name='前往零号空洞-入口')
+    @operation_node(name='前往迷失之地-入口', node_max_retry_times=20)
+    def choose_lost_void_entry(self) -> OperationRoundResult:
+        """前往迷失之地入口"""
+        result = self.round_by_ocr_and_click(self.last_screenshot, '迷失之地')
+        if result.is_success:
+            return self.round_retry('尝试进入迷失之地-入口', wait=1)
+
+        if result.status == '找不到 迷失之地':
+            return self._wait_for_lost_void_entry()
+
+        return self.round_retry(result.status, wait=1)
 
     def _wait_for_lost_void_entry(self) -> OperationRoundResult:
         """等待迷失之地入口加载完成。"""
@@ -137,7 +144,7 @@ class LostVoidApp(ZApplication):
             return self.round_wait(status='等待画面加载', wait=1)
         return self.round_success(status=screen_name)
 
-    @node_from(from_name='开始前等待入口加载')
+    @node_from(from_name='前往迷失之地-入口')
     @node_from(from_name='通关后处理')
     @node_notify(when=NotifyTiming.CURRENT_DONE, send_image=False, detail=True)
     @operation_node(name='识别悬赏委托完成进度')

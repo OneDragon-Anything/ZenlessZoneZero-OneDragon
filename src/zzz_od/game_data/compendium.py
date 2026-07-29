@@ -334,7 +334,7 @@ class CompendiumService:
         :return:
         """
         mission_name_list: list[str] = []
-        mission_list = self.get_mission_list_data('作战', '零号空洞', '迷失之地')
+        mission_list = self.get_mission_list_data('作战', '周期征讨', '迷失之地')
         for mission in mission_list:
             mission_name_list.append(mission.mission_name_display)
         return mission_name_list
