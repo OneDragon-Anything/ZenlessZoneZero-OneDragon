@@ -4,11 +4,11 @@
 
 ## 游戏知识库生态
 归档截图不是孤立的——它是 screen-onboarding 流程的产物之一,与以下配套:
-- **画面文档** `docs/game/screens/<screen>.md` —— 子态/特征/可交互元素/识别快照;frontmatter `source_image: _<id>` 溯源原始截图。
+- **画面文档** `docs/game/screens/<screen>.md` —— 子态/特征/可交互元素/识别快照;frontmatter `source_image: screens/<screen>/<state>.webp` 指向测试仓归档图(同时是测试 fixture 入口)。
 - **screen_info** `assets/game_data/screen_info/<screen>.yml` —— area 定义(template/text,匹配用)。
 - **截图存档** `zzz-od-test/screens/<screen>/<state>.webp` —— 归档代表截图(测试 fixture,webp 版)。
 
-三者从同一张截图产出。`source_image` id(`.debug/images/`)用于文档溯源;`screens/` 可读名用于测试取图(`test_context.mock_screen('打开游戏', 'ready')`,API 见 [testing/README](../testing/README.md))。
+三者从同一张截图产出。`source_image` 写测试仓归档 webp 路径(`screens/<screen>/<state>.webp`),既是文档溯源、也是测试取图入口(`test_context.mock_screen('打开游戏', 'ready')`,API 见 [testing/README](../testing/README.md))—— 归档 webp 接近全图,需要原始 PNG 时直接重截,不另存本地溯源。
 
 ## 结构
 `zzz-od-test/screens/<screen_name>/<state>.webp`,镜像 `docs/game/screens/`:
@@ -30,7 +30,7 @@ screens/
 1. **抓图**:MCP `capture_game_screen` 或真机截图。
 2. **转 webp q90**:`cv2.imencode('.webp', img, [cv2.IMWRITE_WEBP_QUALITY, 90])` + `ndarray.tofile(path)`(**非 `cv2.imwrite`**——Windows 中文路径会挂;`cv2_utils.read_image`/`save_image` 已兼容)。
 3. **放**:`zzz-od-test/screens/<screen_name>/<state>.webp`。
-4. **更新溯源**:`docs/game/screens/<screen>.md` frontmatter `source_image` + `zzz-od-test/screens/README.md` 索引。
+4. **更新溯源**:`docs/game/screens/<screen>.md` frontmatter + 多子态画面各子态标题的 `source_image` 都写测试仓归档路径 `screens/<screen>/<state>.webp` + `zzz-od-test/screens/README.md` 索引。
 
 ## 已归档 / 待补
 见 `zzz-od-test/screens/README.md`。

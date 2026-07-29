@@ -176,7 +176,7 @@ class PythonService:
 
         lock_path = Path(os_utils.get_work_dir()) / 'uv.lock'
         if not lock_path.is_file():
-            return False, gt('找不到 uv.lock，无法同步运行依赖')
+            return False, gt('找不到 uv.lock，无法同步运行环境')
 
         try:
             lock_content = lock_path.read_bytes()
@@ -201,9 +201,9 @@ class PythonService:
                 log.error('恢复 uv.lock 失败', exc_info=True)
 
         if not self._uv_runtime_environment_synced():
-            return False, gt('运行依赖同步失败')
+            return False, gt('运行环境同步失败')
 
-        return True, gt('运行依赖同步完成')
+        return True, gt('运行环境同步完成')
 
     def uv_check_sync_status(
         self,

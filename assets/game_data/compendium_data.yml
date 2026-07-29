@@ -142,6 +142,8 @@
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
+    - category_name: "合成电池"
+
 - tab_name: "作战"
   category_list:
     - category_name: "零号空洞"

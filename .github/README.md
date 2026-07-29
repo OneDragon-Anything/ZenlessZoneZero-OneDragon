@@ -99,7 +99,7 @@ __ZenlessZoneZero-OneDragon__
 👨‍👨‍👦‍👦 玩家社群
 > 闲聊吹水 | 趣闻互动 | 交流同好 | 晒卡吸欧
 >
-> 见频道关联群聊，入群前先对该项目点个 ⭐star，入群后需校验你的 Github 账号的 username
+> 见频道关联群聊，入群前先对该项目点个 ⭐star，入群问题的项目仓库的答案为ZenlessZoneZero-OneDragon，入群后需校验你的 Github 账号的 username
 >
 > 提示：推荐 GitHub 用户加入，并注意 username 和 Name 的区别，请遵守群规，友善交流
 

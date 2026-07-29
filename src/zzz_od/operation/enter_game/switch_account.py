@@ -21,6 +21,8 @@ class SwitchAccount(ZOperation):
 
     @operation_node(name='打开菜单', is_start_node=True)
     def open_menu(self) -> OperationRoundResult:
+        if not self.ctx.game_account_config.has_login_info:
+            log.warning('多账户切换未配置完整登录信息，后续登录可能失败')
         return self.round_by_goto_screen(screen_name='菜单')
 
     @node_from(from_name='打开菜单')

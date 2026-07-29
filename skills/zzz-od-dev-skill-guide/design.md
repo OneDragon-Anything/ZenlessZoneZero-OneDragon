@@ -6,9 +6,9 @@
 **为什么是 skill 而非 docs**:skill 触发时自动注入执行上下文(主动),docs 要记得翻(被动);写 skill 的规范本身也该在「要写 skill 时」被主动注入,故做成 skill。
 
 ## 4 条硬规范的决策理由
-1. **design.md 必需**:防后续修改者不懂当初决策、盲目改动。决策记「为什么」才有指导意义。
+1. **design.md 必需**:防后续修改者不懂当初决策、盲目改动。决策记「为什么」才有指导意义。**design.md 是维护者存档,不进智能体执行上下文** —— 故 SKILL.md 不应「见 design.md」让智能体读它获取使用信息(命令 / 参数 / 接口);使用信息内联 SKILL.md 或放 skill 内其他辅助文件(脚本 / `api_reference.md`)。论据:#2300 review 时 screen-onboarding SKILL.md 写「转换工具见 design.md」,AI 漏读 design.md、手写了重复转换脚本;`zzz-od-miyoushe` SKILL.md「端点 / 参数 / 过期算法见 design.md」同理违反(待修)。design.md 只给维护者,不给执行。
 2. **给智能体看(指令式)**:skill 正文注入智能体上下文执行,指令式有效、文档式无效。description 只写触发(不写流程),否则智能体照 description 走、不读正文(writing-skills 的 SDO 实测结论)。
-3. **自包含(可引 skill,不引文件)**:skill 独立发布;被引 skill 使用者同时具备即可;docs/ 等文件发布不含、目标环境可能没有 → 禁。引用 skill 用**完整标识符含命名空间**,裸名可能解析不到。边界取窄义(只禁文件,不禁 skill 引用)。
+3. **自包含(分场景:独立发布 vs 项目内)**:skill 独立发布时,被引 skill 使用者同时具备即可;docs/代码等文件发布不含、目标环境可能没有 → 禁。但**项目内 dev skill**(放项目 `skills/`,跟项目走、不独立发布)可引用项目 **runtime 资产路径**(skill 要读/写的操作对象:screen_info / application 源码 / docs/game,本项目必有、稳定);具体代码文件 / 实现行 / 易变文档(如 `devtools_xxx` L640、「详见某 README」)仍抽象化。判据:**操作资产路径可引(稳定),佐证性代码/文档位置抽象(易变)**。引用 skill 用完整标识符含命名空间。
 4. **方法论非例子(限 SKILL.md 与智能体读的辅助文件)**:具体例子以偏概全 —— 智能体会把例子偶然细节当必然规则;抽象成判据才跨场景适用。范围限定 SKILL.md + 注入执行上下文的辅助文件;design.md 是维护者的设计记录,允许具体例子作论据。
 
 ## 落点决策
@@ -27,3 +27,15 @@
 
 ## 当前状态
 团队已统一采用 superpowers,本 skill 已 unignore 并提交(目录名 `zzz-od-dev-skill-guide`)。
+
+## 规范 3 补充:框架地基级接口名可写进 SKILL.md(2026-07 决策)
+
+**为什么补**:规范 3 原判据「skill 要读写的稳定操作对象可引、易变佐证位置抽象」其实已覆盖框架接口名,但「可引」清单只列了 screen_info / application 源码 / docs/game,没显式说「框架地基级接口名」也算 → CodeRabbit(及严格读者)会退化到规范 4「不写函数名」字面去报合规的引用。显式化后消除歧义。
+
+**判据两问**(也写进了 SKILL.md 规范 3):
+1. 删掉这名,智能体还会不会照做? —— 不会做 = 名是指令本身(debug / 排查类 skill 要搜 / 要调 / 要提醒的名)→ 倾向留。
+2. 这名稳不稳? —— 框架地基级、几乎不改名(整个节点系统靠它,改名 = 重写框架)→ 留;易变(某测试 API、具体行号)→ 挪 design.md。
+
+**写法**:留就写全名(`@operation_node`),全局搜能发现过期;别模糊化成「节点声明装饰器」—— 代码改名后静默指错、更危险。
+
+**踩坑**:PR #2575 CodeRabbit 按规范 4 字面,把 `zzz-od-dev-debug-automation` SKILL.md 里 `@operation_node` / `@node_from` / `analyze_screen` / `is_debug` / `save_screenshot` 5 个接口名当 Major 违规报;实际这 5 个都过规范 3 判据(指令本身 + 地基级稳定)→ 打回。此 PR 顺带把判据显式化进 skill-guide。
