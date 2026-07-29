@@ -77,7 +77,6 @@ class EnterGame(ZOperation):
             self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
         return self.round_success()
 
-    @node_from(from_name='设置截图方式')
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
     @node_from(from_name='B服新-选择登录过的账号')
