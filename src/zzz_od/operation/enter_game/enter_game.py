@@ -75,7 +75,6 @@ class EnterGame(ZOperation):
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
             log.info('检测到B服登录, 使用Bitblt截图方式')
             self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
-        return self.round_success()
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
