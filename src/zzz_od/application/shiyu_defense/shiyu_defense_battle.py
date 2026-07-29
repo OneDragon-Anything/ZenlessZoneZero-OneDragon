@@ -322,7 +322,7 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='战斗失败撤退')
     @operation_node(name='等待退出', node_max_retry_times=60)
     def wait_exit(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '战报')
 
         if result.is_success:
             if self.battle_fail is None:
