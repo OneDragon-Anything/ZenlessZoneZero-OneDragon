@@ -32,8 +32,13 @@ class EnterGame(ZOperation):
     MAX_LOADING_SECONDS: ClassVar[float] = 180
     MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
-    def __init__(self, ctx: ZContext, switch: bool = False):
-        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
+    def __init__(self, ctx: ZContext, switch: bool = False) -> None:
+        ZOperation.__init__(
+            self,
+            ctx,
+            op_name=gt('进入游戏'),
+            need_check_game_win=False,
+        )
 
         self.force_login: bool = (
             (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
@@ -45,14 +50,15 @@ class EnterGame(ZOperation):
         if switch:
             self.force_login = True
 
-        # 未配置登录信息时，无法主动切换账号，依赖游戏保存的登录状态直接进入
-        # switch=True 时前置流程已执行游戏内登出，不能跳过 force_login
         cfg = self.ctx.game_account_config
-        if not switch and self.force_login and not cfg.has_login_info:
+        if cfg.is_cloud_game:
+            self.force_login = False
+        elif not switch and self.force_login and not cfg.has_login_info:
+            # 未配置登录信息时，无法主动切换账号，依赖游戏保存的登录状态直接进入
             log.warning('登录信息未配置完整，跳过强制重新登录，将使用游戏当前登录状态')
             self.force_login = False
 
-        self.already_login: bool = False  # 是否已经提交账号登录
+        self.already_login: bool = cfg.is_cloud_game  # 是否已经提交账号登录
         self.after_first_enter_click: bool = False  # 是否已经完成第一次进入游戏点击
         self.after_second_enter_click: bool = False  # 是否已经完成加载配置后的第二次进入游戏点击
         self.resource_download_start_time: float | None = None  # 资源下载开始时间
@@ -60,9 +66,9 @@ class EnterGame(ZOperation):
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
 
-    def handle_init(self):
+    def handle_init(self) -> None:
         # 本OP会被复用 多次登录时重置这个记录
-        self.already_login = False
+        self.already_login = self.ctx.game_account_config.is_cloud_game
         self.after_first_enter_click = False
         self.after_second_enter_click = False
         self.resource_download_start_time = None
