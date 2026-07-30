@@ -36,8 +36,8 @@ class ChoosePredefinedTeam(ZOperation):
     SELECT_BUTTON_FEEDBACK_HALF_WIDTH: int = 160
     SELECT_BUTTON_FEEDBACK_HALF_HEIGHT: int = 120
     TEAM_SCROLL_STEP: int = 4
-    TEAM_SCROLL_AMOUNT: int = 2
-    TEAM_SCROLL_POSITION: Point = Point(960, 540)
+    TEAM_DRAG_START: Point = Point(300, 715)
+    TEAM_DRAG_END: Point = Point(300, 150)
     TEAM_COLUMN_COUNT: int = 2
     TEAM_ROW_COUNT: int = 3
     MAX_TEAM_COUNT: int = 20
@@ -383,7 +383,15 @@ class ChoosePredefinedTeam(ZOperation):
         return [mr.data for mr in filtered_mr_list]
 
     def _scroll_team_list(self, direction: int) -> None:
-        self.ctx.controller.scroll(
-            down=-direction * ChoosePredefinedTeam.TEAM_SCROLL_AMOUNT,
-            pos=ChoosePredefinedTeam.TEAM_SCROLL_POSITION,
-        )
+        if direction < 0:
+            self.ctx.controller.drag_to(
+                start=ChoosePredefinedTeam.TEAM_DRAG_START,
+                end=ChoosePredefinedTeam.TEAM_DRAG_END,
+                duration=0.5,
+            )
+        else:
+            self.ctx.controller.drag_to(
+                start=ChoosePredefinedTeam.TEAM_DRAG_END,
+                end=ChoosePredefinedTeam.TEAM_DRAG_START,
+                duration=0.5,
+            )
