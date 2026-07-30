@@ -352,7 +352,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         instance_settings_group.addSettingCard(self.force_login_opt)
 
         self.help_bilibili_opt = HelpCard(title='B服使用提示',
-                                          content='B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。')
+                                          content='B服在登录时会采用BitBlt的截图方法用于识别登录框，登录后还原。')
         instance_settings_group.addSettingCard(self.help_bilibili_opt)
 
         self.bilibili_account_name = TextSettingCard(
