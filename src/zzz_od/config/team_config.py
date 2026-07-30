@@ -77,7 +77,7 @@ class TeamConfig(YamlConfig):
             return
 
         team.name = team_name
-        team.agent_id_list = [member.agent_id for member in members]
+        team.agent_id_list = [member.agent_id for member in members[:3]]
         while len(team.agent_id_list) < 3:
             team.agent_id_list.append('unknown')
         self.update_team(team)
