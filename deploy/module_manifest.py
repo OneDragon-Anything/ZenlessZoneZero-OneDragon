@@ -48,6 +48,7 @@ if not getattr(sys, 'frozen', False):
     import signal
     import smtplib
     import soundcard
+    import stat
     import string
     import subprocess
     import sys
