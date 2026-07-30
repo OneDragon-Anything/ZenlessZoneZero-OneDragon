@@ -108,7 +108,19 @@ class ChoosePredefinedTeam(ZOperation):
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
         if not self.shiyu_team_selected:
-            if not self._scan_team_page(self.last_screenshot):
+            scan_finished = self._scan_team_page(self.last_screenshot)
+            log.info(
+                '预备编队扫描结果:完成:%s 已扫描:%d 当前页:%d',
+                scan_finished,
+                len(self.scanned_team_idx_list),
+                self.current_scroll_page,
+            )
+            if not scan_finished:
+                log.info(
+                    '预备编队扫描继续:向下拖动 页码:%d→%d',
+                    self.current_scroll_page,
+                    self.current_scroll_page + 1,
+                )
                 self._scroll_team_list(-1)
                 self.current_scroll_page += 1
                 return self.round_wait(
@@ -210,16 +222,36 @@ class ChoosePredefinedTeam(ZOperation):
                     ),
                 )
                 if team_name is None or team_name_mr is None:
+                    log.info(
+                        '预备编队扫描卡位:列:%d 行:%d 未识别队名',
+                        title_x,
+                        title_y,
+                    )
                     continue
                 if team_name in self.scanned_team_name_set:
+                    log.info(
+                        '预备编队扫描卡位:列:%d 行:%d 队名:%s 已扫描，跳过',
+                        title_x,
+                        title_y,
+                        team_name,
+                    )
                     continue
 
                 agent_list = self._recognize_team_agents(screen, team_name_mr)
+                log.info(
+                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d',
+                    title_x,
+                    title_y,
+                    team_name,
+                    len(agent_list),
+                )
                 if len(agent_list) == 0:
+                    log.info('预备编队扫描结束:队名:%s 三个代理人位均为空', team_name)
                     return True
 
                 team_idx = len(self.scanned_team_idx_list)
                 if team_idx >= self.MAX_TEAM_COUNT:
+                    log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                     return True
 
                 self.ctx.team_config.update_team_by_idx(team_idx, team_name, agent_list)
@@ -232,7 +264,11 @@ class ChoosePredefinedTeam(ZOperation):
                     [agent.agent_name for agent in agent_list],
                 )
 
-        return len(self.scanned_team_idx_list) >= self.MAX_TEAM_COUNT
+        scanned_count = len(self.scanned_team_idx_list)
+        scan_finished = scanned_count >= self.MAX_TEAM_COUNT
+        if scan_finished:
+            log.info('预备编队扫描结束:已扫描:%d', scanned_count)
+        return scan_finished
 
     def _select_shiyu_teams(self) -> bool:
         if self.shiyu_target_list is None:
