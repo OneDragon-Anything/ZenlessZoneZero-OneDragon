@@ -154,6 +154,22 @@ def coerce_dataclass_params(cls: type, args: dict) -> dict:
     return coerced
 
 
+def _doc_summary(cls: type) -> str:
+    """取 class 或其 ``__init__`` 的 docstring 用途摘要:去掉 ``:param``/``:return`` 等 Sphinx 标记块。
+
+    operation 的 ``__init__`` docstring 常含 ``:param ctx: 上下文`` 这类 Sphinx 标记,
+    原样透传给 MCP 消费者是噪音;只留标记块之前的用途描述。
+    """
+    doc = cls.__doc__ or cls.__init__.__doc__ or ''
+    if not doc:
+        return ''
+    for marker in (':param', ':return', ':arg', ':returns'):
+        idx = doc.find(marker)
+        if idx > 0:
+            doc = doc[:idx]
+    return doc.strip()
+
+
 def _reflect_params(cls: type) -> list[OperationParam]:
     """纯反射 ``cls.__init__`` 参数 schema(不实例化),剔除 self/ctx 与 *args/**kwargs。"""
     try:
@@ -323,7 +339,8 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         op_id: 定位标识。
 
     Returns:
-        含 op_id/class_name/module/description(优先 class docstring,回退 __init__ docstring)/
+        含 op_id/class_name/module/description(用途摘要,优先 class docstring 回退 __init__
+        docstring,已去 ``:param``/``:return`` 等 Sphinx 标记)/
         params(各 param 标 json_serializable)/debuggable 的字典。
     """
     cls = resolve_op_class(op_id)
@@ -336,7 +353,7 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         'op_id': op_id,
         'class_name': cls.__name__,
         'module': cls.__module__,
-        'description': (cls.__doc__ or cls.__init__.__doc__ or '').strip(),
+        'description': _doc_summary(cls),
         'params': [
             {
                 'name': p.name,
