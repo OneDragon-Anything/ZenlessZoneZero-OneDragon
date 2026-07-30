@@ -115,7 +115,7 @@ class CoffeeApp(ZApplication):
     def move_and_interact(self) -> OperationRoundResult:
         """
         六分街-咖啡店：转向正西后前移再交互
-        澄辉坪-汀曼咖啡：传送落点已正对入口，直接交互 派发 status 走对话点单分支
+        澄辉坪-汀曼咖啡 / 布亚斯特城区-片刻闲：传送落点已正对入口，直接交互
         :return:
         """
         if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:
@@ -126,18 +126,49 @@ class CoffeeApp(ZApplication):
 
         time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-
-        if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
-            return self.round_success(status='对话点单')
-
         return self.round_success()
 
     @node_from(from_name='移动交互')
     @operation_node(name='等待咖啡店加载', node_max_retry_times=10)
     def wait_coffee_shop(self) -> OperationRoundResult:
         # 画面加载的时候，是滑动出现的，点单出现的时候，还未必能点击选中咖啡，因此要success_wait
-        return self.round_by_find_area(self.last_screenshot, '咖啡店', '点单',
-                                       success_wait=1, retry_wait=1)
+        if self.config.transport_point == CoffeeTransportPoint.POINT_1.value.value:  #六分街-咖啡店
+            return self.round_by_find_area(self.last_screenshot, '咖啡店', '点单',
+                                           success_wait=1, retry_wait=1)
+
+        return self.round_success(status='对话点单', wait=1)  # 新版咖啡店
+
+    @node_from(from_name='等待咖啡店加载', status='对话点单')
+    @operation_node(name='对话选咖啡', node_max_retry_times=10)
+    def dialog_choose_coffee(self) -> OperationRoundResult:
+        """推进对话点单分支，直到出现咖啡选项或回到大世界"""
+        # 标题是对话分支的可靠在场标记；标题消失后还需确认已经回到大世界
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
+        if not result.is_success:
+            op = WaitNormalWorld(self.ctx, check_once=True)
+            result = self.round_by_op_result(op.execute())
+            if result.is_success:
+                return self.round_success(status='已喝过', wait=1)
+            return self.round_retry(status='等待对话框加载', wait=0.5)  # issue #2301
+
+        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
+        to_choose_list = self._get_coffee_to_choose(day)
+
+        # 背景文字会干扰 OCR，不能根据区域内是否有文字判断状态，只尝试当天候选咖啡名
+        area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
+        result = self.round_by_ocr_and_click_by_priority(to_choose_list, area=area)
+        if result.is_success:
+            self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
+            self.had_coffee_list.add(result.status)
+            if self.config.transport_point == CoffeeTransportPoint.POINT_3.value.value:
+                return self.round_success(status='点单后跳过', wait=1)
+            return self.round_success(status='已点单', wait=1)
+
+        # 没有命中候选咖啡时说明当前是纯对话框，识别并点击标题推进，不依赖具体台词
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
+        if result.is_success:
+            return self.round_wait(status='继续对话', wait=1)
+        return result
 
     @node_from(from_name='等待大世界加载', status='点单')
     @node_from(from_name='等待咖啡店加载')
@@ -298,6 +329,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='点单')
     @node_from(from_name='不占用点单确认')
+    @node_from(from_name='对话选咖啡', status='点单后跳过')  # 片刻闲首次点单后的动画在此处理
     @operation_node(name='点单后跳过')
     def skip_after_order(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -319,32 +351,11 @@ class CoffeeApp(ZApplication):
 
         return self.round_retry(result.status, wait=1)
 
-    @node_from(from_name='移动交互', status='对话点单')
-    @operation_node(name='对话选咖啡', node_max_retry_times=20)
-    def dialog_choose_coffee(self) -> OperationRoundResult:
-        """处理澄辉坪-汀曼咖啡交互后的专属点单对话框，对话框包含"明天再来"（无选项）即视作已喝过"""
-        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
-        if not result.is_success:
-            return self.round_retry(status='等待对话框加载', wait=0.5)  # issue #2301
-
-        if self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框-明天再来').is_success:
-            return self.round_success(status='已喝过', wait=1)
-
-        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
-        to_choose_list = self._get_coffee_to_choose(day)
-
-        area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
-        result = self.round_by_ocr_and_click_by_priority(to_choose_list, area=area)
-        if result.is_success:
-            self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[result.status]
-            self.had_coffee_list.add(result.status)
-            return self.round_success(status='已点单', wait=1)
-        return self.round_retry(status='等待对话框', wait=1)
-
     @node_from(from_name='点单后跳过')
+    @node_from(from_name='点单后跳过', success=False)  # 未能跳过动画时继续等待电量确认，不终止应用
     @node_from(from_name='对话选咖啡', status='已点单')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
-    @operation_node(name='电量确认')
+    @operation_node(name='电量确认', timeout_seconds=15)
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')
 
@@ -354,6 +365,8 @@ class CoffeeApp(ZApplication):
             else:
                 return self.round_success(wait=1)
 
+        if self.config.transport_point == CoffeeTransportPoint.POINT_3.value.value:
+            return self.round_wait(status='等待点单动画', wait=1)  # 动画可能无法跳过，等待自然结束
         return self.round_retry(wait=1)
 
     @node_from(from_name='电量确认')
@@ -437,7 +450,7 @@ class CoffeeApp(ZApplication):
 
     @node_from(from_name='不占用点单确认', status='不可贪杯确认')  # 已经喝过了
     @node_from(from_name='点单后跳过', status='不可贪杯确认')  # 已经喝过了
-    @node_from(from_name='对话选咖啡', status='已喝过')  # 澄辉坪-汀曼咖啡：剧情气泡 已喝过咖啡 BackToNormalWorld 兜底回大世界
+    @node_from(from_name='对话选咖啡', status='已喝过')  # 已经喝过了
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
