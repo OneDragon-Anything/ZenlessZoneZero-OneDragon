@@ -1,0 +1,49 @@
+# 重建 test 分支 = 最新 main + 若干 PR 的 squash 提交(强制推送)
+#
+# PR 来源(二选一):
+#   1. 定时 / 不填参数:所有带 `test-branch` 标签的 open PR,按 PR 号升序
+#   2. 手动触发填 prs:按填写顺序,临时覆盖标签(不改动标签本身)
+#
+# 有冲突的 PR 直接跳过(打上 `test-conflict` 标签),不影响后续 PR;
+# 每次都从 origin/main 重新开始,所以 test 分支上不会残留历史垃圾。
+name: Build Test Branch
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+    inputs:
+      prs:
+        description: '临时 PR 列表(如 2571,2567,2527),按填写顺序合入;留空则用 test-branch 标签'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  INCLUDE_LABEL: test-branch
+  CONFLICT_LABEL: test-conflict
+
+jobs:
+  build-test-branch:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'OneDragon-Anything' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build Test Branch
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        INPUT_PRS: ${{ inputs.prs }}
+      run: python3 tools/ci/build_test_branch.py
