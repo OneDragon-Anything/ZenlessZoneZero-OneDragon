@@ -79,6 +79,7 @@ class ChoosePredefinedTeam(ZOperation):
         self.scanned_team_name_set: set[str] = set()
         self.shiyu_team_selected: bool = shiyu_target_list is None
         self.pending_select_button_center: Point | None = None
+        self.pending_cancel_button_center: Point | None = None
         self.start_at_team_list: bool = start_at_team_list
         self.finish_without_confirm: bool = finish_without_confirm
 
@@ -131,6 +132,21 @@ class ChoosePredefinedTeam(ZOperation):
             if not self._select_shiyu_teams():
                 return self.round_fail('预备编队不足以完成自动配队')
             self.shiyu_team_selected = True
+
+        if self.pending_cancel_button_center is not None:
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            if not self._is_select_button_visible(ocr_result_map):
+                log.info('预备编队取消等待:原选中态尚未恢复为SELECT')
+                return self.round_wait(
+                    ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                    wait=0.5,
+                )
+            log.info('预备编队取消完成:已恢复SELECT')
+            self.pending_cancel_button_center = None
+            return self.round_wait(
+                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                wait=0.2,
+            )
 
         if self.pending_select_button_center is not None:
             ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
@@ -186,8 +202,20 @@ class ChoosePredefinedTeam(ZOperation):
 
         select_button_mr = self._find_select_button(ocr_result_map, team_name_mr)
         if select_button_mr is None:
-            return self.round_fail(f'当前编队未找到+ SELECT {target_team.name}')
+            selected_button_mr = self._find_selected_button(ocr_result_map, team_name_mr)
+            if selected_button_mr is None:
+                return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
+            log.info('预备编队取消选择:队伍:%s 当前状态非SELECT', target_team.name)
+            self.ctx.controller.click(
+                team_name_mr.center + ChoosePredefinedTeam.TEAM_NAME_CLICK_OFFSET
+            )
+            self.pending_cancel_button_center = selected_button_mr.center
+            return self.round_wait(
+                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                wait=0.5,
+            )
 
+        log.info('预备编队选择:队伍:%s 已找到SELECT', target_team.name)
         self.ctx.controller.click(
             team_name_mr.center + ChoosePredefinedTeam.TEAM_NAME_CLICK_OFFSET
         )
@@ -351,6 +379,61 @@ class ChoosePredefinedTeam(ZOperation):
             ),
         )
 
+    def _find_selected_button(
+        self,
+        ocr_result_map: dict[str, MatchResultList],
+        team_name_mr: MatchResult,
+    ) -> MatchResult | None:
+        candidate_list: list[MatchResult] = []
+        for text, mr_list in ocr_result_map.items():
+            if not self._is_selected_text(text.replace(' ', '').upper()):
+                continue
+            for mr in mr_list:
+                x_offset = mr.center.x - team_name_mr.center.x
+                y_offset = mr.center.y - team_name_mr.center.y
+                if 300 <= x_offset <= 850 and 40 <= y_offset <= 250:
+                    candidate_list.append(mr)
+
+        if len(candidate_list) == 0:
+            return None
+        return min(
+            candidate_list,
+            key=lambda mr: (
+                abs(mr.center.x - team_name_mr.center.x - 650)
+                + abs(mr.center.y - team_name_mr.center.y - 130)
+            ),
+        )
+
+    def _is_select_button_visible(
+        self,
+        ocr_result_map: dict[str, MatchResultList],
+    ) -> bool:
+        if self.pending_cancel_button_center is None:
+            return False
+
+        center = self.pending_cancel_button_center
+        for text, mr_list in ocr_result_map.items():
+            if not text.replace(' ', '').upper().endswith('SELECT'):
+                continue
+            for mr in mr_list:
+                if (
+                    abs(mr.center.x - center.x)
+                    <= ChoosePredefinedTeam.SELECT_BUTTON_FEEDBACK_HALF_WIDTH
+                    and abs(mr.center.y - center.y)
+                    <= ChoosePredefinedTeam.SELECT_BUTTON_FEEDBACK_HALF_HEIGHT
+                ):
+                    return True
+        return False
+
+    @staticmethod
+    def _is_selected_text(normalized_text: str) -> bool:
+        return (
+            normalized_text == 'SELECTED'
+            or normalized_text == 'TEAM'
+            or normalized_text.startswith('TEAM')
+            or re.fullmatch(r'\d{2}', normalized_text) is not None
+        )
+
     def _is_team_selected(
         self,
         ocr_result_map: dict[str, MatchResultList],
@@ -371,12 +454,7 @@ class ChoosePredefinedTeam(ZOperation):
                     continue
                 if normalized_text.endswith('SELECT'):
                     return False
-                if (
-                    normalized_text == 'SELECTED'
-                    or normalized_text == 'TEAM'
-                    or normalized_text.startswith('TEAM')
-                    or re.fullmatch(r'\d{2}', normalized_text) is not None
-                ):
+                if self._is_selected_text(normalized_text):
                     return True
 
         return False
