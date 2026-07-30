@@ -21,7 +21,7 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class LifeOnLineApp(ZApplication):
 
-    """真·拿命验收:HDD 高难战斗委托,可重复挑战(按次数运行)。进入战斗、耗时较长。"""
+    """真·拿命验收:第二章间章的 HDD 战斗委托,可重复挑战;主要用于推进/跳过游戏时间(过夜)。进入战斗、单次很快(默认按次数重复)。"""
 
     STATUS_TIMES_FINISHED: ClassVar[str] = '完成指定次数'
     STATUS_CONTINUE: ClassVar[str] = '继续'
