@@ -147,7 +147,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.personal_proxy_input = TextSettingCard(
             icon=FluentIcon.WIFI, title='个人代理',
-            input_placeholder='http://127.0.0.1:8080'
+            input_placeholder='http://127.0.0.1:7890'
         )
         self.personal_proxy_input.value_changed.connect(lambda: self._on_proxy_changed())
         web_group.addSettingCard(self.personal_proxy_input)

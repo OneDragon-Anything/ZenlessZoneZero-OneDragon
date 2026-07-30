@@ -203,7 +203,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         if current_proxy_type == ProxyTypeEnum.PERSONAL.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
             self.proxy_url_input.titleLabel.setText(gt('个人代理地址'))
-            self.proxy_url_input.line_edit.setPlaceholderText('http://127.0.0.1:8080')
+            self.proxy_url_input.line_edit.setPlaceholderText('http://127.0.0.1:7890')
             self.proxy_url_input.setVisible(True)
         elif current_proxy_type == ProxyTypeEnum.GHPROXY.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))

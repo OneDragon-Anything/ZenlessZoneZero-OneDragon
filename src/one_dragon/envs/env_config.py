@@ -96,7 +96,7 @@ class EnvConfig(YamlConfig):
         代理类型
         :return:
         """
-        return self.get('proxy_type', ProxyTypeEnum.GHPROXY.value.value)
+        return self.get('proxy_type', ProxyTypeEnum.NONE.value.value)
 
     @proxy_type.setter
     def proxy_type(self, new_value: str) -> None:
