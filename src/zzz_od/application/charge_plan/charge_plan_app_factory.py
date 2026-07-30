@@ -20,6 +20,7 @@ class ChargePlanAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, charge_plan_const)
         self.ctx: ZContext = ctx
+        self.app_class = ChargePlanApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return ChargePlanApp(self.ctx)

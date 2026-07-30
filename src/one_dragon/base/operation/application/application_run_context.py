@@ -233,6 +233,20 @@ class ApplicationRunContext:
 
         return self._application_factory_map[app_id].app_name
 
+    def get_application_description(self, app_id: str) -> str:
+        """
+        获取应用描述(取自 app 类 class docstring)
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            str: 应用描述;未注册 / 无 docstring 时返空串
+        """
+        if app_id not in self._application_factory_map:
+            return ''
+        return self._application_factory_map[app_id].description
+
     def get_config(
         self,
         app_id: str | None = None,
