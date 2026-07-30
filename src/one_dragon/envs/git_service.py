@@ -1,6 +1,7 @@
 import contextlib
 import queue
 import shutil
+import stat
 import sys
 import tempfile
 import threading
@@ -105,6 +106,24 @@ def _temporary_fetch_timeout_context() -> Iterator[None]:
     yield
 
 
+def _remove_temp_repo(temp_repo_dir: str) -> None:
+    """删除 fetch 临时仓库，兼容 Windows 下只读的 pack 文件。"""
+    def remove_readonly(
+        func: Callable[[str], object],
+        path: str,
+        _exc_info: object,
+    ) -> None:
+        Path(path).chmod(stat.S_IWRITE)
+        func(path)
+
+    try:
+        shutil.rmtree(temp_repo_dir, onerror=remove_readonly)
+    except FileNotFoundError:
+        return
+    except Exception:
+        log.warning(f'清理 Git fetch 临时仓库失败: {temp_repo_dir}', exc_info=True)
+
+
 def _send_fetch_worker_message(
     message_callback: Callable[[dict[str, object]], None],
     message: dict[str, object],
@@ -156,12 +175,20 @@ def _fetch_remote_worker(
                     depth=actual_depth,
                     callbacks=callbacks,
                 )
+            callbacks.flush_sideband_progress()
             log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
         except KeyError as error:
             if 'object not found' not in str(error) or actual_depth != 0:
                 raise
+            callbacks = _FetchProgressRemoteCallbacks(report_progress)
             with _temporary_fetch_timeout_context():
-                remote.fetch(refspecs=[refspec], proxy=proxy, depth=1, callbacks=callbacks)
+                remote.fetch(
+                    refspecs=[refspec],
+                    proxy=proxy,
+                    depth=1,
+                    callbacks=callbacks,
+                )
+            callbacks.flush_sideband_progress()
             actual_depth = 1
 
         _send_fetch_worker_message(
@@ -175,7 +202,7 @@ def _fetch_remote_worker(
         )
     finally:
         if abandoned.is_set():
-            shutil.rmtree(temp_repo_dir, ignore_errors=True)
+            _remove_temp_repo(temp_repo_dir)
 
 
 @dataclass
@@ -200,9 +227,10 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         self._timeout: float | None = timeout
         self._started_at: float = time.monotonic()
         self._progress: float = 0.0
-        self._last_message: str | None = None
+        self._last_transfer_messages: dict[str, str] = {}
+        self._last_transfer_log_at: dict[str, float] = {}
         self._last_sideband_message: str | None = None
-        self._last_log_at: float | None = None
+        self._sideband_buffer: str = ''
 
     def _check_timeout(self) -> None:
         if self._timeout is not None and time.monotonic() - self._started_at >= self._timeout:
@@ -214,44 +242,114 @@ class _FetchProgressRemoteCallbacks(RemoteCallbacks):
         else:
             log.info(message)
 
+    def _report_transfer_progress(
+        self,
+        stage: str,
+        label: str,
+        current: int,
+        total: int,
+    ) -> None:
+        progress = min(max(current / total, 0.0), 1.0)
+        is_final = current >= total
+        message = f'{label} {current}/{total} ({round(progress * 100)}%)'
+        if is_final:
+            message = f'{message}, done.'
+
+        self._progress = progress
+        if message == self._last_transfer_messages.get(stage):
+            return
+
+        now = time.monotonic()
+        last_log_at = self._last_transfer_log_at.get(stage)
+        if not is_final and last_log_at is not None and now - last_log_at < 0.2:
+            return
+
+        self._last_transfer_log_at[stage] = now
+        self._last_transfer_messages[stage] = message
+        self._emit(message, progress)
+
+    def _report_received_bytes(self, received_bytes: int) -> None:
+        progress = 0.0
+        received_mb = received_bytes / 1024 / 1024
+        message = f'{gt("拉取对象")} {received_mb:.2f} MB'
+        self._progress = progress
+        if message == self._last_transfer_messages.get('objects'):
+            return
+
+        now = time.monotonic()
+        last_log_at = self._last_transfer_log_at.get('objects')
+        if last_log_at is not None and now - last_log_at < 0.2:
+            return
+
+        self._last_transfer_log_at['objects'] = now
+        self._last_transfer_messages['objects'] = message
+        self._emit(message, progress)
+
     def transfer_progress(self, stats: object) -> None:
         self._check_timeout()
         total_objects = int(getattr(stats, 'total_objects', 0) or 0)
         received_objects = int(getattr(stats, 'received_objects', 0) or 0)
+        total_deltas = int(getattr(stats, 'total_deltas', 0) or 0)
+        indexed_deltas = int(getattr(stats, 'indexed_deltas', 0) or 0)
         received_bytes = int(getattr(stats, 'received_bytes', 0) or 0)
 
-        fetch_message = gt('拉取对象')
-        is_final = total_objects > 0 and received_objects >= total_objects
         if total_objects > 0:
-            progress = min(max(received_objects / total_objects, 0.0), 1.0)
-            message = f'{fetch_message} {received_objects}/{total_objects} ({round(progress * 100)}%)'
+            self._report_transfer_progress(
+                'objects',
+                gt('拉取对象'),
+                received_objects,
+                total_objects,
+            )
         else:
-            progress = 0.0
-            received_mb = received_bytes / 1024 / 1024
-            message = f'{fetch_message} {received_mb:.2f} MB'
+            self._report_received_bytes(received_bytes)
 
-        self._progress = progress
-        if message == self._last_message:
+        if total_objects > 0 and received_objects >= total_objects and total_deltas > 0:
+            self._report_transfer_progress(
+                'deltas',
+                gt('处理增量'),
+                indexed_deltas,
+                total_deltas,
+            )
+
+    def _emit_sideband_message(self, message: str) -> None:
+        if not message.strip():
             return
 
-        now = time.monotonic()
-        if not is_final and self._last_log_at is not None and now - self._last_log_at < 0.2:
-            return
+        progress_prefixes = (
+            ('Enumerating objects:', gt('枚举对象:')),
+            ('Counting objects:', gt('统计对象:')),
+            ('Compressing objects:', gt('压缩对象:')),
+        )
+        for original_prefix, translated_prefix in progress_prefixes:
+            if message.startswith(original_prefix):
+                message = f'{translated_prefix}{message[len(original_prefix):]}'
+                break
 
-        self._last_log_at = now
-        self._last_message = message
-        self._emit(message, progress)
-
-    def sideband_progress(self, string: str) -> None:
-        self._check_timeout()
-        message = string.strip()
-        if not message or message == self._last_sideband_message:
+        if message == self._last_sideband_message:
             return
         self._last_sideband_message = message
         self._emit(f'远程消息: {message}')
 
+    def sideband_progress(self, string: str) -> None:
+        self._check_timeout()
+        buffer = f'{self._sideband_buffer}{string}'
+        message_start = 0
+        for index, character in enumerate(buffer):
+            if character not in ('\r', '\n'):
+                continue
+            self._emit_sideband_message(buffer[message_start:index])
+            message_start = index + 1
+        self._sideband_buffer = buffer[message_start:]
+
+    def flush_sideband_progress(self) -> None:
+        """输出 fetch 退出时仍未带行尾的远端文本。"""
+        message = self._sideband_buffer
+        self._sideband_buffer = ''
+        self._emit_sideband_message(message)
+
     def update_tips(self, refname: str, old: Oid, new: Oid) -> None:
         self._check_timeout()
+        self.flush_sideband_progress()
         self._emit(f'更新引用: {refname}')
 
 
@@ -440,6 +538,7 @@ class GitService:
             log.info(f'开始导入临时 Git 仓库: {remote_url}')
             remote = repo.remotes.create(remote_name, remote_url)
             remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            callbacks.flush_sideband_progress()
             _sync_shallow_file(repo, temp_repo_dir)
             log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
         finally:
@@ -565,7 +664,7 @@ class GitService:
             raise
         finally:
             if not worker.is_alive():
-                shutil.rmtree(temp_repo_dir, ignore_errors=True)
+                _remove_temp_repo(temp_repo_dir)
 
     @staticmethod
     def _is_missing_object_error(error: BaseException) -> bool:

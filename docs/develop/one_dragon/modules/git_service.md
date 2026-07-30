@@ -47,6 +47,8 @@ Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon
 
 pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒，只在进程内设置一次，不在线程间反复保存和恢复。`server_timeout` 是单次远程读写超时；持续有数据但速度很慢时通常不会触发，因此应用层 120 秒总时限仍负责兜底。
 
+服务端通过 `sideband_progress` 返回 `Enumerating objects`、`Counting objects` 和 `Compressing objects`。这些回调是文本流分块，不保证一次回调就是完整一行；GitService 会跨回调缓存残片，遇到 `\r` 或 `\n` 后逐条输出。`Remote.fetch()` 正常返回后才冲刷最后残片；发生异常时放弃它。`update_tips` 会在输出引用更新前冲刷缓冲区，保证远程尾消息仍排在引用更新前。三种已知前缀分别显示为“枚举对象”“统计对象”“压缩对象”，后面的数量、百分比和远端原有 `done` 不变。客户端根据 `received_objects/total_objects` 显示“拉取对象”，根据 `indexed_deltas/total_deltas` 显示“处理增量”；两个阶段达到 100% 时追加 `done`，但整个 fetch 是否成功仍只以 `Remote.fetch()` 正常返回为准。终端入口继续按 `%` 和 `done` 决定回车刷新或换行。各回调字段、完成边界和 CNB 实测时序见 [pygit2 fetch 可观测数据](git_fetch_progress.md)。
+
 首次浅拉取完成后，临时仓库的 `shallow` 文件必须按原始字节复制到正式仓库，不能使用 Windows 文本写入，否则 LF 会被转换为 CRLF，libgit2 下次打开仓库会报 `invalid parent OID at line 1`。该处理只防止新写入产生 CRLF，不自动修改已经存在的 `shallow` 文件。
 
 ## 本地对象库损坏自愈
