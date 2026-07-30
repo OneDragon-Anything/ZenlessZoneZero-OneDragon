@@ -41,6 +41,12 @@ class OverlayManager(QObject):
         self.ctx = ctx
         self.config = OverlayConfig()
 
+        # 首次同步 bus.enabled，避免 OverlayConfig.enabled 默认 False 时
+        # 总线仍保持 True，导致启动阶段不必要地构造 trace 对象
+        bus = getattr(self.ctx, "debug_trace_bus", None)
+        if bus is not None:
+            bus.enabled = self.config.enabled
+
         self._supported = win32_utils.is_windows_build_supported(19041)
         self._warned_unsupported = False
         self._warned_waiting_game_window = False
@@ -136,6 +142,10 @@ class OverlayManager(QObject):
         self.config = OverlayConfig()
         self._toggle_combo_pressed = False
         self._apply_timer_intervals()
+        # 同步总线启用标志，使生产端在 overlay 关闭时可以跳过构造 trace 对象
+        bus = getattr(self.ctx, "debug_trace_bus", None)
+        if bus is not None:
+            bus.enabled = self.config.enabled
         for panel_name, panel in self._iter_side_panels():
             if panel is None:
                 continue
@@ -593,7 +603,7 @@ class OverlayManager(QObject):
         except Exception:
             log.error("刷新 Overlay 状态面板失败", exc_info=True)
         finally:
-            self._emit_overlay_refresh_perf(start)
+            self._emit_debug_refresh_perf(start)
 
     def _refresh_state_panel(self) -> None:
         if self._overlay_window is None or not self._overlay_window.isVisible():
@@ -607,7 +617,7 @@ class OverlayManager(QObject):
         self._state_panel.update_snapshot(items)
 
     def _refresh_debug_panels(self) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        bus = getattr(self.ctx, "debug_trace_bus", None)
         if bus is None:
             return
 
@@ -622,13 +632,13 @@ class OverlayManager(QObject):
             self._performance_panel.set_enabled_metric_map(self.config.performance_metric_enabled_map)
             self._performance_panel.update_items(snapshot.performance_items)
 
-    def _emit_overlay_refresh_perf(self, start_time: float) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None:
+    def _emit_debug_refresh_perf(self, start_time: float) -> None:
+        bus = getattr(self.ctx, "debug_trace_bus", None)
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except Exception:
+        except ImportError:
             return
         elapsed_ms = (time.time() - start_time) * 1000.0
         bus.add_performance(

@@ -155,7 +155,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                     if new_execution_info is not None:
                         log.debug(f'当前场景 主循环 当前条件 {new_execution_info.expr_display}')
                         new_execution_info.priority = self.normal_scene.priority
-                        self._emit_overlay_decision(
+                        self._emit_debug_decision(
                             trigger="主循环",
                             expression=new_execution_info.expr_display,
                             status="MATCHED",
@@ -226,7 +226,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             self._stop_running_task()
 
             log.debug(f'当前场景 {state_name} 当前条件 {new_execution_info.expr_display}')
-            self._emit_overlay_decision(
+            self._emit_debug_decision(
                 trigger=state_name,
                 expression=new_execution_info.expr_display,
                 status="TRIGGERED",
@@ -351,7 +351,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
-                    self._emit_overlay_timeline(
+                    self._emit_debug_timeline(
                         category="decision",
                         title="触发中断",
                         detail="复合中断条件满足",
@@ -359,7 +359,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         ttl_seconds=30.0,
                     )
 
-    def _emit_overlay_decision(
+    def _emit_debug_decision(
         self,
         trigger: str,
         expression: str,
@@ -367,7 +367,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         execution_info: ExecutionInfo,
     ) -> None:
         bus = self._get_overlay_debug_bus()
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
 
         op_name = self._op_list_summary(execution_info)
@@ -376,7 +376,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 DecisionTraceItem,
                 TimelineItem,
             )
-        except Exception:
+        except ImportError:
             return
 
         bus.add_decision(
@@ -399,7 +399,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             )
         )
 
-    def _emit_overlay_timeline(
+    def _emit_debug_timeline(
         self,
         category: str,
         title: str,
@@ -408,11 +408,11 @@ class ConditionalOperator(ConditionalOperatorLoader):
         ttl_seconds: float,
     ) -> None:
         bus = self._get_overlay_debug_bus()
-        if bus is None:
+        if bus is None or not bus.enabled:
             return
         try:
             from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except Exception:
+        except ImportError:
             return
         bus.add_timeline(
             TimelineItem(

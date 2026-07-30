@@ -206,9 +206,7 @@ class OverlayWindow(QWidget):
             if rect is None:
                 continue
 
-            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
-            if item.color:
-                base_color = QColor(item.color)
+            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, "#bdbdbd"))
             if not base_color.isValid():
                 base_color = QColor("#bdbdbd")
 
