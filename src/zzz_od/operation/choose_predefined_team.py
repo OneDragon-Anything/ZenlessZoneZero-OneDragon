@@ -74,6 +74,7 @@ class ChoosePredefinedTeam(ZOperation):
         )
         self.current_target_idx: int = 0
         self.current_scroll_page: int = 0
+        self.next_scanned_team_idx: int = 0
         self.scanned_team_idx_list: list[int] = []
         self.scanned_team_name_set: set[str] = set()
         self.shiyu_team_selected: bool = shiyu_target_list is None
@@ -238,24 +239,39 @@ class ChoosePredefinedTeam(ZOperation):
                     continue
 
                 agent_list = self._recognize_team_agents(screen, team_name_mr)
+                agent_slot_set = self._get_team_agent_slot_set(
+                    ocr_result_map,
+                    team_name_mr,
+                )
                 log.info(
-                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d',
+                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s',
                     title_x,
                     title_y,
                     team_name,
                     len(agent_list),
+                    sorted(agent_slot_set),
                 )
                 if len(agent_list) == 0:
                     log.info('预备编队扫描结束:队名:%s 三个代理人位均为空', team_name)
                     return True
 
-                team_idx = len(self.scanned_team_idx_list)
+                team_idx = self.next_scanned_team_idx
                 if team_idx >= self.MAX_TEAM_COUNT:
                     log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                     return True
+                self.next_scanned_team_idx += 1
+                self.scanned_team_name_set.add(team_name)
+
+                if agent_slot_set != {'1P', '2P', '3P'}:
+                    log.info(
+                        '预备编队不可用:序号:%d 队名:%s 代理人槽位不完整:%s',
+                        team_idx + 1,
+                        team_name,
+                        sorted(agent_slot_set),
+                    )
+                    continue
 
                 self.ctx.team_config.update_team_by_idx(team_idx, team_name, agent_list)
-                self.scanned_team_name_set.add(team_name)
                 self.scanned_team_idx_list.append(team_idx)
                 log.info(
                     '预备编队 %d 名称:%s 代理人:%s',
@@ -264,7 +280,7 @@ class ChoosePredefinedTeam(ZOperation):
                     [agent.agent_name for agent in agent_list],
                 )
 
-        scanned_count = len(self.scanned_team_idx_list)
+        scanned_count = self.next_scanned_team_idx
         scan_finished = scanned_count >= self.MAX_TEAM_COUNT
         if scan_finished:
             log.info('预备编队扫描结束:已扫描:%d', scanned_count)
@@ -389,6 +405,32 @@ class ChoosePredefinedTeam(ZOperation):
                 target_mr = mr
 
         return target_name, target_mr
+
+    def _get_team_agent_slot_set(
+        self,
+        ocr_result_map: dict[str, MatchResultList],
+        team_name_mr: MatchResult,
+    ) -> set[str]:
+        agent_rect = Rect(
+            team_name_mr.left_top.x - 10,
+            team_name_mr.left_top.y,
+            team_name_mr.left_top.x + 800,
+            team_name_mr.left_top.y + 250,
+        )
+        agent_slot_set: set[str] = set()
+        for text, mr_list in ocr_result_map.items():
+            normalized_text = text.replace(' ', '').upper()
+            if normalized_text not in {'1P', '2P', '3P'}:
+                continue
+            for mr in mr_list:
+                if (
+                    mr.left_top.x >= agent_rect.x1
+                    and mr.right_bottom.x <= agent_rect.x2
+                    and mr.left_top.y >= agent_rect.y1
+                    and mr.right_bottom.y <= agent_rect.y2
+                ):
+                    agent_slot_set.add(normalized_text)
+        return agent_slot_set
 
     def _recognize_team_agents(
         self,
