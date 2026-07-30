@@ -446,7 +446,10 @@ class GitService:
 
     def _get_repository_candidates(self) -> list[tuple[RepositoryItem, str]]:
         """按用户选择、上次成功源和 YAML 声明顺序生成候选列表。"""
-        preferred_repository = self._find_repository(self.env_config.repository_url)
+        repository_url = self.env_config.repository_url
+        preferred_repository = self._find_repository(repository_url)
+        if preferred_repository is None and repository_url != RepoConfig.AUTO_REPOSITORY_VALUE:
+            self.env_config.repository_url = RepoConfig.AUTO_REPOSITORY_VALUE
         if preferred_repository is None:
             preferred_repository = self._find_repository(self.env_config.last_repository_url)
 
