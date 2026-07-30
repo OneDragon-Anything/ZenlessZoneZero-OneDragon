@@ -323,7 +323,8 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         op_id: 定位标识。
 
     Returns:
-        含 op_id/class_name/module/params(各 param 标 json_serializable)/debuggable 的字典。
+        含 op_id/class_name/module/description(优先 class docstring,回退 __init__ docstring)/
+        params(各 param 标 json_serializable)/debuggable 的字典。
     """
     cls = resolve_op_class(op_id)
     params = _reflect_params(cls)
@@ -335,6 +336,7 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         'op_id': op_id,
         'class_name': cls.__name__,
         'module': cls.__module__,
+        'description': (cls.__doc__ or cls.__init__.__doc__ or '').strip(),
         'params': [
             {
                 'name': p.name,

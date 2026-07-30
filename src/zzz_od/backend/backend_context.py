@@ -871,9 +871,14 @@ class ZzzBackendContext:
                 app_name = self._ctx.run_context.get_application_name(app_id)
             except Exception:  # noqa: BLE001 应用列表用于展示，跳过异常名称
                 app_name = app_id
+            try:
+                app_description = self._ctx.run_context.get_application_description(app_id)
+            except Exception:  # noqa: BLE001 应用列表用于展示，跳过异常描述
+                app_description = ''
             applications.append(ApplicationInfo(
                 app_id=app_id,
                 app_name=app_name,
+                description=app_description,
                 enabled_in_one_dragon=enabled_map.get(app_id, False),
                 in_standalone_list=app_id in standalone_app_ids,
                 is_active_standalone=app_id == active_standalone_app_id,
