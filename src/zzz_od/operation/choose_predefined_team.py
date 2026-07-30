@@ -109,6 +109,13 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='选择编队', status=STATUS_CONTINUE_CHOOSE)
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
+        """
+        分轮完成防卫战预备编队的扫描、评分与选择。
+
+        扫描完成后先回到目标编队所在页面。游戏可能已有预选编队，
+        此时需取消预选并等待原按钮恢复为 SELECT，避免直接选择失败。
+        每次点击后也要等待画面确认选中，再继续处理下一支编队。
+        """
         if not self.shiyu_team_selected:
             scan_finished = self._scan_team_page(self.last_screenshot)
             log.info(
@@ -237,6 +244,13 @@ class ChoosePredefinedTeam(ZOperation):
         return self.round_retry(result.status, wait=1)
 
     def _scan_team_page(self, screen: MatLike) -> bool:
+        """
+        扫描当前页面的预备编队，返回是否应结束扫描。
+
+        相邻页面会重复显示卡片，按队名去重。识别到队名但没有任何代理人时，
+        视为首个空队并停止扫描。被禁用的队伍不参与评分，但仍保留其游戏列表
+        序号，避免后续有效队的翻页与点击位置错位。
+        """
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
         for title_y in self.CARD_TITLE_Y_LIST:
@@ -287,6 +301,8 @@ class ChoosePredefinedTeam(ZOperation):
                 if team_idx >= self.MAX_TEAM_COUNT:
                     log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                     return True
+                # 被禁用的队伍不参与自动配队，但仍占用游戏列表中的位置。
+                # 必须先递增真实序号，再跳过候选列表；否则后续有效队会错位。
                 self.next_scanned_team_idx += 1
                 self.scanned_team_name_set.add(team_name)
 
@@ -384,6 +400,7 @@ class ChoosePredefinedTeam(ZOperation):
         ocr_result_map: dict[str, MatchResultList],
         team_name_mr: MatchResult,
     ) -> MatchResult | None:
+        """查找当前卡片的已选状态，用于在缺少 SELECT 时先取消预选。"""
         candidate_list: list[MatchResult] = []
         for text, mr_list in ocr_result_map.items():
             if not self._is_selected_text(text.replace(' ', '').upper()):
@@ -408,6 +425,7 @@ class ChoosePredefinedTeam(ZOperation):
         self,
         ocr_result_map: dict[str, MatchResultList],
     ) -> bool:
+        """确认取消后原按钮区域恢复 SELECT，避免误认其他卡片的 SELECT。"""
         if self.pending_cancel_button_center is None:
             return False
 
@@ -427,6 +445,7 @@ class ChoosePredefinedTeam(ZOperation):
 
     @staticmethod
     def _is_selected_text(normalized_text: str) -> bool:
+        """统一已选按钮的 OCR 结果，仅在目标卡片的按钮区域内使用。"""
         return (
             normalized_text == 'SELECTED'
             or normalized_text == 'TEAM'
@@ -489,6 +508,12 @@ class ChoosePredefinedTeam(ZOperation):
         ocr_result_map: dict[str, MatchResultList],
         team_name_mr: MatchResult,
     ) -> set[str]:
+        """
+        获取当前卡片识别到的代理人槽位标记。
+
+        1P、2P、3P 任一缺失表示该队被禁用。角色头像仍可能被识别到，
+        因此不能仅凭头像判断可用性；OCR 结果也必须限制在当前卡片范围内。
+        """
         agent_rect = Rect(
             team_name_mr.left_top.x - 10,
             team_name_mr.left_top.y,
@@ -539,6 +564,12 @@ class ChoosePredefinedTeam(ZOperation):
         return [mr.data for mr in filtered_mr_list]
 
     def _scroll_team_list(self, direction: int) -> None:
+        """
+        按固定坐标拖动列表。
+
+        固定坐标避免鼠标停留位置影响翻页；向下扫描和向上回退使用相反方向，
+        每次拖动对应 current_scroll_page 的一页变化。
+        """
         if direction < 0:
             self.ctx.controller.drag_to(
                 start=ChoosePredefinedTeam.TEAM_DRAG_START,
