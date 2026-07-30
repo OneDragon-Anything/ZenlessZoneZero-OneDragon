@@ -21,6 +21,8 @@ from zzz_od.context.zzz_context import ZContext
 
 class ScreenshotHelperApp(ZApplication):
 
+    """闪避截图:开发工具,战斗中持续截图(用于训练闪避识别样本)。非玩法。"""
+
     def __init__(self, ctx: ZContext):
         """
         按闪避的时候自动截图 用于保存素材训练模型

@@ -32,6 +32,8 @@ from zzz_od.operation.transport import Transport
 
 class SuibianTempleApp(ZApplication):
 
+    """随便观:经营类玩法自动化(制造/游历/派驻等)。玩法内消耗其自有资源。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

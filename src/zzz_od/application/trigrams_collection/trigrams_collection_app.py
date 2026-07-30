@@ -16,6 +16,8 @@ from zzz_od.operation.transport import Transport
 
 class TrigramsCollectionApp(ZApplication):
 
+    """卦象集录:每日卦象集录玩法。日签类、无消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

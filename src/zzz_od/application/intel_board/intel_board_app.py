@@ -27,6 +27,8 @@ class CommissionType(StrEnum):
 
 
 class IntelBoardApp(ZApplication):
+
+    """情报板:刷新/筛选委托(恶名狩猎/专业挑战室相关),配合周计划清理板面委托。无消耗。"""
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

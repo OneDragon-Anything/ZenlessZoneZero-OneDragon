@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 class AutoBattleApp(ZApplication):
 
+    """自动战斗:辅助工具,按配置循环播放战斗指令(搭配手动操作的战斗)。非玩法、无独立消耗。"""
+
     EVENT_OP_LOADED: ClassVar[str] = '指令已加载'
 
     def __init__(self, ctx: ZContext):

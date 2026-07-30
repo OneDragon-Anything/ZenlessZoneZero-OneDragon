@@ -21,6 +21,7 @@ class LifeOneLineAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, life_on_line_const)
         self.ctx: ZContext = ctx
+        self.app_class = LifeOnLineApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return LifeOnLineApp(self.ctx)

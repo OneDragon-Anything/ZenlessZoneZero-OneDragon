@@ -33,6 +33,7 @@ class DodgeAssistantFactory(ApplicationFactory):
         """
         ApplicationFactory.__init__(self, dodge_assistant_const)
         self.ctx: ZContext = ctx
+        self.app_class = DodgeAssistantApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """

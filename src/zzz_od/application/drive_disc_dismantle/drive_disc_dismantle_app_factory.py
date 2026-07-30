@@ -26,6 +26,7 @@ class DriveDiscDismantleAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, drive_disc_dismantle_const)
         self.ctx: ZContext = ctx
+        self.app_class = DriveDiscDismantleApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return DriveDiscDismantleApp(self.ctx)

@@ -18,6 +18,7 @@ class CityFundAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, city_fund_const)
         self.ctx: ZContext = ctx
+        self.app_class = CityFundApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return CityFundApp(self.ctx)

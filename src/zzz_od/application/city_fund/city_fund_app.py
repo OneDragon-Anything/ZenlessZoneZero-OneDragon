@@ -11,6 +11,8 @@ from zzz_od.operation.goto.goto_menu import GotoMenu
 
 class CityFundApp(ZApplication):
 
+    """丽都城募:领取成长任务/等级回馈奖励。日刷新、无消耗。"""
+
     def __init__(self, ctx: ZContext):
         """
         领取大月卡

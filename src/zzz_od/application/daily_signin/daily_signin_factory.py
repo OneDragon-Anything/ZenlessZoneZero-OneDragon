@@ -24,6 +24,7 @@ class DailySignInFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, daily_signin_const)
         self.ctx: ZContext = ctx
+        self.app_class = DailySignInApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return DailySignInApp(self.ctx, instance_idx, group_id)

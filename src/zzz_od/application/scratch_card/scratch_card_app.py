@@ -14,6 +14,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class ScratchCardApp(ZApplication):
 
+    """刮刮卡:每日签到刮刮卡玩法。无消耗(日签类)。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

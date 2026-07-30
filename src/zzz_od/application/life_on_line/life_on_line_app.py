@@ -21,6 +21,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class LifeOnLineApp(ZApplication):
 
+    """真·拿命验收:高难战斗本。消耗体力、进入战斗。"""
+
     STATUS_TIMES_FINISHED: ClassVar[str] = '完成指定次数'
     STATUS_CONTINUE: ClassVar[str] = '继续'
     STATUS_CONTINUE_OVER_NIGHT: ClassVar[str] = '过夜后继续'

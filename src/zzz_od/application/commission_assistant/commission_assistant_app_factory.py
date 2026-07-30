@@ -22,6 +22,7 @@ class CommissionAssistantAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, commission_assistant_const)
         self.ctx: ZContext = ctx
+        self.app_class = CommissionAssistantApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return CommissionAssistantApp(self.ctx)

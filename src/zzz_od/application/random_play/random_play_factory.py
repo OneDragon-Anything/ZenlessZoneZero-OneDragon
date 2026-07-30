@@ -22,6 +22,7 @@ class RandomPlayFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, random_play_const)
         self.ctx: ZContext = ctx
+        self.app_class = RandomPlayApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return RandomPlayApp(self.ctx)
