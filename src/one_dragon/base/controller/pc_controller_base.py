@@ -593,6 +593,7 @@ def drag_mouse(start: Point, end: Point, duration: float = 0.5):
     # 移动到起点并按下
     pyautogui.moveTo(start.x, start.y)
     pyautogui.mouseDown()
+    time.sleep(0.1)
 
     # 减去 PcControllerBase.SLEEP_BEFORE_DRAG_END 之后的间隔
     duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)

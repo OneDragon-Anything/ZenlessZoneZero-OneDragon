@@ -68,6 +68,20 @@ class TeamConfig(YamlConfig):
                 return team
         return None
 
+    def update_team_by_idx(self, team_idx: int, team_name: str, members: list[Agent]) -> None:
+        """
+        按游戏内列表顺序同步预备编队
+        """
+        team = self.get_team_by_idx(team_idx)
+        if team is None:
+            return
+
+        team.name = team_name
+        team.agent_id_list = [member.agent_id for member in members[:3]]
+        while len(team.agent_id_list) < 3:
+            team.agent_id_list.append('unknown')
+        self.update_team(team)
+
     def update_team_members(self, team_name: str, members: list[Agent]) -> None:
         """
         更新某个配队的代理人

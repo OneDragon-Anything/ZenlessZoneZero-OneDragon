@@ -19,6 +19,9 @@ from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import (
 )
 from zzz_od.gui.view.devtools.mcp_service_interface import McpServiceInterface
 from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
+from zzz_od.gui.view.devtools.shiyu_defense_team_test_interface import (
+    ShiyuDefenseTeamTestInterface,
+)
 
 
 class AppDevtoolsInterface(PivotNavigatorInterface):
@@ -40,5 +43,6 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         self.add_sub_interface(DevtoolsScreenManageInterface(self.ctx))
         self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
+        self.add_sub_interface(ShiyuDefenseTeamTestInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))
         self.add_sub_interface(McpServiceInterface(self.ctx))
