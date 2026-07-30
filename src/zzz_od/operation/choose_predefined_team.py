@@ -114,6 +114,7 @@ class ChoosePredefinedTeam(ZOperation):
 
         扫描完成后先回到目标编队所在页面。游戏可能已有预选编队，
         此时需取消预选并等待原按钮恢复为 SELECT，避免直接选择失败。
+        取消或选择后若持续无法确认状态，按节点重试上限失败退出，避免无限等待。
         每次点击后也要等待画面确认选中，再继续处理下一支编队。
         """
         if not self.shiyu_team_selected:
@@ -143,9 +144,8 @@ class ChoosePredefinedTeam(ZOperation):
         if self.pending_cancel_button_center is not None:
             ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
             if not self._is_select_button_visible(ocr_result_map):
-                log.info('预备编队取消等待:原选中态尚未恢复为SELECT')
-                return self.round_wait(
-                    ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                return self.round_retry(
+                    '取消预选后未恢复SELECT',
                     wait=0.5,
                 )
             log.info('预备编队取消完成:已恢复SELECT')
@@ -158,8 +158,8 @@ class ChoosePredefinedTeam(ZOperation):
         if self.pending_select_button_center is not None:
             ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
             if not self._is_team_selected(ocr_result_map):
-                return self.round_wait(
-                    ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                return self.round_retry(
+                    '选择预备编队后未确认选中状态',
                     wait=0.5,
                 )
             self.pending_select_button_center = None
