@@ -1,14 +1,17 @@
 import os
 import subprocess
-from typing import List, Optional, Callable
 import threading
+from collections.abc import Callable
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
 
-def run_command(commands: List[str], cwd: Optional[str] = None,
-                message_callback: Optional[Callable[[str], None]] = None) -> Optional[str]:
+def run_command(
+    commands: list[str],
+    cwd: str | None = None,
+    message_callback: Callable[[str], None] | None = None,
+) -> str | None:
     """
     执行命令行
     :param commands: 需要执行的命令
@@ -31,14 +34,18 @@ def run_command(commands: List[str], cwd: Optional[str] = None,
         # 为子进程指定不创建新窗口的标志
         creationflags = subprocess.CREATE_NO_WINDOW
 
-        process = subprocess.Popen(commands, cwd=cwd,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-                                   text=True,
-                                   encoding='utf-8',  # 指定编码为 GBK
-                                   errors='ignore',  # 忽略解码错误
-                                   startupinfo=startupinfo,
-                                   creationflags=creationflags
-                                   )
+        process = subprocess.Popen(
+            commands,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+            text=True,
+            encoding='utf-8',  # 使用 UTF-8 编码
+            errors='ignore',  # 忽略解码错误
+            startupinfo=startupinfo,
+            creationflags=creationflags,
+        )
 
         result_str: str = ''
 
@@ -54,8 +61,12 @@ def run_command(commands: List[str], cwd: Optional[str] = None,
                 result_str = result_str + '\n' + line_strip
 
         # 创建两个线程分别处理 stdout 和 stderr
-        stdout_thread = threading.Thread(target=read_pipe, args=(process.stdout, log.info))
-        stderr_thread = threading.Thread(target=read_pipe, args=(process.stderr, log.error))
+        stdout_thread = threading.Thread(
+            target=read_pipe, args=(process.stdout, log.info)
+        )
+        stderr_thread = threading.Thread(
+            target=read_pipe, args=(process.stderr, log.error)
+        )
 
         # 启动线程
         stdout_thread.start()
@@ -72,6 +83,32 @@ def run_command(commands: List[str], cwd: Optional[str] = None,
             return result_str.strip()
         else:
             return None
+    except Exception:
+        log.error('执行命令失败', exc_info=True)
+        return None
+
+
+def run_command_with_code(
+    commands: list[str],
+    cwd: str | None = None,
+    quiet: bool = False,
+    mute: bool = False,
+) -> int | None:
+    """执行命令并返回退出码，可静默输出或继承当前终端。"""
+    log.info(' '.join(commands)) if not mute else None
+    if cwd is None:
+        cwd = os_utils.get_work_dir()
+
+    output = subprocess.DEVNULL if quiet else None
+    try:
+        result = subprocess.run(
+            commands,
+            cwd=cwd,
+            stdout=output,
+            stderr=output,
+            check=False,
+        )
+        return result.returncode
     except Exception:
         log.error("执行命令失败", exc_info=True)
         return None

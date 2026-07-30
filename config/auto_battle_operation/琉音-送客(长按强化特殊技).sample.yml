@@ -6,21 +6,46 @@ operations:
   - op_name: "设置状态"
     state: "自定义-无视闪光"
     seconds: 2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.02
+  - op_name: "按键-切换角色"
+    agent_name: "琉音"
+  - op_name: "等待秒数"
+    seconds: 0.05
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.5
+    seconds: 0.2
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.2

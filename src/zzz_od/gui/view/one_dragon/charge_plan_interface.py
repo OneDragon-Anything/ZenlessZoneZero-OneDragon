@@ -144,6 +144,9 @@ class ChargePlanCard(DraggableListItem):
     def init_mission_type_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_mission_type_list(self.plan.category_name)
         self.mission_type_combo_box.set_items(config_list, self.plan.mission_type_name)
+        self.mission_type_combo_box.setVisible(
+            self.plan.category_name != '合成电池'
+        )
 
     def init_mission_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_mission_list(self.plan.category_name, self.plan.mission_type_name)
@@ -170,11 +173,17 @@ class ChargePlanCard(DraggableListItem):
         config_list = ([ConfigItem('游戏内配队', -1)] +
                        [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
         self.predefined_team_opt.set_items(config_list, self.plan.predefined_team_idx)
+        self.predefined_team_opt.setVisible(
+            self.plan.category_name != '合成电池'
+        )
 
     def init_auto_battle_box(self) -> None:
         config_list = get_auto_battle_op_config_list(sub_dir='auto_battle')
         self.auto_battle_combo_box.set_items(config_list, self.plan.auto_battle_config)
-        self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
+        self.auto_battle_combo_box.setVisible(
+            self.plan.category_name != '合成电池'
+            and self.plan.predefined_team_idx == -1
+        )
 
     def init_run_times_input(self) -> None:
         self.run_times_input.blockSignals(True)
@@ -213,13 +222,16 @@ class ChargePlanCard(DraggableListItem):
         category_name = self.category_combo_box.itemData(idx)
         self.plan.category_name = category_name
         self.plan.tab_name = '训练'
+        if category_name == '合成电池':
+            self.plan.mission_type_name = ''
+            self.plan.mission_name = None
 
         self.init_mission_type_combo_box()
         self.init_mission_combo_box()
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
-
-        self.update_by_history()
+        self.init_predefined_team_opt()
+        self.init_auto_battle_box()
 
         self._emit_value()
 
@@ -229,14 +241,12 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_mission_combo_box()
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_mission_changed(self, idx: int) -> None:
         mission_name = self.mission_combo_box.itemData(idx)
         self.plan.mission_name = mission_name
 
-        self.update_by_history()
         self._emit_value()
 
     def _on_card_num_changed(self, idx: int) -> None:
@@ -275,25 +285,6 @@ class ChargePlanCard(DraggableListItem):
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
 
-    def update_by_history(self) -> None:
-        """
-        根据历史记录更新
-        """
-        history = self.config.get_history_by_uid(self.plan)
-        if history is None:
-            return
-
-        self.plan.card_num = history.card_num
-        self.plan.notorious_hunt_buff_num = history.notorious_hunt_buff_num
-        self.plan.predefined_team_idx = history.predefined_team_idx
-        self.plan.auto_battle_config = history.auto_battle_config
-        self.plan.plan_times = history.plan_times
-
-        self.init_card_num_box()
-        self.init_notorious_hunt_buff_num_opt()
-        self.init_predefined_team_opt()
-        self.init_auto_battle_box()
-        self.init_plan_times_input()
 
 
 class DoubleRewardEventConfigCard(MultiLineSettingCard):
@@ -426,7 +417,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget = Column()
 
         self.help_opt = HelpCard(
-            url='https://one-dragon.com/zzz/zh/feat_one_dragon/charge_plan.html',
+            url='https://one-dragon.com/zzz/zh/feat/feat_one_dragon/charge_plan.html',
             title='体力计划说明',
             content='合理安排每日体力消耗，支持自定义优先级和循环执行',
         )
@@ -437,7 +428,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
         self.daily_reset_plan_times_opt = SwitchSettingCard(icon=FluentIcon.HISTORY, title='每日重置', content='开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零')
-        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', content='体力不足时按所选方式恢复。若提取后仍不足以触发挑战则会跳过提取', options_enum=RestoreChargeEnum)
+        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', content='电量不足时尝试按所选方式有效补足缺口', options_enum=RestoreChargeEnum)
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.daily_reset_plan_times_opt, self.restore_charge_opt], spacing=6))
 
         self.double_reward_group = ExpandSettingCardGroup(

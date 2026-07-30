@@ -1,0 +1,34 @@
+# 快速长按普攻0.6秒，用于快速释放天光后的合轴前动作
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 1
+  - op_name: "设置状态"
+    state: "自定义-无视闪光"
+    seconds: 0.6
+  - op_name: "设置状态"
+    state: "自定义-不使用快速支援"
+    seconds: 2.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "等待秒数"
+    seconds: 1.5

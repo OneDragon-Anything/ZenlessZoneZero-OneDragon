@@ -31,6 +31,7 @@ class DmgTypeEnum(Enum):
     FIRE = '火属性'
     ICE = '冰属性'
     WIND = '风属性'
+    LUMIFLUX = '流明属性'
     UNKNOWN = '未知'
 
     @classmethod
@@ -274,7 +275,7 @@ class AgentEnum(Enum):
     BURNICE_WHITE = Agent('burnice_white', '柏妮思', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['burnice_white'],
                           state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                     template_id='burnice_white',
-                                                    hsv_color=(0, 255, 255), hsv_color_diff=(90, 200, 100),
+                                                    hsv_color=(20, 255, 255), hsv_color_diff=(20, 200, 100),
                                                     max_length=100)
                                       ])
 
@@ -333,11 +334,11 @@ class AgentEnum(Enum):
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                      template_id='yixuan_technique',
-                                     hsv_color=(20, 0, 245), hsv_color_diff=(7, 240, 17),
+                                     hsv_color=(30, 0, 245), hsv_color_diff=(15, 245, 255),
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 255, 255), hsv_color_diff=(20, 175, 50),
+                                     hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
 
@@ -465,12 +466,10 @@ class AgentEnum(Enum):
                 max_length=120,
             ),
             AgentStateDef(
-                "叶瞬光-明心境-标志",
-                AgentStateCheckWay.COLOR_RANGE_CONNECT,
-                template_id="yeshunguang_mingxinjing_sign",
-                hsv_color=(113, 75, 255),
-                hsv_color_diff=(30, 50, 50),
-                connect_cnt=2,
+                "叶瞬光-常态",
+                AgentStateCheckWay.TEMPLATE_FOUND,
+                template_id="yeshunguang_normal",
+                template_threshold=0.7,
             ),
             AgentStateDef(
                 "叶瞬光-青溟剑势-红",
@@ -485,8 +484,8 @@ class AgentEnum(Enum):
                 AgentStateCheckWay.COLOR_RANGE_CONNECT,
                 template_id="yeshunguang_qingming_ex",
                 hsv_color=(0, 0, 255),
-                hsv_color_diff=(10, 10, 10),
-                connect_cnt=2,
+                hsv_color_diff=(0, 0, 0),
+                connect_cnt=10,
             ),
         ],
     )
@@ -512,7 +511,7 @@ class AgentEnum(Enum):
                     state_list=[AgentStateDef('普罗米娅-霜刑', AgentStateCheckWay.COLOR_RANGE_CONNECT, 'promeia_ss',
                                               hsv_color=(0,255,255), hsv_color_diff=(90, 255, 50), connect_cnt=2)])
 
-    VELINA = Agent('velina', '维琳娜', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.WIND, ['velina'],
+    VELINA = Agent('velina', '维琳娜', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.WIND, ['velina', 'velina_shade_of_leisure'],
                     state_list=[AgentStateDef('维琳娜-风华', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH, 'velina',
                                         hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                         max_length=135)
@@ -537,3 +536,30 @@ class AgentEnum(Enum):
                                             template_id='norma',
                                             hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                             max_length=100)])
+
+    REMIELLE = Agent(
+        'remielle',
+        '蕾米埃尔',
+        RareTypeEnum.S,
+        AgentTypeEnum.ANOMALY,
+        DmgTypeEnum.LUMIFLUX,
+        ['remielle', 'remielle_dark'],
+        state_list=[
+            AgentStateDef(
+                '蕾米埃尔-浮晖',
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id='remielle_floating_radiance',
+                hsv_color=(150, 255, 255),
+                hsv_color_diff=(30, 255, 200),
+                max_length=100,
+            ),
+            AgentStateDef(
+                '蕾米埃尔-虚曜',
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id='remielle_voidflare',
+                hsv_color=(150, 255, 255),
+                hsv_color_diff=(30, 255, 200),
+                connect_cnt=1,
+            ),
+        ],
+    )

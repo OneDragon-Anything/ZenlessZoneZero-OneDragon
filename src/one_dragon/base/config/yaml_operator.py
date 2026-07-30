@@ -100,16 +100,28 @@ class YamlOperator:
             return self.file_path if self.file_path is not None else self._write_file_path
         return self._write_file_path if self._write_file_path is not None else self.file_path
 
-    def save(self):
+    def save(self) -> None:
         if not self._ensure_write_path_ready():
             return
-
         write_path = self._get_write_path()
         if write_path is None:
             return
 
+        # 把要写入的内容转成字符串
+        new_content = yaml.dump(self.data, allow_unicode=True, sort_keys=False)
+        # 尝试读取旧文件内容
+        old_content = None
+        try:
+            with open(write_path, 'r', encoding='utf-8') as file:
+                old_content = file.read()
+        except Exception:
+            pass
+
+        # 读取报错/内容不一致时写入
+        if old_content == new_content:
+            return
         with open(write_path, 'w', encoding='utf-8') as file:
-            yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+            file.write(new_content)
         invalidate_cache(write_path)
 
         if self.file_path != write_path:

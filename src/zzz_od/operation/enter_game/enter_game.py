@@ -16,10 +16,10 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
-    OperationRoundResultEnum,
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -36,18 +36,20 @@ class EnterGame(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
 
         self.force_login: bool = (
-            self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1
+            (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
+             and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            or self.ctx.one_dragon_config.current_instance_force_login
         )
 
         # 切换账号的情况下 一定需要登录
         if switch:
             self.force_login = True
 
-        # 未配置账号密码时，无法主动切换账号，依赖游戏保存的登录状态直接进入
+        # 未配置登录信息时，无法主动切换账号，依赖游戏保存的登录状态直接进入
         # switch=True 时前置流程已执行游戏内登出，不能跳过 force_login
         cfg = self.ctx.game_account_config
-        if not switch and not cfg.account and not cfg.password and not cfg.bilibili_account_name:
+        if not switch and self.force_login and not cfg.has_login_info:
+            log.warning('登录信息未配置完整，跳过强制重新登录，将使用游戏当前登录状态')
             self.force_login = False
 
         self.already_login: bool = False  # 是否已经提交账号登录
@@ -410,6 +412,11 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
+        for area_name in ('二周年自选奖励', '一周年自选奖励'):
+            result = self.round_by_find_and_click_area(screen, '打开游戏', area_name)
+            if result.is_success:
+                return self.round_wait(status=result.status, wait=1)
+
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         back_btn_result = self.round_by_find_area(screen, '菜单', '返回')
 
@@ -554,7 +561,7 @@ class EnterGame(ZOperation):
 
         downloading_seconds = now - self.resource_download_start_time
         if downloading_seconds < EnterGame.MAX_RESOURCE_DOWNLOAD_SECONDS:
-            return OperationRoundResult(result=OperationRoundResultEnum.WAIT, status='资源下载中')
+            return self.round_wait('资源下载中', wait=2)
 
         self.resource_download_start_time = None
         return self.round_fail('资源下载超时')
@@ -585,6 +592,7 @@ class EnterGame(ZOperation):
         )
         target_word_list: list[str] = [
             '加载配置数据中',
+            '版本校对中',
             '登录游戏服务器中',
             EnterGame.STATUS_LOGIN_SUCCESS,
             '资源下载中',
@@ -643,7 +651,7 @@ class EnterGame(ZOperation):
                         self.after_second_enter_click = True
                     else:
                         self.after_first_enter_click = True
-                    return self.round_wait(status=match_word, wait=1)
+                    return self.round_wait(status=match_word, wait=2)
                 return click_result
 
             if match_word == '加载配置数据中':

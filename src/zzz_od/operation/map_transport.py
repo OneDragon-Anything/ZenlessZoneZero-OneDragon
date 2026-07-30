@@ -46,6 +46,9 @@ class MapTransport(ZOperation):
             elif current_idx > max_current_area_idx:
                 max_current_area_idx = current_idx
 
+        if max_current_area_idx < 0:
+            return self.round_retry('未识别到地图区域', wait=0.5)
+
         start_point = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
         if max_current_area_idx > target_area_idx:
             end_point = start_point + Point(500, 0)

@@ -18,7 +18,7 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
 
     def __init__(self, ctx: ZContext, try_next: bool, is_agent_plan: bool = False) -> None:
         """
-        在战斗结束画面 尝试点击 【再来一次】 或者 【结束】
+        在战斗结束画面 尝试点击 【再来一次】 或者 【完成】
         :param ctx: 上下文
         :param try_next: 是否尝试点击下一次
         :param is_agent_plan: 当前是否特训目标(代理人方案培养) 用于判断是否已达成
@@ -73,6 +73,10 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
             self.try_next = op_result.status == RestoreCharge.STATUS_RESTORE_SUCCESS
         else:
             self.try_next = False
+            result = self.round_by_find_and_click_area(self.last_screenshot, '恢复电量', '取消',
+                                                       success_wait=1, retry_wait=1)
+            if not result.is_success:
+                return result
 
         # 恢复流程结束后回到“判断再来一次”；是否继续由 try_next 决定，这里不直接点“完成”
         return self.round_success(status='战斗结果-完成', wait=0.5)

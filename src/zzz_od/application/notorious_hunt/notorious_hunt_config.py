@@ -1,4 +1,8 @@
 from enum import Enum
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -235,3 +239,18 @@ class NotoriousHuntConfig(ApplicationConfig):
                 and x.category_name == y.category_name
                 and x.mission_type_name == y.mission_type_name
                 and x.mission_name == y.mission_name)
+
+    # 运行态/身份字段(set_config 拒绝;详见 spec v5 _RO_FIELDS)
+    _RO_FIELDS: ClassVar[set[str]] = {'plan_id'}
+
+    @classmethod
+    def validate_item(cls, ctx: 'ZContext', item: ChargePlanItem) -> str | None:
+        """校验 plan item 业务合法性:mission_type 在 compendium 合法(恶名狩猎域)。
+
+        mission_name 常为 None(恶名狩猎按 plan_id 区分),不校验 mission 层级。
+        合法返 None,非法返原因(含合法值)。
+        """
+        mission_types = [m.value for m in ctx.compendium_service.get_notorious_hunt_plan_mission_type_list(item.category_name)]
+        if item.mission_type_name not in mission_types:
+            return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
+        return None

@@ -55,7 +55,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         content.h_layout.addLayout(right_layout)
         layout.add_widget(content)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_game_assistant.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat/feat_game_assistant.html')
         left_layout.addWidget(self.help_opt)
 
         self.pause_in_background_opt = SwitchSettingCard(
@@ -103,7 +103,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         )
 
         self.pause_in_background_opt.init_with_adapter(get_prop_adapter(self.config, 'pause_in_background'))
-        
+
         self.dialog_click_interval_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_click_interval'))
         self.dialog_option_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_option'))
         self.story_mode_opt.init_with_adapter(get_prop_adapter(self.config, 'story_mode'))

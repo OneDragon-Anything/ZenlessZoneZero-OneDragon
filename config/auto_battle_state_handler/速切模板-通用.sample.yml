@@ -38,6 +38,6 @@ handlers:
             post_delay: 0.5
             repeat: 2
 
-      - states: ""
+      - states: "[按键可用-普通攻击]"
         operations:
           - operation_template: "通用-切人普通攻击"

@@ -214,7 +214,6 @@ class AutoBattleContext:
         self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
-        self.area_btn_switch_backup: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援')
         self.area_btn_switch_backup_mark: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援标记')
         self.area_btn_switch_backup_gray: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援灰度区域')
 
@@ -552,6 +551,14 @@ class AutoBattleContext:
         """
         in_battle = self.is_normal_attack_btn_available(screen)
         self.last_check_in_battle = in_battle
+        if in_battle:
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
+        else:
+            # 离开战斗(普攻按钮消失):立即清状态,不依赖默认时间窗口在战后自然失效,
+            # 避免战后残留的"按键可用"让 速切模板-通用 兜底继续发普攻(#2157)
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, is_clear=True))
 
         future_list: list[Future] = []
 

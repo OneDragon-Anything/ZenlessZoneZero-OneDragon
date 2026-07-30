@@ -44,12 +44,11 @@ class HouHouBakeryApp(ZApplication):
     def move_and_interact(self) -> OperationRoundResult:
         """传送之后与吼吼先生交互, 打开领奖界面。传送点已足够近, 无需前移。"""
         # self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        # time.sleep(1)
 
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-        time.sleep(3)
 
-        return self.round_success()
+        return self.round_success(wait=3)
 
     @node_from(from_name='移动交互')
     @node_notify(when=NotifyTiming.CURRENT_DONE)
@@ -58,12 +57,24 @@ class HouHouBakeryApp(ZApplication):
         """领取每日奖励 单节点自循环。
 
         各画面按 OCR 文字分发
+        - 「同类型奖励」: 兼容当日已签到的两种情况。
         - 「确定/确认」: 卡片揭示界面, 点击确认领取并标记 claimed。
         - 「查看今天」: 盲盒已居中(点击盲盒, 查看今天的「卡片」吧), 点屏幕中心开盒。
         - 「每日可领取一次」: 集卡机界面可领取, 点击格子里的盲盒。
-        - 「同类型奖励」: 今日已领取同类型奖励, 两条路径的终点, 结束。
         其余(黑屏过渡/加载) -> 重试。
         """
+
+        # 领取流程终点，兼容2种情况：
+        # 1.今日在饼铺签到-右下角文案「今日已领取同类型奖励」-节点退出
+        # 2.当日已在其他项目(刮刮卡/卦象集录等)签到-点击盲盒后提示「今日已经完成过一次相同类型的奖励领取」-节点退出
+        # 残留弹窗交由后续「返回大世界」统一处理。
+        # 必须置于「确定/确认」分支之前: 否则弹窗自带的「确认」会被该分支误点,
+        #   关闭弹窗后退回集卡机 -> 再点盲盒 -> 又弹窗, 反复循环直至节点重试耗尽而失败。
+        result = self.round_by_ocr(self.last_screenshot, '同类型奖励')
+        if result.is_success:
+            status = '领取成功' if self.claimed else '今日已领取'
+            return self.round_success(status=status, wait=1)
+
         # 卡片揭示 -> 点击确定
         for confirm_word in ['确定', '确认']:
             result = self.round_by_ocr_and_click(self.last_screenshot, confirm_word)
@@ -87,12 +98,6 @@ class HouHouBakeryApp(ZApplication):
                 return self.round_wait(status='选择盲盒', wait=1)
             return self.round_retry(status='盲盒区域点击失败', wait=1)
 
-        # 今日已领取同类型奖励(两条路径终点) -> 结束
-        result = self.round_by_ocr(self.last_screenshot, '同类型奖励')
-        if result.is_success:
-            status = '领取成功' if self.claimed else '今日已领取'
-            return self.round_success(status=status)
-
         return self.round_retry(status='未识别目标文本', wait=1)
 
     @node_from(from_name='领取奖励')
@@ -106,7 +111,7 @@ class HouHouBakeryApp(ZApplication):
 def __debug() -> None:
     """本地调试入口: 初始化上下文并直接运行一次吼吼饼铺签到。"""
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = HouHouBakeryApp(ctx)
     app.execute()
 

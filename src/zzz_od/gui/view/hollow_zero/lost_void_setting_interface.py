@@ -63,7 +63,7 @@ class LostVoidSettingInterface(VerticalScrollInterface, GroupIdMixin):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/hollow_zero.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat/feat_one_dragon/hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         self.mission_opt = ComboBoxSettingCard(

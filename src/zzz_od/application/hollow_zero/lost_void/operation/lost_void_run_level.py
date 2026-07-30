@@ -47,6 +47,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route
 )
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
     LostVoidMoveByDet,
+    LostVoidStuckState,
 )
 from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import (
     UpdatePriorityOperation,
@@ -133,6 +134,7 @@ class LostVoidRunLevel(ZOperation):
         self.room_inited_times: int = 0  # 挚交会谈需要初始化两次
         self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
         self.interacted_target_key_list: list[str] = []  # 本层已经交互过的具体对象
+        self.stuck_state: LostVoidStuckState = LostVoidStuckState()  # 本层共享的脱困状态
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -299,7 +301,8 @@ class LostVoidRunLevel(ZOperation):
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_INTERACT,
                                    stop_when_disappear=False,
-                                   allow_arrival_by_interact_btn=self.boss_pre_battle)
+                                   allow_arrival_by_interact_btn=self.boss_pre_battle,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -327,7 +330,8 @@ class LostVoidRunLevel(ZOperation):
         if with_distance and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_DISTANCE,
-                                   stop_when_interact=False)
+                                   stop_when_interact=False,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -352,7 +356,8 @@ class LostVoidRunLevel(ZOperation):
         if with_entry and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_ENTRY,
-                                   stop_when_disappear=False, ignore_entry_list=self.had_been_list)
+                                   stop_when_disappear=False, ignore_entry_list=self.had_been_list,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -370,7 +375,14 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_retry('移动失败')
 
-        # 没找到目标 转动视角
+        # 没找到目标时，先瞬检是否已进入战斗（战斗关卡无图标，只会落到转圈分支）
+        if self.ctx.lost_void.check_battle_encounter(self.last_screenshot, self.last_screenshot_time):
+            return self.enter_battle(
+                screenshot_time=self.last_screenshot_time,
+                end_boss_pre_battle=self.boss_pre_battle,
+            )
+
+        # 没找到目标 转动
         self.ctx.controller.turn_by_distance(-200)
         self.nothing_times += 1
 
@@ -570,6 +582,7 @@ class LostVoidRunLevel(ZOperation):
                 '迷失之地-邦布商店',
                 '迷失之地-路径迭换',
                 '迷失之地-抽奖机',
+                '迷失之地-挑战结果',
                 '迷失之地-大世界'
             ]
         )
@@ -588,6 +601,8 @@ class LostVoidRunLevel(ZOperation):
         elif screen_name == '迷失之地-抽奖机':
             interact_type = '邦布商店'  # TODO 1.6新增的抽奖机图标 会被误判成商店 等待后续模型更新
             interact_op = LostVoidLottery(self.ctx)
+        elif screen_name == '迷失之地-挑战结果':
+            return self.round_success('迷失之地-挑战结果')
         elif screen_name == '迷失之地-大世界':
             return self.round_success('迷失之地-大世界')
 
@@ -600,7 +615,7 @@ class LostVoidRunLevel(ZOperation):
                 if interact_type is not None:
                     self.had_been_list.append(interact_type)
 
-                return self.round_wait(op_result.status, wait=1)
+                return self.round_wait(op_result.status, wait=2)
             else:
                 return self.round_fail(op_result.status)
 
@@ -755,6 +770,8 @@ class LostVoidRunLevel(ZOperation):
                 self.interacted_target_key_list.append(target_key)
 
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
+            if self.interact_target is not None and self.interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value:
+                self.ctx.lost_void.had_interacted_ophelia_on_current_level = True
             if not (self.boss_pre_battle
                     and self.interact_target is not None
                     and not self.interact_target.after_battle):
@@ -978,7 +995,7 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     self.no_in_battle_times = 0
 
-                if self.no_in_battle_times >= 10:
+                if self.no_in_battle_times >= 3:
                     self.ctx.auto_battle_context.stop_auto_battle()
                     self.no_in_battle_times = 0
 

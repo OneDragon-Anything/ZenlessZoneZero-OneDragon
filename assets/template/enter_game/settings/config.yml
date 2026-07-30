@@ -1,0 +1,8 @@
+sub_dir: enter_game
+template_id: settings
+template_name: 设置
+template_shape: circle
+auto_mask: true
+point_list:
+- 1820, 824
+- 1843, 824

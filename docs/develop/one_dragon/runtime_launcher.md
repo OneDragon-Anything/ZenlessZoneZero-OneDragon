@@ -40,7 +40,8 @@ LauncherBase          → 基础参数解析、run() 入口
 ├── OneDragon-RuntimeLauncher.exe    ← 启动入口
 ├── .runtime/                        ← Python 运行时 + 冻结模块
 │   ├── module_manifest.py           ← 外部依赖清单
-│   ├── config/project.yml           ← 项目配置
+│   ├── config/project.yml           ← 项目配置与运行时协议字段
+│   ├── config/repository.yml        ← 项目仓库列表、回退策略和地区预设
 │   └── ...                          ← Python DLL、so、pyd 等
 └── src/                             ← 源代码目录（通过 git 同步）
     ├── one_dragon/
@@ -84,6 +85,8 @@ LauncherBase          → 基础参数解析、run() 入口
 - 相同 → 兼容，允许更新
 - 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
 
+代码源配置、候选源顺序和 fetch 回退机制见 [Git 服务与代码源回退](modules/git_service.md)。
+
 ### 清单路径配置
 
 远程清单的路径不是硬编码的，而是从目标 commit 的 `config/project.yml` 中的 `manifest_path` 字段读取。这样即使清单文件改名或移动位置，只要 `project.yml` 正确指向它就能找到。
@@ -98,7 +101,7 @@ LauncherBase          → 基础参数解析、run() 入口
 集成启动器的 `_sync_code()` 方法在每次启动时执行：
 
 1. 记录当前 `sys.modules` 快照（用于后续清理）
-2. 延迟导入 `EnvConfig`、`GitService`、`ProjectConfig`（来自 `src/`）
+2. 延迟导入并创建框架 `OneDragonEnvContext`（来自 `src/`），由它统一加载环境、项目和仓库配置
 3. 判断是否首次运行（检查 `.git` 目录是否存在）
 4. 首次运行 → 克隆仓库；非首次 → 根据 `auto_update_code` 配置决定是否更新
 5. 成功后清除同步过程中加载的模块（`del sys.modules[...]`），调用 `importlib.invalidate_caches()`
@@ -126,10 +129,11 @@ CI 构建生成以下集成启动器相关产物：
 
 | 文件 | 内容 | 用途 |
 |------|------|------|
-| `{version}-WithRuntime.zip` | 集成启动器 exe + .runtime + src | 首次部署，解压即用 |
+| `{version}-WithRuntime-Full.zip` | 集成启动器 exe + .runtime + src + 模型 | 首次部署，解压即用且无需额外下载模型 |
+| `{version}-WithRuntime.zip` | 集成启动器 exe + .runtime + src | 首次部署，模型按需下载 |
 | `RuntimeLauncher.zip` | 集成启动器 exe + .runtime（不含 src） | 就地升级已有环境 |
 
-WithRuntime 包含 src/ 是因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压 WithRuntime 后首次启动，集成启动器会自动初始化 git 仓库并设置远程跟踪。
+两个 WithRuntime 包都包含 src/，因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压后首次启动，集成启动器会自动初始化 git 仓库并设置远程跟踪。WithRuntime-Full 复用普通 Full 包准备好的模型，将其写入压缩包的 `assets/models/`；CI 不会因此重复下载模型。
 
 ## 启动器下载卡（UI）
 

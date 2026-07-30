@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from typing import ClassVar
 
 from cv2.typing import MatLike
@@ -20,6 +21,12 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
+
+
+@dataclass
+class LostVoidStuckState:
+    stuck_times: int = 0
+    prefer_left_escape: bool = True
 
 
 class MoveTargetWrapper:
@@ -108,6 +115,7 @@ class LostVoidMoveByDet(ZOperation):
         stop_when_disappear: bool = True,
         ignore_entry_list: list[str] | None = None,
         allow_arrival_by_interact_btn: bool = False,
+        stuck_state: LostVoidStuckState | None = None,
     ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
@@ -118,6 +126,7 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_disappear:
         @param ignore_entry_list:
         @param allow_arrival_by_interact_btn: 是否允许仅凭交互按钮出现就判定到位
+        @param stuck_state: 当前楼层共享的脱困状态
         """
         ZOperation.__init__(
             self,
@@ -132,6 +141,9 @@ class LostVoidMoveByDet(ZOperation):
         self.stop_when_disappear: bool = stop_when_disappear  # 目标消失时停止移动
         self.ignore_entry_list: list[str] | None = ignore_entry_list
         self.allow_arrival_by_interact_btn: bool = allow_arrival_by_interact_btn
+        self.stuck_state: LostVoidStuckState = (
+            stuck_state if stuck_state is not None else LostVoidStuckState()
+        )
 
         # 需要按方向选的时候 按最大x值选
         # 入口时 从右往左选可以上楼梯
@@ -143,7 +155,6 @@ class LostVoidMoveByDet(ZOperation):
         self.last_visible_target_list: list[MoveTargetWrapper] = []  # 上一次识别到的全部可见目标
         self.last_target_name: str | None = None  # 最后识别到的交互目标名称
         self.same_target_times: float = 0  # 识别到相同目标的次数
-        self.stuck_times: int = 0  # 被困次数
         self.total_turn_times: int = 0  # 总共转向次数
 
         self.last_save_debug_image_time: float = 0  # 上一次保存debug图片的时间
@@ -151,7 +162,6 @@ class LostVoidMoveByDet(ZOperation):
         self.lost_target_during_move_times: int = 0  # 移动过程中丢失目标次数
         self.target_lost_start_time: float = 0  # 本轮移动中开始丢失目标的时间
         self.no_target_handle_times: int = 0  # 连续进入无目标处理的次数
-        self.prefer_left_escape: bool = True  # 脱困时优先向左移动
 
         # 转向校准
         self.last_target_x: float | None = None  # 上一次识别到的目标x轴坐标
@@ -181,6 +191,13 @@ class LostVoidMoveByDet(ZOperation):
         self.same_target_times = 0
         self.last_visible_target_list = []
 
+    def _get_detected_class_names(self, frame_result: DetectFrameResult) -> list[str]:
+        return [result.detect_class.class_name for result in frame_result.results]
+
+    def _get_detected_class_summary(self, frame_result: DetectFrameResult) -> str:
+        class_name_list = self._get_detected_class_names(frame_result)
+        return '无' if len(class_name_list) == 0 else ', '.join(class_name_list)
+
     def handle_not_in_world(self, screen: MatLike) -> OperationRoundResult:
         """
         处理不在大世界的情况
@@ -198,7 +215,7 @@ class LostVoidMoveByDet(ZOperation):
         else:
             return self.round_retry('未在大世界画面')
 
-    @node_from(from_name='脱困')
+    @node_from(from_name='脱困', status=STATUS_CONTINUE)
     @node_from(from_name='无目标处理', status=STATUS_CONTINUE)
     @operation_node(name='移动前转向', node_max_retry_times=20, is_start_node=True)
     def turn_at_first(self) -> OperationRoundResult:
@@ -208,6 +225,8 @@ class LostVoidMoveByDet(ZOperation):
 
         frame_result = self.ctx.lost_void.detect_to_go(self.last_screenshot, screenshot_time=self.last_screenshot_time,
                                                        ignore_list=self.ignore_entry_list)
+        log.info('寻路节点[%s] 当前目标=%s 检测结果=%s',
+                 '移动前转向', self.target_type, self._get_detected_class_summary(frame_result))
 
         if self.check_interact_stop(self.last_screenshot, frame_result):
             return self.round_success(LostVoidMoveByDet.STATUS_ARRIVAL, data=self.last_target_name)
@@ -215,6 +234,19 @@ class LostVoidMoveByDet(ZOperation):
         target_result = self.get_move_target(frame_result)
 
         if target_result is None:
+            if self.target_type == LostVoidDetector.CLASS_ENTRY:
+                detected_class_name_list = self._get_detected_class_names(frame_result)
+                if LostVoidDetector.CLASS_INTERACT in detected_class_name_list:
+                    log.info('寻路节点[%s] 当前目标=%s 未检测到入口，但检测到更高优先级目标=%s，返回上层重识别',
+                             '移动前转向', self.target_type, LostVoidDetector.CLASS_INTERACT)
+                    return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+                if LostVoidDetector.CLASS_DISTANCE in detected_class_name_list:
+                    log.info('寻路节点[%s] 当前目标=%s 未检测到入口，但检测到更高优先级目标=%s，返回上层重识别',
+                             '移动前转向', self.target_type, LostVoidDetector.CLASS_DISTANCE)
+                    return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+
+            log.info('寻路节点[%s] 当前目标=%s 未识别到可追踪目标，检测结果=%s',
+                     '移动前转向', self.target_type, self._get_detected_class_summary(frame_result))
             if self.last_target_result is not None:
                 self._reset_turn_calibration_status()  # 丢失目标，重置校准
                 self._reset_stuck_status()
@@ -222,7 +254,7 @@ class LostVoidMoveByDet(ZOperation):
                 self.lost_target_during_move_times += 1
                 # https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/issues/867
                 if self.lost_target_during_move_times % 5 == 0:  # 尝试脱困
-                    self.stuck_times += 1
+                    self.stuck_state.stuck_times += 1
                     self.get_out_of_stuck()
             self.last_target_result = None
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
@@ -243,6 +275,8 @@ class LostVoidMoveByDet(ZOperation):
         frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
             self.last_screenshot, screenshot_time=self.last_screenshot_time,
             ignore_list=self.ignore_entry_list)
+        log.info('寻路节点[%s] 当前目标=%s 检测结果=%s',
+                 '移动', self.target_type, self._get_detected_class_summary(frame_result))
 
         if self.check_interact_stop(self.last_screenshot, frame_result):
             self.ctx.controller.stop_moving_forward()
@@ -263,17 +297,23 @@ class LostVoidMoveByDet(ZOperation):
                 # 调用的时候识别的是入口 但进入之后发现有其他优先级更高的 退出执行
                 another_result = self.ctx.lost_void.detector.get_result_by_x(frame_result, LostVoidDetector.CLASS_DISTANCE)
                 if another_result is not None:
+                    log.info('寻路节点[%s] 当前目标=%s 未检测到入口，但检测到更高优先级目标=%s，返回上层重识别',
+                             '移动', self.target_type, LostVoidDetector.CLASS_DISTANCE)
                     return self.round_success(status=LostVoidMoveByDet.STATUS_NEED_DETECT)
 
                 another_result = self.ctx.lost_void.detector.get_result_by_x(frame_result, LostVoidDetector.CLASS_INTERACT)
                 if another_result is not None:
+                    log.info('寻路节点[%s] 当前目标=%s 未检测到入口，但检测到更高优先级目标=%s，返回上层重识别',
+                             '移动', self.target_type, LostVoidDetector.CLASS_INTERACT)
                     return self.round_success(status=LostVoidMoveByDet.STATUS_NEED_DETECT)
 
+            log.info('寻路节点[%s] 当前目标=%s 未识别到可追踪目标，检测结果=%s',
+                     '移动', self.target_type, self._get_detected_class_summary(frame_result))
             self.lost_target_during_move_times += 1
             # 移动过程中多次丢失目标 通常是因为识别不准
             # 游戏1.6版本出现了可以因为丢失目标转动镜头而一直无法进入脱困 issues #867
             if self.lost_target_during_move_times % 10 == 0:  # 尝试脱困
-                self.stuck_times += 1
+                self.stuck_state.stuck_times += 1
                 self.get_out_of_stuck()
 
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
@@ -448,6 +488,13 @@ class LostVoidMoveByDet(ZOperation):
             if i.merge_parent is None
         ]
 
+        if self.ctx.lost_void.had_interacted_ophelia_on_current_level:
+            entry_list = [
+                item
+                for item in entry_list
+                if LostVoidRegionType.ELITE.value.value not in item.target_name_list
+            ]
+
         if self.last_target_result is not None:  # 优先保持与上次一致的目标
             result = self.get_same_as_last_target(entry_list)
             if result is not None:
@@ -456,9 +503,9 @@ class LostVoidMoveByDet(ZOperation):
         not_mixed_entry_list = [item for item in entry_list if not item.is_mixed]
         mixed_entry_list = [item for item in entry_list if item.is_mixed]
         if len(not_mixed_entry_list) > 0:
-            return self.ctx.lost_void.get_entry_by_priority(not_mixed_entry_list)
+            return self.ctx.lost_void.get_entry_by_priority(not_mixed_entry_list, self.ignore_entry_list)
         elif len(mixed_entry_list) > 0:
-            return self.ctx.lost_void.get_entry_by_priority(mixed_entry_list)
+            return self.ctx.lost_void.get_entry_by_priority(mixed_entry_list, self.ignore_entry_list)
         else:
             return None
 
@@ -487,14 +534,14 @@ class LostVoidMoveByDet(ZOperation):
             return False, f'目标数量变化 last={len(last_target_list)} current={len(new_target_list)}'
 
         used_idx_set: set[int] = set()
+        class_changed: bool = False
         for new_target in new_target_list:
             matched_idx: int | None = None
             matched_distance: float | None = None
+            matched_last_target: MoveTargetWrapper | None = None
 
             for idx, last_target in enumerate(last_target_list):
                 if idx in used_idx_set:
-                    continue
-                if last_target.leftest_target_name != new_target.leftest_target_name:
                     continue
 
                 dis = cal_utils.distance_between(last_target.entire_rect.center, new_target.entire_rect.center)
@@ -504,6 +551,7 @@ class LostVoidMoveByDet(ZOperation):
                 if matched_distance is None or dis < matched_distance:
                     matched_idx = idx
                     matched_distance = dis
+                    matched_last_target = last_target
 
             if matched_idx is None:
                 return False, (
@@ -511,9 +559,15 @@ class LostVoidMoveByDet(ZOperation):
                     f'center={new_target.entire_rect.center}'
                 )
 
+            if matched_last_target is not None and matched_last_target.leftest_target_name != new_target.leftest_target_name:
+                class_changed = True
+
             used_idx_set.add(matched_idx)
 
-        return True, '全部可见目标位移都在阈值内'
+        if class_changed:
+            return True, '全部可见目标位移都在阈值内，且存在类别抖动'
+        else:
+            return True, '全部可见目标位移都在阈值内'
 
     def check_stuck(self, frame_result: DetectFrameResult, new_target: MoveTargetWrapper) -> OperationRoundResult | None:
         """
@@ -532,18 +586,19 @@ class LostVoidMoveByDet(ZOperation):
         )
 
         if all_visible_targets_static:
-            increase_count = 0.1 if len(visible_target_list) == 1 else 1
+            increase_count = 0.2 if len(visible_target_list) == 1 else 1
             self.same_target_times += increase_count
         else:
             self.same_target_times = 0
 
         self.last_visible_target_list = visible_target_list
+        stuck_threshold = 5 if len(visible_target_list) == 1 else 20
 
-        if self.same_target_times >= 10:
+        if self.same_target_times >= stuck_threshold:
             self.ctx.controller.stop_moving_forward()
-            self.stuck_times += 1
+            self.stuck_state.stuck_times += 1
             self._reset_stuck_status()
-            if self.stuck_times > 12:
+            if self.stuck_state.stuck_times > 12:
                 return self.round_fail('无法脱困')
             else:
                 return self.round_success('尝试脱困')
@@ -565,16 +620,17 @@ class LostVoidMoveByDet(ZOperation):
             self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
             time.sleep(1)
 
-        backward_press_time = min(self.stuck_times - 1 * 0.5, 2)
-        side_press_time = min(self.stuck_times * 0.5, 2)
-        forward_press_time = min(max(self.stuck_times - 1, 0) * 0.5, 2)
+        escape_phase = (self.stuck_state.stuck_times - 1) % 8
+        backward_press_time = min(escape_phase * 0.5, 2)
+        side_press_time = min((escape_phase + 1) * 0.2, 2)
+        forward_press_time = min(escape_phase * 0.2, 2)
 
         self.ctx.controller.move_s(press=True, press_time=backward_press_time, release=True)
-        if self.prefer_left_escape:
+        if self.stuck_state.prefer_left_escape:
             self.ctx.controller.move_a(press=True, press_time=side_press_time, release=True)
         else:
             self.ctx.controller.move_d(press=True, press_time=side_press_time, release=True)
-        self.prefer_left_escape = not self.prefer_left_escape
+        self.stuck_state.prefer_left_escape = not self.stuck_state.prefer_left_escape
 
         if forward_press_time > 0:
             self.ctx.controller.move_w(press=True, press_time=forward_press_time, release=True)
@@ -584,6 +640,9 @@ class LostVoidMoveByDet(ZOperation):
             self.last_screenshot, screenshot_time=self.last_screenshot_time,
             ignore_list=self.ignore_entry_list,
         )
+        if self.target_type == LostVoidDetector.CLASS_INTERACT:
+            return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+
         distance_result = self.ctx.lost_void.detector.get_result_by_x(frame_result, LostVoidDetector.CLASS_DISTANCE)
         if distance_result is not None:
             return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
@@ -667,7 +726,7 @@ class LostVoidMoveByDet(ZOperation):
 
         if self.no_target_handle_times >= 7:
             self.no_target_handle_times = 0
-            self.stuck_times += 1
+            self.stuck_state.stuck_times += 1
             return self.round_success('尝试脱困')
 
         # 保存截图用于优化

@@ -6,10 +6,10 @@ area_list:
 - area_name: 按钮-撤退
   id_mark: true
   pc_rect:
-  - 530
-  - 850
-  - 746
-  - 912
+  - 550
+  - 845
+  - 870
+  - 910
   text: 撤退
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -20,10 +20,10 @@ area_list:
 - area_name: 按钮-重播
   id_mark: true
   pc_rect:
-  - 878
-  - 850
-  - 1086
-  - 912
+  - 910
+  - 845
+  - 1220
+  - 910
   text: 重播
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -32,12 +32,12 @@ area_list:
   color_range: null
   goto_list: []
 - area_name: 按钮-分析
-  id_mark: true
+  id_mark: false
   pc_rect:
-  - 1226
-  - 848
-  - 1428
-  - 916
+  - 1270
+  - 845
+  - 1390
+  - 910
   text: 分析
   lcs_percent: 0.5
   template_sub_dir: ''

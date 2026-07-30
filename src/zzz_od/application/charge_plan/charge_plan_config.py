@@ -1,6 +1,10 @@
 import uuid
 from dataclasses import dataclass, field, fields
 from enum import Enum
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -58,7 +62,7 @@ class ChargePlanItem:
 
     @property
     def estimated_charge_power(self) -> int:
-        # 菜单态这里只做体力预估；未知类型交给副本内流程再检查真实消耗
+        # 进本前只做体力预估；未知类型交给副本内流程再检查真实消耗
         if self.category_name == '实战模拟室':
             if self.card_num == CardNumEnum.DEFAULT.value.value:
                 return 20
@@ -69,18 +73,16 @@ class ChargePlanItem:
             return 40
         if self.category_name == '恶名狩猎':
             return 60
+        if self.category_name == '合成电池':
+            return 60
         return 0  # 未知类型，在副本内检查
 
-    def to_dict(self, *, include_plan_id: bool = True) -> dict[str, str | int | None]:
+    def to_dict(self) -> dict[str, str | int | None]:
         return {
             item.name: getattr(self, item.name)
             for item in fields(self)
             if item.metadata.get('persist', True)
-            and (include_plan_id or item.name != 'plan_id')
         }
-
-    def to_history_dict(self) -> dict[str, str | int | None]:
-        return self.to_dict(include_plan_id=False)
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ChargePlanItem':
@@ -105,29 +107,11 @@ class ChargePlanConfig(ApplicationConfig):
     def save(self):
         plan_list = []
 
-        new_history_list = []
-
         for plan_item in self.plan_list:
             plan_data = plan_item.to_dict()
-            history_data = plan_item.to_history_dict()
-
-            new_history_list.append(history_data)
             plan_list.append(plan_data)
 
-        old_history_list = self.history_list
-        for old_history_data in old_history_list:
-            old_history = ChargePlanItem(**old_history_data)
-            with_new = False
-            for plan in self.plan_list:
-                if self._is_same_plan(plan, old_history, compare_plan_id=False):
-                    with_new = True
-                    break
-
-            if not with_new:
-                new_history_list.append(old_history.to_history_dict())
-
         self.data['plan_list'] = plan_list
-        self.data['history_list'] = new_history_list
 
         YamlConfig.save(self)
 
@@ -299,17 +283,6 @@ class ChargePlanConfig(ApplicationConfig):
         return x == y
 
     @property
-    def history_list(self) -> list[dict]:
-        return self.get('history_list', [])
-
-    def get_history_by_uid(self, plan: ChargePlanItem) -> ChargePlanItem | None:
-        history_list = self.history_list
-        for history_data in history_list:
-            history = ChargePlanItem(**history_data)
-            if self._is_same_plan(history, plan, compare_plan_id=False):
-                return history
-
-    @property
     def loop(self) -> bool:
         return self.get('loop', True)
 
@@ -369,3 +342,30 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    # 运行态/身份字段(set_config 拒绝;详见 spec v5 _RO_FIELDS)
+    _RO_FIELDS: ClassVar[set[str]] = {'plan_id', 'last_daily_reset_dt', 'skip_plan'}
+
+    @classmethod
+    def validate_item(cls, ctx: 'ZContext', item: 'ChargePlanItem') -> str | None:
+        """校验 plan item 业务合法性:category / mission_type / mission_name 在 compendium 合法。
+
+        合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
+        """
+        categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
+        if item.category_name not in categories:
+            return f'category {item.category_name} 不合法(合法: {categories})'
+        mission_types = [m.value for m in ctx.compendium_service.get_charge_plan_mission_type_list(item.category_name)]
+        if mission_types:
+            # category 有 mission_type(常规副本):必须合法
+            if item.mission_type_name not in mission_types:
+                return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
+        elif item.mission_type_name:
+            # category 无 mission_type(合成电池等):必须为空
+            return f'{item.category_name} 无 mission_type,mission_type_name 应为空(当前: {item.mission_type_name})'
+        missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)] if mission_types else []
+        if missions and item.mission_name is None:
+            return f'mission_name 必填(合法: {missions})'
+        if item.mission_name is not None and item.mission_name not in missions:
+            return f'mission {item.mission_name} 不合法(合法: {missions})'
+        return None

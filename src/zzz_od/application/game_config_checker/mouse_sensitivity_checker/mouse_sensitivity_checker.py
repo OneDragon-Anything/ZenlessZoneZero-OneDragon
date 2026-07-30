@@ -101,13 +101,11 @@ class MouseSensitivityChecker(ZApplication):
             turn_dx = self.ctx.game_config.turn_dx
             speed = abs(turn_dx * mean_diff) / self.gamepad_test_duration
             self.ctx.game_config.gamepad_turn_speed = speed
-            self.ctx.controller.gamepad_turn_speed = speed
             log.info(f'手柄转速 gamepad_turn_speed={speed:.2f} (turn_dx={turn_dx:.4f}, '
                      f'平均角度差={mean_diff:.2f}°, 测试时长={self.gamepad_test_duration}s)')
         else:
             dx = self.turn_distance / mean_diff
             self.ctx.game_config.turn_dx = dx
-            self.ctx.controller.turn_dx = dx
             log.info(f'转向系数 turn_dx={dx:.6f}')
 
         return self.round_success('完成检测')

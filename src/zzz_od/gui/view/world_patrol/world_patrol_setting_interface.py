@@ -58,7 +58,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
         layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/world_patrol.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat/feat_one_dragon/world_patrol.html')
         layout.addWidget(self.help_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动战斗')

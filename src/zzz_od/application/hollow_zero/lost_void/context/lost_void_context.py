@@ -56,11 +56,13 @@ class LostVoidContext:
         self.priority_updated: bool = False  # 动态优先级是否已经更新
         self.dynamic_priority_list: list[str] = []  # 动态获取的优先级列表
         self.dynamic_abandon_list: list[str] = []  # 动态放弃组
+        self.had_interacted_ophelia_on_current_level: bool = False  # 当前层是否已交互过奥菲莉亚
 
     def init_before_run(self) -> None:
         self.priority_updated = False
         self.dynamic_priority_list = []
         self.dynamic_abandon_list = []
+        self.had_interacted_ophelia_on_current_level = False
         self.init_lost_void_det_model()
         self.load_artifact_data()
         self.load_challenge_config()
@@ -881,21 +883,35 @@ class LostVoidContext:
 
         return result
 
-    def get_entry_by_priority(self, entry_list: list[MoveTargetWrapper]) -> MoveTargetWrapper | None:
+    def get_entry_by_priority(
+        self,
+        entry_list: list[MoveTargetWrapper],
+        ignore_entry_list: list[str] | None = None,
+    ) -> MoveTargetWrapper | None:
         """
         根据优先级 返回一个前往的入口
         多个相同入口时选择最右 (因为丢失寻找目标的时候是往左转找)
         :param entry_list:
+        :param ignore_entry_list:
         :return:
         """
         if entry_list is None or len(entry_list) == 0:
             return None
 
+        ignore_entry_set: set[str] = set(ignore_entry_list) if ignore_entry_list is not None else set()
+        if self.had_interacted_ophelia_on_current_level:
+            ignore_entry_set.add(LostVoidRegionType.ELITE.value.value)
+
         for priority in self.challenge_config.region_type_priority:
+            if priority in ignore_entry_set:
+                continue
+
             target: MoveTargetWrapper | None = None
 
             for entry in entry_list:
                 for target_name in entry.target_name_list:
+                    if target_name in ignore_entry_set:
+                        continue
                     if target_name != priority:
                         continue
 
@@ -907,6 +923,8 @@ class LostVoidContext:
 
         target: MoveTargetWrapper | None = None
         for entry in entry_list:
+            if any(target_name in ignore_entry_set for target_name in entry.target_name_list):
+                continue
             if target is None or entry.entire_rect.x1 > target.entire_rect.x1:
                 target = entry
 

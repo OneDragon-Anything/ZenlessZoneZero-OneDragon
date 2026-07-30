@@ -1,4 +1,3 @@
-from abc import ABC
 from types import ModuleType
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
@@ -6,7 +5,7 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 
 
-class ApplicationFactory(ABC):
+class ApplicationFactory:
     """
     应用工厂抽象基类。
 
@@ -44,6 +43,7 @@ class ApplicationFactory(ABC):
             - APP_NAME: 显示用的应用名称
             - DEFAULT_GROUP: 是否属于默认应用组
             - NEED_NOTIFY: 应用是否需要通知
+            - PRIORITY: 默认组排序优先级（可选）
 
         Args:
             app_const: 应用常量模块
@@ -52,6 +52,12 @@ class ApplicationFactory(ABC):
         self.app_name: str = app_const.APP_NAME
         self.default_group: bool = app_const.DEFAULT_GROUP
         self.need_notify: bool = app_const.NEED_NOTIFY
+        priority = getattr(app_const, 'PRIORITY', None)
+        if priority is not None and (
+            not isinstance(priority, int) or isinstance(priority, bool)
+        ):
+            raise ValueError(f'应用 {self.app_id} 的 PRIORITY 必须为整数')
+        self.priority: int | None = priority
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 
@@ -153,3 +159,11 @@ class ApplicationFactory(ABC):
             self._run_record_cache[key] = record
 
         return record
+
+    def clear_cache(self) -> None:
+        """清理工厂缓存的配置和运行记录。
+
+        主要供 backend server 在应用运行前刷新 GUI 已保存到 YAML 的配置。
+        """
+        self._config_cache.clear()
+        self._run_record_cache.clear()

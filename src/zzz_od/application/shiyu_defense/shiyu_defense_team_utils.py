@@ -4,11 +4,9 @@ from cv2.typing import MatLike
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.application.shiyu_defense.shiyu_defense_config import (
-    MultiRoomNodeConfig,
     ShiyuDefenseConfig,
     ShiyuDefenseTeamConfig,
 )
@@ -258,21 +256,102 @@ def calc_teams(
 def calc_teams_for_multi_room(
     ctx: ZContext,
     screen: MatLike,
-    config: MultiRoomNodeConfig
+    screen_template: str,
+    room_count: int,
 ) -> list[DefensePhaseTeamInfo]:
     """
     计算多间模式节点的最佳编队
-    @param ctx: 上下文
-    @param screen: 弹窗截图
-    @param config: 节点配置
-    @return: 各房间的编队方案列表
+    对每间房间右半区域 OCR，按 y 坐标分组弱点(上)和抗性(下)
     """
-    return calc_teams(
-        ctx, screen,
-        phase_cnt=config.room_count,
-        type_cnt=2,
-        screen_name=config.screen_template
-    )
+    team_list = []
+    room_names = ['第一间', '第二间', '第三间']
+
+    for room_idx in range(room_count):
+        room_name = room_names[room_idx]
+        area = ctx.screen_loader.get_area(screen_template, room_name)
+        ocr_result = ctx.ocr.crop_and_run_ocr(screen, area.rect)
+
+        # 检查得分：OCR 结果为 "0" 或空（识别不到也算0分）才打
+        all_text = ' '.join(ocr_result.keys()).strip()
+        has_unfinished = all_text == '0' or all_text == ''
+        if not has_unfinished:
+            team_info = DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                                              [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN])
+            team_info.team_idx = -1  # 标记跳过
+            team_list.append(team_info)
+            continue
+
+        # 属性识别：用"第一间属性"等区域
+        attr_name = f'{room_name}属性'
+        area = ctx.screen_loader.get_area(screen_template, attr_name)
+        if area is None:
+            # 没有属性区域，保留未知属性，不标记已完成跳过
+            team_info = DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                                              [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN])
+            team_info.team_idx = 0  # 保持待配队占位，不标记跳过
+            team_list.append(team_info)
+            continue
+        ocr_result = ctx.ocr.crop_and_run_ocr(screen, area.rect)
+
+        # 收集所有包含"属性"的文本及 y 坐标
+        items: list[tuple[int, str]] = []
+        boundary_y: int | None = None
+        for text, match_list in ocr_result.items():
+            if '强敌抗性' in text:
+                for match in match_list:
+                    boundary_y = match.y
+            elif '属性' in text:
+                for match in match_list:
+                    items.append((match.y, text))
+
+        if len(items) == 0 or boundary_y is None:
+            # 属性识别失败，保留未知属性，不标记已完成跳过
+            team_list.append(DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                                                  [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN]))
+            continue
+
+        weakness_texts = [t for y, t in items if y < boundary_y]
+        resistance_texts = [t for y, t in items if y >= boundary_y]
+
+        weakness_list = _extract_dmg_types(weakness_texts)
+        resistance_list = _extract_dmg_types(resistance_texts)
+
+        # 补齐到2个
+        while len(weakness_list) < 2:
+            weakness_list.append(DmgTypeEnum.UNKNOWN)
+        while len(resistance_list) < 2:
+            resistance_list.append(DmgTypeEnum.UNKNOWN)
+
+        team_list.append(DefensePhaseTeamInfo(weakness_list[:2], resistance_list[:2]))
+        team_list[-1].team_idx = 0  # 标记待配队，searcher 会覆盖
+
+    # 只传需要配队的房间给搜索器，跳过已通关（team_idx == -1）的房间
+    scored_indices = [i for i, t in enumerate(team_list) if t.team_idx != -1]
+    scored_teams = [team_list[i] for i in scored_indices]
+    if len(scored_teams) > 0:
+        searcher = DefenseTeamSearcher(ctx, scored_teams)
+        search_result = searcher.search()
+        for orig_idx, result_team in zip(scored_indices, search_result):
+            team_list[orig_idx] = result_team
+    return team_list
+
+
+def _extract_dmg_types(texts: list[str]) -> list[DmgTypeEnum]:
+    """
+    从 OCR 文本列表中提取伤害类型
+    """
+    result: list[DmgTypeEnum] = []
+    full_text = ' '.join(texts)
+
+    type_list = [i for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+    target_list = [gt(i.value, 'game') for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+
+    for target in target_list:
+        if target in full_text:
+            idx = target_list.index(target)
+            result.append(type_list[idx])
+
+    return result
 
 
 def check_type_by_area(ctx: ZContext, screen: MatLike, area: ScreenArea) -> DmgTypeEnum:

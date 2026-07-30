@@ -121,11 +121,12 @@ class CoffeeApp(ZApplication):
                 return result
             self.ctx.controller.move_w(press=True, press_time=1, release=True)
 
-        time.sleep(1)
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
 
         if self.config.transport_point == CoffeeTransportPoint.POINT_2.value.value:
             return self.round_success(status='对话点单')
+
         return self.round_success()
 
     @node_from(from_name='移动交互')
@@ -251,6 +252,9 @@ class CoffeeApp(ZApplication):
         :param plan:
         :return:
         """
+        if plan.category_name == '合成电池':
+            return False
+
         if plan.category_name == '实战模拟室' and coffee.coffee_name == '浓缩咖啡':
             return True
 

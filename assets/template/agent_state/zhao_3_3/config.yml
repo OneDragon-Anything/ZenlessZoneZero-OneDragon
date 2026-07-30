@@ -4,5 +4,5 @@ template_name: 角色状态-照-33
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 761, 98
+- 762, 98
 - 813, 99

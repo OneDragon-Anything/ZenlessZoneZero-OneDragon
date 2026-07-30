@@ -59,11 +59,10 @@
 ## 快速开始
 
 1. **Fork 并 Clone** 本仓库
-2. 安装依赖：`uv sync --group dev`
+2. 按 [快速开始](setup/quickstart.md) 把项目在本机跑起来（环境搭建 / 依赖 / 跑通 GUI、测试、AI 工具，分三阶段按需推进）
 3. 阅读统一入口：[AGENTS.md](../../AGENTS.md)
-4. 阅读开发文档：[docs/develop/README.md](README.md)
-5. 按需深入编码规范：[docs/develop/spec/agent_guidelines.md](spec/agent_guidelines.md)
-6. 找一个感兴趣的 issue，开始你的第一个 PR
+4. 浏览开发文档索引：[docs/develop/README.md](README.md)（编码规范按需看 [agent_guidelines.md](spec/agent_guidelines.md)）
+5. 找一个感兴趣的 issue，开始你的第一个 PR
 
 遇到问题？在 GitHub Discussions 或社区频道提问，我们很乐意帮助。
 

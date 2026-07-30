@@ -215,7 +215,8 @@ class PushService:
                 field_name=field.var_suffix,
                 default_value=field.default,
             )
-            config[field.var_suffix] = value
+            # 未配置的渠道字段可能来自 YAML/env 的 None；统一成字符串交给渠道校验。
+            config[field.var_suffix] = '' if value is None else str(value)
 
         return config
 
@@ -326,7 +327,7 @@ class PushService:
         future = self._executor.submit(
             self.push_merged,
             title,
-            items,
+            items[:],
             channel_id,
         )
         future.add_done_callback(thread_utils.handle_future_result)

@@ -5,7 +5,7 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.trigrams_collection import trigrams_collection_const
 from zzz_od.application.zzz_application import ZApplication
@@ -38,12 +38,11 @@ class TrigramsCollectionApp(ZApplication):
         :return:
         """
         # self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        # time.sleep(1)
 
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-        time.sleep(3)
 
-        return self.round_success()
+        return self.round_success(wait=3)
 
     @node_from(from_name='移动交互')
     @node_notify(when=NotifyTiming.CURRENT_DONE)
@@ -94,7 +93,7 @@ class TrigramsCollectionApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = TrigramsCollectionApp(ctx)
     app.execute()
 

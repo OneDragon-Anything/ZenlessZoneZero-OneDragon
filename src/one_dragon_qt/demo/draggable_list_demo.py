@@ -10,7 +10,7 @@
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CaptionLabel,
@@ -29,6 +29,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon_qt.widgets.draggable_list import DraggableList
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
 
 class TaskItem:
@@ -225,10 +226,8 @@ class DraggableListDemo(FluentWindow):
         layout.addWidget(list_title)
 
         # 创建滚动区域
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        scroll_area = FastScrollArea()
         scroll_area.setFixedHeight(250)  # 限制高度以显示滚动条
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # 创建列表容器和列表组件
         list_container = QWidget()
@@ -301,7 +300,7 @@ class DraggableListDemo(FluentWindow):
         # 显示成功提示
         InfoBar.success(
             title="顺序已更新",
-            content=f"列表项位置已交换",
+            content="列表项位置已交换",
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
             position=InfoBarPosition.TOP,

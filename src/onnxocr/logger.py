@@ -1,45 +1,50 @@
-import logging
+"""OnnxOCR 统一日志模块，基于 OneDragon logger。
 
-LogName = 'Umi-OCR_log'
-LogFileName = 'Umi-OCR_debug.log'
+用法:
+    from onnxocr.logger import get_logger
+    log = get_logger("predict_det")
+    log.info("检测模型加载完成")
+"""
 
+from typing import Any
 
-class Logger:
-
-    def __init__(self):
-        self.initLogger()
-
-    def initLogger(self):
-        '''初始化日志'''
-
-        # 日志
-        self.logger = logging.getLogger(LogName)
-        self.logger.setLevel(logging.DEBUG)
-
-        # 控制台
-        streamHandler = logging.StreamHandler()
-        streamHandler.setLevel(logging.DEBUG)
-        formatPrint = logging.Formatter(
-            '【%(levelname)s】 %(message)s')
-        streamHandler.setFormatter(formatPrint)
-        # self.logger.addHandler(streamHandler)
-
-        return
-        # 日志文件
-        fileHandler = logging.FileHandler(LogFileName)
-        fileHandler.setLevel(logging.ERROR)
-        formatFile = logging.Formatter(
-            '''
-【%(levelname)s】 %(asctime)s
-%(message)s
-    文件：%(module)s | 函数：%(funcName)s | 行号：%(lineno)d
-    线程id：%(thread)d | 线程名：%(thread)s''')
-        fileHandler.setFormatter(formatFile)
-        self.logger.addHandler(fileHandler)
+from one_dragon.utils.log_utils import log as od_log
 
 
-LOG = Logger()
+class _LoggerShim:
+    name: str
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def _format(self, msg: str) -> str:
+        return f"[{self.name}] {msg}"
+
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if args or kwargs:
+            msg = str(msg).format(*args, **kwargs)
+        od_log.info(self._format(msg))
+
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if args or kwargs:
+            msg = str(msg).format(*args, **kwargs)
+        od_log.debug(self._format(msg))
+
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if args or kwargs:
+            msg = str(msg).format(*args, **kwargs)
+        od_log.warning(self._format(msg))
+
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        if args or kwargs:
+            msg = str(msg).format(*args, **kwargs)
+        od_log.error(self._format(msg))
 
 
-def GetLog():
-    return LOG.logger
+def get_logger(name: str = "OnnxOCR") -> _LoggerShim:
+    """获取带模块标识的 logger。"""
+    return _LoggerShim(name)
+
+
+def add_file_sink(path: str, level: str = "DEBUG", rotation: str = "10 MB") -> None:
+    raise NotImplementedError("add_file_sink is not implemented")
