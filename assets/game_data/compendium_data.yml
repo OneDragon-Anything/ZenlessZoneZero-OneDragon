@@ -148,8 +148,9 @@
 - tab_name: "作战"
   category_list:
     - category_name: "周期征讨"
-      alias_list:
-        - "零号空洞"
+      mission_type_list:
+        - mission_type_name: "迷失之地"
+    - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"
           mission_list:

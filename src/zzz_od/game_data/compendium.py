@@ -19,11 +19,9 @@ class CompendiumTab:
 
 class CompendiumCategory:
 
-    def __init__(self, category_name: str,
-                 mission_type_list: list | None = None, alias_list: list[str] | None = None):
+    def __init__(self, category_name: str, mission_type_list: list | None = None):
         self.tab: CompendiumTab | None = None
         self.category_name: str = category_name
-        self.alias_list: list[str] = alias_list if alias_list is not None else []
         self.mission_type_list: list[CompendiumMissionType] = []
         if mission_type_list is not None:
             for mission_type_item in mission_type_list:
@@ -167,15 +165,10 @@ class CompendiumService:
         category_list = self.get_category_list_data(tab_name)
 
         for category_item in category_list:
-            if category_item.category_name == category_name or category_name in category_item.alias_list:
+            if category_item.category_name == category_name:
                 return category_item
 
         return None
-
-    def resolve_category_name(self, tab_name: str, category_name: str) -> str:
-        """将分类名称或别名解析为实际名称"""
-        category = self.get_category_data(tab_name, category_name)
-        return category.category_name if category is not None else category_name
 
     def get_mission_type_list_data(self, tab_name: str, category_name: str) -> list[CompendiumMissionType]:
         category = self.get_category_data(tab_name, category_name)
