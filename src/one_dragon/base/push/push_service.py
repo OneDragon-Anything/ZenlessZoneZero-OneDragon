@@ -327,7 +327,7 @@ class PushService:
         future = self._executor.submit(
             self.push_merged,
             title,
-            items,
+            items[:],
             channel_id,
         )
         future.add_done_callback(thread_utils.handle_future_result)

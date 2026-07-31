@@ -53,7 +53,7 @@ def print_message(message: str, level: str = "INFO", flush: bool = False) -> Non
 
 def create_git_progress_callback():
     def _report(_progress: float, message: str) -> None:
-        refresh = message.startswith(gt('拉取对象')) and not message.endswith('(100%)')
+        refresh = '%' in message and 'done' not in message.lower()
         print_message(message, 'INFO', flush=refresh)
 
     return _report

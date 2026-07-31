@@ -412,6 +412,11 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
+        for area_name in ('二周年自选奖励', '一周年自选奖励'):
+            result = self.round_by_find_and_click_area(screen, '打开游戏', area_name)
+            if result.is_success:
+                return self.round_wait(status=result.status, wait=1)
+
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         back_btn_result = self.round_by_find_area(screen, '菜单', '返回')
 

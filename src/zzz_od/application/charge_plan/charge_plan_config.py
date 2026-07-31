@@ -73,6 +73,8 @@ class ChargePlanItem:
             return 40
         if self.category_name == '恶名狩猎':
             return 60
+        if self.category_name == '合成电池':
+            return 60
         return 0  # 未知类型，在副本内检查
 
     def to_dict(self) -> dict[str, str | int | None]:
@@ -354,9 +356,14 @@ class ChargePlanConfig(ApplicationConfig):
         if item.category_name not in categories:
             return f'category {item.category_name} 不合法(合法: {categories})'
         mission_types = [m.value for m in ctx.compendium_service.get_charge_plan_mission_type_list(item.category_name)]
-        if item.mission_type_name not in mission_types:
-            return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
-        missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)]
+        if mission_types:
+            # category 有 mission_type(常规副本):必须合法
+            if item.mission_type_name not in mission_types:
+                return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
+        elif item.mission_type_name:
+            # category 无 mission_type(合成电池等):必须为空
+            return f'{item.category_name} 无 mission_type,mission_type_name 应为空(当前: {item.mission_type_name})'
+        missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)] if mission_types else []
         if missions and item.mission_name is None:
             return f'mission_name 必填(合法: {missions})'
         if item.mission_name is not None and item.mission_name not in missions:

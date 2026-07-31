@@ -4,5 +4,5 @@ template_name: 功能导览
 template_shape: circle
 auto_mask: true
 point_list:
-- 1823, 75
-- 1845, 75
+- 1831, 74
+- 1853, 74

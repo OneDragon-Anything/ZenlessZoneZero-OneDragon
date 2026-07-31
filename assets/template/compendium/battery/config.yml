@@ -1,0 +1,12 @@
+sub_dir: compendium
+template_id: battery
+template_name: 快捷手册-以太电池
+template_shape: polygon
+auto_mask: true
+point_list:
+- 1639, 51
+- 1625, 56
+- 1620, 85
+- 1633, 97
+- 1641, 92
+- 1656, 66

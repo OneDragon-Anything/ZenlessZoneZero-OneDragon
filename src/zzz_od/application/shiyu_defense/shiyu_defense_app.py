@@ -79,8 +79,8 @@ class ShiyuDefenseApp(ZApplication):
             self.round_by_click_area('式舆防卫战', '前次-关闭')
             return self.round_wait(result.status, wait=2)
 
-        # 判断是否已进入到主界面(“前哨档案”文本出现)
-        return self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案', retry_wait=1)
+        # 判断是否已进入到主界面(“战报”文本出现)
+        return self.round_by_find_area(self.last_screenshot, '式舆防卫战', '战报', retry_wait=1)
 
     @node_from(from_name='等待画面加载')
     @operation_node(name='选择节点')
@@ -302,7 +302,7 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='多间-战斗', status='战斗失败')
     @operation_node(name='多间-战斗失败', node_max_retry_times=30)
     def multi_room_failed(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '战报')
         if result.is_success:
             return self.round_success(result.status)
         return self.round_by_click_area('菜单', '返回', success_wait=1, retry_wait=1)
@@ -365,8 +365,8 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='下一节点', status='战斗结束-退出')
     @operation_node(name='所有节点完成', node_max_retry_times=60)
     def all_node_finished(self) -> OperationRoundResult:
-        # 点击直到“前哨档案”出现
-        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
+        # 点击直到“战报”出现
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '战报')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
@@ -399,8 +399,8 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='关闭奖励')
     def close_reward(self) -> OperationRoundResult:
-        # 判断是否已回到主界面(“前哨档案”出现)
-        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
+        # 判断是否已回到主界面(“战报”出现)
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '战报')
         if result.is_success:
             return self.round_success(result.status)
 

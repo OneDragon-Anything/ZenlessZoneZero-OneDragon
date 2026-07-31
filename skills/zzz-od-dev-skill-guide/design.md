@@ -27,3 +27,15 @@
 
 ## 当前状态
 团队已统一采用 superpowers,本 skill 已 unignore 并提交(目录名 `zzz-od-dev-skill-guide`)。
+
+## 规范 3 补充:框架地基级接口名可写进 SKILL.md(2026-07 决策)
+
+**为什么补**:规范 3 原判据「skill 要读写的稳定操作对象可引、易变佐证位置抽象」其实已覆盖框架接口名,但「可引」清单只列了 screen_info / application 源码 / docs/game,没显式说「框架地基级接口名」也算 → CodeRabbit(及严格读者)会退化到规范 4「不写函数名」字面去报合规的引用。显式化后消除歧义。
+
+**判据两问**(也写进了 SKILL.md 规范 3):
+1. 删掉这名,智能体还会不会照做? —— 不会做 = 名是指令本身(debug / 排查类 skill 要搜 / 要调 / 要提醒的名)→ 倾向留。
+2. 这名稳不稳? —— 框架地基级、几乎不改名(整个节点系统靠它,改名 = 重写框架)→ 留;易变(某测试 API、具体行号)→ 挪 design.md。
+
+**写法**:留就写全名(`@operation_node`),全局搜能发现过期;别模糊化成「节点声明装饰器」—— 代码改名后静默指错、更危险。
+
+**踩坑**:PR #2575 CodeRabbit 按规范 4 字面,把 `zzz-od-dev-debug-automation` SKILL.md 里 `@operation_node` / `@node_from` / `analyze_screen` / `is_debug` / `save_screenshot` 5 个接口名当 Major 违规报;实际这 5 个都过规范 3 判据(指令本身 + 地基级稳定)→ 打回。此 PR 顺带把判据显式化进 skill-guide。

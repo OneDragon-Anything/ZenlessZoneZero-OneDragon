@@ -129,7 +129,7 @@ class RandomPlayApp(ZApplication):
         # 识别到"经营状况"就点击一下以保证在该分支。二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
         result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况')
         if result.is_success:
-            return self.round_success()
+            return self.round_success(wait=1)
 
         return self.round_retry(status='等待经营画面', wait=1)
 
@@ -139,10 +139,14 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '正在营业')
         if result.is_success:
             return self.round_success(RandomPlayApp.STATUS_ALREADY_RUNNING)
-        else:
+        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '开始营业')
+        if result.is_success:
             return self.round_success()
 
+        return self.round_retry(status='等待营业状态', wait=1)
+
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
+    @node_from(from_name='点击宣传员入口', success=False)
     @operation_node(name='关闭经营页面')
     def close_business_page(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
