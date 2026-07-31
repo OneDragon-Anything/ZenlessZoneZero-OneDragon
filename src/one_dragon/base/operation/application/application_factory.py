@@ -60,14 +60,6 @@ class ApplicationFactory:
         self.priority: int | None = priority
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
-        self.app_class: type | None = None  # 子类赋值;description 派生自其 class docstring
-
-    @property
-    def description(self) -> str:
-        """应用描述(取自 ``app_class`` 的 class docstring);未设 app_class / 无 docstring 时返空串。"""
-        if self.app_class is None:
-            return ''
-        return (self.app_class.__doc__ or '').strip()
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """

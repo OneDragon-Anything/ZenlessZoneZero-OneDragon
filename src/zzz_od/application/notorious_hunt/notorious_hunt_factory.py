@@ -23,7 +23,6 @@ class NotoriousHuntAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, notorious_hunt_const)
         self.ctx: ZContext = ctx
-        self.app_class = NotoriousHuntApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return NotoriousHuntApp(self.ctx)

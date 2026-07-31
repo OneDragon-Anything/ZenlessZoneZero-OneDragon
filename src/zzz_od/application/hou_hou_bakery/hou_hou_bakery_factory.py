@@ -26,7 +26,6 @@ class HouHouBakeryFactory(ApplicationFactory):
         """
         ApplicationFactory.__init__(self, hou_hou_bakery_const)
         self.ctx: ZContext = ctx
-        self.app_class = HouHouBakeryApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """创建吼吼饼铺应用实例。

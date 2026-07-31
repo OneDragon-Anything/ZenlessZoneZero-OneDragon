@@ -23,7 +23,6 @@ class RedemptionCodeFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, redemption_code_const)
         self.ctx: ZContext = ctx
-        self.app_class = RedemptionCodeApp
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return RedemptionCodeApp(self.ctx)

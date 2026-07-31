@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from one_dragon.utils import os_utils
+from zzz_od.backend._doc_utils import _doc_summary
 from zzz_od.backend.schemas import (
     OperationInfo,
     OperationListResult,
@@ -152,22 +153,6 @@ def coerce_dataclass_params(cls: type, args: dict) -> dict:
         if _annotation_coercible(p.annotation) and isinstance(coerced[p.name], dict):
             coerced[p.name] = p.annotation.from_dict(coerced[p.name])
     return coerced
-
-
-def _doc_summary(cls: type) -> str:
-    """取 class 或其 ``__init__`` 的 docstring 用途摘要:去掉 ``:param``/``:return`` 等 Sphinx 标记块。
-
-    operation 的 ``__init__`` docstring 常含 ``:param ctx: 上下文`` 这类 Sphinx 标记,
-    原样透传给 MCP 消费者是噪音;只留标记块之前的用途描述。
-    """
-    doc = cls.__doc__ or cls.__init__.__doc__ or ''
-    if not doc:
-        return ''
-    for marker in (':param', ':return', ':arg', ':returns'):
-        idx = doc.find(marker)
-        if idx > 0:
-            doc = doc[:idx]
-    return doc.strip()
 
 
 def _reflect_params(cls: type) -> list[OperationParam]:

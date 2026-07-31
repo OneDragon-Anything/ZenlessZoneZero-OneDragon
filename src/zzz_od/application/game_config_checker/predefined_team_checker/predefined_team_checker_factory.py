@@ -20,7 +20,6 @@ class PredefinedTeamCheckerFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(self, predefined_team_checker_const)
         self.ctx: ZContext = ctx
-        self.app_class = PredefinedTeamChecker
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         return PredefinedTeamChecker(self.ctx)

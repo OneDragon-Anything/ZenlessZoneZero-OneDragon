@@ -108,8 +108,9 @@ class ApplicationInfo:
     这样 MCP/HTTP 客户端能区分完整一条龙运行与单个应用运行。
 
     Attributes:
-        description: 应用描述(取自 ``ApplicationRunContext.get_application_description``,
-            即 app 类 class docstring);未知 app_id 或无 docstring 时为空串。
+        description: 应用描述(由 backend ``app_registry._app_description`` 扫 factory
+            所属模块的 ``Application`` 子类 class docstring 得出);未知 app_id、未扫到
+            App 类或扫到多个歧义时为空串。
     """
 
     app_id: str
