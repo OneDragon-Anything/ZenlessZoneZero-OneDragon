@@ -133,20 +133,19 @@ class CoffeeApp(ZApplication):
             return self.round_by_find_area(self.last_screenshot, '咖啡店', '点单',
                                            success_wait=1, retry_wait=1)
 
-        return self.round_success(status='对话点单', wait=1)  # 新版咖啡店
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
+        if result.is_success:
+            return self.round_success(status='对话点单', wait=3)  # 新版咖啡店
+        return self.round_retry(status='等待对话框加载', wait=1)  # issue #2301
 
     @node_from(from_name='等待咖啡店加载', status='对话点单')
     @operation_node(name='对话选咖啡', node_max_retry_times=10)
     def dialog_choose_coffee(self) -> OperationRoundResult:
         """推进对话点单分支，直到出现咖啡选项或回到大世界"""
-        # 标题是对话分支的可靠在场标记；标题消失后还需确认已经回到大世界
+        # 标题会持续到对话结束，消失后按已喝过收尾
         result = self.round_by_find_area(self.last_screenshot, '咖啡店', '对话框标题-汀曼大师')
         if not result.is_success:
-            op = WaitNormalWorld(self.ctx, check_once=True)
-            result = self.round_by_op_result(op.execute())
-            if result.is_success:
-                return self.round_success(status='已喝过', wait=1)
-            return self.round_retry(status='等待对话框加载', wait=0.5)  # issue #2301
+            return self.round_success(status='已喝过', wait=1)
 
         day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
         to_choose_list = self._get_coffee_to_choose(day)
