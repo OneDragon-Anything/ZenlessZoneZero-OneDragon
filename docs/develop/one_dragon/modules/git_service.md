@@ -24,6 +24,8 @@
 
 Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
 
+Windows 下，libgit2 从带 pack 的临时仓库导入后，可能在当前进程内继续持有源 pack 句柄。此时立即删除临时目录会得到 `WinError 5/32`，修改只读属性或短暂重试无法释放句柄。GitService 会保留该目录，不输出清理异常栈，并在下次进程首次 fetch 前清理 `.install/git_fetch_tmp/fetch_*` 遗留目录。
+
 ```text
 主线程
   └─ 启动 fetch 线程
@@ -53,14 +55,14 @@ pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒�
 
 ## 本地对象库损坏自愈
 
-如果临时仓库网络 fetch 已成功，但导入正式仓库时抛出 `KeyError: object not found`，该候选源记为“本地对象缺失”。只有所有候选源都以这一原因失败，才判定正式仓库对象库损坏：
+如果临时仓库网络 fetch 已成功，但导入正式仓库时直接抛出 `KeyError: object not found`，则已确认正式仓库对象库缺失；worker 内的 fetch 异常会先包装成 `RuntimeError`，不会进入这个判定。所有候选源最终都失败时，只要至少一个可访问源在导入阶段确认对象缺失，就执行自愈；其他候选源同时发生超时、认证或网络错误，不会否决已经确认的本地对象缺失：
 
 1. 释放当前 `Repository`；
 2. 将实际 Git 目录重命名为 `.git.corrupted.<时间戳>`；
 3. 用现有 clone 流程重新初始化和拉取；
 4. 重建失败时保留备份，不递归再次重建。
 
-超时、网络错误和对象缺失混合出现时不触发重建。linked worktree 暂不执行自动备份重建。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
+只有超时、认证或网络错误而没有导入阶段的直接 `KeyError` 时，不触发重建。linked worktree 暂不执行自动备份重建。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
 
 ## fetch、兼容性检查与 checkout 顺序
 

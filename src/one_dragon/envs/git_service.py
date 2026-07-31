@@ -107,7 +107,7 @@ def _temporary_fetch_timeout_context() -> Iterator[None]:
 
 
 def _remove_temp_repo(temp_repo_dir: str) -> None:
-    """删除 fetch 临时仓库，兼容 Windows 下只读的 pack 文件。"""
+    """删除 fetch 临时仓库，兼容只读文件和 Windows 文件占用。"""
     def remove_readonly(
         func: Callable[[str], object],
         path: str,
@@ -120,8 +120,22 @@ def _remove_temp_repo(temp_repo_dir: str) -> None:
         shutil.rmtree(temp_repo_dir, onerror=remove_readonly)
     except FileNotFoundError:
         return
+    except PermissionError as error:
+        if sys.platform == 'win32' and error.winerror in (5, 32):
+            log.info(f'Git fetch 临时仓库仍被占用，将在下次启动时清理: {temp_repo_dir}')
+            return
+        log.warning(f'清理 Git fetch 临时仓库失败: {temp_repo_dir}', exc_info=True)
     except Exception:
         log.warning(f'清理 Git fetch 临时仓库失败: {temp_repo_dir}', exc_info=True)
+
+
+def _cleanup_stale_fetch_repositories(temp_root: Path) -> None:
+    """清理上次进程遗留的 fetch 临时仓库。"""
+    if not temp_root.is_dir():
+        return
+    for temp_repo_dir in temp_root.glob('fetch_*'):
+        if temp_repo_dir.is_dir():
+            _remove_temp_repo(str(temp_repo_dir))
 
 
 def _send_fetch_worker_message(
@@ -143,6 +157,7 @@ def _fetch_remote_worker(
     abandoned: threading.Event,
 ) -> None:
     """在线程中执行网络 fetch，作废后只清理自己的临时仓库。"""
+    temp_repo: Repository | None = None
     try:
         GitService._ensure_config_search_path()
         temp_repo = init_repository(temp_repo_dir, bare=True)
@@ -201,6 +216,9 @@ def _fetch_remote_worker(
             {'type': 'result', 'success': False, 'error': repr(error)},
         )
     finally:
+        if temp_repo is not None:
+            with contextlib.suppress(Exception):
+                temp_repo.free()
         if abandoned.is_set():
             _remove_temp_repo(temp_repo_dir)
 
@@ -375,6 +393,7 @@ class GitService:
 
         self._repo: Repository | None = None
         self._rebuilding_repository: bool = False
+        self._fetch_temp_cleanup_done: bool = False
         self._ensure_config_search_path()
 
     # ================== 私有辅助方法 ==================
@@ -563,6 +582,9 @@ class GitService:
         proxy = self._get_proxy_address()
         temp_root = Path(os_utils.get_path_under_work_dir('.install', 'git_fetch_tmp'))
         temp_root.mkdir(parents=True, exist_ok=True)
+        if not self._fetch_temp_cleanup_done:
+            _cleanup_stale_fetch_repositories(temp_root)
+            self._fetch_temp_cleanup_done = True
         temp_repo_dir = tempfile.mkdtemp(prefix='fetch_', dir=temp_root)
         source_objects_dir = (
             str(_get_repository_objects_path(repo))
@@ -723,7 +745,7 @@ class GitService:
         log.info(gt('拉取远程代码...'))
         success = False
         used_repository: RepositoryItem | None = None
-        failure_is_missing_object: list[bool] = []
+        has_missing_object_failure = False
 
         try:
             for repository, repository_url in self._get_repository_candidates():
@@ -737,7 +759,7 @@ class GitService:
                     used_repository = repository
                     break
                 except Exception as error:
-                    failure_is_missing_object.append(self._is_missing_object_error(error))
+                    has_missing_object_failure |= self._is_missing_object_error(error)
                     log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
         finally:
             restored = self._restore_origin()
@@ -746,12 +768,8 @@ class GitService:
             log.error('拉取结束后无法恢复主仓库远程地址')
             return False
         if not success:
-            if (
-                not self._rebuilding_repository
-                and failure_is_missing_object
-                and all(failure_is_missing_object)
-            ):
-                log.warning('所有候选代码源均因对象缺失失败，开始自动备份并重建本地 Git 仓库')
+            if not self._rebuilding_repository and has_missing_object_failure:
+                log.warning('候选代码源导入时检测到本地对象缺失，开始自动备份并重建本地 Git 仓库')
                 return self._rebuild_repository(progress_callback)
             log.error('所有代码源均拉取失败')
             return False
