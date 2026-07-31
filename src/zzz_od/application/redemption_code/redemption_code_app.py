@@ -17,6 +17,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class RedemptionCodeApp(ZApplication):
 
+    """兑换码:逐个输入并领取兑换码奖励。无消耗。"""
+
     def __init__(self, ctx: ZContext):
         """
         兑换码兑换

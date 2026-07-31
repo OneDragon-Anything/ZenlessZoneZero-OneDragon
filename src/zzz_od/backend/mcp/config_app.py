@@ -26,7 +26,7 @@ def make_add_config_item(backend: ZzzBackendContext) -> Callable:
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         list_field: Annotated[str, Field(description="列表字段名(plan_list/app_list)")],
         item_dict: Annotated[dict, Field(description="列表项 dict(经 from_dict 反序列化)")],
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前实例)")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
         """加一个数据类列表项(如 charge_plan plan / standalone_app app)。操作类,改配置。
@@ -65,7 +65,7 @@ def make_delete_config_item(backend: ZzzBackendContext) -> Callable:
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         list_field: Annotated[str, Field(description="列表字段名")],
         item_id: Annotated[str, Field(description="项标识:charge_plan/notorious_hunt 用 plan_id;standalone_app/_group 用 app_id")],
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前实例")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前实例)")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认组")] = None,
     ) -> dict:
         """删一个数据类列表项。操作类,改配置,可逆性低。
@@ -95,7 +95,7 @@ def make_get_config(backend: ZzzBackendContext) -> Callable:
     async def get_config(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         key: Annotated[str | None, Field(description="字段名;None=返全 data")] = None,
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前)")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认")] = None,
     ) -> dict:
         """读配置字段或全部 data。观察类,不改配置。
@@ -122,7 +122,7 @@ def make_set_config(backend: ZzzBackendContext) -> Callable:
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         key: Annotated[str, Field(description="字段名(如 loop/restore_charge)")],
         value: Annotated[str | int | bool, Field(description="字段值")],
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前)")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认")] = None,
     ) -> dict:
         """写配置的简单字段(开关/下拉/输入)。操作类,改配置。
@@ -161,7 +161,7 @@ def make_describe_config(backend: ZzzBackendContext) -> Callable:
     async def describe_config(
         app_id: Annotated[str, Field(description="app 配置 id,如 charge_plan")],
         category: Annotated[str | None, Field(description="可选:查特定 category 的 mission_type 合法值")] = None,
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前)")] = None,
         group_id: Annotated[str | None, Field(description="组 id;None=默认")] = None,
     ) -> dict:
         """描述配置结构(可改字段 / 只读 / list item 结构 / add 示例)。观察类。
@@ -227,7 +227,7 @@ def _inject_category_options(
 def make_list_app_configs(backend: ZzzBackendContext) -> Callable:
     """构造 ``list_app_configs`` tool(列出可改配置,首次发现入口)。"""
     async def list_app_configs(
-        instance_idx: Annotated[int | None, Field(description="实例 idx;None=当前")] = None,
+        instance_idx: Annotated[int | None, Field(description="实例 idx(idx N→config/0N:idx 1→config/01 账号01;None=当前)")] = None,
     ) -> dict:
         """列出可改配置的 app_id(首次发现入口)。观察类。
 

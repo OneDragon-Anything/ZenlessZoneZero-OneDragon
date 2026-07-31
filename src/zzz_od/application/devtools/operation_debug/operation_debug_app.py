@@ -19,6 +19,8 @@ from zzz_od.context.zzz_context import ZContext
 
 class OperationDebugApp(ZApplication):
 
+    """指令调试:开发工具,加载并执行指令序列用于调试。非玩法。"""
+
     def __init__(self, ctx: ZContext):
         """
         识别后进行闪避

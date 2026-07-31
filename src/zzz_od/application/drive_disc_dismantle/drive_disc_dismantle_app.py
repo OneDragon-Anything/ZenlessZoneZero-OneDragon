@@ -17,6 +17,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class DriveDiscDismantleApp(ZApplication):
 
+    """驱动盘分解:按配置批量分解驱动盘。销毁道具(不可逆),务必核对配置。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

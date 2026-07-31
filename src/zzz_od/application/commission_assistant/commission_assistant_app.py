@@ -31,6 +31,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class CommissionAssistantApp(ZApplication):
 
+    """委托助手:辅助工具,剧情/委托/钓鱼等画面自动推进。非玩法、无独立消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

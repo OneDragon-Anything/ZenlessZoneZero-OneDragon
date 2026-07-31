@@ -27,6 +27,8 @@ class CommissionType(StrEnum):
 
 
 class IntelBoardApp(ZApplication):
+
+    """情报板:刷新/筛选动态情报板的代行委托(恶名狩猎/专业挑战室),代行出战清理板面。代行他人委托不耗自身电量(获贡献点;这些玩法自行挑战消耗电量)。"""
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
