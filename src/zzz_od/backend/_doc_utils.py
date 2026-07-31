@@ -23,6 +23,6 @@ def _doc_summary(cls: type) -> str:
         return ''
     for marker in (':param', ':return', ':arg', ':returns'):
         idx = doc.find(marker)
-        if idx > 0:
+        if idx >= 0:
             doc = doc[:idx]
     return doc.strip()

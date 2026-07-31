@@ -41,7 +41,7 @@
 - 所有运行（`open_game` / 一条龙 / 独立应用 / 自定义 op）经**同一个 `RunSlot`** 派发：op 路径（`open_game` / `run_operation`）槽自管 `start_running/execute/stop_running`，app 路径（`run_one_dragon` / `run_standalone_app`）委托 `run_application`（复用 GUI/CLI 共享入口）。`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。
 - `run_operation` 是**通用 operation 运行入口**（不框死为调试）：`op_id` 格式 `<dotted module path>.<ClassName>`（可从 `list_operations` 获取）；`args` 传构造参数,以 `cls(ctx, **args)` 烤进闭包——JSON 标量/列表/字典直接传;`@dataclass`+`from_dict` 参数(如 `ChargePlanItem`)传 dict,实例化前用 `coerce_dataclass_params` 自动反序列化;其余复杂数据类拒绝(提示走 application);先用 `describe_operation` 看参数 schema(`coercible=True` 的可传 dict)。
 - 配置刷新：app 路径在 `run_application` 前（槽线程内、`_start` 已赢锁后）刷新当前进程的 YAML 配置缓存，对齐 GUI 已保存设置；`list_applications` 与 `list_operations` 是只读路径，不刷新。
-- `list_applications` 的 `ApplicationInfo.description` 与 `describe_operation` 的 `description` 取自 app/op 类 docstring，服务**看不到源码的远程 MCP 受众**（源码可访问受众读源码即可）—— 见 [design-principles.md](design-principles.md)「两种受众」+ P1 carve-out。app description = class docstring 整段（D4：做什么 + 有消耗必标）；op description = `_doc_summary`（去 `:param` 噪声）。
+- `list_applications` 的 `ApplicationInfo.description` 与 `describe_operation` 的 `description` 取自 app/op 类 docstring，服务**看不到源码的远程 MCP 受众**（源码可访问受众读源码即可）—— 见 [design-principles.md](design-principles.md)「两种受众」+ P1 源码盲受众例外。app description = class docstring 整段（D4：做什么 + 有消耗必标）；op description = `_doc_summary`（去 `:param` 噪声）。
 - `get_run_status` / `stop_run` 是统一入口：无论最近一次运行来自 op 路径还是 app 路径，都通过同一组工具查询和停止。
 - 单进程内已有运行时会返回并发拒绝，避免同一个 backend 内重复操作游戏资源。
 - MCP tool 不返回运行日志正文；客户端需要用 `get_run_status` 轮询是否完成，GUI 服务页负责展示日志。

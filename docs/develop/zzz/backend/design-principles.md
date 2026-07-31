@@ -9,7 +9,7 @@
 
 本规范把现有 `mcp.md`「MCP 只做感知,编码 / 调试交给 AI」的雏形系统化为可执行原则,并融合 Anthropic《[Writing effective tools for AI agents](https://www.anthropic.com/engineering/writing-tools-for-agents)》与 MCP《[Design Principles](https://modelcontextprotocol.io/community/design-principles)》的官方最佳实践,作为现有 tool、本次新增、路线图(run-as-service 等)的共同准绳。
 
-**适用前提**:MCP 面向两类受众 —— ① **能读源码的技术用户**(本地或远程 SSH,有 shell + 源码树);② **远程 MCP client、看不到代码的纯使用者**(主要跑 app 和一条龙)。普通 GUI 用户走打包 exe、不经本层。本文原则默认按受众①写(假设能读源码);对受众②,凡「读源码才能获得的语义」(app/operation 做什么、效果、消耗),改由 server 主动给(归 P2「领域事实 server 给」,见 P1 carve-out 与 P9)。
+**适用前提**:MCP 面向两类受众 —— ① **能读源码的技术用户**(本地或远程 SSH,有 shell + 源码树);② **远程 MCP client、看不到代码的纯使用者**(主要跑 app 和一条龙)。普通 GUI 用户走打包 exe、不经本层。本文原则默认按受众①写(假设能读源码);对受众②,凡「读源码才能获得的语义」(app/operation 做什么、效果、消耗),改由 server 主动给(归 P2「领域事实 server 给」,见 P1 源码盲受众例外 与 P9)。
 
 ## 1. 智能体能做什么(源码运行前提下)
 
@@ -41,7 +41,7 @@
 MCP 提供:操作游戏、读内存态、跑模型、收敛校验地改配置。**不提供**:静态信息(源码 / 文档 / 日志文件 / 截图文件)—— 智能体自己读。
 (MCP《Design Principles》**capability over compensation**:别为「模型当前不会读日志」就硬塞 `read_log` tool —— 模型会变强,永久结构是债。)
 
-**carve-out(源码盲受众)**:上式假设消费者能读源码(受众①)。对受众②(远程 MCP、看不到代码),「智能体自己读源码」通道不存在 —— app/operation 的语义描述(做什么、效果、消耗)只能由 server 给。这不违反「capability over compensation」:不是为「模型当前不会读源码」补偿(模型再强也读不到它访问不到的代码),而是该受众客观上没有该通道,语义描述对其是 P2 的「领域事实」。落地:app/operation 的 class docstring 经 MCP 字段透传(见 P9)。
+**源码盲受众例外**:上式假设消费者能读源码(受众①)。对受众②(远程 MCP、看不到代码),「智能体自己读源码」通道不存在 —— app/operation 的语义描述(做什么、效果、消耗)只能由 server 给。这不违反「capability over compensation」:不是为「模型当前不会读源码」补偿(模型再强也读不到它访问不到的代码),而是该受众客观上没有该通道,语义描述对其是 P2 的「领域事实」。落地:app/operation 的 class docstring 经 MCP 字段透传(见 P9)。
 
 ### P2. 按知识归属分工(领域事实 vs 通用推理)
 判断「一条信息归 server 还是智能体」,看它**依赖什么知识**:
