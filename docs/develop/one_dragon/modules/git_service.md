@@ -22,9 +22,9 @@
 
 ## fetch 线程隔离与作废式超时
 
-Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
+Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_<进程ID>_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
 
-Windows 下，libgit2 从带 pack 的临时仓库导入后，可能在当前进程内继续持有源 pack 句柄。此时立即删除临时目录会得到 `WinError 5/32`，修改只读属性或短暂重试无法释放句柄。GitService 会保留该目录，不输出清理异常栈，并在下次进程首次 fetch 前清理 `.install/git_fetch_tmp/fetch_*` 遗留目录。
+Windows 下，libgit2 从带 pack 的临时仓库导入后，可能在当前进程内继续持有源 pack 句柄。此时立即删除临时目录会得到 `WinError 5/32`，修改只读属性或短暂重试无法释放句柄。GitService 会保留该目录，不输出清理异常栈；下次进程首次 fetch 前，删除已确认所属进程退出的新格式目录和无法解析进程归属的旧格式 `fetch_*`，仅保留所属进程仍在运行的新格式目录。
 
 ```text
 主线程
@@ -62,7 +62,7 @@ pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒�
 3. 用现有 clone 流程重新初始化和拉取；
 4. 重建失败时保留备份，不递归再次重建。
 
-只有超时、认证或网络错误而没有导入阶段的直接 `KeyError` 时，不触发重建。linked worktree 暂不执行自动备份重建。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
+只有超时、认证或网络错误而没有导入阶段的直接 `KeyError` 时，不触发重建。恢复旧仓库 `origin` 地址失败不会否决已经确认的对象缺失，因为重建会替换旧 Git 目录；没有对象缺失时，远程地址恢复失败仍按原逻辑判为拉取失败。linked worktree 或存在任何 `origin` 以外 remote 的仓库暂不执行自动备份重建，避免丢失开发仓库的额外远程配置。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
 
 ## fetch、兼容性检查与 checkout 顺序
 
@@ -93,7 +93,15 @@ checkout 目标本地分支
 同步工作区
 ```
 
-模块清单不兼容时会在 checkout 前返回失败，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。
+模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
+
+首次初始化仓库也执行同一检查。不兼容时保留新建的 `.git`、已拉取对象和远程跟踪引用，但不创建本地分支；集成启动器继续运行安装包内与当前 `.runtime` 匹配的源码。升级集成启动器后，下次同步可继续完成首次 checkout。
+
+`fetch_latest_code()` 使用三个明确状态，不让调用方比较错误文案：
+
+- `SUCCESS`：代码已同步，可以重新加载源码模块；
+- `RUNTIME_INCOMPATIBLE`：目标代码与当前集成运行时不兼容，fetch 结果保留但未 checkout；
+- `FAILED`：初始化、fetch、checkout 或工作区同步失败。
 
 因此，排查日志时要区分以下状态：
 

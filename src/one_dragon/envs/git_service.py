@@ -1,4 +1,5 @@
 import contextlib
+import os
 import queue
 import shutil
 import stat
@@ -9,6 +10,7 @@ import time
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
@@ -42,6 +44,16 @@ REMOTE_FETCH_TIMEOUT = 120.0
 _FETCH_TIMEOUT_SETTING_NAMES = ('server_connect_timeout', 'server_timeout')
 _fetch_timeout_settings_lock = threading.Lock()
 _fetch_timeout_settings_configured = False
+_fetch_temp_cleanup_lock = threading.Lock()
+_fetch_temp_cleanup_roots: set[Path] = set()
+
+
+class GitSyncStatus(StrEnum):
+    """Git 代码同步结果。"""
+
+    SUCCESS = 'SUCCESS'
+    RUNTIME_INCOMPATIBLE = 'RUNTIME_INCOMPATIBLE'
+    FAILED = 'FAILED'
 
 
 def _get_repository_objects_path(repo: Repository) -> Path:
@@ -129,13 +141,43 @@ def _remove_temp_repo(temp_repo_dir: str) -> None:
         log.warning(f'清理 Git fetch 临时仓库失败: {temp_repo_dir}', exc_info=True)
 
 
+def _is_process_running(process_id: int) -> bool:
+    """判断临时仓库所属进程是否仍在运行；无法确认时按仍在运行处理。"""
+    if process_id <= 0:
+        return True
+    try:
+        os.kill(process_id, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError as error:
+        return not (sys.platform == 'win32' and error.winerror == 87)
+
+
 def _cleanup_stale_fetch_repositories(temp_root: Path) -> None:
-    """清理上次进程遗留的 fetch 临时仓库。"""
+    """清理已退出进程遗留的新格式 fetch 临时仓库。"""
     if not temp_root.is_dir():
         return
     for temp_repo_dir in temp_root.glob('fetch_*'):
-        if temp_repo_dir.is_dir():
-            _remove_temp_repo(str(temp_repo_dir))
+        if not temp_repo_dir.is_dir():
+            continue
+        name_parts = temp_repo_dir.name.split('_', 2)
+        if len(name_parts) == 3 and name_parts[1].isdigit():
+            if _is_process_running(int(name_parts[1])):
+                continue
+        _remove_temp_repo(str(temp_repo_dir))
+
+
+def _cleanup_stale_fetch_repositories_once(temp_root: Path) -> None:
+    """同一进程对同一临时根目录只执行一次遗留目录清理。"""
+    resolved_root = temp_root.resolve()
+    with _fetch_temp_cleanup_lock:
+        if resolved_root in _fetch_temp_cleanup_roots:
+            return
+        _cleanup_stale_fetch_repositories(resolved_root)
+        _fetch_temp_cleanup_roots.add(resolved_root)
 
 
 def _send_fetch_worker_message(
@@ -393,7 +435,6 @@ class GitService:
 
         self._repo: Repository | None = None
         self._rebuilding_repository: bool = False
-        self._fetch_temp_cleanup_done: bool = False
         self._ensure_config_search_path()
 
     # ================== 私有辅助方法 ==================
@@ -582,10 +623,8 @@ class GitService:
         proxy = self._get_proxy_address()
         temp_root = Path(os_utils.get_path_under_work_dir('.install', 'git_fetch_tmp'))
         temp_root.mkdir(parents=True, exist_ok=True)
-        if not self._fetch_temp_cleanup_done:
-            _cleanup_stale_fetch_repositories(temp_root)
-            self._fetch_temp_cleanup_done = True
-        temp_repo_dir = tempfile.mkdtemp(prefix='fetch_', dir=temp_root)
+        _cleanup_stale_fetch_repositories_once(temp_root)
+        temp_repo_dir = tempfile.mkdtemp(prefix=f'fetch_{os.getpid()}_', dir=temp_root)
         source_objects_dir = (
             str(_get_repository_objects_path(repo))
             if depth == 0
@@ -707,6 +746,10 @@ class GitService:
             if (git_dir / 'commondir').is_file():
                 log.error('检测到 linked worktree，暂不自动重建本地 Git 仓库')
                 return False
+            extra_remotes = [remote_name for remote_name in repo.remotes.names() if remote_name != 'origin']
+            if extra_remotes:
+                log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
+                return False
             if not git_dir.is_dir():
                 log.error(f'本地 Git 目录不存在，无法备份: {git_dir}')
                 return False
@@ -722,11 +765,11 @@ class GitService:
             git_dir.rename(backup_dir)
             self._rebuilding_repository = True
             try:
-                success, message = self._clone_repository(progress_callback)
+                status, message = self._clone_repository(progress_callback)
             finally:
                 self._rebuilding_repository = False
 
-            if not success:
+            if status is GitSyncStatus.FAILED:
                 log.error(f'本地 Git 仓库重建失败，旧目录已保留: {message}')
                 return False
             log.info(f'本地 Git 仓库重建完成，旧目录备份于: {backup_dir}')
@@ -764,13 +807,13 @@ class GitService:
         finally:
             restored = self._restore_origin()
 
+        if not success and not self._rebuilding_repository and has_missing_object_failure:
+            log.warning('候选代码源导入时检测到本地对象缺失，开始自动备份并重建本地 Git 仓库')
+            return self._rebuild_repository(progress_callback)
         if not restored:
             log.error('拉取结束后无法恢复主仓库远程地址')
             return False
         if not success:
-            if not self._rebuilding_repository and has_missing_object_failure:
-                log.warning('候选代码源导入时检测到本地对象缺失，开始自动备份并重建本地 Git 仓库')
-                return self._rebuild_repository(progress_callback)
             log.error('所有代码源均拉取失败')
             return False
 
@@ -1105,116 +1148,111 @@ class GitService:
         log.error(f'{msg}: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
         return False, msg
 
-    def _clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
-        """
-        初始化本地仓库并同步远程目标分支
-        """
-        # 初始化仓库
+    def _clone_repository(
+        self,
+        progress_callback: Callable[[float, str], None] | None = None,
+    ) -> tuple[GitSyncStatus, str]:
+        """初始化本地仓库并同步远程目标分支。"""
         if progress_callback:
-            progress_callback(1/5, gt('初始化本地 Git 仓库'))
+            progress_callback(1 / 6, gt('初始化本地 Git 仓库'))
 
         try:
             init_repository(self.repo_dir)
         except Exception:
             msg = gt('初始化本地 Git 仓库失败')
             log.error(msg, exc_info=True)
-            return False, msg
+            return GitSyncStatus.FAILED, msg
 
-        # 拉取远程代码
         if progress_callback:
-            progress_callback(2/5, gt('拉取远程代码'))
+            progress_callback(2 / 6, gt('拉取远程代码'))
 
-        if not self._fetch_remote(progress_callback, 2 / 5, 3 / 5):
-            return False, gt('拉取远程代码失败')
+        if not self._fetch_remote(progress_callback, 2 / 6, 3 / 6):
+            return GitSyncStatus.FAILED, gt('拉取远程代码失败')
 
-        # 切换到目标分支
         if progress_callback:
-            progress_callback(3/5, gt('切换到目标分支'))
+            progress_callback(3 / 6, gt('检查运行环境兼容性'))
+
+        compatible, message = self._check_remote_manifest_compatible()
+        if not compatible:
+            return GitSyncStatus.RUNTIME_INCOMPATIBLE, message
+
+        if progress_callback:
+            progress_callback(4 / 6, gt('切换到目标分支'))
 
         if not self._checkout_branch():
-            return False, gt('切换到目标分支失败')
+            return GitSyncStatus.FAILED, gt('切换到目标分支失败')
 
-        # 同步本地代码
         if progress_callback:
-            progress_callback(4/5, gt('同步本地代码'))
+            progress_callback(5 / 6, gt('同步本地代码'))
 
         success, message = self._sync_with_remote(force=True)
         if not success:
-            return False, message
+            return GitSyncStatus.FAILED, message
 
         if progress_callback:
-            progress_callback(5/5, gt('克隆仓库成功'))
+            progress_callback(6 / 6, gt('克隆仓库成功'))
 
-        return True, gt('克隆仓库成功')
+        return GitSyncStatus.SUCCESS, gt('克隆仓库成功')
 
-    def _fetch_and_checkout_latest_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
-        """
-        切换到最新的目标分支并更新代码
-        """
+    def _fetch_and_checkout_latest_branch(
+        self,
+        progress_callback: Callable[[float, str], None] | None = None,
+    ) -> tuple[GitSyncStatus, str]:
+        """切换到最新的目标分支并更新代码。"""
         log.info(gt('核对当前仓库'))
 
-        # 拉取远程代码
         if progress_callback:
-            progress_callback(1/6, gt('拉取远程代码'))
+            progress_callback(1 / 6, gt('拉取远程代码'))
 
         if not self._fetch_remote(progress_callback, 1 / 6, 2 / 6):
-            return False, gt('拉取远程代码失败')
+            return GitSyncStatus.FAILED, gt('拉取远程代码失败')
 
-        # 检查模块清单兼容性（仅 frozen 环境）
         if progress_callback:
-            progress_callback(2/6, gt('检查运行环境兼容性'))
+            progress_callback(2 / 6, gt('检查运行环境兼容性'))
 
-        compatible, msg = self._check_remote_manifest_compatible()
+        compatible, message = self._check_remote_manifest_compatible()
         if not compatible:
-            return False, msg
+            return GitSyncStatus.RUNTIME_INCOMPATIBLE, message
 
-        # 检查工作区状态
         if progress_callback:
-            progress_callback(3/6, gt('检查工作区状态'))
+            progress_callback(3 / 6, gt('检查工作区状态'))
 
         success, message = self._validate_working_directory()
         if not success:
-            return False, message
+            return GitSyncStatus.FAILED, message
 
-        # 切换到目标分支
         if progress_callback:
-            progress_callback(4/6, gt('切换到目标分支'))
+            progress_callback(4 / 6, gt('切换到目标分支'))
 
         if not self._checkout_branch():
-            return False, gt('切换到目标分支失败')
+            return GitSyncStatus.FAILED, gt('切换到目标分支失败')
 
-        # 同步本地代码
         if progress_callback:
-            progress_callback(5/6, gt('同步本地代码'))
+            progress_callback(5 / 6, gt('同步本地代码'))
 
         success, message = self._sync_with_remote(self.env_config.force_update)
         if not success:
-            return False, message
+            return GitSyncStatus.FAILED, message
 
         if progress_callback:
-            progress_callback(6/6, message)
+            progress_callback(6 / 6, message)
 
-        return True, message
+        return GitSyncStatus.SUCCESS, message
 
     # ================== 公共 API ==================
 
     def check_repo_exists(self) -> bool:
-        """
-        检查本地仓库是否存在
-        """
+        """检查本地仓库是否存在。"""
         return discover_repository(self.repo_dir) is not None
 
     def fetch_latest_code(
         self,
         progress_callback: Callable[[float, str], None] | None = None,
-    ) -> tuple[bool, str]:
-        """
-        更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
-        """
+    ) -> tuple[GitSyncStatus, str]:
+        """更新最新代码，并返回明确的同步状态。"""
         if not self.check_repo_exists():
             return self._clone_repository(progress_callback)
-        else:
-            return self._fetch_and_checkout_latest_branch(progress_callback)
+        return self._fetch_and_checkout_latest_branch(progress_callback)
 
     def get_current_branch(self) -> str | None:
         """

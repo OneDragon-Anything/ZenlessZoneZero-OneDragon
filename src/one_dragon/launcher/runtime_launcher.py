@@ -21,6 +21,7 @@ class RuntimeLauncher(ExeLauncher):
         pre_modules = set(sys.modules)
 
         from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+        from one_dragon.envs.git_service import GitSyncStatus
         from one_dragon.utils.i18_utils import gt
         from one_dragon.utils.log_utils import log
         from one_dragon.version import __version__
@@ -52,13 +53,15 @@ class RuntimeLauncher(ExeLauncher):
             log.info(message)
 
         log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
-        success, msg = git_service.fetch_latest_code(log_progress)
+        status, msg = git_service.fetch_latest_code(log_progress)
 
-        if success:
+        if status is GitSyncStatus.SUCCESS:
             log.info(gt('代码仓库同步完成') if first_run else gt('代码更新检查完成'))
             # 清除同步过程中加载的源码模块，避免主程序使用旧版本
             self._clear_src_modules(pre_modules)
             importlib.invalidate_caches()
+        elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+            log.warning(f"{msg}，继续使用当前代码；请更新集成启动器")
         elif first_run:
             log.info(f"{gt('代码仓库同步失败')}: {msg}")
             sys.exit(1)

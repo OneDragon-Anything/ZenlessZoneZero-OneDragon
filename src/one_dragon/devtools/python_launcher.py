@@ -289,10 +289,14 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
         print_message(gt('未开启代码自动更新，跳过'), "INFO")
         return
     _configure_runtime_logger()
+    from one_dragon.envs.git_service import GitSyncStatus
+
     progress_callback = create_git_progress_callback()
-    success, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
-    if success:
+    status, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
+    if status is GitSyncStatus.SUCCESS:
         print_message(gt('代码更新完成'), "PASS")
+    elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+        print_message(f"{msg}，请更新集成启动器", "ERROR")
     else:
         print_message(f"{gt('代码更新失败')}: {msg}", "ERROR")
 
