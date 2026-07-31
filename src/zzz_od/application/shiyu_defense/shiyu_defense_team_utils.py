@@ -25,6 +25,8 @@ class DefensePhaseTeamInfo:
 
 class DefenseTeamSearcher:
 
+    # 虚狩代理人,配队评分给 1.2 倍加权。
+    # 列表硬编码,游戏新增虚狩角色需手动补。概念见 docs/game/gameplay/combat.md「虚狩」。
     VOID_HUNTER_AGENT_ID_LIST: list[str] = [
         'yixuan',
         'hoshimi_miyabi',
@@ -121,6 +123,8 @@ class DefenseTeamSearcher:
             ]:
                 aligned_agent_count += 1
 
+        # 染色分支:风 / 流明异常角色不按自身属性评分,而是取队内其他异常角色的属性契合度
+        # (靠队友其他异常「染色」触发紊流)。详见 docs/game/gameplay/combat.md「染色」。
         for agent in agent_list:
             if agent.agent_type != AgentTypeEnum.ANOMALY:
                 continue
@@ -137,6 +141,7 @@ class DefenseTeamSearcher:
                     agent.dmg_type == DmgTypeEnum.WIND
                     and other_agent.dmg_type == DmgTypeEnum.LUMIFLUX
                 ):
+                    # 流明可变属性:与风队友组队时流明算风伤(非异色),无法触发风乱流,故风异常排除流明队友
                     continue
                 dye_score_list.append(
                     self._get_dmg_type_score(
@@ -193,6 +198,7 @@ class DefenseTeamSearcher:
         target: DefensePhaseTeamInfo,
         is_anomaly: bool,
     ) -> float:
+        """按属性对弱点 / 抗性的契合度给分(评分权重,非伤害倍率,仅用于排序选队)。"""
         if dmg_type in target.phase_weakness:
             return 1.69 if is_anomaly else 1.3
         if dmg_type in target.phase_resistance:
