@@ -63,6 +63,7 @@ resolve 前确保 CodeRabbit 对这条「说完话了」,不抢它的判断、�
 
 ### 6. 关联 PR(跨仓)协同
 本项目跨仓:主仓 PR 常带配套**测试仓 PR**(同分支名,主仓描述带测试仓 PR 链接)。
+- **关联 PR 不只看 open PR(由真实事故提炼)**:测试仓改动可能挂在同分支但**没开 PR**(改动没经 review)→ `gh pr list --head <分支>` 查 open PR 为空**不等于**"无配套"。收尾主仓前用 git 验证测试仓同分支有无未合改动:`git -C zzz-od-test fetch https && git -C zzz-od-test log https/main..<同名分支>`(有输出 = 测试仓有未合改动,必须先开 PR 合掉再合主仓,否则主仓 main 的 test-check 跑测试仓 main 缺这些测试 = CI 通过但测试缺失;无输出 = 确实无配套)。
 - **一起收尾**:关联 PR 都按本 skill 走(CI/review/unresolved 全清),不只当前 PR。
 - **合并顺序:测试仓先 → 主仓后**。主仓合到 main 后,main 的 `test-check` clone 测试仓 **main**;测试仓先合确保测试改动进测试仓 main,主仓 main CI 才稳(主仓先合 → 主仓 main CI clone 测试仓 main 无新改动 → 测试缺失/失败)。
 - **都 done 才合**:关联 PR 全 green + review pass + 无 unresolved 后,按顺序合(测试仓 → 主仓)。
