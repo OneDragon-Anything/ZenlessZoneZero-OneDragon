@@ -30,7 +30,7 @@ class RuntimeLauncher(ExeLauncher):
         env_context = OneDragonEnvContext()
         env_config = env_context.env_config
         git_service = env_context.git_service
-        first_run = not git_service.check_repo_exists()
+        first_run = git_service.is_initial_checkout_pending()
 
         if not first_run and not env_config.auto_update_code:
             log.info(gt('未开启代码自动更新，跳过'))
@@ -53,14 +53,18 @@ class RuntimeLauncher(ExeLauncher):
             log.info(message)
 
         log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
-        status, msg = git_service.fetch_latest_code(log_progress)
+        initial_tag = __version__ if first_run and __version__.startswith('v') and __version__ != 'v0.0.0' else None
+        status, msg = git_service.fetch_latest_code(log_progress, initial_tag=initial_tag)
 
         if status is GitSyncStatus.SUCCESS:
             log.info(gt('代码仓库同步完成') if first_run else gt('代码更新检查完成'))
             # 清除同步过程中加载的源码模块，避免主程序使用旧版本
             self._clear_src_modules(pre_modules)
             importlib.invalidate_caches()
-        elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+        elif status in (
+            GitSyncStatus.RUNTIME_INCOMPATIBLE,
+            GitSyncStatus.BUILTIN_TAG_UNAVAILABLE,
+        ):
             log.warning(f"{msg}，继续使用当前代码；请更新集成启动器")
         elif first_run:
             log.info(f"{gt('代码仓库同步失败')}: {msg}")
