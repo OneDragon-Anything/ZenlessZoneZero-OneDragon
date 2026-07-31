@@ -1,8 +1,11 @@
+from collections.abc import Callable
+
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import GitBranchEnum
+from one_dragon.envs.git_service import GitSyncStatus
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
@@ -22,7 +25,7 @@ class CodeInstallCard(BaseInstallCard):
             self,
             ctx=ctx,
             title_cn='代码版本',
-            install_method=ctx.git_service.fetch_latest_code,
+            install_method=self.fetch_latest_code,
             install_btn_icon=FluentIcon.SYNC,
             install_btn_text_cn='代码同步',
             parent=parent,
@@ -30,6 +33,14 @@ class CodeInstallCard(BaseInstallCard):
         )
 
         self.updated: bool = False  # 是否已经更新了
+
+    def fetch_latest_code(
+        self,
+        progress_callback: Callable[[float, str], None],
+    ) -> tuple[bool, str]:
+        """同步代码，并适配安装卡的布尔结果。"""
+        status, message = self.ctx.git_service.fetch_latest_code(progress_callback)
+        return status is GitSyncStatus.SUCCESS, message
 
     def on_git_branch_changed(self, index: int) -> None:
         self.ctx.env_config.git_branch = self.git_branches[index].value
