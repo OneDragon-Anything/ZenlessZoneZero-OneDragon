@@ -22,7 +22,7 @@ class ZContext(OneDragonContext):
     @cached_property
     def model_config(self):
         from zzz_od.config.model_config import ModelConfig
-        return ModelConfig()
+        return ModelConfig(self.repo_config)
 
     @cached_property
     def map_service(self):
