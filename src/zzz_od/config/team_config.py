@@ -1,4 +1,5 @@
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils import str_utils
 from zzz_od.game_data.agent import Agent
 
 
@@ -6,7 +7,7 @@ class PredefinedTeamInfo:
 
     def __init__(self, idx: int, name: str, auto_battle: str, agent_id_list: list[str]):
         self.idx: int = idx  # 在编队数组里的下标
-        self.name: str = name  # 编队名称
+        self.name: str = str_utils.remove_whitespace(name)  # 编队名称
         self.agent_id_list: list[str] = list(agent_id_list)  # 代理人ID列表
         while len(self.agent_id_list) < 3:
             self.agent_id_list.append('unknown')
@@ -42,6 +43,7 @@ class TeamConfig(YamlConfig):
         """
         更新一个配队
         """
+        team_info.name = str_utils.remove_whitespace(team_info.name)
         team_list = self.team_list
         if team_info.idx >= len(self.team_list):
             return

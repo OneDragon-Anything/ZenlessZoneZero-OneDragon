@@ -10,7 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cal_utils
+from one_dragon.utils import cal_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
@@ -379,9 +379,9 @@ class ChoosePredefinedTeam(ZOperation):
         ocr_result_map: dict[str, MatchResultList],
         target_team_name: str,
     ) -> MatchResult | None:
-        target_name = target_team_name.replace(' ', '')
+        target_name = str_utils.remove_whitespace(target_team_name)
         for text, mr_list in ocr_result_map.items():
-            if text.replace(' ', '') != target_name or mr_list.max is None:
+            if str_utils.remove_whitespace(text) != target_name or mr_list.max is None:
                 continue
             return mr_list.max
         return None
@@ -514,7 +514,7 @@ class ChoosePredefinedTeam(ZOperation):
             ):
                 continue
             if target_mr is None or mr.rect.area > target_mr.rect.area:
-                target_name = text
+                target_name = str_utils.remove_whitespace(text)
                 target_mr = mr
 
         return target_name, target_mr
