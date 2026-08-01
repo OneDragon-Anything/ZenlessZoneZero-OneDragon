@@ -47,21 +47,14 @@ class ChoosePredefinedTeam(ZOperation):
     STATUS_TEAM_LIST_READY: str = '已在预备编队列表'
     STATUS_CHOOSE_FINISHED_WITHOUT_CONFIRM: str = '选择完成且不确认'
 
-    TEAM_NAME_CLICK_OFFSET: Point = Point(300, 0)
     SELECT_BUTTON_FEEDBACK_HALF_WIDTH: int = 160
     SELECT_BUTTON_FEEDBACK_HALF_HEIGHT: int = 120
-    SELECTED_BUTTON_MIN_X_OFFSET: int = 500
-    SELECTED_BUTTON_MAX_X_OFFSET: int = 800
     DISABLED_AVATAR_BRIGHTNESS_RATIO: float = 0.7
     TEAM_SCROLL_STEP: int = 4
+    TEAM_SLOT_COUNT: int = 6
     TEAM_DRAG_START: Point = Point(300, 715)
     TEAM_DRAG_END: Point = Point(300, 150)
-    TEAM_COLUMN_COUNT: int = 2
     MAX_TEAM_COUNT: int = 20
-    CARD_TITLE_X_LIST: list[int] = [150, 970]
-    CARD_TITLE_Y_LIST: list[int] = [115, 398, 680]
-    CARD_TITLE_WIDTH: int = 300
-    CARD_TITLE_HEIGHT: int = 70
 
     def __init__(
         self,
@@ -158,34 +151,6 @@ class ChoosePredefinedTeam(ZOperation):
                 return self.round_fail('预备编队不足以完成自动配队')
             self.shiyu_team_selected = True
 
-        if self.pending_cancel_button_center is not None:
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            if not self._is_select_button_visible(ocr_result_map):
-                return self.round_retry(
-                    '取消预选后未恢复SELECT',
-                    wait=0.5,
-                )
-            log.info('预备编队取消完成:已恢复SELECT')
-            self.pending_cancel_button_center = None
-            return self.round_wait(
-                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
-                wait=0.2,
-            )
-
-        if self.pending_select_button_center is not None:
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            if not self._is_team_selected(ocr_result_map):
-                return self.round_retry(
-                    '选择预备编队后未确认选中状态',
-                    wait=0.5,
-                )
-            self.pending_select_button_center = None
-            self.current_target_idx += 1
-            return self.round_wait(
-                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
-                wait=0.2,
-            )
-
         if self.current_target_idx >= len(self.target_team_idx_list):
             if self.finish_without_confirm:
                 return self.round_success(
@@ -205,12 +170,17 @@ class ChoosePredefinedTeam(ZOperation):
         if target_team_idx < 0:
             return self.round_fail(f'选择的预备编队下标错误 {target_team_idx}')
 
-        target_scroll_page = target_team_idx // self.TEAM_SCROLL_STEP
-        if target_scroll_page > self.current_scroll_page:
+        current_page_start_team_idx = (
+            self.current_scroll_page * self.TEAM_SCROLL_STEP
+        )
+        current_page_end_team_idx = (
+            current_page_start_team_idx + self.TEAM_SLOT_COUNT - 1
+        )
+        if target_team_idx > current_page_end_team_idx:
             self._scroll_team_list(-1)
             self.current_scroll_page += 1
             return self.round_wait(ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE, wait=1)
-        if target_scroll_page < self.current_scroll_page:
+        if target_team_idx < current_page_start_team_idx:
             self._scroll_team_list(1)
             self.current_scroll_page -= 1
             return self.round_wait(ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE, wait=1)
@@ -218,13 +188,58 @@ class ChoosePredefinedTeam(ZOperation):
         target_team = self.ctx.team_config.get_team_by_idx(target_team_idx)
         if target_team is None:
             return self.round_fail(f'选择的预备编队下标错误 {target_team_idx}')
+        team_slot_rect = self._get_team_slot_rect_by_idx(
+            target_team_idx - current_page_start_team_idx
+        )
+
+        if self.pending_cancel_button_center is not None:
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            if self._is_team_slot_disabled(
+                self.last_screenshot,
+                ocr_result_map,
+                target_team.name,
+                team_slot_rect,
+            ):
+                return self.round_fail(f'预备编队已禁用，停止选择 {target_team.name}')
+            if not self._is_select_button_visible(ocr_result_map):
+                return self.round_retry(
+                    '取消预选后未恢复SELECT',
+                    wait=0.5,
+                )
+            log.info('预备编队取消完成:已恢复SELECT')
+            self.pending_cancel_button_center = None
+            return self.round_wait(
+                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                wait=0.2,
+            )
+
+        if self.pending_select_button_center is not None:
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            if self._is_team_slot_disabled(
+                self.last_screenshot,
+                ocr_result_map,
+                target_team.name,
+                team_slot_rect,
+            ):
+                return self.round_fail(f'预备编队已禁用，停止选择 {target_team.name}')
+            if not self._is_team_selected(ocr_result_map):
+                return self.round_retry(
+                    '选择预备编队后未确认选中状态',
+                    wait=0.5,
+                )
+            self.pending_select_button_center = None
+            self.current_target_idx += 1
+            return self.round_wait(
+                ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                wait=0.2,
+            )
 
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        team_name, team_name_mr = self._find_team_name(
+        team_name, _ = self._find_team_name(
             ocr_result_map,
-            self._get_team_name_rect_by_idx(target_team_idx),
+            team_slot_rect,
         )
-        if team_name is None or team_name_mr is None:
+        if team_name is None:
             return self.round_fail(f'当前页未识别到预备编队 {target_team_idx + 1}')
         if target_team.name != team_name:
             log.info(
@@ -236,15 +251,24 @@ class ChoosePredefinedTeam(ZOperation):
             self.ctx.team_config.update_team_name_by_idx(target_team_idx, team_name)
             target_team.name = team_name
 
-        select_button_mr = self._find_select_button(ocr_result_map, team_name_mr)
+        if self._is_team_slot_disabled(
+            self.last_screenshot,
+            ocr_result_map,
+            team_name,
+            team_slot_rect,
+        ):
+            return self.round_fail(f'预备编队已禁用，停止选择 {team_name}')
+
+        select_button_mr = self._find_select_button(ocr_result_map, team_slot_rect)
         if select_button_mr is None:
-            selected_button_mr = self._find_selected_button(ocr_result_map, team_name_mr)
+            selected_button_mr = self._find_selected_button(
+                ocr_result_map,
+                team_slot_rect,
+            )
             if selected_button_mr is None:
                 return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
             log.info('预备编队取消选择:队伍:%s 当前状态非SELECT', target_team.name)
-            self.ctx.controller.click(
-                team_name_mr.center + ChoosePredefinedTeam.TEAM_NAME_CLICK_OFFSET
-            )
+            self.ctx.controller.click(selected_button_mr.center)
             self.pending_cancel_button_center = selected_button_mr.center
             return self.round_wait(
                 ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
@@ -252,9 +276,7 @@ class ChoosePredefinedTeam(ZOperation):
             )
 
         log.info('预备编队选择:队伍:%s 已找到SELECT', target_team.name)
-        self.ctx.controller.click(
-            team_name_mr.center + ChoosePredefinedTeam.TEAM_NAME_CLICK_OFFSET
-        )
+        self.ctx.controller.click(select_button_mr.center)
         self.pending_select_button_center = select_button_mr.center
         return self.round_wait(ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE, wait=0.5)
 
@@ -278,114 +300,103 @@ class ChoosePredefinedTeam(ZOperation):
 
         相邻页面会重复显示卡片，按队名去重。X/Y 的分母 Y 表示队伍代理人数，
         用于限制写入配置的代理人数量；例如单人队的第 2 个位置可能是邦布，不能因
-        识别到后续头像而写入额外代理人。是否禁用只由 1P、2P、3P 标记判断：任一
-        缺失即不参与评分。空队停止扫描；不可用的队伍仍保留游戏列表序号，避免后续
+        识别到后续头像而写入额外代理人。禁用必须同时满足 1P、2P、3P 标记不完整，
+        且缺失槽位对应的代理人头像变暗。空队停止扫描；不可用的队伍仍保留游戏列表序号，
         有效队的翻页与点击位置错位。
         """
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
-        for title_y in self.CARD_TITLE_Y_LIST:
-            for title_x in self.CARD_TITLE_X_LIST:
-                team_name, team_name_mr = self._find_team_name(
-                    ocr_result_map,
-                    Rect(
-                        title_x,
-                        title_y,
-                        title_x + self.CARD_TITLE_WIDTH,
-                        title_y + self.CARD_TITLE_HEIGHT,
-                    ),
-                )
-                if team_name is None or team_name_mr is None:
-                    log.info(
-                        '预备编队扫描卡位:列:%d 行:%d 未识别队名',
-                        title_x,
-                        title_y,
-                    )
-                    continue
-                if team_name in self.scanned_team_name_set:
-                    log.info(
-                        '预备编队扫描卡位:列:%d 行:%d 队名:%s 已扫描，跳过',
-                        title_x,
-                        title_y,
-                        team_name,
-                    )
-                    continue
-
-                agent_scan_result_list = self._recognize_team_agents(
-                    screen,
-                    team_name_mr,
-                )
-                agent_list = [result.agent for result in agent_scan_result_list]
-                agent_slot_set = self._get_team_agent_slot_set(
-                    ocr_result_map,
-                    team_name_mr,
-                )
-                team_member_count = self._get_team_member_count(
-                    ocr_result_map,
-                    team_name_mr,
-                )
+        for card_idx in range(self.TEAM_SLOT_COUNT):
+            team_slot_rect = self._get_team_slot_rect_by_idx(card_idx)
+            team_name, _ = self._find_team_name(
+                ocr_result_map,
+                team_slot_rect,
+            )
+            if team_name is None:
+                log.info('预备编队扫描卡位:%d 未识别队名', card_idx + 1)
+                continue
+            if team_name in self.scanned_team_name_set:
                 log.info(
-                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s 队伍人数:%s',
-                    title_x,
-                    title_y,
+                    '预备编队扫描卡位:%d 队名:%s 已扫描，跳过',
+                    card_idx + 1,
                     team_name,
-                    len(agent_list),
-                    sorted(agent_slot_set),
-                    team_member_count,
                 )
-                if team_member_count == 0 or (
-                    len(agent_list) == 0 and team_member_count is None
-                ):
-                    log.info('预备编队扫描结束:队名:%s 队伍为空', team_name)
-                    return True
+                continue
 
-                team_idx = self.next_scanned_team_idx
-                if team_idx >= self.MAX_TEAM_COUNT:
-                    log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
-                    return True
-                # 不可用的队伍不参与自动配队，但仍占用游戏列表中的位置。
-                # 必须先递增真实序号，再跳过候选列表；否则后续有效队会错位。
-                self.next_scanned_team_idx += 1
-                self.scanned_team_name_set.add(team_name)
+            agent_scan_result_list = self._recognize_team_agents(
+                screen,
+                team_slot_rect,
+            )
+            agent_list = [result.agent for result in agent_scan_result_list]
+            agent_slot_set = self._get_team_agent_slot_set(
+                ocr_result_map,
+                team_slot_rect,
+            )
+            team_member_count = self._get_team_member_count(
+                ocr_result_map,
+                team_slot_rect,
+            )
+            log.info(
+                '预备编队扫描卡位:%d 队名:%s 代理人数量:%d 槽位:%s 队伍人数:%s',
+                card_idx + 1,
+                team_name,
+                len(agent_list),
+                sorted(agent_slot_set),
+                team_member_count,
+            )
+            if team_member_count == 0 or (
+                len(agent_list) == 0 and team_member_count is None
+            ):
+                log.info('预备编队扫描结束:队名:%s 队伍为空', team_name)
+                return True
 
-                if team_member_count is None:
-                    self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
-                    log.info(
-                        '预备编队跳过:序号:%d 队名:%s 未识别队伍人数',
-                        team_idx + 1,
-                        team_name,
-                    )
-                    continue
+            team_idx = self.next_scanned_team_idx
+            if team_idx >= self.MAX_TEAM_COUNT:
+                log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
+                return True
+            # 不可用的队伍不参与自动配队，但仍占用游戏列表中的位置。
+            # 必须先递增真实序号，再跳过候选列表；否则后续有效队会错位。
+            self.next_scanned_team_idx += 1
+            self.scanned_team_name_set.add(team_name)
 
-                team_agent_scan_result_list = agent_scan_result_list[:team_member_count]
-                is_disabled = (
-                    agent_slot_set != {'1P', '2P', '3P'}
-                    and len(team_agent_scan_result_list) == team_member_count
-                    and all(result.is_dim for result in team_agent_scan_result_list)
-                )
-                if is_disabled:
-                    self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
-                    log.info(
-                        '预备编队禁用:序号:%d 队名:%s 代理人槽位不完整:%s 且头像变暗',
-                        team_idx + 1,
-                        team_name,
-                        sorted(agent_slot_set),
-                    )
-                    continue
-
-                team_member_list = agent_list[:team_member_count]
-                self.ctx.team_config.update_team_by_idx(
-                    team_idx,
-                    team_name,
-                    team_member_list,
-                )
-                self.scanned_team_idx_list.append(team_idx)
+            if team_member_count is None:
+                self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
                 log.info(
-                    '预备编队 %d 名称:%s 代理人:%s',
+                    '预备编队跳过:序号:%d 队名:%s 未识别队伍人数',
                     team_idx + 1,
                     team_name,
-                    [agent.agent_name for agent in team_member_list],
                 )
+                continue
+
+            is_disabled = self._is_team_disabled(
+                team_name,
+                agent_slot_set,
+                team_member_count,
+                agent_scan_result_list,
+            )
+            if is_disabled:
+                self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
+                log.info(
+                    '预备编队禁用:序号:%d 队名:%s 代理人槽位不完整:%s 且头像变暗',
+                    team_idx + 1,
+                    team_name,
+                    sorted(agent_slot_set),
+                )
+                continue
+
+            team_member_list = agent_list[:team_member_count]
+            self.ctx.team_config.update_team_by_idx(
+                team_idx,
+                team_name,
+                team_member_list,
+            )
+            self.scanned_team_idx_list.append(team_idx)
+            log.info(
+                '预备编队 %d 名称:%s 代理人:%s',
+                team_idx + 1,
+                team_name,
+                [agent.agent_name for agent in team_member_list],
+            )
 
         scanned_count = self.next_scanned_team_idx
         scan_finished = scanned_count >= self.MAX_TEAM_COUNT
@@ -421,75 +432,78 @@ class ChoosePredefinedTeam(ZOperation):
         self.target_team_idx_list = [target.team_idx for target in click_target_list]
         return all(team_idx >= 0 for team_idx in self.target_team_idx_list)
 
-    @classmethod
-    def _get_team_name_rect_by_idx(cls, team_idx: int) -> Rect:
-        """返回 ``team_idx`` 在当前页的标题区域。"""
-        card_idx = team_idx % cls.TEAM_SCROLL_STEP
-        column_idx = card_idx % cls.TEAM_COLUMN_COUNT
-        row_idx = card_idx // cls.TEAM_COLUMN_COUNT
-        title_x = cls.CARD_TITLE_X_LIST[column_idx]
-        title_y = cls.CARD_TITLE_Y_LIST[row_idx]
-        return Rect(
-            title_x,
-            title_y,
-            title_x + cls.CARD_TITLE_WIDTH,
-            title_y + cls.CARD_TITLE_HEIGHT,
+    def _get_team_slot_rect_by_idx(self, card_idx: int) -> Rect:
+        """返回当前页第 ``card_idx`` 张编队卡片区域。"""
+        area = self.ctx.screen_loader.get_area('编队选择', f'编队槽位{card_idx + 1}')
+        if area is None:
+            raise RuntimeError(f'未配置编队槽位{card_idx + 1}')
+        return area.rect
+
+    def _get_select_mark_rect(self, team_slot_rect: Rect) -> Rect:
+        """返回当前编队卡片所在列的选择标记区域。"""
+        left_area = self.ctx.screen_loader.get_area('编队选择', '选择标记左')
+        right_area = self.ctx.screen_loader.get_area('编队选择', '选择标记右')
+        if left_area is None or right_area is None:
+            raise RuntimeError('未配置编队选择标记区域')
+        return min(
+            [left_area, right_area],
+            key=lambda area: abs(area.center.x - team_slot_rect.center.x),
+        ).rect
+
+    @staticmethod
+    def _is_match_result_in_rect(match_result: MatchResult, rect: Rect) -> bool:
+        return (
+            match_result.left_top.x >= rect.x1
+            and match_result.right_bottom.x <= rect.x2
+            and match_result.left_top.y >= rect.y1
+            and match_result.right_bottom.y <= rect.y2
         )
 
     def _find_select_button(
         self,
         ocr_result_map: dict[str, MatchResultList],
-        team_name_mr: MatchResult,
+        team_slot_rect: Rect,
     ) -> MatchResult | None:
+        select_mark_rect = self._get_select_mark_rect(team_slot_rect)
         candidate_list: list[MatchResult] = []
         for text, mr_list in ocr_result_map.items():
             if not text.replace(' ', '').upper().endswith('SELECT'):
                 continue
-            for mr in mr_list:
-                x_offset = mr.center.x - team_name_mr.center.x
-                y_offset = mr.center.y - team_name_mr.center.y
-                if 300 <= x_offset <= 850 and 40 <= y_offset <= 250:
-                    candidate_list.append(mr)
+            candidate_list.extend(
+                mr
+                for mr in mr_list
+                if self._is_match_result_in_rect(mr, select_mark_rect)
+            )
 
         if len(candidate_list) == 0:
             return None
         return min(
             candidate_list,
-            key=lambda mr: (
-                abs(mr.center.x - team_name_mr.center.x - 650)
-                + abs(mr.center.y - team_name_mr.center.y - 130)
-            ),
+            key=lambda mr: abs(mr.center.y - team_slot_rect.center.y),
         )
 
     def _find_selected_button(
         self,
         ocr_result_map: dict[str, MatchResultList],
-        team_name_mr: MatchResult,
+        team_slot_rect: Rect,
     ) -> MatchResult | None:
         """查找当前卡片的已选状态，用于在缺少 SELECT 时先取消预选。"""
+        select_mark_rect = self._get_select_mark_rect(team_slot_rect)
         candidate_list: list[MatchResult] = []
         for text, mr_list in ocr_result_map.items():
             if not self._is_selected_text(text.replace(' ', '').upper()):
                 continue
-            for mr in mr_list:
-                x_offset = mr.center.x - team_name_mr.center.x
-                y_offset = mr.center.y - team_name_mr.center.y
-                if (
-                    ChoosePredefinedTeam.SELECTED_BUTTON_MIN_X_OFFSET
-                    <= x_offset
-                    <= ChoosePredefinedTeam.SELECTED_BUTTON_MAX_X_OFFSET
-                    and 40 <= y_offset <= 250
-                ):
-                    candidate_list.append(mr)
+            candidate_list.extend(
+                mr
+                for mr in mr_list
+                if self._is_match_result_in_rect(mr, select_mark_rect)
+            )
 
         if len(candidate_list) == 0:
             return None
         return min(
             candidate_list,
-            key=lambda mr: (
-                abs(mr.center.x - team_name_mr.center.x - 650)
-                + abs(mr.center.y - team_name_mr.center.y - 130)
-            ),
+            key=lambda mr: abs(mr.center.y - team_slot_rect.center.y),
         )
 
     def _is_select_button_visible(
@@ -516,8 +530,8 @@ class ChoosePredefinedTeam(ZOperation):
 
     @staticmethod
     def _is_selected_text(normalized_text: str) -> bool:
-        """判断 OCR 文本是否为选中态编号。"""
-        return normalized_text in {'01', '02'}
+        """判断 OCR 文本是否为选中态标记。"""
+        return normalized_text == 'TEAM' or normalized_text.endswith('SELECTED')
 
     def _is_team_selected(
         self,
@@ -547,7 +561,7 @@ class ChoosePredefinedTeam(ZOperation):
     def _find_team_name(
         self,
         ocr_result_map: dict[str, MatchResultList],
-        title_rect: Rect,
+        team_slot_rect: Rect,
     ) -> tuple[str | None, MatchResult | None]:
         target_name: str | None = None
         target_mr: MatchResult | None = None
@@ -557,10 +571,10 @@ class ChoosePredefinedTeam(ZOperation):
                 continue
             mr = mr_list.max
             if (
-                mr.left_top.x < title_rect.x1
-                or mr.right_bottom.x > title_rect.x2
-                or mr.left_top.y < title_rect.y1
-                or mr.right_bottom.y > title_rect.y2
+                mr.left_top.x < team_slot_rect.x1
+                or mr.right_bottom.x > team_slot_rect.x2
+                or mr.left_top.y < team_slot_rect.y1
+                or mr.right_bottom.y > team_slot_rect.y2
             ):
                 continue
             if target_mr is None or mr.rect.area > target_mr.rect.area:
@@ -580,10 +594,20 @@ class ChoosePredefinedTeam(ZOperation):
             f'avatar_{agent_mr.template_id}',
         )
         if template is None or template.raw is None:
+            log.warning(
+                '预备编队头像亮度:代理人:%s 模板:%s 未找到模板原图',
+                agent_mr.data.agent_name,
+                agent_mr.template_id,
+            )
             return False
 
         avatar_image = cv2_utils.crop_image_only(screen, agent_mr.rect)
         if avatar_image.size == 0:
+            log.warning(
+                '预备编队头像亮度:代理人:%s 模板:%s 头像区域为空',
+                agent_mr.data.agent_name,
+                agent_mr.template_id,
+            )
             return False
         template_image = cv2.resize(
             template.raw,
@@ -596,16 +620,31 @@ class ChoosePredefinedTeam(ZOperation):
         template_brightness = float(
             np.mean(cv2.cvtColor(template_image, cv2.COLOR_RGB2HSV)[:, :, 2])
         )
-        return (
-            template_brightness > 0
-            and avatar_brightness
-            <= template_brightness * self.DISABLED_AVATAR_BRIGHTNESS_RATIO
+        brightness_ratio = (
+            avatar_brightness / template_brightness
+            if template_brightness > 0
+            else None
         )
+        is_dim = (
+            brightness_ratio is not None
+            and brightness_ratio <= self.DISABLED_AVATAR_BRIGHTNESS_RATIO
+        )
+        log.info(
+            '预备编队头像亮度:代理人:%s 模板:%s 实际:%.1f 模板:%.1f 比例:%.1f%% 阈值:%.1f%% 判暗:%s',
+            agent_mr.data.agent_name,
+            agent_mr.template_id,
+            avatar_brightness,
+            template_brightness,
+            brightness_ratio * 100 if brightness_ratio is not None else 0,
+            self.DISABLED_AVATAR_BRIGHTNESS_RATIO * 100,
+            is_dim,
+        )
+        return is_dim
 
     def _get_team_agent_slot_set(
         self,
         ocr_result_map: dict[str, MatchResultList],
-        team_name_mr: MatchResult,
+        team_slot_rect: Rect,
     ) -> set[str]:
         """
         获取当前卡片识别到的代理人槽位标记。
@@ -614,39 +653,22 @@ class ChoosePredefinedTeam(ZOperation):
         同时变暗时，才判为禁用。角色头像仍可能被识别到，因此 OCR 结果也必须限制
         在当前卡片范围内。
         """
-        agent_rect = Rect(
-            team_name_mr.left_top.x - 10,
-            team_name_mr.left_top.y,
-            team_name_mr.left_top.x + 800,
-            team_name_mr.left_top.y + 250,
-        )
         agent_slot_set: set[str] = set()
         for text, mr_list in ocr_result_map.items():
             normalized_text = text.replace(' ', '').upper()
             if normalized_text not in {'1P', '2P', '3P'}:
                 continue
             for mr in mr_list:
-                if (
-                    mr.left_top.x >= agent_rect.x1
-                    and mr.right_bottom.x <= agent_rect.x2
-                    and mr.left_top.y >= agent_rect.y1
-                    and mr.right_bottom.y <= agent_rect.y2
-                ):
+                if self._is_match_result_in_rect(mr, team_slot_rect):
                     agent_slot_set.add(normalized_text)
         return agent_slot_set
 
     def _get_team_member_count(
         self,
         ocr_result_map: dict[str, MatchResultList],
-        team_name_mr: MatchResult,
+        team_slot_rect: Rect,
     ) -> int | None:
         """获取当前卡片 X/Y 中表示代理人数的分母 Y。"""
-        agent_rect = Rect(
-            team_name_mr.left_top.x - 10,
-            team_name_mr.left_top.y - 30,
-            team_name_mr.left_top.x + 800,
-            team_name_mr.left_top.y + 250,
-        )
         for text, mr_list in ocr_result_map.items():
             normalized = text.replace(' ', '')
             # OCR 可能把斜线误识为 1，例如 313 代表 3/3。
@@ -656,27 +678,86 @@ class ChoosePredefinedTeam(ZOperation):
             if m is None:
                 continue
             for mr in mr_list:
-                if (
-                    mr.left_top.x >= agent_rect.x1
-                    and mr.right_bottom.x <= agent_rect.x2
-                    and mr.left_top.y >= agent_rect.y1
-                    and mr.right_bottom.y <= agent_rect.y2
-                ):
+                if self._is_match_result_in_rect(mr, team_slot_rect):
                     return int(m.group(2))
         return None
+
+    def _is_team_disabled(
+        self,
+        team_name: str,
+        agent_slot_set: set[str],
+        team_member_count: int | None,
+        agent_scan_result_list: list[TeamAgentScanResult],
+    ) -> bool:
+        """按缺失槽位与同序号代理人亮度判断预备编队是否禁用。"""
+        team_agent_scan_result_list = (
+            []
+            if team_member_count is None
+            else agent_scan_result_list[:team_member_count]
+        )
+        missing_slot_list: list[str] = []
+        dim_missing_slot_list: list[str] = []
+        if (
+            team_member_count is not None
+            and len(team_agent_scan_result_list) == team_member_count
+        ):
+            missing_slot_list = [
+                f'{idx}P'
+                for idx in range(1, team_member_count + 1)
+                if f'{idx}P' not in agent_slot_set
+            ]
+            dim_missing_slot_list = [
+                slot
+                for slot in missing_slot_list
+                if team_agent_scan_result_list[int(slot[0]) - 1].is_dim
+            ]
+        is_disabled = len(dim_missing_slot_list) > 0
+        log.info(
+            '预备编队禁用判定:队名:%s 槽位:%s 队伍人数:%s 缺失槽位:%s 对应头像变暗:%s 结果:%s',
+            team_name,
+            sorted(agent_slot_set),
+            team_member_count,
+            missing_slot_list,
+            dim_missing_slot_list,
+            is_disabled,
+        )
+        return is_disabled
+
+    def _is_team_slot_disabled(
+        self,
+        screen: MatLike,
+        ocr_result_map: dict[str, MatchResultList],
+        team_name: str,
+        team_slot_rect: Rect,
+    ) -> bool:
+        """重新识别当前卡片，供点击和选中确认前拦截禁用队伍。"""
+        agent_slot_set = self._get_team_agent_slot_set(
+            ocr_result_map,
+            team_slot_rect,
+        )
+        team_member_count = self._get_team_member_count(
+            ocr_result_map,
+            team_slot_rect,
+        )
+        agent_scan_result_list = self._recognize_team_agents(screen, team_slot_rect)
+        return self._is_team_disabled(
+            team_name,
+            agent_slot_set,
+            team_member_count,
+            agent_scan_result_list,
+        )
 
     def _recognize_team_agents(
         self,
         screen: MatLike,
-        team_name_mr: MatchResult,
+        team_slot_rect: Rect,
     ) -> list[TeamAgentScanResult]:
-        avatar_rect = Rect(
-            team_name_mr.left_top.x - 10,
-            team_name_mr.left_top.y,
-            team_name_mr.left_top.x + 800,
-            team_name_mr.left_top.y + 250,
+        agent_mr_list = match_team_agent_template(
+            self.ctx,
+            screen,
+            team_slot_rect,
+            None,
         )
-        agent_mr_list = match_team_agent_template(self.ctx, screen, avatar_rect, None)
         agent_mr_list.sort(key=lambda mr: mr.left_top.x)
 
         filtered_mr_list: list[AgentTemplateMatchResult] = []
