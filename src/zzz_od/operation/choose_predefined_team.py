@@ -247,9 +247,10 @@ class ChoosePredefinedTeam(ZOperation):
         """
         扫描当前页面的预备编队，返回是否应结束扫描。
 
-        相邻页面会重复显示卡片，按队名去重。识别到队名但没有任何代理人时，
-        视为首个空队并停止扫描。被禁用的队伍不参与评分，但仍保留其游戏列表
-        序号，避免后续有效队的翻页与点击位置错位。
+        相邻页面会重复显示卡片，按队名去重。满员判断优先用核心技 X/Y(分母 = 队伍人数):
+        X/3(3 人)或 1P/2P/3P ≥2 个则参选评分(1P/2P/3P 文字 OCR 易漏读、空位也保留标记,
+        故 X/Y 为主、≥2 兜底)。0/0 或无头像无 X/Y 视为空队停止扫描。不满员 / 不可用的队伍
+        不参与评分，但仍保留其游戏列表序号，避免后续有效队的翻页与点击位置错位。
         """
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
@@ -285,32 +286,47 @@ class ChoosePredefinedTeam(ZOperation):
                     ocr_result_map,
                     team_name_mr,
                 )
+                team_count_text = self._get_team_count_text(
+                    ocr_result_map,
+                    team_name_mr,
+                )
                 log.info(
-                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s',
+                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s 核心技:%s',
                     title_x,
                     title_y,
                     team_name,
                     len(agent_list),
                     sorted(agent_slot_set),
+                    team_count_text,
                 )
-                if len(agent_list) == 0:
-                    log.info('预备编队扫描结束:队名:%s 三个代理人位均为空', team_name)
+                if len(agent_list) == 0 and (
+                    team_count_text is None or team_count_text.endswith('/0')
+                ):
+                    log.info('预备编队扫描结束:队名:%s 队伍为空', team_name)
                     return True
 
                 team_idx = self.next_scanned_team_idx
                 if team_idx >= self.MAX_TEAM_COUNT:
                     log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                     return True
-                # 被禁用的队伍不参与自动配队，但仍占用游戏列表中的位置。
+                # 不可用的队伍不参与自动配队，但仍占用游戏列表中的位置。
                 # 必须先递增真实序号，再跳过候选列表；否则后续有效队会错位。
                 self.next_scanned_team_idx += 1
                 self.scanned_team_name_set.add(team_name)
 
-                if agent_slot_set != {'1P', '2P', '3P'}:
+                # 可用(参选)判据(满足其一):
+                # ① 核心技 X/3(分母 = 队伍人数,3 = 满员)—— 主判据,绕开 1P/2P/3P 文字 OCR 漏读;
+                # ② 1P/2P/3P 识别到 ≥2 个 —— X/3 漏读时兜底(空位也保留 1P/2P/3P 标记,
+                #    不满员队可能命中,由 select_teams 按评分 / 互斥排除)。
+                is_available = (
+                    team_count_text is not None and team_count_text.endswith('/3')
+                ) or len(agent_slot_set) >= 2
+                if not is_available:
                     log.info(
-                        '预备编队不可用:序号:%d 队名:%s 代理人槽位不完整:%s',
+                        '预备编队不可用:序号:%d 队名:%s 核心技%s 槽位%s',
                         team_idx + 1,
                         team_name,
+                        team_count_text,
                         sorted(agent_slot_set),
                     )
                     continue
@@ -450,7 +466,7 @@ class ChoosePredefinedTeam(ZOperation):
             normalized_text == 'SELECTED'
             or normalized_text == 'TEAM'
             or normalized_text.startswith('TEAM')
-            or re.fullmatch(r'\d{2}', normalized_text) is not None
+            or re.fullmatch(r'0\d', normalized_text) is not None  # 0 开头两位数:选中态编号 01-09(排除角色等级 60 等)
         )
 
     def _is_team_selected(
@@ -534,6 +550,43 @@ class ChoosePredefinedTeam(ZOperation):
                 ):
                     agent_slot_set.add(normalized_text)
         return agent_slot_set
+
+    def _get_team_count_text(
+        self,
+        ocr_result_map: dict[str, MatchResultList],
+        team_name_mr: MatchResult,
+    ) -> str | None:
+        """
+        识别当前卡片的核心技激活 X/Y(分母 = 队伍人数,如 '3/3')。
+
+        有 X/Y 说明这是一张有核心技激活进度的队伍卡(分母 = 角色数,3 = 满员)。
+        用于配合 / 替代 1P/2P/3P 判断队伍是否完整(1P/2P/3P 文字 OCR 易漏读时兜底)。
+        X/Y 在队名右上方(略高于队名),故 y 起点上移 30 以包含。
+        """
+        agent_rect = Rect(
+            team_name_mr.left_top.x - 10,
+            team_name_mr.left_top.y - 30,
+            team_name_mr.left_top.x + 800,
+            team_name_mr.left_top.y + 250,
+        )
+        for text, mr_list in ocr_result_map.items():
+            normalized = text.replace(' ', '')
+            # X/Y(含斜线,如 3/3);或 OCR 把斜线误识为 1 的连写(如 313=3/3、213=2/3、013=0/3)
+            m = re.fullmatch(r'(\d+)/(\d+)', normalized)
+            if m is None:
+                m = re.fullmatch(r'(\d)1(\d)', normalized)
+            if m is None:
+                continue
+            count_text = f'{m.group(1)}/{m.group(2)}'
+            for mr in mr_list:
+                if (
+                    mr.left_top.x >= agent_rect.x1
+                    and mr.right_bottom.x <= agent_rect.x2
+                    and mr.left_top.y >= agent_rect.y1
+                    and mr.right_bottom.y <= agent_rect.y2
+                ):
+                    return count_text
+        return None
 
     def _recognize_team_agents(
         self,

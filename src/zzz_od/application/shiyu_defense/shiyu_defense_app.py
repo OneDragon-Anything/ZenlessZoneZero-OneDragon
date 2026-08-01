@@ -106,10 +106,18 @@ class ShiyuDefenseApp(ZApplication):
                 current = int(digits[0])
                 total = int(digits[-1])
                 log.info('剧变节点进度 %d/%d', current, total)
-                self.config.critical_max_node_idx = total
-                next_idx = current + 1
-                if next_idx > total:
-                    return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
+                # 防御 OCR 误读:进度不可能 total<current(总防线数不会小于已挑战到的防线);
+                # 不合理时回退 run_record,避免误判已完成(实测见过 OCR 读成 2/1)。
+                if total < current:
+                    log.info('剧变节点进度 OCR 异常 %s,回退 run_record', progress_text)
+                    next_idx = self.run_record.next_node_idx()
+                    if next_idx is None:
+                        return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
+                else:
+                    self.config.critical_max_node_idx = total
+                    next_idx = current + 1
+                    if next_idx > total:
+                        return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
             elif len(digits) == 1:
                 # 只有一个数字，可能是 "5"，说明已完成
                 total = int(digits[0])
