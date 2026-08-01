@@ -1,0 +1,116 @@
+screen_id: team_select
+screen_name: 编队选择
+pc_alt: false
+area_list:
+- area_name: 编队槽位1
+  id_mark: false
+  pc_rect:
+  - 160
+  - 132
+  - 933
+  - 381
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 编队槽位2
+  id_mark: false
+  pc_rect:
+  - 976
+  - 128
+  - 1755
+  - 385
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 编队槽位3
+  id_mark: false
+  pc_rect:
+  - 162
+  - 414
+  - 944
+  - 672
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 编队槽位4
+  id_mark: false
+  pc_rect:
+  - 983
+  - 416
+  - 1750
+  - 666
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 编队槽位5
+  id_mark: false
+  pc_rect:
+  - 163
+  - 694
+  - 943
+  - 949
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 编队槽位6
+  id_mark: false
+  pc_rect:
+  - 976
+  - 694
+  - 1757
+  - 949
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 选择标记左
+  id_mark: false
+  pc_rect:
+  - 774
+  - 183
+  - 940
+  - 941
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 选择标记右
+  id_mark: false
+  pc_rect:
+  - 1598
+  - 180
+  - 1757
+  - 940
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
