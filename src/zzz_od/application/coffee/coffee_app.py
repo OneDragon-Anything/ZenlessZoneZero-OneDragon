@@ -42,6 +42,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class CoffeeApp(ZApplication):
 
+    """咖啡店:每日免费点单 1 杯咖啡,恢复电量(体力)并获增益 buff。每日 1 次、04:00 重置。"""
+
     STATUS_EXTRA_COFFEE: ClassVar[str] = '不占用上限的咖啡'
     STATUS_WITHOUT_BENEFIT: ClassVar[str] = '没有增益的咖啡'
 

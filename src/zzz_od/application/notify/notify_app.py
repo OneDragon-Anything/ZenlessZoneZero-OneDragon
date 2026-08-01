@@ -11,6 +11,8 @@ from zzz_od.context.zzz_context import ZContext
 
 class NotifyApp(ZApplication):
 
+    """通知服务:应用运行结果通知发送(非玩法,无消耗)。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

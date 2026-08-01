@@ -36,6 +36,8 @@ MULTI_ROOM_NODES = [5]
 
 class ShiyuDefenseApp(ZApplication):
 
+    """式舆防卫战:终局防守战斗本(剧变节点,双周刷新奖励)。进入战斗、耗时较长。"""
+
     STATUS_ALL_FINISHED: ClassVar[str] = '所有节点都完成挑战'
     STATUS_NEXT_NODE: ClassVar[str] = '下一节点'
     STATUS_ROOM_COMPLETE: ClassVar[str] = '房间挑战完成'

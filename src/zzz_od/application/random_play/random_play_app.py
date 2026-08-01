@@ -32,6 +32,8 @@ from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 
 class RandomPlayApp(ZApplication):
 
+    """录像店营业:录像带店日常经营(宣传/营业/结算)。无消耗,产出菲林与丁尼。"""
+
     STATUS_ALL_VIDEO_CHOOSE: ClassVar[str] = '已选择全部录像带'
     STATUS_ALREADY_RUNNING: ClassVar[str] = '正在营业'
 

@@ -31,6 +31,7 @@ from zzz_od.operation.exchange_ether_battery import ExchangeEtherBattery
 
 
 class ChargePlanApp(ZApplication):
+    """体力计划:按计划消耗电量刷训练副本(实战模拟室/区域巡防/专业挑战室/恶名狩猎-深度追猎)及电量合成(合成电池),支持循环与电量不足时用储蓄电量/以太电池补体。各分类按电量消耗,无日/周次数限。"""
 
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'

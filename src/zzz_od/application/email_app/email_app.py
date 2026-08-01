@@ -10,6 +10,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class EmailApp(ZApplication):
 
+    """邮件:自动领取游戏内未读邮件奖励(菲林/材料)。无消耗。"""
+
     def __init__(self, ctx: ZContext):
         """
         每天自动接收邮件奖励

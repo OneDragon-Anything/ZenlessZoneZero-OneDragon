@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from one_dragon.utils import os_utils
+from zzz_od.backend._doc_utils import _doc_summary
 from zzz_od.backend.schemas import (
     OperationInfo,
     OperationListResult,
@@ -323,7 +324,9 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         op_id: 定位标识。
 
     Returns:
-        含 op_id/class_name/module/params(各 param 标 json_serializable)/debuggable 的字典。
+        含 op_id/class_name/module/description(用途摘要,优先 class docstring 回退 __init__
+        docstring,已去 ``:param``/``:return`` 等 Sphinx 标记)/
+        params(各 param 标 json_serializable)/debuggable 的字典。
     """
     cls = resolve_op_class(op_id)
     params = _reflect_params(cls)
@@ -335,6 +338,7 @@ def describe_operation(ctx: 'ZContext', op_id: str) -> dict:
         'op_id': op_id,
         'class_name': cls.__name__,
         'module': cls.__module__,
+        'description': _doc_summary(cls),
         'params': [
             {
                 'name': p.name,

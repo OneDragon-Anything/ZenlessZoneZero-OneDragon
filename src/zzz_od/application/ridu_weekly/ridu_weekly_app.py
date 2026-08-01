@@ -12,6 +12,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class RiduWeeklyApp(ZApplication):
 
+    """丽都周纪:领取周纪的积分/奖励。周限、无体力消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

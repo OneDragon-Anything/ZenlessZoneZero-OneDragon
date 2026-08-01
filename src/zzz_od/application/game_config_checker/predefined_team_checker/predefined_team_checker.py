@@ -28,6 +28,8 @@ class TeamWrapper:
 
 class PredefinedTeamChecker(ZApplication):
 
+    """预备编队角色识别:校准工具,识别预备编队的实际角色(切换队伍前核对)。非玩法。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
