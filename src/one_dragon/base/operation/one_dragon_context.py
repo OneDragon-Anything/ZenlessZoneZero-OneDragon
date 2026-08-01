@@ -26,8 +26,12 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_download_request_event import (
+    ContextDownloadRequestEvent,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
@@ -165,7 +169,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @cached_property
     def model_config(self) -> BasicModelConfig:
-        return BasicModelConfig()
+        return BasicModelConfig(self.repo_config)
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -500,10 +504,68 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
-        self.ocr.init_model(
+
+        need_download: bool = not self.ocr.is_file_existed()
+        if need_download:
+            if not self._confirm_resource_download(title='OCR识别模型', note=self.model_config.ocr):
+                log.info('已取消下载OCR模型 使用OCR时将重新下载')
+                return
+            self.dispatch_event(
+                ContextNotifyEvent.EVENT_ID,
+                ContextNotifyEvent.info('资源下载', '开始下载OCR识别模型'),
+            )
+
+        success: bool = self.ocr.init_model(
+            source_order=self.env_config.get_resource_source_order(),
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+            on_source_success=self._on_resource_source_success,
+            on_source_failure=self._on_resource_source_failure,
+            fallback_on_slow=self.env_config.is_resource_source_auto,
         )
+
+        if need_download:
+            if success:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.success('资源下载', 'OCR识别模型下载完成'),
+                )
+            else:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.error('资源下载', 'OCR识别模型下载失败 可到[设置-资源下载]更换下载源重试'),
+                )
+
+    def _confirm_resource_download(self, title: str, note: str) -> bool:
+        """自动下载资源前请求前端确认。
+
+        已设置不再询问或无前端监听时自动下载；前端等待超时视为取消。
+        :param title: 资源显示名
+        :param note: 资源说明
+        :return: 是否继续下载
+        """
+        if self.env_config.resource_download_no_confirm:
+            return True
+        if not self.has_event_listener(ContextDownloadRequestEvent.EVENT_ID):
+            # 无界面场景 按候选源顺序自动下载
+            return True
+
+        request = ContextDownloadRequestEvent(title=title, note=note)
+        self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request)
+        if not request.wait(timeout=300):
+            log.warning('资源下载确认超时，已取消本次下载')
+            return False
+        if request.confirmed and request.remember:
+            self.env_config.resource_download_no_confirm = True
+        return request.confirmed
+
+    def _on_resource_source_success(self, source_id: str) -> None:
+        """资源下载成功后记录使用的源。"""
+        self.env_config.mark_resource_source_success(source_id)
+
+    def _on_resource_source_failure(self, source_id: str) -> None:
+        """自动模式下清除已经失效的上次成功源。"""
+        self.env_config.mark_resource_source_failure(source_id)
 
     def after_app_shutdown(self) -> None:
         """

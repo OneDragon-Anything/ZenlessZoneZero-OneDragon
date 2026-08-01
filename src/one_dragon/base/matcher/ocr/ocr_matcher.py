@@ -30,13 +30,12 @@ class OcrMatcher:
 
     def init_model(
             self,
-            download_by_github: bool = True,
-            download_by_gitee: bool = False,
-            download_by_mirror_chan: bool = False,
+            source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Callable[[float, str], None] | None = None
+            progress_callback: Callable[[float, str], None] | None = None,
+            on_source_success: Callable[[str], None] | None = None,
     ) -> bool:
         raise NotImplementedError('由具体的OCR实现提供')
 
