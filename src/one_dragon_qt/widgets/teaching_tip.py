@@ -42,6 +42,7 @@ class TeachingTip(qtTeachingTip):
         self.target = target
         self.duration = duration
         self.isDeleteOnClose = isDeleteOnClose
+        self.tail_position = tailPosition
         self.manager = TeachingTipManager.make(tailPosition)
 
         self.hBoxLayout = QHBoxLayout(self)
@@ -111,6 +112,12 @@ class TeachingTip(qtTeachingTip):
         """宽度变化时用实际宽度重新定位，修正 sizeHint != width 导致的偏移。"""
         super().resizeEvent(event)
         if not self.isVisible() or not hasattr(self, 'target'):
+            return
+        if self.tail_position not in (
+            TeachingTipTailPosition.RIGHT,
+            TeachingTipTailPosition.RIGHT_TOP,
+            TeachingTipTailPosition.RIGHT_BOTTOM,
+        ):
             return
         target_left = self.target.mapToGlobal(self.target.rect().topLeft()).x()
         m = self.layout().contentsMargins()
