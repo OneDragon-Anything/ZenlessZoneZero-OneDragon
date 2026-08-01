@@ -1,7 +1,10 @@
 import re
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -10,12 +13,15 @@ from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cal_utils, str_utils
+from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
-from zzz_od.operation.agent_template_matcher import match_team_agent_template
+from zzz_od.operation.agent_template_matcher import (
+    AgentTemplateMatchResult,
+    match_team_agent_template,
+)
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
@@ -23,6 +29,15 @@ if TYPE_CHECKING:
     from zzz_od.application.shiyu_defense.shiyu_defense_team_utils import (
         DefensePhaseTeamInfo,
     )
+
+
+@dataclass
+class TeamAgentScanResult:
+    """预备编队中一个代理人的扫描结果。"""
+
+    agent: Agent
+    is_dim: bool
+    match_result: AgentTemplateMatchResult
 
 
 class ChoosePredefinedTeam(ZOperation):
@@ -35,6 +50,9 @@ class ChoosePredefinedTeam(ZOperation):
     TEAM_NAME_CLICK_OFFSET: Point = Point(300, 0)
     SELECT_BUTTON_FEEDBACK_HALF_WIDTH: int = 160
     SELECT_BUTTON_FEEDBACK_HALF_HEIGHT: int = 120
+    SELECTED_BUTTON_MIN_X_OFFSET: int = 500
+    SELECTED_BUTTON_MAX_X_OFFSET: int = 800
+    DISABLED_AVATAR_BRIGHTNESS_RATIO: float = 0.7
     TEAM_SCROLL_STEP: int = 4
     TEAM_DRAG_START: Point = Point(300, 715)
     TEAM_DRAG_END: Point = Point(300, 150)
@@ -258,10 +276,11 @@ class ChoosePredefinedTeam(ZOperation):
         """
         扫描当前页面的预备编队，返回是否应结束扫描。
 
-        相邻页面会重复显示卡片，按队名去重。满员判断优先用核心技 X/Y(分母 = 队伍人数):
-        X/3(3 人)或 1P/2P/3P ≥2 个则参选评分(1P/2P/3P 文字 OCR 易漏读、空位也保留标记,
-        故 X/Y 为主、≥2 兜底)。0/0 或无头像无 X/Y 视为空队停止扫描。不满员 / 不可用的队伍
-        不参与评分，但仍保留其游戏列表序号，避免后续有效队的翻页与点击位置错位。
+        相邻页面会重复显示卡片，按队名去重。X/Y 的分母 Y 表示队伍代理人数，
+        用于限制写入配置的代理人数量；例如单人队的第 2 个位置可能是邦布，不能因
+        识别到后续头像而写入额外代理人。是否禁用只由 1P、2P、3P 标记判断：任一
+        缺失即不参与评分。空队停止扫描；不可用的队伍仍保留游戏列表序号，避免后续
+        有效队的翻页与点击位置错位。
         """
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
@@ -292,26 +311,30 @@ class ChoosePredefinedTeam(ZOperation):
                     )
                     continue
 
-                agent_list = self._recognize_team_agents(screen, team_name_mr)
+                agent_scan_result_list = self._recognize_team_agents(
+                    screen,
+                    team_name_mr,
+                )
+                agent_list = [result.agent for result in agent_scan_result_list]
                 agent_slot_set = self._get_team_agent_slot_set(
                     ocr_result_map,
                     team_name_mr,
                 )
-                team_count_text = self._get_team_count_text(
+                team_member_count = self._get_team_member_count(
                     ocr_result_map,
                     team_name_mr,
                 )
                 log.info(
-                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s 核心技:%s',
+                    '预备编队扫描卡位:列:%d 行:%d 队名:%s 代理人数量:%d 槽位:%s 队伍人数:%s',
                     title_x,
                     title_y,
                     team_name,
                     len(agent_list),
                     sorted(agent_slot_set),
-                    team_count_text,
+                    team_member_count,
                 )
-                if len(agent_list) == 0 and (
-                    team_count_text is None or team_count_text.endswith('/0')
+                if team_member_count == 0 or (
+                    len(agent_list) == 0 and team_member_count is None
                 ):
                     log.info('预备编队扫描结束:队名:%s 队伍为空', team_name)
                     return True
@@ -325,31 +348,43 @@ class ChoosePredefinedTeam(ZOperation):
                 self.next_scanned_team_idx += 1
                 self.scanned_team_name_set.add(team_name)
 
-                # 可用(参选)判据(满足其一):
-                # ① 核心技 X/3(分母 = 队伍人数,3 = 满员)—— 主判据,绕开 1P/2P/3P 文字 OCR 漏读;
-                # ② 1P/2P/3P 识别到 ≥2 个 —— X/3 漏读时兜底(空位也保留 1P/2P/3P 标记,
-                #    不满员队可能命中,由 select_teams 按评分 / 互斥排除)。
-                is_available = (
-                    team_count_text is not None and team_count_text.endswith('/3')
-                ) or len(agent_slot_set) >= 2
-                if not is_available:
+                if team_member_count is None:
                     self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
                     log.info(
-                        '预备编队不可用:序号:%d 队名:%s 核心技%s 槽位%s',
+                        '预备编队跳过:序号:%d 队名:%s 未识别队伍人数',
                         team_idx + 1,
                         team_name,
-                        team_count_text,
+                    )
+                    continue
+
+                team_agent_scan_result_list = agent_scan_result_list[:team_member_count]
+                is_disabled = (
+                    agent_slot_set != {'1P', '2P', '3P'}
+                    and len(team_agent_scan_result_list) == team_member_count
+                    and all(result.is_dim for result in team_agent_scan_result_list)
+                )
+                if is_disabled:
+                    self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
+                    log.info(
+                        '预备编队禁用:序号:%d 队名:%s 代理人槽位不完整:%s 且头像变暗',
+                        team_idx + 1,
+                        team_name,
                         sorted(agent_slot_set),
                     )
                     continue
 
-                self.ctx.team_config.update_team_by_idx(team_idx, team_name, agent_list)
+                team_member_list = agent_list[:team_member_count]
+                self.ctx.team_config.update_team_by_idx(
+                    team_idx,
+                    team_name,
+                    team_member_list,
+                )
                 self.scanned_team_idx_list.append(team_idx)
                 log.info(
                     '预备编队 %d 名称:%s 代理人:%s',
                     team_idx + 1,
                     team_name,
-                    [agent.agent_name for agent in agent_list],
+                    [agent.agent_name for agent in team_member_list],
                 )
 
         scanned_count = self.next_scanned_team_idx
@@ -439,7 +474,12 @@ class ChoosePredefinedTeam(ZOperation):
             for mr in mr_list:
                 x_offset = mr.center.x - team_name_mr.center.x
                 y_offset = mr.center.y - team_name_mr.center.y
-                if 300 <= x_offset <= 850 and 40 <= y_offset <= 250:
+                if (
+                    ChoosePredefinedTeam.SELECTED_BUTTON_MIN_X_OFFSET
+                    <= x_offset
+                    <= ChoosePredefinedTeam.SELECTED_BUTTON_MAX_X_OFFSET
+                    and 40 <= y_offset <= 250
+                ):
                     candidate_list.append(mr)
 
         if len(candidate_list) == 0:
@@ -476,13 +516,8 @@ class ChoosePredefinedTeam(ZOperation):
 
     @staticmethod
     def _is_selected_text(normalized_text: str) -> bool:
-        """统一已选按钮的 OCR 结果，仅在目标卡片的按钮区域内使用。"""
-        return (
-            normalized_text == 'SELECTED'
-            or normalized_text == 'TEAM'
-            or normalized_text.startswith('TEAM')
-            or re.fullmatch(r'0\d', normalized_text) is not None  # 0 开头两位数:选中态编号 01-09(排除角色等级 60 等)
-        )
+        """判断 OCR 文本是否为选中态编号。"""
+        return normalized_text in {'01', '02'}
 
     def _is_team_selected(
         self,
@@ -534,6 +569,39 @@ class ChoosePredefinedTeam(ZOperation):
 
         return target_name, target_mr
 
+    def _is_agent_avatar_dim(
+        self,
+        screen: MatLike,
+        agent_mr: AgentTemplateMatchResult,
+    ) -> bool:
+        """判断代理人头像是否低于对应模板原图亮度的阈值。"""
+        template = self.ctx.template_loader.get_template(
+            'predefined_team',
+            f'avatar_{agent_mr.template_id}',
+        )
+        if template is None or template.raw is None:
+            return False
+
+        avatar_image = cv2_utils.crop_image_only(screen, agent_mr.rect)
+        if avatar_image.size == 0:
+            return False
+        template_image = cv2.resize(
+            template.raw,
+            (avatar_image.shape[1], avatar_image.shape[0]),
+            interpolation=cv2.INTER_AREA,
+        )
+        avatar_brightness = float(
+            np.mean(cv2.cvtColor(avatar_image, cv2.COLOR_RGB2HSV)[:, :, 2])
+        )
+        template_brightness = float(
+            np.mean(cv2.cvtColor(template_image, cv2.COLOR_RGB2HSV)[:, :, 2])
+        )
+        return (
+            template_brightness > 0
+            and avatar_brightness
+            <= template_brightness * self.DISABLED_AVATAR_BRIGHTNESS_RATIO
+        )
+
     def _get_team_agent_slot_set(
         self,
         ocr_result_map: dict[str, MatchResultList],
@@ -542,8 +610,9 @@ class ChoosePredefinedTeam(ZOperation):
         """
         获取当前卡片识别到的代理人槽位标记。
 
-        1P、2P、3P 任一缺失表示该队被禁用。角色头像仍可能被识别到，
-        因此不能仅凭头像判断可用性；OCR 结果也必须限制在当前卡片范围内。
+        `1P`、`2P`、`3P` 任一缺失是禁用的 OCR 信号；只有与该队代理人头像
+        同时变暗时，才判为禁用。角色头像仍可能被识别到，因此 OCR 结果也必须限制
+        在当前卡片范围内。
         """
         agent_rect = Rect(
             team_name_mr.left_top.x - 10,
@@ -566,18 +635,12 @@ class ChoosePredefinedTeam(ZOperation):
                     agent_slot_set.add(normalized_text)
         return agent_slot_set
 
-    def _get_team_count_text(
+    def _get_team_member_count(
         self,
         ocr_result_map: dict[str, MatchResultList],
         team_name_mr: MatchResult,
-    ) -> str | None:
-        """
-        识别当前卡片的核心技激活 X/Y(分母 = 队伍人数,如 '3/3')。
-
-        有 X/Y 说明这是一张有核心技激活进度的队伍卡(分母 = 角色数,3 = 满员)。
-        用于配合 / 替代 1P/2P/3P 判断队伍是否完整(1P/2P/3P 文字 OCR 易漏读时兜底)。
-        X/Y 在队名右上方(略高于队名),故 y 起点上移 30 以包含。
-        """
+    ) -> int | None:
+        """获取当前卡片 X/Y 中表示代理人数的分母 Y。"""
         agent_rect = Rect(
             team_name_mr.left_top.x - 10,
             team_name_mr.left_top.y - 30,
@@ -586,13 +649,12 @@ class ChoosePredefinedTeam(ZOperation):
         )
         for text, mr_list in ocr_result_map.items():
             normalized = text.replace(' ', '')
-            # X/Y(含斜线,如 3/3);或 OCR 把斜线误识为 1 的连写(如 313=3/3、213=2/3、013=0/3)
+            # OCR 可能把斜线误识为 1，例如 313 代表 3/3。
             m = re.fullmatch(r'(\d+)/(\d+)', normalized)
             if m is None:
                 m = re.fullmatch(r'(\d)1(\d)', normalized)
             if m is None:
                 continue
-            count_text = f'{m.group(1)}/{m.group(2)}'
             for mr in mr_list:
                 if (
                     mr.left_top.x >= agent_rect.x1
@@ -600,14 +662,14 @@ class ChoosePredefinedTeam(ZOperation):
                     and mr.left_top.y >= agent_rect.y1
                     and mr.right_bottom.y <= agent_rect.y2
                 ):
-                    return count_text
+                    return int(m.group(2))
         return None
 
     def _recognize_team_agents(
         self,
         screen: MatLike,
         team_name_mr: MatchResult,
-    ) -> list[Agent]:
+    ) -> list[TeamAgentScanResult]:
         avatar_rect = Rect(
             team_name_mr.left_top.x - 10,
             team_name_mr.left_top.y,
@@ -617,7 +679,7 @@ class ChoosePredefinedTeam(ZOperation):
         agent_mr_list = match_team_agent_template(self.ctx, screen, avatar_rect, None)
         agent_mr_list.sort(key=lambda mr: mr.left_top.x)
 
-        filtered_mr_list: list[MatchResult] = []
+        filtered_mr_list: list[AgentTemplateMatchResult] = []
         for current_mr in agent_mr_list:
             if len(filtered_mr_list) == 0:
                 filtered_mr_list.append(current_mr)
@@ -629,7 +691,14 @@ class ChoosePredefinedTeam(ZOperation):
             elif current_mr.confidence > previous_mr.confidence:
                 filtered_mr_list[-1] = current_mr
 
-        return [mr.data for mr in filtered_mr_list]
+        return [
+            TeamAgentScanResult(
+                agent=mr.data,
+                is_dim=self._is_agent_avatar_dim(screen, mr),
+                match_result=mr,
+            )
+            for mr in filtered_mr_list
+        ]
 
     def _scroll_team_list(self, direction: int) -> None:
         """
