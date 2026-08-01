@@ -8,6 +8,7 @@ from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.python_service import PythonService
 from one_dragon.envs.repo_config import RepoConfig
+from one_dragon.envs.update_service import UpdateService
 
 ONE_DRAGON_CONTEXT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='one_dragon_context', max_workers=1)
 
@@ -42,6 +43,10 @@ class OneDragonEnvContext:
     @cached_property
     def git_service(self):
         return GitService(self.project_config, self.env_config, self.repo_config)
+
+    @cached_property
+    def update_service(self) -> UpdateService:
+        return UpdateService(self.project_config, self.env_config, self.git_service)
 
     @cached_property
     def python_service(self):

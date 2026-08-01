@@ -46,6 +46,32 @@ class SourceOption:
         return ConfigItem(self.label, self.value)
 
 
+@dataclass(frozen=True)
+class ResourceSource:
+    """YAML 中的一项资源release下载源。"""
+
+    source_id: str
+    label: str
+    use_proxy: bool
+
+    @property
+    def config_item(self) -> ConfigItem:
+        return ConfigItem(self.label, self.source_id)
+
+
+@dataclass(frozen=True)
+class ModelResourceDefinition:
+    """YAML 中的一项项目识别模型。"""
+
+    config_key: str
+    display_name: str
+    default_model: str
+    repo_key: str
+    release_tag: str
+    gpu_config_key: str | None
+    required_files: tuple[str, ...]
+
+
 class RepoConfig(YamlConfig):
     """项目代码仓库、下载源和地区预设配置。
 
@@ -80,7 +106,8 @@ class RepoConfig(YamlConfig):
     """
 
     AUTO_REPOSITORY_VALUE = 'auto'
-    _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions'}
+    AUTO_RESOURCE_SOURCE_VALUE = 'auto'
+    _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions', 'resource_download'}
 
     def __init__(self) -> None:
         YamlConfig.__init__(self, module_name='repository')
@@ -102,6 +129,15 @@ class RepoConfig(YamlConfig):
         }
         self.sources: dict[str, tuple[SourceOption, ...]] = self._load_sources()
         self.source_defaults: dict[str, str] = self._load_source_defaults()
+        self.resource_sources: tuple[ResourceSource, ...] = self._load_resource_sources()
+        self._resource_sources_by_id: dict[str, ResourceSource] = {
+            source.source_id: source for source in self.resource_sources
+        }
+        self.resource_recommend: dict[str, str] = self._load_resource_recommend()
+        self.resource_repos: dict[str, dict[str, str]] = self._load_resource_repos()
+        self.model_resources: tuple[ModelResourceDefinition, ...] = (
+            self._load_model_resources()
+        )
 
     def _get_repository_config(self) -> dict:
         raw_repositories = self.get('repositories', {})
@@ -219,6 +255,130 @@ class RepoConfig(YamlConfig):
             defaults[source_name] = default_option.value
         return defaults
 
+    def _get_resource_download_config(self) -> dict:
+        raw = self.data.get('resource_download', {})
+        if raw is None:
+            return {}
+        if not isinstance(raw, dict):
+            raise ValueError('resource_download 必须是映射')
+        return raw
+
+    def _load_resource_sources(self) -> tuple[ResourceSource, ...]:
+        raw_sources = self._get_resource_download_config().get('sources', {})
+        if not isinstance(raw_sources, dict):
+            raise ValueError('resource_download.sources 必须是映射')
+
+        sources: list[ResourceSource] = []
+        for source_id, raw_source in raw_sources.items():
+            if not isinstance(source_id, str) or not source_id or not isinstance(raw_source, dict):
+                raise ValueError('resource_download.sources 必须是 ID 到对象的映射')
+            label = raw_source.get('label', '')
+            use_proxy = raw_source.get('use_proxy', False)
+            if not isinstance(label, str) or not label:
+                raise ValueError(f'资源下载源 {source_id} 必须配置 label')
+            if not isinstance(use_proxy, bool):
+                raise ValueError(f'资源下载源 {source_id} 的 use_proxy 必须是布尔值')
+            sources.append(ResourceSource(source_id=source_id, label=label, use_proxy=use_proxy))
+        return tuple(sources)
+
+    def _load_resource_recommend(self) -> dict[str, str]:
+        raw_recommend = self._get_resource_download_config().get('recommend', {})
+        if not isinstance(raw_recommend, dict):
+            raise ValueError('resource_download.recommend 必须是映射')
+
+        recommend: dict[str, str] = {}
+        for language, source_id in raw_recommend.items():
+            if not isinstance(language, str) or not isinstance(source_id, str):
+                raise ValueError('resource_download.recommend 必须是语言到源 ID 的映射')
+            if source_id not in self._resource_sources_by_id:
+                raise ValueError(f'resource_download.recommend 的 {source_id} 不在 sources 中')
+            recommend[language] = source_id
+        return recommend
+
+    def _load_resource_repos(self) -> dict[str, dict[str, str]]:
+        raw_repos = self._get_resource_download_config().get('repos', {})
+        if not isinstance(raw_repos, dict):
+            raise ValueError('resource_download.repos 必须是映射')
+
+        repos: dict[str, dict[str, str]] = {}
+        for repo_key, raw_urls in raw_repos.items():
+            if not isinstance(repo_key, str) or not repo_key or not isinstance(raw_urls, dict):
+                raise ValueError('resource_download.repos 必须是仓库到源 URL 的映射')
+            urls: dict[str, str] = {}
+            for source_id, url in raw_urls.items():
+                if source_id not in self._resource_sources_by_id:
+                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 不在 sources 中')
+                if not isinstance(url, str) or not url:
+                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 必须配置 URL')
+                parsed_url = urlparse(url)
+                if parsed_url.scheme != 'https' or not parsed_url.netloc:
+                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 必须使用 HTTPS 链接')
+                urls[source_id] = url
+            repos[repo_key] = urls
+        return repos
+
+    def _load_model_resources(self) -> tuple[ModelResourceDefinition, ...]:
+        raw_models = self._get_resource_download_config().get('models', {})
+        if not isinstance(raw_models, dict):
+            raise ValueError('resource_download.models 必须是映射')
+
+        models: list[ModelResourceDefinition] = []
+        for config_key, raw_model in raw_models.items():
+            if (
+                not isinstance(config_key, str)
+                or not config_key
+                or not isinstance(raw_model, dict)
+            ):
+                raise ValueError('resource_download.models 必须是配置键到对象的映射')
+            display_name = raw_model.get('label', '')
+            default_model = raw_model.get('default', '')
+            repo_key = raw_model.get('repo', '')
+            release_tag = raw_model.get('tag', '')
+            gpu_config_key = raw_model.get('gpu_config')
+            required_files = raw_model.get(
+                'required_files',
+                ['model.onnx', 'labels.csv'],
+            )
+            if not isinstance(display_name, str) or not display_name:
+                raise ValueError(f'模型资源 {config_key} 必须配置 label')
+            if not isinstance(default_model, str) or not default_model:
+                raise ValueError(f'模型资源 {config_key} 必须配置 default')
+            if (
+                not isinstance(repo_key, str)
+                or not repo_key
+                or repo_key not in self.resource_repos
+            ):
+                raise ValueError(
+                    f'模型资源 {config_key} 的 repo 必须存在于 resource_download.repos'
+                )
+            if not isinstance(release_tag, str):
+                raise ValueError(f'模型资源 {config_key} 的 tag 必须是字符串')
+            if gpu_config_key is not None and not isinstance(gpu_config_key, str):
+                raise ValueError(f'模型资源 {config_key} 的 gpu_config 必须是字符串')
+            if (
+                not isinstance(required_files, list)
+                or not required_files
+                or any(
+                    not isinstance(file_name, str) or not file_name
+                    for file_name in required_files
+                )
+            ):
+                raise ValueError(
+                    f'模型资源 {config_key} 的 required_files 必须是非空字符串列表'
+                )
+            models.append(
+                ModelResourceDefinition(
+                    config_key=config_key,
+                    display_name=display_name,
+                    default_model=default_model,
+                    repo_key=repo_key,
+                    release_tag=release_tag,
+                    gpu_config_key=gpu_config_key,
+                    required_files=tuple(required_files),
+                )
+            )
+        return tuple(models)
+
     def _get_repository(self, repository_id: str, field_name: str) -> RepositoryItem:
         repository = self._repositories_by_id.get(repository_id)
         if repository is None:
@@ -260,3 +420,111 @@ class RepoConfig(YamlConfig):
     def get_source_values(self, source_name: str) -> tuple[SourceOption, ...]:
         """获取指定下载源的测速选项。"""
         return self.sources.get(source_name, ())
+
+    @property
+    def resource_source_options(self) -> list[ConfigItem]:
+        """获取供设置界面使用的自动和具体资源下载源选项。"""
+        return [
+            ConfigItem('自动', self.AUTO_RESOURCE_SOURCE_VALUE),
+            *(source.config_item for source in self.resource_sources),
+        ]
+
+    def get_resource_source(self, source_id: str) -> ResourceSource | None:
+        """按源 ID 查找资源下载源。"""
+        return self._resource_sources_by_id.get(source_id)
+
+    def get_recommended_resource_source(self, language: str) -> str | None:
+        """按语言获取推荐的资源下载源 ID。"""
+        return self.resource_recommend.get(language)
+
+    def get_model_resource(
+        self,
+        config_key: str,
+    ) -> ModelResourceDefinition | None:
+        """按配置键获取项目模型资源定义。"""
+        return next(
+            (
+                resource
+                for resource in self.model_resources
+                if resource.config_key == config_key
+            ),
+            None,
+        )
+
+    def get_resource_download_base_url(
+        self,
+        repo_key: str,
+        tag: str,
+        source_id: str,
+    ) -> str:
+        """获取资源仓库指定源的 release 下载根地址。"""
+        release_root = self.resource_repos.get(repo_key, {}).get(source_id, '')
+        if not release_root:
+            return ''
+        if tag:
+            return f'{release_root}/download/{tag}'
+        return f'{release_root}/latest/download'
+
+    def get_model_download_base_url(
+        self,
+        config_key: str,
+        source_id: str,
+    ) -> str:
+        """获取项目模型指定源的 release 下载根地址。"""
+        resource = self.get_model_resource(config_key)
+        if resource is None:
+            return ''
+        return self.get_resource_download_base_url(
+            resource.repo_key,
+            resource.release_tag,
+            source_id,
+        )
+
+    def get_resource_asset_urls(self, repo_key: str, tag: str, file_name: str) -> dict[str, str]:
+        """获取资源仓库各源的 release 附件下载地址。
+
+        :param repo_key: resource_download.repos 中的仓库标识
+        :param tag: release 标签 为空时使用 latest
+        :param file_name: 附件文件名
+        :return: 源 ID 到下载地址的映射
+        """
+        urls: dict[str, str] = {}
+        for source_id in self.resource_repos.get(repo_key, {}):
+            base_url = self.get_resource_download_base_url(
+                repo_key,
+                tag,
+                source_id,
+            )
+            if base_url:
+                urls[source_id] = f'{base_url}/{file_name}'
+        return urls
+
+    def get_resource_source_candidates(
+        self,
+        user_choice: str | None = None,
+        last_success: str | None = None,
+        language: str | None = None,
+    ) -> list[str]:
+        """获取资源下载的候选源顺序。
+
+        顺序为: 用户指定 > 上次成功源 > 按语言推荐 > 其余源(按 YAML 顺序)。
+
+        :param user_choice: 用户指定的源 ID auto 或 None 表示自动
+        :param last_success: 上次下载成功的源 ID
+        :param language: 当前语言 用于推荐
+        :return: 源 ID 列表
+        """
+        candidates: list[str] = []
+
+        def _add(source_id: str | None) -> None:
+            if source_id and source_id in self._resource_sources_by_id and source_id not in candidates:
+                candidates.append(source_id)
+
+        if user_choice and user_choice != self.AUTO_RESOURCE_SOURCE_VALUE:
+            _add(user_choice)
+        _add(last_success)
+        if language:
+            _add(self.resource_recommend.get(language))
+        for source in self.resource_sources:
+            _add(source.source_id)
+        return candidates
