@@ -97,7 +97,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - **两仓协同**(涉及测试仓改动时,主仓 + 测试仓配对;详见 [development_workflow.md](docs/develop/development_workflow.md) §4):
   - **同分支**:测试仓建同名分支(`feat/xxx` ↔ `feat/xxx`),测试改动落测试仓,不进主仓。
   - **配对提交**:主仓 commit + `git -C zzz-od-test commit` 同步推进,别只提交一仓。
-  - **同开关联 PR**:开主仓 PR 时同开测试仓 PR,PR 描述互相挂链接;别让测试仓分支挂着改动却没开 PR(主仓合了才补测试仓 = 漏)。
+  - **同开关联 PR**:开主仓 PR 时同开测试仓 PR,PR 描述互相挂链接(**跨仓链接用 `OneDragon-Anything/<repo>#<N>` 或完整 URL,禁裸 `#N`** —— 裸 `#N` 会被 GitHub 识别成本仓而非目标仓);别让测试仓分支挂着改动却没开 PR(主仓合了才补测试仓 = 漏)。
   - **合并顺序:测试仓先 → 主仓后**(主仓 main 的 test-check clone 测试仓 main,测试仓先合才稳)。
 - 如果用户明确要求切换分支，先 `stash` 当前改动，再切换。
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
