@@ -4,8 +4,7 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, SettingCardGroup
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
-from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.horizontal_setting_card_group import (
     HorizontalSettingCardGroup,
@@ -13,6 +12,7 @@ from one_dragon_qt.widgets.horizontal_setting_card_group import (
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.devtools.shiyu_defense_team_test import (
     shiyu_defense_team_test_const,
 )
@@ -23,7 +23,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import DmgTypeEnum
 
 
-class ShiyuDefenseTeamTestInterface(AppRunInterface):
+class ShiyuDefenseTeamTestInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -33,17 +33,16 @@ class ShiyuDefenseTeamTestInterface(AppRunInterface):
             tuple[int, bool, int], ComboBoxSettingCard
         ] = {}
 
-        AppRunInterface.__init__(
+        VerticalScrollInterface.__init__(
             self,
-            ctx=ctx,
-            app_id=shiyu_defense_team_test_const.APP_ID,
-            object_name='shiyu_defense_team_test_interface',
+            content_widget=None,
+            object_name='shiyu_defense_team_test_setting_interface',
             nav_text_cn='配队选择',
-            nav_icon=FluentIcon.DEVELOPER_TOOLS,
+            nav_icon=FluentIcon.PEOPLE,
             parent=parent,
         )
 
-    def get_widget_at_top(self) -> QWidget:
+    def get_content_widget(self) -> QWidget:
         top_widget = Column()
 
         self.target_count_opt = ComboBoxSettingCard(
@@ -104,11 +103,11 @@ class ShiyuDefenseTeamTestInterface(AppRunInterface):
         return top_widget
 
     def on_interface_shown(self) -> None:
-        AppRunInterface.on_interface_shown(self)
+        VerticalScrollInterface.on_interface_shown(self)
         self.config = self.ctx.run_context.get_config(
             app_id=shiyu_defense_team_test_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
         self.target_count_opt.setValue(self.config.target_count, emit_signal=False)
         for key, card in self.target_dmg_type_opt_map.items():
