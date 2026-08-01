@@ -70,6 +70,19 @@ class TeamConfig(YamlConfig):
                 return team
         return None
 
+    def update_team_name_by_idx(self, team_idx: int, team_name: str) -> None:
+        """按游戏内列表顺序同步预备编队名称。"""
+        team = self.get_team_by_idx(team_idx)
+        if team is None:
+            return
+
+        normalized_name = str_utils.remove_whitespace(team_name)
+        if team.name == normalized_name:
+            return
+
+        team.name = normalized_name
+        self.update_team(team)
+
     def update_team_by_idx(self, team_idx: int, team_name: str, members: list[Agent]) -> None:
         """
         按游戏内列表顺序同步预备编队

@@ -39,7 +39,6 @@ class ChoosePredefinedTeam(ZOperation):
     TEAM_DRAG_START: Point = Point(300, 715)
     TEAM_DRAG_END: Point = Point(300, 150)
     TEAM_COLUMN_COUNT: int = 2
-    TEAM_ROW_COUNT: int = 3
     MAX_TEAM_COUNT: int = 20
     CARD_TITLE_X_LIST: list[int] = [150, 970]
     CARD_TITLE_Y_LIST: list[int] = [115, 398, 680]
@@ -203,9 +202,21 @@ class ChoosePredefinedTeam(ZOperation):
             return self.round_fail(f'选择的预备编队下标错误 {target_team_idx}')
 
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        team_name_mr = self._find_exact_team_name(ocr_result_map, target_team.name)
-        if team_name_mr is None:
-            return self.round_fail(f'当前页未找到编队 {target_team.name}')
+        team_name, team_name_mr = self._find_team_name(
+            ocr_result_map,
+            self._get_team_name_rect_by_idx(target_team_idx),
+        )
+        if team_name is None or team_name_mr is None:
+            return self.round_fail(f'当前页未识别到预备编队 {target_team_idx + 1}')
+        if target_team.name != team_name:
+            log.info(
+                '预备编队名称更新:序号:%d 原名称:%s 新名称:%s',
+                target_team_idx + 1,
+                target_team.name,
+                team_name,
+            )
+            self.ctx.team_config.update_team_name_by_idx(target_team_idx, team_name)
+            target_team.name = team_name
 
         select_button_mr = self._find_select_button(ocr_result_map, team_name_mr)
         if select_button_mr is None:
@@ -322,6 +333,7 @@ class ChoosePredefinedTeam(ZOperation):
                     team_count_text is not None and team_count_text.endswith('/3')
                 ) or len(agent_slot_set) >= 2
                 if not is_available:
+                    self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
                     log.info(
                         '预备编队不可用:序号:%d 队名:%s 核心技%s 槽位%s',
                         team_idx + 1,
@@ -374,17 +386,20 @@ class ChoosePredefinedTeam(ZOperation):
         self.target_team_idx_list = [target.team_idx for target in click_target_list]
         return all(team_idx >= 0 for team_idx in self.target_team_idx_list)
 
-    def _find_exact_team_name(
-        self,
-        ocr_result_map: dict[str, MatchResultList],
-        target_team_name: str,
-    ) -> MatchResult | None:
-        target_name = str_utils.remove_whitespace(target_team_name)
-        for text, mr_list in ocr_result_map.items():
-            if str_utils.remove_whitespace(text) != target_name or mr_list.max is None:
-                continue
-            return mr_list.max
-        return None
+    @classmethod
+    def _get_team_name_rect_by_idx(cls, team_idx: int) -> Rect:
+        """返回 ``team_idx`` 在当前页的标题区域。"""
+        card_idx = team_idx % cls.TEAM_SCROLL_STEP
+        column_idx = card_idx % cls.TEAM_COLUMN_COUNT
+        row_idx = card_idx // cls.TEAM_COLUMN_COUNT
+        title_x = cls.CARD_TITLE_X_LIST[column_idx]
+        title_y = cls.CARD_TITLE_Y_LIST[row_idx]
+        return Rect(
+            title_x,
+            title_y,
+            title_x + cls.CARD_TITLE_WIDTH,
+            title_y + cls.CARD_TITLE_HEIGHT,
+        )
 
     def _find_select_button(
         self,
