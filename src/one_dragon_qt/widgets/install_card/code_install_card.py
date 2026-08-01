@@ -20,6 +20,7 @@ class CodeInstallCard(BaseInstallCard):
         self.git_branch_opt.set_items(self.git_branches)
         self.git_branch_opt.init_with_value(ctx.env_config.git_branch)
         self.git_branch_opt.currentIndexChanged.connect(self.on_git_branch_changed)
+        self._last_sync_status = GitSyncStatus.FAILED
 
         BaseInstallCard.__init__(
             self,
@@ -38,8 +39,9 @@ class CodeInstallCard(BaseInstallCard):
         self,
         progress_callback: Callable[[float, str], None],
     ) -> tuple[bool, str]:
-        """同步代码，并适配安装卡的布尔结果。"""
+        """同步代码，并保存用于界面提示的 Git 状态。"""
         status, message = self.ctx.git_service.fetch_latest_code(progress_callback)
+        self._last_sync_status = status
         return status is GitSyncStatus.SUCCESS, message
 
     def on_git_branch_changed(self, index: int) -> None:
@@ -47,17 +49,18 @@ class CodeInstallCard(BaseInstallCard):
         self.check_and_update_display()
 
     def after_progress_done(self, success: bool, msg: str) -> None:
-        """
-        安装结束的回调，由子类自行实现
-        :param success: 是否成功
-        :param msg: 提示信息
-        :return:
-        """
+        """根据最近一次 Git 同步状态更新提示。"""
         if success:
             self.check_and_update_display()
             self.updated = True
-        else:
-            msg = msg + ' 请检查网络连接，必要时切换网络环境（例如使用手机热点）后重试'
+        elif self._last_sync_status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+            msg = f'{msg} 请更新集成启动器后重试'
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value), gt(msg))
+        elif self._last_sync_status is GitSyncStatus.BUILTIN_TAG_UNAVAILABLE:
+            msg = f'{msg} 请更新集成启动器或使用对应版本的安装包后重试'
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value), gt(msg))
+        elif self._last_sync_status is GitSyncStatus.FAILED:
+            msg = f'{msg} 请检查网络连接，必要时切换网络环境（例如使用手机热点）后重试'
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> tuple[QIcon, str]:
