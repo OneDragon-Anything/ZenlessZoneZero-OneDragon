@@ -87,6 +87,9 @@ class ChoosePredefinedTeam(ZOperation):
         self.next_scanned_team_idx: int = 0
         self.scanned_team_idx_list: list[int] = []
         self.scanned_team_name_set: set[str] = set()
+        self.disabled_team_count: int = 0
+        self.unrecognized_team_member_count: int = 0
+        self.scan_started: bool = False
         self.shiyu_team_selected: bool = shiyu_target_list is None
         self.pending_select_button_center: Point | None = None
         self.pending_cancel_button_center: Point | None = None
@@ -128,18 +131,17 @@ class ChoosePredefinedTeam(ZOperation):
         每次点击后也要等待画面确认选中，再继续处理下一支编队。
         """
         if not self.shiyu_team_selected:
+            if not self.scan_started:
+                log.info('预备编队扫描开始')
+                self.scan_started = True
+
             scan_finished = self._scan_team_page(self.last_screenshot)
-            log.info(
-                '预备编队扫描结果:完成:%s 已扫描:%d 当前页:%d',
-                scan_finished,
-                len(self.scanned_team_idx_list),
-                self.current_scroll_page,
-            )
             if not scan_finished:
-                log.info(
-                    '预备编队扫描继续:向下拖动 页码:%d→%d',
+                log.debug(
+                    '预备编队扫描继续:当前页:%d 下一页:%d 有效:%d',
                     self.current_scroll_page,
                     self.current_scroll_page + 1,
+                    len(self.scanned_team_idx_list),
                 )
                 self._scroll_team_list(-1)
                 self.current_scroll_page += 1
@@ -147,6 +149,12 @@ class ChoosePredefinedTeam(ZOperation):
                     ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
                     wait=1,
                 )
+            log.info(
+                '预备编队扫描完成:有效:%d 禁用:%d 人数识别失败:%d',
+                len(self.scanned_team_idx_list),
+                self.disabled_team_count,
+                self.unrecognized_team_member_count,
+            )
             if not self._select_shiyu_teams():
                 return self.round_fail('预备编队不足以完成自动配队')
             self.shiyu_team_selected = True
@@ -206,7 +214,7 @@ class ChoosePredefinedTeam(ZOperation):
                     '取消预选后未恢复SELECT',
                     wait=0.5,
                 )
-            log.info('预备编队取消完成:已恢复SELECT')
+            log.debug('预备编队取消预选已确认:队伍:%s', target_team.name)
             self.pending_cancel_button_center = None
             return self.round_wait(
                 ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
@@ -227,6 +235,11 @@ class ChoosePredefinedTeam(ZOperation):
                     '选择预备编队后未确认选中状态',
                     wait=0.5,
                 )
+            log.info(
+                '预备编队已选:队伍:%s 序号:%d',
+                target_team.name,
+                target_team_idx + 1,
+            )
             self.pending_select_button_center = None
             self.current_target_idx += 1
             return self.round_wait(
@@ -242,7 +255,7 @@ class ChoosePredefinedTeam(ZOperation):
         if team_name is None:
             return self.round_fail(f'当前页未识别到预备编队 {target_team_idx + 1}')
         if target_team.name != team_name:
-            log.info(
+            log.debug(
                 '预备编队名称更新:序号:%d 原名称:%s 新名称:%s',
                 target_team_idx + 1,
                 target_team.name,
@@ -267,7 +280,7 @@ class ChoosePredefinedTeam(ZOperation):
             )
             if selected_button_mr is None:
                 return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
-            log.info('预备编队取消选择:队伍:%s 当前状态非SELECT', target_team.name)
+            log.info('预备编队取消预选:队伍:%s', target_team.name)
             self.ctx.controller.click(selected_button_mr.center)
             self.pending_cancel_button_center = selected_button_mr.center
             return self.round_wait(
@@ -275,7 +288,11 @@ class ChoosePredefinedTeam(ZOperation):
                 wait=0.5,
             )
 
-        log.info('预备编队选择:队伍:%s 已找到SELECT', target_team.name)
+        log.info(
+            '预备编队选择:队伍:%s 序号:%d',
+            target_team.name,
+            target_team_idx + 1,
+        )
         self.ctx.controller.click(select_button_mr.center)
         self.pending_select_button_center = select_button_mr.center
         return self.round_wait(ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE, wait=0.5)
@@ -289,6 +306,7 @@ class ChoosePredefinedTeam(ZOperation):
             '预备出战',
         )
         if result.is_success:
+            log.info('预备编队选择完成:已点击预备出战')
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)
             return self.round_success(result.status, wait=0.5)
@@ -313,10 +331,10 @@ class ChoosePredefinedTeam(ZOperation):
                 team_slot_rect,
             )
             if team_name is None:
-                log.info('预备编队扫描卡位:%d 未识别队名', card_idx + 1)
+                log.debug('预备编队扫描卡位:%d 未识别队名', card_idx + 1)
                 continue
             if team_name in self.scanned_team_name_set:
-                log.info(
+                log.debug(
                     '预备编队扫描卡位:%d 队名:%s 已扫描，跳过',
                     card_idx + 1,
                     team_name,
@@ -336,7 +354,7 @@ class ChoosePredefinedTeam(ZOperation):
                 ocr_result_map,
                 team_slot_rect,
             )
-            log.info(
+            log.debug(
                 '预备编队扫描卡位:%d 队名:%s 代理人数量:%d 槽位:%s 队伍人数:%s',
                 card_idx + 1,
                 team_name,
@@ -347,12 +365,12 @@ class ChoosePredefinedTeam(ZOperation):
             if team_member_count == 0 or (
                 len(agent_list) == 0 and team_member_count is None
             ):
-                log.info('预备编队扫描结束:队名:%s 队伍为空', team_name)
+                log.debug('预备编队扫描结束:队名:%s 队伍为空', team_name)
                 return True
 
             team_idx = self.next_scanned_team_idx
             if team_idx >= self.MAX_TEAM_COUNT:
-                log.info('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
+                log.debug('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                 return True
             # 不可用的队伍不参与自动配队，但仍占用游戏列表中的位置。
             # 必须先递增真实序号，再跳过候选列表；否则后续有效队会错位。
@@ -361,7 +379,8 @@ class ChoosePredefinedTeam(ZOperation):
 
             if team_member_count is None:
                 self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
-                log.info(
+                self.unrecognized_team_member_count += 1
+                log.warning(
                     '预备编队跳过:序号:%d 队名:%s 未识别队伍人数',
                     team_idx + 1,
                     team_name,
@@ -376,7 +395,8 @@ class ChoosePredefinedTeam(ZOperation):
             )
             if is_disabled:
                 self.ctx.team_config.update_team_name_by_idx(team_idx, team_name)
-                log.info(
+                self.disabled_team_count += 1
+                log.debug(
                     '预备编队禁用:序号:%d 队名:%s 代理人槽位不完整:%s 且头像变暗',
                     team_idx + 1,
                     team_name,
@@ -391,8 +411,8 @@ class ChoosePredefinedTeam(ZOperation):
                 team_member_list,
             )
             self.scanned_team_idx_list.append(team_idx)
-            log.info(
-                '预备编队 %d 名称:%s 代理人:%s',
+            log.debug(
+                '预备编队扫描有效:序号:%d 名称:%s 代理人:%s',
                 team_idx + 1,
                 team_name,
                 [agent.agent_name for agent in team_member_list],
@@ -401,7 +421,7 @@ class ChoosePredefinedTeam(ZOperation):
         scanned_count = self.next_scanned_team_idx
         scan_finished = scanned_count >= self.MAX_TEAM_COUNT
         if scan_finished:
-            log.info('预备编队扫描结束:已扫描:%d', scanned_count)
+            log.debug('预备编队扫描结束:已扫描:%d', scanned_count)
         return scan_finished
 
     def _select_shiyu_teams(self) -> bool:
@@ -629,7 +649,7 @@ class ChoosePredefinedTeam(ZOperation):
             brightness_ratio is not None
             and brightness_ratio <= self.DISABLED_AVATAR_BRIGHTNESS_RATIO
         )
-        log.info(
+        log.debug(
             '预备编队头像亮度:代理人:%s 模板:%s 实际:%.1f 模板:%.1f 比例:%.1f%% 阈值:%.1f%% 判暗:%s',
             agent_mr.data.agent_name,
             agent_mr.template_id,
@@ -712,7 +732,7 @@ class ChoosePredefinedTeam(ZOperation):
                 if team_agent_scan_result_list[int(slot[0]) - 1].is_dim
             ]
         is_disabled = len(dim_missing_slot_list) > 0
-        log.info(
+        log.debug(
             '预备编队禁用判定:队名:%s 槽位:%s 队伍人数:%s 缺失槽位:%s 对应头像变暗:%s 结果:%s',
             team_name,
             sorted(agent_slot_set),
