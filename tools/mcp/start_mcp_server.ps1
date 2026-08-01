@@ -41,10 +41,12 @@ Write-Host ""
 # Switch to project root
 Set-Location $ProjectRoot
 
+# --env-file 仅在 .env 存在时传(缺失时 uv 会在启动前失败,导致开机自启起不来)
+$EnvArg = if (Test-Path ".env") { "--env-file .env" } else { "" }
 try {
     # Redirect via cmd /c: merge stdout/stderr into one file as raw bytes (matches
     # daemon subprocess.Popen(stdout=file, stderr=STDOUT); avoids PS native-redirect encoding issues)
-    cmd /c "uv run --env-file .env python -m zzz_od.backend.entry.server --host $HostName --port $Port > `"$LogPath`" 2>&1"
+    cmd /c "uv run $EnvArg python -m zzz_od.backend.entry.server --host $HostName --port $Port > `"$LogPath`" 2>&1"
 } catch {
     Write-Host "[ERROR] Main MCP Server failed to start: $_" -ForegroundColor Red
     exit 1
