@@ -33,7 +33,6 @@ from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
@@ -62,16 +61,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        _debug_bus = OverlayDebugBus()
-        self.debug_trace_bus: DebugTraceBus = _debug_bus
-        """通用调试 trace 总线（新）"""
-        self.overlay_debug_bus: OverlayDebugBus = _debug_bus
-        """向后兼容的 overlay 调试总线，与 debug_trace_bus 为同一实例"""
+        self.debug_trace_bus: DebugTraceBus = DebugTraceBus()
+        """通用调试 trace 总线"""
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(
-            self.template_loader, overlay_debug_bus=self.overlay_debug_bus
+            self.template_loader, debug_trace_bus=self.debug_trace_bus
         )
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
@@ -79,7 +75,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             ),
-            overlay_debug_bus=self.overlay_debug_bus,
+            debug_trace_bus=self.debug_trace_bus,
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
@@ -501,7 +497,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             ),
-            overlay_debug_bus=self.overlay_debug_bus,
+            debug_trace_bus=self.debug_trace_bus,
         )
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
@@ -538,4 +534,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
-        self.overlay_debug_bus.clear()
+        self.debug_trace_bus.clear()

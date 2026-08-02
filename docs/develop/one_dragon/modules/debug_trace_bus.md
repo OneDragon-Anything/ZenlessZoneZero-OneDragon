@@ -2,95 +2,110 @@
 
 ## 背景
 
-核心层（OCR、模板匹配、YOLO、Operation 执行链）在运行时产生大量调试信息：
-视觉识别框、决策流转记录、时间线事件、性能指标。这些 trace 原以
-`_emit_overlay_*` 方式直接写入 `OverlayDebugBus`，类名、方法名、数据字段中
-混入了 Overlay/Qt 的展示概念（color、ttl_seconds），违反了核心层不应知道
-展示层的分层原则。
+OCR、模板匹配、YOLO 和 Operation 执行链会在运行时产生视觉框、决策记录、
+时间线事件和性能指标。核心层只应表达这些调试事实，不应知道 Overlay、Qt、
+颜色或展示时长。
 
-## 目标
+`DebugTraceBus` 是框架级可选调试事件通道。Overlay 是当前消费者之一，未来还可
+增加日志持久化、远程调试等消费者。
 
-- 核心层产出通用 trace 数据，不关心谁来消费、怎么展示。
-- Overlay 只是 consumer 之一，未来可以有日志持久化、远程调试等消费者。
-- 框架级 `DebugTraceBus` 无 Qt 依赖，可在 worker 线程安全使用。
-- 旧 `OverlayDebugBus` 作为兼容壳逐步淘汰。
+## 框架层契约
 
-## 非目标
+实现位于 `one_dragon.base.debug.debug_trace_bus`：
 
-- 不改变 trace 数据的实时性语义（仍然是追加式队列）。
-- 不提供持久化、远程传输等高级 consumer 实现（由具体 consumer 自行决定）。
-- 不要求所有消费者立即切换新接口。
+- `VisionTraceItem`：视觉识别框（来源、标签、坐标、置信度、业务元数据）。
+- `DecisionTraceItem`：决策和流转记录。
+- `TimelineTraceItem`：时间线事件。
+- `PerfTraceItem`：性能指标。
+- `DebugTraceSnapshot`：四类 trace 的当前快照。
+- `DebugTraceBus`：线程安全的有界队列、快照、清理和视觉坐标偏移。
 
-## 框架层设计
-
-### 数据类（`debug_trace_bus.py`）
-
-```
-VisionTraceItem    — 视觉识别框（source、label、坐标、置信度）
-DecisionTraceItem  — 决策/流转记录（触发、条件、操作、状态）
-TimelineTraceItem  — 时间线事件（类别、标题、详情、级别）
-PerfTraceItem      — 性能指标（指标名、值、单位）
-DebugTraceSnapshot — 以上四类的快照集合
-```
-
-与旧数据类（`VisionDrawItem` 等）的关键差异：
-
-- 无 `color`、`ttl_seconds`：展示属性归消费端，不做跨层传递。
-- 类型命名去掉 `Overlay` 前缀，改为通用 `Debug`/`Trace`。
-
-### 总线（`DebugTraceBus`）
-
-- 线程安全：`threading.RLock` 保护内部 `deque`（有界 `maxlen`）。
-- `add_vision()` 自动应用 thread-local `crop_offset`，生产者无需手动加偏移。
-- `add_decision()` / `add_timeline()` / `add_perf()` 纯追加。
-- `snapshot()` 返回浅拷贝，避免锁内耗时操作。
-- `crop_offset` 为 thread-local，通过 `set_crop_offset()` / `reset_crop_offset()` 管理。
-- `enabled` 标志（默认 `True`）：核心层生产端唯一可读的通用开关，
-  关闭时生产者跳过 trace 构造；由消费端（如 `OverlayManager` 同步
-  `OverlayConfig.enabled`）控制。
-
-### 兼容壳（`OverlayDebugBus`）
-
-继承 `DebugTraceBus`，保留旧 API：
-
-- `add_*` 方法接受旧数据类（`VisionDrawItem`、`DecisionTraceItem`、
-  `TimelineItem`、`PerfMetricSample`），内部转换后存入父类队列。
-- `snapshot()` 返回旧格式 `OverlayDebugSnapshot`，兼容现有 overlay 面板。
-- `color` / `ttl_seconds` 暂存 `meta["_color"]` / `meta["_ttl_seconds"]`，
-  转换时恢复。
-- `snapshot()` 前按 TTL 清理过期项：现有 overlay 消费端不做过期处理，
-  兼容壳保留旧总线的过期语义，避免陈旧 trace 无限累积并持续参与
-  快照转换；阶段 5 消费端自行处理过期后一并删除。
+`OneDragonContext` 直接持有唯一的 `debug_trace_bus`。生产端通过构造参数显式注入
+同一实例，不再使用 Overlay 命名、动态属性或兼容别名。
 
 ## Producer / Consumer 边界
 
-```
-┌────────────────────────────────────────────┐
-│  Producer（核心层）                          │
-│  operation.py / template_matcher.py / ...   │
-│  调用 _emit_debug_* 方法                     │
-│  构造旧数据类 → 写入 OverlayDebugBus          │
-│                     │                       │
-│  ═══════════════════│══════════════════════ │
-│                     │  框架边界               │
-│  ═══════════════════│══════════════════════ │
-│                     ▼                       │
-│  DebugTraceBus（通用存储）                    │
-│  snapshot() → DebugTraceSnapshot            │
-│                     │                       │
-│  Consumer A: Overlay 面板 (Qt)               │
-│  Consumer B: （未来）日志持久化               │
-│  Consumer C: （未来）远程调试                 │
-└────────────────────────────────────────────┘
-```
+### Producer
 
-## 迁移路径
+核心生产端直接构造通用 trace 数据类并调用：
 
-1. **阶段 1**：止血——加 `try/finally`、`enabled` 门控、窄化异常。
-2. **阶段 2**：`DebugTraceBus` 上线，`OverlayDebugBus` 继承委托。
-3. **阶段 3**：生产者重命名 `_emit_overlay_*` → `_emit_debug_*`，
-   构造注入 `debug_trace_bus`。
-4. **阶段 4**：Overlay 侧切到 `debug_trace_bus` 命名，
-   颜色全由 `_VISION_SOURCE_COLOR` 按 source 决定。
-5. **阶段 5**（未来）：淘汰 `OverlayDebugBus` 兼容壳，
-   生产者直接使用新数据类和 `DebugTraceBus` API。
+- `add_vision()`
+- `add_decision()`
+- `add_timeline()`
+- `add_perf()`
+
+生产端只提供语义数据和业务 `meta`，不传颜色或 TTL。`enabled` 是核心层可读的
+唯一通用门控；关闭后生产者在构造 trace 前直接返回，减少热路径开销。
+
+### Consumer
+
+`OverlayManager` 调用 `snapshot()`，自行决定：
+
+- 展示 TTL：vision 1.8 秒、decision 30 秒、timeline 60 秒、perf 30 秒。
+- 按 source、metric 等条件过滤。
+- YOLO 框去重、排序和显示数量。
+- 文案和颜色。
+
+视觉颜色由 Overlay 的 source 映射决定。总线不会因某个消费者的 TTL 删除数据；
+内部有界 `deque` 控制内存，不同消费者可以采用不同展示策略。
+
+## 坐标偏移
+
+### DebugTraceBus crop scope
+
+`add_vision()` 会自动应用当前线程的 `crop_offset`。OCR 和模板匹配 emitter 只提交
+当前输入图像内的相对坐标，不再手动加偏移。
+
+`set_crop_offset()` / `reset_crop_offset()` 使用线程局部栈支持嵌套作用域：
+
+1. 调用方读取父级 `crop_offset`。
+2. 将父级与当前裁剪矩形偏移相加，压入累计绝对偏移。
+3. 在 `try/finally` 中执行识别。
+4. `reset_crop_offset()` 弹出当前层并恢复父级。
+
+GPU executor 的 worker 不继承调用线程的 thread-local，因此 CV OCR 步骤会把已计算的
+累计 offset 作为参数提交，并在真正执行 OCR 的 worker 中建立和恢复作用域。
+
+### 三种坐标职责
+
+以下坐标转换用途不同，不应混为一谈：
+
+- `DebugTraceBus.crop_offset`：把 trace 相对坐标转换成外层/整屏坐标。
+- `OcrService` 的 `ocr_result.add_offset()`：转换返回给业务调用方的 OCR 结果坐标。
+- `CvPipelineContext.crop_offset`：记录 `display_image` 相对 pipeline source 的累计偏移，
+  用于 CV contour、模板和 OCR 汇总结果。
+
+`CvService` 先使用 pipeline offset 形成相对 pipeline source 的坐标；如果 pipeline
+本身运行在更外层 crop scope，`DebugTraceBus.add_vision()` 再应用外层 bus offset。
+
+## 线程安全与生命周期
+
+- `threading.RLock` 保护四个有界 `deque`。
+- crop offset 使用 `threading.local()`，各 worker 互不污染。
+- `snapshot()` 在锁内浅拷贝队列，锁外由消费者过滤和渲染。
+- `clear()` 在 Context 停止时清空所有 trace。
+- `created <= 0` 的项目在入队时自动补当前时间。
+
+## 已完成的迁移
+
+阶段 1–5 已全部完成：
+
+1. OCR 裁剪 offset 用 `try/finally` 恢复，异常导入捕获收窄，加入 `enabled` 门控。
+2. 新增框架级 `DebugTraceBus` 和通用数据类。
+3. 生产者方法统一为 `_emit_debug_*` 并改为构造注入。
+4. Overlay 使用 `debug_trace_bus`，颜色归消费端。
+5. 删除 `OverlayDebugBus` 兼容壳、旧数据类、旧 Context 属性和旧 API。
+
+旧接口迁移关系：
+
+| 旧接口 | 新接口 |
+|---|---|
+| `OverlayDebugBus` | `DebugTraceBus` |
+| `VisionDrawItem` | `VisionTraceItem` |
+| `TimelineItem` | `TimelineTraceItem` |
+| `PerfMetricSample` | `PerfTraceItem` |
+| `OverlayDebugSnapshot` | `DebugTraceSnapshot` |
+| `add_performance()` | `add_perf()` |
+| `snapshot.performance_items` | `snapshot.perf_items` |
+| `ctx.overlay_debug_bus` | `ctx.debug_trace_bus` |
+| 构造参数 `overlay_debug_bus` | `debug_trace_bus` |

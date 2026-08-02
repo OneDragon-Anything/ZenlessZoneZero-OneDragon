@@ -114,7 +114,7 @@ class LostVoidContext:
                 gh_proxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
                 gpu=use_gpu,
-                overlay_debug_bus=self.ctx.overlay_debug_bus,
+                debug_trace_bus=self.ctx.debug_trace_bus,
             )
 
     def get_auto_op_name(self) -> str:

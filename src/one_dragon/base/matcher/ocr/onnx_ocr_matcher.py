@@ -7,16 +7,16 @@ from typing import Any
 
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
+)
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
-from one_dragon.base.operation.overlay_debug_bus import (
-    OverlayDebugBus,
-    PerfMetricSample,
-    TimelineItem,
-    VisionDrawItem,
-)
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.utils import os_utils, str_utils
@@ -150,12 +150,15 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_param: OnnxOcrParam | None = None,
-                 overlay_debug_bus: OverlayDebugBus | None = None):
+    def __init__(
+        self,
+        ocr_param: OnnxOcrParam | None = None,
+        debug_trace_bus: DebugTraceBus | None = None,
+    ) -> None:
         if ocr_param is None:
             ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
-        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
+        self.debug_trace_bus: DebugTraceBus | None = debug_trace_bus
         param = CommonDownloaderParam(
             save_file_path=ocr_param.models_dir,
             save_file_name=f'{ocr_param.ocr_model_name}.zip',
@@ -488,7 +491,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         if bus is None or not bus.enabled or not result_map:
             return
 
-        ox, oy = bus.crop_offset
         pushed = 0
         max_items = 60
         for text, match_list in result_map.items():
@@ -501,16 +503,14 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 if len(label) > 32:
                     label = label[:29] + "..."
                 bus.add_vision(
-                    VisionDrawItem(
+                    VisionTraceItem(
                         source="ocr",
                         label=label,
-                        x1=match.x + ox,
-                        y1=match.y + oy,
-                        x2=match.x + match.w + ox,
-                        y2=match.y + match.h + oy,
+                        x1=match.x,
+                        y1=match.y,
+                        x2=match.x + match.w,
+                        y2=match.y + match.h,
                         score=match.confidence,
-                        color="#ff6ac1",
-                        ttl_seconds=1.4,
                     )
                 )
                 pushed += 1
@@ -523,22 +523,19 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         if bus is None or not bus.enabled or not ocr_results:
             return
 
-        offset_x, offset_y = bus.crop_offset
         for result in ocr_results[:60]:
             label = str(result.data or "").strip()
             if len(label) > 32:
                 label = label[:29] + "..."
             bus.add_vision(
-                VisionDrawItem(
+                VisionTraceItem(
                     source="ocr",
                     label=label,
-                    x1=result.x + offset_x,
-                    y1=result.y + offset_y,
-                    x2=result.x + result.w + offset_x,
-                    y2=result.y + result.h + offset_y,
+                    x1=result.x,
+                    y1=result.y,
+                    x2=result.x + result.w,
+                    y2=result.y + result.h,
                     score=result.confidence,
-                    color="#ff6ac1",
-                    ttl_seconds=1.4,
                 )
             )
 
@@ -546,22 +543,20 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         bus = self.debug_trace_bus
         if bus is None or not bus.enabled:
             return
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="ocr_ms",
                 value=float(elapsed_ms),
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"text_items": item_count},
             )
         )
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="vision",
                 title="ocr",
                 detail=f"{item_count} items / {elapsed_ms:.1f}ms",
                 level="DEBUG",
-                ttl_seconds=15.0,
             )
         )
 

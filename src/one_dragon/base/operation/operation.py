@@ -10,6 +10,12 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    DecisionTraceItem,
+    PerfTraceItem,
+    TimelineTraceItem,
+)
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
@@ -33,7 +39,6 @@ from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
-    from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 
 
 class NodeStateProxy:
@@ -447,7 +452,6 @@ class Operation(OperationBase):
                     title=self.display_name,
                     detail=f"异常: {type(e).__name__}",
                     level="ERROR",
-                    ttl_seconds=60.0,
                 )
             self._emit_debug_round_perf((time.time() - self.round_start_time) * 1000.0)
 
@@ -681,7 +685,6 @@ class Operation(OperationBase):
             title=self.display_name,
             detail=f"完成: {coalesce_gt(result.status, '成功' if result.success else '失败', model='ui')}",
             level="INFO" if result.success else "ERROR",
-            ttl_seconds=90.0,
         )
 
         if self.op_callback is not None:
@@ -694,7 +697,6 @@ class Operation(OperationBase):
             title=self.display_name,
             detail=f"{arrow} => {status_text}",
             level="INFO",
-            ttl_seconds=45.0,
         )
         self._emit_debug_decision(
             source="operation",
@@ -702,12 +704,11 @@ class Operation(OperationBase):
             expression=node_name,
             operation=self.op_name,
             status=status_text,
-            ttl_seconds=45.0,
         )
 
-    def _get_enabled_debug_bus(self) -> OverlayDebugBus | None:
+    def _get_enabled_debug_bus(self) -> DebugTraceBus | None:
         """获取已启用的调试总线，不存在或未启用时返回 None。"""
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        bus = getattr(self.ctx, "debug_trace_bus", None)
         if bus is None or not bus.enabled:
             return None
         return bus
@@ -719,14 +720,9 @@ class Operation(OperationBase):
         expression: str,
         operation: str,
         status: str,
-        ttl_seconds: float,
     ) -> None:
         bus = self._get_enabled_debug_bus()
         if bus is None:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import DecisionTraceItem
-        except ImportError:
             return
         bus.add_decision(
             DecisionTraceItem(
@@ -735,7 +731,6 @@ class Operation(OperationBase):
                 expression=str(expression or "-"),
                 operation=str(operation or "-"),
                 status=str(status or "-"),
-                ttl_seconds=ttl_seconds,
             )
         )
 
@@ -745,22 +740,16 @@ class Operation(OperationBase):
         title: str,
         detail: str,
         level: str,
-        ttl_seconds: float,
     ) -> None:
         bus = self._get_enabled_debug_bus()
         if bus is None:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except ImportError:
-            return
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category=category,
                 title=str(title or "-"),
                 detail=str(detail or "-"),
                 level=level,
-                ttl_seconds=ttl_seconds,
             )
         )
 
@@ -768,16 +757,11 @@ class Operation(OperationBase):
         bus = self._get_enabled_debug_bus()
         if bus is None:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except ImportError:
-            return
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="operation_round_ms",
                 value=float(elapsed_ms),
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"operation": self.op_name},
             )
         )

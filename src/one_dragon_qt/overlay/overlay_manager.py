@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
+from collections.abc import Sequence
+from contextlib import suppress
+from typing import Protocol, TypeVar
 
-from PySide6.QtCore import QObject, QPoint, QTimer, Signal, Qt
+from PySide6.QtCore import QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 
-from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.base.debug.debug_trace_bus import PerfTraceItem
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
@@ -27,6 +30,28 @@ except Exception:
     yolo_log = None
 
 
+_VISION_TTL_SECONDS = 1.8
+_DECISION_TTL_SECONDS = 30.0
+_TIMELINE_TTL_SECONDS = 60.0
+_PERF_TTL_SECONDS = 30.0
+
+
+class _CreatedTrace(Protocol):
+    created: float
+
+
+_TraceItem = TypeVar("_TraceItem", bound=_CreatedTrace)
+
+
+def _filter_recent_items(
+    items: Sequence[_TraceItem],
+    now: float,
+    ttl_seconds: float,
+) -> list[_TraceItem]:
+    """按消费端展示 TTL 过滤仍然有效的 trace 项。"""
+    return [item for item in items if now - item.created <= ttl_seconds]
+
+
 class _OverlaySignalBridge(QObject):
     log_received = Signal(object)
 
@@ -34,7 +59,7 @@ class _OverlaySignalBridge(QObject):
 class OverlayManager(QObject):
     """Singleton manager for overlay lifecycle and runtime behavior."""
 
-    _instance: Optional["OverlayManager"] = None
+    _instance: OverlayManager | None = None
 
     def __init__(self, ctx, parent=None):
         super().__init__(parent)
@@ -51,13 +76,13 @@ class OverlayManager(QObject):
         self._warned_unsupported = False
         self._warned_waiting_game_window = False
         self._started = False
-        self._overlay_window: Optional[OverlayWindow] = None
-        self._log_panel: Optional["LogPanel"] = None
-        self._state_panel: Optional["StatePanel"] = None
-        self._decision_panel: Optional["DecisionPanel"] = None
-        self._timeline_panel: Optional["TimelinePanel"] = None
-        self._performance_panel: Optional["PerformancePanel"] = None
-        self._log_handler: Optional[OverlayLogHandler] = None
+        self._overlay_window: OverlayWindow | None = None
+        self._log_panel: LogPanel | None = None
+        self._state_panel: StatePanel | None = None
+        self._decision_panel: DecisionPanel | None = None
+        self._timeline_panel: TimelinePanel | None = None
+        self._performance_panel: PerformancePanel | None = None
+        self._log_handler: OverlayLogHandler | None = None
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
         self._last_toggle_hotkey_time = 0.0
@@ -76,13 +101,13 @@ class OverlayManager(QObject):
         self._state_timer.timeout.connect(self._safe_refresh_state)
 
     @classmethod
-    def create(cls, ctx, parent=None) -> "OverlayManager":
+    def create(cls, ctx, parent=None) -> OverlayManager:
         if cls._instance is None:
             cls._instance = OverlayManager(ctx, parent=parent)
         return cls._instance
 
     @classmethod
-    def instance(cls) -> Optional["OverlayManager"]:
+    def instance(cls) -> OverlayManager | None:
         return cls._instance
 
     def start(self) -> None:
@@ -622,31 +647,31 @@ class OverlayManager(QObject):
             return
 
         snapshot = bus.snapshot()
+        now = time.time()
+        vision_items = _filter_recent_items(snapshot.vision_items, now, _VISION_TTL_SECONDS)
+        decision_items = _filter_recent_items(snapshot.decision_items, now, _DECISION_TTL_SECONDS)
+        timeline_items = _filter_recent_items(snapshot.timeline_items, now, _TIMELINE_TTL_SECONDS)
+        perf_items = _filter_recent_items(snapshot.perf_items, now, _PERF_TTL_SECONDS)
         if self._overlay_window is not None:
-            self._overlay_window.set_vision_items(self._filter_vision_items(snapshot.vision_items))
+            self._overlay_window.set_vision_items(self._filter_vision_items(vision_items))
         if self._decision_panel is not None:
-            self._decision_panel.update_items(snapshot.decision_items)
+            self._decision_panel.update_items(decision_items)
         if self._timeline_panel is not None:
-            self._timeline_panel.update_items(snapshot.timeline_items)
+            self._timeline_panel.update_items(timeline_items)
         if self._performance_panel is not None:
             self._performance_panel.set_enabled_metric_map(self.config.performance_metric_enabled_map)
-            self._performance_panel.update_items(snapshot.performance_items)
+            self._performance_panel.update_items(perf_items)
 
     def _emit_debug_refresh_perf(self, start_time: float) -> None:
         bus = getattr(self.ctx, "debug_trace_bus", None)
         if bus is None or not bus.enabled:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except ImportError:
-            return
         elapsed_ms = (time.time() - start_time) * 1000.0
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="overlay_refresh_ms",
                 value=elapsed_ms,
                 unit="ms",
-                ttl_seconds=20.0,
             )
         )
 
@@ -954,15 +979,11 @@ class OverlayManager(QObject):
         if self._log_handler is None:
             return
 
-        try:
+        with suppress(Exception):
             log.removeHandler(self._log_handler)
-        except Exception:
-            pass
 
         if yolo_log is not None:
-            try:
+            with suppress(Exception):
                 yolo_log.removeHandler(self._log_handler)
-            except Exception:
-                pass
 
         self._log_handler = None

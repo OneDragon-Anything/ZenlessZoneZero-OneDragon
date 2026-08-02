@@ -1,20 +1,25 @@
+import csv
+import os
 import time
 
-import csv
 import numpy as np
-import os
 from cv2.typing import MatLike
-from typing import Optional, List
 
-from one_dragon.base.operation.overlay_debug_bus import (
-    OverlayDebugBus,
-    PerfMetricSample,
-    TimelineItem,
-    VisionDrawItem,
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
 )
 from one_dragon.yolo import onnx_utils
-from one_dragon.yolo.detect_utils import DetectFrameResult, DetectClass, DetectContext, DetectObjectResult, xywh2xyxy, \
-    multiclass_nms
+from one_dragon.yolo.detect_utils import (
+    DetectClass,
+    DetectContext,
+    DetectFrameResult,
+    DetectObjectResult,
+    multiclass_nms,
+    xywh2xyxy,
+)
 from one_dragon.yolo.onnx_model_loader import OnnxModelLoader
 
 
@@ -25,13 +30,13 @@ class Yolov8Detector(OnnxModelLoader):
                  model_parent_dir_path: str,
                  model_download_url: str,
                  gh_proxy: bool = True,
-                 gh_proxy_url: Optional[str] = None,
-                 personal_proxy: Optional[str] = None,
+                 gh_proxy_url: str | None = None,
+                 personal_proxy: str | None = None,
                  gpu: bool = False,
-                 backup_model_name: Optional[str] = None,
+                 backup_model_name: str | None = None,
                  keep_result_seconds: float = 2,
-                 overlay_debug_bus: OverlayDebugBus | None = None
-                 ):
+                 debug_trace_bus: DebugTraceBus | None = None
+                 ) -> None:
         """
         yolov8 detect 导出 onnx 后使用
         参考自 https://github.com/ibaiGorordo/ONNX-YOLOv8-Object-Detection
@@ -54,12 +59,12 @@ class Yolov8Detector(OnnxModelLoader):
         )
 
         self.keep_result_seconds: float = keep_result_seconds  # 保留识别结果的秒数
-        self.run_result_history: List[DetectFrameResult] = []  # 历史识别结果
-        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
+        self.run_result_history: list[DetectFrameResult] = []  # 历史识别结果
+        self.debug_trace_bus: DebugTraceBus | None = debug_trace_bus
 
         self.idx_2_class: dict[int, DetectClass] = {}  # 分类
         self.class_2_idx: dict[str, int] = {}
-        self.category_2_idx: dict[str, List[int]] = {}
+        self.category_2_idx: dict[str, list[int]] = {}
         self._load_detect_classes(self.model_dir_path)
 
     def run(
@@ -67,9 +72,9 @@ class Yolov8Detector(OnnxModelLoader):
         image: MatLike,
         conf: float = 0.6,
         iou: float = 0.5,
-        run_time: Optional[float] = None,
-        label_list: Optional[List[str]] = None,
-        category_list: Optional[List[str]] = None,
+        run_time: float | None = None,
+        label_list: list[str] | None = None,
+        category_list: list[str] | None = None,
     ) -> DetectFrameResult:
         """
         对图片进行识别
@@ -131,7 +136,7 @@ class Yolov8Detector(OnnxModelLoader):
         outputs = self.run_session(self.output_names, {self.input_names[0]: input_tensor})
         return outputs
 
-    def process_output(self, output, context: DetectContext) -> List[DetectObjectResult]:
+    def process_output(self, output, context: DetectContext) -> list[DetectObjectResult]:
         """
         :param output: 推理结果
         :param context: 上下文
@@ -154,14 +159,14 @@ class Yolov8Detector(OnnxModelLoader):
                     for idx in self.category_2_idx.get(category, []):
                         keep[idx + 4] = True
 
-        predictions[:, keep == False] = 0
+        predictions[:, ~keep] = 0
 
         # 按置信度阈值进行基本的过滤
         scores = np.max(predictions[:, 4:], axis=1)
         predictions = predictions[scores > context.conf, :]
         scores = scores[scores > context.conf]
 
-        results: List[DetectObjectResult] = []
+        results: list[DetectObjectResult] = []
         if len(scores) == 0:
             return results
 
@@ -187,7 +192,7 @@ class Yolov8Detector(OnnxModelLoader):
 
         return results
 
-    def record_result(self, context: DetectContext, results: List[DetectObjectResult]) -> DetectFrameResult:
+    def record_result(self, context: DetectContext, results: list[DetectObjectResult]) -> DetectFrameResult:
         """
         记录本帧识别结果
         :param context: 识别上下文
@@ -215,7 +220,7 @@ class Yolov8Detector(OnnxModelLoader):
             if len(label) > 36:
                 label = label[:33] + "..."
             bus.add_vision(
-                VisionDrawItem(
+                VisionTraceItem(
                     source="yolo",
                     label=label,
                     x1=result.x1,
@@ -223,8 +228,6 @@ class Yolov8Detector(OnnxModelLoader):
                     x2=result.x2,
                     y2=result.y2,
                     score=result.score,
-                    color="#35d4ff",
-                    ttl_seconds=1.6,
                     meta={
                         "class_id": result.detect_class.class_id,
                         "category": result.detect_class.class_category or "",
@@ -244,27 +247,25 @@ class Yolov8Detector(OnnxModelLoader):
             return
 
         total_ms = preprocess_ms + infer_ms + postprocess_ms
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="yolo_ms",
                 value=total_ms,
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"result_count": result_count},
             )
         )
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="vision",
                 title="yolo",
                 detail=f"{result_count} objects / {total_ms:.1f}ms",
                 level="DEBUG",
-                ttl_seconds=15.0,
             )
         )
 
     @property
-    def last_run_result(self) -> Optional[DetectFrameResult]:
+    def last_run_result(self) -> DetectFrameResult | None:
         if len(self.run_result_history) > 0:
             return self.run_result_history[len(self.run_result_history) - 1]
         else:
@@ -277,7 +278,7 @@ class Yolov8Detector(OnnxModelLoader):
         :return:
         """
         csv_path = os.path.join(model_dir_path, 'labels.csv')
-        with open(csv_path, mode='r', encoding='utf-8') as file:
+        with open(csv_path, encoding='utf-8') as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 if row[0] == 'idx':

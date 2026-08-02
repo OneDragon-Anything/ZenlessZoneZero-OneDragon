@@ -3,11 +3,8 @@
 框架级可选调试事件通道。核心层只产出通用 trace 数据，
 不知道谁来消费、怎么展示。Overlay 只是其中一个消费者。
 
-与旧的 OverlayDebugBus 的关键差异：
-- 数据类不再包含 color、ttl_seconds（展示逻辑归消费端）
-- 类名从 Overlay* 改为通用 Debug*
-- 去掉 _drop_expired（消费端决定怎么处理过期）
-- 去掉 offset_recent_vision（未使用）
+调试 trace 的颜色、TTL 等展示策略由消费端决定；总线只负责线程安全存储、
+快照和视觉坐标偏移。
 """
 from __future__ import annotations
 
@@ -107,22 +104,24 @@ class DebugTraceBus:
     # --- crop_offset（每线程） ---
 
     def set_crop_offset(self, x: int, y: int) -> None:
-        """设置当前线程的裁剪偏移。"""
-        self._local.crop_x = x
-        self._local.crop_y = y
+        """压入当前线程的裁剪绝对偏移。"""
+        stack = getattr(self._local, "crop_offset_stack", None)
+        if stack is None:
+            stack = []
+            self._local.crop_offset_stack = stack
+        stack.append((x, y))
 
     def reset_crop_offset(self) -> None:
-        """重置当前线程的裁剪偏移为 (0, 0)。"""
-        self._local.crop_x = 0
-        self._local.crop_y = 0
+        """弹出当前线程的裁剪偏移，恢复上一层作用域。"""
+        stack = getattr(self._local, "crop_offset_stack", None)
+        if stack:
+            stack.pop()
 
     @property
     def crop_offset(self) -> tuple[int, int]:
-        """获取当前线程的裁剪偏移。"""
-        return (
-            getattr(self._local, "crop_x", 0),
-            getattr(self._local, "crop_y", 0),
-        )
+        """获取当前线程最内层的裁剪绝对偏移。"""
+        stack = getattr(self._local, "crop_offset_stack", None)
+        return stack[-1] if stack else (0, 0)
 
     # --- 添加 trace ---
 

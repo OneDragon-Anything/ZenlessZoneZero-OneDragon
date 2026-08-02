@@ -1,9 +1,9 @@
 import cv2
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus, VisionTraceItem
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus, VisionDrawItem
 from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import cv2_utils
@@ -15,10 +15,10 @@ class TemplateMatcher:
     def __init__(
         self,
         template_loader: TemplateLoader,
-        overlay_debug_bus: OverlayDebugBus | None = None,
-    ):
+        debug_trace_bus: DebugTraceBus | None = None,
+    ) -> None:
         self.template_loader: TemplateLoader = template_loader
-        self.debug_trace_bus: OverlayDebugBus | None = overlay_debug_bus
+        self.debug_trace_bus: DebugTraceBus | None = debug_trace_bus
 
     def match_template(self, source: MatLike,
                        template_sub_dir: str,
@@ -155,7 +155,8 @@ class TemplateMatcher:
         part = cv2_utils.crop_image_only(source, rect)
         bus = self.debug_trace_bus
         if bus is not None:
-            bus.set_crop_offset(rect.x1, rect.y1)
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + rect.x1, parent_y + rect.y1)
         try:
             result = self.match_template(part, template_sub_dir, template_id, **kwargs)
         finally:
@@ -182,7 +183,8 @@ class TemplateMatcher:
         part = cv2_utils.crop_image_only(source, rect)
         bus = self.debug_trace_bus
         if bus is not None:
-            bus.set_crop_offset(rect.x1, rect.y1)
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + rect.x1, parent_y + rect.y1)
         try:
             result = self.match_template_binary(part, template_sub_dir, template_id, **kwargs)
         finally:
@@ -200,18 +202,15 @@ class TemplateMatcher:
         if bus is None or not bus.enabled or result is None or len(result.arr) == 0:
             return
 
-        offset_x, offset_y = bus.crop_offset
         for match in result.arr[:20]:
             bus.add_vision(
-                VisionDrawItem(
+                VisionTraceItem(
                     source="template",
                     label=f"{template_sub_dir}/{template_id}",
-                    x1=match.x + offset_x,
-                    y1=match.y + offset_y,
-                    x2=match.x + match.w + offset_x,
-                    y2=match.y + match.h + offset_y,
+                    x1=match.x,
+                    y1=match.y,
+                    x2=match.x + match.w,
+                    y2=match.y + match.h,
                     score=match.confidence,
-                    color="#ffc14f",
-                    ttl_seconds=1.8,
                 )
             )

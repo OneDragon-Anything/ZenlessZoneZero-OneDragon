@@ -3,7 +3,6 @@ from abc import abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import cached_property
 from threading import Lock
-from typing import Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.execution_info import ExecutionInfo
@@ -13,8 +12,15 @@ from one_dragon.base.conditional_operation.operation_executor import (
     OperationExecutor,
 )
 from one_dragon.base.conditional_operation.scene import Scene
-from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+from one_dragon.base.conditional_operation.state_record_service import (
+    StateRecordService,
+)
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    DecisionTraceItem,
+    TimelineTraceItem,
+)
 from one_dragon.thread.atomic_int import AtomicInt
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
@@ -52,7 +58,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.current_execution_info: ExecutionInfo | None = None  # 当前的执行信息
         self.running_executor: OperationExecutor | None = None  # 正在运行的任务
         self.running_executor_cnt: AtomicInt = AtomicInt()  # 统计有
-        
+
         self._inited: bool = False
         self._task_lock: Lock = Lock()
 
@@ -137,7 +143,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 continue
 
             # log.debug('开始等待新的主循环')
-            to_sleep: Optional[float] = None
+            to_sleep: float | None = None
 
             # 上锁后确保运行状态不会被篡改
             with self._task_lock:
@@ -210,9 +216,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             if self.running_executor is not None:
                 old_priority = self.current_execution_info.priority
                 new_priority = new_execution_info.priority
-                if old_priority is None:  # 当前运行场景可随意打断
-                    can_interrupt = True
-                elif new_priority is not None and new_priority > old_priority:  # 新触发场景优先级更高
+                if old_priority is None or new_priority is not None and new_priority > old_priority:  # 当前运行场景可随意打断
                     can_interrupt = True
             else:
                 can_interrupt = True
@@ -305,8 +309,8 @@ class ConditionalOperator(ConditionalOperatorLoader):
         if not self.is_running:
             return
 
-        top_priority_scene: Optional[Scene] = None
-        top_priority_state: Optional[str] = None
+        top_priority_scene: Scene | None = None
+        top_priority_state: str | None = None
 
         for state_record in state_records:
             state_name = state_record.state_name
@@ -322,9 +326,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 continue
 
             replace = False
-            if top_priority_scene is None:
-                replace = True
-            elif top_priority_scene.priority is None:  # 可随意打断
+            if top_priority_scene is None or top_priority_scene.priority is None:
                 replace = True
             elif scene.priority is None:  # 可随意打断
                 pass
@@ -356,7 +358,6 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         title="触发中断",
                         detail="复合中断条件满足",
                         level="WARNING",
-                        ttl_seconds=30.0,
                     )
 
     def _emit_debug_decision(
@@ -366,19 +367,11 @@ class ConditionalOperator(ConditionalOperatorLoader):
         status: str,
         execution_info: ExecutionInfo,
     ) -> None:
-        bus = self._get_overlay_debug_bus()
+        bus = self._get_debug_trace_bus()
         if bus is None or not bus.enabled:
             return
 
         op_name = self._op_list_summary(execution_info)
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import (
-                DecisionTraceItem,
-                TimelineItem,
-            )
-        except ImportError:
-            return
-
         bus.add_decision(
             DecisionTraceItem(
                 source=self.__class__.__name__,
@@ -386,16 +379,14 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 expression=expression,
                 operation=op_name,
                 status=status,
-                ttl_seconds=40.0,
             )
         )
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="decision",
                 title=trigger,
                 detail=f"{expression} -> {op_name} [{status}]",
                 level="INFO",
-                ttl_seconds=40.0,
             )
         )
 
@@ -405,22 +396,16 @@ class ConditionalOperator(ConditionalOperatorLoader):
         title: str,
         detail: str,
         level: str,
-        ttl_seconds: float,
     ) -> None:
-        bus = self._get_overlay_debug_bus()
+        bus = self._get_debug_trace_bus()
         if bus is None or not bus.enabled:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except ImportError:
-            return
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category=category,
                 title=title,
                 detail=detail,
                 level=level,
-                ttl_seconds=ttl_seconds,
             )
         )
 
@@ -431,14 +416,15 @@ class ConditionalOperator(ConditionalOperatorLoader):
             names.append("...")
         return " | ".join(str(i) for i in names) if names else "-"
 
-    def _get_overlay_debug_bus(self):
+    def _get_debug_trace_bus(self) -> DebugTraceBus | None:
+        """从当前或嵌套上下文获取调试 trace 总线。"""
         owner = getattr(self, "ctx", None)
         if owner is not None:
-            if hasattr(owner, "overlay_debug_bus"):
-                return owner.overlay_debug_bus
+            if hasattr(owner, "debug_trace_bus"):
+                return owner.debug_trace_bus
             nested = getattr(owner, "ctx", None)
-            if nested is not None and hasattr(nested, "overlay_debug_bus"):
-                return nested.overlay_debug_bus
+            if nested is not None and hasattr(nested, "debug_trace_bus"):
+                return nested.debug_trace_bus
         return None
 
     @staticmethod

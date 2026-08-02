@@ -10,6 +10,7 @@ import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
+from one_dragon.base.debug.debug_trace_bus import TimelineTraceItem
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
@@ -405,20 +406,15 @@ class AutoBattleContext:
         self._emit_debug_action(e)
 
     def _emit_debug_action(self, action_name: str) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None or not bus.enabled:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except ImportError:
+        bus = self.ctx.debug_trace_bus
+        if not bus.enabled:
             return
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="action",
                 title="auto_battle",
                 detail=str(action_name),
                 level="INFO",
-                ttl_seconds=25.0,
             )
         )
 
