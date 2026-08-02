@@ -674,7 +674,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         响应打开图片按钮
         """
         file_path, _ = QFileDialog.getOpenFileName(
-            self, gt('打开图片文件'), '', 'Image Files (*.png *.jpg *.bmp)'
+            self, gt('打开图片文件'), '', 'Image Files (*.png *.jpg *.jpeg *.bmp *.webp)'
         )
 
         if not file_path:
