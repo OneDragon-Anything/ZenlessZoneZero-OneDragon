@@ -292,13 +292,25 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     from one_dragon.envs.git_service import GitSyncStatus
 
     progress_callback = create_git_progress_callback()
-    status, msg = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
-    if status is GitSyncStatus.SUCCESS:
-        print_message(gt('代码更新完成'), "PASS")
+    status, message = ctx.git_service.fetch_latest_code(progress_callback=progress_callback)
+    if status in (GitSyncStatus.SUCCESS, GitSyncStatus.UP_TO_DATE):
+        level = 'PASS'
     elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
-        print_message(f"{msg}，请更新集成启动器", "ERROR")
+        message = f'{message}, {gt("继续使用当前版本")}'
+        level = 'WARNING'
+    elif status is GitSyncStatus.BUILTIN_TAG_UNAVAILABLE:
+        message = f'{message}, {gt("继续使用内置版本")}'
+        level = 'WARNING'
+    elif status in (GitSyncStatus.REMOTE_UNAVAILABLE, GitSyncStatus.LOCAL_CHANGES):
+        message = f'{message}, {gt("继续使用当前版本")}'
+        level = 'WARNING'
+    elif status is GitSyncStatus.LOCAL_UPDATE_FAILED:
+        message = f'{message}, {gt("请重新运行启动器；仍然失败时请重新安装")}'
+        level = 'ERROR'
     else:
-        print_message(f"{gt('代码更新失败')}: {msg}", "ERROR")
+        message = f'{message}, {gt("请查看日志后重试")}'
+        level = 'ERROR'
+    print_message(message, level)
 
 
 def sync_dependencies(ctx: OneDragonEnvContext) -> None:

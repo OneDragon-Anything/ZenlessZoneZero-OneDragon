@@ -54,23 +54,33 @@ class RuntimeLauncher(ExeLauncher):
 
         log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
         initial_tag = __version__ if first_run and __version__.startswith('v') and __version__ != 'v0.0.0' else None
-        status, msg = git_service.fetch_latest_code(log_progress, initial_tag=initial_tag)
+        status, message = git_service.fetch_latest_code(log_progress, initial_tag=initial_tag)
 
         if status is GitSyncStatus.SUCCESS:
-            log.info(gt('代码仓库同步完成') if first_run else gt('代码更新检查完成'))
+            log.info(message)
             # 清除同步过程中加载的源码模块，避免主程序使用旧版本
             self._clear_src_modules(pre_modules)
             importlib.invalidate_caches()
-        elif status in (
-            GitSyncStatus.RUNTIME_INCOMPATIBLE,
-            GitSyncStatus.BUILTIN_TAG_UNAVAILABLE,
-        ):
-            log.warning(f"{msg}，继续使用当前代码；请更新集成启动器")
-        elif first_run:
-            log.info(f"{gt('代码仓库同步失败')}: {msg}")
+        elif status is GitSyncStatus.UP_TO_DATE:
+            log.info(message)
+        elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+            log.warning(f'{message}, {gt("继续使用当前版本")}')
+        elif status is GitSyncStatus.BUILTIN_TAG_UNAVAILABLE:
+            log.warning(f'{message}, {gt("继续使用内置版本")}')
+        elif status is GitSyncStatus.REMOTE_UNAVAILABLE:
+            if first_run:
+                log.error(f'{message}, {gt("请稍后重试或切换代码源")}')
+                sys.exit(1)
+                return
+            log.warning(f'{message}, {gt("继续使用当前版本")}')
+        elif status is GitSyncStatus.LOCAL_CHANGES:
+            log.warning(f'{message}, {gt("继续使用当前版本")}')
+        elif status is GitSyncStatus.LOCAL_UPDATE_FAILED:
+            log.error(f'{message}, {gt("请重新运行启动器；仍然失败时请重新安装")}')
             sys.exit(1)
         else:
-            log.info(f"{gt('代码更新失败')}: {msg}")
+            log.error(f'{message}, {gt("请查看日志后重试")}')
+            sys.exit(1)
 
     @staticmethod
     def _clear_src_modules(pre_modules: set[str]) -> None:

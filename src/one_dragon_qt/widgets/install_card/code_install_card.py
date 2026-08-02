@@ -35,6 +35,11 @@ class CodeInstallCard(BaseInstallCard):
 
         self.updated: bool = False  # 是否已经更新了
 
+    @property
+    def last_sync_status(self) -> GitSyncStatus:
+        """获取最近一次代码同步状态。"""
+        return self._last_sync_status
+
     def fetch_latest_code(
         self,
         progress_callback: Callable[[float, str], None],
@@ -42,7 +47,7 @@ class CodeInstallCard(BaseInstallCard):
         """同步代码，并保存用于界面提示的 Git 状态。"""
         status, message = self.ctx.git_service.fetch_latest_code(progress_callback)
         self._last_sync_status = status
-        return status is GitSyncStatus.SUCCESS, message
+        return status in (GitSyncStatus.SUCCESS, GitSyncStatus.UP_TO_DATE), message
 
     def on_git_branch_changed(self, index: int) -> None:
         self.ctx.env_config.git_branch = self.git_branches[index].value
@@ -50,18 +55,38 @@ class CodeInstallCard(BaseInstallCard):
 
     def after_progress_done(self, success: bool, msg: str) -> None:
         """根据最近一次 Git 同步状态更新提示。"""
-        if success:
-            self.check_and_update_display()
+        status = self._last_sync_status
+        if status is GitSyncStatus.SUCCESS:
             self.updated = True
-        elif self._last_sync_status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
-            msg = f'{msg} 请更新集成启动器后重试'
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value), gt(msg))
-        elif self._last_sync_status is GitSyncStatus.BUILTIN_TAG_UNAVAILABLE:
-            msg = f'{msg} 请更新集成启动器或使用对应版本的安装包后重试'
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value), gt(msg))
-        elif self._last_sync_status is GitSyncStatus.FAILED:
-            msg = f'{msg} 请检查网络连接，必要时切换网络环境（例如使用手机热点）后重试'
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
+            message = f'{msg}, {gt("重启后生效")}'
+        elif status is GitSyncStatus.RUNTIME_INCOMPATIBLE:
+            message = f'{msg}, {gt("请先更新启动器")}'
+        elif status is GitSyncStatus.BUILTIN_TAG_UNAVAILABLE:
+            message = f'{msg}, {gt("请稍后重试")}'
+        elif status is GitSyncStatus.REMOTE_UNAVAILABLE:
+            message = f'{msg}, {gt("请稍后重试或切换代码源")}'
+        elif status is GitSyncStatus.LOCAL_CHANGES:
+            message = f'{msg}, {gt("可开启“强制更新”后重试")}'
+        elif status is GitSyncStatus.LOCAL_UPDATE_FAILED:
+            message = f'{msg}, {gt("请重启后重试；仍然失败时请重新安装")}'
+        elif status is GitSyncStatus.FAILED:
+            message = f'{msg}, {gt("请稍后重试；仍然失败时请查看日志")}'
+        else:
+            message = msg
+
+        if status in (GitSyncStatus.SUCCESS, GitSyncStatus.UP_TO_DATE):
+            color = FluentThemeColor.DEFAULT_BLUE.value
+        elif status in (
+            GitSyncStatus.RUNTIME_INCOMPATIBLE,
+            GitSyncStatus.BUILTIN_TAG_UNAVAILABLE,
+            GitSyncStatus.REMOTE_UNAVAILABLE,
+            GitSyncStatus.LOCAL_CHANGES,
+        ):
+            color = FluentThemeColor.GOLD.value
+        else:
+            color = FluentThemeColor.RED.value
+
+        self.update_display(FluentIcon.INFO.icon(color=color), message)
 
     def get_display_content(self) -> tuple[QIcon, str]:
         """
@@ -84,6 +109,6 @@ class CodeInstallCard(BaseInstallCard):
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
 
             if self.updated:
-                msg += ' ' + gt('更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器')
+                msg += ' ' + gt('更新后需重启脚本生效。如不能运行，请更新启动器')
 
             return icon, msg
