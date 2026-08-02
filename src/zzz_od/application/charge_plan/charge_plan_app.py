@@ -1,7 +1,5 @@
 from typing import ClassVar
 
-import cv2
-
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -87,33 +85,54 @@ class ChargePlanApp(ZApplication):
     def open_compendium(self) -> OperationRoundResult:
         return self.round_by_goto_screen(screen_name='快捷手册-训练')
 
+    @staticmethod
+    def _parse_battery_charge_ocr(ocr_result: dict) -> tuple[int, int, int]:
+        """从「电量检测」流水线的 OCR 结果中解析三个电量字段 (电量, 储蓄电量, 以太电池)。
+
+        以非数值字符（/）为分界线取左段数字（如 129/240 -> 129），纯数字直接用，无数字跳过；
+        每个识别项的检测框中心与三个字段的固定中心锚点比较，归入最近的一个，
+        同一字段多个候选时保留离锚点更近的；某字段无候选时该字段补 0。
+        即使全部识别失败也返回 (0, 0, 0)，不抛异常。
+        """
+        # 三个字段的检测框中心锚点(相对裁剪区域), 来自测试样例统计
+        field_centers = (173, 348, 485)
+
+        # 解析文本项: 以 / 分界取左段数字, 纯数字直接用, 无数字跳过
+        items: list[tuple[float, int]] = []  # (框中心x, value)
+        for text, match_list in (ocr_result or {}).items():
+            if match_list is None:
+                continue
+            for match in match_list:
+                value = str_utils.get_positive_digits(text.split('/')[0], None)
+                if value is None:
+                    continue
+                items.append((match.x + match.w / 2, value))
+
+        # 每个识别项归入最近的字段锚点; 同一字段多个候选时保留离锚点更近的
+        slot_values: list[tuple[float, int] | None] = [None, None, None]
+        for x_center, value in items:
+            field_idx = min(range(3), key=lambda i: abs(x_center - field_centers[i]))
+            current = slot_values[field_idx]
+            if current is None or abs(x_center - field_centers[field_idx]) < abs(current[0] - field_centers[field_idx]):
+                slot_values[field_idx] = (x_center, value)
+
+        return (
+            slot_values[0][1] if slot_values[0] is not None else 0,
+            slot_values[1][1] if slot_values[1] is not None else 0,
+            slot_values[2][1] if slot_values[2] is not None else 0,
+        )
+
     @node_from(from_name='打开快捷手册')
     @node_notify(when=NotifyTiming.CURRENT_FAIL)
     @operation_node(name='识别电量')
     def check_battery_charge(self) -> OperationRoundResult:
         """识别快捷手册资源栏中的电量、储蓄电量和以太电池。
 
-        框架 OCR 的常规入口会先对整条资源栏检测文字位置，再按检测框筛选数字；图标、分隔线和“/240”会使该步骤漏识单字符或串入上限。
-        由于三个数字的活动范围固定，这里不直接调用整栏检测入口，而是先按配置颜色提取文字，再按固定位置分成三个互不相交且留有间隔的字段。
-        字段切分后仍复用框架提供的 OCR 模型和识别接口，只对每个已知字段执行单行识别；对比测试表明，该方案准确率、稳定性和执行开销更好。
+        使用「电量检测」流水线：按「快捷手册->以太电池」区域裁剪，再做 HSV 颜色过滤，最后整栏 OCR，
+        取数逻辑见 _parse_battery_charge_ocr。
         """
-        area = self.ctx.screen_loader.get_area('快捷手册', '资源栏')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        mask = cv2.inRange(part, area.color_range_lower, area.color_range_upper)
-        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        # 资源栏右对齐，某项数字变长时会推动自身及左侧字段左移；
-        # 三个 ROI 按电量 3 位、储蓄电量 4 位（2400）、以太电池 3 位（300）的上限预留，仍不会相互串入。
-        resource_list = [
-            self.ctx.ocr.run_ocr_single_line(mask[y1:y2, x1:x2], strict_one_line=True)
-            for x1, y1, x2, y2 in ((75, 8, 225, 72), (275, 8, 410, 72), (425, 8, 535, 72))
-        ]
-        log.debug('快捷手册资源栏 OCR %s', resource_list)
-
-        battery_charge = str_utils.get_positive_digits(resource_list[0], None)
-        backup_battery_charge = str_utils.get_positive_digits(resource_list[1], None)
-        ether_battery = str_utils.get_positive_digits(resource_list[2], None)
-        if battery_charge is None or backup_battery_charge is None or ether_battery is None:
-            return self.round_retry('未识别到电量', wait=1)
+        pipeline_ctx = self.ctx.cv_service.run_pipeline('电量检测', self.last_screenshot)
+        battery_charge, backup_battery_charge, ether_battery = self._parse_battery_charge_ocr(pipeline_ctx.ocr_result)
 
         self.battery_charge = battery_charge
         self.backup_battery_charge = backup_battery_charge
