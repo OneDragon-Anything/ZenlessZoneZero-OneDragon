@@ -208,7 +208,7 @@ handlers:
                         state: "自定义-照-蓄力中"
                       - operation_template: "照-终结技"
 
-              - states: ""
+              - states: "![前台-南宫羽]"
                 debug_name: "南宫羽紧急切入"
                 sub_handlers:
                   - states: "[南宫羽-重拍]{80, 100} & ![自定义-失衡时间, 0, 10]"
@@ -219,7 +219,7 @@ handlers:
                       - operation_template: "南宫羽-长按普攻"
 
               # 千夏紧急切入
-              - states: ""
+              - states: "![前台-千夏]"
                 debug_name: "千夏紧急切入"
                 sub_handlers:
                   - states: "[千夏-特殊技可用] & ![自定义-失衡时间, 0, 10]"
@@ -244,28 +244,24 @@ handlers:
                   - op_name: "按键-切换角色"
                     agent_name: "蕾米埃尔"
 
-              # 维琳娜能量切入
-              - states: "[维琳娜-风华]{85,135}"
-                debug_name: "维琳娜切入"
-                interrupt_states: "[按键可用-快速支援]"  # 不可用时打断
-                operations:
-                  - op_name: "按键-切换角色"
-                    agent_name: "维琳娜"
-                  - operation_template: "维琳娜-长按普攻"
+              # 维琳娜紧急切入
+              - states: "![前台-维琳娜]"
+                debug_name: "维琳娜紧急切入"
+                sub_handlers:
+                  - states: "[维琳娜-风华]{85,135}"
+                    debug_name: "维琳娜高风华切入"
+                    interrupt_states: "[按键可用-快速支援]"  # 不可用时打断
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "维琳娜"
+                      - operation_template: "维琳娜-长按普攻"
 
-              - states: "[维琳娜-能量]{90, 150}"
-                debug_name: "强化特殊技"
-                operations:
-                  - op_name: "按键-切换角色"
-                    agent_name: "维琳娜"
-                  - operation_template: "维琳娜-强化特殊技"
-
-              - states: "[维琳娜-能量]{45, 150} & [维琳娜-风华]{40,135}"
-                debug_name: "强化特殊技"
-                operations:
-                  - op_name: "按键-切换角色"
-                    agent_name: "维琳娜"
-                  - operation_template: "维琳娜-强化特殊技"
+                  - states: "[维琳娜-风华]{0,84} & [维琳娜-特殊技可用]"
+                    debug_name: "维琳娜低风华合轴切入"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "维琳娜"
+                      - operation_template: "维琳娜-强化特殊技合轴"
 
               # 星见雅 能量和落霜判断
               - states: "([雅-能量]{80, 999} | ([雅-能量]{40, 999} & [雅-落霜]{2, 6})) & ![前台-雅] & [前台-异常]"

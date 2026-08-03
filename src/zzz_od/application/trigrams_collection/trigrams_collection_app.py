@@ -16,6 +16,8 @@ from zzz_od.operation.transport import Transport
 
 class TrigramsCollectionApp(ZApplication):
 
+    """卦象集录:每日占卜玩法(与刮刮卡/吼吼饼铺共享每日一次,三选一)。日签类、无消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

@@ -22,7 +22,9 @@
 
 ## fetch 线程隔离与作废式超时
 
-Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
+Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_<进程ID>_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
+
+Windows 下，libgit2 从带 pack 的临时仓库导入后，可能在当前进程内继续持有源 pack 句柄。此时立即删除临时目录会得到 `WinError 5/32`，修改只读属性或短暂重试无法释放句柄。GitService 会保留该目录，不输出清理异常栈；下次进程首次 fetch 前，删除已确认所属进程退出的新格式目录和无法解析进程归属的旧格式 `fetch_*`，仅保留所属进程仍在运行的新格式目录。
 
 ```text
 主线程
@@ -53,14 +55,14 @@ pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒�
 
 ## 本地对象库损坏自愈
 
-如果临时仓库网络 fetch 已成功，但导入正式仓库时抛出 `KeyError: object not found`，该候选源记为“本地对象缺失”。只有所有候选源都以这一原因失败，才判定正式仓库对象库损坏：
+如果临时仓库网络 fetch 已成功，但导入正式仓库时直接抛出 `KeyError: object not found`，则已确认正式仓库对象库缺失；worker 内的 fetch 异常会先包装成 `RuntimeError`，不会进入这个判定。所有候选源最终都失败时，只要至少一个可访问源在导入阶段确认对象缺失，就执行自愈；其他候选源同时发生超时、认证或网络错误，不会否决已经确认的本地对象缺失：
 
 1. 释放当前 `Repository`；
 2. 将实际 Git 目录重命名为 `.git.corrupted.<时间戳>`；
 3. 用现有 clone 流程重新初始化和拉取；
 4. 重建失败时保留备份，不递归再次重建。
 
-超时、网络错误和对象缺失混合出现时不触发重建。linked worktree 暂不执行自动备份重建。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
+只有超时、认证或网络错误而没有导入阶段的直接 `KeyError` 时，不触发重建。恢复旧仓库 `origin` 地址失败不会否决已经确认的对象缺失，因为重建会替换旧 Git 目录；没有对象缺失时，远程地址恢复失败返回 `LOCAL_UPDATE_FAILED`。linked worktree 或存在任何 `origin` 以外 remote 的仓库暂不执行自动备份重建，避免丢失开发仓库的额外远程配置；这类重建保护同样返回 `LOCAL_UPDATE_FAILED`。该自愈与 shallow 边界错误、模块清单不兼容是三类独立故障，不能互相替代修复。
 
 ## fetch、兼容性检查与 checkout 顺序
 
@@ -91,13 +93,33 @@ checkout 目标本地分支
 同步工作区
 ```
 
-模块清单不兼容时会在 checkout 前返回失败，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。
+模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
+
+首次初始化仓库时，集成启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<git_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
+
+如果所有代码源都无法取得内置 tag，不退化为最新分支，以免首次 checkout 到不兼容代码。只有 `_fetch_remote()` 返回 `REMOTE_UNAVAILABLE` 时，首次初始化才转换为 `BUILTIN_TAG_UNAVAILABLE`；本地对象重建、远程地址恢复或仓库应用失败继续返回 `LOCAL_UPDATE_FAILED`，不能伪装成 tag 不可用。纯远程失败时保留新建的 `.git` 和安装包内置源码；目标本地分支仍不存在，所以下次启动仍按同一内置 tag 重试。即使导入 tag 时确认本地对象缺失并触发仓库重建，重建流程也继续使用该 tag，不改拉配置分支。非正式版本（`v0.0.0`、`dev+...`、`pr...`）不指定 tag，仍使用分支 fetch 和模块清单检查。
+
+没有指定内置 tag 的首次初始化，以及已有仓库更新，都会在 checkout 前执行模块清单检查。不兼容时保留已拉取对象和远程跟踪引用，但不创建或切换本地分支；集成启动器继续运行安装包内或当前工作区中与 `.runtime` 匹配的源码。升级集成启动器后，下次同步可继续完成 checkout。
+
+`fetch_latest_code()` 使用结构化状态，不让调用方比较错误文案：
+
+- `SUCCESS`：首次准备、提交更新或分支切换已经完成，磁盘代码发生了有效变化；
+- `UP_TO_DATE`：同步前后分支相同，且本地、远程提交相同，不需要重启；
+- `RUNTIME_INCOMPATIBLE`：目标代码需要更新启动器后才能使用，checkout 前已停止；
+- `BUILTIN_TAG_UNAVAILABLE`：首次正式版本无法完成内置 tag 的远程获取，不拉取最新分支；
+- `REMOTE_UNAVAILABLE`：所有候选代码源都没有完成远程获取或导入，本地应用阶段尚未开始；
+- `LOCAL_CHANGES`：程序文件改动或无法快进阻止了非强制更新，已有代码保持不变；
+- `LOCAL_UPDATE_FAILED`：初始化、状态读取、checkout、reset、远程地址恢复或对象重建等本地步骤失败，磁盘代码完整性无法保证；
+- `FAILED`：未预期异常的防御性兜底，正常已知路径不应返回它。
+
+分支发生切换时，即使切换前后的提交 ID 相同，也返回 `SUCCESS`；只有分支和提交都没有变化时才返回 `UP_TO_DATE`。具体代码源、分支、引用、提交 ID、异常和重建结果只写日志。`GitSyncStatus` 的枚举值本身就是面向用户的中性结果文案，只说明发生了什么；`GitService` 根据最终状态返回该枚举值对应的文案，代码卡和启动器分别追加重启、强制更新、继续运行或停止等场景建议。调用方不从中文错误消息反推状态，也不把所有失败都解释为网络问题。
 
 因此，排查日志时要区分以下状态：
 
 - `远程代码拉取成功`：只表示候选源 fetch 和临时仓库导入成功；
 - `成功切换到分支 <git_branch>`：才表示本地分支和 `HEAD` 已完成 checkout；
-- `代码更新失败: 目标版本的运行环境与当前不兼容`：表示流程在 checkout 前被模块清单检查拦截。
+- `RUNTIME_INCOMPATIBLE`：表示流程在 checkout 前被模块清单检查拦截；
+- `LOCAL_UPDATE_FAILED`：表示本地更新步骤没有完整完成，调用方不得假定磁盘代码可安全加载。
 
 旧仓库如果遗留 `HEAD -> refs/heads/master`，而本地 `master` 引用已经不存在，后续依赖 `repo.head.target` 的提交历史读取会报 `reference 'refs/heads/master' not found`。这类错误不表示远程 fetch 失败，应先检查同次日志中的 checkout 和模块清单检查结果，以及本地 `HEAD` 实际指向。
 

@@ -153,22 +153,35 @@ class ChargePlanConfig(ApplicationConfig):
 
     def reset_plans(self) -> None:
         """
-        根据运行次数 重置运行计划（跳过 skipped 的计划）
+        根据运行次数重置运行计划。
+        普通计划按整轮扣减，已跳过的代理人计划在进入下一轮时清零。
         """
         if len(self.plan_list) == 0:
             return
 
-        eligible = [p for p in self.plan_list if not p.skipped and p.plan_times > 0]
-        if not eligible:
-            return
+        eligible = [p for p in self.plan_list if not (p.skipped and p.is_agent_plan) and p.plan_times > 0]
+        skipped_agent_plans = [p for p in self.plan_list if p.skipped and p.is_agent_plan]
+        modified = False
 
-        while True:
-            if any(p.run_times < p.plan_times for p in eligible):
-                break
+        if eligible:
+            while True:
+                if any(p.run_times < p.plan_times for p in eligible):
+                    break
 
-            for plan in eligible:
-                plan.run_times -= plan.plan_times
+                for plan in eligible:
+                    plan.run_times -= plan.plan_times
+                modified = True
 
+            if not modified:
+                return
+
+        for plan in skipped_agent_plans:
+            if plan.run_times == 0:
+                continue
+            plan.run_times = 0
+            modified = True
+
+        if modified:
             self.save()
 
     def try_reset_plan_times_by_dt(self, current_dt: str) -> bool:
@@ -236,13 +249,13 @@ class ChargePlanConfig(ApplicationConfig):
 
     def all_plan_finished(self) -> bool:
         """
-        是否全部计划已完成（跳过 skipped 的计划）
+        是否全部计划已完成（跳过已标记跳过的代理人计划）
         """
         if self.plan_list is None:
             return True
 
         for plan in self.plan_list:
-            if plan.skipped:
+            if plan.skipped and plan.is_agent_plan:
                 continue
             if plan.run_times < plan.plan_times:
                 return False

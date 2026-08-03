@@ -33,6 +33,8 @@ daemon 就是那个**常驻 Session 1、握有管理员权限**的管理者—�
 
 `.\tools\mcp\daemon\create_startup_shortcut.ps1` —— 在 Startup 文件夹建快捷方式,登录后自动起 daemon。卸载即删该 `.lnk`。
 
+主 server 的本机自启(登录后直接起、不经 daemon)见 [entry.md 开机自启](entry.md#开机自启);两者互相独立、可共存——daemon 仍能按进程命令行发现并管理这样启动的主 server(`status` / `stop` / `restart`)。
+
 ## 排查
 
 - 端口:daemon **23000**、主 server **23001**;用 `get_zzz_od_mcp_server_status` 看 server 状态,或 `netstat -ano | findstr :2300`。

@@ -13,6 +13,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class EngagementRewardApp(ZApplication):
 
+    """活跃度奖励:领取快捷手册-日常的活跃度奖励。日刷新、无消耗。"""
+
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
     STATUS_CLAIM_SUCCESS: ClassVar[str] = '日常奖励领取成功'
 

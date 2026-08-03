@@ -12,7 +12,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.envs.git_service import GitLog
+from one_dragon.envs.git_service import GitLog, GitSyncStatus
 from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
@@ -262,8 +262,8 @@ class CodeInterface(VerticalScrollInterface):
         self.code_card.check_and_update_display()
 
     def _show_dialog_after_code_updated(self, success: bool) -> None:
-        """显示代码更新后的对话框"""
-        if not success:
+        """仅在代码实际更新后显示重启对话框。"""
+        if not success or self.code_card.last_sync_status is not GitSyncStatus.SUCCESS:
             return
         dialog = Dialog(gt('更新完成'), gt('代码已更新，重启以应用更改'), self)
         dialog.setTitleBarVisible(False)

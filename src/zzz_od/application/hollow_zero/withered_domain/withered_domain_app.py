@@ -27,6 +27,8 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class WitheredDomainApp(ZApplication):
 
+    """枯萎之都:零号空洞-枯萎之都副本,周限 rogue 玩法(与迷失之地共享每周奖励次数)。消耗周次数、进入战斗、耗时较长。"""
+
     STATUS_IN_HOLLOW: ClassVar[str] = '在空洞内'
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
     STATUS_TIMES_FINISHED: ClassVar[str] = '已完成基本次数'

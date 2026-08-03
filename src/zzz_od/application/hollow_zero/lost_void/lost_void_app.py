@@ -37,6 +37,8 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
+
+    """零号空洞-迷失之地:周限肉鸽玩法(与枯萎之都共享每周奖励次数)。周限、进入战斗、耗时较长。"""
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'

@@ -52,7 +52,9 @@ class WindowStatus:
     """游戏窗口状态。
 
     Attributes:
-        win_title: 窗口标题；获取不到时为 None。
+        win_title: controller 缓存的游戏窗口标题(预期标题,从配置来);游戏未启动时
+            仍可能为该预期常量、非 None。判窗口是否存在/游戏是否在跑请看 is_win_valid,
+            勿据 win_title 是否非空判断。
         is_win_valid: 窗口句柄是否有效。
         is_win_active: 窗口当前是否处于激活状态。
         is_win_scale: 窗口缩放比例是否符合基准（1.0）。
@@ -104,10 +106,16 @@ class ApplicationInfo:
 
     字段同时描述「一条龙组里是否启用」和「独立应用列表里是否出现」，
     这样 MCP/HTTP 客户端能区分完整一条龙运行与单个应用运行。
+
+    Attributes:
+        description: 应用描述(由 backend ``app_registry._app_description`` 扫 factory
+            所属模块的 ``Application`` 子类 class docstring 得出);未知 app_id、未扫到
+            App 类或扫到多个歧义时为空串。
     """
 
     app_id: str
     app_name: str
+    description: str = ''
     enabled_in_one_dragon: bool = False
     in_standalone_list: bool = False
     is_active_standalone: bool = False
@@ -119,6 +127,14 @@ class ApplicationListResult:
 
     用于 ``list_applications`` / ``GET /game/applications`` 返回当前实例下
     可运行应用、GUI 当前选中的独立应用，以及各应用在不同运行模式中的状态。
+
+    Attributes:
+        current_instance_idx: 当前激活实例的 idx(账号下标)。**idx N → config/0N 目录**
+            (idx 1 → config/01 账号01,idx 2 → config/02 账号02),**不是** config/0<idx+1>。
+            激活实例看 ``config/one_dragon.yml`` 的 ``instance_list`` 里 ``active: true`` 项;
+            改某实例配置前据此定位目录,别把 idx 当目录号做偏移。
+        active_standalone_app_id: GUI「独立应用运行」当前选中的 app_id;无则 None。
+        applications: 可运行应用列表及各运行模式状态。
     """
 
     current_instance_idx: int

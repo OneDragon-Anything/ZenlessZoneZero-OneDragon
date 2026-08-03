@@ -423,7 +423,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.content_widget.add_widget(self.help_opt)
 
-        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮')
+        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划')
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 

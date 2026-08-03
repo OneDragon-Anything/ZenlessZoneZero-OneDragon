@@ -32,6 +32,8 @@ from zzz_od.operation.turning.turn_to_angle import turn_to_angle
 
 class RandomPlayApp(ZApplication):
 
+    """录像店营业:录像带店日常经营(宣传/营业/结算)。无消耗,产出菲林与丁尼。"""
+
     STATUS_ALL_VIDEO_CHOOSE: ClassVar[str] = '已选择全部录像带'
     STATUS_ALREADY_RUNNING: ClassVar[str] = '正在营业'
 
@@ -63,12 +65,13 @@ class RandomPlayApp(ZApplication):
         self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(self.ctx.controller)
         self.retried_transport: bool = False
 
+    @node_from(from_name='交互对话', success=False)
     @node_from(from_name='等待经营画面加载', success=False)
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
-        if self.previous_node.name == '等待经营画面加载':
+        if self.previous_node.name in {'交互对话', '等待经营画面加载'}:
             if self.retried_transport:
-                return self.round_fail(status='等待经营画面加载失败，重传送超限')
+                return self.round_fail(status='进入经营画面失败，重传送超限')
             self.retried_transport = True
 
         self.turn_compensator.clear_pending_sample()
@@ -80,11 +83,14 @@ class RandomPlayApp(ZApplication):
     @operation_node(name='移动交互', node_max_retry_times=10)
     def move_and_interact(self) -> OperationRoundResult:
         """
-        录像店-柜台：转向正东后前移再交互
+        录像店-柜台 / 布亚斯特城区-录像店营业点：转向正东后前移再交互
         澄辉坪-录像店营业点：传送落点已正对入口，直接交互
         :return:
         """
-        if self.config.transport_point == RandomPlayTransportPoint.POINT_1.value.value:
+        if self.config.transport_point in {
+            RandomPlayTransportPoint.POINT_1.value.value,
+            RandomPlayTransportPoint.POINT_3.value.value,
+        }:
             result = turn_to_angle(self, target_angle=0, turn_status='转向正东')
             if not result.is_success:
                 return result
@@ -93,9 +99,28 @@ class RandomPlayApp(ZApplication):
         time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
 
-        return self.round_success()
+        return self.round_success(wait=1)
 
     @node_from(from_name='移动交互')
+    @operation_node(name='交互对话', node_max_retry_times=10)
+    def handle_interaction_dialog(self) -> OperationRoundResult:
+        # 录像店-柜台交互后没有选项对话，直接交给经营画面加载节点
+        if self.config.transport_point == RandomPlayTransportPoint.POINT_1.value.value:
+            return self.round_success()
+
+        # 录像店营业点交互后的选项对话框，优先选择“查看经营状况”
+        area = self.ctx.screen_loader.get_area('影像店营业', '右侧选项区域')
+        result = self.round_by_ocr_and_click(self.last_screenshot, '查看经营状况', area=area)
+        if result.is_success:
+            return self.round_success(status=result.status, wait=1)
+
+        # (布亚斯特城区-录像店营业点)需要推进一次对话框，右侧选项区域才会出现“查看经营状况”
+        result = self.round_by_click_area('影像店营业', '对话框标题')
+        if result.is_success:
+            return self.round_retry(status='继续对话', wait=1)
+        return result
+
+    @node_from(from_name='交互对话')
     @operation_node(name='等待经营画面加载', node_max_retry_times=10)
     def wait_run(self) -> OperationRoundResult:
         # 每日首次。点完关闭按钮后回到本节点重判，防止昨日账本残影或未关闭
@@ -107,11 +132,6 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况')
         if result.is_success:
             return self.round_success(wait=1)
-        # 澄辉坪-录像店营业点交互后的专属对话框。前面都没识别到说明被对话框挡住了，点击 "查看经营状况" 推进
-        area = self.ctx.screen_loader.get_area('影像店营业', '右侧选项区域')
-        result = self.round_by_ocr_and_click(self.last_screenshot, '查看经营状况', area=area)
-        if result.is_success:
-            return self.round_retry(status=result.status, wait=1)
 
         return self.round_retry(status='等待经营画面', wait=1)
 
