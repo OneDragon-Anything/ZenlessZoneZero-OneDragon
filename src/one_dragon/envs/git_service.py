@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+import psutil
 import yaml
 from packaging import version
 from pygit2 import (
@@ -148,18 +149,8 @@ def _remove_temp_repo(temp_repo_dir: str) -> None:
 
 
 def _is_process_running(process_id: int) -> bool:
-    """判断临时仓库所属进程是否仍在运行；无法确认时按仍在运行处理。"""
-    if process_id <= 0:
-        return True
-    try:
-        os.kill(process_id, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError as error:
-        return not (sys.platform == 'win32' and error.winerror == 87)
+    """判断临时仓库所属进程是否仍在运行；无效 PID 按仍在运行处理。"""
+    return process_id <= 0 or psutil.pid_exists(process_id)
 
 
 def _cleanup_stale_fetch_repositories(temp_root: Path) -> None:
