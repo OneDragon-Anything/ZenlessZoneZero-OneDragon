@@ -225,6 +225,22 @@ class ImageAnalysisLogic:
             return True
         return False
 
+    def auto_save_pipeline(self) -> str | None:
+        """
+        未保存时自动保存当前流水线，生成一个不冲突的默认名称
+        名称按「流水线1」「流水线2」递增，跳过已存在的名称
+        :return: 保存成功后的流水线名称；保存失败返回 None
+        """
+        existing_names = set(self.get_pipeline_names())
+        index = 1
+        while f"流水线{index}" in existing_names:
+            index += 1
+
+        name = f"流水线{index}"
+        if self.save_pipeline(name):
+            return name
+        return None
+
     def load_pipeline(self, name: str) -> bool:
         pipeline = self.cv_service.load_pipeline(name)
         if pipeline is not None:

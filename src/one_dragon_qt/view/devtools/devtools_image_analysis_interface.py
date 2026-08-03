@@ -626,15 +626,32 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             )
             return
 
+        # 未保存过：自动保存一个默认名字的流水线，再继续执行
         if self.logic.active_pipeline_name is None:
-            InfoBar.error(
-                title=gt('错误'),
-                content=gt('请先选择一个流水线'),
+            auto_name = self.logic.auto_save_pipeline()
+            if auto_name is None:
+                InfoBar.error(
+                    title=gt('错误'),
+                    content=gt('自动保存流水线失败'),
+                    duration=3000,
+                    parent=self,
+                    position=InfoBarPosition.TOP
+                )
+                return
+
+            # 同步下拉框显示，不触发重新加载
+            self._update_pipeline_combo()
+            self.pipeline_combo.blockSignals(True)
+            self.pipeline_combo.setCurrentText(auto_name)
+            self.pipeline_combo.blockSignals(False)
+            self._update_ui_status()
+            InfoBar.success(
+                title=gt('提示'),
+                content=f"{gt('未保存的流水线已自动保存为')} {auto_name}",
                 duration=3000,
                 parent=self,
                 position=InfoBarPosition.TOP
             )
-            return
 
         display_image, results = self.logic.execute_pipeline()
         self._display_image(display_image)
@@ -861,7 +878,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         根据当前状态更新UI控件的启用/禁用
         """
         is_new = self.logic.active_pipeline_name is None
-        self.run_btn.setEnabled(not is_new)
+        # 未保存的流水线也可以执行，执行时会自动保存
+        self.run_btn.setEnabled(True)
         self.save_pipeline_btn.setEnabled(not is_new)
         self.rename_pipeline_btn.setEnabled(not is_new)
         self.delete_pipeline_btn.setEnabled(not is_new)
