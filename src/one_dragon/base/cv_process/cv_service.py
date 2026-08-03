@@ -1,6 +1,7 @@
 # coding: utf-8
+import contextvars
 import os
-from typing import List, Dict, Type
+from typing import Dict, List, Type
 
 import cv2
 import numpy as np
@@ -9,23 +10,61 @@ import yaml
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
 from one_dragon.base.cv_process.cv_step import CvStep
 from one_dragon.base.cv_process.steps import (
-    CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
-    CvMorphologyExStep, CvFindContoursStep, CvStepFilterByArea, CvStepFilterByArcLength,
-    CvStepFilterByRadius, CvContourPropertiesStep, CvMatchShapesStep, CvStepCropByTemplate, CvStepFilterByAspectRatio,
-    CvStepFilterByCentroidDistance, CvStepOcr, CvStepGrayscale, CvStepHistogramEqualization, CvStepThreshold,
-    CvStepCropByArea, CvStepCropToAnnulus, CvTemplateMatchingStep
+    CvContourPropertiesStep,
+    CvDilateStep,
+    CvErodeStep,
+    CvFindContoursStep,
+    CvMatchShapesStep,
+    CvMorphologyExStep,
+    CvStepCropByArea,
+    CvStepCropByTemplate,
+    CvStepCropToAnnulus,
+    CvStepFilterByArcLength,
+    CvStepFilterByArea,
+    CvStepFilterByAspectRatio,
+    CvStepFilterByCentroidDistance,
+    CvStepFilterByHSV,
+    CvStepFilterByRadius,
+    CvStepFilterByRGB,
+    CvStepGrayscale,
+    CvStepHistogramEqualization,
+    CvStepOcr,
+    CvStepThreshold,
+    CvTemplateMatchingStep,
 )
+from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils import os_utils, yaml_utils
+
+# 当前插件上下文：插件 Application 执行期间记录插件名，
+# 裸名流水线解析时优先查该插件目录，其次主仓。
+_current_plugin: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    'cv_pipeline_current_plugin', default=None
+)
+
+
+def set_current_plugin(plugin_name: str | None) -> contextvars.Token:
+    """
+    设置当前插件上下文，返回 Token 用于恢复
+    :param plugin_name: 插件名（插件目录名）；None 表示主仓上下文
+    """
+    return _current_plugin.set(plugin_name)
+
+
+def reset_current_plugin(token: contextvars.Token) -> None:
+    """恢复插件上下文"""
+    _current_plugin.reset(token)
 
 
 class CvService:
     """
     一个纯净的、无UI依赖的CV流水线服务
     负责流水线的加载、保存、执行等核心功能
+    流水线来源为多目录：主仓 + 各插件（命名空间 插件名::流水线名）
     """
     PIPELINE_DIR: str = os_utils.get_path_under_work_dir('assets', 'image_analysis_pipelines')
     TEMPLATE_DIR: str = os_utils.get_path_under_work_dir('assets', 'image_analysis_templates')
+    PIPELINE_SUB_DIR: str = os.path.join('assets', 'image_analysis_pipelines')
 
     def __init__(self, od_ctx: OneDragonContext):
         """
@@ -35,6 +74,10 @@ class CvService:
         self.od_ctx: OneDragonContext = od_ctx
         self.ocr = od_ctx.ocr
         self.template_loader = od_ctx.template_loader
+
+        # 插件流水线目录列表 [(插件名, 目录路径), ...]，随插件加载刷新
+        self._plugin_pipeline_dirs: list[tuple[str, str]] = []
+        self._refresh_plugin_pipeline_dirs()
 
         # 可用的步骤类型
         self.available_steps: Dict[str, Type[CvStep]] = {
@@ -181,39 +224,109 @@ class CvService:
                 if pushed >= 30:
                     break
 
-    def get_pipeline_names(self) -> List[str]:
+    def _refresh_plugin_pipeline_dirs(self) -> None:
         """
-        获取所有已保存流水线的名称
+        枚举各插件的流水线目录 plugins/<插件名>/assets/image_analysis_pipelines/
+        只收集存在该目录的插件
         """
+        dirs: list[tuple[str, str]] = []
+        for plugin_root, source in self.od_ctx.application_plugin_dirs:
+            if source != PluginSource.THIRD_PARTY:
+                continue
+            if not plugin_root.is_dir():
+                continue
+            for child in plugin_root.iterdir():
+                if not child.is_dir():
+                    continue
+                pipeline_dir = child / self.PIPELINE_SUB_DIR
+                if pipeline_dir.is_dir():
+                    dirs.append((child.name, str(pipeline_dir)))
+        self._plugin_pipeline_dirs = dirs
+
+    def get_plugin_pipeline_dir(self, plugin_name: str) -> str | None:
+        """
+        获取指定插件的流水线目录
+        :param plugin_name: 插件名（插件目录名）
+        """
+        for name, dir_path in self._plugin_pipeline_dirs:
+            if name == plugin_name:
+                return dir_path
+        return None
+
+    def get_plugin_names(self) -> list[str]:
+        """
+        获取存在流水线目录的插件名列表
+        """
+        return [name for name, _ in self._plugin_pipeline_dirs]
+
+    def _resolve_pipeline_dir(self, source: str | None = None) -> str | None:
+        """
+        解析流水线来源目录
+        :param source: 来源；'' 表示主仓，插件名表示对应插件，None 表示按当前上下文解析
+        （插件 Application 执行期间 ContextVar 非空 → 该插件目录，否则主仓）
+        """
+        if source is not None:
+            if source == '':
+                return self.PIPELINE_DIR
+            return self.get_plugin_pipeline_dir(source)
+
+        current_plugin = _current_plugin.get()
+        if current_plugin:
+            plugin_dir = self.get_plugin_pipeline_dir(current_plugin)
+            if plugin_dir is not None:
+                return plugin_dir
+        return self.PIPELINE_DIR
+
+    def get_pipeline_names(self, source: str | None = '') -> list[str]:
+        """
+        获取指定来源的流水线名称（裸名）
+        :param source: ''（默认）表示主仓；插件名表示对应插件目录
+        """
+        if source is None:
+            source = ''
+        dir_path = self._resolve_pipeline_dir(source)
+        if dir_path is None or not os.path.isdir(dir_path):
+            return []
         names = []
-        for file_name in os.listdir(self.PIPELINE_DIR):
+        for file_name in os.listdir(dir_path):
             if file_name.endswith('.yml'):
                 names.append(file_name[:-4])
         return names
 
-    def save_pipeline(self, name: str, pipeline: CvPipeline) -> bool:
+    def save_pipeline(self, name: str, pipeline: CvPipeline, source: str | None = None) -> bool:
         """
         将流水线保存到文件
         :param name: 流水线名称
         :param pipeline: 流水线实例
+        :param source: 保存目标来源；None 表示主仓，插件名表示对应插件目录
         """
         if not name:
             return False
 
+        if source is None:
+            source = ''
+        save_dir = self._resolve_pipeline_dir(source)
+        if save_dir is None:
+            return False
+
         data_to_save = [step.to_dict() for step in pipeline.steps]
 
-        file_path = os.path.join(self.PIPELINE_DIR, f"{name}.yml")
+        file_path = os.path.join(save_dir, f"{name}.yml")
         with open(file_path, 'w', encoding='utf-8') as f:
             yaml.dump(data_to_save, f, allow_unicode=True, sort_keys=False)
 
         return True
 
-    def load_pipeline(self, name: str) -> CvPipeline | None:
+    def load_pipeline(self, name: str, source: str | None = None) -> CvPipeline | None:
         """
         从文件加载流水线
         :param name: 流水线名称
+        :param source: 来源；None 表示按当前上下文解析（插件优先再主仓），'' 表示主仓，插件名表示对应插件
         """
-        file_path = os.path.join(self.PIPELINE_DIR, f"{name}.yml")
+        dir_path = self._resolve_pipeline_dir(source)
+        if dir_path is None:
+            return None
+        file_path = os.path.join(dir_path, f"{name}.yml")
         if not os.path.exists(file_path):
             return None
 
@@ -237,27 +350,35 @@ class CvService:
         pipeline.steps = new_steps
         return pipeline
 
-    def delete_pipeline(self, name: str):
+    def delete_pipeline(self, name: str, source: str | None = None):
         """
         删除一个流水线文件
         :param name: 流水线名称
+        :param source: 来源；None 表示按当前上下文解析，'' 表示主仓，插件名表示对应插件
         """
-        file_path = os.path.join(self.PIPELINE_DIR, f"{name}.yml")
+        dir_path = self._resolve_pipeline_dir(source)
+        if dir_path is None:
+            return
+        file_path = os.path.join(dir_path, f"{name}.yml")
         if os.path.exists(file_path):
             os.remove(file_path)
 
-    def rename_pipeline(self, old_name: str, new_name: str):
+    def rename_pipeline(self, old_name: str, new_name: str, source: str | None = None):
         """
         重命名流水线
         :param old_name: 旧名称
         :param new_name: 新名称
+        :param source: 来源；None 表示按当前上下文解析，'' 表示主仓，插件名表示对应插件
         """
         if not old_name or not new_name or old_name == new_name:
             return
 
-        old_file_path = os.path.join(self.PIPELINE_DIR, f"{old_name}.yml")
-        new_file_path = os.path.join(self.PIPELINE_DIR, f"{new_name}.yml")
+        dir_path = self._resolve_pipeline_dir(source)
+        if dir_path is None:
+            return
 
+        old_file_path = os.path.join(dir_path, f"{old_name}.yml")
+        new_file_path = os.path.join(dir_path, f"{new_name}.yml")
         if os.path.exists(old_file_path) and not os.path.exists(new_file_path):
             os.rename(old_file_path, new_file_path)
 

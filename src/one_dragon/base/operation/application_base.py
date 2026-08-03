@@ -82,12 +82,30 @@ class Application(Operation):
     def execute(self) -> OperationResult:
         """
         执行应用，并确保异常路径也退出 screen scope。
+        第三方插件应用执行期间设置 CV 流水线插件上下文，
+        使裸名流水线解析优先自身插件目录（同名优先自身插件，其次主仓）。
         """
         self.ctx.screen_loader.enter_scope(self.app_id)
+        token = None
         try:
+            plugin_name = self._get_current_plugin_name()
+            if plugin_name:
+                token = self.ctx.cv_service.set_current_plugin(plugin_name)
             return Operation.execute(self)
         finally:
+            if token is not None:
+                self.ctx.cv_service.reset_current_plugin(token)
             self.ctx.screen_loader.exit_scope()
+
+    def _get_current_plugin_name(self) -> str | None:
+        """
+        获取当前应用所属第三方插件的插件名（插件目录名）。
+        内置应用返回 None，表示主仓上下文。
+        """
+        info = self.ctx.factory_manager.get_plugin_info(self.app_id)
+        if info is not None and info.is_third_party and info.plugin_dir is not None:
+            return info.plugin_dir.name
+        return None
 
     def after_operation_done(self, result: OperationResult) -> None:
         """
