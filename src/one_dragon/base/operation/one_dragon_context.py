@@ -5,7 +5,6 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
-import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
@@ -80,7 +79,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self.btn_listener.start()
+        # 推迟启动：不要在 __init__ 早期启动钩子，避免初始化/加载重型 C 扩展库时导致鼠标严重卡顿
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -331,6 +330,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init)
         f.add_done_callback(thread_utils.handle_future_result)
 
+    def start_btn_listener(self) -> None:
+        """
+        启动按键与鼠标监听器。
+        推迟到程序启动与 GUI 初始化完成之后显式调用，避免初始化阶段加载重型 C 扩展库
+        导致的 Windows WH_MOUSE_LL 鼠标低级钩子卡顿问题。
+        """
+        if self.btn_listener is not None:
+            self.btn_listener.start()
+
     def _on_key_press(self, key: str):
         """
         按键时触发 抛出事件，事件体为按键
@@ -409,6 +417,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @staticmethod
     def _compose_overlay_patched_image(base_image, overlay_rgba):
+        import cv2
+
         if base_image is None or overlay_rgba is None:
             return None
         if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:

@@ -28,6 +28,7 @@ try:
 
         def run(self):
             self.ctx.init()
+            self.ctx.start_btn_listener()
             self._window.on_ctx_ready()
             self.finished.emit()
 
