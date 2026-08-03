@@ -10,6 +10,7 @@ description: 当拿到一张待建档的游戏截图时用。
 ## 前置:工具用法(避免绕路)
 - MCP 工具**直调**(`mcp__zzz_od__analyze_screen` / `upsert_screen_area` / `delete_screen_area`),别写 HTTP 客户端脚本绕路;连接 stale 让用户 `/mcp` 重连。
 - screen_info 的 area 改动**一律走 CRUD 工具**(`upsert_screen_area`/`delete_screen_area`)—— 它们经 `save_screen` 同步独立 yml + `_od_merged.yml` 合并缓存 + reload。**禁止手编 screen_info yml 或手改模板目录**:手编不重算合并缓存,daemon 按旧缓存加载 → 找不到模板/area。
+- `upsert_screen_area` 支持 `cvpipe` 参数(流水线名,裸名);配了 `cvpipe` 的区域定位完全走流水线(见下文「cvpipe 区域」),不能默认点击、拿框可能为空需判空。
 - **本 skill 只记建档方法论**:具体游戏知识归 doc —— 传送流程/键位见 [地图](docs/game/screens/地图.md)/[3D地图](docs/game/screens/3D地图.md),玩法机制见 [gameplay/](docs/game/gameplay/);本 skill 不记具体键位/流程/机制。
 
 ## 建档规模:单画面 vs 重 app
@@ -25,8 +26,12 @@ description: 当拿到一张待建档的游戏截图时用。
 ## 信息源:理解画面三层并用
 截图只覆盖「当前帧看得到」的;画面背后的结构信息要另外拉。建档前并读三层:
 1. **截图** → `analyze_screen`(客观 area/OCR,第 1 步)+ vision(主观布局/状态图标,第 2 步)。
-2. **screen_info**(`assets/game_data/screen_info/<screen_id>.yml` 的 `area_list`)→ 该画面**全部已建模元素**,含当前帧未显示的子态 area(如弹窗按钮)。每个 area 的 `text`/`template_id`/`pc_rect`/`goto_list`/`pc_alt`/`gamepad_key` 直接说明它是啥、点后跳哪、PC 端怎么点。**analyze 只返回当前帧命中的 area,screen_info 才是全集**。
+2. **screen_info**(`assets/game_data/screen_info/<screen_id>.yml` 的 `area_list`)→ 该画面**全部已建模元素**,含当前帧未显示的子态 area(如弹窗按钮)。每个 area 的 `text`/`template_id`/`pc_rect`/`goto_list`/`pc_alt`/`gamepad_key`/`cvpipe` 直接说明它是啥、点后跳哪、PC 端怎么点。**analyze 只返回当前帧命中的 area,screen_info 才是全集**。
 3. **application/operation 代码**(`src/zzz_od/application/<app_id>/`)→ `@operation_node` 链 = 画面跳转与状态流转;`round_by_find_and_click_area` / `round_by_goto_screen` 调用 = 在哪画面点哪 area。
+
+**cvpipe 区域**(area 配置 `cvpipe` = 流水线名,裸名,来源由上下文/调试器来源选择区分):
+- 区域定位完全走流水线:先按 `pc_rect` 裁剪 → 跑 cvpipe 流水线 → 轮廓框 + pc_rect 偏移合成真实坐标 → 轮廓框逐个用 `text`/`template_id` 验证,第一个命中框作为结果。
+- **⚠️ 使用约束**:配了 `cvpipe` 的区域**不能默认点击**——拿框可能为空(流水线过滤后无坐标),调用方自己拿框自己点时必须判空,不得默认有点可点。`round_by_click_area` 对 cvpipe 区域自动先拿框再点(拿不到不点)。
 
 **对齐判据**:doc 的「可交互元素」「状态流转」要与 screen_info `area_list` + 代码**逐条对齐** —— screen_info 有、doc 无 = 建档漏,补上。截图没显示的子态 area,先按 screen_info + 代码记入流转、标「待现场快照」(第 3 步子态处理)。
 
