@@ -72,6 +72,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         self.param_layout: QVBoxLayout = None
         self.param_widgets = []  # 用于存储动态创建的参数控件，用于统一删除
         self.param_widget_map = {}  # 用于通过参数名快速查找控件 {param_name: input_widget}
+        self.current_pipeline_source: str = ''  # 当前流水线来源：'' 表示一条龙(主仓)，插件名表示对应插件
 
         VerticalScrollInterface.__init__(
             self,
@@ -106,6 +107,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         self.pipeline_list_widget.currentItemChanged.connect(self._on_pipeline_selection_changed)
 
         # 流水线管理
+        self.pipeline_source_combo.currentIndexChanged.connect(self._on_pipeline_source_changed)
         self.pipeline_combo.currentIndexChanged.connect(self._on_pipeline_combo_changed)
         self.save_pipeline_btn.clicked.connect(self._on_save_pipeline)
         self.save_as_pipeline_btn.clicked.connect(self._on_save_as_pipeline)
@@ -234,6 +236,14 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
+
+        # 来源选择：一条龙(主仓) 或 插件，只显示所选来源的流水线
+        self.pipeline_source_combo = ComboBox()
+        self.pipeline_source_combo.setMinimumWidth(110)
+        self.pipeline_source_combo.addItem(gt('一条龙'))
+        for plugin_name in self.logic.get_plugin_names():
+            self.pipeline_source_combo.addItem(plugin_name)
+        layout.addWidget(self.pipeline_source_combo)
 
         self.pipeline_combo = ComboBox()
         self.pipeline_combo.setPlaceholderText(gt('选择或新建流水线'))
@@ -628,7 +638,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
 
         # 未保存过：自动保存一个默认名字的流水线，再继续执行
         if self.logic.active_pipeline_name is None:
-            auto_name = self.logic.auto_save_pipeline()
+            auto_name = self.logic.auto_save_pipeline(source=self.current_pipeline_source)
             if auto_name is None:
                 InfoBar.error(
                     title=gt('错误'),
@@ -857,13 +867,13 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
 
     def _update_pipeline_combo(self):
         """
-        刷新流水线选择框
+        刷新流水线选择框（只显示当前来源的流水线）
         """
         self.pipeline_combo.blockSignals(True)
         current_text = self.pipeline_combo.currentText()
         self.pipeline_combo.clear()
 
-        pipelines = self.logic.get_pipeline_names()
+        pipelines = self.logic.get_pipeline_names(self.current_pipeline_source)
         all_items = [self._CREATE_NEW_PIPELINE_TEXT] + pipelines
         self.pipeline_combo.addItems(all_items)
 
@@ -872,6 +882,25 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         else:
             self.pipeline_combo.setCurrentIndex(0)
         self.pipeline_combo.blockSignals(False)
+
+    def _on_pipeline_source_changed(self, index: int):
+        """
+        当流水线来源切换时：清空当前流水线，刷新列表
+        """
+        if index < 0:
+            return
+        if index == 0:
+            self.current_pipeline_source = ''
+        else:
+            plugin_names = self.logic.get_plugin_names()
+            self.current_pipeline_source = plugin_names[index - 1] if index - 1 < len(plugin_names) else ''
+
+        self.logic.active_pipeline_name = None
+        self.logic.pipeline.steps.clear()
+        self._update_pipeline_list()
+        self._update_param_display()
+        self._update_pipeline_combo()
+        self._update_ui_status()
 
     def _update_ui_status(self):
         """
@@ -897,7 +926,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             self.logic.active_pipeline_name = None
             self.logic.pipeline.steps.clear()
         else:
-            if not self.logic.load_pipeline(pipeline_name):
+            if not self.logic.load_pipeline(pipeline_name, source=self.current_pipeline_source):
                 InfoBar.error(gt('失败'), f"{gt('流水线')} {pipeline_name} {gt('加载失败')}", parent=self)
                 return
 
@@ -907,22 +936,22 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
 
     def _on_save_pipeline(self):
         """
-        保存当前流水线
+        保存当前流水线（保存到当前来源）
         """
-        if self.logic.save_pipeline(self.logic.active_pipeline_name):
+        if self.logic.save_pipeline(self.logic.active_pipeline_name, source=self.current_pipeline_source):
             InfoBar.success(gt('成功'), f"{gt('流水线')} {self.logic.active_pipeline_name} {gt('已保存')}", parent=self)
         else:
             InfoBar.error(gt('失败'), gt('流水线保存失败'), parent=self)
 
     def _on_save_as_pipeline(self):
         """
-        另存为流水线
+        另存为流水线（保存到当前来源）
         """
         dialog = PipelineNameDialog(gt('另存为'), parent=self.window())
         if dialog.exec():
             text = dialog.name_edit.text()
             if text:
-                if self.logic.save_pipeline(text):
+                if self.logic.save_pipeline(text, source=self.current_pipeline_source):
                     self._update_pipeline_combo()
                     self.pipeline_combo.setCurrentText(text)
                     self._update_ui_status()
@@ -942,7 +971,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if dialog.exec():
             new_name = dialog.name_edit.text()
             if new_name and new_name != old_name:
-                self.logic.rename_pipeline(old_name, new_name)
+                self.logic.rename_pipeline(old_name, new_name, source=self.current_pipeline_source)
                 self._update_pipeline_combo()
                 self.pipeline_combo.setCurrentText(new_name)
                 InfoBar.success(gt('成功'), f"{gt('流水线已重命名为')} {new_name}", parent=self)
@@ -959,7 +988,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if not dialog.exec():
             return
 
-        self.logic.delete_pipeline(name_to_delete)
+        self.logic.delete_pipeline(name_to_delete, source=self.current_pipeline_source)
         self._update_pipeline_combo()
         self.logic.pipeline.steps.clear()
         self._update_pipeline_list()
