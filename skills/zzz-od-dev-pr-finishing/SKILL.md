@@ -56,14 +56,14 @@ resolve 前确保 CodeRabbit 对这条「说完话了」,不抢它的判断、�
 ### 4. push → 迭代
 每次 push 触发 review 重审 + CI 重跑,**可能新提 comment**。重复 1-3,直到「review 完成 + 无 unresolved + checks 绿」稳定。若连续 2 轮仍冒新 comment 或无法收敛 → 停下来问人,别死循环。
 
-### 5. 整理 PR title + description(供 merge commit message,合并前)
-仓库 squash / merge commit 设置用 PR description,PR title + desc 是最终 commit message 的来源(第一个 `##` 前 = commit body)。收尾时把 title + desc 维护成严格 Conventional Commits 的 message(规范见 AGENTS.md「commit message 分两层」):
-- **title**:`type(scope): subject`(≤50、祈使句);已合规则不动。
-- **description**:开头一段总结(why / 关键决策,2-5 行,每行 ≤72;不列改动清单、不写 `Co-Authored-By`)+ `##` 后的关联(issue / 关联仓 PR 链接)。第一个 `##` 前 = commit body。
-- 命令:`gh pr edit <PR> --title "..." --body "..."`(body 多行用 heredoc 或临时文件传)。
-- **关联仓 PR(本项目 zzz-od-test)**:同样整理;该仓未切到 PR description 设置时暂缓其整理。
-- **时机**:只在收尾(done、合并前)做一次,不每次 push。
-- AI 不执行 merge;这步只把 desc 准备好,merge 由用户决定(边界同下一条「合并前」)。
+### 5. merge 前/时整理 commit message(供 squash / merge commit)
+仓库 squash / merge commit 默认用 PR description 作 commit message(`PR_BODY` 取整段 desc,含 CodeRabbit 自动 summary);但 commit message 该符合 Conventional Commits,desc 整段未必符合。**分工:desc 给 reviewer,commit message 给 git 历史** —— commit message 在 merge 那一步 review/edit,不直接用 desc 整段,也不必改 desc(规范见 AGENTS.md「commit message 分两层」):
+- **PR title**(= squash/merge commit 标题):merge 前校验成 `type(scope): subject`(≤50、祈使句);已合规则不动。
+- **commit message body**(merge 时):默认来自 desc(含 CodeRabbit summary、`##` 标题等 review 专用内容);merge 时 review,编辑成规范 —— 开头一段 why(每行 ≤72,不列改动清单),删 review 专用的 CodeRabbit summary / `##` 标题,关联用 footer(`Closes #N`)。
+- **怎么操作**:人 merge 用网页 squash 框 review/edit;AI 用 `gh pr merge <PR> --squash --subject "type(scope): subject" --body "..."`(指定精简 body,覆盖默认 desc)。
+- **没描述的 PR**:CodeRabbit summary 默认补 commit body,merge 时可不动。
+- **关联仓 PR(本项目 zzz-od-test)**:同样在 merge 时整理。
+- AI 不执行 merge(merge 由用户决定);这步只把 commit message 规范讲清,merge 时照做。
 
 ### 6. 合并前
 `mergeable` 要 `MERGEABLE`、非 `DIRTY`;dirty → rebase 到目标分支。是否 merge / 合并方式不在本 skill 范围(见 superpowers:finishing-a-development-branch)。

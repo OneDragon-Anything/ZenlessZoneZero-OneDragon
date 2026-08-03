@@ -30,13 +30,14 @@
 10. **时区**:GitHub API 时间是 UTC(`Z` 后缀),显示给用户前转本地(维护者 UTC+8);避免时间串造成困惑。
 11. **关联 PR 用 git 验证,不只查 open PR**:`gh pr list --head <分支>` 查 open PR 为空 ≠ 无配套 —— 测试仓改动可能挂在同分支但没开 PR(有改动但没开 PR)。收尾主仓前必须 `git -C zzz-od-test fetch origin && git -C zzz-od-test log origin/main..<同名分支>` 验证无未合改动。**为什么不用 open PR 判**:PR #2608 收尾时查测试仓同分支 open PR 为空就判"无配套"、直接合了主仓,事后才发现测试仓分支有 11 个未合 commit(有改动、没开 PR)→ 补救才开测试仓 #35。根因:open PR 是「是否已开 PR」的判据,不是「是否有配套改动」的判据;后者要看 git 分支。该方法进 SKILL.md §7;配套的预防约束(开发阶段就同开关联 PR)进 AGENTS.md「提交流程与协作边界」+ development_workflow.md §4(泛化到非游戏流程改动)。
 
-12. **PR description 作为 merge commit message 来源(issue #2615)**:仓库 squash + merge commit 设置都用 PR description(非拼 commit);收尾时按 AGENTS.md commit 规范把 title + desc 维护成总结。
-    - **本项目设置**:squash + merge commit 都 `PR_BODY` + `PR_TITLE`;查询 `gh api repos/<owner>/<repo> --jq '{squash_merge_commit_message, merge_commit_message}'`(admin 可在 GitHub Settings 看,普通 contributor 看不到,需时这样查)。
-    - **规范分层(决策 7)**:单个迭代 commit 宽松 / 需要额外提供 commit message 的 merge 严格 Conventional Commits,两层规范都在 AGENTS.md;本 skill 收尾动作只管严格层(PR title + desc,即 merge 最终 message 的来源)。
-    - **为什么不把七规则写进本 skill**:七规则读者是所有写 commit 的 AI,不止收尾 AI;埋在本 skill(仅收尾触发)里其他场景看不到 → 规范进 AGENTS.md(每会话进 context,单一源),本 skill 只放收尾动作 + 指针。
-    - **`##` 截断行为待验证(非合同)**:设计假设 `PR_BODY` 取 desc 第一个 `##` 前内容作 commit body、`##` 后不进;但 GitHub 官方只说「用 PR description」,没明说截断。先用本 PR 实测(squash 后看 commit body 是否只含 `##` 前);确认前别把 `##` 放法当稳定规则。若不截断(取整段),降级:desc 只放 commit message 内容,关联移 PR comment。
-    - **不重复 CR Walkthrough / 不写 Co-Authored-By**:改动清单 CR 已生成,trailer GitHub squash 自动汇总。
-    - **AI 不 merge**:只准备 desc,merge 由用户(与现有边界一致)。
+12. **commit message 在 merge 时单独定(issue #2615)**:仓库 squash + merge commit 默认用 PR description 作 commit message(`PR_BODY` + `PR_TITLE`),但 commit message 该符合 Conventional Commits,desc 整段(含 CodeRabbit summary)未必符合。**方法论:desc 给 reviewer,commit message 给 git 历史,分工** —— commit message 在 merge 那一步 review/edit,不直接用 desc 整段,也不必改 desc。
+    - **实测(本 PR verify-squash-body 验证)**:squash `PR_BODY` **取整段 PR desc**(含 `##` 标题、CodeRabbit 自动 summary),不截断到第一个 `##`。之前「## 截断」假设错。
+    - **CodeRabbit summary 进 desc**:`.coderabbit.yaml` 的 `high_level_summary` 让 CR 把 `## Summary` 作为 release notes 追加进 PR desc(自己的 `<!-- release notes -->` 标记块,不覆盖用户写的)。对没描述的 PR 有用(补 commit body);有描述的 PR merge 时删掉。
+    - **merge 时操作**:人用网页 squash 框 review/edit;AI 用 `gh pr merge --squash --subject --body` 指定。把默认(= desc 整段)编辑成:subject = `type(scope): subject`,body = why(删 CodeRabbit summary / `##`,关联用 footer `Closes #N`)。
+    - **本项目设置**:squash + merge commit 都 `PR_BODY` + `PR_TITLE`;查询 `gh api repos/<owner>/<repo> --jq '{squash_merge_commit_message, merge_commit_message}'`(admin 可在 GitHub Settings 看,普通 contributor 看不到)。
+    - **规范分层(决策 7)**:单个迭代 commit 宽松 / 需要 commit message 的 merge 严格 Conventional Commits(merge 时编辑成规范),两层规范在 AGENTS.md;本 skill 收尾动作只管 merge 时的 commit message。
+    - **为什么不把七规则写进本 skill**:七规则读者是所有写 commit 的 AI,不止收尾 AI;规范进 AGENTS.md(每会话进 context,单一源),本 skill 只放收尾动作 + 指针。
+    - **AI 不 merge**:只把 commit message 规范讲清,merge 由用户(与现有边界一致)。
 
 ## 落点
 
