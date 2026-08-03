@@ -92,7 +92,7 @@ project_root/
         │   ├── sub_feature_const.py
         │   └── sub_feature_factory.py
         └── assets/            # 可选：插件资产目录
-            └── image_analysis_pipelines/   # 插件 CV 流水线 yaml（命名 插件名::流水线名）
+            └── image_analysis_pipelines/   # 插件 CV 流水线 yaml（裸名，与主仓同名时插件优先）
 ```
 
 ## 插件资产目录

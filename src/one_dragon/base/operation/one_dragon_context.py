@@ -238,6 +238,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 重新加载插件 screen
         self.screen_loader.reload()
+
+        # 刷新 CV 流水线插件目录缓存（新增插件或流水线目录及时生效）
+        if 'cv_service' in self.__dict__:
+            self.cv_service.refresh_plugin_pipeline_dirs()
         self._load_plugin_screens()
 
         # 更新默认应用组

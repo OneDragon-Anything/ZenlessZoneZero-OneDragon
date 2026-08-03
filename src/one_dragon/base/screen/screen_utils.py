@@ -212,7 +212,11 @@ def find_area_box(
                                              threshold=area.template_match_threshold)
         if mrl.max is not None:
             best = mrl.max
-            return (int(best.x), int(best.y), int(best.x + best.w), int(best.y + best.h))
+            # crop_and_match_template 返回裁剪图内坐标，需加 rect 偏移合成屏幕坐标
+            return (
+                int(best.x + rect.x1), int(best.y + rect.y1),
+                int(best.x + rect.x1 + best.w), int(best.y + rect.y1 + best.h),
+            )
         return None
     return None
 
@@ -229,7 +233,7 @@ def _find_area_box_by_cvpipe(
     # 1. 按 pc_rect 裁剪，流水线跑在裁剪图上
     cropped = cv2_utils.crop_image_only(screen, area.rect)
 
-    # 2. 跑 cvpipe 流水线（支持裸名或 插件名::流水线名）
+    # 2. 跑 cvpipe 流水线（按 source 上下文解析：插件优先再主仓）
     pipeline_ctx = ctx.cv_service.run_pipeline(area.cvpipe, cropped)
     if not pipeline_ctx.is_success:
         return None

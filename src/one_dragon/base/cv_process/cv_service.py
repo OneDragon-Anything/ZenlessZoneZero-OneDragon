@@ -60,7 +60,7 @@ class CvService:
     """
     一个纯净的、无UI依赖的CV流水线服务
     负责流水线的加载、保存、执行等核心功能
-    流水线来源为多目录：主仓 + 各插件（命名空间 插件名::流水线名）
+    流水线来源为多目录：主仓 + 各插件（按 source 区分，裸名 + 插件上下文解析）
     """
     PIPELINE_DIR: str = os_utils.get_path_under_work_dir('assets', 'image_analysis_pipelines')
     TEMPLATE_DIR: str = os_utils.get_path_under_work_dir('assets', 'image_analysis_templates')
@@ -77,7 +77,7 @@ class CvService:
 
         # 插件流水线目录列表 [(插件名, 目录路径), ...]，随插件加载刷新
         self._plugin_pipeline_dirs: list[tuple[str, str]] = []
-        self._refresh_plugin_pipeline_dirs()
+        self.refresh_plugin_pipeline_dirs()
 
         # 可用的步骤类型
         self.available_steps: Dict[str, Type[CvStep]] = {
@@ -224,7 +224,7 @@ class CvService:
                 if pushed >= 30:
                     break
 
-    def _refresh_plugin_pipeline_dirs(self) -> None:
+    def refresh_plugin_pipeline_dirs(self) -> None:
         """
         枚举各插件的流水线目录 plugins/<插件名>/assets/image_analysis_pipelines/
         只收集存在该目录的插件
@@ -298,13 +298,11 @@ class CvService:
         将流水线保存到文件
         :param name: 流水线名称
         :param pipeline: 流水线实例
-        :param source: 保存目标来源；None 表示主仓，插件名表示对应插件目录
+        :param source: 保存目标来源；None 表示按当前上下文解析（插件优先再主仓），'' 表示主仓，插件名表示对应插件目录
         """
         if not name:
             return False
 
-        if source is None:
-            source = ''
         save_dir = self._resolve_pipeline_dir(source)
         if save_dir is None:
             return False
