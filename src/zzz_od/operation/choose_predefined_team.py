@@ -17,7 +17,10 @@ class ChoosePredefinedTeam(ZOperation):
     TEAM_SCROLL_STEP: int = 4
     # 灰色禁用按钮和相邻的「出战」都可能被 OCR 读到，只接受白色且完整的「预备出战」。
     PREDEFINED_DEPLOY_LCS_PERCENT: float = 1.0
-    PREDEFINED_DEPLOY_COLOR_RANGE: list[list[int]] = [[240, 240, 240], [255, 255, 255]]
+    PREDEFINED_DEPLOY_COLOR_RANGE: tuple[tuple[int, int, int], tuple[int, int, int]] = (
+        (240, 240, 240),
+        (255, 255, 255),
+    )
 
     def __init__(self, ctx: ZContext, target_team_idx_list: list[int]):
         """
@@ -61,7 +64,7 @@ class ChoosePredefinedTeam(ZOperation):
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
         result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
                                    lcs_percent=self.PREDEFINED_DEPLOY_LCS_PERCENT,
-                                   color_range=self.PREDEFINED_DEPLOY_COLOR_RANGE)
+                                   color_range=[list(color) for color in self.PREDEFINED_DEPLOY_COLOR_RANGE])
         if result.is_success:
             return self.round_success(result.status)
 
@@ -112,7 +115,7 @@ class ChoosePredefinedTeam(ZOperation):
             '预备出战',
             area=area,
             lcs_percent=self.PREDEFINED_DEPLOY_LCS_PERCENT,
-            color_range=self.PREDEFINED_DEPLOY_COLOR_RANGE,
+            color_range=[list(color) for color in self.PREDEFINED_DEPLOY_COLOR_RANGE],
         )
         if result.is_success:
             time.sleep(0.5)
