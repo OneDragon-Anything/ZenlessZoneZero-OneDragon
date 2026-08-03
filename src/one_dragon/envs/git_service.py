@@ -63,6 +63,14 @@ class GitSyncStatus(StrEnum):
     FAILED = '更新失败'
 
 
+class _HistoryState(StrEnum):
+    """指定提交历史相对于仓库 shallow 状态的完整性。"""
+
+    COMPLETE = 'complete'
+    SHALLOW = 'shallow'
+    GAP = 'gap'
+
+
 def _get_repository_objects_path(repo: Repository) -> Path:
     """获取仓库实际使用的 Git 对象目录，兼容 linked worktree。"""
     repo_path = Path(repo.path)
@@ -76,17 +84,78 @@ def _get_repository_objects_path(repo: Repository) -> Path:
     return repo_path / 'objects'
 
 
-def _sync_shallow_file(repo: Repository, temp_repo_dir: str) -> None:
-    """将临时仓库的浅克隆边界(shallow 文件)同步到正式仓库。
+def _get_repository_shallow_path(repo: Repository) -> Path:
+    """获取仓库级 shallow 文件路径。"""
+    return _get_repository_objects_path(repo).parent / 'shallow'
 
-    临时仓库以 depth=1 拉取时会生成 shallow 文件标记历史边界；导入正式仓库后若不同步，
-    正式仓库会误以为历史完整，后续遍历提交历史时越过边界即报 object not found。
-    """
-    source_shallow = Path(temp_repo_dir) / 'shallow'
-    if not source_shallow.is_file():
+
+def _read_shallow_snapshot(shallow_path: Path) -> bytes | None:
+    """二进制读取 shallow 快照；文件不存在表示无浅边界。"""
+    return shallow_path.read_bytes() if shallow_path.is_file() else None
+
+
+def _parse_shallow_snapshot(snapshot: bytes | None) -> list[str]:
+    """校验 shallow 快照并按原顺序返回 OID。"""
+    if not snapshot:
+        return []
+    if b'\r' in snapshot or not snapshot.endswith(b'\n'):
+        raise ValueError('shallow 文件必须使用 LF 行尾')
+
+    oids: list[str] = []
+    for raw_line in snapshot.splitlines():
+        try:
+            oid = Oid(hex=raw_line.decode('ascii'))
+        except (UnicodeDecodeError, ValueError) as error:
+            raise ValueError('shallow 文件包含无效 OID') from error
+        oids.append(str(oid))
+    return oids
+
+
+def _write_shallow_snapshot(shallow_path: Path, snapshot: bytes | None) -> None:
+    """原子写入 shallow 快照；None 表示删除文件。"""
+    if snapshot is None:
+        shallow_path.unlink(missing_ok=True)
         return
-    target_shallow = _get_repository_objects_path(repo).parent / 'shallow'
-    target_shallow.write_bytes(source_shallow.read_bytes())
+
+    temporary_path = shallow_path.with_name(
+        f'{shallow_path.name}.one-dragon-{uuid.uuid4().hex}.tmp'
+    )
+    try:
+        temporary_path.write_bytes(snapshot)
+        os.replace(temporary_path, shallow_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _merge_shallow_snapshots(
+    original_snapshot: bytes,
+    fetched_snapshot: bytes | None,
+) -> bytes:
+    """完整继承失败时只追加新边界，不删除正式仓库原边界。"""
+    merged_oids = _parse_shallow_snapshot(original_snapshot)
+    known_oids = set(merged_oids)
+    for oid in _parse_shallow_snapshot(fetched_snapshot):
+        if oid not in known_oids:
+            merged_oids.append(oid)
+            known_oids.add(oid)
+    return b''.join(f'{oid}\n'.encode('ascii') for oid in merged_oids)
+
+
+def _sync_shallow_file(
+    repo: Repository,
+    temp_repo_dir: str,
+    original_snapshot: bytes | None,
+    authoritative: bool,
+) -> None:
+    """把临时仓库的整仓 shallow 状态同步到正式仓库。"""
+    fetched_snapshot = _read_shallow_snapshot(Path(temp_repo_dir) / 'shallow')
+    if authoritative or not original_snapshot:
+        _parse_shallow_snapshot(fetched_snapshot)
+        final_snapshot = fetched_snapshot or None
+    else:
+        final_snapshot = _merge_shallow_snapshots(original_snapshot, fetched_snapshot)
+
+    _write_shallow_snapshot(_get_repository_shallow_path(repo), final_snapshot)
 
 
 def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
@@ -185,6 +254,23 @@ def _send_fetch_worker_message(
     message_callback(message)
 
 
+def _restore_temp_fetch_state(
+    temp_repo: Repository,
+    temp_repo_dir: str,
+    shallow_snapshot: bytes | None,
+    refs_to_delete: set[str],
+) -> Repository:
+    """恢复 fallback 前的临时 shallow 状态，并移除协商引用。"""
+    with contextlib.suppress(Exception):
+        temp_repo.free()
+    _write_shallow_snapshot(Path(temp_repo_dir) / 'shallow', shallow_snapshot)
+    restored_repo = Repository(temp_repo_dir)
+    for ref_name in refs_to_delete:
+        if ref_name in restored_repo.references:
+            restored_repo.references.delete(ref_name)
+    return restored_repo
+
+
 def _fetch_remote_worker(
     temp_repo_dir: str,
     source_objects_dir: str | None,
@@ -195,21 +281,54 @@ def _fetch_remote_worker(
     message_callback: Callable[[dict[str, object]], None],
     abandoned: threading.Event,
     fetch_ref: str | None = None,
+    base_ref: str | None = None,
+    base_oid: str | None = None,
+    fetch_main: bool = False,
+    shallow_snapshot: bytes | None = None,
 ) -> None:
     """在线程中执行网络 fetch，作废后只清理自己的临时仓库。"""
     temp_repo: Repository | None = None
     try:
         GitService._ensure_config_search_path()
         temp_repo = init_repository(temp_repo_dir, bare=True)
-        if fetch_ref is None:
-            fetch_ref = f'refs/heads/{branch_name}'
-        refspec = f'+{fetch_ref}:{fetch_ref}'
+        target_ref = fetch_ref or f'refs/heads/{branch_name}'
+        target_refspec = f'+{target_ref}:{target_ref}'
         actual_depth = depth
+        main_incremental = False
 
-        if depth == 0 and not _configure_alternate_objects(temp_repo, source_objects_dir):
+        alternate_ready = _configure_alternate_objects(temp_repo, source_objects_dir)
+        inherited_shallow_snapshot: bytes | None = None
+        shallow_authoritative = not shallow_snapshot
+        if shallow_snapshot:
+            _parse_shallow_snapshot(shallow_snapshot)
+            if alternate_ready:
+                inherited_shallow_snapshot = shallow_snapshot
+                _write_shallow_snapshot(
+                    Path(temp_repo_dir) / 'shallow',
+                    inherited_shallow_snapshot,
+                )
+                shallow_authoritative = True
+
+        if actual_depth == 0 and not alternate_ready:
             actual_depth = 1
             log.warning('正式仓库对象目录不可用，降级为 shallow fetch')
+        elif actual_depth == 0 and base_ref is not None and base_oid is not None:
+            try:
+                temp_repo.references.create(base_ref, Oid(hex=base_oid), force=True)
+                main_incremental = fetch_main
+            except Exception:
+                actual_depth = 1
+                with contextlib.suppress(Exception):
+                    temp_repo.references.delete(base_ref)
+                log.warning('增量基线不可用，降级为 shallow fetch', exc_info=True)
 
+        if alternate_ready or inherited_shallow_snapshot is not None or base_ref is not None:
+            temp_repo.free()
+            temp_repo = Repository(temp_repo_dir)
+
+        refspecs = [target_refspec]
+        if main_incremental:
+            refspecs.insert(0, '+refs/heads/main:refs/heads/main')
         remote = temp_repo.remotes.create('origin', remote_url)
 
         def report_progress(progress: float, message: str) -> None:
@@ -227,20 +346,41 @@ def _fetch_remote_worker(
             )
             with _temporary_fetch_timeout_context():
                 remote.fetch(
-                    refspecs=[refspec],
+                    refspecs=refspecs,
                     proxy=proxy,
                     depth=actual_depth,
                     callbacks=callbacks,
                 )
             callbacks.flush_sideband_progress()
             log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
-        except KeyError as error:
-            if 'object not found' not in str(error) or actual_depth != 0:
+        except Exception as error:
+            can_fallback = main_incremental or (
+                isinstance(error, KeyError)
+                and 'object not found' in str(error)
+                and actual_depth == 0
+            )
+            if not can_fallback:
                 raise
+
+            if main_incremental:
+                log.warning('基于 main 的增量 fetch 失败，降级为 shallow fetch', exc_info=True)
+            refs_to_delete = {target_ref}
+            if base_ref is not None:
+                refs_to_delete.add(base_ref)
+            if main_incremental:
+                refs_to_delete.add('refs/heads/main')
+            temp_repo = _restore_temp_fetch_state(
+                temp_repo,
+                temp_repo_dir,
+                inherited_shallow_snapshot,
+                refs_to_delete,
+            )
+            remote = temp_repo.remotes['origin']
+            main_incremental = False
             callbacks = _FetchProgressRemoteCallbacks(report_progress)
             with _temporary_fetch_timeout_context():
                 remote.fetch(
-                    refspecs=[refspec],
+                    refspecs=[target_refspec],
                     proxy=proxy,
                     depth=1,
                     callbacks=callbacks,
@@ -248,10 +388,15 @@ def _fetch_remote_worker(
             callbacks.flush_sideband_progress()
             actual_depth = 1
 
-        _send_fetch_worker_message(
-            message_callback,
-            {'type': 'result', 'success': True, 'depth': actual_depth},
-        )
+        result: dict[str, object] = {
+            'type': 'result',
+            'success': True,
+            'depth': actual_depth,
+            'shallow_authoritative': shallow_authoritative,
+        }
+        if main_incremental:
+            result['main_incremental'] = True
+        _send_fetch_worker_message(message_callback, result)
     except Exception as error:
         _send_fetch_worker_message(
             message_callback,
@@ -575,6 +720,47 @@ class GitService:
 
         return _FetchProgressRemoteCallbacks(stage_progress_callback, REMOTE_FETCH_TIMEOUT)
 
+    def _get_history_state(
+        self,
+        repo: Repository,
+        start_oid: Oid,
+        shallow_oids: set[str],
+    ) -> _HistoryState:
+        """区分完整历史、合法 shallow 与未声明历史缺口。"""
+        reached_shallow_boundary = False
+        try:
+            for commit in repo.walk(start_oid, SortMode.TOPOLOGICAL):
+                if str(commit.id) in shallow_oids:
+                    reached_shallow_boundary = True
+        except Exception:
+            log.warning('提交历史存在未声明缺口，改用 shallow fetch', exc_info=True)
+            return _HistoryState.GAP
+
+        return (
+            _HistoryState.SHALLOW
+            if reached_shallow_boundary
+            else _HistoryState.COMPLETE
+        )
+
+    def _get_complete_main_oid(
+        self,
+        repo: Repository,
+        shallow_oids: set[str],
+    ) -> Oid | None:
+        """获取可用于非主分支增量 fetch 的完整本地 main。"""
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/main'
+        for ref_name in (remote_ref, 'refs/heads/main'):
+            if ref_name not in repo.references:
+                continue
+            main_oid = repo.references[ref_name].target
+            if (
+                main_oid is not None
+                and self._get_history_state(repo, main_oid, shallow_oids)
+                is _HistoryState.COMPLETE
+            ):
+                return main_oid
+        return None
+
     def _import_fetch_result(
         self,
         temp_repo_dir: str,
@@ -582,19 +768,41 @@ class GitService:
         stage_start: float,
         stage_end: float,
         tag_name: str | None = None,
+        import_main: bool = False,
+        original_shallow_snapshot: bytes | None = None,
+        shallow_authoritative: bool = True,
     ) -> None:
-        """将临时 bare 仓库中的目标分支或标签导入正式仓库。"""
+        """将临时仓库导入正式仓库，并同步整仓 shallow 状态。"""
         repo = self._open_repo()
+        active_repo = repo
         branch_name = self.env_config.git_branch
         remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
         remote_url = Path(temp_repo_dir).resolve().as_uri()
+        remote_branch_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
         if tag_name is None:
             source_ref = f'refs/heads/{branch_name}'
-            target_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
+            target_ref = remote_branch_ref
         else:
             source_ref = f'refs/tags/{tag_name}'
             target_ref = source_ref
-        refspec = f'+{source_ref}:{target_ref}'
+        refspecs = [f'+{source_ref}:{target_ref}']
+        affected_refs = {target_ref}
+        if tag_name is not None:
+            affected_refs.add(remote_branch_ref)
+        if import_main and tag_name is None and branch_name != 'main':
+            main_target_ref = f'refs/remotes/{self.env_config.git_remote}/main'
+            refspecs.insert(0, f'+refs/heads/main:{main_target_ref}')
+            affected_refs.add(main_target_ref)
+
+        original_ref_targets: dict[str, Oid | None] = {}
+        for ref_name in affected_refs:
+            original_ref_targets[ref_name] = (
+                repo.references[ref_name].target
+                if ref_name in repo.references
+                else None
+            )
+        shallow_path = _get_repository_shallow_path(repo)
+
         def report_progress(progress: float, message: str) -> None:
             if progress_callback is not None:
                 progress_callback(
@@ -606,19 +814,50 @@ class GitService:
 
         try:
             log.info(f'开始导入临时 Git 仓库: {remote_url}')
-            remote = repo.remotes.create(remote_name, remote_url)
-            remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            remote = active_repo.remotes.create(remote_name, remote_url)
+            remote.fetch(refspecs=refspecs, depth=0, callbacks=callbacks)
             callbacks.flush_sideband_progress()
-            _sync_shallow_file(repo, temp_repo_dir)
+            _sync_shallow_file(
+                active_repo,
+                temp_repo_dir,
+                original_shallow_snapshot,
+                shallow_authoritative,
+            )
+            active_repo.remotes.delete(remote_name)
+            self._repo = None
+            active_repo.free()
+            active_repo = self._open_repo()
+
             if tag_name is not None:
-                tag_object = repo.revparse_single(target_ref)
+                tag_object = active_repo.revparse_single(target_ref)
                 tag_commit = tag_object.peel(Commit)
-                remote_branch_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
-                repo.references.create(remote_branch_ref, tag_commit.id, force=True)
+                active_repo.references.create(remote_branch_ref, tag_commit.id, force=True)
             log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
-        finally:
+        except BaseException:
             with contextlib.suppress(Exception):
-                repo.remotes.delete(remote_name)
+                if remote_name in active_repo.remotes.names():
+                    active_repo.remotes.delete(remote_name)
+            with contextlib.suppress(Exception):
+                active_repo.free()
+            self._repo = None
+            try:
+                _write_shallow_snapshot(shallow_path, original_shallow_snapshot)
+                rollback_repo = self._open_repo()
+                if remote_name in rollback_repo.remotes.names():
+                    rollback_repo.remotes.delete(remote_name)
+                for ref_name, original_target in original_ref_targets.items():
+                    if original_target is None:
+                        if ref_name in rollback_repo.references:
+                            rollback_repo.references.delete(ref_name)
+                    else:
+                        rollback_repo.references.create(
+                            ref_name,
+                            original_target,
+                            force=True,
+                        )
+            except Exception:
+                log.error('恢复 Git 导入前状态失败', exc_info=True)
+            raise
 
     def _fetch_remote_once(
         self,
@@ -632,17 +871,44 @@ class GitService:
         repo = self._open_repo()
         branch_name = self.env_config.git_branch
         local_ref = f'refs/heads/{branch_name}'
-        depth = 0 if local_ref in repo.references and repo.references[local_ref].target is not None else 1
+        shallow_snapshot = _read_shallow_snapshot(_get_repository_shallow_path(repo))
+        shallow_oids = set(_parse_shallow_snapshot(shallow_snapshot))
+        base_ref: str | None = None
+        base_oid: Oid | None = None
+        fetch_main = False
+
+        local_oid = (
+            repo.references[local_ref].target
+            if local_ref in repo.references
+            else None
+        )
+        if tag_name is not None:
+            depth = 1
+        elif local_oid is not None:
+            history_state = self._get_history_state(repo, local_oid, shallow_oids)
+            if history_state is _HistoryState.GAP:
+                depth = 1
+            else:
+                depth = 0
+                base_ref = local_ref
+                base_oid = local_oid
+        elif branch_name != 'main':
+            base_oid = self._get_complete_main_oid(repo, shallow_oids)
+            if base_oid is None:
+                depth = 1
+            else:
+                depth = 0
+                base_ref = 'refs/heads/main'
+                fetch_main = True
+        else:
+            depth = 1
+
         proxy = self._get_proxy_address()
         temp_root = Path(os_utils.get_path_under_work_dir('.install', 'git_fetch_tmp'))
         temp_root.mkdir(parents=True, exist_ok=True)
         _cleanup_stale_fetch_repositories_once(temp_root)
         temp_repo_dir = tempfile.mkdtemp(prefix=f'fetch_{os.getpid()}_', dir=temp_root)
-        source_objects_dir = (
-            str(_get_repository_objects_path(repo))
-            if depth == 0
-            else None
-        )
+        source_objects_dir = str(_get_repository_objects_path(repo))
         messages: queue.Queue[dict[str, object]] = queue.Queue()
         abandoned = threading.Event()
         worker = threading.Thread(
@@ -657,6 +923,10 @@ class GitService:
                 messages.put,
                 abandoned,
                 f'refs/tags/{tag_name}' if tag_name is not None else None,
+                base_ref,
+                str(base_oid) if base_oid is not None else None,
+                fetch_main,
+                shallow_snapshot,
             ),
             daemon=True,
             name='git-fetch-worker',
@@ -741,6 +1011,9 @@ class GitService:
                 stage_start,
                 stage_end,
                 tag_name,
+                bool(result.get('main_incremental')),
+                shallow_snapshot,
+                bool(result.get('shallow_authoritative', True)),
             )
         except BaseException:
             if worker.is_alive():

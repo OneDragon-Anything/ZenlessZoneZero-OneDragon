@@ -22,7 +22,9 @@
 
 ## fetch 线程隔离与作废式超时
 
-Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_<进程ID>_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
+Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_<进程ID>_*`。临时仓库会通过 `objects/info/alternates` 只读复用正式仓库对象，并继承正式仓库的完整 shallow 快照；需要增量协商时，还会建立已有目标分支或完整 main 的基线引用。shallow 和引用设置完成后重新打开临时 `Repository`，再创建 remote 并 fetch。
+
+已有目标本地分支更新前会遍历该分支历史：完整历史和合法 shallow 都建立目标分支基线并执行 `depth=0` 增量 fetch；遍历遇到未被 shallow 声明的父提交缺口时，不使用该 tip 协商，只拉目标分支 `depth=1` 重新建立合法边界。首次获取非 `main` 分支时，如果本地远程跟踪 `main`（其次为本地 `main`）的历史完整，临时仓库会建立该 main 引用，并在一次 `depth=0` fetch 中同时获取远端最新 main 与目标分支。main 不存在、不完整、alternates 不可用，或该联合增量失败时，只对目标分支回退执行 `depth=1`。按内置版本 tag 初始化时不参与 main 增量，始终只获取指定 tag；首次获取 `main` 也继续使用 `depth=1`。
 
 Windows 下，libgit2 从带 pack 的临时仓库导入后，可能在当前进程内继续持有源 pack 句柄。此时立即删除临时目录会得到 `WinError 5/32`，修改只读属性或短暂重试无法释放句柄。GitService 会保留该目录，不输出清理异常栈；下次进程首次 fetch 前，删除已确认所属进程退出的新格式目录和无法解析进程归属的旧格式 `fetch_*`，仅保留所属进程仍在运行的新格式目录。
 
@@ -51,7 +53,25 @@ pygit2 的 `server_connect_timeout` 和 `server_timeout` 固定设置为 30 秒�
 
 服务端通过 `sideband_progress` 返回 `Enumerating objects`、`Counting objects` 和 `Compressing objects`。这些回调是文本流分块，不保证一次回调就是完整一行；GitService 会跨回调缓存残片，遇到 `\r` 或 `\n` 后逐条输出。`Remote.fetch()` 正常返回后才冲刷最后残片；发生异常时放弃它。`update_tips` 会在输出引用更新前冲刷缓冲区，保证远程尾消息仍排在引用更新前。三种已知前缀分别显示为“枚举对象”“统计对象”“压缩对象”，后面的数量、百分比和远端原有 `done` 不变。客户端根据 `received_objects/total_objects` 显示“拉取对象”，根据 `indexed_deltas/total_deltas` 显示“处理增量”；两个阶段达到 100% 时追加 `done`，但整个 fetch 是否成功仍只以 `Remote.fetch()` 正常返回为准。终端入口继续按 `%` 和 `done` 决定回车刷新或换行。各回调字段、完成边界和 CNB 实测时序见 [pygit2 fetch 可观测数据](git_fetch_progress.md)。
 
-首次浅拉取完成后，临时仓库的 `shallow` 文件必须按原始字节复制到正式仓库，不能使用 Windows 文本写入，否则 LF 会被转换为 CRLF，libgit2 下次打开仓库会报 `invalid parent OID at line 1`。该处理只防止新写入产生 CRLF，不自动修改已经存在的 `shallow` 文件。
+## 仓库级 shallow 状态同步
+
+`$GIT_DIR/shallow` 是整个仓库的浅边界 OID 集合，不记录分支名。一个分支可能经过多个边界，多个分支也可能共享同一边界，因此不能把“本次分支临时仓库”的 shallow 文件直接覆盖正式仓库，也不能无条件对旧、新文件取并集：覆盖会删除其他分支仍需要的边界，并集则可能保留已经深化过的旧边界，使新取得的历史仍不可遍历。
+
+每次 fetch 把正式仓库 shallow 的原始二进制内容同时作为输入和回滚快照：
+
+1. 正式对象目录可用时，临时仓库通过 alternates 继承对象库，并复制完整 shallow 快照；与本次协商有关的目标分支或 main 引用也一并建立。
+2. libgit2 在该整仓状态上执行 fetch，并更新临时仓库的整份 shallow 状态。main 联合增量或普通增量需要回退 `depth=1` 时，先恢复 fetch 前的 shallow 快照，删除协商引用并重新打开临时仓库，不能沿用失败尝试留下的元数据。
+3. 主线程导入对象和引用前保存正式 shallow 与受影响 refs。完整继承成功时，以临时仓库 fetch 后的 shallow 存在状态和原始字节为权威，精确镜像到正式仓库；正式仓库原先有边界但无法完整继承时，只执行经过 LF/OID 校验的保守并集，仅新增边界，不删除旧边界。
+4. shallow 使用同目录临时文件和 `os.replace()` 原子写回；权威状态为空时删除正式 shallow。导入或写回失败时恢复原 shallow 与 refs，已经写入但未被引用的对象允许保留。
+5. shallow 写回后释放旧 `Repository` 并重新打开，后续 tag peel、远程跟踪引用建立和历史遍历都使用刷新后的句柄，避免 libgit2 继续使用旧边界缓存。
+
+目标分支历史按三态处理：
+
+- **完整历史**：遍历成功且没有经过已声明浅边界，可作为自身增量基线；完整 main 还可作为首次获取其他分支的联合增量基线。
+- **合法 shallow**：遍历在已声明边界停止，可作为该分支自身的增量基线，但不能作为其他分支的完整 main 基线。
+- **未声明历史缺口**：遍历遇到缺失父对象，但没有对应 shallow 边界；改拉目标分支 `depth=1`，不把预检结果归类为对象库损坏或触发 `.git.corrupted.*` 重建。
+
+shallow 始终使用二进制和 LF 行尾。Windows 文本写入会把 LF 转为 CRLF，libgit2 下次打开仓库时报 `invalid parent OID at line 1`；已有 CRLF shallow 保持原字节并让打开失败，不在 fetch 流程中自动修复或重写。进程在正式对象导入已经返回、shallow 原子写回尚未执行之间被强制终止，仍可能留下短暂不一致；当前事务只保证同一进程内的异常回滚，不扩展为跨进程恢复日志。
 
 ## 本地对象库损坏自愈
 
