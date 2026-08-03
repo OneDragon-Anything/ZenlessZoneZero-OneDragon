@@ -1114,6 +1114,25 @@ class Operation(OperationBase):
         if area is None:
             return self.round_fail(status=f'区域未配置 {area_name}')
 
+        if area.is_cvpipe_area:
+            # cvpipe 区域不能默认盲点：先拿框确认坐标，过滤后无坐标则失败重试
+            time.sleep(pre_delay)
+            screen = self.screenshot()
+            click = screen_utils.find_and_click_area(
+                ctx=self.ctx,
+                screen=screen,
+                screen_name=screen_name,
+                area_name=area_name,
+                crop_first=True,
+            )
+            if click == OcrClickResultEnum.OCR_CLICK_SUCCESS:
+                self.update_screen_after_operation(screen_name, area_name)
+                return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)
+            elif click == OcrClickResultEnum.OCR_CLICK_NOT_FOUND:
+                return self.round_retry(status=f'未找到 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
+            else:
+                return self.round_retry(status=f'点击失败 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
+
         if click_left_top:
             to_click = area.left_top
         else:

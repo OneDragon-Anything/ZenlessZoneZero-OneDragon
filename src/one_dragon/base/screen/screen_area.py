@@ -20,6 +20,7 @@ class ScreenArea:
         goto_list: list[str] | None = None,
         color_range: list[list[int]] | None = None,
         gamepad_key: str | None = None,
+        cvpipe: str = '',
     ):
         self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
@@ -33,6 +34,7 @@ class ScreenArea:
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
         self.color_range: list[list[int]] | None = color_range  # 识别时候的筛选的颜色范围 文本时候有效
         self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
+        self.cvpipe: str = cvpipe or ''  # CV流水线名称（裸名或 插件名::流水线名）；配置后区域定位走流水线
 
     @property
     def rect(self) -> Rect:
@@ -91,6 +93,14 @@ class ScreenArea:
         return len(self.template_id) > 0
 
     @property
+    def is_cvpipe_area(self) -> bool:
+        """
+        是否 CV 流水线区域（配置了 cvpipe 流水线名）
+        配了 cvpipe 后，区域定位完全走流水线：先按 pc_rect 裁剪，再跑流水线取轮廓框
+        """
+        return len(self.cvpipe) > 0
+
+    @property
     def color_range_lower(self) -> np.ndarray:
         if self.color_range is None or len(self.color_range) < 1:
             return np.array([0, 0, 0], dtype=np.uint8)
@@ -127,5 +137,7 @@ class ScreenArea:
             order_dict['goto_list'] = self.goto_list
         if self.gamepad_key:
             order_dict['gamepad_key'] = self.gamepad_key
+        if self.cvpipe:
+            order_dict['cvpipe'] = self.cvpipe
 
         return order_dict

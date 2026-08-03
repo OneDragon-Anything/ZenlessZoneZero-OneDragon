@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
@@ -101,6 +102,11 @@ def find_area_in_screen_binary(
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
 
+    # cvpipe 区域走拿框方法（流水线定位不参与二值化分支）
+    if area.is_cvpipe_area:
+        box = find_area_box(ctx, screen, area, crop_first)
+        return FindAreaResultEnum.TRUE if box is not None else FindAreaResultEnum.FALSE
+
     # 对屏幕进行二值化处理
     binary_screen = cv2_utils.to_binary(screen, threshold=binary_threshold)
 
@@ -156,7 +162,34 @@ def find_area_in_screen(
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
 
-    find: bool = False
+    box = find_area_box(ctx, screen, area, crop_first)
+    return FindAreaResultEnum.TRUE if box is not None else FindAreaResultEnum.FALSE
+
+
+def find_area_box(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    area: ScreenArea,
+    crop_first: bool = True,
+) -> tuple[int, int, int, int] | None:
+    """
+    查找区域并返回匹配框（真实坐标 x1,y1,x2,y2 格式）
+
+    - cvpipe 区域：先按 pc_rect 裁剪，再跑 cvpipe 流水线取轮廓框，
+      cv 框坐标 + pc_rect 偏移合成真实坐标；轮廓框逐个用 text/template_id 验证，
+      第一个命中框立即返回。拿框可能为空（流水线过滤后无坐标），由调用方决定后续行为。
+    - text 区域：OCR 匹配，返回第一个命中文本的框。
+    - template 区域：模板匹配，返回匹配框。
+
+    Returns:
+        tuple[int, int, int, int] | None: 匹配框 (x1, y1, x2, y2)；找不到返回 None
+    """
+    if area is None:
+        return None
+
+    if area.is_cvpipe_area:
+        return _find_area_box_by_cvpipe(ctx, screen, area)
+
     if area.is_text_area:
         ocr_result_list = ctx.ocr_service.get_ocr_result_list(
             image=screen,
@@ -167,16 +200,80 @@ def find_area_in_screen(
 
         for ocr_result in ocr_result_list:
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
-                find = True
-                break
+                return (
+                    int(ocr_result.x), int(ocr_result.y),
+                    int(ocr_result.x + ocr_result.w), int(ocr_result.y + ocr_result.h),
+                )
+        return None
     elif area.is_template_area:
         rect = area.rect
 
         mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
                                              threshold=area.template_match_threshold)
-        find = mrl.max is not None
+        if mrl.max is not None:
+            best = mrl.max
+            return (int(best.x), int(best.y), int(best.x + best.w), int(best.y + best.h))
+        return None
+    return None
 
-    return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
+
+def _find_area_box_by_cvpipe(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    area: ScreenArea,
+) -> tuple[int, int, int, int] | None:
+    """
+    cvpipe 拿框：先按 pc_rect 裁剪，再跑流水线取轮廓框。
+    cv 框坐标 + pc_rect 偏移合成真实坐标；轮廓框逐个验证，第一个命中返回。
+    """
+    # 1. 按 pc_rect 裁剪，流水线跑在裁剪图上
+    cropped = cv2_utils.crop_image_only(screen, area.rect)
+
+    # 2. 跑 cvpipe 流水线（支持裸名或 插件名::流水线名）
+    pipeline_ctx = ctx.cv_service.run_pipeline(area.cvpipe, cropped)
+    if not pipeline_ctx.is_success:
+        return None
+
+    # 3. 轮廓框 + pc_rect 偏移合成真实坐标
+    offset_x, offset_y = area.rect.x1, area.rect.y1
+
+    # 4. 逐个验证（text/template_id 二选一照旧），第一个命中立即返回
+    for cv_x1, cv_y1, cv_x2, cv_y2 in pipeline_ctx.get_absolute_rects():
+        real_box = (cv_x1 + offset_x, cv_y1 + offset_y, cv_x2 + offset_x, cv_y2 + offset_y)
+        if _match_area_in_box(ctx, screen, area, real_box):
+            return real_box
+
+    return None
+
+
+def _match_area_in_box(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    area: ScreenArea,
+    box: tuple[int, int, int, int],
+) -> bool:
+    """
+    在指定框内做区域匹配验证（text/template_id 二选一，照旧）
+    """
+    box_rect = Rect(box[0], box[1], box[2], box[3])
+    if area.is_text_area:
+        ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=box_rect,
+            color_range=area.color_range,
+            crop_first=True,
+        )
+        for ocr_result in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
+                return True
+        return False
+    elif area.is_template_area:
+        mrl = ctx.tm.crop_and_match_template(
+            screen, box_rect, area.template_sub_dir, area.template_id,
+            threshold=area.template_match_threshold,
+        )
+        return mrl.max is not None
+    return False
 
 
 def find_template_coord_in_area(
@@ -251,7 +348,17 @@ def find_and_click_area(
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
-    if area.is_text_area:
+    if area.is_cvpipe_area:
+        # cvpipe 区域不能默认点击：先拿框确认坐标，过滤后无坐标则返回未找到
+        box = find_area_box(ctx, screen, area, crop_first)
+        if box is None:
+            return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
+        to_click = Point((box[0] + box[2]) // 2, (box[1] + box[3]) // 2)
+        if ctx.controller.click(to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
+            return OcrClickResultEnum.OCR_CLICK_SUCCESS
+        else:
+            return OcrClickResultEnum.OCR_CLICK_FAIL
+    elif area.is_text_area:
         ocr_result_list = ctx.ocr_service.get_ocr_result_list(
             image=screen,
             rect=area.rect,
