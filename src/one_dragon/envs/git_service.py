@@ -32,7 +32,6 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
-from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
@@ -283,7 +282,7 @@ def _fetch_remote_worker(
     fetch_ref: str | None = None,
     base_ref: str | None = None,
     base_oid: str | None = None,
-    fetch_main: bool = False,
+    fetch_primary_branch: bool = False,
     shallow_snapshot: bytes | None = None,
 ) -> None:
     """在线程中执行网络 fetch，作废后只清理自己的临时仓库。"""
@@ -294,7 +293,7 @@ def _fetch_remote_worker(
         target_ref = fetch_ref or f'refs/heads/{branch_name}'
         target_refspec = f'+{target_ref}:{target_ref}'
         actual_depth = depth
-        main_incremental = False
+        primary_branch_incremental = False
 
         alternate_ready = _configure_alternate_objects(temp_repo, source_objects_dir)
         inherited_shallow_snapshot: bytes | None = None
@@ -315,7 +314,7 @@ def _fetch_remote_worker(
         elif actual_depth == 0 and base_ref is not None and base_oid is not None:
             try:
                 temp_repo.references.create(base_ref, Oid(hex=base_oid), force=True)
-                main_incremental = fetch_main
+                primary_branch_incremental = fetch_primary_branch
             except Exception:
                 actual_depth = 1
                 with contextlib.suppress(Exception):
@@ -327,8 +326,9 @@ def _fetch_remote_worker(
             temp_repo = Repository(temp_repo_dir)
 
         refspecs = [target_refspec]
-        if main_incremental:
-            refspecs.insert(0, '+refs/heads/main:refs/heads/main')
+        if primary_branch_incremental:
+            assert base_ref is not None
+            refspecs.insert(0, f'+{base_ref}:{base_ref}')
         remote = temp_repo.remotes.create('origin', remote_url)
 
         def report_progress(progress: float, message: str) -> None:
@@ -354,7 +354,7 @@ def _fetch_remote_worker(
             callbacks.flush_sideband_progress()
             log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
         except Exception as error:
-            can_fallback = main_incremental or (
+            can_fallback = primary_branch_incremental or (
                 isinstance(error, KeyError)
                 and 'object not found' in str(error)
                 and actual_depth == 0
@@ -362,13 +362,11 @@ def _fetch_remote_worker(
             if not can_fallback:
                 raise
 
-            if main_incremental:
-                log.warning('基于 main 的增量 fetch 失败，降级为 shallow fetch', exc_info=True)
+            if primary_branch_incremental:
+                log.warning('基于项目主分支的增量 fetch 失败，降级为 shallow fetch', exc_info=True)
             refs_to_delete = {target_ref}
             if base_ref is not None:
                 refs_to_delete.add(base_ref)
-            if main_incremental:
-                refs_to_delete.add('refs/heads/main')
             temp_repo = _restore_temp_fetch_state(
                 temp_repo,
                 temp_repo_dir,
@@ -376,7 +374,7 @@ def _fetch_remote_worker(
                 refs_to_delete,
             )
             remote = temp_repo.remotes['origin']
-            main_incremental = False
+            primary_branch_incremental = False
             callbacks = _FetchProgressRemoteCallbacks(report_progress)
             with _temporary_fetch_timeout_context():
                 remote.fetch(
@@ -394,8 +392,8 @@ def _fetch_remote_worker(
             'depth': actual_depth,
             'shallow_authoritative': shallow_authoritative,
         }
-        if main_incremental:
-            result['main_incremental'] = True
+        if primary_branch_incremental:
+            result['primary_branch_incremental'] = True
         _send_fetch_worker_message(message_callback, result)
     except Exception as error:
         _send_fetch_worker_message(
@@ -562,12 +560,10 @@ class GitService:
 
     def __init__(
         self,
-        project_config: ProjectConfig,
         env_config: EnvConfig,
         repo_config: RepoConfig,
         repo_dir: str | None = None,
-    ):
-        self.project_config: ProjectConfig = project_config
+    ) -> None:
         self.env_config: EnvConfig = env_config
         self.repo_config: RepoConfig = repo_config
 
@@ -742,23 +738,25 @@ class GitService:
             else _HistoryState.COMPLETE
         )
 
-    def _get_complete_main_oid(
+    def _get_complete_primary_branch_oid(
         self,
         repo: Repository,
         shallow_oids: set[str],
+        primary_branch: str,
     ) -> Oid | None:
-        """获取可用于非主分支增量 fetch 的完整本地 main。"""
-        remote_ref = f'refs/remotes/{self.env_config.git_remote}/main'
-        for ref_name in (remote_ref, 'refs/heads/main'):
+        """获取可用于其他分支增量 fetch 的完整项目主分支。"""
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{primary_branch}'
+        local_ref = f'refs/heads/{primary_branch}'
+        for ref_name in (remote_ref, local_ref):
             if ref_name not in repo.references:
                 continue
-            main_oid = repo.references[ref_name].target
+            primary_branch_oid = repo.references[ref_name].target
             if (
-                main_oid is not None
-                and self._get_history_state(repo, main_oid, shallow_oids)
+                primary_branch_oid is not None
+                and self._get_history_state(repo, primary_branch_oid, shallow_oids)
                 is _HistoryState.COMPLETE
             ):
-                return main_oid
+                return primary_branch_oid
         return None
 
     def _import_fetch_result(
@@ -768,7 +766,7 @@ class GitService:
         stage_start: float,
         stage_end: float,
         tag_name: str | None = None,
-        import_main: bool = False,
+        import_primary_branch: bool = False,
         original_shallow_snapshot: bytes | None = None,
         shallow_authoritative: bool = True,
     ) -> None:
@@ -789,10 +787,15 @@ class GitService:
         affected_refs = {target_ref}
         if tag_name is not None:
             affected_refs.add(remote_branch_ref)
-        if import_main and tag_name is None and branch_name != 'main':
-            main_target_ref = f'refs/remotes/{self.env_config.git_remote}/main'
-            refspecs.insert(0, f'+refs/heads/main:{main_target_ref}')
-            affected_refs.add(main_target_ref)
+        if import_primary_branch and tag_name is None:
+            primary_branch = self.repo_config.primary_branch
+            if branch_name != primary_branch:
+                primary_source_ref = f'refs/heads/{primary_branch}'
+                primary_target_ref = (
+                    f'refs/remotes/{self.env_config.git_remote}/{primary_branch}'
+                )
+                refspecs.insert(0, f'+{primary_source_ref}:{primary_target_ref}')
+                affected_refs.add(primary_target_ref)
 
         original_ref_targets: dict[str, Oid | None] = {}
         for ref_name in affected_refs:
@@ -870,12 +873,13 @@ class GitService:
         """在线程中拉取单个代码源，超时后作废本次尝试。"""
         repo = self._open_repo()
         branch_name = self.env_config.git_branch
+        primary_branch = self.repo_config.primary_branch
         local_ref = f'refs/heads/{branch_name}'
         shallow_snapshot = _read_shallow_snapshot(_get_repository_shallow_path(repo))
         shallow_oids = set(_parse_shallow_snapshot(shallow_snapshot))
         base_ref: str | None = None
         base_oid: Oid | None = None
-        fetch_main = False
+        fetch_primary_branch = False
 
         local_oid = (
             repo.references[local_ref].target
@@ -892,14 +896,18 @@ class GitService:
                 depth = 0
                 base_ref = local_ref
                 base_oid = local_oid
-        elif branch_name != 'main':
-            base_oid = self._get_complete_main_oid(repo, shallow_oids)
+        elif branch_name != primary_branch:
+            base_oid = self._get_complete_primary_branch_oid(
+                repo,
+                shallow_oids,
+                primary_branch,
+            )
             if base_oid is None:
                 depth = 1
             else:
                 depth = 0
-                base_ref = 'refs/heads/main'
-                fetch_main = True
+                base_ref = f'refs/heads/{primary_branch}'
+                fetch_primary_branch = True
         else:
             depth = 1
 
@@ -925,7 +933,7 @@ class GitService:
                 f'refs/tags/{tag_name}' if tag_name is not None else None,
                 base_ref,
                 str(base_oid) if base_oid is not None else None,
-                fetch_main,
+                fetch_primary_branch,
                 shallow_snapshot,
             ),
             daemon=True,
@@ -1011,7 +1019,7 @@ class GitService:
                 stage_start,
                 stage_end,
                 tag_name,
-                bool(result.get('main_incremental')),
+                bool(result.get('primary_branch_incremental')),
                 shallow_snapshot,
                 bool(result.get('shallow_authoritative', True)),
             )
