@@ -100,6 +100,9 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
   - **同开关联 PR**:开主仓 PR 时同开测试仓 PR,PR 描述互相挂链接(**跨仓链接用 `OneDragon-Anything/<repo>#<N>` 或完整 URL,禁裸 `#N`** —— 裸 `#N` 会被 GitHub 识别成本仓而非目标仓);别让测试仓分支挂着改动却没开 PR(主仓合了才补测试仓 = 漏)。
   - **合并顺序:测试仓先 → 主仓后**(主仓 main 的 test-check clone 测试仓 main,测试仓先合才稳)。
 - 如果用户明确要求切换分支，先 `stash` 当前改动，再切换。
+- **commit message 分两层**(规范依据 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)):
+  - **单个迭代 commit**:写清这一步干嘛即可,不强制格式;建议带 type 前缀(`fix:` / `docs:` / `chore:` / `wip:`)方便扫,但不要求 scope / 长度 / body。判据:不看 diff 也能知道这步干了啥(✅ `fix: Y 坐标分母` ❌ `update`)。
+  - **需要额外提供 commit message 的 merge**(squash、merge commit 等,merge 时要写/确认最终 message 的):严格 Conventional Commits —— message = `type(scope): subject`;description 开头一段 why(每行 ≤72,写 what/why 不写 how,不列改动清单)+ `##` 关联(issue / 测试仓 PR)。type ∈ `feat / fix / docs / refactor / test / chore / perf / build / ci / style`,scope = 模块,subject 祈使句 ≤50、无句号,PR/issue 号不进 subject(GitHub squash 自动追加 `(#NNNN)`)。仓库 squash 设置用 PR description(第一个 `##` 前 = commit body),收尾时按 `zzz-od-dev-pr-finishing` skill 维护 title + desc;不重复 CodeRabbit Walkthrough,不写 `Co-Authored-By`。
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
 - 提交 PR 后，review comment 需要逐条回复或修正。
 

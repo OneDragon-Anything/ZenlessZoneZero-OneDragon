@@ -12,7 +12,7 @@ description: 当用户要把已开的 PR 推到「完善可合并」、处理 PR
 1. **CI checks**:required 全 pass;**条件触发类 check 的 `skipping` 不算失败**(如打包/签名/发布类 check,PR 上不触发属正常)—— 只看 required 是否绿。
 2. **自动化 review 完成且无新建议**:CodeRabbit 这轮 review 跑完。⚠️ **增量 review 无新建议时,它不建 check run、也不留 review 记录** —— 完成态靠它回复的 issue comment(对 `@coderabbitai review` / 自动 review 的 ack,body `<details>` 里 `✅ Action performed` → `Review finished`)确认,结合 0 unresolved。别因 `reviews` 没新记录 / 没 check run 就以为没 review(见流程 1)。
 3. **讨论区无 unresolved thread**:每条都处理过(每条最终都要 resolve,不留 —— 见流程 2)。
-4. **关联 PR(跨仓)也都 done**:跨仓同分支的关联 PR(如测试仓 PR)也按本 skill 收尾全清;**都 done 才合**(见流程 6)。
+4. **关联 PR(跨仓)也都 done**:跨仓同分支的关联 PR(如测试仓 PR)也按本 skill 收尾全清;**都 done 才合**(见流程 7)。
 
 ## 流程
 
@@ -56,12 +56,21 @@ resolve 前确保 CodeRabbit 对这条「说完话了」,不抢它的判断、�
 ### 4. push → 迭代
 每次 push 触发 review 重审 + CI 重跑,**可能新提 comment**。重复 1-3,直到「review 完成 + 无 unresolved + checks 绿」稳定。若连续 2 轮仍冒新 comment 或无法收敛 → 停下来问人,别死循环。
 
-### 5. 合并前
+### 5. 整理 PR title + description(供 merge commit message,合并前)
+需要额外提供 commit message 的 merge(squash、merge commit 等)时,PR title + desc 是最终 message 的来源(仓库 squash 设置已用 PR description,第一个 `##` 前 = commit body)。收尾时把 title + desc 维护成严格 Conventional Commits 的 message(规范见 AGENTS.md「commit message 分两层」):
+- **title**:`type(scope): subject`(≤50、祈使句);已合规则不动。
+- **description**:开头一段总结(why / 关键决策,2-5 行,每行 ≤72;不列改动清单、不写 `Co-Authored-By`)+ `##` 后的关联(issue / 测试仓 PR 链接)。第一个 `##` 前 = squash commit body。
+- 命令:`gh pr edit <PR> --title "type(scope): subject" --body "..."`(body 多行用 heredoc 或临时文件传)。
+- **关联 PR(测试仓)**:同样整理(两仓 squash 设置都已改 `PR_BODY` 时)。
+- **时机**:只在收尾(done、合并前)做一次,不每次 push。
+- AI 不执行 merge;这步只把 desc 准备好,merge 由用户决定(边界同下一条「合并前」)。
+
+### 6. 合并前
 `mergeable` 要 `MERGEABLE`、非 `DIRTY`;dirty → rebase 到目标分支。是否 merge / 合并方式不在本 skill 范围(见 superpowers:finishing-a-development-branch)。
 
 **合并后清理(提示,不主动)**:PR 合并后,可**提示**用户删除该 PR 的本地 + remote 分支(`git branch -d <branch>` + `git push origin --delete <branch>`)。只提示,**不主动执行**——分支可能还在用(回看 / cherry-pick)、或用户想保留,由用户确认时机。`gh pr merge --delete-branch` 会同时删 remote + 本地,但只删当前 PR 的;之前遗留的分支要手动清。
 
-### 6. 关联 PR(跨仓)协同
+### 7. 关联 PR(跨仓)协同
 本项目跨仓:主仓 PR 常带配套**测试仓 PR**(同分支名,主仓描述带测试仓 PR 链接)。
 - **关联 PR 不只看 open PR(由真实事故提炼)**:测试仓改动可能挂在同分支但**没开 PR**(改动没经 review)→ `gh pr list --head <分支>` 查 open PR 为空**不等于**"无配套"。收尾主仓前用 git 验证测试仓同分支有无未合改动:`git -C zzz-od-test fetch https && git -C zzz-od-test log https/main..<同名分支>`(有输出 = 测试仓有未合改动,必须先开 PR 合掉再合主仓,否则主仓 main 的 test-check 跑测试仓 main 缺这些测试 = CI 通过但测试缺失;无输出 = 确实无配套)。
 - **一起收尾**:关联 PR 都按本 skill 走(CI/review/unresolved 全清),不只当前 PR。
