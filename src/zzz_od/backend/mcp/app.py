@@ -213,11 +213,13 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         template_sub_dir: str = '', template_id: str = '', template_match_threshold: float = 0.7,
         color_range: list[list[int]] | None = None, goto_list: list[str] | None = None,
         id_mark: bool = False, gamepad_key: str | None = None,
+        cvpipe: str = '',
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类,改 screen_info。
 
         area_name 存在则整体更新,不存在则追加。校验:screen 存在、area_name 非空、pc_rect 合法、
-        模板引用存在(template_id 非空时)。写回 yml 并 reload,下次 analyze_screen 即生效。无需游戏在线。
+        模板引用存在(template_id 非空时)。cvpipe 配置后区域定位完全走流水线(不能默认点击、拿框可能为空需判空)。
+        写回 yml 并 reload,下次 analyze_screen 即生效。无需游戏在线。
 
         Returns:
             dict: ``{success, screen_name, area_name, action(inserted/updated), area_count, error}``。
@@ -227,6 +229,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
                 screen_name, area_name, pc_rect, text, lcs_percent,
                 template_sub_dir, template_id, template_match_threshold,
                 color_range, goto_list, id_mark, gamepad_key,
+                cvpipe,
             )
         except Exception as e:  # noqa: BLE001 工具层统一兜底
             return {'success': False, 'screen_name': screen_name, 'area_name': area_name,
