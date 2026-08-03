@@ -181,11 +181,11 @@ class LostVoidChallengeConfig(YamlConfig):
     def artifact_priority_str(self) -> str:
         return '\n'.join(self.artifact_priority)
 
-    # 实战中整合协战代理人武备后的第一优先级, 程序运行时自动添加
+    # 战斗组：协战代理人武备属性, 程序运行时自动添加, 独立于用户配置的优先级
     @property
-    def artifact_priority_in_battle(self) -> list[str] | None:
+    def artifact_priority_in_battle(self) -> list[str]:
         if self._artifact_priority_in_battle is None:
-            self._artifact_priority_in_battle = self.artifact_priority.copy()
+            self._artifact_priority_in_battle = []
         return self._artifact_priority_in_battle
 
     def clear_artifact_priority_in_battle(self):

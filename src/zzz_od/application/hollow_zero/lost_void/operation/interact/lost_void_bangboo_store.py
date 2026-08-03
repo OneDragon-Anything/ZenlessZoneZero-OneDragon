@@ -99,7 +99,8 @@ class LostVoidBangbooStore(ZOperation):
 
         priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
             art_list, 1,
-            consider_priority_1=True, consider_priority_2=self.refresh_times > self.ctx.lost_void.challenge_config.buy_only_priority_1,
+            consider_priority_1=True,
+            consider_priority_2=self.refresh_times > self.ctx.lost_void.challenge_config.buy_only_priority_2,
             consider_not_in_priority=self.refresh_times > self.ctx.lost_void.challenge_config.buy_only_priority_2,
             consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
         )
