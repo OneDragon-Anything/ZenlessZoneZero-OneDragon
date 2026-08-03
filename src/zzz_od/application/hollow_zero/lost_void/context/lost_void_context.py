@@ -747,7 +747,7 @@ class LostVoidContext:
         primary_cnt = len([i for i in artifact_list if i.is_primary_name])
         secondary_cnt = len(artifact_list) - primary_cnt
         log.info(f'优先级决策 | 候选={len(artifact_list)}(主选={primary_cnt} 次选={secondary_cnt}) 需选={choose_num} | 放行=第1,2级:{consider_priority_1} 第3,4级:{consider_priority_2} 补位:{consider_not_in_priority} NEW:{consider_priority_new}')
-        log.info(f'优先级决策 | 级别匹配 | {level_text} 放弃组={abandon_text}')
+        log.debug(f'优先级规则 | {level_text} 放弃组={abandon_text}')
 
         priority_idx_list: list[int] = []  # 优先级排序的下标
         choose_reason_map: dict[int, str] = {}
@@ -783,7 +783,9 @@ class LostVoidContext:
                         add_idx_if_absent(idx, f'{group_name}-NEW优先 命中等级={level}')
 
             # 2) 按优先级级别匹配（坐标顺序作为同优先级稳定序）
+            level_hit_parts: list[str] = []
             for level_name, priority_list in priority_levels:
+                rule_parts: list[str] = []
                 for priority_rule in priority_list:
                     matched_idx_list: list[int] = []
                     for idx in group_idx_list:
@@ -794,9 +796,13 @@ class LostVoidContext:
                             add_idx_if_absent(idx, f'{group_name}-{level_name} 命中规则="{priority_rule}"')
                     if len(matched_idx_list) > 0:
                         hit_text = ', '.join([fmt_artifact(artifact_list[idx], idx) for idx in matched_idx_list])
-                        log.debug(f'规则命中 {group_name}-{level_name} 规则="{priority_rule}" 命中={hit_text}')
+                        rule_parts.append(f'规则"{priority_rule}"命中[{hit_text}]')
                     else:
-                        log.debug(f'规则未命中 {group_name}-{level_name} 规则="{priority_rule}"')
+                        rule_parts.append(f'规则"{priority_rule}"未命中')
+                if len(rule_parts) > 0:
+                    level_hit_parts.append(f'{level_name}: ' + '; '.join(rule_parts))
+            if len(level_hit_parts) > 0:
+                log.debug(f'优先级匹配 | {group_name}组 | ' + ' || '.join(level_hit_parts))
 
             # 3) 其余候选按坐标顺序补齐：先普通（第5级），再放弃组（第6级）
             if consider_not_in_priority:
