@@ -224,14 +224,6 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('period_buff_no', new_value)
 
     @property
-    def buy_only_priority_1(self) -> int:
-        return self.get('buy_only_priority_1', 1)
-
-    @buy_only_priority_1.setter
-    def buy_only_priority_1(self, new_value: int):
-        self.update('buy_only_priority_1', new_value)
-
-    @property
     def buy_only_priority_2(self) -> int:
         return self.get('buy_only_priority_2', 3)
 

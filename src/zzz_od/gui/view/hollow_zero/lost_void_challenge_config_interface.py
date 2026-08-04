@@ -145,12 +145,8 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                                                   content='最高优先级 但不保证识别正确')
         widget.add_widget(self.priority_new_opt)
 
-        self.buy_only_priority_1_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第一优先级',
-                                                       content='刷新多少次数内 只购买第一优先级内的藏品')
-        widget.add_widget(self.buy_only_priority_1_opt)
-
-        self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第二优先级',
-                                                       content='刷新多少次数内 只购买第二优先级内的藏品')
+        self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='x次内只买高优先级',
+                                                       content='刷新 x 次以内 只购买第一、二优先级内的藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
 
         widget.add_stretch(1)
@@ -234,8 +230,6 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.store_blood_min_opt.init_with_adapter(
                 self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
             self.priority_new_opt.init_with_adapter(self.chosen_config.get_prop_adapter('artifact_priority_new'))
-            self.buy_only_priority_1_opt.init_with_adapter(
-                self.chosen_config.get_prop_adapter('buy_only_priority_1', getter_convert='str', setter_convert='int'))
             self.buy_only_priority_2_opt.init_with_adapter(
                 self.chosen_config.get_prop_adapter('buy_only_priority_2', getter_convert='str', setter_convert='int'))
 
@@ -276,7 +270,6 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.store_blood_opt.setDisabled(not chosen or is_sample)
         self.store_blood_min_opt.setDisabled(not chosen or is_sample)
         self.priority_new_opt.setDisabled(not chosen or is_sample)
-        self.buy_only_priority_1_opt.setDisabled(not chosen or is_sample)
         self.buy_only_priority_2_opt.setDisabled(not chosen or is_sample)
         self.artifact_priority_input.setDisabled(not chosen or is_sample)
         self.artifact_priority_input_2.setDisabled(not chosen or is_sample)

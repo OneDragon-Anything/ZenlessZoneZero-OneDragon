@@ -738,7 +738,12 @@ class LostVoidContext:
             if len(self.challenge_config.artifact_priority_in_battle) > 0:
                 priority_levels.append(('第4级(战斗组)', self.challenge_config.artifact_priority_in_battle))
 
-        if len(priority_levels) == 0:  # 前4级都没有放行内容时 强制考虑非优先级的
+        # 四个优先级配置列表全部为空时 才强制考虑非优先级的
+        # 不能依据门控后的 priority_levels 判断（门控可能因轮次放行限制挡住有内容的配置）
+        if (len(self.dynamic_priority_list) == 0
+                and len(self.challenge_config.artifact_priority) == 0
+                and len(self.challenge_config.artifact_priority_2) == 0
+                and len(self.challenge_config.artifact_priority_in_battle) == 0):
             consider_not_in_priority = True
 
         level_text_list = [f'{name}={",".join(rule_list) if len(rule_list) > 0 else "空"}' for name, rule_list in priority_levels]
