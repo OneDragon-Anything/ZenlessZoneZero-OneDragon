@@ -720,10 +720,11 @@ class LostVoidContext:
         # 六级优先级模型，按顺序匹配：
         # 第1级 动态优先级 / 第2级 配置第一 / 第3级 配置第二 / 第4级 战斗组
         # 第5级 其他（非优先级）补位 / 第6级 放弃组 最后补位
-        # 参数只控制放行到第几级，顺序全局唯一：
+        # 参数只控制放行到第几级：
         # consider_priority_1 -> 放行第1、2级
         # consider_priority_2 -> 放行第3、4级
         # consider_not_in_priority -> 放行第5、6级
+        # 注意：主选组整体优先于次选组（任务目标优先），级别序只在组内生效。
         priority_levels: list[tuple[str, list[str]]] = []
 
         if consider_priority_1:

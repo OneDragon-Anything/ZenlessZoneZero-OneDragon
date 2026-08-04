@@ -26,7 +26,7 @@ artifact_priority_2:
   - 通用
   - 绝境 靶向抗体
   - 绝境 阵痛激素
-buy_only_priority_2: 1
+buy_only_priority_2: 3
 period_buff_no: 第三个
 investigation_strategy: 抢占先机战略
 chase_new_mode: false

@@ -146,7 +146,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.priority_new_opt)
 
         self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='x次内只买高优先级',
-                                                       content='刷新 x 次以内 只购买第一、二优先级内的藏品')
+                                                       content='到达第 x 轮（已刷新 x-1 次）后 才放开第 3~6 级藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
 
         widget.add_stretch(1)
@@ -373,11 +373,6 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             return
 
         self.chosen_config.update_module_name(value)
-
-    def _on_buy_only_priority_changed(self, value: bool):
-        if self.chosen_config is None:
-            return
-        self.chosen_config.buy_only_priority = value
 
     def _on_auto_battle_config_changed(self, index, value) -> None:
         if self.chosen_config is None:

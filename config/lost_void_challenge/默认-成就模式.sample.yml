@@ -15,7 +15,7 @@ artifact_priority_2:
 - 终结
 - 绝境
 - 通用
-buy_only_priority_2: 1
+buy_only_priority_2: 3
 period_buff_no: 第一个
 investigation_strategy: 攻其不备战略
 chase_new_mode: true
