@@ -41,6 +41,7 @@ class CombatSimulation(ZOperation):
     STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
+    REWARD_QUANTITY_MIN_Y: ClassVar[int] = 100
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         """
@@ -376,10 +377,13 @@ class CombatSimulation(ZOperation):
             if quantity is None or quantity <= 0:
                 continue
             for match_result in match_result_list:
+                # 奖励区域顶部还包含绳网经验；材料格数量只会出现在下方。
+                if match_result.y < self.REWARD_QUANTITY_MIN_Y:
+                    continue
                 quantity_matches.append((quantity, match_result))
 
         if not quantity_matches:
-            log.warning('结算页奖励数量识别失败 OCR=%s', list(ocr_result_map))
+            log.warning(f'结算页奖励数量识别失败 OCR={list(ocr_result_map)}')
             return None
 
         if len(material_names) == 1:
@@ -393,10 +397,8 @@ class CombatSimulation(ZOperation):
             )
             if rarity_idx is None or rarity_idx >= len(material_names):
                 log.warning(
-                    '结算页材料品质识别失败 数量=%d 位置=(%d,%d)',
-                    quantity,
-                    quantity_match.x,
-                    quantity_match.y,
+                    f'结算页材料品质识别失败 数量={quantity} '
+                    f'位置=({quantity_match.x},{quantity_match.y})'
                 )
                 return None
             material_name = material_names[rarity_idx]

@@ -10,10 +10,8 @@ from pydantic import Field
 
 from zzz_od.backend.backend_context import ZzzBackendContext
 from zzz_od.backend.config_router import (
-    RouterEntry,
     _build_list_fields,
     _build_set_fields,
-    _enum_options,
     _ro_item_fields_for,
     all_entries,
     get_entry,
@@ -43,7 +41,13 @@ def make_add_config_item(backend: ZzzBackendContext) -> Callable:
             return {'ok': False, 'error': f'list_field 应为 {expected_list},实际 {list_field}'}
         try:
             config = entry.get_config(ctx, instance_idx, group_id)
-            item = entry.item_from_dict(item_dict)
+            read_only_fields: set[str] = set(_ro_item_fields_for(app_id))
+            writable_item_dict: dict[str, Any] = {
+                name: value
+                for name, value in item_dict.items()
+                if name not in read_only_fields
+            }
+            item = entry.item_from_dict(writable_item_dict)
             err = entry.validate_item(ctx, item)
             if err:
                 return {'ok': False, 'error': err}

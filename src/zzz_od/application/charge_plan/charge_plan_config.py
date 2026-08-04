@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
+from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
 
 
@@ -167,15 +168,28 @@ class ChargePlanItem:
             lowest_tier_units += self.material_counts.get(material_name, 0) * multiplier
         return lowest_tier_units // (3 ** (tier_count - 1))
 
+    def _material_count_invalid_reason(self) -> str | None:
+        """返回材料数量计划不能运行的原因。"""
+        if not self.supports_material_count:
+            return '当前副本不支持按材料数量运行'
+        if not self.target_material_name:
+            return '目标材料为空'
+        if self.target_material_count <= 0:
+            return '目标材料数必须大于 0'
+        return None
+
     @property
     def is_finished(self) -> bool:
         """计划是否已达到所选运行方式的目标。"""
         if self.is_material_count_plan:
-            if (
-                not self.supports_material_count
-                or not self.target_material_name
-                or self.target_material_count <= 0
-            ):
+            invalid_reason = self._material_count_invalid_reason()
+            if invalid_reason is not None:
+                log.warning(
+                    f'材料数量计划配置非法，按已完成处理 '
+                    f'plan_id={self.plan_id} category={self.category_name} '
+                    f'mission_type={self.mission_type_name} '
+                    f'mission={self.mission_name} reason={invalid_reason}'
+                )
                 return True
             return self.current_material_count >= self.target_material_count
         return self.run_times >= self.plan_times
@@ -439,7 +453,7 @@ class ChargePlanConfig(ApplicationConfig):
                 modified = True
             if modified:
                 self.save()
-            return modified
+            return True
         return False
 
     def _is_same_plan(

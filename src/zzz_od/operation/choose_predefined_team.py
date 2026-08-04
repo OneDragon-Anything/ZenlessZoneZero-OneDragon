@@ -56,9 +56,17 @@ class ChoosePredefinedTeam(ZOperation):
         """等待黑屏加载结束，并确认预备编队列表已经显示。"""
         ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         card_markers: set[str] = {'1P', '2P', '3P', 'BANGBOO'}
-        found_markers = card_markers.intersection(ocr_map)
-        has_select = any('SELECT' in text.upper() for text in ocr_map)
-        if has_select or len(found_markers) >= 2:
+        normalized_texts: list[str] = [
+            ''.join(text.upper().split())
+            for text in ocr_map
+        ]
+        found_markers: set[str] = {
+            marker
+            for marker in card_markers
+            if any(marker in text for text in normalized_texts)
+        }
+        has_select = any('SELECT' in text for text in normalized_texts)
+        if has_select or len(found_markers) >= 1:
             return self.round_success('预备编队列表')
         return self.round_retry('等待预备编队列表', wait=1)
 

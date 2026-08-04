@@ -248,7 +248,11 @@ class ChargePlanCard(DraggableListItem):
         config_list = [ChargePlanRunModeEnum.RUN_TIMES.value]
         if self.plan.supports_material_count:
             config_list.append(ChargePlanRunModeEnum.MATERIAL_COUNT.value)
-        self.run_mode_box.set_items(config_list, self.plan.run_mode)
+        signals_were_blocked: bool = self.run_mode_box.blockSignals(True)
+        try:
+            self.run_mode_box.set_items(config_list, self.plan.run_mode)
+        finally:
+            self.run_mode_box.blockSignals(signals_were_blocked)
 
     def init_run_times_input(self) -> None:
         self.run_times_input.blockSignals(True)
@@ -298,10 +302,14 @@ class ChargePlanCard(DraggableListItem):
             ConfigItem('只计算目标材料', False),
             ConfigItem('计入低级材料合成', True),
         ]
-        self.include_synthesis_box.set_items(
-            synthesis_items,
-            self.plan.include_synthesis,
-        )
+        signals_were_blocked: bool = self.include_synthesis_box.blockSignals(True)
+        try:
+            self.include_synthesis_box.set_items(
+                synthesis_items,
+                self.plan.include_synthesis,
+            )
+        finally:
+            self.include_synthesis_box.blockSignals(signals_were_blocked)
 
     def update_run_mode_visibility(self) -> None:
         material_mode_available = self.plan.supports_material_count
@@ -405,7 +413,9 @@ class ChargePlanCard(DraggableListItem):
         self.plan.mission_name = mission_name
         self.plan.target_material_name = ''
         self.plan.material_counts.clear()
+        self.init_run_mode_box()
         self.init_material_count_inputs()
+        self.update_run_mode_visibility()
 
         self._emit_value()
 
