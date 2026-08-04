@@ -162,11 +162,11 @@ class SettingPluginInterface(VerticalScrollInterface):
         self.open_dir_btn.clicked.connect(self._on_open_dir_clicked)
 
         self.open_market_btn = PushButton(FluentIcon.SHOPPING_CART, gt('插件市场'))
-        self.open_market_btn.clicked.connect(lambda: QDesktopServices.openUrl(''))
+        self.open_market_btn.clicked.connect(lambda: QDesktopServices.openUrl('https://onedragon-anyone.github.io/plugin-registry/'))
 
         # 创建操作卡片
         action_card = MultiPushSettingCard(
-            btn_list=[self.import_btn, self.import_dir_btn, self.refresh_btn, self.open_dir_btn],
+            btn_list=[self.import_btn, self.import_dir_btn, self.refresh_btn, self.open_dir_btn, self.open_market_btn],
             title=gt('插件操作'),
             content=gt('导入 zip 格式或目录格式的插件'),
             icon=FluentIcon.APPLICATION,
