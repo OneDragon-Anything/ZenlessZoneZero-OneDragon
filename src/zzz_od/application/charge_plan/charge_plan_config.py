@@ -101,8 +101,12 @@ class ChargePlanItem:
         normalized_target_count = _normalize_material_count_value(self.target_material_count)
         self.target_material_count = max(0, normalized_target_count or 0)
 
+        raw_material_counts = self.material_counts
+        if not isinstance(raw_material_counts, dict):
+            raw_material_counts = {}
+
         normalized_counts: dict[str, int] = {}
-        for material_name, count in (self.material_counts or {}).items():
+        for material_name, count in raw_material_counts.items():
             normalized_count = _normalize_material_count_value(count)
             if normalized_count is None:
                 continue
