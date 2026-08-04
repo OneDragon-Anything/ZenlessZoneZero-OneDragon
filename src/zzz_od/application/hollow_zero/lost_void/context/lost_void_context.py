@@ -534,7 +534,9 @@ class LostVoidContext:
             elif ':' in raw_category:
                 category = raw_category.split(':', 1)[0].strip()
             else:
-                category = raw_category[:2].strip()
+                # 保留完整分类文本（如“异常·击破”“射吸式焊炬”），
+                # 由匹配侧 _is_category_match 归一化处理，避免截断丢信息
+                category = raw_category.strip()
             if len(category) == 0:
                 category = raw_category
 
