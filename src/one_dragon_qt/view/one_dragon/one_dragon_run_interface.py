@@ -136,7 +136,6 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.blockSignals(False)
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
-        self.after_done_opt.setVisible(self.need_after_done_opt)
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
         self.run_all_apps_signal.connect(self.run_app)
