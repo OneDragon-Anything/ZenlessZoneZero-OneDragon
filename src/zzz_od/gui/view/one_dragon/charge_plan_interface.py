@@ -85,11 +85,11 @@ class ChargePlanCard(DraggableListItem):
         self.auto_battle_combo_box = ComboBox()
         self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
 
-        run_times_label = CaptionLabel(text=gt('已运行次数'))
+        self.run_times_label = CaptionLabel(text=gt('已运行次数'))
         self.run_times_input = LineEdit()
         self.run_times_input.textChanged.connect(self._on_run_times_changed)
 
-        plan_times_label = CaptionLabel(text=gt('计划次数'))
+        self.plan_times_label = CaptionLabel(text=gt('计划次数'))
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
@@ -113,9 +113,9 @@ class ChargePlanCard(DraggableListItem):
                     self.auto_battle_combo_box,
                 ],
                 [
-                    run_times_label,
+                    self.run_times_label,
                     self.run_times_input,
-                    plan_times_label,
+                    self.plan_times_label,
                     self.plan_times_input,
                     self.move_top_btn,
                     self.del_btn,
@@ -145,7 +145,7 @@ class ChargePlanCard(DraggableListItem):
         config_list = self.ctx.compendium_service.get_charge_plan_mission_type_list(self.plan.category_name)
         self.mission_type_combo_box.set_items(config_list, self.plan.mission_type_name)
         self.mission_type_combo_box.setVisible(
-            self.plan.category_name != '合成电池'
+            self.plan.category_name not in ('合成电池', '特训目标')
         )
 
     def init_mission_combo_box(self) -> None:
@@ -189,11 +189,17 @@ class ChargePlanCard(DraggableListItem):
         self.run_times_input.blockSignals(True)
         self.run_times_input.setText(str(self.plan.run_times))
         self.run_times_input.blockSignals(False)
+        visible = not self.plan.is_training_goal
+        self.run_times_label.setVisible(visible)
+        self.run_times_input.setVisible(visible)
 
     def init_plan_times_input(self) -> None:
         self.plan_times_input.blockSignals(True)
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
+        visible = not self.plan.is_training_goal
+        self.plan_times_label.setVisible(visible)
+        self.plan_times_input.setVisible(visible)
 
     def init_with_plan(
         self,
@@ -222,9 +228,12 @@ class ChargePlanCard(DraggableListItem):
         category_name = self.category_combo_box.itemData(idx)
         self.plan.category_name = category_name
         self.plan.tab_name = '训练'
-        if category_name == '合成电池':
+        if category_name in ('合成电池', '特训目标'):
             self.plan.mission_type_name = ''
             self.plan.mission_name = None
+        if category_name == '特训目标':
+            self.plan.run_times = 0
+            self.plan.plan_times = 1
 
         self.init_mission_type_combo_box()
         self.init_mission_combo_box()
@@ -232,6 +241,8 @@ class ChargePlanCard(DraggableListItem):
         self.init_notorious_hunt_buff_num_opt()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
+        self.init_run_times_input()
+        self.init_plan_times_input()
 
         self._emit_value()
 
@@ -575,7 +586,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         if dialog.exec():
             self.plan_list_backup = self.config.plan_list.copy()
             not_completed_plans = [plan for plan in self.config.plan_list
-                                   if plan.run_times < plan.plan_times]
+                                   if plan.is_training_goal or plan.run_times < plan.plan_times]
             self.config.plan_list = not_completed_plans.copy()
             self.config.save()
             self.cancel_btn.setEnabled(True)
