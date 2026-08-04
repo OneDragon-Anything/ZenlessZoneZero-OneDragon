@@ -165,8 +165,20 @@ def _charge_plan_get_config(
 
 
 def _charge_plan_item_from_dict(data: dict) -> object:
-    from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
-    return ChargePlanItem.from_dict(data)
+    """构造体力计划，并补齐无需具体副本字段的分类默认值。"""
+    from zzz_od.application.charge_plan.charge_plan_config import (
+        TRAINING_GOAL_CATEGORY_NAME,
+        ChargePlanItem,
+    )
+
+    normalized_data = dict(data)
+    if normalized_data.get('category_name') in (
+        TRAINING_GOAL_CATEGORY_NAME,
+        '合成电池',
+    ):
+        normalized_data.setdefault('mission_type_name', '')
+        normalized_data.setdefault('mission_name', None)
+    return ChargePlanItem.from_dict(normalized_data)
 
 
 def _charge_plan_validate_item(ctx: 'ZContext', item: object) -> str | None:
@@ -191,6 +203,7 @@ def _charge_plan_delete(config: object, plan_id: str) -> bool:
 def _notorious_hunt_get_config(
     ctx: 'ZContext', instance_idx: int | None, group_id: str | None,
 ) -> object:
+    """取得指定实例和分组的恶名狩猎配置。"""
     from one_dragon.base.operation.application import application_const
     from zzz_od.application.notorious_hunt import notorious_hunt_const
 
@@ -202,6 +215,7 @@ def _notorious_hunt_get_config(
 
 
 def _notorious_hunt_validate_item(ctx: 'ZContext', item: object) -> str | None:
+    """校验恶名狩猎计划是否符合快捷手册数据。"""
     from zzz_od.application.notorious_hunt.notorious_hunt_config import (
         NotoriousHuntConfig,
     )
@@ -296,9 +310,24 @@ def _build_routes() -> dict[str, RouterEntry]:
                 'daily_reset_plan_times': {'type': 'bool', 'desc': '每日重置'},
             },
             item_schema=[
-                {'name': 'category_name', 'type': 'enum', 'required': True, 'enum_cls': '从 compendium 取(charge_plan category: 特训目标/实战模拟室/区域巡防/专业挑战室/恶名狩猎/定期清剿/合成电池)'},
-                {'name': 'mission_type_name', 'type': 'str', 'required': True, 'note': '合法值依赖 category,describe_config 传 category 参数查'},
-                {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '部分 category/mission_type 必填(如实战模拟室/基础材料 需要传)'},
+                {
+                    'name': 'category_name',
+                    'type': 'enum',
+                    'required': True,
+                    'enum_cls': 'compendium_service.get_charge_plan_category_list()',
+                },
+                {
+                    'name': 'mission_type_name',
+                    'type': 'str',
+                    'required': False,
+                    'note': '特训目标/合成电池可省略并默认空字符串；其他分类必填，describe_config 传 category 参数查合法值',
+                },
+                {
+                    'name': 'mission_name',
+                    'type': 'str',
+                    'required': False,
+                    'note': '特训目标/合成电池可省略并默认 None；其他分类是否必填取决于 category/mission_type',
+                },
                 {'name': 'plan_times', 'type': 'int', 'required': False, 'default': 1},
                 {'name': 'run_times', 'type': 'int', 'required': False, 'default': 0, 'note': '运行次数(可手工修正,如手工跑了一次后调整)'},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},

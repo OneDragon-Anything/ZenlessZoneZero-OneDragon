@@ -104,6 +104,7 @@ class ChooseTrainingGoal(ZOperation):
     STATUS_NO_TARGET = '未设置特训目标或没有可刷取目标'
 
     def __init__(self, ctx: ZContext, available_charge: int) -> None:
+        """初始化统一页选择操作和本次可用电量。"""
         ZOperation.__init__(self, ctx, op_name='快捷手册 选择特训目标')
         self.available_charge: int = available_charge
         self.selection: TrainingGoalSelection | None = None
@@ -126,6 +127,7 @@ class ChooseTrainingGoal(ZOperation):
     @node_from(from_name='重置列表位置')
     @operation_node(name='识别并选择目标', node_max_retry_times=3)
     def choose_goal(self) -> OperationRoundResult:
+        """选择当前最高优先级目标，必要时下滚查找推荐驱动盘。"""
         selection = self.analyze_goal(self.last_screenshot)
         if selection is None or selection.go_point is None:
             self.missing_times += 1
@@ -148,6 +150,7 @@ class ChooseTrainingGoal(ZOperation):
     @node_from(from_name='识别并选择目标')
     @operation_node(name='确认传送')
     def confirm(self) -> OperationRoundResult:
+        """确认从统一页传送到本次实际副本。"""
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '快捷手册',

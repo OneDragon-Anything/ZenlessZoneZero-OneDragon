@@ -31,7 +31,7 @@ class ExpertChallenge(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem) -> None:
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -59,6 +59,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='等待入口加载')
     @operation_node(name='关闭燃竭模式')
     def close_burnout_mode(self) -> OperationRoundResult:
+        """按临时计划决定保留或关闭燃竭模式。"""
         if self.plan.use_burnout_mode:
             return self.round_success('保留燃竭模式')
 

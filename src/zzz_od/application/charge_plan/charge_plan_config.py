@@ -71,6 +71,7 @@ class ChargePlanItem:
 
     @property
     def estimated_charge_power(self) -> int:
+        """返回进入计划前用于筛选的最低电量估算。"""
         # 进本前只做体力预估；未知类型交给副本内流程再检查真实消耗
         if self.is_training_goal:
             # 统一页最便宜的是实战模拟室 1 张卡。先用最低消耗挡住完全
@@ -167,41 +168,42 @@ class ChargePlanConfig(ApplicationConfig):
     def reset_plans(self) -> None:
         """
         根据运行次数重置运行计划。
-        普通计划按整轮扣减，已跳过的动态计划在进入下一轮时清零。
+        未跳过的普通计划按整轮扣减；本次已跳过的计划保持不变，
+        其中动态计划的遗留运行次数在进入下一轮时清零。
         """
         if len(self.plan_list) == 0:
             return
 
         eligible = [
             p for p in self.plan_list
-            if not (p.skipped and (p.is_agent_plan or p.is_training_goal))
-            and p.plan_times > 0
+            if not p.skipped and p.plan_times > 0
         ]
         skipped_dynamic_plans = [
             p for p in self.plan_list
             if p.skipped and (p.is_agent_plan or p.is_training_goal)
         ]
-        modified = False
-
         if eligible:
+            reset_rounds = 0
             while True:
                 if any(p.run_times < p.plan_times for p in eligible):
                     break
 
                 for plan in eligible:
                     plan.run_times -= plan.plan_times
-                modified = True
+                reset_rounds += 1
+                self.save()
 
-            if not modified:
+            if reset_rounds == 0:
                 return
 
+        dynamic_plan_reset = False
         for plan in skipped_dynamic_plans:
             if plan.run_times == 0:
                 continue
             plan.run_times = 0
-            modified = True
+            dynamic_plan_reset = True
 
-        if modified:
+        if dynamic_plan_reset:
             self.save()
 
     def try_reset_plan_times_by_dt(self, current_dt: str) -> bool:
@@ -269,15 +271,15 @@ class ChargePlanConfig(ApplicationConfig):
 
     def all_plan_finished(self) -> bool:
         """
-        是否全部计划已完成（跳过本次运行已标记跳过的动态计划）
+        是否全部未跳过计划都已完成。
         """
         if self.plan_list is None:
             return True
 
         for plan in self.plan_list:
-            if plan.skipped and (plan.is_agent_plan or plan.is_training_goal):
+            if plan.skipped:
                 continue
-            if plan.is_training_goal and not plan.skipped:
+            if plan.is_training_goal:
                 return False
             if plan.run_times < plan.plan_times:
                 return False
