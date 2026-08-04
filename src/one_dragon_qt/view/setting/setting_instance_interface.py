@@ -343,14 +343,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
-        self.force_login_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC,
-            title="强制重新登录",
-            content="单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态",
-        )
-        self.force_login_opt.value_changed.connect(self.ctx.one_dragon_config.set_current_instance_force_login)
-        instance_settings_group.addSettingCard(self.force_login_opt)
-
         self.help_bilibili_opt = HelpCard(title='B服使用提示',
                                           content='B服在登录时会采用BitBlt的截图方法用于识别登录框，登录后还原。')
         instance_settings_group.addSettingCard(self.help_bilibili_opt)
@@ -362,6 +354,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
             input_placeholder="填写游戏中切换B服账号时显示的用户名",
         )
         instance_settings_group.addSettingCard(self.bilibili_account_name)
+
+        self.force_login_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC,
+            title="强制重新登录",
+            content="单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态",
+        )
+        self.force_login_opt.value_changed.connect(self.ctx.one_dragon_config.set_current_instance_force_login)
+        instance_settings_group.addSettingCard(self.force_login_opt)
 
         # self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
         #                                          options_enum=TypeInputWay)
