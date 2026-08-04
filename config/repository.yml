@@ -13,6 +13,10 @@ repositories:
       label: Gitee
       url: "https://gitee.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
       use_proxy: false
+    gitcode:
+      label: GitCode
+      url: "https://gitcode.com/gh_mirrors/ze/ZenlessZoneZero-OneDragon.git"
+      use_proxy: false
 env_source:
   default: cnb
   options:
