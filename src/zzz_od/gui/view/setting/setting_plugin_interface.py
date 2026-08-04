@@ -5,6 +5,7 @@ import sys
 import webbrowser
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
     FluentIcon,
@@ -159,6 +160,9 @@ class SettingPluginInterface(VerticalScrollInterface):
         # 打开目录按钮
         self.open_dir_btn = PushButton(FluentIcon.FOLDER, gt('打开目录'))
         self.open_dir_btn.clicked.connect(self._on_open_dir_clicked)
+
+        self.open_market_btn = PushButton(FluentIcon.SHOPPING_CART, gt('插件市场'))
+        self.open_market_btn.clicked.connect(lambda: QDesktopServices.openUrl(''))
 
         # 创建操作卡片
         action_card = MultiPushSettingCard(
@@ -635,8 +639,8 @@ class SettingPluginInterface(VerticalScrollInterface):
             return False  # 无法比较时不认为是降级
 
         try:
-            from packaging.version import Version
-            return Version(new_ver) < Version(old_ver)
+            from packaging import version
+            return version.parse(new_ver) < version.parse(old_ver)
         except Exception:
             # 简单字符串比较作为后备
             return new_ver < old_ver
