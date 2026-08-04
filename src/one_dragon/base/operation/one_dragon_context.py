@@ -79,7 +79,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        # 推迟启动：不要在 __init__ 早期启动钩子，避免初始化/加载重型 C 扩展库时导致鼠标严重卡顿
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -296,6 +295,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+
+            self.btn_listener.start()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -329,15 +330,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init)
         f.add_done_callback(thread_utils.handle_future_result)
-
-    def start_btn_listener(self) -> None:
-        """
-        启动按键与鼠标监听器。
-        推迟到程序启动与 GUI 初始化完成之后显式调用，避免初始化阶段加载重型 C 扩展库
-        导致的 Windows WH_MOUSE_LL 鼠标低级钩子卡顿问题。
-        """
-        if self.btn_listener is not None:
-            self.btn_listener.start()
 
     def _on_key_press(self, key: str):
         """
