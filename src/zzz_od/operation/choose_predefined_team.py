@@ -15,12 +15,6 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 class ChoosePredefinedTeam(ZOperation):
 
     TEAM_SCROLL_STEP: int = 4
-    # 灰色禁用按钮和相邻的「出战」都可能被 OCR 读到，只接受白色且完整的「预备出战」。
-    PREDEFINED_DEPLOY_LCS_PERCENT: float = 1.0
-    PREDEFINED_DEPLOY_COLOR_RANGE: tuple[tuple[int, int, int], tuple[int, int, int]] = (
-        (240, 240, 240),
-        (255, 255, 255),
-    )
 
     def __init__(self, ctx: ZContext, target_team_idx_list: list[int]):
         """
@@ -54,8 +48,7 @@ class ChoosePredefinedTeam(ZOperation):
     @operation_node(name='点击预备编队')
     def click_team(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '预备编队',
-                                                 success_wait=1, retry_wait=1,
-                                                 until_not_find_all=[('实战模拟室', '预备编队')])
+                                                 success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='尝试查找编队')
@@ -63,8 +56,7 @@ class ChoosePredefinedTeam(ZOperation):
     def choose_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
         result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
-                                   lcs_percent=self.PREDEFINED_DEPLOY_LCS_PERCENT,
-                                   color_range=[list(color) for color in self.PREDEFINED_DEPLOY_COLOR_RANGE])
+                                   color_range=[[240, 240, 240], [255, 255, 255]])
         if result.is_success:
             return self.round_success(result.status)
 
@@ -109,14 +101,7 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='选择编队')
     @operation_node(name='选择编队确认')
     def click_confirm(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
-        result = self.round_by_ocr_and_click(
-            self.last_screenshot,
-            '预备出战',
-            area=area,
-            lcs_percent=self.PREDEFINED_DEPLOY_LCS_PERCENT,
-            color_range=[list(color) for color in self.PREDEFINED_DEPLOY_COLOR_RANGE],
-        )
+        result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '预备出战')
         if result.is_success:
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
