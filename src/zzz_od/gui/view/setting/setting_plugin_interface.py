@@ -51,10 +51,10 @@ class PluginCard(MultiPushSettingCard):
         buttons = []
 
         # 主页按钮（如果有链接）
-        if plugin_info.homepage:
-            self.homepage_btn = PushButton(text=gt("主页"))
-            self.homepage_btn.clicked.connect(self._on_homepage_clicked)
-            buttons.append(self.homepage_btn)
+        self.homepage_btn = PushButton(text=gt("主页"))
+        self.homepage_btn.clicked.connect(self._on_homepage_clicked)
+        self.homepage_btn.setVisible(bool(plugin_info.homepage))
+        buttons.append(self.homepage_btn)
 
         # 删除按钮
         self.delete_btn = ToolButton(FluentIcon.DELETE, parent=None)
@@ -112,8 +112,7 @@ class PluginCard(MultiPushSettingCard):
         self.contentLabel.setText(content)
 
         # 更新主页按钮可见性
-        if hasattr(self, 'homepage_btn'):
-            self.homepage_btn.setVisible(bool(plugin_info.homepage))
+        self.homepage_btn.setVisible(bool(plugin_info.homepage))
 
 
 class SettingPluginInterface(VerticalScrollInterface):
