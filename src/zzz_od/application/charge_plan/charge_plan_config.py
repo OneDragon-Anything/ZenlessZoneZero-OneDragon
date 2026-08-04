@@ -60,6 +60,18 @@ _MATERIAL_SYNTHESIS_MISSION_TYPES: frozenset[str] = frozenset({
 })
 
 
+def _normalize_material_count_value(value: object) -> int | None:
+    """把配置中的材料数量转为整数，并拒绝布尔值和非整数小数。"""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 @dataclass
 class ChargePlanItem:
     tab_name: str = '训练'
@@ -86,16 +98,13 @@ class ChargePlanItem:
             self.plan_id = str(uuid.uuid4())
 
         self.target_material_name = str(self.target_material_name or '').strip()
-        try:
-            self.target_material_count = max(0, int(self.target_material_count))
-        except (TypeError, ValueError):
-            self.target_material_count = 0
+        normalized_target_count = _normalize_material_count_value(self.target_material_count)
+        self.target_material_count = max(0, normalized_target_count or 0)
 
         normalized_counts: dict[str, int] = {}
         for material_name, count in (self.material_counts or {}).items():
-            try:
-                normalized_count = int(count)
-            except (TypeError, ValueError):
+            normalized_count = _normalize_material_count_value(count)
+            if normalized_count is None:
                 continue
             if normalized_count > 0:
                 normalized_counts[str(material_name)] = normalized_count
