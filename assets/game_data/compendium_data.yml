@@ -8,56 +8,79 @@
           mission_list:
             - mission_name: "调查专项"
               mission_name_display: "代理人经验"
+              reward_material_list: ["资深调查员记录", "正式调查员记录", "见习调查员记录"]
             - mission_name: "音擎专项"
               mission_name_display: "音擎经验"
+              reward_material_list: ["音擎能源模块", "变频音擎电源", "音擎蓄电池"]
             - mission_name: "赏金专项"
               mission_name_display: "丁尼"
+              reward_material_list: ["丁尼"]
             - mission_name: "镀剂专项"
               mission_name_display: "驱动盘经验"
+              reward_material_list: ["以太镀剂", "晶质镀剂", "塑化镀剂"]
         - mission_type_name: "代理人晋升"
           mission_list:
             - mission_name: "命破演练"
               mission_name_display: "命破"
+              reward_material_list: ["裁决者认证章", "高阶命破认证章", "初阶命破认证章"]
             - mission_name: "强攻演练"
               mission_name_display: "强攻"
+              reward_material_list: ["先行者认证章", "高阶强攻认证章", "初阶强攻认证章"]
             - mission_name: "击破演练"
               mission_name_display: "击破"
+              reward_material_list: ["破阵者认证章", "高阶击破认证章", "初阶击破认证章"]
             - mission_name: "异常演练"
               mission_name_display: "异常"
+              reward_material_list: ["掌控者认证章", "高阶异常认证章", "初阶异常认证章"]
             - mission_name: "支援演练"
               mission_name_display: "支援"
+              reward_material_list: ["统御者认证章", "高阶支援认证章", "初阶支援认证章"]
             - mission_name: "防护演练"
               mission_name_display: "防护"
+              reward_material_list: ["捍卫者认证章", "高阶防护认证章", "初阶防护认证章"]
         - mission_type_name: "音擎改装"
           mission_list:
             - mission_name: "命破共鸣试验"
               mission_name_display: "命破"
+              reward_material_list: ["特化型命破组件", "增强型命破组件", "命破组件"]
             - mission_name: "强攻极片试验"
               mission_name_display: "强攻"
+              reward_material_list: ["特化型强攻组件", "增强型强攻组件", "强攻组件"]
             - mission_name: "击破振膜试验"
               mission_name_display: "击破"
+              reward_material_list: ["特化型击破组件", "增强型击破组件", "击破组件"]
             - mission_name: "异常磁体试验"
               mission_name_display: "异常"
+              reward_material_list: ["特化型异常组件", "增强型异常组件", "异常组件"]
             - mission_name: "支援分频试验"
               mission_name_display: "支援"
+              reward_material_list: ["特化型支援组件", "增强型支援组件", "支援组件"]
             - mission_name: "防护音圈试验"
               mission_name_display: "防护"
+              reward_material_list: ["特化型防护组件", "增强型防护组件", "防护组件"]
         - mission_type_name: "代理人技能"
           mission_list:
             - mission_name: "刚性测试"
               mission_name_display: "物理"
+              reward_material_list: ["特化物理芯片", "进阶物理芯片", "基础物理芯片"]
             - mission_name: "升温测试"
               mission_name_display: "火属性"
+              reward_material_list: ["特化引燃芯片", "进阶引燃芯片", "基础引燃芯片"]
             - mission_name: "冰结测试"
               mission_name_display: "冰属性"
+              reward_material_list: ["特化冰结芯片", "进阶冰结芯片", "基础冰结芯片"]
             - mission_name: "电流测试"
               mission_name_display: "电属性"
+              reward_material_list: ["特化电击芯片", "进阶电击芯片", "基础电击芯片"]
             - mission_name: "风切测试"
               mission_name_display: "风属性"
+              reward_material_list: ["特化风蚀芯片", "进阶风蚀芯片", "基础风蚀芯片"]
             - mission_name: "共鸣测试"
               mission_name_display: "以太"
+              reward_material_list: ["特化以太芯片", "进阶以太芯片", "基础以太芯片"]
             - mission_name: "琢光测试"
               mission_name_display: "流明"
+              reward_material_list: ["特化流明芯片", "进阶流明芯片", "基础流明芯片"]
         - mission_type_name: "自定义模板"
           mission_list:
             - mission_name: "自定义卡组1"

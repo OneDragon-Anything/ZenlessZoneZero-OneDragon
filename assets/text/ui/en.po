@@ -744,3 +744,31 @@ msgstr "Custom Homepage Background"
 
 msgid "设置后重启脚本生效"
 msgstr "Restart script for changes to take effect"
+
+# 体力计划材料数量模式
+msgid "运行方式"
+msgstr "Run Mode"
+
+msgid "按次数运行"
+msgstr "Run by Attempts"
+
+msgid "按材料数量运行"
+msgstr "Run by Material Amount"
+
+msgid "当前材料数"
+msgstr "Current Amount"
+
+msgid "目标材料数"
+msgstr "Target Amount"
+
+msgid "目标材料"
+msgstr "Target Material"
+
+msgid "只计算目标材料"
+msgstr "Target Material Only"
+
+msgid "计入低级材料合成"
+msgstr "Include Lower-Tier Synthesis"
+
+msgid "清零材料进度"
+msgstr "Reset Material Progress"

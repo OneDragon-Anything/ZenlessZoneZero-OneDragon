@@ -8,7 +8,7 @@
 `docs/superpowers/specs/2026-07-25-mcp-config-describe-design.md`(v5)。
 """
 from collections.abc import Callable
-from dataclasses import dataclass, fields as dataclass_fields
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -119,7 +119,7 @@ def _build_list_fields(
     return [{
         'name': 'plan_list' if entry.item_kind == 'dataclass' else 'app_list',
         'id_kind': entry.id_kind,
-        'id_source': f"get_config 读 list.{entry.id_kind}(add 时自动生成,不要传)" if entry.id_kind == 'plan_id' else f"get_config 读 list",
+        'id_source': f"get_config 读 list.{entry.id_kind}(add 时自动生成,不要传)" if entry.id_kind == 'plan_id' else "get_config 读 list",
         'item_kind': entry.item_kind,
         'item_fields': expanded_fields,
         'note': '未列字段(tab_name 等)由 dataclass 默认值自动补,add 时可不传',
@@ -132,7 +132,7 @@ def _build_list_fields(
 def _validate_hint_for(app_id: str) -> str:
     """各 config 的校验提示。"""
     hints = {
-        'charge_plan': 'category/mission_type/mission_name 必须在 compendium 合法;card_num 仅实战模拟室',
+        'charge_plan': 'category/mission_type/mission_name 必须在 compendium 合法;card_num 仅实战模拟室;材料数量模式的目标材料必须属于所选副本且目标数为正数',
         'notorious_hunt': 'mission_type 必须在 compendium(恶名狩猎域)合法',
         'standalone_app': 'app_id 必须已注册(is_app_registered)',
         '_group': 'app_id 必须已注册;add 不支持(app 由注册注入)',
@@ -143,7 +143,7 @@ def _validate_hint_for(app_id: str) -> str:
 def _ro_item_fields_for(app_id: str) -> list[str]:
     """各 config 的 item 级只读字段。"""
     if app_id in ('charge_plan',):
-        return ['plan_id', 'skipped']
+        return ['plan_id', 'skipped', 'material_counts']
     if app_id in ('notorious_hunt',):
         return ['plan_id']
     return []
@@ -202,7 +202,9 @@ def _notorious_hunt_get_config(
 
 
 def _notorious_hunt_validate_item(ctx: 'ZContext', item: object) -> str | None:
-    from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+    from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+        NotoriousHuntConfig,
+    )
     return NotoriousHuntConfig.validate_item(ctx, item)
 
 
@@ -267,6 +269,7 @@ def _build_routes() -> dict[str, RouterEntry]:
     """延迟构建 ROUTES(enum_cls 需要 import,避免模块级循环)。"""
     from zzz_od.application.charge_plan.charge_plan_config import (
         CardNumEnum,
+        ChargePlanRunModeEnum,
         RestoreChargeEnum,
     )
     from zzz_od.application.notorious_hunt.notorious_hunt_config import (
@@ -299,6 +302,11 @@ def _build_routes() -> dict[str, RouterEntry]:
                 {'name': 'mission_name', 'type': 'str', 'required': False, 'note': '部分 category/mission_type 必填(如实战模拟室/基础材料 需要传)'},
                 {'name': 'plan_times', 'type': 'int', 'required': False, 'default': 1},
                 {'name': 'run_times', 'type': 'int', 'required': False, 'default': 0, 'note': '运行次数(可手工修正,如手工跑了一次后调整)'},
+                {'name': 'run_mode', 'type': 'enum', 'required': False, 'enum_cls': ChargePlanRunModeEnum, 'default': ChargePlanRunModeEnum.RUN_TIMES.value.value},
+                {'name': 'target_material_name', 'type': 'str', 'required': False, 'default': '', 'applicability': '按材料数量运行时必填，仅支持实战模拟室单一材料系列计划', 'options_source': '所选 compendium mission 的 reward_material_list'},
+                {'name': 'target_material_count', 'type': 'int', 'required': False, 'default': 1, 'applicability': '按材料数量运行时必须大于 0'},
+                {'name': 'include_synthesis', 'type': 'bool', 'required': False, 'default': False, 'note': '晋升、技能和音擎改装材料可按 3:1 计入低级材料'},
+                {'name': 'material_counts', 'type': 'dict[str, int]', 'required': False, 'default': {}, 'note': '运行时累计，不能手工写入'},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
                 {'name': 'card_num', 'type': 'enum', 'required': False, 'enum_cls': CardNumEnum, 'applicability': '仅实战模拟室'},

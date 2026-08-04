@@ -744,3 +744,31 @@ msgstr "自定义主页背景"
 
 msgid "设置后重启脚本生效"
 msgstr "设置后重启脚本生效"
+
+# 体力计划材料数量模式
+msgid "运行方式"
+msgstr "运行方式"
+
+msgid "按次数运行"
+msgstr "按次数运行"
+
+msgid "按材料数量运行"
+msgstr "按材料数量运行"
+
+msgid "当前材料数"
+msgstr "当前材料数"
+
+msgid "目标材料数"
+msgstr "目标材料数"
+
+msgid "目标材料"
+msgstr "目标材料"
+
+msgid "只计算目标材料"
+msgstr "只计算目标材料"
+
+msgid "计入低级材料合成"
+msgstr "计入低级材料合成"
+
+msgid "清零材料进度"
+msgstr "清零材料进度"

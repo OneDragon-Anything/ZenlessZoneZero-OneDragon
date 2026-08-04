@@ -51,6 +51,18 @@ class ChoosePredefinedTeam(ZOperation):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击预备编队')
+    @operation_node(name='等待预备编队列表', node_max_retry_times=30)
+    def wait_team_list(self) -> OperationRoundResult:
+        """等待黑屏加载结束，并确认预备编队列表已经显示。"""
+        ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        card_markers: set[str] = {'1P', '2P', '3P', 'BANGBOO'}
+        found_markers = card_markers.intersection(ocr_map)
+        has_select = any('SELECT' in text.upper() for text in ocr_map)
+        if has_select or len(found_markers) >= 2:
+            return self.round_success('预备编队列表')
+        return self.round_retry('等待预备编队列表', wait=1)
+
+    @node_from(from_name='等待预备编队列表')
     @node_from(from_name='尝试查找编队')
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:

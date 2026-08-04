@@ -60,10 +60,18 @@ class CompendiumMissionType:
 
 class CompendiumMission:
 
-    def __init__(self, mission_name: str, mission_name_display: str | None = None):
+    def __init__(
+        self,
+        mission_name: str,
+        mission_name_display: str | None = None,
+        reward_material_list: list[str] | None = None,
+    ):
         self.mission_type: CompendiumMissionType | None = None
         self.mission_name: str = mission_name
         self.mission_name_display: str = mission_name if mission_name_display is None else mission_name_display
+        self.reward_material_list: list[str] = (
+            list(reward_material_list) if reward_material_list is not None else []
+        )
 
     def set_mission_type(self, mission_type: CompendiumMissionType):
         self.mission_type = mission_type
@@ -240,6 +248,25 @@ class CompendiumService:
             ))
 
         return config_list
+
+    def get_charge_plan_material_list(
+        self,
+        category_name: str,
+        mission_type_name: str,
+        mission_name: str | None,
+    ) -> list[ConfigItem]:
+        """返回计划副本可产出的同系列材料，按品质从高到低排列。"""
+        if mission_name is None:
+            return []
+        mission = self.get_mission_data(
+            '训练',
+            category_name,
+            mission_type_name,
+            mission_name,
+        )
+        if mission is None:
+            return []
+        return [ConfigItem(name, name) for name in mission.reward_material_list]
 
     def get_same_category_mission_type_list(self, mission_type_name: str) -> list[CompendiumMissionType] | None:
         """

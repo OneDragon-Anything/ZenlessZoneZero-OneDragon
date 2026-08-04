@@ -215,6 +215,8 @@ class ChargePlanApp(ZApplication):
             if self.config.loop:
                 self.last_tried_plan = None
                 self.config.reset_plans()
+                if self.config.all_plan_finished():
+                    return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
             else:
                 return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 

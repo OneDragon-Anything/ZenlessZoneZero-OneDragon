@@ -1,4 +1,5 @@
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
@@ -41,6 +42,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
     ChargePlanConfig,
     ChargePlanItem,
+    ChargePlanRunModeEnum,
     RestoreChargeEnum,
 )
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (
@@ -85,13 +87,56 @@ class ChargePlanCard(DraggableListItem):
         self.auto_battle_combo_box = ComboBox()
         self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
 
-        run_times_label = CaptionLabel(text=gt('已运行次数'))
+        self.run_mode_label = CaptionLabel(text=gt('运行方式'))
+        self.run_mode_box = ComboBox()
+        self.run_mode_box.currentIndexChanged.connect(self._on_run_mode_changed)
+
+        self.run_times_label = CaptionLabel(text=gt('已运行次数'))
         self.run_times_input = LineEdit()
+        self.run_times_input.setFixedWidth(70)
+        self.run_times_input.setValidator(
+            QIntValidator(0, 999999, self.run_times_input)
+        )
         self.run_times_input.textChanged.connect(self._on_run_times_changed)
 
-        plan_times_label = CaptionLabel(text=gt('计划次数'))
+        self.plan_times_label = CaptionLabel(text=gt('计划次数'))
         self.plan_times_input = LineEdit()
+        self.plan_times_input.setFixedWidth(70)
+        self.plan_times_input.setValidator(
+            QIntValidator(0, 999999, self.plan_times_input)
+        )
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
+
+        self.current_material_count_label = CaptionLabel(text=gt('当前材料数'))
+        self.current_material_count_input = LineEdit()
+        self.current_material_count_input.setFixedWidth(70)
+        self.current_material_count_input.setReadOnly(True)
+
+        self.target_material_count_label = CaptionLabel(text=gt('目标材料数'))
+        self.target_material_count_input = LineEdit()
+        self.target_material_count_input.setFixedWidth(70)
+        self.target_material_count_input.setValidator(
+            QIntValidator(1, 999999, self.target_material_count_input)
+        )
+        self.target_material_count_input.textChanged.connect(
+            self._on_target_material_count_changed
+        )
+
+        self.target_material_name_label = CaptionLabel(text=gt('目标材料'))
+        self.target_material_name_box = ComboBox()
+        self.target_material_name_box.setFixedWidth(180)
+        self.target_material_name_box.currentIndexChanged.connect(
+            self._on_target_material_name_changed
+        )
+
+        self.include_synthesis_box = ComboBox()
+        self.include_synthesis_box.currentIndexChanged.connect(
+            self._on_include_synthesis_changed
+        )
+        self.reset_material_count_btn = PushButton(text=gt('清零材料进度'))
+        self.reset_material_count_btn.clicked.connect(
+            self._on_reset_material_count_clicked
+        )
 
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
@@ -113,12 +158,24 @@ class ChargePlanCard(DraggableListItem):
                     self.auto_battle_combo_box,
                 ],
                 [
-                    run_times_label,
+                    self.run_mode_label,
+                    self.run_mode_box,
+                    self.run_times_label,
                     self.run_times_input,
-                    plan_times_label,
+                    self.plan_times_label,
                     self.plan_times_input,
+                    self.current_material_count_label,
+                    self.current_material_count_input,
+                    self.target_material_count_label,
+                    self.target_material_count_input,
                     self.move_top_btn,
                     self.del_btn,
+                ],
+                [
+                    self.target_material_name_label,
+                    self.target_material_name_box,
+                    self.include_synthesis_box,
+                    self.reset_material_count_btn,
                 ]
             ]
         )
@@ -185,6 +242,14 @@ class ChargePlanCard(DraggableListItem):
             and self.plan.predefined_team_idx == -1
         )
 
+    def init_run_mode_box(self) -> None:
+        if self.plan.is_material_count_plan and not self.plan.supports_material_count:
+            self.plan.run_mode = ChargePlanRunModeEnum.RUN_TIMES.value.value
+        config_list = [ChargePlanRunModeEnum.RUN_TIMES.value]
+        if self.plan.supports_material_count:
+            config_list.append(ChargePlanRunModeEnum.MATERIAL_COUNT.value)
+        self.run_mode_box.set_items(config_list, self.plan.run_mode)
+
     def init_run_times_input(self) -> None:
         self.run_times_input.blockSignals(True)
         self.run_times_input.setText(str(self.plan.run_times))
@@ -194,6 +259,77 @@ class ChargePlanCard(DraggableListItem):
         self.plan_times_input.blockSignals(True)
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
+
+    def init_material_count_inputs(self) -> None:
+        material_list = self.ctx.compendium_service.get_charge_plan_material_list(
+            self.plan.category_name,
+            self.plan.mission_type_name,
+            self.plan.mission_name,
+        )
+        valid_material_names = [item.value for item in material_list]
+        if self.plan.target_material_name not in valid_material_names:
+            self.plan.target_material_name = (
+                valid_material_names[0] if valid_material_names else ''
+            )
+            self.plan.material_counts.clear()
+        self.target_material_name_box.blockSignals(True)
+        self.target_material_name_box.set_items(
+            material_list,
+            self.plan.target_material_name,
+        )
+        self.target_material_name_box.blockSignals(False)
+
+        if not self.plan.supports_material_synthesis:
+            self.plan.include_synthesis = False
+
+        self.current_material_count_input.blockSignals(True)
+        self.current_material_count_input.setText(
+            str(self.plan.current_material_count)
+        )
+        self.current_material_count_input.blockSignals(False)
+
+        self.target_material_count_input.blockSignals(True)
+        self.target_material_count_input.setText(
+            str(self.plan.target_material_count)
+        )
+        self.target_material_count_input.blockSignals(False)
+
+        synthesis_items = [
+            ConfigItem('只计算目标材料', False),
+            ConfigItem('计入低级材料合成', True),
+        ]
+        self.include_synthesis_box.set_items(
+            synthesis_items,
+            self.plan.include_synthesis,
+        )
+
+    def update_run_mode_visibility(self) -> None:
+        material_mode_available = self.plan.supports_material_count
+        material_mode = self.plan.is_material_count_plan
+        self.run_mode_label.setVisible(material_mode_available)
+        self.run_mode_box.setVisible(material_mode_available)
+
+        for widget in (
+            self.run_times_label,
+            self.run_times_input,
+            self.plan_times_label,
+            self.plan_times_input,
+        ):
+            widget.setVisible(not material_mode)
+
+        for widget in (
+            self.current_material_count_label,
+            self.current_material_count_input,
+            self.target_material_count_label,
+            self.target_material_count_input,
+            self.target_material_name_label,
+            self.target_material_name_box,
+            self.reset_material_count_btn,
+        ):
+            widget.setVisible(material_mode)
+        self.include_synthesis_box.setVisible(
+            material_mode and self.plan.supports_material_synthesis
+        )
 
     def init_with_plan(
         self,
@@ -215,13 +351,21 @@ class ChargePlanCard(DraggableListItem):
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
 
+        self.init_run_mode_box()
         self.init_run_times_input()
         self.init_plan_times_input()
+        self.init_material_count_inputs()
+        self.update_run_mode_visibility()
 
     def _on_category_changed(self, idx: int) -> None:
         category_name = self.category_combo_box.itemData(idx)
+        if category_name == self.plan.category_name:
+            return
         self.plan.category_name = category_name
         self.plan.tab_name = '训练'
+        self.plan.target_material_name = ''
+        self.plan.material_counts.clear()
+        self.plan.include_synthesis = False
         if category_name == '合成电池':
             self.plan.mission_type_name = ''
             self.plan.mission_name = None
@@ -232,20 +376,36 @@ class ChargePlanCard(DraggableListItem):
         self.init_notorious_hunt_buff_num_opt()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
+        self.init_run_mode_box()
+        self.init_material_count_inputs()
+        self.update_run_mode_visibility()
 
         self._emit_value()
 
     def _on_mission_type_changed(self, idx: int) -> None:
         mission_type_name = self.mission_type_combo_box.itemData(idx)
+        if mission_type_name == self.plan.mission_type_name:
+            return
         self.plan.mission_type_name = mission_type_name
+        self.plan.target_material_name = ''
+        self.plan.material_counts.clear()
+        self.plan.include_synthesis = False
 
         self.init_mission_combo_box()
+        self.init_run_mode_box()
+        self.init_material_count_inputs()
+        self.update_run_mode_visibility()
 
         self._emit_value()
 
     def _on_mission_changed(self, idx: int) -> None:
         mission_name = self.mission_combo_box.itemData(idx)
+        if mission_name == self.plan.mission_name:
+            return
         self.plan.mission_name = mission_name
+        self.plan.target_material_name = ''
+        self.plan.material_counts.clear()
+        self.init_material_count_inputs()
 
         self._emit_value()
 
@@ -268,12 +428,57 @@ class ChargePlanCard(DraggableListItem):
 
         self._emit_value()
 
+    def _on_run_mode_changed(self, idx: int) -> None:
+        run_mode = self.run_mode_box.itemData(idx)
+        if run_mode is None:
+            return
+        self.plan.run_mode = run_mode
+        self.init_material_count_inputs()
+        self.update_run_mode_visibility()
+        self._emit_value()
+
     def _on_run_times_changed(self) -> None:
-        self.plan.run_times = int(self.run_times_input.text())
+        value = self.run_times_input.text().strip()
+        if not value.isdigit():
+            return
+        self.plan.run_times = int(value)
         self._emit_value()
 
     def _on_plan_times_changed(self) -> None:
-        self.plan.plan_times = int(self.plan_times_input.text())
+        value = self.plan_times_input.text().strip()
+        if not value.isdigit():
+            return
+        self.plan.plan_times = int(value)
+        self._emit_value()
+
+    def _on_target_material_name_changed(self, idx: int) -> None:
+        target_material_name = self.target_material_name_box.itemData(idx)
+        if target_material_name is None:
+            return
+        if target_material_name != self.plan.target_material_name:
+            self.plan.material_counts.clear()
+        self.plan.target_material_name = target_material_name
+        self.init_material_count_inputs()
+        self._emit_value()
+
+    def _on_target_material_count_changed(self) -> None:
+        value = self.target_material_count_input.text().strip()
+        if not value.isdigit():
+            return
+        self.plan.target_material_count = int(value)
+        self._emit_value()
+
+    def _on_include_synthesis_changed(self, idx: int) -> None:
+        include_synthesis = self.include_synthesis_box.itemData(idx)
+        if include_synthesis is None:
+            return
+        self.plan.include_synthesis = bool(include_synthesis)
+        self.init_material_count_inputs()
+        self._emit_value()
+
+    def _on_reset_material_count_clicked(self) -> None:
+        self.plan.material_counts.clear()
+        self.init_material_count_inputs()
         self._emit_value()
 
     def _emit_value(self) -> None:
@@ -423,7 +628,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.content_widget.add_widget(self.help_opt)
 
-        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划')
+        self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启后，全部计划完成时会重置按次数运行的计划；已达成的材料目标不会清零')
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
@@ -575,7 +780,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         if dialog.exec():
             self.plan_list_backup = self.config.plan_list.copy()
             not_completed_plans = [plan for plan in self.config.plan_list
-                                   if plan.run_times < plan.plan_times]
+                                   if not plan.is_finished]
             self.config.plan_list = not_completed_plans.copy()
             self.config.save()
             self.cancel_btn.setEnabled(True)
