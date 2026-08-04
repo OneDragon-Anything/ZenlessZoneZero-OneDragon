@@ -146,7 +146,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.priority_new_opt)
 
         self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='x次内只买高优先级',
-                                                       content='到达第 x 轮（已刷新 x-1 次）后 才放开第 3~6 级藏品')
+                                                       content='到达第 x 轮（已刷新 x-1 次）后 才购买高优先级之外的藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
 
         widget.add_stretch(1)
