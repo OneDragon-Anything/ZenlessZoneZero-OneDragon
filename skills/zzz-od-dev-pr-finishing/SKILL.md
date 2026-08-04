@@ -57,15 +57,22 @@ resolve 前确保 CodeRabbit 对这条「说完话了」,不抢它的判断、�
 每次 push 触发 review 重审 + CI 重跑,**可能新提 comment**。重复 1-3,直到「review 完成 + 无 unresolved + checks 绿」稳定。若连续 2 轮仍冒新 comment 或无法收敛 → 停下来问人,别死循环。
 
 ### 5. 合并前
-`mergeable` 要 `MERGEABLE`、非 `DIRTY`;dirty → rebase 到目标分支。是否 merge / 合并方式不在本 skill 范围(见 superpowers:finishing-a-development-branch)。
-
-**合并后清理(提示,不主动)**:PR 合并后,可**提示**用户删除该 PR 的本地 + remote 分支(`git branch -d <branch>` + `git push origin --delete <branch>`)。只提示,**不主动执行**——分支可能还在用(回看 / cherry-pick)、或用户想保留,由用户确认时机。`gh pr merge --delete-branch` 会同时删 remote + 本地,但只删当前 PR 的;之前遗留的分支要手动清。
+- **review PR title + description**(= commit message):作者按 AGENTS.md「commit / PR 规范」写好;收尾时 review,不符合就改规范:
+  - **title**:`type(scope): subject`(≤50、祈使句);不符合 → `gh pr edit <PR> --title "type(scope): subject"`。
+  - **description**:why + 改动要点 + 关联(= commit body);CodeRabbit summary 不该在 desc(放 comment);不符合 → `gh pr edit <PR> --body "..."` 改规范,或合并者 merge 时编辑 commit message(网页框)。
+  - 关联仓 PR(本项目 zzz-od-test)同样 review。
+- **mergeable** 要 `MERGEABLE`、非 `DIRTY`;dirty → rebase 到目标分支。
+- review + mergeable 都满足即可 merge;**可提示 merge,但不主动**(用户明确要求时才执行);merge 决策见 superpowers:finishing-a-development-branch。
 
 ### 6. 关联 PR(跨仓)协同
 本项目跨仓:主仓 PR 常带配套**测试仓 PR**(同分支名,主仓描述带测试仓 PR 链接)。
+- **关联 PR 不只看 open PR(由真实事故提炼)**:测试仓改动可能挂在同分支但**没开 PR**(改动没经 review)→ `gh pr list --repo OneDragon-Anything/zzz-od-test --head <分支>` 查 open PR 为空**不等于**"无配套"。收尾主仓前用 git 验证测试仓同分支有无未合改动:`git -C zzz-od-test fetch origin && git -C zzz-od-test log origin/main..origin/<同名分支>`(有输出 = 测试仓有未合改动,必须先开 PR 合掉再合主仓,否则主仓 main 的 test-check 跑测试仓 main 缺这些测试 = CI 通过但测试缺失;无输出 = 确实无配套)。
 - **一起收尾**:关联 PR 都按本 skill 走(CI/review/unresolved 全清),不只当前 PR。
 - **合并顺序:测试仓先 → 主仓后**。主仓合到 main 后,main 的 `test-check` clone 测试仓 **main**;测试仓先合确保测试改动进测试仓 main,主仓 main CI 才稳(主仓先合 → 主仓 main CI clone 测试仓 main 无新改动 → 测试缺失/失败)。
 - **都 done 才合**:关联 PR 全 green + review pass + 无 unresolved 后,按顺序合(测试仓 → 主仓)。
+
+## 合并后清理(提示,不主动)
+PR 合并后(主仓 + 关联仓都合),可**提示**用户删除该 PR 的本地 + remote 分支(`git branch -d <branch>` + `git push origin --delete <branch>`)。只提示,**不主动执行**——分支可能还在用(回看 / cherry-pick)、或用户想保留,由用户确认时机。`gh pr merge --delete-branch` 会同时删 remote + 本地,但只删当前 PR 的;之前遗留的分支要手动清。
 
 ## 边界(不做什么)
 - 单条 review 怎么 verify/回复/push back → superpowers:receiving-code-review

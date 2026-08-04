@@ -11,7 +11,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SQUASH_SOURCE_PATTERN = re.compile(
-    r"^Squashed from PR: https://github\.com/[^/]+/[^/]+/pull/([0-9]+) .*",
+    r"^Squashed from PR: https://(?:redirect\.)?github\.com/[^/]+/[^/]+/pull/([0-9]+) .*",
     re.MULTILINE,
 )
 
@@ -357,7 +357,7 @@ def commit_pr(
     """提交单个 PR 的 squash 结果。"""
     message = (
         f"[测试] {title}\n\n"
-        f"Squashed from PR: https://github.com/{repository}/pull/{pr} ({head_sha}) "
+        f"Squashed from PR: https://redirect.github.com/{repository}/pull/{pr} ({head_sha}) "
         "by update-test-branch workflow.\n"
     )
     if len(authors) > 1:
@@ -501,7 +501,6 @@ def rebuild_test_branch(
             skipped.append(SkippedPr(pr, info.state or "查不到该 PR"))
             continue
         if require_label and include_label not in info.labels:
-            skipped.append(SkippedPr(pr, f"已移除 {include_label} 标签"))
             continue
 
         pr_ref = f"refs/remotes/pr/{pr}"

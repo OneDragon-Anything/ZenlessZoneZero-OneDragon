@@ -1,0 +1,84 @@
+repositories:
+  primary: github
+  options:
+    github:
+      label: GitHub
+      url: "https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
+      use_proxy: true
+    cnb:
+      label: CNB
+      url: "https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
+      use_proxy: false
+    gitee:
+      label: Gitee
+      url: "https://gitee.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
+      use_proxy: false
+env_source:
+  default: cnb
+  options:
+    github:
+      label: GitHub
+      value: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+    cnb:
+      label: CNB
+      value: "https://cnb.cool/OneDragon-Anything/OneDragon-Env/releases/download"
+    gitee:
+      label: Gitee
+      value: "https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download"
+cpython_source:
+  default: cnb
+  options:
+    github:
+      label: GitHub
+      value: "https://github.com/astral-sh/python-build-standalone/releases/download"
+    cnb:
+      label: CNB
+      value: "https://cnb.cool/astral-sh/python-build-standalone/releases/download"
+    gitee:
+      label: Gitee
+      value: "https://gitee.com/OneDragon-Anything/python-build-standalone/releases/download"
+pip_source:
+  default: alibaba
+  options:
+    pypi:
+      label: 官方
+      value: "https://pypi.org/simple"
+    tsing_hua:
+      label: 清华大学
+      value: "https://pypi.tuna.tsinghua.edu.cn/simple"
+    alibaba:
+      label: 阿里云
+      value: "https://mirrors.aliyun.com/pypi/simple"
+regions:
+  china_cnb:
+    label: 中国 - CNB
+    repository: cnb
+    values:
+      env_source: "https://cnb.cool/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://cnb.cool/astral-sh/python-build-standalone/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: "None"
+  china_gitee:
+    label: 中国 - Gitee
+    repository: gitee
+    values:
+      env_source: "https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://gitee.com/OneDragon-Anything/python-build-standalone/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: "None"
+  china_ghproxy:
+    label: 中国 - GitHub 代理
+    repository: github
+    values:
+      env_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://github.com/astral-sh/python-build-standalone/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: ghproxy
+  oversea:
+    label: 海外
+    repository: github
+    values:
+      env_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://github.com/astral-sh/python-build-standalone/releases/download"
+      pip_source: "https://pypi.org/simple"
+      proxy_type: "None"

@@ -111,6 +111,11 @@ def make_list_applications(backend: ZzzBackendContext) -> Callable[[], Applicati
         """列出当前实例可运行应用、独立应用列表和当前选中项(无副作用)。
 
         列应用用本 tool;列可运行 operation 用 ``list_operations``。
+
+        返回的 ``current_instance_idx`` 是激活实例的 idx(账号下标):**idx N → config/0N 目录**
+        (idx 1 → config/01 账号01,idx 2 → config/02 账号02),**不是** config/0<idx+1>。
+        激活实例看 ``config/one_dragon.yml`` 的 ``instance_list`` 里 ``active: true`` 项;
+        改某实例配置前据此定位目录,别把 idx 当目录号做偏移。
         """
         try:
             return backend.list_applications()

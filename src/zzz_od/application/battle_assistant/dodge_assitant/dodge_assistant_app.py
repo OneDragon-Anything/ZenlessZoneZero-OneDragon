@@ -14,6 +14,8 @@ from zzz_od.context.zzz_context import ZContext
 
 class DodgeAssistantApp(ZApplication):
 
+    """闪避助手:辅助工具,战斗中自动闪避。非玩法、无独立消耗。"""
+
     def __init__(self, ctx: ZContext):
         """
         识别后进行闪避
