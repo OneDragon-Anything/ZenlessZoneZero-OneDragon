@@ -44,15 +44,22 @@ class GameSettingsProfileService:
         if not file_path.strip():
             raise GameSettingsProfileError("未选择注册表配置文件")
 
-        profile_path = Path(file_path).expanduser().resolve()
-        if profile_path.suffix.casefold() != ".reg":
-            raise GameSettingsProfileError("画质配置必须是 .reg 文件")
-        if not profile_path.is_file():
-            raise GameSettingsProfileError(f"画质配置文件不存在: {profile_path}")
-        if profile_path.stat().st_size > self._MAX_PROFILE_SIZE:
-            raise GameSettingsProfileError("画质配置文件超过 16 MB")
+        try:
+            profile_path = Path(file_path).expanduser().resolve()
+            if profile_path.suffix.casefold() != ".reg":
+                raise GameSettingsProfileError("画质配置必须是 .reg 文件")
+            if not profile_path.is_file():
+                raise GameSettingsProfileError(
+                    f"画质配置文件不存在: {profile_path}"
+                )
+            if profile_path.stat().st_size > self._MAX_PROFILE_SIZE:
+                raise GameSettingsProfileError("画质配置文件超过 16 MB")
 
-        content = self._decode_profile(profile_path)
+            content = self._decode_profile(profile_path)
+        except OSError as error:
+            raise GameSettingsProfileError(
+                f"无法读取画质配置文件: {error}"
+            ) from error
         first_line = next(
             (line.strip() for line in content.splitlines() if line.strip()),
             "",
@@ -126,20 +133,9 @@ class GameSettingsProfileService:
         if normal_profile_path is None:
             return
 
-        errors: list[str] = []
-        try:
-            self._close_game()
-        except GameSettingsProfileError as error:
-            errors.append(str(error))
-
-        try:
-            self._import_profile(normal_profile_path)
-            log.info("已恢复正常游戏画质配置")
-        except GameSettingsProfileError as error:
-            errors.append(str(error))
-
-        if errors:
-            raise GameSettingsProfileError("；".join(errors))
+        self._close_game()
+        self._import_profile(normal_profile_path)
+        log.info("已恢复正常游戏画质配置")
 
     @staticmethod
     def _decode_profile(profile_path: Path) -> str:

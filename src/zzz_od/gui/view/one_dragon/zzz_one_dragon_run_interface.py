@@ -101,7 +101,7 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             profile_path = self.ctx.game_settings_profile_service.validate_profile(
                 file_path
             )
-        except GameSettingsProfileError as error:
+        except (GameSettingsProfileError, OSError) as error:
             self.show_info_bar(
                 gt("配置文件无效"),
                 str(error),
