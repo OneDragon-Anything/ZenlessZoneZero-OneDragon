@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from cv2.typing import MatLike
 
@@ -101,7 +102,7 @@ def build_training_goal_selection(
 class ChooseTrainingGoal(ZOperation):
     """从快捷手册“特训目标”统一页选择优先级最高的一项并传送。"""
 
-    STATUS_NO_TARGET = '未设置特训目标或没有可刷取目标'
+    STATUS_NO_TARGET: ClassVar[str] = '未设置特训目标或没有可刷取目标'
 
     def __init__(self, ctx: ZContext, available_charge: int) -> None:
         """初始化统一页选择操作和本次可用电量。"""
