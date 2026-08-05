@@ -202,14 +202,17 @@ class HollowRunner(ZOperation):
         # if target_node.entry.entry_name == '不宜久留':  # 测试代码 在特殊情况停下
         #     return self.round_fail('不宜久留')
         next_to_move = target_node.next_node_to_move
+        if next_to_move is None:
+            # 目标节点可能已在脚下 或寻路未算出第一步
+            log.info(f"前往目标: [{target_node.entry.entry_name}] 当前移动: [无]")
+            self._save_debug_image(screen)
+            return self.round_retry('自动寻路失败')
         log.info(f"前往目标: [{target_node.entry.entry_name}] 当前移动: [{next_to_move.entry.entry_name}]")
 
         # 999 是寻路兜底策略的特殊标识 是在识别识别的情况下使用的
-        pathfinding_success = next_to_move is not None and next_to_move.path_step_cnt != 999
+        pathfinding_success = next_to_move.path_step_cnt != 999
         if not pathfinding_success:
             self._save_debug_image(screen)
-            if next_to_move is None:
-                return self.round_retry('自动寻路失败')
 
         # 寻路失败的话 间隔1秒才尝试一次兜底策略的移动
         if not pathfinding_success and screen_time - self._last_move_time < 1:
