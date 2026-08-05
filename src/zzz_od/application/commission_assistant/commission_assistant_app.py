@@ -471,6 +471,10 @@ class CommissionAssistantApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '大世界-勘域', '勘域-菜单')
         if result.is_success:
             return self.round_wait('在勘域中, 不自动点击鼠标', wait=1)
+        # 排除主线空洞中的对话
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '战斗-菜单')
+        if result.is_success:
+            return self.round_wait('在空洞自由行动场景中, 不自动点击鼠标', wait=1)
         # 判断玩法引导
         result = self.check_game_tutorial()
         if result.is_success:
