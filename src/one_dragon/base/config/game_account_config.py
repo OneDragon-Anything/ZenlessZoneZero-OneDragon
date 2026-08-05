@@ -118,6 +118,18 @@ class GameAccountConfig(YamlConfig):
         return bool(self.account.strip() and self.password.strip())
 
     @property
+    def game_client(self) -> str:
+        """
+        客户端类型：国服 / B服 / 国际服 是三个不同的游戏客户端，各自保存独立的登录状态。
+        国际服的所有区服（亚服、美服、欧服、港澳台服）共用同一个客户端。
+        """
+        if self.game_region == GameRegionEnum.CN.value.value:
+            return 'cn'
+        elif self.game_region == GameRegionEnum.CNB.value.value:
+            return 'cnb'
+        return 'intl'
+
+    @property
     def game_refresh_hour_offset(self) -> int:
         if self.game_region == GameRegionEnum.CN.value.value \
                 or self.game_region == GameRegionEnum.CNB.value.value:
