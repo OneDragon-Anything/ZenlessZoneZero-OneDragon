@@ -104,6 +104,7 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 - **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
 - **源码加载**：借助 `hook_path_inject.py` 运行时钩子，将 `<exe_dir>/src` 注入 `sys.path`，其余模块从 `src/` 目录加载
 - **自动更新**：首次运行时自动克隆代码仓库；后续运行时根据 `auto_update_code` 配置自动拉取最新代码
+- **GUI 边界**：主界面启动后不自动访问 Git 远程；代码远程检查与同步仅在“代码同步”页等明确入口触发
 - **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部依赖清单，更新代码后如新增依赖不在清单中，提示用户更新启动器
 
 #### 打包命令
