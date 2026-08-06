@@ -90,12 +90,12 @@ class DirectoryPickerTranslator:
     def detect_language():
         """自动检测系统语言"""
         try:
-            system_locale = locale.getdefaultlocale()[0]
+            system_locale = locale.getlocale()[0]
             if system_locale and system_locale.startswith('zh'):
                 return 'zh'
             else:
                 return 'en'
-        except Exception:
+        except locale.Error:
             return 'zh'
 
 
