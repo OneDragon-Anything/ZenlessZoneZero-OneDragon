@@ -1,7 +1,17 @@
+from enum import StrEnum
+
 import numpy as np
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+
+
+class ScreenAreaType(StrEnum):
+    """画面区域类型。"""
+
+    NONE = 'none'
+    TEXT = 'text'
+    TEMPLATE = 'template'
 
 
 class ScreenArea:
@@ -9,6 +19,7 @@ class ScreenArea:
     def __init__(
         self,
         area_name: str = '',
+        area_type: ScreenAreaType | str | None = None,
         pc_rect: Rect | None = None,
         text: str = '',
         lcs_percent: float = 0.5,
@@ -20,19 +31,42 @@ class ScreenArea:
         goto_list: list[str] | None = None,
         color_range: list[list[int]] | None = None,
         gamepad_key: str | None = None,
-    ):
+    ) -> None:
         self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
         self.text: str = text or ''
-        self.lcs_percent: float = lcs_percent
+        self.lcs_percent: float = 0.5 if lcs_percent is None else lcs_percent
         self.template_id: str = template_id or ''
         self.template_sub_dir: str = template_sub_dir or ''
-        self.template_match_threshold: float = template_match_threshold
+        self.template_match_threshold: float = 0.7 if template_match_threshold is None else template_match_threshold
         self.pc_alt: bool = pc_alt  # PC端需要使用ALT后才能点击
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
-        self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
-        self.color_range: list[list[int]] | None = color_range  # 识别时候的筛选的颜色范围 文本时候有效
+        self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后可能会跳转的画面名称列表
+        self.color_range: list[list[int]] | None = color_range  # OCR识别前的颜色过滤范围
         self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
+        self._area_type: ScreenAreaType = self._init_area_type(area_type)
+
+    def _init_area_type(self, area_type: ScreenAreaType | str | None) -> ScreenAreaType:
+        """初始化区域类型，兼容旧名称并推断旧配置。"""
+        if area_type is not None:
+            if area_type == 'click':
+                return ScreenAreaType.NONE
+            if area_type == 'ocr':
+                return ScreenAreaType.TEXT
+            return ScreenAreaType(area_type)
+        if self.text:
+            return ScreenAreaType.TEXT
+        if self.template_id:
+            return ScreenAreaType.TEMPLATE
+        return ScreenAreaType.NONE
+
+    @property
+    def area_type(self) -> ScreenAreaType:
+        return self._area_type
+
+    @area_type.setter
+    def area_type(self, area_type: ScreenAreaType | str) -> None:
+        self._area_type = self._init_area_type(area_type)
 
     @property
     def rect(self) -> Rect:
@@ -76,53 +110,55 @@ class ScreenArea:
 
     @property
     def is_text_area(self) -> bool:
-        """
-        是否文本区域
-        :return:
-        """
-        return len(self.text) > 0
+        """是否文本区域。"""
+        return self.area_type == ScreenAreaType.TEXT
 
     @property
     def is_template_area(self) -> bool:
-        """
-        是否模板区域
-        :return:
-        """
-        return len(self.template_id) > 0
+        """是否模板区域。"""
+        return self.area_type == ScreenAreaType.TEMPLATE
+
+    @property
+    def can_match(self) -> bool:
+        """区域是否具备框架内置匹配所需的完整条件。"""
+        if self.is_text_area:
+            return bool(self.text)
+        if self.is_template_area:
+            return bool(self.template_id)
+        return False
 
     @property
     def color_range_lower(self) -> np.ndarray:
         if self.color_range is None or len(self.color_range) < 1:
             return np.array([0, 0, 0], dtype=np.uint8)
-        else:
-            return np.array(self.color_range[0], dtype=np.uint8)
+        return np.array(self.color_range[0], dtype=np.uint8)
 
     @property
     def color_range_upper(self) -> np.ndarray:
         if self.color_range is None or len(self.color_range) < 2:
             return np.array([255, 255, 255], dtype=np.uint8)
-        else:
-            return np.array(self.color_range[1], dtype=np.uint8)
+        return np.array(self.color_range[1], dtype=np.uint8)
 
     def to_dict(self) -> dict:
-        """转为可序列化字典，跳过与默认值一致的字段以精简 YAML。"""
+        """按区域类型输出配置，只裁剪缺失字段和其它类型的字段。"""
         order_dict: dict = {}
         order_dict['area_name'] = self.area_name
-        order_dict['pc_rect'] = [self.pc_rect.x1, self.pc_rect.y1, self.pc_rect.x2, self.pc_rect.y2]
+        order_dict['area_type'] = self.area_type.value
         if self.id_mark:
             order_dict['id_mark'] = self.id_mark
-        if self.text:
-            order_dict['text'] = self.text
-        if self.lcs_percent != 0.5:
+        order_dict['pc_rect'] = [self.pc_rect.x1, self.pc_rect.y1, self.pc_rect.x2, self.pc_rect.y2]
+        if self.is_text_area:
+            if self.text:
+                order_dict['text'] = self.text
             order_dict['lcs_percent'] = self.lcs_percent
-        if self.template_sub_dir:
-            order_dict['template_sub_dir'] = self.template_sub_dir
-        if self.template_id:
-            order_dict['template_id'] = self.template_id
-        if self.template_match_threshold != 0.7:
+            if self.color_range:
+                order_dict['color_range'] = self.color_range
+        elif self.is_template_area:
+            if self.template_sub_dir:
+                order_dict['template_sub_dir'] = self.template_sub_dir
+            if self.template_id:
+                order_dict['template_id'] = self.template_id
             order_dict['template_match_threshold'] = self.template_match_threshold
-        if self.color_range:
-            order_dict['color_range'] = self.color_range
         if self.goto_list:
             order_dict['goto_list'] = self.goto_list
         if self.gamepad_key:

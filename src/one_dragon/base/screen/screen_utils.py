@@ -100,6 +100,8 @@ def find_area_in_screen_binary(
     """
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
+    if not area.can_match:
+        return FindAreaResultEnum.FALSE
 
     # 对屏幕进行二值化处理
     binary_screen = cv2_utils.to_binary(screen, threshold=binary_threshold)
@@ -155,6 +157,8 @@ def find_area_in_screen(
     """
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
+    if not area.can_match:
+        return FindAreaResultEnum.FALSE
 
     find: bool = False
     if area.is_text_area:
@@ -175,7 +179,6 @@ def find_area_in_screen(
         mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
                                              threshold=area.template_match_threshold)
         find = mrl.max is not None
-
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 
 
@@ -251,6 +254,8 @@ def find_and_click_area(
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
+    if (area.is_text_area or area.is_template_area) and not area.can_match:
+        return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
     if area.is_text_area:
         ocr_result_list = ctx.ocr_service.get_ocr_result_list(
             image=screen,
