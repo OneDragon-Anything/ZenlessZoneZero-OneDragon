@@ -190,7 +190,7 @@ class OneDragonConfig(YamlConfig):
         if len(instance_list) <= 1:
             return False
 
-        return GameAccountConfig.has_multi_instance_same_client([i.idx for i in instance_list])
+        return GameAccountConfig.has_multi_instance_same_client(instance.idx, [i.idx for i in instance_list])
 
     def set_current_instance_force_login(self, new_value: bool) -> None:
         instance = self.current_active_instance

@@ -40,19 +40,20 @@ class GameAccountConfig(YamlConfig):
         return bool(current_game_path and next_game_path and current_game_path != next_game_path)
 
     @classmethod
-    def has_multi_instance_same_client(cls, instance_indices: list[int]) -> bool:
+    def has_multi_instance_same_client(cls, current_idx: int, instance_indices: list[int]) -> bool:
         """
-        判断是否存在多个实例属于同一个游戏客户端。
+        判断当前实例所在的游戏客户端是否还有同客户端的其他实例。
 
         国服 / B服 / 国际服 是三个不同的游戏客户端, 各自保存独立的登录状态;
         国际服的所有区服(亚服、美服、欧服、港澳台服)共用同一个客户端。
         同客户端类型的实例多于一个时, 需要在切换实例时强制重新登录。
         """
+        current_client = cls(current_idx).game_client
         client_count: dict[str, int] = {}
         for idx in instance_indices:
             client = cls(idx).game_client
             client_count[client] = client_count.get(client, 0) + 1
-        return any(count > 1 for count in client_count.values())
+        return client_count.get(current_client, 0) > 1
 
     @property
     def platform(self) -> str:
