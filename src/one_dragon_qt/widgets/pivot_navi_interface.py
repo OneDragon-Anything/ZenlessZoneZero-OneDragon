@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase, Pivot, qrouter
@@ -27,6 +27,9 @@ class PivotNavigatorInterface(BaseInterface):
         self.stacked_widget = QStackedWidget(self)
         self._last_stack_idx: int = 0
         self._page_wrappers: dict[str, PageStackWrapper] = {}
+        self._preload_started: bool = False
+        self._preload_next_index: int = 0
+        self._preload_include_current: bool = False
 
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.v_box_layout.addWidget(self.stacked_widget)
@@ -65,13 +68,14 @@ class PivotNavigatorInterface(BaseInterface):
         pass
 
     def on_current_index_changed(self, index: int) -> None:
+        current_widget = self.stacked_widget.widget(index)
+        last_widget = self.stacked_widget.widget(self._last_stack_idx)
+
         if index != self._last_stack_idx:
-            last_widget = self.stacked_widget.widget(self._last_stack_idx)
             if isinstance(last_widget, PageStackWrapper | BaseInterface):
                 last_widget.on_interface_hidden()
             self._last_stack_idx = index
 
-        current_widget = self.stacked_widget.widget(index)
         self.pivot.setCurrentItem(current_widget.objectName())
         qrouter.push(self.stacked_widget, current_widget.objectName())
 
@@ -89,6 +93,7 @@ class PivotNavigatorInterface(BaseInterface):
         current_widget = self.stacked_widget.currentWidget()
         if isinstance(current_widget, PageStackWrapper | BaseInterface):
             current_widget.on_interface_shown()
+        self._schedule_preload_sub_interfaces(delay_ms=200, include_current=False)
 
     def on_interface_hidden(self) -> None:
         """子界面隐藏时的回调"""
@@ -109,3 +114,30 @@ class PivotNavigatorInterface(BaseInterface):
         if isinstance(current_widget, PageStackWrapper):
             current_widget.reset_to_root()
             self.secondary_state_changed.emit(False)
+
+    def preload_interface(self) -> None:
+        """分帧预加载子标签页。"""
+        BaseInterface.preload_interface(self)
+        self._schedule_preload_sub_interfaces(delay_ms=0, include_current=True)
+
+    def _schedule_preload_sub_interfaces(self, delay_ms: int, include_current: bool) -> None:
+        if self._preload_started:
+            return
+        self._preload_started = True
+        self._preload_next_index = 0
+        self._preload_include_current = include_current
+        QTimer.singleShot(delay_ms, self._preload_next_sub_interface)
+
+    def _preload_next_sub_interface(self) -> None:
+        while self._preload_next_index < self.stacked_widget.count():
+            widget = self.stacked_widget.widget(self._preload_next_index)
+            self._preload_next_index += 1
+            if not self._preload_include_current and widget is self.stacked_widget.currentWidget():
+                continue
+            self._preload_widget(widget)
+            QTimer.singleShot(80, self._preload_next_sub_interface)
+            return
+
+    def _preload_widget(self, widget: QWidget) -> None:
+        if isinstance(widget, PageStackWrapper | BaseInterface):
+            widget.preload_interface()

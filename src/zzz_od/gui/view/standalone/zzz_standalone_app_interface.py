@@ -1,5 +1,6 @@
 from qfluentwidgets import FluentIcon
 
+from one_dragon_qt.utils.interface_preloader import schedule_preload_after_context_ready
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.standalone.zzz_standalone_app_run_interface import (
@@ -18,6 +19,7 @@ class ZStandaloneAppInterface(PivotNavigatorInterface):
             nav_icon=FluentIcon.APPLICATION,
             parent=parent,
         )
+        schedule_preload_after_context_ready(self, self.ctx, delay_ms=1800)
 
     def create_sub_interface(self):
         self.add_sub_interface(

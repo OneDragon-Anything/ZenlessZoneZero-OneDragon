@@ -34,6 +34,14 @@ class VerticalScrollInterface(BaseInterface):
 
         self._init_layout()
 
+    def preload_interface(self) -> None:
+        """
+        预加载滚动页面布局。
+        :return:
+        """
+        BaseInterface.preload_interface(self)
+        self._init_layout()
+
     def _init_layout(self) -> None:
         """
         初始化布局

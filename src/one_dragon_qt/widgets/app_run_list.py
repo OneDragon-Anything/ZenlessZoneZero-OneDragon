@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
+from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 
@@ -64,6 +65,7 @@ class AppRunList(DraggableList):
 
         # 存储应用卡片
         self._app_cards: list[AppRunCard] = []
+        self._card_pool: list[AppRunCard] = []
 
         # 连接父类的拖拽排序信号
         self.order_changed.connect(self._handle_order_changed)
@@ -86,6 +88,29 @@ class AppRunList(DraggableList):
         else:
             # 数量不一致或首次创建，重建整个列表
             self._create_new_cards(app_list, instance_idx)
+
+    def ensure_card_capacity(self, capacity: int) -> None:
+        """预创建指定数量的空卡片，不读取任何业务数据。"""
+        current_capacity = len(self._app_cards) + len(self._card_pool)
+        for _ in range(current_capacity, capacity):
+            card = AppRunCard(
+                parent=self,
+                enable_opacity_effect=self._enable_opacity_effect,
+            )
+            card.hide()
+            self._card_pool.append(card)
+
+    def _is_migrated(self, app: ApplicationGroupConfigItem) -> bool:
+        """
+        判断应用是否属于已迁移应用（不在默认组内）。
+
+        Args:
+            app: 应用配置
+
+        Returns:
+            已迁移返回 True
+        """
+        return app.app_id not in self.ctx.run_context.default_group_apps
 
     def _update_existing_cards(
         self,
@@ -110,7 +135,7 @@ class AppRunList(DraggableList):
                 card.set_app(
                     app,
                     run_record,
-                    is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
+                    is_migrated=self._is_migrated(app),
                 )
                 card.set_switch_on(app.enabled)
                 card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
@@ -135,14 +160,7 @@ class AppRunList(DraggableList):
                 app_id=app.app_id,
                 instance_idx=instance_idx
             )
-            card = AppRunCard(
-                app=app,
-                index=idx,
-                run_record=run_record,
-                switch_on=app.enabled,
-                is_migrated=app.app_id not in self.ctx.run_context.default_group_apps,
-                enable_opacity_effect=self._enable_opacity_effect,
-            )
+            card = self._take_card(app, idx, run_record, is_migrated=self._is_migrated(app))
             self._app_cards.append(card)
             self.add_list_item(card)
 
@@ -158,6 +176,29 @@ class AppRunList(DraggableList):
             card.setting_clicked.connect(self.app_setting_clicked.emit)
             card.notify_clicked.connect(self.app_notify_clicked.emit)
             card.set_notify_visible(app.app_id in self.ctx.notify_config.app_map)
+
+    def _take_card(
+        self,
+        app: ApplicationGroupConfigItem,
+        idx: int,
+        run_record: AppRunRecord | None,
+        is_migrated: bool = False,
+    ) -> AppRunCard:
+        if self._card_pool:
+            card = self._card_pool.pop(0)
+            card.set_app(app, run_record, is_migrated=is_migrated)
+            card.set_switch_on(app.enabled)
+            card.index = idx
+            card.show()
+            return card
+        return AppRunCard(
+            app=app,
+            index=idx,
+            run_record=run_record,
+            switch_on=app.enabled,
+            is_migrated=is_migrated,
+            enable_opacity_effect=self._enable_opacity_effect,
+        )
 
     def update_cards_display(self) -> None:
         """
@@ -175,7 +216,7 @@ class AppRunList(DraggableList):
         """
         # 找到对应应用的索引
         for idx, card in enumerate(self._app_cards):
-            if card.app.app_id == app_id:
+            if card.app is not None and card.app.app_id == app_id:
                 if idx > 0:  # 不在第一位时才需要置顶
                     # 更新 _app_cards 列表
                     self._app_cards.pop(idx)

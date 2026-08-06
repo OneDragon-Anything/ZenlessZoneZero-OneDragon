@@ -1,5 +1,6 @@
 from qfluentwidgets import FluentIcon
 
+from one_dragon_qt.utils.interface_preloader import schedule_preload_after_context_ready
 from one_dragon_qt.widgets.page_stack_wrapper import PageStackWrapper
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
@@ -27,6 +28,7 @@ class ZOneDragonInterface(PivotNavigatorInterface):
         )
 
         self._app_run_cards: list[AppRunCard] = []
+        schedule_preload_after_context_ready(self, self.ctx, delay_ms=1000, cooldown_ms=1800)
 
     def create_sub_interface(self) -> None:
         self.add_sub_interface(
