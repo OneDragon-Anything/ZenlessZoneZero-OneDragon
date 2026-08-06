@@ -436,6 +436,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         start_time = time.time()
         ocr_result_list: list[OcrMatchResult] = []
 
+        if self._model is None and not self.init_model():
+            return ocr_result_list
+
         scan_result_list: list = self._model.ocr(image, cls=False)
         if len(scan_result_list) == 0:
             if log.isEnabledFor(DEBUG):

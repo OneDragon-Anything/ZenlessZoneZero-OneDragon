@@ -10,6 +10,7 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.update_service import LauncherType, UpdateService
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
@@ -33,9 +34,14 @@ class LauncherVersionChecker(QThread):
         self.launcher_type: LauncherType = launcher_type
 
     def run(self) -> None:
-        current_version, latest_stable, latest_beta = (
-            self.update_service.get_launcher_version_info(self.launcher_type)
-        )
+        try:
+            current_version, latest_stable, latest_beta = (
+                self.update_service.get_launcher_version_info(self.launcher_type)
+            )
+        except Exception:
+            # 检查失败也要发出信号 否则界面会永远停在检查中且按钮不可用
+            log.error('获取启动器版本信息失败', exc_info=True)
+            current_version, latest_stable, latest_beta = '', '', ''
         self.check_finished.emit(current_version, latest_stable, latest_beta)
 
 
@@ -46,6 +52,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self._launcher_type: LauncherType = 'launcher'
         self.version_checker = LauncherVersionChecker(ctx.update_service, self._launcher_type)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
+        self._retired_checkers: list[LauncherVersionChecker] = []  # 已替换但仍在运行的检查线程
         self.target_version = "latest"
         self.current_version: str | None = None
         self.latest_stable: str | None = None
@@ -79,6 +86,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 断开旧检查器信号，避免竞态覆盖
         old_checker = self.version_checker
         old_checker.check_finished.disconnect(self._on_version_check_finished)
+        if old_checker.isRunning():
+            # 旧线程仍在运行 先持有引用 等线程结束后再释放 避免 QThread 被提前销毁
+            self._retired_checkers.append(old_checker)
+            old_checker.finished.connect(
+                lambda checker=old_checker: self._retired_checkers.remove(checker)
+            )
         # 重建版本检查器（指向不同启动器类型）
         self.version_checker = LauncherVersionChecker(
             self.ctx.update_service,

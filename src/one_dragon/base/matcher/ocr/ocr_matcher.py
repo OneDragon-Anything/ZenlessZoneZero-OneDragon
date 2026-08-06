@@ -36,6 +36,8 @@ class OcrMatcher:
             skip_if_existed: bool = True,
             progress_callback: Callable[[float, str], None] | None = None,
             on_source_success: Callable[[str], None] | None = None,
+            on_source_failure: Callable[[str], None] | None = None,
+            fallback_on_slow: bool = False,
     ) -> bool:
         raise NotImplementedError('由具体的OCR实现提供')
 

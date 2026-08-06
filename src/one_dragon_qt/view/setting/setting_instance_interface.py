@@ -232,8 +232,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def _update_developer_visibility(self) -> None:
         """仅在开发者模式下显示带密码实验功能。"""
-        if hasattr(self, 'custom_win_title_opt'):
-            self.custom_win_title_opt.setVisible(self.ctx.env_config.developer_mode)
+        self.custom_win_title_opt.setVisible(self.ctx.env_config.developer_mode)
 
     def _init_content_widget(self) -> None:
         """
@@ -259,6 +258,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         """
         self._init_content_widget()
         self.init_game_account_config()
+        self._update_developer_visibility()
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码

@@ -189,7 +189,6 @@ class SettingEnvInterface(VerticalScrollInterface):
             self.ctx.env_config.get_prop_adapter('developer_mode')
         )
         self.debug_opt.setVisible(self.ctx.env_config.developer_mode)
-        self.developer_mode_opt.setVisible(self.ctx.env_config.developer_mode)
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
@@ -214,7 +213,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         if hasattr(window, 'set_developer_mode'):
             window.set_developer_mode(value)
         self.debug_opt.setVisible(value)
-        self.developer_mode_opt.setVisible(value)
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
         self.update_proxy_ui()

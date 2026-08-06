@@ -74,6 +74,7 @@ class MainAppWindowBase(AppWindowBase):
         self.download_queue.setParent(self)
         self.download_queue_dialog = DownloadQueueDialog(self.download_queue, self)
         self._download_queue_tip: TeachingTip | None = None
+        self._closing_after_cancel: bool = False  # 是否已请求取消下载并等待退出
         self.resource_update_coordinator: ResourceUpdateCoordinator = (
             ResourceUpdateCoordinator(
                 self.ctx,
@@ -185,6 +186,10 @@ class MainAppWindowBase(AppWindowBase):
             self.download_queue.active_count(),
             self.download_queue.failed_count(),
         )
+        # 关闭窗口时请求过取消 等活动任务清空后继续退出
+        if self._closing_after_cancel and not self.download_queue.has_active_tasks():
+            self._closing_after_cancel = False
+            self.close()
 
     def show_download_queue(self) -> None:
         """打开下载队列弹窗。"""
@@ -237,9 +242,14 @@ class MainAppWindowBase(AppWindowBase):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
-        if answer == QMessageBox.StandardButton.Yes:
-            self.download_queue.cancel_all()
-            self.show_download_queue()
+        if answer != QMessageBox.StandardButton.Yes:
+            event.ignore()
+            return
+
+        # 取消是异步的 记录退出意图 等队列没有活动任务后再真正关闭
+        self._closing_after_cancel = True
+        self.download_queue.cancel_all()
+        self.show_download_queue()
         event.ignore()
 
     def on_ctx_ready(self) -> None:
