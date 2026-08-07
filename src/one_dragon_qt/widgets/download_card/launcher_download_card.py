@@ -11,6 +11,10 @@ from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.update_service import LauncherType, UpdateService
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.download_queue_service import (
+    ResourceDownloadTask,
+    ResourceDownloadTaskState,
+)
 from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
@@ -83,6 +87,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_type_changed(self, _index: int) -> None:
         self._launcher_type = self.type_combo.currentData()
+        self._refresh_queue_task_key()
         # 断开旧检查器信号，避免竞态覆盖
         old_checker = self.version_checker
         old_checker.check_finished.disconnect(self._on_version_check_finished)
@@ -109,6 +114,17 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self._launcher_type,
             self.target_version,
         )
+
+    def _on_queue_task_changed(self, task: ResourceDownloadTask) -> None:
+        """启动器更新成功后重新读取已安装版本。"""
+        if (
+            task.task_key == self._queue_task_key
+            and task.state == ResourceDownloadTaskState.SUCCEEDED
+        ):
+            self.current_version = None
+            self.latest_stable = None
+            self.latest_beta = None
+        super()._on_queue_task_changed(task)
 
     def _on_version_check_finished(self, current_version: str, latest_stable: str, latest_beta: str) -> None:
         """
@@ -143,12 +159,18 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 根据下拉框选择的通道决定目标版本
         selected_channel = self.combo_box.currentData()
         if selected_channel == 'stable':
-            # 稳定版通道
-            self.target_version = self.latest_stable or 'latest'
+            # 稳定版通道 远端标签获取失败时保持当前已安装版本
+            self.target_version = self.latest_stable or self.current_version or 'latest'
         else:
-            # 测试版通道：优先测试版，其次稳定版，最后兜底
-            self.target_version = self.latest_beta or self.latest_stable or 'latest'
+            # 测试版通道：优先测试版，其次稳定版，再保持当前版本
+            self.target_version = (
+                self.latest_beta
+                or self.latest_stable
+                or self.current_version
+                or 'latest'
+            )
 
+        self._refresh_queue_task_key()
         self._update_downloader_and_runner()
 
         # 更新UI显示

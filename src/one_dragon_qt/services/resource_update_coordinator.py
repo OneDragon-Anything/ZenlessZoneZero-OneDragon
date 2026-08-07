@@ -325,15 +325,27 @@ class ResourceUpdateCoordinator(QObject):
         def _on_task_updated(updated: ResourceDownloadTask) -> None:
             if updated.task_key != task.task_key or updated.state not in terminal_states:
                 return
-            with contextlib.suppress(RuntimeError):
-                self.queue.task_updated.disconnect(_on_task_updated)
+            _disconnect()
             self._respond_ocr_request(
                 request,
                 updated.state == ResourceDownloadTaskState.SUCCEEDED,
                 remember,
             )
 
+        def _on_task_removed(removed_key: str) -> None:
+            if removed_key != task.task_key:
+                return
+            _disconnect()
+            self._respond_ocr_request(request, False, remember)
+
+        def _disconnect() -> None:
+            with contextlib.suppress(RuntimeError):
+                self.queue.task_updated.disconnect(_on_task_updated)
+            with contextlib.suppress(RuntimeError):
+                self.queue.task_removed.disconnect(_on_task_removed)
+
         self.queue.task_updated.connect(_on_task_updated)
+        self.queue.task_removed.connect(_on_task_removed)
 
     def _respond_ocr_request(
         self,

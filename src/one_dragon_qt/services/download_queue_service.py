@@ -322,7 +322,9 @@ class DownloadQueueService(QObject):
         self.queue_updated.emit()
 
         worker = DownloadTaskWorker(self.ctx, task)
-        worker.progress_changed.connect(self._on_progress_changed)
+        worker.progress_changed.connect(
+            lambda progress, bound_task=task: self._on_progress_changed(bound_task, progress)
+        )
         worker.task_finished.connect(self._store_worker_result)
         worker.finished.connect(self._on_worker_finished)
         worker.finished.connect(worker.deleteLater)
@@ -330,10 +332,13 @@ class DownloadQueueService(QObject):
         self._worker_result = None
         worker.start()
 
-    def _on_progress_changed(self, progress: ResourceDownloadProgress) -> None:
-        """保存当前任务进度。"""
-        task = self._current_task
-        if task is None:
+    def _on_progress_changed(
+        self,
+        task: ResourceDownloadTask,
+        progress: ResourceDownloadProgress,
+    ) -> None:
+        """保存指定任务的进度。"""
+        if task is not self._current_task:
             return
         task.progress = progress
         if progress.phase == 'extracting':

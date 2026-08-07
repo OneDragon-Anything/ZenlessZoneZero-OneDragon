@@ -114,7 +114,9 @@ class CommonDownloader:
         for index, source_id in enumerate(candidates):
             download_url = self.param.download_urls[source_id]
             if source_id == GITHUB_SOURCE_ID and ghproxy_url is not None:
-                download_url = f'{ghproxy_url}/{download_url}'
+                proxy_prefix = ghproxy_url.rstrip('/')
+                if proxy_prefix:
+                    download_url = f'{proxy_prefix}/{download_url}'
 
             log.info(f'尝试从 {source_id} 下载 {self.param.save_file_name}')
             if status_callback is not None:

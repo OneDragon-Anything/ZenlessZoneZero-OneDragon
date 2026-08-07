@@ -2,6 +2,7 @@ try:
     import sys
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
+    from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import (
         NavigationItemPosition,
@@ -253,7 +254,7 @@ try:
             self.check_resource_updates(force=True)
             self.on_welcome_dialog_closed()
 
-        def closeEvent(self, event):
+        def closeEvent(self, event: QCloseEvent) -> None:
             """窗口关闭事件"""
             super().closeEvent(event)
             if not event.isAccepted():

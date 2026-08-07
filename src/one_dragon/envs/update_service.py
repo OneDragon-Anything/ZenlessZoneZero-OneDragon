@@ -56,7 +56,11 @@ class UpdateService:
         """获取当前启动器版本、最新稳定版和最新测试版。"""
         exe_path = Path(os_utils.get_work_dir()) / self.get_launcher_exe_name(launcher_type)
         current_version = app_utils.get_exe_version(str(exe_path)) if exe_path.exists() else ''
-        latest_stable, latest_beta = self.git_service.get_latest_tag()
+        try:
+            latest_stable, latest_beta = self.git_service.get_latest_tag()
+        except Exception:
+            log.error('获取最新启动器版本失败', exc_info=True)
+            latest_stable, latest_beta = '', ''
         return current_version, latest_stable, latest_beta
 
     def is_launcher_update_available(self) -> bool:
@@ -173,15 +177,18 @@ class UpdateService:
             raise RuntimeError('启动器运行环境缺失')
 
         work_dir = Path(os_utils.get_work_dir())
+        backup_prepared = False
         try:
             self.prepare_launcher_update(launcher_type)
+            backup_prepared = True
             staged_exe.replace(work_dir / staged_exe.name)
             if launcher_type == 'runtime':
                 staged_runtime.rename(work_dir / RUNTIME_DIR)
             self.finish_launcher_update(launcher_type, True)
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:
-            self.finish_launcher_update(launcher_type, False)
+            if backup_prepared:
+                self.finish_launcher_update(launcher_type, False)
             raise
 
     def restore_interrupted_launcher_update(self) -> None:
@@ -213,36 +220,56 @@ class UpdateService:
     def _swap_launcher_backup(self, launcher_type: LauncherType, backup: bool) -> None:
         """备份或回滚启动器文件。"""
         work_dir = Path(os_utils.get_work_dir())
-        action = '备份' if backup else '回滚'
-
         exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
         backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
-        source_path, target_path = (exe_path, backup_path) if backup else (backup_path, exe_path)
-        if source_path.exists():
-            try:
-                if backup and target_path.exists():
-                    target_path.unlink()
-                source_path.replace(target_path)
-                log.info(f'{action}文件: {source_path.name} -> {target_path.name}')
-            except Exception as e:
-                log.error(f'{action}文件失败 {source_path.name}: {e}')
+        runtime_path = work_dir / RUNTIME_DIR
+        runtime_backup_path = work_dir / RUNTIME_DIR_BACKUP
 
-        if launcher_type == 'runtime':
-            runtime_path = work_dir / RUNTIME_DIR
-            runtime_backup_path = work_dir / RUNTIME_DIR_BACKUP
-            source_dir, target_dir = (
-                (runtime_path, runtime_backup_path)
-                if backup
-                else (runtime_backup_path, runtime_path)
-            )
-            if source_dir.exists():
-                try:
-                    if target_dir.exists():
-                        shutil.rmtree(target_dir)
-                    source_dir.rename(target_dir)
-                    log.info(f'{action}目录: {source_dir.name} -> {target_dir.name}')
-                except Exception as e:
-                    log.error(f'{action}目录失败 {source_dir.name}: {e}')
+        if backup:
+            # 先清理旧备份 再移动当前文件 避免失败时把旧备份误当成本次回滚源
+            try:
+                if backup_path.exists():
+                    backup_path.unlink()
+                if launcher_type == 'runtime' and runtime_backup_path.exists():
+                    shutil.rmtree(runtime_backup_path)
+            except Exception:
+                log.error('清理旧启动器备份失败', exc_info=True)
+                raise
+
+            exe_backed_up = False
+            try:
+                if exe_path.exists():
+                    exe_path.replace(backup_path)
+                    exe_backed_up = True
+                    log.info(f'备份文件: {exe_path.name} -> {backup_path.name}')
+                if launcher_type == 'runtime' and runtime_path.exists():
+                    runtime_path.rename(runtime_backup_path)
+                    log.info(f'备份目录: {runtime_path.name} -> {runtime_backup_path.name}')
+            except Exception:
+                log.error('备份启动器失败', exc_info=True)
+                if exe_backed_up and backup_path.exists():
+                    try:
+                        backup_path.replace(exe_path)
+                    except Exception:
+                        log.error('恢复已备份的启动器文件失败', exc_info=True)
+                raise
+            return
+
+        if backup_path.exists():
+            try:
+                backup_path.replace(exe_path)
+                log.info(f'回滚文件: {backup_path.name} -> {exe_path.name}')
+            except Exception:
+                log.error(f'回滚文件失败 {backup_path.name}', exc_info=True)
+
+        if launcher_type == 'runtime' and runtime_backup_path.exists():
+            try:
+                if runtime_path.exists():
+                    shutil.rmtree(runtime_path)
+                runtime_backup_path.rename(runtime_path)
+                log.info(f'回滚目录: {runtime_backup_path.name} -> {runtime_path.name}')
+            except Exception:
+                log.error(f'回滚目录失败 {runtime_backup_path.name}', exc_info=True)
 
     def _cleanup_launcher_backup(self, launcher_type: LauncherType) -> None:
         """删除启动器备份文件和集成启动器的运行时备份目录。"""

@@ -130,6 +130,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         self.download_runner: DownloadRunner | None = None
         self.download_queue: DownloadQueueService | None = None
         self.download_spec_factory: Callable[[], ResourceDownloadSpec] | None = None
+        self._queue_task_key: str | None = None
         self.active_value_getter: Callable[[], str] | None = None
 
     def set_active_value_getter(self, getter: Callable[[], str]) -> None:
@@ -149,17 +150,25 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         """
         self.download_queue = service
         self.download_spec_factory = spec_factory
+        self._refresh_queue_task_key()
         service.task_added.connect(self._on_queue_task_changed)
         service.task_updated.connect(self._on_queue_task_changed)
         service.task_removed.connect(lambda _task_key: self.check_and_update_display())
         self.check_and_update_display()
 
+    def _refresh_queue_task_key(self) -> None:
+        """选项变化后重新计算卡片对应的任务键。"""
+        self._queue_task_key = (
+            self.download_spec_factory().task_key
+            if self.download_spec_factory is not None
+            else None
+        )
+
     def _get_queue_task(self) -> ResourceDownloadTask | None:
         """返回卡片当前选项对应的队列任务。"""
-        if self.download_queue is None or self.download_spec_factory is None:
+        if self.download_queue is None or self._queue_task_key is None:
             return None
-        spec = self.download_spec_factory()
-        return self.download_queue.get_task(spec.task_key)
+        return self.download_queue.get_task(self._queue_task_key)
 
     def _on_queue_task_changed(self, _task: ResourceDownloadTask) -> None:
         """队列状态变化时刷新卡片。"""
@@ -171,7 +180,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if task is None:
             return False
         if task.state == ResourceDownloadTaskState.WAITING:
-            self.download_btn.setText(gt('下载中'))
+            self.download_btn.setText(gt('等待中'))
             self.download_btn.setEnabled(True)
             return True
         if task.state in (
@@ -246,6 +255,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         self.last_index = index
 
         self._update_downloader_and_runner()
+        self._refresh_queue_task_key()
         self.check_and_update_display()
 
         param: CommonDownloaderParam = self._get_downloader_param(index)
@@ -329,6 +339,14 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
                 return
             if task is not None and task.state == ResourceDownloadTaskState.CANCELLED:
                 self.download_queue.retry(task.task_key)
+            elif task is not None and task.state == ResourceDownloadTaskState.SUCCEEDED:
+                if task.spec.resource_type == 'launcher':
+                    window = self.window()
+                    if hasattr(window, 'show_download_queue'):
+                        window.show_download_queue()
+                    return
+                self.download_queue.remove(task.task_key)
+                self.download_queue.enqueue(spec)
             else:
                 self.download_queue.enqueue(spec)
             window = self.window()
