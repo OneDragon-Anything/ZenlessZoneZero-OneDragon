@@ -40,6 +40,7 @@ LauncherBase          → 基础参数解析、run() 入口
 ├── OneDragon-RuntimeLauncher.exe    ← 启动入口
 ├── .runtime/                        ← Python 运行时 + 冻结模块
 │   ├── module_manifest.py           ← 外部依赖清单
+│   ├── src_embedded.zip             ← 编译期内嵌的完整源码备份（src/ 损坏时恢复用）
 │   ├── config/project.yml           ← 项目配置与运行时协议字段
 │   ├── config/repository.yml        ← 项目仓库列表、回退策略和地区预设
 │   └── ...                          ← Python DLL、so、pyd 等
@@ -49,6 +50,12 @@ LauncherBase          → 基础参数解析、run() 入口
     ├── zzz_od/
     └── onnxocr/
 ```
+
+### 内嵌源码备份
+
+打包时（OneDragon-RuntimeLauncher.spec）会把完整 `src/` 压缩成 `src_embedded.zip` 放进 `.runtime/`，作为源码损坏时的恢复备份。排除规则与 `generate_module_manifest.py` 保持一致：不打包 `.git`、`__pycache__`、`.install`、`.venv`、`.debug` 目录和 `zzz_od/backend/`（dev-only 可选服务）。
+
+恢复出的 `src/` 不含 `.git`，重新启动后自动走首次 clone 流程（与 WithRuntime 包首次安装行为一致）。
 
 ### 最小打包策略
 
@@ -137,9 +144,18 @@ LauncherBase          → 基础参数解析、run() 入口
 
 `app.py` 顶层有一个 try/except 包裹所有 import 语句。这是因为 import 阶段的错误（如依赖缺失）发生在 `main()` 被调用之前，集成启动器的 try/except 也能捕获到，但模块级 try 提供了更精确的错误信息。
 
-### ZLauncher 的 src 目录检查
+### src/ 健康检查与降级「资源更新模式」
 
-`ZLauncher` 的入口文件在模块级检查 `src/` 目录是否存在。如果用户只解压了 exe 和 .runtime 而遗漏了 src/，会立即弹出 MessageBox 提示，避免后续出现难以理解的 ImportError。
+`RuntimeLauncher._ensure_src_healthy()` 在每次启动时（`_sync_code()` 之前）轻量检查 `src/` 是否完整：检查每个顶层包的关键入口文件是否存在且非空（见 `src_recovery.py` 的 `SRC_REQUIRED_RELATIVE_PATHS`），不导入业务代码，避免半损坏的 src/ 在导入时抛异常。
+
+src/ 不完整时（目录缺失、被杀毒软件删除部分文件、解压中断等）：
+- **GUI 模式**：进入降级「资源更新模式」——一个只提供代码恢复/下载功能的最小 PySide6 窗口，不加载任何业务功能。提供两种恢复手段：
+  - 恢复内置代码：解压 `.runtime/` 里的 `src_embedded.zip`（与当前启动器版本匹配，离线可用）；
+  - 下载最新版本：下载 GitHub Release 的 `WithRuntime` 包，先校验其模块清单与当前运行时兼容（不兼容则拒绝并提示先更新启动器，避免新代码配旧运行时启动崩溃），再提取其中的 `src/`。
+- 恢复流程统一为：损坏的 `src/` 改名备份为 `src.corrupted.<时间戳>` → 解压新源码 → 自动重启启动器进程，走完整的正常启动流程。
+- **一条龙模式**：无法交互恢复，打印错误后退出，提示改用 GUI 模式。
+
+此前 `ZLauncher` 模块级的 src 存在性检查已移除（缺失时直接弹窗退出，无恢复手段），统一由健康检查 + 资源更新模式处理。
 
 ## 发行产物
 

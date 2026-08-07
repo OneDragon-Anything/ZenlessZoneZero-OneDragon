@@ -16,6 +16,28 @@ class RuntimeLauncher(ExeLauncher):
     def __init__(self, description: str, version: str) -> None:
         ExeLauncher.__init__(self, description, version)
 
+    def _ensure_src_healthy(self, gui_mode: bool) -> bool:
+        """检查 src/ 目录是否完整；不完整时进入降级「资源更新模式」恢复。
+
+        src/ 正常时返回 True。不完整时：
+        - GUI 模式：显示资源更新界面，恢复成功后自动重启进程（本方法不返回）；
+        - 一条龙模式：打印错误并返回 False（无法交互恢复）。
+        """
+        from one_dragon.launcher.src_recovery import (
+            is_src_healthy,
+            show_src_recovery_gui,
+        )
+
+        src_dir = Path(sys.executable).parent / 'src'
+        healthy, reason = is_src_healthy(src_dir)
+        if healthy:
+            return True
+        print(f'src 目录不完整: {reason}')
+        if not gui_mode:
+            print('一条龙模式无法交互恢复代码，请改用 GUI 模式运行启动器')
+            return False
+        return show_src_recovery_gui(src_dir)
+
     def _sync_code(self) -> None:
         """同步代码：首次运行时克隆，后续运行时自动更新"""
         pre_modules = set(sys.modules)
@@ -117,6 +139,9 @@ class RuntimeLauncher(ExeLauncher):
 
     def run_onedragon_mode(self, launch_args: list[str]) -> None:
         try:
+            if not self._ensure_src_healthy(gui_mode=False):
+                sys.exit(1)
+                return
             self._sync_code()
             self._do_run_onedragon(launch_args)
         except Exception:
@@ -125,6 +150,9 @@ class RuntimeLauncher(ExeLauncher):
 
     def run_gui_mode(self) -> None:
         try:
+            if not self._ensure_src_healthy(gui_mode=True):
+                sys.exit(1)
+                return
             self._sync_code()
             self._hide_console()
             self._do_run_gui()

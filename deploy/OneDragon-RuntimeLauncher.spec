@@ -2,6 +2,7 @@
 
 import importlib.util
 import sys
+import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -16,6 +17,37 @@ REPO_ROOT = Path.cwd().parent
 SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+
+# ---- 内嵌源码备份 ----
+# 编译期把完整 src/ 打包进 .runtime，供 src/ 目录损坏时恢复（见 src_recovery.py）。
+# 排除规则与 generate_module_manifest.py 保持一致：不打包 git 元数据、工具产物和
+# dev-only 可选服务。
+EXCLUDE_SRC_DIRNAMES = {".git", "__pycache__", ".install", ".venv", ".debug"}
+EXCLUDE_SRC_PREFIXES = ("zzz_od/backend/",)
+
+
+def _should_exclude_src_path(relative_path: str) -> bool:
+    """判断 src/ 相对路径是否应排除出内嵌源码包。"""
+    parts = relative_path.split("/")
+    if any(part in EXCLUDE_SRC_DIRNAMES for part in parts):
+        return True
+    return any(relative_path.startswith(prefix) for prefix in EXCLUDE_SRC_PREFIXES)
+
+
+def _build_src_embedded_zip(src_dir: Path, zip_path: Path) -> Path:
+    """把 src/ 打包为内嵌源码 zip，条目带 src/ 前缀（与 WithRuntime 包结构一致）。"""
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for path in sorted(src_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            relative_path = path.relative_to(src_dir).as_posix()
+            if _should_exclude_src_path(relative_path):
+                continue
+            zf.write(path, f"src/{relative_path}")
+    return zip_path
+
+
+SRC_EMBEDDED_ZIP = _build_src_embedded_zip(SRC_DIR, Path.cwd() / "src_embedded.zip")
 
 # 保留的模块树
 # NOTE: 修改此列表新增不同顶层包前缀时，需同步更新 hook_path_inject.py 中的 __path__ 扩展
@@ -65,6 +97,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('module_manifest.py', '.'),
+        ('src_embedded.zip', '.'),
         ('../config/project.yml', 'resources/config'),
         ('../config/repository.yml', 'resources/config'),
     ],
