@@ -28,9 +28,13 @@ class KeySimYamlConfig(YamlConfig):
         user_yml = os.path.join(user_dir, f'{self.module_name}.yml')
         if os.path.exists(user_yml):
             return user_yml, user_yml, None
-        # 其次插件目录内任意位置（目录结构由插件自由组织，不限定子目录名）
+        # 其次插件注册目录内任意位置（子目录结构由插件自由组织，不限定子目录名）
         if self._plugin_dir is not None and self._plugin_dir.is_dir():
-            for plugin_yml in self._plugin_dir.rglob(f'{self.module_name}.yml'):
+            plugin_ymls = list(self._plugin_dir.rglob(f'{self.module_name}.yml'))
+            if len(plugin_ymls) > 1:
+                raise ValueError(f'插件键鼠脚本重名: {self.module_name}.yml')
+            if plugin_ymls:
+                plugin_yml = plugin_ymls[0]
                 return str(plugin_yml), str(plugin_yml), None
         # 最后回退仓库自带 sample 文件
         return YamlConfig._get_yaml_file_paths(self)

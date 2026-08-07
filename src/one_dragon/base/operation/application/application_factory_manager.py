@@ -411,7 +411,15 @@ class ApplicationFactoryManager:
         plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
         plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
-        plugin_info.key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
+
+        # 校验 KEY_SIM_DIR：必须是相对目录名，防止插件从 plugin_dir 外加载脚本
+        key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
+        if not isinstance(key_sim_dir, str):
+            raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是字符串")
+        key_sim_path = Path(key_sim_dir)
+        if key_sim_path.is_absolute() or '..' in key_sim_path.parts:
+            raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是相对路径")
+        plugin_info.key_sim_dir = key_sim_dir
 
         # 注册到插件信息表（同时作为后续重复检测的依据）
         self._plugin_infos[plugin_info.app_id] = plugin_info
