@@ -417,7 +417,8 @@ class ApplicationFactoryManager:
         if not isinstance(key_sim_dir, str):
             raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是字符串")
         key_sim_path = Path(key_sim_dir)
-        if key_sim_path.is_absolute() or '..' in key_sim_path.parts:
+        # anchor 非空代表带盘符或盘根前缀（如 C:outside、\outside），拼接时会逃出 plugin_dir
+        if key_sim_path.is_absolute() or key_sim_path.anchor != '' or '..' in key_sim_path.parts:
             raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是相对路径")
         plugin_info.key_sim_dir = key_sim_dir
 
