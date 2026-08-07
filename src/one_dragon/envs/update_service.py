@@ -192,17 +192,19 @@ class UpdateService:
             raise
 
     def restore_interrupted_launcher_update(self) -> None:
-        """启动时恢复上次替换中断留下的启动器备份。"""
+        """启动时回滚中断的更新，或清理上次成功更新保留的备份。"""
         work_dir = Path(os_utils.get_work_dir())
         for launcher_type in ('launcher', 'runtime'):
             exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
             backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
             current_valid = exe_path.is_file() and exe_path.stat().st_size > 0
+            has_backup = backup_path.exists()
             if launcher_type == 'runtime':
                 current_valid = current_valid and (work_dir / RUNTIME_DIR).is_dir()
-            if backup_path.exists() and not current_valid:
+                has_backup = has_backup or (work_dir / RUNTIME_DIR_BACKUP).exists()
+            if has_backup and not current_valid:
                 self._swap_launcher_backup(launcher_type, backup=False)
-            elif backup_path.exists() and current_valid:
+            elif has_backup:
                 self._cleanup_launcher_backup(launcher_type)
 
     def prepare_launcher_update(self, launcher_type: LauncherType) -> None:
@@ -211,11 +213,16 @@ class UpdateService:
         self._delete_legacy_launcher_files()
 
     def finish_launcher_update(self, launcher_type: LauncherType, success: bool) -> None:
-        """更新成功时清理备份，失败时回滚原启动器。"""
-        if success:
-            self._cleanup_launcher_backup(launcher_type)
-        else:
+        """更新成功时安排清理备份，失败时回滚原启动器。"""
+        if not success:
             self._swap_launcher_backup(launcher_type, backup=False)
+            return
+        if launcher_type == 'runtime':
+            # 当前进程可能仍占用已改名的 exe 和 .runtime 备份 Windows 无法立即删除
+            # 保留到下次启动 由 restore_interrupted_launcher_update 确认新版本有效后清理
+            log.info('集成启动器更新完成 备份将在下次启动时清理')
+            return
+        self._cleanup_launcher_backup(launcher_type)
 
     def _swap_launcher_backup(self, launcher_type: LauncherType, backup: bool) -> None:
         """备份或回滚启动器文件。"""
