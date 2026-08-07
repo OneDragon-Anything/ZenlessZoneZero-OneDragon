@@ -137,7 +137,12 @@ my_plugin.zip
 
 ## 插件附带键鼠脚本
 
-插件目录下可带 `key_sim/` 子目录存放键鼠脚本（与插件一起分发，跟随插件更新）：
+插件可在 const 中声明 `KEY_SIM_DIR`（相对插件目录的键鼠脚本目录名），脚本目录随插件一起分发、跟随插件更新：
+
+```python
+# my_plugin_const.py
+KEY_SIM_DIR = 'scripts'   # 可选：插件附带键鼠脚本的目录名（相对插件目录）
+```
 
 ```
 my_plugin/
@@ -145,14 +150,14 @@ my_plugin/
 ├── my_plugin_const.py
 ├── my_plugin_factory.py
 ├── my_plugin.py
-└── key_sim/
-    └── 我的脚本.yml        # operations 列表，格式同 config/key_sim/ 下的脚本
+└── scripts/                  # 目录名与 const 中 KEY_SIM_DIR 一致即可
+    └── 我的脚本.yml          # operations 列表，格式同 config/key_sim/ 下的脚本
 ```
 
-脚本格式与 `config/key_sim/` 下的脚本一致（`operations` 列表）。应用内用 `KeySimRunner(ctx, '我的脚本')` 即可执行，脚本查找优先级：
+脚本格式与 `config/key_sim/` 下的脚本一致（`operations` 列表）。应用内直接用 `KeySimRunner(ctx, '我的脚本')` 执行，框架会按当前运行应用的 app_id 在工厂注册表里找到该插件声明的 `KEY_SIM_DIR`，在其目录内查找脚本。查找优先级：
 
-1. 用户 `config/key_sim/我的脚本.yml`（用户可自定义，覆盖插件脚本）
-2. 插件目录 `key_sim/我的脚本.yml`（内置 application 子目录与 plugins/ 第三方插件目录都会查找）
+1. 用户 `config/key_sim/我的脚本.yml`（用户可自定义，覆盖脚本）
+2. 当前应用插件目录内任意位置的 `我的脚本.yml`（目录内结构自由组织，不限定子目录名）
 3. 仓库自带的 `config/key_sim/我的脚本.sample.yml`（回退）
 
 ---

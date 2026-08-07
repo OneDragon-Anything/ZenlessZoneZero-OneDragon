@@ -411,6 +411,7 @@ class ApplicationFactoryManager:
         plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
         plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
+        plugin_info.key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
 
         # 注册到插件信息表（同时作为后续重复检测的依据）
         self._plugin_infos[plugin_info.app_id] = plugin_info
