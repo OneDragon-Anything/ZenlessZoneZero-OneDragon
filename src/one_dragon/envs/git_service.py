@@ -1,6 +1,7 @@
 import contextlib
 import os
 import queue
+import re
 import shutil
 import stat
 import sys
@@ -62,12 +63,8 @@ class GitSyncStatus(StrEnum):
     FAILED = '更新失败'
 
 
-class _HistoryState(StrEnum):
-    """指定提交历史相对于仓库 shallow 状态的完整性。"""
-
-    COMPLETE = 'complete'
-    SHALLOW = 'shallow'
-    GAP = 'gap'
+class _LocalGitMetadataError(RuntimeError):
+    """本地 Git 元数据损坏，不能通过切换代码源修复。"""
 
 
 def _get_repository_objects_path(repo: Repository) -> Path:
@@ -329,7 +326,9 @@ def _fetch_remote_worker(
         if primary_branch_incremental:
             assert base_ref is not None
             refspecs.insert(0, f'+{base_ref}:{base_ref}')
-        remote = temp_repo.remotes.create('origin', remote_url)
+        temp_repo.remotes.create('origin', remote_url)
+        temp_repo.config['remote.origin.tagopt'] = '--no-tags'
+        remote = temp_repo.remotes['origin']
 
         def report_progress(progress: float, message: str) -> None:
             _send_fetch_worker_message(
@@ -603,7 +602,16 @@ class GitService:
             git_dir = discover_repository(self.repo_dir)
             if not git_dir:
                 raise ValueError(f'目录 {self.repo_dir} 不是有效的 Git 仓库')
-            self._repo = Repository(git_dir)
+            try:
+                self._repo = Repository(git_dir)
+            except Exception:
+                try:
+                    _parse_shallow_snapshot(
+                        _read_shallow_snapshot(Path(git_dir) / 'shallow')
+                    )
+                except ValueError as shallow_error:
+                    raise _LocalGitMetadataError('shallow metadata corrupted') from shallow_error
+                raise
 
         return self._repo
 
@@ -716,46 +724,103 @@ class GitService:
 
         return _FetchProgressRemoteCallbacks(stage_progress_callback, REMOTE_FETCH_TIMEOUT)
 
-    def _get_history_state(
+    def _validate_history(self, repo: Repository, start_oid: Oid) -> None:
+        """确认提交历史可遍历到完整根或合法 shallow 边界。"""
+        try:
+            for _ in repo.walk(start_oid, SortMode.TOPOLOGICAL):
+                pass
+        except KeyError as error:
+            if self._is_missing_object_error(error):
+                raise _LocalGitMetadataError('commit history has undeclared gap') from error
+            raise
+
+    def _derive_single_shallow_boundary(self, repo: Repository, start_oid: Oid) -> Oid:
+        """沿项目主分支第一父链推导唯一 shallow 边界。"""
+        current_oid = start_oid
+        child_oid: Oid | None = None
+        latest_merge_oid: Oid | None = None
+        latest_merge_child_oid: Oid | None = None
+        while True:
+            try:
+                commit = repo[current_oid]
+            except KeyError as error:
+                if self._is_missing_object_error(error):
+                    raise _LocalGitMetadataError('commit history has undeclared gap') from error
+                raise
+            if len(commit.parent_ids) > 1:
+                latest_merge_oid = current_oid
+                latest_merge_child_oid = child_oid
+            if not commit.parent_ids:
+                break
+            try:
+                parent = commit.parents[0]
+            except KeyError as error:
+                if self._is_missing_object_error(error):
+                    break
+                raise
+            child_oid = current_oid
+            current_oid = parent.id
+        if latest_merge_oid is not None:
+            if latest_merge_child_oid is not None:
+                return latest_merge_child_oid
+            return latest_merge_oid
+        return current_oid
+
+    def _repair_primary_branch_shallow(
         self,
         repo: Repository,
         start_oid: Oid,
-        shallow_oids: set[str],
-    ) -> _HistoryState:
-        """区分完整历史、合法 shallow 与未声明历史缺口。"""
-        reached_shallow_boundary = False
-        try:
-            for commit in repo.walk(start_oid, SortMode.TOPOLOGICAL):
-                if str(commit.id) in shallow_oids:
-                    reached_shallow_boundary = True
-        except Exception:
-            log.warning('提交历史存在未声明缺口，改用 shallow fetch', exc_info=True)
-            return _HistoryState.GAP
-
-        return (
-            _HistoryState.SHALLOW
-            if reached_shallow_boundary
-            else _HistoryState.COMPLETE
+        shallow_snapshot: bytes | None,
+        primary_branch: str,
+    ) -> tuple[Repository, bytes | None]:
+        """把主分支缺口前的单个可达提交追加为 shallow 边界。"""
+        boundary_oid = self._derive_single_shallow_boundary(repo, start_oid)
+        shallow_path = _get_repository_shallow_path(repo)
+        shallow_oids = _parse_shallow_snapshot(shallow_snapshot)
+        if str(boundary_oid) not in shallow_oids:
+            shallow_oids.append(str(boundary_oid))
+        repaired_snapshot = b''.join(
+            f'{oid}\n'.encode('ascii')
+            for oid in shallow_oids
         )
+        _write_shallow_snapshot(shallow_path, repaired_snapshot)
 
-    def _get_complete_primary_branch_oid(
+        self._repo = None
+        with contextlib.suppress(Exception):
+            repo.free()
+        repaired_repo = self._open_repo()
+        try:
+            self._validate_history(repaired_repo, start_oid)
+        except BaseException as error:
+            with contextlib.suppress(Exception):
+                _write_shallow_snapshot(shallow_path, shallow_snapshot)
+            self._repo = None
+            with contextlib.suppress(Exception):
+                repaired_repo.free()
+            with contextlib.suppress(Exception):
+                self._open_repo()
+            raise _LocalGitMetadataError('commit history has undeclared gap') from error
+
+        log.warning(
+            f'检测到项目主分支 {primary_branch} 存在未声明历史缺口，'
+            f'已将 {boundary_oid} 记录为 shallow 边界；如需完整历史，请执行 '
+            f'git fetch --unshallow {self.env_config.git_remote} {primary_branch}'
+        )
+        return repaired_repo, repaired_snapshot
+
+    def _get_primary_branch_oid(
         self,
         repo: Repository,
-        shallow_oids: set[str],
         primary_branch: str,
     ) -> Oid | None:
-        """获取可用于其他分支增量 fetch 的完整项目主分支。"""
+        """获取可用于其他分支增量 fetch 的项目主分支 tip。"""
         remote_ref = f'refs/remotes/{self.env_config.git_remote}/{primary_branch}'
         local_ref = f'refs/heads/{primary_branch}'
         for ref_name in (remote_ref, local_ref):
             if ref_name not in repo.references:
                 continue
             primary_branch_oid = repo.references[ref_name].target
-            if (
-                primary_branch_oid is not None
-                and self._get_history_state(repo, primary_branch_oid, shallow_oids)
-                is _HistoryState.COMPLETE
-            ):
+            if primary_branch_oid is not None:
                 return primary_branch_oid
         return None
 
@@ -817,7 +882,9 @@ class GitService:
 
         try:
             log.info(f'开始导入临时 Git 仓库: {remote_url}')
-            remote = active_repo.remotes.create(remote_name, remote_url)
+            active_repo.remotes.create(remote_name, remote_url)
+            active_repo.config[f'remote.{remote_name}.tagopt'] = '--no-tags'
+            remote = active_repo.remotes[remote_name]
             remote.fetch(refspecs=refspecs, depth=0, callbacks=callbacks)
             callbacks.flush_sideband_progress()
             _sync_shallow_file(
@@ -875,8 +942,11 @@ class GitService:
         branch_name = self.env_config.git_branch
         primary_branch = self.repo_config.primary_branch
         local_ref = f'refs/heads/{branch_name}'
-        shallow_snapshot = _read_shallow_snapshot(_get_repository_shallow_path(repo))
-        shallow_oids = set(_parse_shallow_snapshot(shallow_snapshot))
+        try:
+            shallow_snapshot = _read_shallow_snapshot(_get_repository_shallow_path(repo))
+            _parse_shallow_snapshot(shallow_snapshot)
+        except ValueError as error:
+            raise _LocalGitMetadataError('shallow metadata corrupted') from error
         base_ref: str | None = None
         base_oid: Oid | None = None
         fetch_primary_branch = False
@@ -889,22 +959,24 @@ class GitService:
         if tag_name is not None:
             depth = 1
         elif local_oid is not None:
-            history_state = self._get_history_state(repo, local_oid, shallow_oids)
-            if history_state is _HistoryState.GAP:
-                depth = 1
-            else:
-                depth = 0
-                base_ref = local_ref
-                base_oid = local_oid
+            self._validate_history(repo, local_oid)
+            depth = 0
+            base_ref = local_ref
+            base_oid = local_oid
         elif branch_name != primary_branch:
-            base_oid = self._get_complete_primary_branch_oid(
-                repo,
-                shallow_oids,
-                primary_branch,
-            )
+            base_oid = self._get_primary_branch_oid(repo, primary_branch)
             if base_oid is None:
                 depth = 1
             else:
+                try:
+                    self._validate_history(repo, base_oid)
+                except _LocalGitMetadataError:
+                    repo, shallow_snapshot = self._repair_primary_branch_shallow(
+                        repo,
+                        base_oid,
+                        shallow_snapshot,
+                        primary_branch,
+                    )
                 depth = 0
                 base_ref = f'refs/heads/{primary_branch}'
                 fetch_primary_branch = True
@@ -1034,38 +1106,66 @@ class GitService:
     @staticmethod
     def _is_missing_object_error(error: BaseException) -> bool:
         """判断异常是否明确表示本地 Git 对象缺失。"""
-        return isinstance(error, KeyError) and 'object not found' in str(error)
+        if not isinstance(error, KeyError):
+            return False
+        message = str(error)
+        if 'object not found' in message:
+            return True
+        return re.fullmatch(r"'{0,1}[0-9a-f]{40}'{0,1}", message) is not None
 
     def _rebuild_repository(
         self,
         progress_callback: Callable[[float, str], None] | None,
         initial_tag: str | None = None,
     ) -> tuple[GitSyncStatus, str]:
-        """备份损坏的 Git 目录并重新克隆仓库。"""
+        """备份损坏的 Git 目录并重新建立浅仓库。"""
         failure_message = gt('本地代码更新失败')
+        if self._rebuilding_repository:
+            log.error('本地 Git 仓库重建期间再次检测到损坏，停止重复重建')
+            return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+        opened_repo: Repository | None = None
         try:
-            repo = self._open_repo()
-            git_dir = Path(repo.path).resolve()
-            if (git_dir / 'commondir').is_file():
-                log.error('检测到 linked worktree，暂不自动重建本地 Git 仓库')
+            discovered_git_dir = discover_repository(self.repo_dir)
+            if not discovered_git_dir:
+                log.error(f'目录 {self.repo_dir} 不是有效的 Git 仓库，无法备份')
                 return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
-            extra_remotes = [remote_name for remote_name in repo.remotes.names() if remote_name != 'origin']
-            if extra_remotes:
-                log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
-                return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+            git_dir = Path(discovered_git_dir).resolve()
             if not git_dir.is_dir():
                 log.error(f'本地 Git 目录不存在，无法备份: {git_dir}')
                 return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+            if (git_dir / 'commondir').is_file() or (git_dir / 'worktrees').is_dir():
+                log.error('检测到关联 worktree，暂不自动重建本地 Git 仓库')
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+            try:
+                opened_repo = Repository(str(git_dir))
+            except Exception:
+                log.warning('旧 Git 仓库无法打开，跳过 remote 检查并直接备份重建')
+            else:
+                extra_remotes = sorted(set(opened_repo.remotes.names()) - {'origin'})
+                if extra_remotes:
+                    log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
+                    return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
 
             timestamp = time.strftime('%Y%m%d_%H%M%S')
             backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}')
             if backup_dir.exists():
                 backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}.{uuid.uuid4().hex[:8]}')
 
-            log.warning(f'检测到本地 Git 对象缺失，备份旧 Git 目录: {git_dir} -> {backup_dir}')
+            log.warning(f'检测到本地 Git 仓库损坏，备份旧 Git 目录: {git_dir} -> {backup_dir}')
+            cached_repo = self._repo
             self._repo = None
-            repo.free()
+            if cached_repo is not None:
+                with contextlib.suppress(Exception):
+                    cached_repo.free()
+            if opened_repo is not None and opened_repo is not cached_repo:
+                with contextlib.suppress(Exception):
+                    opened_repo.free()
+                opened_repo = None
             git_dir.rename(backup_dir)
+
             self._rebuilding_repository = True
             try:
                 status, message = self._clone_repository(progress_callback, initial_tag)
@@ -1080,6 +1180,10 @@ class GitService:
         except Exception:
             log.error('备份或重建本地 Git 仓库失败，保留现场', exc_info=True)
             return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+        finally:
+            if opened_repo is not None:
+                with contextlib.suppress(Exception):
+                    opened_repo.free()
 
     def _fetch_remote(
         self,
@@ -1092,7 +1196,7 @@ class GitService:
         log.info(gt('拉取远程代码...'))
         success = False
         used_repository: RepositoryItem | None = None
-        has_missing_object_failure = False
+        local_repository_damaged = False
 
         try:
             for repository, repository_url in self._get_repository_candidates():
@@ -1111,14 +1215,23 @@ class GitService:
                     success = True
                     used_repository = repository
                     break
+                except _LocalGitMetadataError:
+                    local_repository_damaged = True
+                    log.error('本地 Git 元数据损坏，停止代码源回退', exc_info=True)
+                    break
                 except Exception as error:
-                    has_missing_object_failure |= self._is_missing_object_error(error)
+                    if self._is_missing_object_error(error):
+                        local_repository_damaged = True
+                        log.error('导入远程对象时发现本地 Git 对象缺失，停止代码源回退', exc_info=True)
+                        break
                     log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
         finally:
-            restored = self._restore_origin()
+            restored = True if local_repository_damaged else self._restore_origin()
 
-        if not success and not self._rebuilding_repository and has_missing_object_failure:
-            log.warning('候选代码源导入时检测到本地对象缺失，开始自动备份并重建本地 Git 仓库')
+        if not success and local_repository_damaged:
+            if self._rebuilding_repository:
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('本地代码更新失败')
+            log.warning('检测到本地 Git 仓库损坏，开始自动备份并重建本地 Git 仓库')
             return self._rebuild_repository(progress_callback, tag_name)
         if not restored:
             log.error('拉取结束后无法恢复主仓库远程地址')
