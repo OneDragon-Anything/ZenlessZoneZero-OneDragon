@@ -103,6 +103,9 @@ def _read_project_config() -> dict[str, str] | None:
         value = data.get(key)
         if isinstance(value, str) and value:
             result[key] = value
+    # 任一必需键缺失都视为配置无效，避免调用方取键时抛 KeyError
+    if len(result) != 2:
+        return None
     return result
 
 
@@ -273,6 +276,8 @@ def _check_downloaded_manifest_compatible(zip_path: Path) -> tuple[bool, str]:
             remote_manifest = zip_file.read(f'src/{_get_manifest_path_in_zip(zip_file)}')
     except KeyError:
         return True, ''
+    except zipfile.BadZipFile:
+        return False, '下载的文件损坏或不是有效的压缩包，请重试或改用「恢复内置代码」'
 
     local_manifest = local_manifest_path.read_bytes()
     if local_manifest == remote_manifest:
@@ -353,7 +358,7 @@ def _show_fallback_error(src_dir: Path) -> None:
 # 仅当确实不可用时（极少见），_PYSIDE6_AVAILABLE 为 False，
 # 界面入口退化为系统弹窗。
 try:
-    from PySide6.QtCore import QThread, Signal
+    from PySide6.QtCore import QObject, QThread, Signal
     from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import (
         QApplication,
@@ -379,7 +384,7 @@ class _RecoveryWorker(QThread):
     progress_changed = Signal(float, str)
     task_finished = Signal(bool, str)
 
-    def __init__(self, task: Callable[[ProgressCallback], tuple[bool, str]], parent=None) -> None:
+    def __init__(self, task: Callable[[ProgressCallback], tuple[bool, str]], parent: QObject | None = None) -> None:
         QThread.__init__(self, parent)
         self._task: Callable[[ProgressCallback], tuple[bool, str]] = task
 
