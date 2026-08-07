@@ -1,6 +1,5 @@
 import inspect
 import logging
-import os
 import threading
 from enum import Enum
 from functools import cached_property
@@ -550,11 +549,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         判断某个 OCR 模型的文件是否已经全部就绪
         """
-        return all(os.path.exists(f) for f in get_final_file_list(ocr_model_name))
+        return all(Path(f).exists() for f in get_final_file_list(ocr_model_name))
 
     def _download_ocr_v6_in_background(self) -> None:
         """
-        后台下载 V6 模型 下载成功后自动切换
+        后台下载 V6 模型 下载成功后落盘配置 下次启动自动生效
         已有下载任务进行中时 不重复启动
         """
         if self._ocr_v6_downloading:
@@ -576,9 +575,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                     proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
                 )
                 if done:
-                    log.info('OCR V6 后台下载完成 自动切换')
+                    # 只落盘配置 不立刻切换 避免切换失败导致当前可用的 V5 失效
                     self.model_config.ocr = PPOCRV6_MODEL_NAME
-                    self.init_ocr()
+                    log.info('OCR V6 后台下载完成 配置已更新 下次启动自动切换')
                 else:
                     log.error('OCR V6 后台下载失败 保持当前 V5 可用 下次启动再试')
             except Exception:
