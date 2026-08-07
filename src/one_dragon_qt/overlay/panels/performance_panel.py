@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import time
 
-from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
+from one_dragon.base.debug.debug_trace_bus import PerfTraceItem
 from one_dragon_qt.overlay.panels.resizable_panel import ResizablePanel
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
 
@@ -41,10 +41,10 @@ class PerformancePanel(ResizablePanel):
     def set_enabled_metric_map(self, metric_map: dict[str, bool] | None) -> None:
         self._enabled_metric_map = dict(metric_map or {})
 
-    def update_items(self, items: list[PerfMetricSample]) -> None:
+    def update_items(self, items: list[PerfTraceItem]) -> None:
         if self._edit_mode:
             return
-        latest_by_metric: dict[str, PerfMetricSample] = {}
+        latest_by_metric: dict[str, PerfTraceItem] = {}
         for item in sorted(items, key=lambda x: x.created):
             latest_by_metric[item.metric] = item
 
