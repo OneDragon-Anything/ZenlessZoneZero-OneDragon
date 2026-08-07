@@ -153,7 +153,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.gh_proxy_url_opt = TextSettingCard(
             icon=FluentIcon.GLOBE, title='免费代理',
-            content='优先使用此线路，失败后自动切换内置线路（ghfast.top / gh-proxy.com / ghproxy.net / ghp.ci）'
+            content='优先使用已保存线路，失败后自动切换内置线路'
         )
         web_group.addSettingCard(self.gh_proxy_url_opt)
 

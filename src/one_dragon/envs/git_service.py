@@ -549,6 +549,19 @@ class GitService:
             return repository_url[:-len(suffix)]
         return None
 
+    def _record_success_gh_proxy(self, repository: RepositoryItem, repository_url: str) -> None:
+        """记录本次成功的代理线路，下次优先尝试；未使用代理时无操作。"""
+        if not self.env_config.is_gh_proxy or not repository.use_proxy:
+            return
+        used_proxy_url = self._extract_gh_proxy(repository_url, repository)
+        if used_proxy_url is None:
+            return
+        try:
+            self.env_config.gh_proxy_url = used_proxy_url
+        except OSError:
+            # 配置写盘失败只记日志，不影响本次操作结果
+            log.warning('记录上次成功代理线路失败', exc_info=True)
+
     def _get_git_repository(self) -> str:
         """获取当前选择模式下首个候选代码源地址。"""
         candidates = self._get_repository_candidates()
@@ -881,14 +894,7 @@ class GitService:
             except Exception:
                 log.warning('记录上次成功代码源失败', exc_info=True)
             # 使用代理时记录本次成功的线路，下次优先尝试
-            if self.env_config.is_gh_proxy and used_repository.use_proxy:
-                used_proxy_url = self._extract_gh_proxy(used_url, used_repository)
-                if used_proxy_url is not None:
-                    try:
-                        self.env_config.gh_proxy_url = used_proxy_url
-                    except OSError:
-                        # 配置写盘失败只记日志，不影响本次拉取结果
-                        log.warning('记录上次成功代理线路失败', exc_info=True)
+            self._record_success_gh_proxy(used_repository, used_url)
 
         used_repository_name = self._get_repository_item(used_repository).ui_text if used_repository else ''
         log.info(f'远程代码拉取成功，实际代码源: {used_repository_name}')
@@ -1476,6 +1482,7 @@ class GitService:
                     with self._temporary_fetch_timeout():
                         heads = remote.list_heads(callbacks=callbacks, proxy=self._get_proxy_address())
                     log.info(f'标签查询使用代码源: {repository_name}')
+                    self._record_success_gh_proxy(repository, repository_url)
                     break
                 except Exception:
                     log.warning(f'代码源 {repository_name} 获取标签失败，尝试下一个代码源', exc_info=True)
