@@ -33,6 +33,14 @@ class ContextEventBus:
             future: Future = _od_event_bus_executor.submit(callback, ContextEventItem(event_id, event_obj))
             future.add_done_callback(thread_utils.handle_future_result)
 
+    def has_event_listener(self, event_id: str) -> bool:
+        """
+        判断某个事件是否有监听者
+        :param event_id: 事件ID
+        :return: 是否有监听者
+        """
+        return len(self.callbacks.get(event_id, [])) > 0
+
     def listen_event(self, event_id: str, callback: Callable[[ContextEventItem], None]):
         """
         新增监听事件

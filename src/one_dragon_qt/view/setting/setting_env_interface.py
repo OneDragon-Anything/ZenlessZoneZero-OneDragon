@@ -19,9 +19,6 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
-    PasswordSwitchSettingCard,
-)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -51,7 +48,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         content_layout.addWidget(self.help_opt)
         content_layout.addWidget(self._init_basic_group())
-        content_layout.addWidget(self._init_code_group())
         content_layout.addWidget(self._init_python_group())
         content_layout.addWidget(self._init_web_group())
         content_layout.addWidget(self._init_key_group())
@@ -74,6 +70,14 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.debug_opt.value_changed.connect(lambda: self.ctx.init_async())
         basic_group.addSettingCard(self.debug_opt)
 
+        self.developer_mode_opt = SwitchSettingCard(
+            icon=FluentIcon.DEVELOPER_TOOLS,
+            title='开发者模式',
+            content='关闭后隐藏开发工具和实验功能，已有配置不会改变',
+        )
+        self.developer_mode_opt.value_changed.connect(self._on_developer_mode_changed)
+        basic_group.addSettingCard(self.developer_mode_opt)
+
         self.copy_screenshot_opt = SwitchSettingCard(
             icon=FluentIcon.CAMERA, title='复制截图到剪贴板',
             content='按下截图按键时，自动将截图复制到剪贴板'
@@ -81,32 +85,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.copy_screenshot_opt)
 
         return basic_group
-
-    def _init_code_group(self) -> SettingCardGroup:
-        code_group = SettingCardGroup(gt('Git相关'))
-
-        self.repository_url_opt = ComboBoxSettingCard(
-            icon=FluentIcon.APPLICATION,
-            title='代码源',
-            content='自动模式优先使用上次成功源，失败或超时后继续尝试其他代码源',
-            options_list=self.ctx.repo_config.repository_options,
-        )
-        self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
-        code_group.addSettingCard(self.repository_url_opt)
-
-        self.auto_update_code_opt = PasswordSwitchSettingCard(
-            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
-            password_hash='69fec7ebc9c57ba044c55deb4e30aa1a6d6788f1da67b824ef96a590f526d20a',
-            reverse_mode=True
-        )
-        code_group.addSettingCard(self.auto_update_code_opt)
-
-        self.force_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
-        )
-        code_group.addSettingCard(self.force_update_opt)
-
-        return code_group
 
     def _init_python_group(self) -> SettingCardGroup:
         python_group = SettingCardGroup(gt('Python相关'))
@@ -207,6 +185,10 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
+        self.developer_mode_opt.init_with_adapter(
+            self.ctx.env_config.get_prop_adapter('developer_mode')
+        )
+        self.debug_opt.setVisible(self.ctx.env_config.developer_mode)
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
@@ -214,18 +196,23 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_screenshot_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_screenshot'))
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
 
-        self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
-
-        self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
         self.personal_proxy_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
         self.gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
-        self.auto_fetch_gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_fetch_gh_proxy_url'))
+        self.auto_fetch_gh_proxy_url_opt.init_with_adapter(
+            self.ctx.env_config.get_prop_adapter('auto_fetch_gh_proxy_url')
+        )
         self.update_proxy_ui()
+
+    def _on_developer_mode_changed(self, value: bool) -> None:
+        """通知主窗口更新开发者功能可见性。"""
+        window = self.window()
+        if hasattr(window, 'set_developer_mode'):
+            window.set_developer_mode(value)
+        self.debug_opt.setVisible(value)
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
         self.update_proxy_ui()

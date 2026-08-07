@@ -17,6 +17,9 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.horizontal_setting_card_group import (
     HorizontalSettingCardGroup,
 )
+from one_dragon_qt.widgets.resource_download_dialog import (
+    build_resource_source_options,
+)
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -116,6 +119,13 @@ class SourceConfigInterface(VerticalScrollInterface):
             options_list=self.ctx.repo_config.get_source_options('pip_source'),
         )
 
+        self.resource_source_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CLOUD,
+            title='资源下载源',
+            content='模型等资源的下载源 自动模式按系统语言推荐',
+            options_list=build_resource_source_options(self.ctx.env_config),
+        )
+
         # 创建横向布局组件
         first_row = HorizontalSettingCardGroup([self.repository_url_opt, self.cpython_source_opt])
         second_row = HorizontalSettingCardGroup([self.env_source_opt, self.pip_source_opt])
@@ -123,6 +133,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         # 将横向布局组件添加到源组
         source_group.addSettingCard(first_row)
         source_group.addSettingCard(second_row)
+        source_group.addSettingCard(self.resource_source_opt)
         advanced_group.addSettingCard(source_group)
 
         # 网络代理设置
@@ -190,6 +201,7 @@ class SourceConfigInterface(VerticalScrollInterface):
     def _init_config_values(self):
         """初始化配置值显示"""
         self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
+        self.resource_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('resource_source'))
         self.env_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('env_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))

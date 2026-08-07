@@ -4,16 +4,34 @@ import contextlib
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
-from qfluentwidgets import InfoBar, InfoBarIcon, InfoBarPosition
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QMessageBox
+from qfluentwidgets import (
+    InfoBar,
+    InfoBarIcon,
+    InfoBarPosition,
+    TeachingTipTailPosition,
+)
 
+from one_dragon.base.operation.context_download_request_event import (
+    ContextDownloadRequestEvent,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_manager import AppSettingManager
+from one_dragon_qt.services.download_queue_service import (
+    DownloadQueueService,
+)
+from one_dragon_qt.services.resource_update_coordinator import (
+    ResourceUpdateCoordinator,
+)
 from one_dragon_qt.widgets.back_navigation_button import BackNavigationButton
 from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.widgets.download_queue_dialog import DownloadQueueDialog
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
+from one_dragon_qt.widgets.teaching_tip import TeachingTip
 from one_dragon_qt.windows.app_window_base import AppWindowBase
 
 if TYPE_CHECKING:
@@ -30,6 +48,7 @@ class MainAppWindowBase(AppWindowBase):
     """
 
     context_notify_signal = Signal(object)
+    context_download_request_signal = Signal(object)
 
     def __init__(
         self,
@@ -41,6 +60,8 @@ class MainAppWindowBase(AppWindowBase):
     ):
         self.ctx: OneDragonContext = ctx
         self.app_setting_manager = AppSettingManager(ctx)
+        self.ctx.update_service.restore_interrupted_launcher_update()
+        self.download_queue = DownloadQueueService(ctx)
         self._connected_pivot_navi: PivotNavigatorInterface | None = None
 
         AppWindowBase.__init__(
@@ -50,9 +71,32 @@ class MainAppWindowBase(AppWindowBase):
             app_icon=app_icon,
             parent=parent,
         )
+        self.download_queue.setParent(self)
+        self.download_queue_dialog = DownloadQueueDialog(self.download_queue, self)
+        self._download_queue_tip: TeachingTip | None = None
+        self._closing_after_cancel: bool = False  # 是否已请求取消下载并等待退出
+        self.resource_update_coordinator: ResourceUpdateCoordinator = (
+            ResourceUpdateCoordinator(
+                self.ctx,
+                self.download_queue,
+                self,
+                self.show_download_queue_added_tip,
+                self,
+            )
+        )
+        self.titleBar.download_queue_requested.connect(self.download_queue_dialog.show_queue)
+        self.download_queue.queue_updated.connect(self._update_download_queue_button)
+        self._update_download_queue_button()
+        self.titleBar.developer_mode_requested.connect(
+            lambda: self.set_developer_mode(True)
+        )
+        self._apply_developer_mode_visibility()
 
         self.context_notify_signal.connect(self._show_context_notify)
         self.ctx.listen_event(ContextNotifyEvent.EVENT_ID, self._emit_context_notify)
+
+        self.context_download_request_signal.connect(self._show_download_request_dialog)
+        self.ctx.listen_event(ContextDownloadRequestEvent.EVENT_ID, self._emit_download_request)
 
     def create_sub_interface(self) -> None:
         # 导航栏返回按钮（最上方，在子界面之前添加）
@@ -108,6 +152,105 @@ class MainAppWindowBase(AppWindowBase):
             position=InfoBarPosition.TOP_RIGHT,
             parent=self,
         )
+
+    def set_developer_mode(self, enabled: bool) -> None:
+        """更新开发者模式并立即刷新相关入口。"""
+        was_enabled = self.ctx.env_config.developer_mode
+        if was_enabled != enabled:
+            self.ctx.env_config.developer_mode = enabled
+        self._apply_developer_mode_visibility()
+        if enabled and not was_enabled:
+            InfoBar.success(
+                title=gt('开发者模式已开启'),
+                content=gt('开发工具和实验功能现在可见'),
+                duration=4000,
+                position=InfoBarPosition.TOP_RIGHT,
+                parent=self,
+            )
+
+    def _apply_developer_mode_visibility(self) -> None:
+        """刷新已经创建的开发者和实验功能控件。"""
+        for index in range(self.stackedWidget.count()):
+            interface = self.stackedWidget.widget(index)
+            updater = getattr(
+                interface,
+                '_update_developer_visibility',
+                None,
+            )
+            if callable(updater):
+                updater()
+
+    def _update_download_queue_button(self) -> None:
+        """刷新标题栏下载队列数量。"""
+        self.titleBar.set_download_queue_counts(
+            self.download_queue.active_count(),
+            self.download_queue.failed_count(),
+        )
+        # 关闭窗口时请求过取消 等活动任务清空后继续退出
+        if self._closing_after_cancel and not self.download_queue.has_active_tasks():
+            self._closing_after_cancel = False
+            self.close()
+
+    def show_download_queue(self) -> None:
+        """打开下载队列弹窗。"""
+        self.download_queue_dialog.show_queue()
+
+    def show_download_queue_added_tip(self, resource_title: str) -> None:
+        """在标题栏下载入口旁提示资源已经加入队列。"""
+        if self._download_queue_tip is not None:
+            with contextlib.suppress(RuntimeError):
+                self._download_queue_tip.close()
+        self._download_queue_tip = TeachingTip.create(
+            target=self.titleBar.downloadQueueButton,
+            icon=InfoBarIcon.SUCCESS,
+            title=gt('已加入下载队列'),
+            content=f'{resource_title} · {gt("点击下载按钮查看进度")}',
+            isClosable=False,
+            tailPosition=TeachingTipTailPosition.TOP,
+            duration=2500,
+            parent=self,
+        )
+
+    def check_resource_updates(self, force: bool = False) -> None:
+        """检查通用资源和项目注册的资源。"""
+        coordinator = getattr(self, 'resource_update_coordinator', None)
+        if coordinator is not None:
+            coordinator.check_updates(force=force)
+
+    def on_welcome_dialog_closed(self) -> None:
+        """欢迎弹窗结束后允许展示聚合资源更新弹窗。"""
+        self.resource_update_coordinator.on_welcome_dialog_closed()
+
+    def _emit_download_request(self, event: ContextEventItem) -> None:
+        """将下载确认请求通过信号传递到主线程。"""
+        if isinstance(event.data, ContextDownloadRequestEvent):
+            self.context_download_request_signal.emit(event.data)
+
+    def _show_download_request_dialog(self, event: ContextDownloadRequestEvent) -> None:
+        """将后端资源下载请求交给框架协调器聚合处理。"""
+        self.resource_update_coordinator.add_context_download_request(event)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """活动下载存在时先请求异步取消，避免强行结束线程。"""
+        if not self.download_queue.has_active_tasks():
+            super().closeEvent(event)
+            return
+        answer = QMessageBox.question(
+            self,
+            gt('下载仍在进行'),
+            gt('退出前需要取消正在进行的下载，是否取消全部任务？'),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            event.ignore()
+            return
+
+        # 取消是异步的 记录退出意图 等队列没有活动任务后再真正关闭
+        self._closing_after_cancel = True
+        self.download_queue.cancel_all()
+        self.show_download_queue()
+        event.ignore()
 
     def on_ctx_ready(self) -> None:
         """在 ctx.init() 完成后调用，执行设置提供者扫描"""

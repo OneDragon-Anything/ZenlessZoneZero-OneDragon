@@ -49,6 +49,60 @@ pip_source:
     alibaba:
       label: 阿里云
       value: "https://mirrors.aliyun.com/pypi/simple"
+resource_download:
+  sources:
+    github:
+      label: GitHub
+      use_proxy: true
+    cnb:
+      label: CNB
+      use_proxy: false
+    gitee:
+      label: Gitee
+      use_proxy: false
+  recommend:
+    zh: cnb
+    en: github
+  repos:
+    main:
+      github: "https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/releases"
+      cnb: "https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon/-/releases"
+    env:
+      github: "https://github.com/OneDragon-Anything/OneDragon-Env/releases"
+      cnb: "https://cnb.cool/OneDragon-Anything/OneDragon-Env/-/releases"
+      gitee: "https://gitee.com/OneDragon-Anything/OneDragon-Env/releases"
+    yolo:
+      github: "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases"
+      cnb: "https://cnb.cool/OneDragon-Anything/OneDragon-YOLO/-/releases"
+      gitee: "https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases"
+  models:
+    flash_classifier:
+      label: 闪光识别
+      default: yolov8n-640-flash-20250921
+      repo: yolo
+      tag: zzz_model
+      gpu_config: flash_classifier_gpu
+      required_files:
+        - model.onnx
+        - labels.csv
+    hollow_zero_event:
+      label: 空洞格子识别
+      default: yolov8s-736-hollow-zero-event-0126
+      repo: yolo
+      tag: zzz_model
+      gpu_config: hollow_zero_event_gpu
+      required_files:
+        - model.onnx
+        - labels.csv
+    lost_void_det:
+      label: 迷失之地识别
+      default: yolov26n-736-lost-void-det-20260630
+      repo: yolo
+      tag: zzz_model
+      gpu_config: lost_void_det_gpu
+      required_files:
+        - model.onnx
+        - labels.csv
 regions:
   china_cnb:
     label: 中国 - CNB
@@ -58,6 +112,7 @@ regions:
       cpython_source: "https://cnb.cool/astral-sh/python-build-standalone/releases/download"
       pip_source: "https://mirrors.aliyun.com/pypi/simple"
       proxy_type: "None"
+      resource_source: cnb
   china_gitee:
     label: 中国 - Gitee
     repository: gitee
@@ -66,6 +121,7 @@ regions:
       cpython_source: "https://gitee.com/OneDragon-Anything/python-build-standalone/releases/download"
       pip_source: "https://mirrors.aliyun.com/pypi/simple"
       proxy_type: "None"
+      resource_source: gitee
   china_ghproxy:
     label: 中国 - GitHub 代理
     repository: github
@@ -74,6 +130,7 @@ regions:
       cpython_source: "https://github.com/astral-sh/python-build-standalone/releases/download"
       pip_source: "https://mirrors.aliyun.com/pypi/simple"
       proxy_type: ghproxy
+      resource_source: github
   oversea:
     label: 海外
     repository: github
@@ -82,3 +139,4 @@ regions:
       cpython_source: "https://github.com/astral-sh/python-build-standalone/releases/download"
       pip_source: "https://pypi.org/simple"
       proxy_type: "None"
+      resource_source: github
