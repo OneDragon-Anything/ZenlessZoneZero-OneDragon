@@ -24,7 +24,7 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.envs.env_config import GitBranchEnum, ProxyTypeEnum
-from one_dragon.envs.git_service import GitLog
+from one_dragon.envs.git_service import GitLog, GitSyncStatus
 from one_dragon.envs.repo_config import ModelResourceDefinition
 from one_dragon.envs.update_service import LauncherType
 from one_dragon.utils.app_utils import start_one_dragon
@@ -740,8 +740,8 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.code_card.check_and_update_display()
 
     def _show_dialog_after_code_updated(self, success: bool) -> None:
-        """显示代码更新后的对话框"""
-        if not success:
+        """仅在代码实际更新后显示重启对话框。"""
+        if not success or self.code_card.last_sync_status is not GitSyncStatus.SUCCESS:
             return
         dialog = Dialog(gt('更新完成'), gt('代码已更新，重启以应用更改'), self)
         dialog.setTitleBarVisible(False)
