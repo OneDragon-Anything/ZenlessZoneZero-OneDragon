@@ -240,7 +240,7 @@ class AgentEnum(Enum):
                                                 hsv_color=(0, 255, 255), hsv_color_diff=(20, 255, 50),
                                                 connect_cnt=2)])
     KOLEDA = Agent('koleda', '珂蕾妲', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['koleda'])
-    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy'])
+    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy', 'lucy_princess_on_holiday'])
     LYCAON = Agent('lycaon', '莱卡恩', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ICE, ['lycaon'])
     NEKOMATA = Agent('nekomata', '猫又', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['nekomata'])
     NICOLE = Agent('nicole', '妮可', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['nicole', 'nicole_cunning_cutie'],)
@@ -543,7 +543,7 @@ class AgentEnum(Enum):
         RareTypeEnum.S,
         AgentTypeEnum.ANOMALY,
         DmgTypeEnum.LUMIFLUX,
-        ['remielle', 'remielle_dark'],
+        ['remielle', 'remielle_dark', 'remielle_dark_veil', 'remielle_seashade'],
         state_list=[
             AgentStateDef(
                 '蕾米埃尔-浮晖',

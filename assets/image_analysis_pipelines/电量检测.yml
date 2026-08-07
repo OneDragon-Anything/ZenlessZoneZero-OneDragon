@@ -1,0 +1,17 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 快捷手册
+    area_name: 以太电池
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 160
+    - 0
+    - 255
+    hsv_diff:
+    - 20
+    - 10
+    - 100
+- step: OCR识别
+  params:
+    draw_text_box: true
