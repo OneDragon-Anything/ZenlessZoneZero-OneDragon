@@ -15,7 +15,13 @@ DEFAULT_WHEELS_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'wheels')  # 默认的w
 DEFAULT_VENV_DIR_PATH = os_utils.get_path_under_work_dir('.venv')  # 默认的虚拟环境文件夹路径
 DEFAULT_VENV_PYTHON_PATH = os.path.join(DEFAULT_VENV_DIR_PATH, 'Scripts', 'python.exe')  # 默认的虚拟环境中python.exe的路径
 
-GH_PROXY_URL = 'https://ghfast.top'  # 免费代理的路径
+GH_PROXY_URL = 'https://ghfast.top'  # 默认的免费代理路径
+GH_PROXY_URLS = [
+    'https://ghfast.top',
+    'https://gh-proxy.com',
+    'https://ghproxy.net',
+    'https://ghp.ci',
+]  # 内置免费代理候选线路，按顺序尝试
 
 
 class ProxyTypeEnum(Enum):
@@ -286,7 +292,7 @@ class EnvConfig(YamlConfig):
     @property
     def gh_proxy_url(self) -> str:
         """
-        免费代理的url
+        免费代理的url（上次成功线路，优先尝试）
         :return:
         """
         return self.get('gh_proxy_url', GH_PROXY_URL)
@@ -294,22 +300,10 @@ class EnvConfig(YamlConfig):
     @gh_proxy_url.setter
     def gh_proxy_url(self, new_value: str) -> None:
         """
-        免费代理的url
+        免费代理的url（上次成功线路，优先尝试）
         :return:
         """
         self.update('gh_proxy_url', new_value)
-
-    @property
-    def auto_fetch_gh_proxy_url(self) -> bool:
-        """
-        自动获取免费代理的url
-        :return:
-        """
-        return self.get('auto_fetch_gh_proxy_url', True)
-
-    @auto_fetch_gh_proxy_url.setter
-    def auto_fetch_gh_proxy_url(self, new_value: bool) -> None:
-        self.update('auto_fetch_gh_proxy_url', new_value)
 
     def write_env_bat(self) -> None:
         """

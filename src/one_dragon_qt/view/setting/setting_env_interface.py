@@ -3,7 +3,6 @@ from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     FluentIcon,
-    HyperlinkButton,
     InfoBar,
     InfoBarPosition,
     PushButton,
@@ -153,23 +152,10 @@ class SettingEnvInterface(VerticalScrollInterface):
         web_group.addSettingCard(self.personal_proxy_input)
 
         self.gh_proxy_url_opt = TextSettingCard(
-            icon=FluentIcon.GLOBE, title='免费代理'
+            icon=FluentIcon.GLOBE, title='免费代理',
+            content='优先使用已保存线路，失败后自动切换内置线路'
         )
         web_group.addSettingCard(self.gh_proxy_url_opt)
-
-        self.auto_fetch_gh_proxy_url_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='自动获取免费代理地址', content='获取失败时 可前往 https://ghproxy.link/ 查看自行更新'
-        )
-        self.fetch_gh_proxy_url_btn = PushButton(gt('获取'), self)
-        self.fetch_gh_proxy_url_btn.clicked.connect(self.on_fetch_gh_proxy_url_clicked)
-        self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addWidget(self.fetch_gh_proxy_url_btn, 0, Qt.AlignmentFlag.AlignRight)
-        self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addSpacing(16)
-
-        self.goto_gh_proxy_link_btn = HyperlinkButton('https://ghproxy.link', gt('前往'), self)
-        self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addWidget(self.goto_gh_proxy_link_btn, 0, Qt.AlignmentFlag.AlignRight)
-        self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addSpacing(16)
-
-        web_group.addSettingCard(self.auto_fetch_gh_proxy_url_opt)
 
         return web_group
 
@@ -224,7 +210,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
         self.personal_proxy_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
         self.gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
-        self.auto_fetch_gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_fetch_gh_proxy_url'))
         self.update_proxy_ui()
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
@@ -237,10 +222,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         :return:
         """
         self.ctx.env_config.init_system_proxy()
-
-    def on_fetch_gh_proxy_url_clicked(self) -> None:
-        self.ctx.gh_proxy_service.update_proxy_url()
-        self.gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条"""
@@ -300,15 +281,12 @@ class SettingEnvInterface(VerticalScrollInterface):
         if self.ctx.env_config.proxy_type == ProxyTypeEnum.GHPROXY.value.value:
             self.personal_proxy_input.hide()
             self.gh_proxy_url_opt.show()
-            self.auto_fetch_gh_proxy_url_opt.show()
         elif self.ctx.env_config.proxy_type == ProxyTypeEnum.PERSONAL.value.value:
             self.personal_proxy_input.show()
             self.gh_proxy_url_opt.hide()
-            self.auto_fetch_gh_proxy_url_opt.hide()
         elif self.ctx.env_config.proxy_type == ProxyTypeEnum.NONE.value.value:
             self.personal_proxy_input.hide()
             self.gh_proxy_url_opt.hide()
-            self.auto_fetch_gh_proxy_url_opt.hide()
 
 
 class SpeedTestRunnerBase(QThread):
