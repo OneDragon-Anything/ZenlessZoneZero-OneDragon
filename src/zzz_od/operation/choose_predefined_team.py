@@ -454,9 +454,9 @@ class ChoosePredefinedTeam(ZOperation):
 
     def _get_team_slot_rect_by_idx(self, card_idx: int) -> Rect:
         """返回当前页第 ``card_idx`` 张编队卡片区域。"""
-        area = self.ctx.screen_loader.get_area('编队选择', f'编队槽位{card_idx + 1}')
+        area = self.ctx.screen_loader.get_area('编队选择', f'编队槽位{card_idx}')
         if area is None:
-            raise RuntimeError(f'未配置编队槽位{card_idx + 1}')
+            raise RuntimeError(f'未配置编队槽位{card_idx}')
         return area.rect
 
     def _get_select_mark_rect(self, team_slot_rect: Rect) -> Rect:
