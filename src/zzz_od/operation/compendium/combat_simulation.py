@@ -317,7 +317,7 @@ class CombatSimulation(ZOperation):
     @operation_node(name='战斗超时')
     def battle_timeout(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.stop_auto_battle()
-        op = ExitInBattle(self.ctx, '画面-通用', '左上角-街区')
+        op = ExitInBattle(self.ctx, '画面-通用', '左上角-区域')
         result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_fail(status=CombatSimulation.STATUS_FIGHT_TIMEOUT)

@@ -37,10 +37,10 @@ area_list:
 - area_name: 功能导览
   id_mark: true
   pc_rect:
-  - 1791
-  - 43
-  - 1855
-  - 107
+  - 1790
+  - 40
+  - 1870
+  - 105
   text: ''
   lcs_percent: 0.5
   template_sub_dir: normal_world_investigation

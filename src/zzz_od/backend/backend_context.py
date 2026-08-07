@@ -36,6 +36,7 @@ from one_dragon.base.screen.screen_match import find_screen_matches
 from one_dragon.utils import cv2_utils, debug_utils, os_utils
 from one_dragon.utils.log_utils import mask_text
 from zzz_od.application.shiyu_defense import shiyu_defense_const
+from zzz_od.backend.app_registry import _app_description
 from zzz_od.backend.schemas import (
     AnalyzeScreenResult,
     ApplicationInfo,
@@ -867,13 +868,19 @@ class ZzzBackendContext:
 
         applications: list[ApplicationInfo] = []
         for app_id in app_ids:
+            factory = self._ctx.run_context._application_factory_map.get(app_id)
             try:
                 app_name = self._ctx.run_context.get_application_name(app_id)
             except Exception:  # noqa: BLE001 应用列表用于展示，跳过异常名称
                 app_name = app_id
+            try:
+                app_description = _app_description(factory) if factory is not None else ''
+            except Exception:  # noqa: BLE001 应用列表用于展示，跳过异常描述
+                app_description = ''
             applications.append(ApplicationInfo(
                 app_id=app_id,
                 app_name=app_name,
+                description=app_description,
                 enabled_in_one_dragon=enabled_map.get(app_id, False),
                 in_standalone_list=app_id in standalone_app_ids,
                 is_active_standalone=app_id == active_standalone_app_id,

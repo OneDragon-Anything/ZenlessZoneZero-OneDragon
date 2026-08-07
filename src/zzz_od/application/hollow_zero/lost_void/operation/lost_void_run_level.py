@@ -47,6 +47,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route
 )
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
     LostVoidMoveByDet,
+    LostVoidStuckState,
 )
 from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import (
     UpdatePriorityOperation,
@@ -116,6 +117,7 @@ class LostVoidRunLevel(ZOperation):
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
         self.interact_target: LostVoidInteractTarget | None = None  # 最终识别的交互目标 后续改动应该都是用这个判断
+        self.locked_interact_target: LostVoidInteractTarget | None = None  # OCR锁定的本次交互对象
         self.interact_attempted: bool = False  # 是否尝试过交互
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
@@ -132,6 +134,7 @@ class LostVoidRunLevel(ZOperation):
         self.room_inited_times: int = 0  # 挚交会谈需要初始化两次
         self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
         self.interacted_target_key_list: list[str] = []  # 本层已经交互过的具体对象
+        self.stuck_state: LostVoidStuckState = LostVoidStuckState()  # 本层共享的脱困状态
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -239,6 +242,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='战斗中', status='识别需移动交互')  # 战斗后出现距离 或者下层入口
     @node_from(from_name='尝试交互', success=False)  # 没能交互到
     @node_from(from_name='更新优先级')  # 更新优先级后
+    @node_from(from_name='追加代理人类型优先级', status='非战斗区域')
     @operation_node(name='非战斗画面识别', timeout_seconds=180)
     def non_battle_check(self) -> OperationRoundResult:
         # 不在大世界处理
@@ -298,7 +302,8 @@ class LostVoidRunLevel(ZOperation):
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_INTERACT,
                                    stop_when_disappear=False,
-                                   allow_arrival_by_interact_btn=self.boss_pre_battle)
+                                   allow_arrival_by_interact_btn=self.boss_pre_battle,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -326,7 +331,8 @@ class LostVoidRunLevel(ZOperation):
         if with_distance and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_DISTANCE,
-                                   stop_when_interact=False)
+                                   stop_when_interact=False,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -351,7 +357,8 @@ class LostVoidRunLevel(ZOperation):
         if with_entry and not self.boss_pre_battle:
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_ENTRY,
-                                   stop_when_disappear=False, ignore_entry_list=self.had_been_list)
+                                   stop_when_disappear=False, ignore_entry_list=self.had_been_list,
+                                   stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -514,24 +521,31 @@ class LostVoidRunLevel(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
 
         if result.is_success:
-            # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
-            time.sleep(0.5)
-            self.screenshot()  # 重新截图
-            area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
-            ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
-            current_interact_target = None
-            for ocr_result in ocr_result_map:
-                target = match_interact_target(self.ctx, ocr_result)
-                if target is not None:
-                    current_interact_target = target
-                    break
+            if not self.interact_attempted:
+                self.locked_interact_target = None
 
-            if current_interact_target is not None:
-                target_key = self.get_interact_target_key(current_interact_target)
-                if target_key in self.interacted_target_key_list:
-                    log.info('当前层已交互过 %s，本次不再交互，返回上游继续处理', target_key)
-                    return self.round_fail('重复交互对象')
-                self.interact_target = current_interact_target
+            if self.locked_interact_target is None:
+                # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
+                time.sleep(0.5)
+                self.screenshot()  # 重新截图
+                area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
+                ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
+                current_interact_target: LostVoidInteractTarget | None = None
+                for ocr_result in ocr_result_map:
+                    target = match_interact_target(self.ctx, ocr_result)
+                    if target is not None:
+                        current_interact_target = target
+                        break
+
+                if current_interact_target is not None:
+                    target_key = self.get_interact_target_key(current_interact_target)
+                    if target_key in self.interacted_target_key_list:
+                        log.info('当前层已交互过 %s，本次不再交互，先离开当前对象', target_key)
+                        self.interact_target = current_interact_target
+                        self.move_after_interact()
+                        return self.round_fail('重复交互对象')
+                    self.interact_target = current_interact_target
+                    self.locked_interact_target = current_interact_target
 
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
             self.interact_attempted = True # 标记已经尝试过交互
@@ -757,14 +771,31 @@ class LostVoidRunLevel(ZOperation):
         2. 不在大世界的 可能是战斗后结果画面 也可能是交互进入下层
         @return:
         """
-        if self.interact_target is not None:
-            log.info('交互后处理 上次交互对象为 %s %s', self.interact_target.icon, self.interact_target.name)
-            target_key = self.get_interact_target_key(self.interact_target)
-            if target_key not in self.interacted_target_key_list:
-                self.interacted_target_key_list.append(target_key)
+        completed_interact_target = self.locked_interact_target or self.interact_target
+        in_normal_world = self.ctx.lost_void.in_normal_world(self.last_screenshot)
+        is_challenge_result = False
+        if not in_normal_world:
+            result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '标题-挑战结果')
+            is_challenge_result = result.is_success
 
-        if self.ctx.lost_void.in_normal_world(self.last_screenshot):
-            if self.interact_target is not None and self.interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value:
+        is_next_level = (not in_normal_world
+                         and not is_challenge_result
+                         and self.interact_target is not None
+                         and self.interact_target.is_entry)
+        if in_normal_world or is_challenge_result or is_next_level:
+            if completed_interact_target is not None:
+                target_key = self.get_interact_target_key(completed_interact_target)
+                if target_key not in self.interacted_target_key_list:
+                    self.interacted_target_key_list.append(target_key)
+                if (self.locked_interact_target is not None
+                        and self.locked_interact_target.name == LostVoidInteractNPC.MA_LIN.value
+                        and LostVoidRegionType.ENCOUNTER.value.value not in self.had_been_list):
+                    self.had_been_list.append(LostVoidRegionType.ENCOUNTER.value.value)
+            self.locked_interact_target = None
+
+        if in_normal_world:
+            if (completed_interact_target is not None
+                    and completed_interact_target.name == LostVoidInteractNPC.AO_FEI_LI_YA.value):
                 self.ctx.lost_void.had_interacted_ophelia_on_current_level = True
             if not (self.boss_pre_battle
                     and self.interact_target is not None
@@ -772,8 +803,7 @@ class LostVoidRunLevel(ZOperation):
                 self.move_after_interact()
             return self.round_success(status='大世界', wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '标题-挑战结果')
-        if result.is_success:
+        if is_challenge_result:
             # 这个标题出来之后 按钮还需要一段时间才能出来
             r2 = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '按钮-确定')
             if r2.is_success:
@@ -783,7 +813,7 @@ class LostVoidRunLevel(ZOperation):
             if r2.is_success:
                 return self.round_success('挑战结果-完成', wait=2)
 
-        if self.interact_target is not None and self.interact_target.is_entry:
+        if is_next_level:
             return self.round_success(
                 LostVoidRunLevel.STATUS_NEXT_LEVEL, data=self.interact_target.icon
             )

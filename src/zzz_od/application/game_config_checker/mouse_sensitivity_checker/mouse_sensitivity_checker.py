@@ -17,6 +17,8 @@ from zzz_od.operation.transport import Transport
 
 class MouseSensitivityChecker(ZApplication):
 
+    """鼠标灵敏度检测:校准工具,自动测算游戏内鼠标灵敏度。非玩法。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

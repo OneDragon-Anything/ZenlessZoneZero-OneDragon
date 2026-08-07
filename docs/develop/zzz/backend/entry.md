@@ -61,6 +61,12 @@ GUI 的「开发工具 -> MCP 服务」页面提供本机 server 管理：
 
 这个 GUI 页面管理的是一个本机 server 子进程，不是把 MCP server 嵌进 GUI 主进程。当前不做 GUI 主进程与 server 子进程之间的跨进程运行互斥。
 
+## 开机自启
+
+`.\tools\mcp\create_mcp_server_startup_shortcut.ps1` —— 在 Startup 文件夹建主 server 快捷方式，登录后自动起主 server（23001），在登录态（Session 1）直接起、不经 daemon。卸载即删该 `.lnk`。与[远程 SSH daemon 自启](remote-ssh.md#开机自启)互相独立、可共存：daemon 仍能按进程命令行发现并管理这样启动的主 server（`status` / `stop` / `restart`）。
+
+自启调用的 `tools\mcp\start_mcp_server.ps1` 把日志重定向到同一个 `.debug/zzz_od_mcp/main_server.log`（与 GUI / daemon `start` 一致）。
+
 ## `.env`
 
 `uv run --env-file .env ...` 会要求项目根目录存在 `.env`。如果本地没有 `.env`，命令会在启动前报错。GUI 启动会先判断 `.env` 是否存在；命令行手动启动时，开发环境可以按项目需要创建 `.env`，或在不需要环境变量的场景下省略 `--env-file .env`。

@@ -1,7 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
@@ -16,6 +16,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
 class DriveDiscDismantleApp(ZApplication):
+
+    """驱动盘分解:按配置批量分解驱动盘。销毁道具(不可逆),务必核对配置。"""
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -99,7 +101,7 @@ class DriveDiscDismantleApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = DriveDiscDismantleApp(ctx)
     app.execute()
 

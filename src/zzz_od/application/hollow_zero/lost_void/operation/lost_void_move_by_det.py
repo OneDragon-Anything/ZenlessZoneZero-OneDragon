@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from typing import ClassVar
 
 from cv2.typing import MatLike
@@ -20,6 +21,12 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
+
+
+@dataclass
+class LostVoidStuckState:
+    stuck_times: int = 0
+    prefer_left_escape: bool = True
 
 
 class MoveTargetWrapper:
@@ -108,6 +115,7 @@ class LostVoidMoveByDet(ZOperation):
         stop_when_disappear: bool = True,
         ignore_entry_list: list[str] | None = None,
         allow_arrival_by_interact_btn: bool = False,
+        stuck_state: LostVoidStuckState | None = None,
     ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
@@ -118,6 +126,7 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_disappear:
         @param ignore_entry_list:
         @param allow_arrival_by_interact_btn: 是否允许仅凭交互按钮出现就判定到位
+        @param stuck_state: 当前楼层共享的脱困状态
         """
         ZOperation.__init__(
             self,
@@ -132,6 +141,9 @@ class LostVoidMoveByDet(ZOperation):
         self.stop_when_disappear: bool = stop_when_disappear  # 目标消失时停止移动
         self.ignore_entry_list: list[str] | None = ignore_entry_list
         self.allow_arrival_by_interact_btn: bool = allow_arrival_by_interact_btn
+        self.stuck_state: LostVoidStuckState = (
+            stuck_state if stuck_state is not None else LostVoidStuckState()
+        )
 
         # 需要按方向选的时候 按最大x值选
         # 入口时 从右往左选可以上楼梯
@@ -143,7 +155,6 @@ class LostVoidMoveByDet(ZOperation):
         self.last_visible_target_list: list[MoveTargetWrapper] = []  # 上一次识别到的全部可见目标
         self.last_target_name: str | None = None  # 最后识别到的交互目标名称
         self.same_target_times: float = 0  # 识别到相同目标的次数
-        self.stuck_times: int = 0  # 被困次数
         self.total_turn_times: int = 0  # 总共转向次数
 
         self.last_save_debug_image_time: float = 0  # 上一次保存debug图片的时间
@@ -151,7 +162,6 @@ class LostVoidMoveByDet(ZOperation):
         self.lost_target_during_move_times: int = 0  # 移动过程中丢失目标次数
         self.target_lost_start_time: float = 0  # 本轮移动中开始丢失目标的时间
         self.no_target_handle_times: int = 0  # 连续进入无目标处理的次数
-        self.prefer_left_escape: bool = True  # 脱困时优先向左移动
 
         # 转向校准
         self.last_target_x: float | None = None  # 上一次识别到的目标x轴坐标
@@ -244,7 +254,7 @@ class LostVoidMoveByDet(ZOperation):
                 self.lost_target_during_move_times += 1
                 # https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/issues/867
                 if self.lost_target_during_move_times % 5 == 0:  # 尝试脱困
-                    self.stuck_times += 1
+                    self.stuck_state.stuck_times += 1
                     self.get_out_of_stuck()
             self.last_target_result = None
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
@@ -303,7 +313,7 @@ class LostVoidMoveByDet(ZOperation):
             # 移动过程中多次丢失目标 通常是因为识别不准
             # 游戏1.6版本出现了可以因为丢失目标转动镜头而一直无法进入脱困 issues #867
             if self.lost_target_during_move_times % 10 == 0:  # 尝试脱困
-                self.stuck_times += 1
+                self.stuck_state.stuck_times += 1
                 self.get_out_of_stuck()
 
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
@@ -586,9 +596,9 @@ class LostVoidMoveByDet(ZOperation):
 
         if self.same_target_times >= stuck_threshold:
             self.ctx.controller.stop_moving_forward()
-            self.stuck_times += 1
+            self.stuck_state.stuck_times += 1
             self._reset_stuck_status()
-            if self.stuck_times > 12:
+            if self.stuck_state.stuck_times > 12:
                 return self.round_fail('无法脱困')
             else:
                 return self.round_success('尝试脱困')
@@ -610,17 +620,17 @@ class LostVoidMoveByDet(ZOperation):
             self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
             time.sleep(1)
 
-        escape_phase = (self.stuck_times - 1) % 8
+        escape_phase = (self.stuck_state.stuck_times - 1) % 8
         backward_press_time = min(escape_phase * 0.5, 2)
         side_press_time = min((escape_phase + 1) * 0.2, 2)
         forward_press_time = min(escape_phase * 0.2, 2)
 
         self.ctx.controller.move_s(press=True, press_time=backward_press_time, release=True)
-        if self.prefer_left_escape:
+        if self.stuck_state.prefer_left_escape:
             self.ctx.controller.move_a(press=True, press_time=side_press_time, release=True)
         else:
             self.ctx.controller.move_d(press=True, press_time=side_press_time, release=True)
-        self.prefer_left_escape = not self.prefer_left_escape
+        self.stuck_state.prefer_left_escape = not self.stuck_state.prefer_left_escape
 
         if forward_press_time > 0:
             self.ctx.controller.move_w(press=True, press_time=forward_press_time, release=True)
@@ -716,7 +726,7 @@ class LostVoidMoveByDet(ZOperation):
 
         if self.no_target_handle_times >= 7:
             self.no_target_handle_times = 0
-            self.stuck_times += 1
+            self.stuck_state.stuck_times += 1
             return self.round_success('尝试脱困')
 
         # 保存截图用于优化

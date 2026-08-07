@@ -1,4 +1,51 @@
 full_list:
+  - entry_name: "罗斯凯利法"
+    entry_id: "roscaelifer"
+    area_list:
+      - area_name: "布凯斯特城区"
+        area_id: "booastrum_district"
+        is_hollow: true
+      - area_name: "[管制区]算枢局"
+        area_id: "ccd"
+        is_hollow: true
+        sub_area_list:
+          - area_name: "一楼-接待大厅"
+            area_id: "reception_lobby"
+          - area_name: "二楼-算力区"
+            area_id: "computing_zone"
+          - area_name: "三楼-空中连廊"
+            area_id: "sky_bridge"
+          - area_name: "四楼-主控层"
+            area_id: "main_control"
+          - area_name: "模拟空间"
+            area_id: "simulation_space"
+      - area_name: "[管制区]能源区"
+        area_id: "energy_hub"
+        is_hollow: true
+        sub_area_list:
+          - area_name: "下行通道"
+            area_id: "downward_passage"
+          - area_name: "集运区"
+            area_id: "shipping_center"
+          - area_name: "式舆塔集群"
+            area_id: "shiyu_pillar_cluster"
+          - area_name: "底层哨站"
+            area_id: "lower_floor_outpost"
+  - entry_name: "斯卡莫空洞"
+    entry_id: "scamall_hollow"
+    area_list:
+      - area_name: "沉默回廊"
+        area_id: "sunken_corridor"
+        is_hollow: true
+        sub_area_list:
+          - area_name: "空洞哨站"
+            area_id: "hollow_outpost"
+          - area_name: "迷失廊道"
+            area_id: "lost_corridor"
+          - area_name: "废弃厂区"
+            area_id: "abandoned_factory"
+          - area_name: "裂隙稳定塔"
+            area_id: "fissure_stabilization_tower"
   - entry_name: "卫非地"
     entry_id: "waifei_peninsula"
     area_list:

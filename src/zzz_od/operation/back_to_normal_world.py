@@ -68,8 +68,8 @@ class BackToNormalWorld(ZOperation):
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
 
-        # 大部分画面都有街区可以直接返回
-        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-街区')
+        # 大部分画面都有街区或勘域可以直接返回，“区域”通过 0.5 LCS 匹配“街区”的“区”或“勘域”的“域”
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-区域')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
@@ -91,7 +91,7 @@ class BackToNormalWorld(ZOperation):
             return self.round_success('脱离卡死', wait=1)
 
         # 通用返回按钮（识别点击型）
-        # 需要在"完成"前面，某些插件场景可能会识别到'返回'和"完成"同时存在
+        # 需要在"完成"前面，否则在丽都城募app（若购买了大月卡）会误点击“已完成购买” issue #2005
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -102,8 +102,6 @@ class BackToNormalWorld(ZOperation):
             return self.round_retry(result.status, wait=1)
 
         # 通用完成按钮
-        # 某些插件场景"合成"可能会被误匹配为"完成"
-        # 需要在'返回'后面，购买大月卡后返回大世界一直点击“已完成购买” issue #2005
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)

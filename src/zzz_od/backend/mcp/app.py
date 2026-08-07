@@ -149,6 +149,10 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             ``WindowStatus``(win_title / is_win_valid / is_win_active / is_win_scale /
             x / y / width / height;位置字段不可用时为 None);backend 抛错时返回
             ``{'error': <原因>}``。
+
+            判游戏是否在跑 / 窗口是否存在,看 ``is_win_valid``:**勿据 win_title 判断** ——
+            win_title 是 controller 缓存的预期标题(从配置来),游戏未启动时仍可能为该
+            预期常量、非 None;is_win_valid=False 才表示没找到匹配窗口。
         """
         try:
             return backend.check_window()

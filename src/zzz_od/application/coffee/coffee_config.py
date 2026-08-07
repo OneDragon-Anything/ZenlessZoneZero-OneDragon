@@ -10,6 +10,7 @@ class CoffeeTransportPoint(Enum):
 
     POINT_1 = TransportPoint('六分街', '咖啡店')
     POINT_2 = TransportPoint('澄辉坪', '汀曼咖啡')
+    POINT_3 = TransportPoint('布亚斯特城区', '片刻闲')
 
 
 class CoffeeChooseWay(Enum):

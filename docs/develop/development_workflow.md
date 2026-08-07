@@ -2,7 +2,7 @@
 
 > 一个功能从立项到交付的端到端链路。AGENTS.md 有 always-on 骨架;本页给详细判据、实例与配套更新规则。
 >
-> 当前只覆盖**游戏自动化功能**(已验证场景:OpenAndEnterGame)。bug 修复 / 性能 / UI / 模型等其他类型见文末「其他类型」,后续补。
+> 当前主干只覆盖**游戏自动化功能**(已验证场景:OpenAndEnterGame);但 **§4 提 PR 的两仓协同适用所有涉及测试仓改动的开发**(backend / 重构 / UI / 模型等只要动了测试仓代码都走这套,不限游戏自动化)。bug 修复 / 性能 / UI / 模型等其他类型见文末「其他类型」,后续补。
 
 ## 主干
 
@@ -37,11 +37,15 @@
 
 ### 4. 提 PR
 
+> **本步两仓协同适用所有涉及测试仓改动的开发,不限游戏自动化功能**。下文以游戏自动化为例,但「同分支 / 配对提交 / 关联 PR / 合并顺序」对 backend / 重构 / UI / 模型等任何动测试仓的改动同样强制(非游戏流程改动也常漏开测试仓 PR,见 AGENTS.md「提交流程与协作边界」)。
+
 跨仓 PR 顺序:**先建测试仓 PR,再建主仓 PR**:
 
 1. 测试仓改动先提交、推送、开 PR(`git -C zzz-od-test`),拿到测试仓 PR 链接。
 2. 主仓开 PR,**描述里带上测试仓 PR 链接**(reviewer 可跳转看测试改动);主仓与测试仓用**同分支名**(CI 按分支名 clone 测试仓)。
 3. assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review(逐条回复 / 修正、清 unresolved thread、处理 CodeRabbit);**关联 PR 一起收尾、合并顺序(测试仓先)见该 skill §6**。
+
+> **想让 PR 合并前进入 `test` 分支给人试用**:为 PR 添加 `test-branch` 标签,或手动触发 [Update Test Branch](../../.github/workflows/update-test-branch.yml) 并填写 PR 列表。
 
 ### 5. 配套产出(按需)
 

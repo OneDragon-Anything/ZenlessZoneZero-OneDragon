@@ -45,16 +45,15 @@ handlers:
         operations:
           - operation_template: "维琳娜-终结技"
 
-      - states: "[维琳娜-特殊技可用] & [维琳娜-风华]{0,85}"
-        debug_name: "强化特殊技"
-        operations:
-          - operation_template: "维琳娜-强化特殊技"
-
       - states: "[维琳娜-风华]{85,135}"
-        interrupt_states: "[按键可用-快速支援]"  # 不可用时打断
-        debug_name: "龙卷风"
+        debug_name: "高风华长按普攻"
         operations:
           - operation_template: "维琳娜-长按普攻"
+
+      - states: "[维琳娜-特殊技可用] & [维琳娜-风华]{0,84}"
+        debug_name: "低风华强化特殊技合轴"
+        operations:
+          - operation_template: "维琳娜-强化特殊技合轴"
 
       - states: ""
         debug_name: "普通攻击"

@@ -105,17 +105,26 @@ class ScreenArea:
             return np.array(self.color_range[1], dtype=np.uint8)
 
     def to_dict(self) -> dict:
-        order_dict = {}
+        """转为可序列化字典，跳过与默认值一致的字段以精简 YAML。"""
+        order_dict: dict = {}
         order_dict['area_name'] = self.area_name
-        order_dict['id_mark'] = self.id_mark
         order_dict['pc_rect'] = [self.pc_rect.x1, self.pc_rect.y1, self.pc_rect.x2, self.pc_rect.y2]
-        order_dict['text'] = self.text
-        order_dict['lcs_percent'] = self.lcs_percent
-        order_dict['template_sub_dir'] = self.template_sub_dir
-        order_dict['template_id'] = self.template_id
-        order_dict['template_match_threshold'] = self.template_match_threshold
-        order_dict['color_range'] = self.color_range
-        order_dict['goto_list'] = self.goto_list
+        if self.id_mark:
+            order_dict['id_mark'] = self.id_mark
+        if self.text:
+            order_dict['text'] = self.text
+        if self.lcs_percent != 0.5:
+            order_dict['lcs_percent'] = self.lcs_percent
+        if self.template_sub_dir:
+            order_dict['template_sub_dir'] = self.template_sub_dir
+        if self.template_id:
+            order_dict['template_id'] = self.template_id
+        if self.template_match_threshold != 0.7:
+            order_dict['template_match_threshold'] = self.template_match_threshold
+        if self.color_range:
+            order_dict['color_range'] = self.color_range
+        if self.goto_list:
+            order_dict['goto_list'] = self.goto_list
         if self.gamepad_key:
             order_dict['gamepad_key'] = self.gamepad_key
 

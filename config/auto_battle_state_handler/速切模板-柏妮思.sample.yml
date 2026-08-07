@@ -26,21 +26,21 @@ handlers:
           - op_name: "设置状态"
             state: "自定义-柏妮思-可以直接长按"
 
-      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+      - states: "([按键-切换角色-下一个, 0, 0.1]|[按键-切换角色-上一个, 0, 0.1])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[自定义-快速支援换人, 0, 0.5]"
+          - states: "[自定义-快速支援换人, 0, 0.1]"
             debug_name: "快速支援等待"
             operations:
               - op_name: "等待秒数"
-                seconds: 0.5
+                seconds: 0.1
               - op_name: "设置状态"
                 state: "自定义-柏妮思-可以直接长按"
           - states: ""
             debug_name: "短暂等待"
             operations:
               - op_name: "等待秒数"
-                seconds: 0.3
+                seconds: 0.1
 
       - states: "[柏妮思-特殊技可用] & [自定义-柏妮思-可以直接长按, 0 , 0.5]"
         interrupt_states: "![柏妮思-特殊技可用] | [柏妮思-燃点]{95, 100}"
@@ -65,8 +65,13 @@ handlers:
         operations:
           - operation_template: "柏妮思-短喷"
 
-      - states: ""
-        debug_name: "没电了走吧"
+      - states: "[柏妮思-燃点]{30, 100}"
+        debug_name: "疯狂搅拌"
+        operations:
+          - operation_template: "柏妮思-长按普通攻击"
+
+      - states: "[柏妮思-燃点]{0, 0}"
+        debug_name: "没燃点普攻"
         operations:
           - op_name: "设置状态"
             state_list: ["自定义-合轴时间"]

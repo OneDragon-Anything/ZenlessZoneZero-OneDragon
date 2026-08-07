@@ -21,6 +21,8 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class WorldPatrolApp(ZApplication):
 
+    """世界巡逻:按路线自动跑图清怪、开传送点。无体力消耗,耗时较长。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

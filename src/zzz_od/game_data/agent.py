@@ -31,6 +31,7 @@ class DmgTypeEnum(Enum):
     FIRE = '火属性'
     ICE = '冰属性'
     WIND = '风属性'
+    LUMIFLUX = '流明属性'
     UNKNOWN = '未知'
 
     @classmethod
@@ -239,7 +240,7 @@ class AgentEnum(Enum):
                                                 hsv_color=(0, 255, 255), hsv_color_diff=(20, 255, 50),
                                                 connect_cnt=2)])
     KOLEDA = Agent('koleda', '珂蕾妲', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['koleda'])
-    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy'])
+    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy', 'lucy_princess_on_holiday'])
     LYCAON = Agent('lycaon', '莱卡恩', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ICE, ['lycaon'])
     NEKOMATA = Agent('nekomata', '猫又', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['nekomata'])
     NICOLE = Agent('nicole', '妮可', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['nicole', 'nicole_cunning_cutie'],)
@@ -274,7 +275,7 @@ class AgentEnum(Enum):
     BURNICE_WHITE = Agent('burnice_white', '柏妮思', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['burnice_white'],
                           state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                     template_id='burnice_white',
-                                                    hsv_color=(0, 255, 255), hsv_color_diff=(90, 200, 100),
+                                                    hsv_color=(20, 255, 255), hsv_color_diff=(20, 200, 100),
                                                     max_length=100)
                                       ])
 
@@ -535,3 +536,30 @@ class AgentEnum(Enum):
                                             template_id='norma',
                                             hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                             max_length=100)])
+
+    REMIELLE = Agent(
+        'remielle',
+        '蕾米埃尔',
+        RareTypeEnum.S,
+        AgentTypeEnum.ANOMALY,
+        DmgTypeEnum.LUMIFLUX,
+        ['remielle', 'remielle_dark', 'remielle_dark_veil', 'remielle_seashade'],
+        state_list=[
+            AgentStateDef(
+                '蕾米埃尔-浮晖',
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id='remielle_floating_radiance',
+                hsv_color=(150, 255, 255),
+                hsv_color_diff=(30, 255, 200),
+                max_length=100,
+            ),
+            AgentStateDef(
+                '蕾米埃尔-虚曜',
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id='remielle_voidflare',
+                hsv_color=(150, 255, 255),
+                hsv_color_diff=(30, 255, 200),
+                connect_cnt=1,
+            ),
+        ],
+    )

@@ -14,53 +14,41 @@
   - "states": "![自定义-动作不打断, 0, 999]{1, 1} & [闪避识别-黄光]"
     "sub_handlers":
     - "operations":
-      - "op_name": "等待秒数"
-        "seconds": 0.1
       - "op_name": "按键-闪避"
         "post_delay": 0.1
       - "op_name": "按键-普通攻击"
-        "post_delay": 0.05
+        "post_delay": 0.02
       - "op_name": "按键-切换角色-上一个"
-        "post_delay": 0.1
       - "data":
         - "自定义-黄光切人"
         "op_name": "设置状态"
       "states": "[后台-2-强攻]"
     - "operations":
-      - "op_name": "等待秒数"
-        "seconds": 0.1
       - "op_name": "按键-闪避"
         "post_delay": 0.1
       - "op_name": "按键-普通攻击"
-        "post_delay": 0.05
+        "post_delay": 0.02
       - "op_name": "按键-切换角色-下一个"
-        "post_delay": 0.1
       - "data":
         - "自定义-黄光切人"
         "op_name": "设置状态"
       "states": "[后台-1-强攻]"
     - "operations":
-      - "op_name": "等待秒数"
-        "seconds": 0.1
       - "op_name": "按键-闪避"
         "post_delay": 0.1
       - "op_name": "按键-普通攻击"
-        "post_delay": 0.05
+        "post_delay": 0.02
       - "op_name": "按键-切换角色-上一个"
-        "post_delay": 0.1
       - "data":
         - "自定义-黄光切人"
         "op_name": "设置状态"
       "states": "[后台-2-异常]"
     - "operations":
-      - "op_name": "等待秒数"
-        "seconds": 0.1
       - "op_name": "按键-闪避"
         "post_delay": 0.1
       - "op_name": "按键-普通攻击"
-        "post_delay": 0.05
+        "post_delay": 0.02
       - "op_name": "按键-切换角色-下一个"
-        "post_delay": 0.1
       - "data":
         - "自定义-黄光切人"
         "op_name": "设置状态"
@@ -106,14 +94,11 @@
           "repeat": 10
         "states": ""
     - "operations":
-      - "op_name": "等待秒数"
-        "seconds": 0.1
       - "op_name": "按键-闪避"
         "post_delay": 0.1
       - "op_name": "按键-普通攻击"
-        "post_delay": 0.05
+        "post_delay": 0.02
       - "op_name": "按键-切换角色-下一个"
-        "post_delay": 0.1
       - "op_name": "设置状态"
         "state": "自定义-黄光切人"
       "states": ""

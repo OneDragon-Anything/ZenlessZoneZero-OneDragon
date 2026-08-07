@@ -8,8 +8,6 @@ operations:
     repeat: 10
   - op_name: "设置状态"
     state: "自定义-合轴时间"
-  - op_name: "设置状态"
-    state: "自定义-合轴时间"
   - op_name: "等待秒数"
     seconds: 1.0
   - operation_template: "薇薇安-5A悬落"

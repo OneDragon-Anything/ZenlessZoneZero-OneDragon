@@ -23,6 +23,8 @@ from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 
 class NotoriousHuntApp(ZApplication):
 
+    """恶名狩猎:按计划打周限高难狩猎本(每周按周历轮换)。每周 3 次免费奖励(不耗电量)、进入战斗。"""
+
     STATUS_NO_PLAN: ClassVar[str] = '未配置恶名狩猎计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '本轮计划已完成'
 

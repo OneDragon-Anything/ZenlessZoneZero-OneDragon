@@ -9,10 +9,6 @@ class ProjectConfig(YamlConfig):
         self.project_name = self.get('project_name')
         self.python_version = self.get('python_version')
         self.github_homepage = self.get('github_homepage')
-        self.github_https_repository = self.get('github_https_repository')
-        self.github_ssh_repository = self.get('github_ssh_repository')
-        self.gitee_https_repository = self.get('gitee_https_repository')
-        self.gitee_ssh_repository = self.get('gitee_ssh_repository')
         self.project_git_branch = self.get('project_git_branch')
         self.env_archive_name = f'{self.project_name}-Environment.zip'
         self.game_executable_name = self.get('game_executable_name', '')

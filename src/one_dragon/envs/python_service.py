@@ -14,9 +14,7 @@ from one_dragon.envs.env_config import (
     DEFAULT_VENV_DIR_PATH,
     DEFAULT_VENV_PYTHON_PATH,
     DEFAULT_WHEELS_DIR_PATH,
-    CpythonSourceEnum,
     EnvConfig,
-    PipSourceEnum,
 )
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import cmd_utils, file_utils, os_utils
@@ -300,16 +298,16 @@ class PythonService:
 
     def _choose_best_source_by_ping(
         self,
-        source_enum_cls,
+        source_name: str,
         log_prefix: str,
         config_attr_name: str,
         progress_callback: Callable[[float, str], None] | None = None
     ) -> tuple[str, int] | None:
         """
-        对指定类型的源进行测速 并选择最佳一个
-        :param source_enum_cls: 源的枚举类 (例如 PipSourceEnum, CpythonSourceEnum)
-        :param log_prefix: 日志前缀 (例如 "pip源", "Python下载源")
-        :param config_attr_name: self.env_config 中要更新的属性名 (例如 "pip_source", "cpython_source")
+        对指定类型的源进行测速并选择最佳一个。
+        :param source_name: repository.yml 中的下载源名称
+        :param log_prefix: 日志前缀
+        :param config_attr_name: self.env_config 中要更新的属性名
         :param progress_callback: 进度回调
         :return: (最佳源的标签, 延迟ms) or None if no sources or all fail
         """
@@ -319,7 +317,7 @@ class PythonService:
         log.info(msg)
 
         ping_result_list = []
-        sources_to_test = list(source_enum_cls)
+        sources_to_test = self.env_config.repo_config.get_source_values(source_name)
         if not sources_to_test:
             msg = f"{gt('找不到')}{log_prefix}{gt('进行测速')}"
             log.warning(msg)
@@ -327,8 +325,7 @@ class PythonService:
                 progress_callback(-1, msg)
             return None
 
-        for source_enum_member in sources_to_test:
-            source = source_enum_member.value
+        for source in sources_to_test:
             source_url = source.value
             parsed_url = urllib.parse.urlparse(source_url)
             domain = parsed_url.netloc
@@ -379,9 +376,9 @@ class PythonService:
         :return: (最佳源的标签, 延迟ms) or None if no sources
         """
         return self._choose_best_source_by_ping(
-            PipSourceEnum,
+            'pip_source',
             gt('pip源'),
-            "pip_source",
+            'pip_source',
             progress_callback
         )
 
@@ -391,8 +388,8 @@ class PythonService:
         :return: (最佳源的标签, 延迟ms) or None if no sources
         """
         return self._choose_best_source_by_ping(
-            CpythonSourceEnum,
+            'cpython_source',
             gt('Python下载源'),
-            "cpython_source",
+            'cpython_source',
             progress_callback
         )

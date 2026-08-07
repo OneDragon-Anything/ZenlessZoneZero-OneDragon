@@ -8,6 +8,8 @@ from zzz_od.operation.enter_game.switch_account import SwitchAccount
 
 class ZOneDragonApp(OneDragonApp, ZApplication):
 
+    """一条龙:按已启用顺序串跑各 app 的完整循环。会触发所有已启用玩法的副作用(含消耗体力/周限等)。"""
+
     def __init__(self, ctx: ZContext):
         op_to_enter_game = OpenAndEnterGame(ctx)
         op_to_switch_account = SwitchAccount(ctx)

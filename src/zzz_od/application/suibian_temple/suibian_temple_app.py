@@ -32,6 +32,8 @@ from zzz_od.operation.transport import Transport
 
 class SuibianTempleApp(ZApplication):
 
+    """随便观:澄辉坪经营玩法自动化(游历/制造/售卖/派驻等)。消耗玩法自有资源(开物秘卷/云纹徽/丁尼等)。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,

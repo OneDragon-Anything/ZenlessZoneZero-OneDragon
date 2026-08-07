@@ -18,12 +18,12 @@
 | `input_text(text, use_clipboard=None)` | `backend.input_text()` | `{success, method, masked_text}`（`use_clipboard=None` 跟 `game_config.type_input_way`） |
 | `key_tap(key, press_time=0)` | `backend.key_tap()` | `{success, key, press_time}`（框架键名 `w`/`a`/`s`/`d`/`f`/`esc`/`space`；`press_time>0` 长按） |
 | `drag(x1, y1, x2, y2, duration=1)` | `backend.drag()` | `{success, x1, y1, x2, y2, duration}`（`(x1,y1)→(x2,y2)` 1080p 游戏坐标拖拽，覆盖刮刮卡 / 收集来回拖等） |
-| `list_applications` | `backend.list_applications()` | 当前实例可运行应用、独立应用列表和当前选中项（只读，不刷新配置） |
+| `list_applications` | `backend.list_applications()` | 当前实例可运行应用（每个 app 含 `app_id`/`app_name`/`description`[app 类 class docstring]）、独立应用列表和当前选中项（只读，不刷新配置） |
 | `get_predefined_teams` | `backend.list_predefined_teams()` | 当前实例预备编队(`idx`/`name`/`auto_battle`/`agent_id_list`/`agent_name_list`/`weakness_list`,过滤占位;`agent_name_list` 角色中文名;`weakness_list` 中文=防卫战配置优先,没配取角色伤害属性;`idx` 喂给 `run_operation(op_id='zzz_od.operation.choose_predefined_team.ChoosePredefinedTeam', args={'target_team_idx_list': [idx]})` 选配队) |
 | `run_one_dragon(block=False)` | `backend.run_one_dragon('mcp')` | 默认立刻返回启动状态；`block=True` 等待一条龙结束 |
 | `run_standalone_app(app_id=None, block=False)` | `backend.run_standalone_app('mcp', app_id)` | `app_id=None` 时使用 GUI「应用运行」当前选中项 |
 | `list_operations` | `operation_registry.scan_operations(ctx)` | 可运行自定义 op 列表（`op_id` + 参数 schema，纯反射不实例化） |
-| `describe_operation(op_id)` | `operation_registry.describe_operation(ctx, op_id)` | 单个 op 参数 schema（每个参数标 `json_serializable` + 整体 `debuggable`） |
+| `describe_operation(op_id)` | `operation_registry.describe_operation(ctx, op_id)` | 单个 op 参数 schema + `description`（class/`__init__` docstring 摘要，去 `:param` 噪声）；每个参数标 `json_serializable` + 整体 `debuggable` |
 | `run_operation(op_id, args=None, block=False)` | `operation_registry` 校验 + 反序列化 + `run_slot._start`（op 路径） | 默认立刻返回；`block=True` 等结束；非 Operation / 缺参 / 不支持的数据类 / 并发拒绝返错误 JSON。`@dataclass`+`from_dict` 参数(如 `ChargePlanItem`)可从 dict 传入 |
 | `get_run_status` | `backend.query_status()` | `RunStatusResult`（运行中返当前节点/重试；终态返结果/失败定位） |
 | `stop_run` | `backend.stop()` | `{"stopped": bool, ...}`（仅表信号已发出，过渡期 `get_run_status` 仍显示 running） |
@@ -41,6 +41,7 @@
 - 所有运行（`open_game` / 一条龙 / 独立应用 / 自定义 op）经**同一个 `RunSlot`** 派发：op 路径（`open_game` / `run_operation`）槽自管 `start_running/execute/stop_running`，app 路径（`run_one_dragon` / `run_standalone_app`）委托 `run_application`（复用 GUI/CLI 共享入口）。`block=True` 用 `asyncio.wrap_future(future)` 阻塞 await 取结果，`block=False` 立刻返回已启动状态，后续用 `get_run_status` 查进度。
 - `run_operation` 是**通用 operation 运行入口**（不框死为调试）：`op_id` 格式 `<dotted module path>.<ClassName>`（可从 `list_operations` 获取）；`args` 传构造参数,以 `cls(ctx, **args)` 烤进闭包——JSON 标量/列表/字典直接传;`@dataclass`+`from_dict` 参数(如 `ChargePlanItem`)传 dict,实例化前用 `coerce_dataclass_params` 自动反序列化;其余复杂数据类拒绝(提示走 application);先用 `describe_operation` 看参数 schema(`coercible=True` 的可传 dict)。
 - 配置刷新：app 路径在 `run_application` 前（槽线程内、`_start` 已赢锁后）刷新当前进程的 YAML 配置缓存，对齐 GUI 已保存设置；`list_applications` 与 `list_operations` 是只读路径，不刷新。
+- `list_applications` 的 `ApplicationInfo.description` 与 `describe_operation` 的 `description` 取自 app/op 类 docstring，服务**看不到源码的远程 MCP 受众**（源码可访问受众读源码即可）—— 见 [design-principles.md](design-principles.md)「两种受众」+ P1 源码盲受众例外。app description = class docstring 整段（D4：做什么 + 有消耗必标）；op description = `_doc_summary`（去 `:param` 噪声）。
 - `get_run_status` / `stop_run` 是统一入口：无论最近一次运行来自 op 路径还是 app 路径，都通过同一组工具查询和停止。
 - 单进程内已有运行时会返回并发拒绝，避免同一个 backend 内重复操作游戏资源。
 - MCP tool 不返回运行日志正文；客户端需要用 `get_run_status` 轮询是否完成，GUI 服务页负责展示日志。
