@@ -87,11 +87,21 @@ project_root/
         ├── my_plugin_const.py
         ├── my_plugin_factory.py
         ├── my_plugin.py
-        └── sub/
-            ├── __init__.py
-            ├── sub_feature_const.py
-            └── sub_feature_factory.py
+        ├── sub/
+        │   ├── __init__.py
+        │   ├── sub_feature_const.py
+        │   └── sub_feature_factory.py
+        └── assets/            # 可选：插件资产目录
+            └── image_analysis_pipelines/   # 插件 CV 流水线 yaml（裸名，与主仓同名时插件优先）
 ```
+
+## 插件资产目录
+
+第三方插件可携带 `assets/image_analysis_pipelines/` 目录存放自己的 CV 流水线：
+
+- `CvService` 枚举 `plugins/<插件名>/assets/image_analysis_pipelines/`（存在才纳入），流水线名为**裸名**（无前缀），来源由上下文区分。
+- 来源解析：显式 `source` 参数（`''` = 主仓，插件名 = 对应插件）→ 当前插件目录（插件 Application 执行期间 `ContextVar` 自动设置）→ 主仓目录。
+- 插件执行上下文由 `Application.execute()` 自动设置/恢复（`cv_service.set_current_plugin` / `reset_current_plugin`），业务代码无需关心。
 
 ## 应用分组
 

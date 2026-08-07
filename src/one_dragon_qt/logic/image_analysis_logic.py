@@ -216,31 +216,79 @@ class ImageAnalysisLogic:
 
     # ==================== 流水线文件操作(委托给CvService) ====================
 
-    def get_pipeline_names(self) -> list[str]:
-        return self.cv_service.get_pipeline_names()
+    def get_pipeline_names(self, source: str | None = '') -> list[str]:
+        """
+        获取指定来源的流水线名称（裸名）
+        :param source: ''（默认）表示主仓；插件名表示对应插件目录
+        """
+        return self.cv_service.get_pipeline_names(source=source)
 
-    def save_pipeline(self, name: str) -> bool:
-        if self.cv_service.save_pipeline(name, self.pipeline):
+    def get_plugin_names(self) -> list[str]:
+        """
+        获取存在流水线目录的插件名列表，用于调试器来源选择
+        """
+        return self.cv_service.get_plugin_names()
+
+    def save_pipeline(self, name: str, source: str | None = None) -> bool:
+        """
+        保存流水线
+        :param name: 流水线名称
+        :param source: 保存目标来源；None 表示主仓，插件名表示对应插件目录
+        """
+        if self.cv_service.save_pipeline(name, self.pipeline, source=source):
             self.active_pipeline_name = name
             return True
         return False
 
-    def load_pipeline(self, name: str) -> bool:
-        pipeline = self.cv_service.load_pipeline(name)
+    def auto_save_pipeline(self, source: str | None = '') -> str | None:
+        """
+        未保存时自动保存当前流水线，生成一个不冲突的默认名称
+        名称按「流水线1」「流水线2」递增，跳过已存在的名称
+        :param source: 保存目标来源；''（默认）表示主仓，插件名表示对应插件
+        :return: 保存成功后的流水线名称；保存失败返回 None
+        """
+        existing_names = set(self.get_pipeline_names(source))
+        index = 1
+        while f"流水线{index}" in existing_names:
+            index += 1
+
+        name = f"流水线{index}"
+        if self.save_pipeline(name, source=source):
+            return name
+        return None
+
+    def load_pipeline(self, name: str, source: str | None = None) -> bool:
+        """
+        加载流水线
+        :param name: 流水线名称
+        :param source: 来源；None 表示按当前上下文解析，'' 表示主仓，插件名表示对应插件
+        """
+        pipeline = self.cv_service.load_pipeline(name, source=source)
         if pipeline is not None:
             self.pipeline = pipeline
             self.active_pipeline_name = name
             return True
         return False
 
-    def delete_pipeline(self, name: str):
-        self.cv_service.delete_pipeline(name)
+    def delete_pipeline(self, name: str, source: str | None = None):
+        """
+        删除流水线
+        :param name: 流水线名称
+        :param source: 来源；None 表示按当前上下文解析，'' 表示主仓，插件名表示对应插件
+        """
+        self.cv_service.delete_pipeline(name, source=source)
         if self.active_pipeline_name == name:
             self.active_pipeline_name = None
             self.pipeline = CvPipeline()
 
-    def rename_pipeline(self, old_name: str, new_name: str):
-        self.cv_service.rename_pipeline(old_name, new_name)
+    def rename_pipeline(self, old_name: str, new_name: str, source: str | None = None):
+        """
+        重命名流水线
+        :param old_name: 旧名称
+        :param new_name: 新名称
+        :param source: 来源；None 表示按当前上下文解析，'' 表示主仓，插件名表示对应插件
+        """
+        self.cv_service.rename_pipeline(old_name, new_name, source=source)
         if self.active_pipeline_name == old_name:
             self.active_pipeline_name = new_name
 

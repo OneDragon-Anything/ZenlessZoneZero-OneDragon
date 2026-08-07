@@ -65,8 +65,17 @@ plugins/my_plugin/
 ├── __init__.py              # 推荐添加
 ├── my_plugin_const.py
 ├── my_plugin_factory.py
-└── my_plugin.py
+├── my_plugin.py
+└── assets/
+    └── image_analysis_pipelines/   # 可选：插件自带的 CV 流水线 yaml
 ```
+
+### 插件资产目录（可选）
+
+插件可以携带 `assets/image_analysis_pipelines/` 目录存放自己的 CV 流水线 yaml：
+
+- 流水线名为**裸名**（无前缀），来源由上下文区分：插件 Application 执行期间，调用裸名流水线（如 `run_pipeline('电量检测')`）优先解析自身插件的流水线，其次主仓；不查其他插件。
+- 图像分析调试器（开发工具 → 图像分析）面板顶部有「来源」下拉框（一条龙 / 插件），选中后流水线列表只显示该来源的流水线，加载、运行、保存全部落在所选来源，不会混。
 
 ### const 文件
 
@@ -130,7 +139,9 @@ my_plugin.zip
     ├── __init__.py
     ├── my_plugin_const.py
     ├── my_plugin_factory.py
-    └── my_plugin.py
+    ├── my_plugin.py
+    └── assets/
+        └── image_analysis_pipelines/   # 可选：插件流水线，见上文「插件资产目录」
 ```
 
 ---

@@ -1,0 +1,25 @@
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 0
+    - 0
+    - 10
+    hsv_diff:
+    - 0
+    - 0
+    - 9
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 100
+    max_area: 20000
+    draw_contours: 0
+- step: 按长宽比过滤
+  params:
+    min_ratio: 3.5
+    max_ratio: 5.5
+    draw_contours: true

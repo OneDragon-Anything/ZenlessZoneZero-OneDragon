@@ -581,6 +581,7 @@ class ZzzBackendContext:
         goto_list: list[str] | None = None,
         id_mark: bool = False,
         gamepad_key: str | None = None,
+        cvpipe: str = '',
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类。
 
@@ -599,6 +600,8 @@ class ZzzBackendContext:
             goto_list: 交互后可能跳转的画面名列表。
             id_mark: 是否画面唯一标识。
             gamepad_key: 手柄动作名。
+            cvpipe: CV 流水线名(裸名);配置后区域定位完全走流水线(先按 pc_rect 裁剪再跑流水线),
+                不能默认点击、拿框可能为空需判空。
 
         Returns:
             ``{success, screen_name, area_name, action(inserted/updated), area_count, error}``。
@@ -620,6 +623,7 @@ class ZzzBackendContext:
                 template_match_threshold=template_match_threshold,
                 color_range=color_range, goto_list=goto_list or [],
                 id_mark=id_mark, gamepad_key=gamepad_key,
+                cvpipe=cvpipe,
             )
             screen_info = self._ctx.screen_loader.get_screen(screen_name)  # 未找到 raise
             action = screen_info.upsert_area(area)
