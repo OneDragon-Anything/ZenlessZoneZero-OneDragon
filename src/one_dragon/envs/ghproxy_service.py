@@ -13,12 +13,16 @@ class GhProxyService:
         self.env_config = env_config
 
     def get_proxy_candidates(self) -> list[str]:
-        """获取代理候选线路：上次成功线路优先，内置线路按顺序在后（去重）。"""
+        """获取代理候选线路：上次成功线路优先，内置线路按顺序在后（去重）。
+
+        去重前统一去掉首尾空白和尾部斜杠，避免同一条线路重复出现。
+        """
         candidates: list[str] = []
-        last_proxy = self.env_config.gh_proxy_url.strip()
+        last_proxy = self.env_config.gh_proxy_url.strip().rstrip('/')
         if last_proxy:
             candidates.append(last_proxy)
         for proxy_url in GH_PROXY_URLS:
-            if proxy_url not in candidates:
+            proxy_url = proxy_url.strip().rstrip('/')
+            if proxy_url and proxy_url not in candidates:
                 candidates.append(proxy_url)
         return candidates

@@ -886,7 +886,8 @@ class GitService:
                 if used_proxy_url is not None:
                     try:
                         self.env_config.gh_proxy_url = used_proxy_url
-                    except Exception:
+                    except OSError:
+                        # 配置写盘失败只记日志，不影响本次拉取结果
                         log.warning('记录上次成功代理线路失败', exc_info=True)
 
         used_repository_name = self._get_repository_item(used_repository).ui_text if used_repository else ''
