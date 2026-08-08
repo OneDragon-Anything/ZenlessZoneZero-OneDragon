@@ -14,7 +14,13 @@ from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
-from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import (
+    DEFAULT_OCR_MODEL_NAME,
+    PPOCRV6_MODEL_NAME,
+    OnnxOcrMatcher,
+    OnnxOcrParam,
+    get_final_file_list,
+)
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.application.application_factory_manager import (
     ApplicationFactoryManager,
@@ -76,6 +82,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         )
         self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
+        self._ocr_v6_downloading: bool = False  # 后台下载 V6 是否进行中 防止重复启动
         self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
@@ -484,6 +491,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        ocr_model_name = self._decide_ocr_model_name()
+
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
             if hasattr(self.ocr, 'cleanup'):
@@ -491,7 +500,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr = OnnxOcrMatcher(
             OnnxOcrParam(
-                ocr_model_name=self.model_config.ocr,
+                ocr_model_name=ocr_model_name,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
@@ -504,6 +513,79 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
+
+        # 正常模式下 向 V6 收敛
+        if not self.env_config.is_debug:
+            if self._is_ocr_model_ready(PPOCRV6_MODEL_NAME):
+                # V6 已就绪（启动就有 或 刚同步下载完成） 落盘配置
+                self.model_config.ocr = PPOCRV6_MODEL_NAME
+            elif ocr_model_name == DEFAULT_OCR_MODEL_NAME:
+                # 当前用 V5 顶住 后台下载 V6 成功后自动切换
+                self._download_ocr_v6_in_background()
+
+    def _decide_ocr_model_name(self) -> str:
+        """
+        决定本次初始化使用的 OCR 模型名
+
+        调试模式: 直接使用配置里的模型 不自动切换
+        正常模式: 向 V6 收敛
+          - V6 文件齐全 -> 用 V6
+          - V6 不齐 但 V5 齐全 -> 先用 V5 顶住 后台下载 V6
+          - 都没有 -> 直接用 V6（会触发下载）
+        """
+        if self.env_config.is_debug:
+            return self.model_config.ocr
+
+        if self._is_ocr_model_ready(PPOCRV6_MODEL_NAME):
+            return PPOCRV6_MODEL_NAME
+
+        if self._is_ocr_model_ready(DEFAULT_OCR_MODEL_NAME):
+            return DEFAULT_OCR_MODEL_NAME
+
+        return PPOCRV6_MODEL_NAME
+
+    @staticmethod
+    def _is_ocr_model_ready(ocr_model_name: str) -> bool:
+        """
+        判断某个 OCR 模型的文件是否已经全部就绪
+        """
+        return all(Path(f).exists() for f in get_final_file_list(ocr_model_name))
+
+    def _download_ocr_v6_in_background(self) -> None:
+        """
+        后台下载 V6 模型 下载成功后落盘配置 下次启动自动生效
+        已有下载任务进行中时 不重复启动
+        """
+        if self._ocr_v6_downloading:
+            return
+        self._ocr_v6_downloading = True
+
+        def download_task() -> None:
+            try:
+                v6_matcher = OnnxOcrMatcher(
+                    OnnxOcrParam(
+                        ocr_model_name=PPOCRV6_MODEL_NAME,
+                    )
+                )
+                done = v6_matcher.download(
+                    download_by_github=True,
+                    download_by_gitee=False,
+                    download_by_mirror_chan=False,
+                    ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+                    proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+                )
+                if done:
+                    # 只落盘配置 不立刻切换 避免切换失败导致当前可用的 V5 失效
+                    self.model_config.ocr = PPOCRV6_MODEL_NAME
+                    log.info('OCR V6 后台下载完成 配置已更新 下次启动自动切换')
+                else:
+                    log.error('OCR V6 后台下载失败 保持当前 V5 可用 下次启动再试')
+            except Exception:
+                log.error('OCR V6 后台下载异常 保持当前 V5 可用 下次启动再试', exc_info=True)
+            finally:
+                self._ocr_v6_downloading = False
+
+        threading.Thread(target=download_task, daemon=True, name='ocr_v6_download').start()
 
     def after_app_shutdown(self) -> None:
         """
