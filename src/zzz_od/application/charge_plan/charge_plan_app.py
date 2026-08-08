@@ -1,6 +1,7 @@
 from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
@@ -59,12 +60,29 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
         self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
+        self._run_only_plan: ChargePlanItem | None = None
+
+    def execute_plan_once(self, plan: ChargePlanItem) -> OperationResult:
+        """只执行指定临时计划，不读取或修改普通计划，也不使用恢复电量资源"""
+        original_allow_restore_charge = plan.allow_restore_charge
+        plan.allow_restore_charge = False
+        self._run_only_plan = plan
+        try:
+            return self.execute()
+        finally:
+            plan.allow_restore_charge = original_allow_restore_charge
+            self._run_only_plan = None
+            self.temp_plan = None
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
-        self.temp_plan = None
+        self.temp_plan = self._run_only_plan
         self.last_tried_plan = None
-        self.double_reward_checked = False
+        self.double_reward_checked = self._run_only_plan is not None
+        if self._run_only_plan is not None:
+            self._run_only_plan.skipped = False
+            return self.round_success()
+
         for plan in self.config.plan_list:
             plan.skipped = False
         current_dt = self.run_record.get_current_dt()
@@ -208,6 +226,8 @@ class ChargePlanApp(ZApplication):
         if self.temp_plan is not None:
             self.current_plan = self.temp_plan
             return self.round_success()
+        if self._run_only_plan is not None:
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
         # 检查是否所有计划都已完成
         if self.config.all_plan_finished():
@@ -229,6 +249,12 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='判断是否执行')
     def check_before_transport(self) -> OperationRoundResult:
         if self.current_plan is self.temp_plan:
+            if (
+                self._run_only_plan is not None
+                and self.battery_charge < self.current_plan.estimated_charge_power
+            ):
+                self.temp_plan = None
+                return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
             return self.round_success()
 
         # 未知类型会返回 0，交给副本内流程继续判断真实消耗
@@ -325,9 +351,12 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='合成电池', success=False)
     @operation_node(name='挑战完成')
     def challenge_complete(self) -> OperationRoundResult:
-        # 成功后继续正常轮转；失败则标记当前计划已跳过，避免在同一轮里死循环重试
+        # 普通计划失败后跳过当前计划；一次性计划失败则直接返回
         if self.previous_node.is_success:
             self.last_tried_plan = None
+        elif self._run_only_plan is not None:
+            self.temp_plan = None
+            return self.round_fail(self.previous_node.status)
         else:
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
@@ -347,6 +376,10 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
+        if self._run_only_plan is not None and self.current_plan is self.temp_plan:
+            self.temp_plan = None
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
+
         is_agent_plan = self.current_plan.is_agent_plan
         is_blocked_by_left_times = (
             self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES

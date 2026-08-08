@@ -43,6 +43,7 @@ class ChargePlanItem:
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
     plan_id: str | None = None  # 计划的唯一标识符
     skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
+    allow_restore_charge: bool = field(default=True, repr=False, metadata={'persist': False})
 
     def __post_init__(self) -> None:
         if self.plan_id is None:
