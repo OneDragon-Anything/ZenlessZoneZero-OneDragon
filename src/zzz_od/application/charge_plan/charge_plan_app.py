@@ -233,6 +233,21 @@ class ChargePlanApp(ZApplication):
         if self.current_plan is self.temp_plan:
             return self.round_success()
 
+        validation_error = None
+        if self.current_plan.is_material_count_plan:
+            validation_error = ChargePlanConfig.validate_item(
+                self.ctx,
+                self.current_plan,
+            )
+        if validation_error is not None:
+            log.warning(
+                f'体力计划配置非法: 本次运行跳过 '
+                f'plan_id={self.current_plan.plan_id} reason={validation_error}'
+            )
+            self.current_plan.skipped = True
+            self.last_tried_plan = self.current_plan
+            return self.round_success(ChargePlanApp.STATUS_FIND_NEXT_PLAN)
+
         # 未知类型会返回 0，交给副本内流程继续判断真实消耗
         need_battery_charge = self.current_plan.estimated_charge_power
         if need_battery_charge <= 0 or self.battery_charge >= need_battery_charge:
