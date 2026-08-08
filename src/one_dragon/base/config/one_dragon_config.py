@@ -3,6 +3,7 @@ import shutil
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.utils import os_utils
 
@@ -169,6 +170,29 @@ class OneDragonConfig(YamlConfig):
     def current_instance_force_login(self) -> bool:
         instance = self.current_active_instance
         return instance is not None and instance.force_login_before_run
+
+    @property
+    def current_instance_should_force_login(self) -> bool:
+        """
+        判断当前激活的实例在一条龙运行前是否需要强制重新登录。
+
+        国服 / B服 / 国际服 是三个不同的游戏客户端, 各自保留一套登录状态,
+        跨客户端类型的实例之间不会互相影响登录。
+        只有当一条龙中同客户端类型的实例多于一个时, 才需要强制登录
+        以保证登录的是该实例配置的账号。
+        """
+        instance = self.current_active_instance
+        if instance is None:
+            return False
+
+        if self.instance_run != InstanceRun.ALL.value.value:
+            return False
+
+        instance_list = self.instance_list_in_od
+        if len(instance_list) <= 1:
+            return False
+
+        return GameAccountConfig.has_multi_instance_same_client(instance.idx, [i.idx for i in instance_list])
 
     def set_current_instance_force_login(self, new_value: bool) -> None:
         instance = self.current_active_instance

@@ -6,7 +6,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.config.basic_game_config import TypeInputWay
 from one_dragon.base.config.game_account_config import GameRegionEnum
-from one_dragon.base.config.one_dragon_config import InstanceRun
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
@@ -37,8 +36,7 @@ class EnterGame(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('进入游戏'), op_callback=self.restore_screenshot_func)
 
         self.force_login: bool = (
-            (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-             and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            self.ctx.one_dragon_config.current_instance_should_force_login
             or self.ctx.one_dragon_config.current_instance_force_login
         )
 
