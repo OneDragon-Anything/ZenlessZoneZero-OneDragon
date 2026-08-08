@@ -230,7 +230,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if not self.config.is_restore_charge_enabled:
+        if not self.plan.allow_restore_charge or not self.config.is_restore_charge_enabled:
             return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         return self.round_by_op_result(op.execute())
@@ -329,7 +329,7 @@ class CombatSimulation(ZOperation):
     def battle_fail(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
         if result.is_success:
-            return self.round_success(result.status, wait=5)
+            return self.round_fail(result.status, wait=5)
 
         return self.round_retry(result.status, wait=1)
 
