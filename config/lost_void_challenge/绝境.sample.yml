@@ -29,6 +29,6 @@ artifact_priority:
   - 通用 BUG盾
   - 终结 疗愈竖琴
 
-buy_only_priority: 1
+buy_only_priority_2: 3
 
 period_buff_no: 第一个
