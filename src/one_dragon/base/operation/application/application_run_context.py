@@ -98,6 +98,7 @@ class ApplicationRunContext:
         )
         self.event_bus: ContextEventBus = ContextEventBus()
         self.default_group_apps: list = []  # 默认应用组的应用ID列表
+        self.standalone_app_ids: list[str] = []  # 可在应用运行中手动添加的应用ID列表
 
         # 当前运行的应用
         self.current_app_id: str | None = None
@@ -130,10 +131,14 @@ class ApplicationRunContext:
                 self._application_factory_map[f.app_id] = f
                 if default_group:
                     self.default_group_apps.append(f.app_id)
+                if default_group or f.standalone:
+                    self.standalone_app_ids.append(f.app_id)
         else:
             self._application_factory_map[factory.app_id] = factory
             if default_group:
                 self.default_group_apps.append(factory.app_id)
+            if default_group or factory.standalone:
+                self.standalone_app_ids.append(factory.app_id)
 
     def clear_applications(self) -> None:
         """清空所有已注册的应用工厂
@@ -142,6 +147,7 @@ class ApplicationRunContext:
         """
         self._application_factory_map.clear()
         self.default_group_apps.clear()
+        self.standalone_app_ids.clear()
 
     def clear_application_cache(self) -> None:
         """清理已注册应用工厂缓存的配置和运行记录。
