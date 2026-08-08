@@ -1,7 +1,12 @@
 import time
 from typing import ClassVar
 
+import cv2
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -36,6 +41,7 @@ class CombatSimulation(ZOperation):
     STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
+    REWARD_QUANTITY_MIN_Y: ClassVar[int] = 100
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         """
@@ -303,15 +309,139 @@ class CombatSimulation(ZOperation):
         self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
-    @node_from(from_name='战斗结束')
+    @node_from(from_name='记录材料')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
         op = ChooseNextOrFinishAfterBattle(
             self.ctx,
-            self.plan.plan_times > self.plan.run_times,
+            not self.plan.is_finished,
             is_agent_plan=self.plan.is_agent_plan,
         )
         return self.round_by_op_result(op.execute())
+
+    @staticmethod
+    def _classify_reward_rarity(
+        reward_part: MatLike,
+        quantity_match: MatchResult,
+    ) -> int | None:
+        """按数量上方图标底色判断 A、B、C 级材料，返回 0、1、2。"""
+        center_x = quantity_match.x + quantity_match.w // 2
+        sample_bottom = max(0, quantity_match.y - 3)
+        sample_rect = Rect(
+            max(0, center_x - 25),
+            max(0, sample_bottom - 18),
+            min(reward_part.shape[1], center_x + 25),
+            sample_bottom,
+        )
+        sample = cv2_utils.crop_image_only(reward_part, sample_rect)
+        if sample.size == 0:
+            return None
+
+        # 控制器截图与 cv2_utils.read_image 都使用 RGB，不能按 OpenCV 默认的 BGR 转换。
+        hsv = cv2.cvtColor(sample, cv2.COLOR_RGB2HSV)
+        color_ranges = (
+            ((125, 100, 80), (179, 255, 255)),  # A 级，紫色
+            ((80, 100, 80), (124, 255, 255)),  # B 级，蓝色
+            ((20, 100, 80), (49, 255, 255)),  # C 级，绿色
+        )
+        color_counts = [
+            cv2.countNonZero(cv2.inRange(hsv, lower, upper))
+            for lower, upper in color_ranges
+        ]
+        rarity_idx = max(range(len(color_counts)), key=color_counts.__getitem__)
+        if color_counts[rarity_idx] < 10:
+            return None
+        return rarity_idx
+
+    def read_material_reward_counts(
+        self,
+        screen: MatLike,
+        material_names: tuple[str, ...],
+    ) -> dict[str, int] | None:
+        """读取结算页奖励格子的数量，并按材料品质合并同类奖励。"""
+        if not material_names:
+            return None
+
+        reward_area = self.ctx.screen_loader.get_area(
+            '战斗画面',
+            '战斗结果-奖励',
+        )
+        reward_part = cv2_utils.crop_image_only(screen, reward_area.rect)
+        ocr_result_map = self.ctx.ocr.run_ocr(reward_part)
+        quantity_matches: list[tuple[int, MatchResult]] = []
+        for text, match_result_list in ocr_result_map.items():
+            stripped_text = text.strip()
+            if not stripped_text.isdigit():
+                continue
+            quantity = str_utils.get_positive_digits(stripped_text, None)
+            if quantity is None or quantity <= 0:
+                continue
+            for match_result in match_result_list:
+                # 奖励区域顶部还包含绳网经验；材料格数量只会出现在下方。
+                if match_result.y < self.REWARD_QUANTITY_MIN_Y:
+                    continue
+                quantity_matches.append((quantity, match_result))
+
+        if not quantity_matches:
+            log.warning(f'结算页奖励数量识别失败 OCR={list(ocr_result_map)}')
+            return None
+
+        if len(material_names) == 1:
+            return {material_names[0]: sum(item[0] for item in quantity_matches)}
+
+        result: dict[str, int] = {}
+        for quantity, quantity_match in quantity_matches:
+            rarity_idx = self._classify_reward_rarity(
+                reward_part,
+                quantity_match,
+            )
+            if rarity_idx is None or rarity_idx >= len(material_names):
+                log.warning(
+                    f'结算页材料品质识别失败 数量={quantity} '
+                    f'位置=({quantity_match.x},{quantity_match.y})'
+                )
+                return None
+            material_name = material_names[rarity_idx]
+            result[material_name] = result.get(material_name, 0) + quantity
+        return result
+
+    @node_from(from_name='战斗结束')
+    @operation_node(name='记录材料', node_max_retry_times=3)
+    def record_material_rewards(self) -> OperationRoundResult:
+        """按材料数量运行时在点击结算按钮前记录本场奖励。"""
+        if not self.plan.is_material_count_plan:
+            return self.round_success('无需记录材料')
+
+        material_options = self.ctx.compendium_service.get_charge_plan_material_list(
+            self.plan.category_name,
+            self.plan.mission_type_name,
+            self.plan.mission_name,
+        )
+        material_names = tuple(option.value for option in material_options)
+        if self.plan.target_material_name not in material_names:
+            return self.round_fail(
+                f'目标材料不属于当前副本 {self.plan.target_material_name}'
+            )
+
+        material_counts = self.read_material_reward_counts(
+            self.last_screenshot,
+            material_names,
+        )
+        if material_counts is None:
+            return self.round_retry('材料数量识别失败', wait=1)
+        if not self.config.add_plan_material_counts(self.plan, material_counts):
+            return self.round_fail('未找到对应的体力计划')
+
+        log.info(
+            '材料进度 %s %d/%d 本场=%s',
+            self.plan.target_material_name,
+            self.plan.current_material_count,
+            self.plan.target_material_count,
+            material_counts,
+        )
+        return self.round_success(
+            f'材料进度 {self.plan.current_material_count}/{self.plan.target_material_count}'
+        )
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
