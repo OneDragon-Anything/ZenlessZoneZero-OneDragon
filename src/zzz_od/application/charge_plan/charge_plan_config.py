@@ -34,6 +34,10 @@ class ChargePlanRunModeEnum(Enum):
     MATERIAL_COUNT = ConfigItem('按材料数量运行', 'material_count')
 
 
+_CHARGE_PLAN_RUN_MODES: frozenset[str] = frozenset(
+    mode.value.value for mode in ChargePlanRunModeEnum
+)
+
 _FIXED_MATERIAL_TIER_CHAINS: tuple[tuple[str, ...], ...] = (
     ('资深调查员记录', '正式调查员记录', '见习调查员记录'),
     ('音擎能源模块', '变频音擎电源', '音擎蓄电池'),
@@ -138,6 +142,11 @@ class ChargePlanItem:
         return self.run_mode == ChargePlanRunModeEnum.MATERIAL_COUNT.value.value
 
     @property
+    def has_valid_run_mode(self) -> bool:
+        """运行方式是否是已定义值。"""
+        return self.run_mode in _CHARGE_PLAN_RUN_MODES
+
+    @property
     def material_tier_names(self) -> tuple[str, ...]:
         """目标材料及可按 3:1 合成到目标的低级材料名称。"""
         target = self.target_material_name.strip()
@@ -194,11 +203,17 @@ class ChargePlanItem:
     @property
     def is_finished(self) -> bool:
         """计划是否已达到所选运行方式的目标。"""
+        if not self.has_valid_run_mode:
+            log.warning(
+                f'体力计划运行方式非法: 按已完成处理 '
+                f'plan_id={self.plan_id} run_mode={self.run_mode}'
+            )
+            return True
         if self.is_material_count_plan:
             invalid_reason = self._material_count_invalid_reason()
             if invalid_reason is not None:
                 log.warning(
-                    f'材料数量计划配置非法，按已完成处理 '
+                    f'材料数量计划配置非法: 按已完成处理 '
                     f'plan_id={self.plan_id} category={self.category_name} '
                     f'mission_type={self.mission_type_name} '
                     f'mission={self.mission_name} reason={invalid_reason}'
@@ -556,6 +571,11 @@ class ChargePlanConfig(ApplicationConfig):
 
         合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
         """
+        if not item.has_valid_run_mode:
+            return (
+                f'run_mode {item.run_mode} 不合法'
+                f'(合法: {sorted(_CHARGE_PLAN_RUN_MODES)})'
+            )
         categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
         if item.category_name not in categories:
             return f'category {item.category_name} 不合法(合法: {categories})'

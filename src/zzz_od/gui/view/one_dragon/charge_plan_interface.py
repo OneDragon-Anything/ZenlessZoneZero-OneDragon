@@ -87,33 +87,37 @@ class ChargePlanCard(DraggableListItem):
         self.auto_battle_combo_box = ComboBox()
         self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
 
-        self.run_mode_label = CaptionLabel(text=gt('运行方式'))
-        self.run_mode_box = ComboBox()
+        self.run_mode_label: CaptionLabel = CaptionLabel(text=gt('运行方式'))
+        self.run_mode_box: ComboBox = ComboBox()
         self.run_mode_box.currentIndexChanged.connect(self._on_run_mode_changed)
 
-        self.run_times_label = CaptionLabel(text=gt('已运行次数'))
-        self.run_times_input = LineEdit()
+        self.run_times_label: CaptionLabel = CaptionLabel(text=gt('已运行次数'))
+        self.run_times_input: LineEdit = LineEdit()
         self.run_times_input.setFixedWidth(70)
         self.run_times_input.setValidator(
             QIntValidator(0, 999999, self.run_times_input)
         )
         self.run_times_input.textChanged.connect(self._on_run_times_changed)
 
-        self.plan_times_label = CaptionLabel(text=gt('计划次数'))
-        self.plan_times_input = LineEdit()
+        self.plan_times_label: CaptionLabel = CaptionLabel(text=gt('计划次数'))
+        self.plan_times_input: LineEdit = LineEdit()
         self.plan_times_input.setFixedWidth(70)
         self.plan_times_input.setValidator(
             QIntValidator(0, 999999, self.plan_times_input)
         )
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        self.current_material_count_label = CaptionLabel(text=gt('当前材料数'))
-        self.current_material_count_input = LineEdit()
+        self.current_material_count_label: CaptionLabel = CaptionLabel(
+            text=gt('当前材料数')
+        )
+        self.current_material_count_input: LineEdit = LineEdit()
         self.current_material_count_input.setFixedWidth(70)
         self.current_material_count_input.setReadOnly(True)
 
-        self.target_material_count_label = CaptionLabel(text=gt('目标材料数'))
-        self.target_material_count_input = LineEdit()
+        self.target_material_count_label: CaptionLabel = CaptionLabel(
+            text=gt('目标材料数')
+        )
+        self.target_material_count_input: LineEdit = LineEdit()
         self.target_material_count_input.setFixedWidth(70)
         self.target_material_count_input.setValidator(
             QIntValidator(1, 999999, self.target_material_count_input)
@@ -122,18 +126,22 @@ class ChargePlanCard(DraggableListItem):
             self._on_target_material_count_changed
         )
 
-        self.target_material_name_label = CaptionLabel(text=gt('目标材料'))
-        self.target_material_name_box = ComboBox()
+        self.target_material_name_label: CaptionLabel = CaptionLabel(
+            text=gt('目标材料')
+        )
+        self.target_material_name_box: ComboBox = ComboBox()
         self.target_material_name_box.setFixedWidth(180)
         self.target_material_name_box.currentIndexChanged.connect(
             self._on_target_material_name_changed
         )
 
-        self.include_synthesis_box = ComboBox()
+        self.include_synthesis_box: ComboBox = ComboBox()
         self.include_synthesis_box.currentIndexChanged.connect(
             self._on_include_synthesis_changed
         )
-        self.reset_material_count_btn = PushButton(text=gt('清零材料进度'))
+        self.reset_material_count_btn: PushButton = PushButton(
+            text=gt('清零材料进度')
+        )
         self.reset_material_count_btn.clicked.connect(
             self._on_reset_material_count_clicked
         )
