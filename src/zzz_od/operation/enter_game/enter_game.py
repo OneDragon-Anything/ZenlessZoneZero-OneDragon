@@ -1,5 +1,4 @@
 import time
-from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -12,20 +11,22 @@ from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
 )
+from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
 
 class EnterGame(ZOperation):
-
     STATUS_GAME_DATA_UPDATED: ClassVar[str] = '游戏数据已更新'
     STATUS_LOGIN_SUCCESS: ClassVar[str] = '登录成功'
     STATUS_LOADING: ClassVar[str] = '加载中'
@@ -33,7 +34,7 @@ class EnterGame(ZOperation):
     MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
     def __init__(self, ctx: ZContext, switch: bool = False):
-        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
+        ZOperation.__init__(self, ctx, op_name=gt('进入游戏'), op_callback=self.restore_screenshot_func)
 
         self.force_login: bool = (
             (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
@@ -60,6 +61,8 @@ class EnterGame(ZOperation):
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
 
+        self.screenshot_func: str = self.ctx.controller.screenshot_method
+
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
         self.already_login = False
@@ -67,6 +70,11 @@ class EnterGame(ZOperation):
         self.after_second_enter_click = False
         self.resource_download_start_time = None
         self.interact_ignore_word_list.clear()
+
+        # B服登录时采用BitBlt截图
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            log.info('检测到B服登录, 使用Bitblt截图方式')
+            self.ctx.controller.screenshot_controller.init_screenshot(ScreenshotMethodEnum.BITBLT.value.value)
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
@@ -474,7 +482,7 @@ class EnterGame(ZOperation):
             if match_word.find('领取') != -1:
                 self.interact_ignore_word_list.append(match_word)
 
-            time.sleep(0.5) # 等待画面稳定
+            time.sleep(0.5)  # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
@@ -503,7 +511,7 @@ class EnterGame(ZOperation):
             target_word_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
-            time.sleep(0.5) # 等待画面稳定
+            time.sleep(0.5)  # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
@@ -708,6 +716,13 @@ class EnterGame(ZOperation):
             return return_result
 
         return self.round_retry('登录成功后等待加载中或大世界', wait=2)
+
+    # B服登录后恢复原有截图方法
+    # noinspection PyUnusedLocal
+    def restore_screenshot_func(self, result: OperationResult) -> None:
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
+            log.info('B服登录结束, 恢复原来的截图方式: ' + self.screenshot_func)
+            self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
 
 
 def __debug():
