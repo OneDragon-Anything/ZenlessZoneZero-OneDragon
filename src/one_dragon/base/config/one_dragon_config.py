@@ -28,6 +28,8 @@ class AfterDoneOpEnum(Enum):
     NONE = ConfigItem('无')
     CLOSE_GAME = ConfigItem('关闭游戏')
     SHUTDOWN = ConfigItem('关机')
+    HIBERNATE = ConfigItem('休眠')
+    SLEEP = ConfigItem('睡眠')
 
 
 class InstanceRun(Enum):
