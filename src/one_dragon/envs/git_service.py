@@ -840,7 +840,11 @@ class GitService:
         active_repo = repo
         branch_name = self.env_config.git_branch
         remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
-        remote_url = Path(temp_repo_dir).resolve().as_uri()
+        # 直接使用本地原生路径作为 remote，不能转成 file:// URI：
+        # UNC 路径（\\server\share\...）转出的 file://server/share/... 带远程主机部分，
+        # libgit2 的本地 transport 只接受 file:/// 绝对路径或 file://localhost/，
+        # 会把整个 URI 当成文件系统路径导致 "failed to resolve path"。
+        remote_path = str(Path(temp_repo_dir).resolve())
         remote_branch_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
         if tag_name is None:
             source_ref = f'refs/heads/{branch_name}'
@@ -881,8 +885,8 @@ class GitService:
         callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
 
         try:
-            log.info(f'开始导入临时 Git 仓库: {remote_url}')
-            active_repo.remotes.create(remote_name, remote_url)
+            log.info(f'开始导入临时 Git 仓库: {remote_path}')
+            active_repo.remotes.create(remote_name, remote_path)
             active_repo.config[f'remote.{remote_name}.tagopt'] = '--no-tags'
             remote = active_repo.remotes[remote_name]
             remote.fetch(refspecs=refspecs, depth=0, callbacks=callbacks)
