@@ -87,7 +87,16 @@ class AudioRecorder:
         warnings.filterwarnings('ignore', category=SoundcardRuntimeWarning)
 
         try:
-            _mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
+            # 按 WASAPI id 精确匹配默认扬声器的 loopback 设备（录制系统输出声音）。
+            # 不能用名字匹配（soundcard 的 _match_device 会做子串/模糊匹配，可能错落到真实麦克风）
+            default_speaker = sc.default_speaker()
+            _mic = None
+            for mic in sc.all_microphones(include_loopback=True):
+                if mic.isloopback and mic.id == default_speaker.id:
+                    _mic = mic
+                    break
+            if _mic is None:
+                raise RuntimeError(f'未找到默认扬声器 [{default_speaker.name}] 的 loopback 设备')
             _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
             with _recorder as audio_recorder:
                 while self.running:
