@@ -1,7 +1,7 @@
 """迷失之地战斗 op(shadow 基类节点 + 重定义开始自动战斗 + 覆写 hook detector 状态机)。
 
 从 ``application/hollow_zero/lost_void/operation/lost_void_run_level.py`` 复制
-``in_battle`` 状态机(:849-983)。原 ``LostVoidRunLevel`` 不动。
+``in_battle`` 状态机,改动需与其保持同步(当前已同步阵亡检测/识别节流)。
 
 op 边界:等战斗画面(shadow,wait_battle 控制)→ 开始自动战斗 → 自动战斗(detector 判断结束返回 status)。
 移动(进下一区域)/ 失败链 / 结束后操作交外层。
@@ -13,7 +13,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import gpu_executor
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidRegionType,
@@ -37,6 +37,8 @@ class LostVoidBattleOp(BattleOpBase):
     移动(进下一区域)/ 失败链 / 结束后操作交外层。
     """
 
+    STATUS_AGENT_DEAD: str = '代理人阵亡'       # 与 LostVoidRunLevel.STATUS_AGENT_DEAD 同值 外层据此重开
+
     _interact_as_wait_fallback: bool = True    # 迷失之地开战后画面可能出现「按键-交互」
 
     def __init__(self, ctx: ZContext, region_type: LostVoidRegionType, wait_battle: bool = False) -> None:
@@ -55,6 +57,7 @@ class LostVoidBattleOp(BattleOpBase):
         self._last_det_time: float = 0              # 上一次进行识别的时间(in_battle 分支 0.8s 节流)
         self._last_check_finish_time: float = 0     # 上一次识别结束的时间(not-in_battle 分支 1s 节流)
         self._no_in_battle_times: int = 0           # 识别到不在战斗的次数(in>=10 / not-in>=3 分流)
+        self._agent_dead_times: int = 0             # 连续识别到代理人阵亡的次数(>=2 判定阵亡)
         # detector 前置断言(由 ctx.lost_void.init_before_run() 初始化)
         self.detector: LostVoidDetector = ctx.lost_void.detector
         if self.detector is None:
@@ -92,6 +95,7 @@ class LostVoidBattleOp(BattleOpBase):
         self.ctx.auto_battle_context.start_auto_battle()
         self._last_det_time = self.last_screenshot_time
         self._last_check_finish_time = self.last_screenshot_time
+        self._agent_dead_times = 0
         return self.round_success()
 
     # auto_battle 继承基类(@node_from from 开始自动战斗 + _do_auto_battle_round;不覆写)
@@ -108,14 +112,15 @@ class LostVoidBattleOp(BattleOpBase):
             self.last_screenshot, self.last_screenshot_time)
 
     def _check_in_battle_secondary(self, in_battle: bool) -> str | None:
-        """战中副判:迷失之地 detector + OCR 状态机(复制自 lost_void_run_level.py:849-983)。
+        """战中副判:迷失之地 detector + OCR 状态机(复制自 lost_void_run_level.py 的 in_battle,与其保持同步)。
 
         - in_battle 分支:detector(ELITE/BOSS 跳)或 OCR「前往下一个区域」识别脱战
-          → _no_in_battle_times >= 10 → STATUS_NEED_MOVE。
+          → _no_in_battle_times >= 10 → STATUS_NEED_MOVE;
+          战斗中同时检测「代理人阵亡」模板 连续命中 2 次 → STATUS_AGENT_DEAD(外层决定是否重开)。
         - not-in_battle 分支:画面识别(武备/通用选择/挑战结果/战斗失败)
           → _no_in_battle_times >= 3 后分流(战斗失败 vs STATUS_NEED_MOVE)。
 
-        返回 None=继续等待;STATUS_NEED_MOVE/'迷失之地-战斗失败'=交基类 round_success(status),op 返回(外层处理)。
+        返回 None=继续等待;STATUS_NEED_MOVE/STATUS_AGENT_DEAD/'迷失之地-战斗失败'=交基类 round_success(status),op 返回(外层处理)。
         """
         self._last_frame_in_battle = self._current_frame_in_battle
         self._current_frame_in_battle = in_battle
@@ -124,29 +129,20 @@ class LostVoidBattleOp(BattleOpBase):
         if in_battle:  # 当前回到可战斗画面
             if (not self._last_frame_in_battle  # 之前在非战斗画面
                     or now - self._last_det_time >= 0.8  # 0.8秒识别一次
-                    or (self._no_in_battle_times > 0 and now - self._last_check_finish_time >= 0.1)):  # 之前也识别到脱离战斗 0.1秒识别一次
+                    or (self._no_in_battle_times > 0 and now - self._last_det_time >= 0.1)):  # 之前也识别到脱离战斗 0.1秒识别一次
+                self._last_det_time = now  # 门条件后统一更新 ELITE/BOSS 同样节流
                 no_in_battle = False
                 found_next_region_hint = False
 
                 # 尝试识别下层入口 (道中危机 和 终结之役 不需要识别)
                 if self.region_type not in (LostVoidRegionType.ELITE, LostVoidRegionType.BOSS):
-                    self._last_det_time = now  # 块内更新(ELITE/BOSS 不更新 → 节流永开)
                     try:
                         # 为了不随意打断战斗 这里的识别阈值要高一点
-                        if self.ctx.model_config.lost_void_det_gpu:
-                            f = gpu_executor.submit(
-                                self.detector.run,
-                                image=self.last_screenshot,
-                                conf=0.9,
-                                run_time=now,
-                            )
-                            frame_result: DetectFrameResult = f.result()
-                        else:
-                            frame_result = self.detector.run(
-                                image=self.last_screenshot,
-                                conf=0.9,
-                                run_time=now,
-                            )
+                        frame_result: DetectFrameResult = self.detector.run(
+                            image=self.last_screenshot,
+                            conf=0.9,
+                            run_time=now,
+                        )
                         with_interact, with_distance, with_entry = self.detector.is_frame_with_all(frame_result)
                         if with_interact or with_distance or with_entry:
                             no_in_battle = True
@@ -155,21 +151,22 @@ class LostVoidBattleOp(BattleOpBase):
                         log.error('战斗中识别交互出现异常', exc_info=e)
                         return None  # 异常 → None
 
-                # OCR「前往下一个区域」(region_type 块外,所有类型都跑)
                 if not no_in_battle:
-                    area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
-                    if self.ctx.model_config.ocr_use_gpu:
-                        f = gpu_executor.submit(
-                            screen_utils.find_by_ocr,
-                            ctx=self.ctx,
-                            screen=self.last_screenshot,
-                            target_cn='前往下一个区域',
-                            area=area,
-                        )
-                        found = f.result()
+                    # 阵亡标识可能闪烁误匹配 连续命中才判定阵亡(基类收到 status 后停自动战斗)
+                    dead_result = screen_utils.find_area(self.ctx, self.last_screenshot, '战斗画面', '代理人阵亡')
+                    if dead_result == FindAreaResultEnum.TRUE:
+                        self._agent_dead_times += 1
                     else:
-                        found = screen_utils.find_by_ocr(
-                            self.ctx, self.last_screenshot, target_cn='前往下一个区域', area=area)
+                        self._agent_dead_times = 0
+
+                    if self._agent_dead_times >= 2:
+                        self._agent_dead_times = 0
+                        return LostVoidBattleOp.STATUS_AGENT_DEAD
+
+                    # OCR「前往下一个区域」(region_type 块外,所有类型都跑)
+                    area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
+                    found = screen_utils.find_by_ocr(
+                        self.ctx, self.last_screenshot, target_cn='前往下一个区域', area=area)
 
                     if found:
                         found_next_region_hint = True
@@ -202,33 +199,16 @@ class LostVoidBattleOp(BattleOpBase):
                     '迷失之地-挑战结果',
                     '迷失之地-战斗失败',
                 ]
-                if self.ctx.model_config.ocr_use_gpu:
-                    f = gpu_executor.submit(
-                        self.check_and_update_current_screen,
-                        screen=self.last_screenshot,
-                        screen_name_list=no_in_battle_screen_name_list,
-                    )
-                    screen_name = f.result()
-                else:
-                    screen_name = self.check_and_update_current_screen(  # 局部变量(对齐原 :946)
-                        self.last_screenshot, no_in_battle_screen_name_list)
+                screen_name = self.check_and_update_current_screen(  # 局部变量(对齐原 :946)
+                    self.last_screenshot, no_in_battle_screen_name_list)
 
                 # 以下情况会出现确认对话框
                 # 1. 所有战术棱镜均已升级
-                if self.ctx.model_config.ocr_use_gpu:
-                    f = gpu_executor.submit(
-                        self.round_by_find_and_click_area,
-                        screen=self.last_screenshot,
-                        screen_name='迷失之地-大世界',
-                        area_name='按钮-挑战-确认',
-                    )
-                    confirm_result = f.result()
-                else:
-                    confirm_result = self.round_by_find_and_click_area(
-                        self.last_screenshot,
-                        screen_name='迷失之地-大世界',
-                        area_name='按钮-挑战-确认',
-                    )
+                confirm_result = self.round_by_find_and_click_area(
+                    self.last_screenshot,
+                    screen_name='迷失之地-大世界',
+                    area_name='按钮-挑战-确认',
+                )
 
                 if screen_name in no_in_battle_screen_name_list or interact_result.is_success or confirm_result.is_success:
                     self._no_in_battle_times += 1
