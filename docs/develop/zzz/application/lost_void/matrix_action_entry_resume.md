@@ -31,7 +31,7 @@
 
 ## 测试
 
-`zzz-od-test/test/zzz_od/application/hollow_zero/lost_void/test_matrix_goto_entry.py`，纯逻辑 mock 测试，覆盖：
+测试在独立测试仓 `zzz-od-test`（主仓不保留测试，见 AGENTS.md），文件 `test/zzz_od/application/hollow_zero/lost_void/test_matrix_goto_entry.py`，配套测试仓 PR [OneDragon-Anything/zzz-od-test#57](https://github.com/OneDragon-Anything/zzz-od-test/pull/57)。纯逻辑 mock 测试，覆盖：
 
 - `STATUS_SCREEN_UNKNOWN` + 确认存在 + 点击成功 → `已进入挚交会谈` + `FRIENDLY_TALK`
 - `STATUS_SCREEN_UNKNOWN` + 确认存在 + 点击失败 → 重试
