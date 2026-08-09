@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -45,12 +46,15 @@ class OpenGame(Operation):
         command = f'{command} & exit"'
         log.info('命令行指令 %s', command)
 
-        # CREATE_BREAKAWAY_FROM_JOB:启动器用进程组管理时,使子进程逃离 jobobject,
-        # 避免 OneDragon-Launcher.exe 退出后游戏被杀死。
-        subprocess.Popen(
-            command,
-            creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
-        )
+        if not getattr(sys, 'frozen', False):
+            # CREATE_BREAKAWAY_FROM_JOB:启动器用进程组管理时,使子进程逃离 jobobject,
+            # 避免 OneDragon-Launcher.exe 退出后游戏被杀死。
+            subprocess.Popen(
+                command,
+                creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
+            )
+        else:
+            subprocess.Popen(command)
 
         return self.round_success(wait=5)
 

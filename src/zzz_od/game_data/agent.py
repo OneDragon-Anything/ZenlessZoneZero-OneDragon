@@ -261,7 +261,7 @@ class AgentEnum(Enum):
 
     JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe', 'jane_doe_nocturne_of_light'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
-                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
+                                               template_id='jane_attack', hsv_color=(0, 255, 255), hsv_color_diff=(10, 100, 150), connect_cnt=5),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                template_id='jane_red', lower_color=(200, 20, 20), upper_color=(255, 255, 255), connect_cnt=10)
                                  ])

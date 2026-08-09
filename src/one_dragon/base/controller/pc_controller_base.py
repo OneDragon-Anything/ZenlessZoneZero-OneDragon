@@ -568,8 +568,7 @@ def win_scroll(clicks: int, pos: Point = None):
     """
     if pos is not None:
         pyautogui.moveTo(pos.x, pos.y)
-    d = 2000 if get_mouse_sensitivity() <= 10 else 1000
-    pyautogui.scroll(-d * clicks, pos.x, pos.y)
+    pyautogui.scroll(-120 * clicks, pos.x, pos.y)
 
 
 @lru_cache
