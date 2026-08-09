@@ -12,6 +12,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -202,7 +203,20 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
     @operation_node(name='矩阵行动-前往入口')
     def matrix_goto_entry(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+        # 正常流程：前往编队选择。点"下一步"后可能弹出确认弹窗（中途加入续传场景），
+        # 此时画面识别不到编队选择，降级检测确认按钮，有确认直接进挚交会谈
+        result = self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+        if result.status == Operation.STATUS_SCREEN_UNKNOWN:
+            confirm = screen_utils.find_area(self.ctx, self.last_screenshot, '迷失之地-矩阵行动', '按钮-确认')
+            if confirm == FindAreaResultEnum.TRUE:
+                log.info('识别到确认弹窗，点击确认进入挚交会谈')
+                click_result = self.round_by_find_and_click_area(
+                    self.last_screenshot, '迷失之地-矩阵行动', '按钮-确认', success_wait=1)
+                if click_result.is_success:
+                    self.next_region_type = LostVoidRegionType.FRIENDLY_TALK
+                    return self.round_success('已进入挚交会谈', wait=1)
+                return self.round_retry('点击确认失败', wait=0.5)
+        return result
 
     @node_from(from_name='矩阵行动-前往入口')
     @operation_node(name='矩阵行动-点击预备编队')
@@ -721,6 +735,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别初始画面', status='迷失之地-大世界')
     @node_from(from_name='出战')
     @node_from(from_name='矩阵行动-开始挑战')
+    @node_from(from_name='矩阵行动-前往入口', status='已进入挚交会谈')
     @operation_node(name='加载自动战斗配置')
     def load_auto_op(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.init_auto_op(
