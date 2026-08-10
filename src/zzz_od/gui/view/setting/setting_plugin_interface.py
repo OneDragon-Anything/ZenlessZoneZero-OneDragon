@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 import webbrowser
+from collections.abc import Callable
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDesktopServices
@@ -39,25 +41,25 @@ class PluginCard(MultiPushSettingCard):
     def __init__(
         self,
         plugin_info: PluginInfo,
-        on_delete: callable,
-        on_open_homepage: callable,
-        parent=None
-    ):
-        self.plugin_info = plugin_info
-        self.on_delete_callback = on_delete
-        self.on_open_homepage_callback = on_open_homepage
+        on_delete: Callable[[PluginInfo], None],
+        on_open_homepage: Callable[[PluginInfo], None],
+        parent: QWidget | None = None,
+    ) -> None:
+        self.plugin_info: PluginInfo = plugin_info
+        self.on_delete_callback: Callable[[PluginInfo], None] = on_delete
+        self.on_open_homepage_callback: Callable[[PluginInfo], None] = on_open_homepage
 
         # 创建按钮
-        buttons = []
+        buttons: list[QWidget] = []
 
         # 主页按钮（如果有链接）
-        self.homepage_btn = PushButton(text=gt("主页"))
+        self.homepage_btn: PushButton = PushButton(text=gt("主页"))
         self.homepage_btn.clicked.connect(self._on_homepage_clicked)
         self.homepage_btn.setVisible(bool(plugin_info.homepage))
         buttons.append(self.homepage_btn)
 
         # 删除按钮
-        self.delete_btn = ToolButton(FluentIcon.DELETE, parent=None)
+        self.delete_btn: ToolButton = ToolButton(FluentIcon.DELETE, parent=None)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         buttons.append(self.delete_btn)
 
@@ -78,6 +80,7 @@ class PluginCard(MultiPushSettingCard):
             title=plugin_info.app_name,
             content=content,
             icon=FluentIcon.LIBRARY,
+            parent=parent,
         )
 
     def _on_homepage_clicked(self) -> None:
@@ -118,9 +121,9 @@ class PluginCard(MultiPushSettingCard):
 class SettingPluginInterface(VerticalScrollInterface):
     """插件管理界面"""
 
-    def __init__(self, ctx: ZContext, parent=None):
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None) -> None:
         self.ctx: ZContext = ctx
-        self.plugin_import_service = PluginImportService(ctx)
+        self.plugin_import_service: PluginImportService = PluginImportService(ctx)
         self._plugin_cards: list[PluginCard] = []
         self._empty_card: MultiPushSettingCard | None = None
 
@@ -296,7 +299,6 @@ class SettingPluginInterface(VerticalScrollInterface):
                     line += f" - {preview.author}"
                 preview_lines.append(line)
             else:
-                from pathlib import Path
                 preview_lines.append(f"• {Path(fp).stem} (无法读取信息)")
 
         # 显示预览确认对话框
@@ -323,9 +325,7 @@ class SettingPluginInterface(VerticalScrollInterface):
         # 如果有已存在的插件，询问是否覆盖
         if existing_plugins:
             # 获取已安装插件的版本信息
-            installed_plugins = {
-                p.app_id: p for p in self.ctx.factory_manager.third_party_plugins
-            }
+            installed_plugins = self._get_installed_plugins_by_package()
 
             # 检查版本信息
             overwrite_info = []  # (file_path, plugin_name, new_ver, old_ver, is_downgrade)
@@ -478,10 +478,7 @@ class SettingPluginInterface(VerticalScrollInterface):
         elif result.plugin_dir is not None:
             # 插件已存在，询问是否覆盖
             # 获取已安装版本
-            installed = next(
-                (p for p in self.ctx.factory_manager.third_party_plugins if p.app_id == result.plugin_name),
-                None
-            )
+            installed = self._get_installed_plugins_by_package().get(result.plugin_name)
             old_ver = installed.version if installed else None
             new_ver = preview.version
 
@@ -593,8 +590,9 @@ class SettingPluginInterface(VerticalScrollInterface):
             return
 
         # 执行删除
-        if plugin_info.plugin_dir:
-            result = self.plugin_import_service.delete_plugin(plugin_info.plugin_dir)
+        plugin_package_dir = self._get_plugin_package_dir(plugin_info)
+        if plugin_package_dir is not None:
+            result = self.plugin_import_service.delete_plugin(plugin_package_dir)
             if result.success:
                 # 刷新应用注册
                 self.ctx.refresh_application_registration()
@@ -623,6 +621,37 @@ class SettingPluginInterface(VerticalScrollInterface):
         """打开插件主页"""
         if plugin_info.homepage:
             webbrowser.open(plugin_info.homepage)
+
+    def _get_plugin_package_dir(self, plugin_info: PluginInfo) -> Path | None:
+        """获取插件所属的顶层插件目录。"""
+        if plugin_info.plugin_dir is None:
+            return None
+
+        plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
+        plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
+        if plugin_dir == plugins_root or not plugin_dir.is_relative_to(plugins_root):
+            return None
+
+        relative_path = plugin_dir.relative_to(plugins_root)
+        return plugins_root / relative_path.parts[0]
+
+    def _get_installed_plugins_by_package(self) -> dict[str, PluginInfo]:
+        """按顶层插件目录索引已安装插件。"""
+        installed_plugins: dict[str, PluginInfo] = {}
+        package_depths: dict[str, int] = {}
+        for plugin_info in self.ctx.factory_manager.third_party_plugins:
+            package_dir = self._get_plugin_package_dir(plugin_info)
+            if package_dir is None or plugin_info.plugin_dir is None:
+                continue
+
+            package_name = package_dir.name
+            plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
+            depth = len(plugin_dir.relative_to(package_dir).parts)
+            if package_name not in installed_plugins or depth < package_depths[package_name]:
+                installed_plugins[package_name] = plugin_info
+                package_depths[package_name] = depth
+
+        return installed_plugins
 
     def _is_version_lower(self, new_ver: str | None, old_ver: str | None) -> bool:
         """检查新版本是否低于旧版本
