@@ -5,6 +5,7 @@ from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
 
 
@@ -18,8 +19,10 @@ class ZApplication(Application):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
-                 ):
+                 return_to_world_after_success: bool = True,
+                 ) -> None:
         self.ctx: ZContext = ctx
+        self.return_to_world_after_success: bool = return_to_world_after_success
         if op_to_enter_game is None:
             op_to_enter_game = OpenAndEnterGame(ctx)
         Application.__init__(
@@ -38,3 +41,13 @@ class ZApplication(Application):
     def handle_resume(self) -> None:
         self.ctx.controller.active_window()
         Application.handle_resume(self)
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        if result.success and self.return_to_world_after_success:
+            back_result = BackToNormalWorld(self.ctx).execute()
+            if not back_result.success:
+                reason = back_result.status or '未知原因'
+                result.success = False
+                result.status = f'返回大世界失败: {reason}'
+
+        Application.after_operation_done(self, result)

@@ -147,6 +147,25 @@ ctx.refresh_application_registration()
 
 ---
 
+## 成功后默认返回大世界
+
+继承 `ZApplication` 的应用成功结束后，会自动执行 `BackToNormalWorld`，让后续应用从稳定的大世界画面开始。返回大世界失败时，应用最终结果会改为失败；业务失败、超时或人工停止时不会执行该收尾，以便保留故障现场。
+
+包装器、总控、持续辅助工具和开发工具如果不应改变当前游戏画面，需要在构造时显式关闭：
+
+```python
+ZApplication.__init__(
+    self,
+    ctx=ctx,
+    app_id=my_app_const.APP_ID,
+    return_to_world_after_success=False,
+)
+```
+
+应用如果要求返回指定地点、返回后继续截图或执行其他步骤，仍应保留自己的显式返回节点。默认收尾是最后一道保障，不替代应用特有的结束流程。
+
+---
+
 ## 应用分组
 
 | 分组 | `DEFAULT_GROUP` | 场景 |

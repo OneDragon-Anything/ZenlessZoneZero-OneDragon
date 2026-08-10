@@ -18,6 +18,7 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
             self,
             ctx=ctx,
             app_id=application_const.ONE_DRAGON_APP_ID,
+            return_to_world_after_success=False,
         )
         OneDragonApp.__init__(
             self,
