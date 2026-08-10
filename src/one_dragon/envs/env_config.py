@@ -31,12 +31,6 @@ class GitRemoteEnum(Enum):
     UPSTREAM = ConfigItem('upstream')
 
 
-class GitBranchEnum(Enum):
-
-    MAIN = ConfigItem('主分支', 'main', desc='选择后请点击同步最新代码')
-    TEST = ConfigItem('测试分支', 'test', desc='选择后请点击同步最新代码')
-
-
 class ScreenshotMethodEnum(Enum):
 
     AUTO = ConfigItem('自动', 'auto')
@@ -257,7 +251,7 @@ class EnvConfig(YamlConfig):
         分支
         :return:
         """
-        return self.get('git_branch', GitBranchEnum.MAIN.value.value)
+        return self.get('git_branch', self.repo_config.primary_branch)
 
     @git_branch.setter
     def git_branch(self, new_value: str) -> None:
