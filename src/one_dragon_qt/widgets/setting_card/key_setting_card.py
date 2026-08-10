@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import Qt
 from qfluentwidgets import PushButton
-from qfluentwidgets import SettingCard, FluentIconBase
+from qfluentwidgets import FluentIconBase
 from typing import Union, Optional
 
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
@@ -104,7 +104,7 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content))
+        SettingCardBase.setContent(self, content)
 
     def setValue(self, value: str, emit_signal: bool = True) -> None:
         """

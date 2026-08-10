@@ -35,7 +35,8 @@ class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
         )
         AdapterInitMixin.__init__(self)
 
-        # 创建按钮并设置相关属性
+        self._on_text_msgid = on_text_cn
+        self._off_text_msgid = off_text_cn
         self.btn = SwitchButton(parent=self, indicatorPos=IndicatorPosition.RIGHT)
         self.btn._offText = gt(off_text_cn)
         self.btn._onText = gt(on_text_cn)
@@ -45,6 +46,13 @@ class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
         # 将按钮添加到布局
         self.hBoxLayout.addWidget(self.btn, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and switch labels after a language change."""
+        super().retranslate_ui()
+        self.btn._offText = gt(self._off_text_msgid)
+        self.btn._onText = gt(self._on_text_msgid)
+        self.btn.label.setText(self.btn._onText if self.btn.isChecked() else self.btn._offText)
 
     def _on_value_changed(self, value: bool):
         # 更新配置适配器中的值并发出信号

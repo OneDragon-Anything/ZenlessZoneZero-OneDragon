@@ -74,7 +74,7 @@ class ImageMattingInterface(VerticalScrollInterface):
         control_layout.setSpacing(12)
 
         # 图像加载
-        self.load_btn = PushButton(text='加载图片')
+        self.load_btn = PushButton(text=gt('加载图片'))
         self.load_btn.clicked.connect(self._load_image)
         
         load_card = MultiPushSettingCard(
@@ -123,7 +123,7 @@ class ImageMattingInterface(VerticalScrollInterface):
         control_layout.addWidget(color_upper_card)
 
         # 应用颜色过滤按钮
-        self.filter_btn = PushButton(text='应用颜色过滤')
+        self.filter_btn = PushButton(text=gt('应用颜色过滤'))
         self.filter_btn.clicked.connect(self._apply_color_filter)
         self.filter_btn.setEnabled(False)
 
@@ -143,21 +143,21 @@ class ImageMattingInterface(VerticalScrollInterface):
             title='处理选项',
             content='自动裁剪到有效区域',
             btn_list=[
-                BodyLabel('自动裁剪:'), self.auto_crop_switch
+                BodyLabel(gt('自动裁剪:')), self.auto_crop_switch
             ]
         )
         control_layout.addWidget(option_card)
 
         # 保存操作
-        self.save_result_btn = PushButton(text='保存扣图结果')
+        self.save_result_btn = PushButton(text=gt('保存扣图结果'))
         self.save_result_btn.clicked.connect(self._save_result)
         self.save_result_btn.setEnabled(False)
 
-        self.save_mask_btn = PushButton(text='保存掩码图')
+        self.save_mask_btn = PushButton(text=gt('保存掩码图'))
         self.save_mask_btn.clicked.connect(self._save_mask)
         self.save_mask_btn.setEnabled(False)
 
-        self.clear_btn = PushButton(text='清空图像')
+        self.clear_btn = PushButton(text=gt('清空图像'))
         self.clear_btn.clicked.connect(self._clear_images)
 
         save_card = MultiPushSettingCard(
@@ -237,7 +237,7 @@ class ImageMattingInterface(VerticalScrollInterface):
                 self._update_button_states()
                 
             except Exception as e:
-                QMessageBox.warning(self, '错误', f'加载图片失败: {str(e)}')
+                QMessageBox.warning(self, gt('错误'), f"{gt('加载图片失败: ')}{e}")
 
     def _ensure_rgb_format(self, image: np.ndarray) -> np.ndarray:
         """确保图像是RGB格式。
@@ -278,7 +278,7 @@ class ImageMattingInterface(VerticalScrollInterface):
     def _apply_color_filter(self):
         """应用颜色过滤"""
         if self.original_image is None or self.selected_region is None:
-            QMessageBox.warning(self, '错误', '请先加载图片并选择区域')
+            QMessageBox.warning(self, gt('错误'), gt('请先加载图片并选择区域'))
             return
         
         try:
@@ -287,7 +287,11 @@ class ImageMattingInterface(VerticalScrollInterface):
             upper_color = self._parse_rgb_input(self.color_upper_input.text())
             
             if lower_color is None or upper_color is None:
-                QMessageBox.warning(self, '错误', '颜色值格式错误，请使用 "R,G,B" 或 "H,S,V" 格式')
+                QMessageBox.warning(
+                    self,
+                    gt('错误'),
+                    gt('颜色值格式错误，请使用 "R,G,B" 或 "H,S,V" 格式'),
+                )
                 return
             
             # 获取选择的颜色空间
@@ -323,7 +327,7 @@ class ImageMattingInterface(VerticalScrollInterface):
             self._update_button_states()
             
         except Exception as e:
-            QMessageBox.critical(self, '错误', f'颜色过滤失败: {str(e)}')
+            QMessageBox.critical(self, gt('错误'), f"{gt('颜色过滤失败: ')}{e}")
 
     def _parse_rgb_input(self, text: str) -> Optional[Tuple[int, int, int]]:
         """解析RGB输入"""
@@ -378,7 +382,7 @@ class ImageMattingInterface(VerticalScrollInterface):
         
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            '保存扣图结果',
+            gt('保存扣图结果'),
             default_path,
             "PNG files (*.png);;JPEG files (*.jpg);;All files (*.*)"
         )
@@ -391,9 +395,9 @@ class ImageMattingInterface(VerticalScrollInterface):
                 # 转换为BGR格式保存
                 result_bgr = cv2.cvtColor(self.result_image, cv2.COLOR_RGB2BGR)
                 cv2.imwrite(file_path, result_bgr)
-                QMessageBox.information(self, '成功', '扣图结果已保存')
+                QMessageBox.information(self, gt('成功'), gt('扣图结果已保存'))
             except Exception as e:
-                QMessageBox.critical(self, '错误', f'保存失败: {str(e)}')
+                QMessageBox.critical(self, gt('错误'), f"{gt('保存失败: ')}{e}")
 
     def _save_mask(self):
         """保存掩码图"""
@@ -406,7 +410,7 @@ class ImageMattingInterface(VerticalScrollInterface):
         
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            '保存掩码图',
+            gt('保存掩码图'),
             default_path,
             "PNG files (*.png);;All files (*.*)"
         )
@@ -417,9 +421,9 @@ class ImageMattingInterface(VerticalScrollInterface):
                 ImageMattingInterface.last_save_directory = os.path.dirname(file_path)
                 
                 cv2.imwrite(file_path, self.mask_image)
-                QMessageBox.information(self, '成功', '掩码图已保存')
+                QMessageBox.information(self, gt('成功'), gt('掩码图已保存'))
             except Exception as e:
-                QMessageBox.critical(self, '错误', f'保存失败: {str(e)}')
+                QMessageBox.critical(self, gt('错误'), f"{gt('保存失败: ')}{e}")
 
     def _clear_images(self):
         """清空所有图像"""

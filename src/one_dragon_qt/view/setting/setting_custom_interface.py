@@ -7,7 +7,6 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
     ColorDialog,
-    Dialog,
     FluentIcon,
     PrimaryPushButton,
     SettingCardGroup,
@@ -21,7 +20,7 @@ from one_dragon.base.config.custom_config import (
     UILanguageEnum,
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils import app_utils, os_utils
+from one_dragon.utils import i18_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.widgets.column import Column
@@ -55,7 +54,8 @@ class SettingCustomInterface(VerticalScrollInterface):
             content='语言、主题和背景调整后，部分效果可能需要重启后生效',
         )
         content_widget.add_widget(self.help_opt)
-        content_widget.add_widget(self._init_basic_group())
+        self.basic_group = self._init_basic_group()
+        content_widget.add_widget(self.basic_group)
         content_widget.add_stretch(1)
 
         return content_widget
@@ -131,15 +131,35 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
         self.background_type_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('background_type'))
 
+    def retranslate_ui(self) -> None:
+        """Refresh visible text in the custom settings page."""
+        super().retranslate_ui()
+        if not hasattr(self, 'help_opt'):
+            return
+        self.help_opt.titleLabel.setText(gt('设置说明'))
+        self.help_opt.contentLabel.setText(gt('语言、主题和背景调整后，部分效果可能需要重启后生效'))
+        if hasattr(self.basic_group, 'titleLabel'):
+            self.basic_group.titleLabel.setText(gt('外观'))
+        self.ui_language_opt.titleLabel.setText(gt('界面语言'))
+        self.theme_opt.titleLabel.setText(gt('界面主题'))
+        self.custom_theme_color_btn.setText(gt('自定义主题色'))
+        self.theme_color_mode_opt.titleLabel.setText(gt('自定义主题色'))
+        self.theme_color_mode_opt.setContent('开启后可自定义主题色')
+        self.background_type_opt.titleLabel.setText(gt('主页背景类型'))
+        self.background_type_opt.setContent('选择主页显示的背景')
+        self.custom_banner_opt.titleLabel.setText(gt('自定义主页背景'))
+        self.banner_select_btn.setText(gt('选择'))
+        for card in (
+            self.ui_language_opt,
+            self.theme_opt,
+            self.background_type_opt,
+        ):
+            card.retranslate_options()
+
     def _on_ui_language_changed(self, index: int, value: str) -> None:
         language = self.ctx.custom_config.ui_language
-        dialog = Dialog(gt("提示", "ui", language), gt("语言切换成功，需要重启应用程序以生效", "ui", language), self)
-        dialog.setTitleBarVisible(False)
-        dialog.yesButton.setText(gt("立即重启", "ui", language))
-        dialog.cancelButton.setText(gt("稍后重启", "ui", language))
-
-        if dialog.exec():
-            app_utils.start_one_dragon(True)
+        i18_utils.update_default_lang(language)
+        self.retranslate_ui()
 
     def _on_theme_changed(self, index: int, value: str) -> None:
         setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)

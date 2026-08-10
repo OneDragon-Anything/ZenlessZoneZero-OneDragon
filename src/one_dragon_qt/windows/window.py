@@ -13,7 +13,6 @@ from qfluentwidgets import (
     InfoBar,
     InfoBarPosition,
     MSFluentWindow,
-    NavigationBar,
     SplitTitleBar,
     isDarkTheme,
     qconfig,
@@ -23,6 +22,8 @@ from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qfluentwidgets.window.stacked_widget import StackedWidget
 
 from one_dragon_qt.utils.layout_utils import apply_shadow
+from one_dragon_qt.widgets.wrapped_navigation_bar import WrappedNavigationBar
+from one_dragon.utils.i18_utils import gt
 
 
 # 伪装父类 (替换 FluentWindowBase 初始化)
@@ -50,7 +51,7 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         # 变量
         self.hBoxLayout = QHBoxLayout(self)
         self.stackedWidget = PhosStackedWidget(self)
-        self.navigationInterface = NavigationBar(self)
+        self.navigationInterface = WrappedNavigationBar(self)
         self.areaWidget = QWidget()
         self.areaWidget.setObjectName("areaWidget")
         self.areaLayout = QHBoxLayout(self.areaWidget)
@@ -123,7 +124,7 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
+        self.launcherVersionButton = QPushButton(gt("ⓘ 启动器版本 未知"))
         self.launcherVersionButton.setObjectName("launcherVersionButton")
         self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
         self.launcherVersionButton.setVisible(False)
@@ -133,7 +134,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.codeVersionButton = QPushButton("ⓘ 代码版本 未知")
+        self.codeVersionButton = QPushButton(gt("ⓘ 代码版本 未知"))
         self.codeVersionButton.setObjectName("codeVersionButton")
         self.codeVersionButton.clicked.connect(lambda: self.copy_version(self.code_version))
         self.codeVersionButton.setVisible(False)
@@ -143,7 +144,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.questionButton = QPushButton("ⓘ 问题反馈")
+        self.questionButton = QPushButton(gt("ⓘ 问题反馈"))
         self.questionButton.setObjectName("questionButton")
         self.questionButton.clicked.connect(self.open_github)
         btn_layout.addWidget(
@@ -157,6 +158,7 @@ class PhosTitleBar(SplitTitleBar):
         self.issue_url: str = ""
         self.launcher_version: str = ""
         self.code_version: str = ""
+        self._version_msgid: str = 'ⓘ 启动器版本'
 
         # 首页模式下需要添加阴影的控件列表
         self._home_shadow_targets: list[QWidget] = [
@@ -185,7 +187,8 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {version}")
+        self._version_msgid = 'ⓘ 启动器版本'
+        self.launcherVersionButton.setText(f"{gt('ⓘ 启动器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -196,7 +199,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.code_version = version
-        self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
+        self.codeVersionButton.setText(f"{gt('ⓘ 代码版本')} {version}")
         if version:
             self.codeVersionButton.setVisible(True)
 
@@ -207,7 +210,8 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 安装器版本 {version}")
+        self._version_msgid = 'ⓘ 安装器版本'
+        self.launcherVersionButton.setText(f"{gt('ⓘ 安装器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -218,7 +222,8 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 程序版本 {version}")
+        self._version_msgid = 'ⓘ 程序版本'
+        self.launcherVersionButton.setText(f"{gt('ⓘ 程序版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -237,6 +242,17 @@ class PhosTitleBar(SplitTitleBar):
             self._clear_home_shadows()
             self.setProperty("homeMode", "false")
             self.setStyleSheet(self.styleSheet())
+
+    def retranslate_ui(self) -> None:
+        """Refresh title-bar labels after the application language changes."""
+        if self.launcherVersionButton.isVisible() and self.launcher_version:
+            self.launcherVersionButton.setText(
+                f"{gt(self._version_msgid)} {self.launcher_version}"
+            )
+        if self.codeVersionButton.isVisible() and self.code_version:
+            self.codeVersionButton.setText(
+                f"{gt('ⓘ 代码版本')} {self.code_version}"
+            )
 
     def _apply_home_shadows(self) -> None:
         """给首页标题栏的文字和按钮补硬阴影，提升海报背景上的可读性。"""
@@ -261,7 +277,7 @@ class PhosTitleBar(SplitTitleBar):
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
         InfoBar.success(
-            title="已复制版本号",
+            title=gt("已复制版本号"),
             content="",
             orient=Qt.Orientation.Horizontal,
             isClosable=True,

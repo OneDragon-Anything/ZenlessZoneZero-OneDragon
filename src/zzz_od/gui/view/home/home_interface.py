@@ -25,6 +25,7 @@ from qfluentwidgets import (
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon.utils import app_utils, os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import get_foreground_color
@@ -395,7 +396,8 @@ class HomeInterface(BaseInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
+        self._start_button_msgid = '启动一条龙'
+        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, gt(self._start_button_msgid))
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         self.start_button.setFixedHeight(48)
@@ -615,8 +617,8 @@ class HomeInterface(BaseInterface):
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条（手动定位，避免标题栏遮挡）"""
         bar = InfoBar.success(
-            title=title,
-            content=content,
+            title=gt(title),
+            content=gt(content),
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
             position=InfoBarPosition.NONE,
@@ -632,9 +634,17 @@ class HomeInterface(BaseInterface):
         self._ready = len(issues) == 0
         self._apply_button_icon()
         if self._ready:
-            self.start_button.setText('启动一条龙')
+            self.start_button.setText(gt(self._start_button_msgid))
         else:
-            self.start_button.setText(f'{len(issues)} 项待配置 ')
+            self.start_button.setText(gt('{count} 项待配置 ', count=len(issues)))
+
+    def retranslate_ui(self) -> None:
+        """Refresh homepage controls after the application language changes."""
+        super().retranslate_ui()
+        if not hasattr(self, 'start_button'):
+            return
+        self.start_button.setText(gt(self._start_button_msgid))
+        self._refresh_ready_state()
 
     def _find_widget_by_name(self, name: str) -> QWidget | None:
         stacked = self.main_window.stackedWidget

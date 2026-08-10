@@ -21,6 +21,7 @@ class AppWindowBase(PhosWindow):
         PhosWindow.__init__(self, parent=parent)
         self.project_config: ProjectConfig = project_config
         self._last_stack_idx: int = 0
+        self._sub_interfaces: list[BaseInterface] = []
 
         # 设置窗口标题
         self.setWindowTitle(win_title)
@@ -56,7 +57,18 @@ class AppWindowBase(PhosWindow):
 
     def add_sub_interface(self, interface: BaseInterface, position=NavigationItemPosition.TOP):
         """添加子页面，并在导航栏创建对应按钮"""
+        self._sub_interfaces.append(interface)
         self.addSubInterface(interface, interface.nav_icon, interface.nav_text, position=position)
+        interface.retranslate_ui()
+
+    def refresh_navigation_text(self) -> None:
+        """Refresh top-level navigation labels when the language changes."""
+        items = getattr(self.navigationInterface, 'items', {})
+        for interface in self._sub_interfaces:
+            interface.retranslate_ui()
+            item = items.get(interface.objectName()) if hasattr(items, 'get') else None
+            if item is not None:
+                item.setText(interface.nav_text)
 
     def add_nav_widget(self, widget: NavigationButton,
                        position: NavigationItemPosition = NavigationItemPosition.TOP) -> None:

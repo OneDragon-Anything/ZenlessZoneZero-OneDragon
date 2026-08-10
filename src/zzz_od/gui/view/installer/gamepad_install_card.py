@@ -56,8 +56,8 @@ class GamepadInstallCard(BaseInstallCard):
         安装依赖
         :return:
         """
-        progress_callback(-1, '正在安装...安装过程可能需要安装驱动 正常安装即可')
+        progress_callback(-1, gt('正在安装...安装过程可能需要安装驱动 正常安装即可'))
         if not self.ctx.env_config.uv_path:
-            return False, '未配置UV'
+            return False, gt('未配置 UV')
         success, msg = self.ctx.python_service.uv_sync(progress_callback, groups=['gamepad'])
         return success, msg

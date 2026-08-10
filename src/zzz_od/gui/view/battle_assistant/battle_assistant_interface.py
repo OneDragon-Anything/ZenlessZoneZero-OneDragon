@@ -116,11 +116,11 @@ class BattleAssistantInterface(AppRunInterface):
         # SegmentedWidget 模式切换
         self.mode_segment = SegmentedWidget()
         self.mode_segment.addItem(
-            routeKey=self.MODE_AUTO_BATTLE, text=self.MODE_AUTO_BATTLE,
+            routeKey=self.MODE_AUTO_BATTLE, text=gt(self.MODE_AUTO_BATTLE),
             onClick=lambda: self._apply_mode(self.MODE_AUTO_BATTLE),
         )
         self.mode_segment.addItem(
-            routeKey=self.MODE_DODGE_ASSISTANT, text=self.MODE_DODGE_ASSISTANT,
+            routeKey=self.MODE_DODGE_ASSISTANT, text=gt(self.MODE_DODGE_ASSISTANT),
             onClick=lambda: self._apply_mode(self.MODE_DODGE_ASSISTANT),
         )
         top.add_widget(self.mode_segment)
@@ -357,3 +357,14 @@ class BattleAssistantInterface(AppRunInterface):
         self.battle_state_display.set_update_display(True)
         is_auto = self.mode_stacked.currentWidget() is self.auto_battle_page
         self.task_display.set_update_display(is_auto)
+
+    def retranslate_ui(self) -> None:
+        """Refresh the segmented battle mode labels."""
+        super().retranslate_ui()
+        if not hasattr(self, 'mode_segment'):
+            return
+        items = getattr(self.mode_segment, 'items', {})
+        for mode in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
+            item = items.get(mode)
+            if item is not None:
+                item.setText(gt(mode))

@@ -3,6 +3,11 @@ from typing import Any, List, Optional
 from qfluentwidgets import ComboBox as qtComboBox
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import (
+    gt,
+    subscribe_language_changed,
+    unsubscribe_language_changed,
+)
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
@@ -12,6 +17,10 @@ class ComboBox(qtComboBox, AdapterInitMixin):
     def __init__(self, parent=None):
         qtComboBox.__init__(self, parent)
         AdapterInitMixin.__init__(self)
+        self._items_source: list[ConfigItem] = []
+        self._language_callback = self.retranslate_ui
+        subscribe_language_changed(self._language_callback)
+        self.destroyed.connect(self._on_destroyed)
 
         self.adapter: Optional[YamlConfigAdapter] = None
 
@@ -22,6 +31,7 @@ class ComboBox(qtComboBox, AdapterInitMixin):
         更新选项
         且尽量复用原来的选项
         """
+        self._items_source = list(items)
         self.blockSignals(True)
 
         old_data = self.currentData() if target_value is None else target_value
@@ -48,6 +58,20 @@ class ComboBox(qtComboBox, AdapterInitMixin):
 
         self.setCurrentIndex(new_idx)
         self.blockSignals(False)
+
+    def _on_destroyed(self, _object=None) -> None:
+        """Unsubscribe the combo box after Qt destroys it."""
+        unsubscribe_language_changed(self._language_callback)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh combo-box labels after the application language changes."""
+        current_value = self.currentData()
+        self.blockSignals(True)
+        for index, item in enumerate(self._items_source):
+            self.setItemText(index, item.ui_text)
+        self.blockSignals(False)
+        if current_value is not None:
+            self.setCurrentIndex(self.findData(current_value))
 
     def init_with_value(self, target_value: Any = None) -> None:
         """

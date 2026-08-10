@@ -28,6 +28,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.utils import os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
@@ -106,15 +107,17 @@ def _probe_server(port: int) -> tuple[bool, str]:
         with urllib.request.urlopen(_health_url(port), timeout=2) as resp:
             body = resp.read().decode('utf-8', errors='ignore')
             if resp.status == 200 and 'zzz_od' in body:
-                return True, f'已启动: {_server_url(port)}'
-            return False, f'端口 {port} 有响应,但不是 zzz_od MCP 服务'
+                return True, gt('已启动: {url}', url=_server_url(port))
+            return False, gt('端口 {port} 有响应,但不是 zzz_od MCP 服务', port=port)
     except urllib.error.URLError:
         proc = _find_server_process()
         if proc is not None:
-            return False, f'发现 MCP server 进程 PID={proc.pid},但 /health 暂不可用'
-        return False, f'未启动: {_server_url(port)}'
+            return False, gt(
+                '发现 MCP server 进程 PID={pid},但 /health 暂不可用', pid=proc.pid
+            )
+        return False, gt('未启动: {url}', url=_server_url(port))
     except Exception as e:  # noqa: BLE001 GUI 探测兜底
-        return False, f'探测失败: {e}'
+        return False, gt('探测失败: {error}', error=str(e))
 
 
 def _query_run_status(port: int) -> str:
@@ -123,9 +126,9 @@ def _query_run_status(port: int) -> str:
         with urllib.request.urlopen(_status_url(port), timeout=2) as resp:
             data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.URLError:
-        return '服务未连接'
+        return gt('服务未连接')
     except Exception as e:  # noqa: BLE001 GUI 状态兜底
-        return f'状态读取失败: {e}'
+        return gt('状态读取失败: {error}', error=str(e))
 
     state = data.get('state', 'unknown')
     source = data.get('source') or '-'
@@ -133,12 +136,19 @@ def _query_run_status(port: int) -> str:
     node = data.get('current_node') or data.get('last_status') or '-'
     duration = data.get('duration_seconds')
     duration_text = f'{duration:.1f}s' if isinstance(duration, int | float) else '-'
-    return f'{state}; 来源={source}; 应用={app}; 节点/结果={node}; 耗时={duration_text}'
+    return gt(
+        '{state}; 来源={source}; 应用={app}; 节点/结果={node}; 耗时={duration}',
+        state=state,
+        source=source,
+        app=app,
+        node=node,
+        duration=duration_text,
+    )
 
 
 def _run_status_change_key(run_status: str) -> str:
     """生成用于判断状态是否变化的 key；忽略持续变化的耗时字段。"""
-    return run_status.rsplit('; 耗时=', 1)[0]
+    return run_status.rsplit('; ', 1)[0]
 
 
 def _decode_log_bytes(data: bytes) -> str:
@@ -186,16 +196,29 @@ def _start_server(port: int) -> str:
     if process.poll() is None:
         ok, status = _probe_server(port)
         if ok:
-            return f'{status}; PID={process.pid}; 日志: {log_path}'
-        return f'进程已启动 PID={process.pid},等待服务就绪; 日志: {log_path}'
-    return f'启动失败,返回码 {process.returncode}; 日志: {log_path}'
+            return gt(
+                '{status}; PID={pid}; 日志: {log_path}',
+                status=status,
+                pid=process.pid,
+                log_path=log_path,
+            )
+        return gt(
+            '进程已启动 PID={pid},等待服务就绪; 日志: {log_path}',
+            pid=process.pid,
+            log_path=log_path,
+        )
+    return gt(
+        '启动失败,返回码 {code}; 日志: {log_path}',
+        code=process.returncode,
+        log_path=log_path,
+    )
 
 
 def _stop_server() -> str:
     """停止已发现的 MCP server 进程及其子进程。"""
     proc = _find_server_process()
     if proc is None:
-        return 'MCP server 未运行'
+        return gt('MCP server 未运行')
     try:
         children = proc.children(recursive=True)
         for child in children:
@@ -204,11 +227,11 @@ def _stop_server() -> str:
         _, alive = psutil.wait_procs([proc] + children, timeout=5)
         for item in alive:
             item.kill()
-        return f'MCP server 已停止 PID={proc.pid}'
+        return gt('MCP server 已停止 PID={pid}', pid=proc.pid)
     except psutil.NoSuchProcess:
-        return 'MCP server 已停止'
+        return gt('MCP server 已停止')
     except Exception as e:  # noqa: BLE001 GUI 操作兜底
-        return f'停止失败: {e}'
+        return gt('停止失败: {error}', error=str(e))
 
 
 class McpServiceRunner(QThread):
@@ -234,9 +257,9 @@ class McpServiceRunner(QThread):
             start_msg = _start_server(self.port)
             msg = f'{stop_msg}; {start_msg}'
         elif self.action == 'status':
-            msg = '状态已刷新'
+            msg = gt('状态已刷新')
         else:
-            msg = f'未知操作: {self.action}'
+            msg = gt('未知操作: {action}', action=self.action)
         self.finished.emit(msg, _query_run_status(self.port))
 
 
@@ -272,7 +295,7 @@ class McpServiceInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         """构造 MCP 服务页内容。"""
         content = Column(spacing=8)
-        group = SettingCardGroup('MCP 服务')
+        group = SettingCardGroup(gt('MCP 服务'))
         content.add_widget(group)
 
         self.port_card = TextSettingCard(icon=FluentIcon.GLOBE, title='端口', content='仅监听 127.0.0.1')
@@ -287,16 +310,16 @@ class McpServiceInterface(VerticalScrollInterface):
         self.copy_card.clicked.connect(self._copy_url)
         group.addSettingCard(self.copy_card)
 
-        action_group = SettingCardGroup('服务操作')
+        action_group = SettingCardGroup(gt('服务操作'))
         content.add_widget(action_group)
 
-        self.start_btn = PrimaryPushButton(text='启动 F9', icon=FluentIcon.PLAY)
+        self.start_btn = PrimaryPushButton(text=gt('启动 F9'), icon=FluentIcon.PLAY)
         self.start_btn.setShortcut(QKeySequence('F9'))
         self.start_btn.clicked.connect(lambda: self._run_action('start'))
-        self.stop_btn = PushButton(text='停止 F10', icon=FluentIcon.POWER_BUTTON)
+        self.stop_btn = PushButton(text=gt('停止 F10'), icon=FluentIcon.POWER_BUTTON)
         self.stop_btn.setShortcut(QKeySequence('F10'))
         self.stop_btn.clicked.connect(lambda: self._run_action('stop'))
-        self.restart_btn = PushButton(text='重启 F11', icon=FluentIcon.SYNC)
+        self.restart_btn = PushButton(text=gt('重启 F11'), icon=FluentIcon.SYNC)
         self.restart_btn.setShortcut(QKeySequence('F11'))
         self.restart_btn.clicked.connect(lambda: self._run_action('restart'))
         self.action_card = MultiPushSettingCard(
@@ -307,19 +330,19 @@ class McpServiceInterface(VerticalScrollInterface):
         )
         action_group.addSettingCard(self.action_card)
 
-        status_group = SettingCardGroup('当前运行状态')
+        status_group = SettingCardGroup(gt('当前运行状态'))
         content.add_widget(status_group)
         self.run_status_card = PushSettingCard(icon=FluentIcon.SPEED_HIGH, title='当前运行状态', content='尚未读取', text='刷新')
         self.run_status_card.clicked.connect(lambda: self._run_action('status'))
         status_group.addSettingCard(self.run_status_card)
 
-        log_group = SettingCardGroup('运行消息')
+        log_group = SettingCardGroup(gt('运行消息'))
         content.add_widget(log_group)
         self.message_box = PlainTextEdit()
         self.message_box.setReadOnly(True)
         self.message_box.setMaximumBlockCount(MESSAGE_MAX_BLOCKS)
         self.message_box.setMinimumHeight(180)
-        self.message_box.setPlaceholderText('MCP 服务操作和运行状态消息会显示在这里')
+        self.message_box.setPlaceholderText(gt('MCP 服务操作和运行状态消息会显示在这里'))
         log_group.addSettingCard(self.message_box)
 
         return content
@@ -343,7 +366,7 @@ class McpServiceInterface(VerticalScrollInterface):
         if self._runner is None or not self._runner.isRunning():
             return
         if not self._runner.wait(RUNNER_WAIT_TIMEOUT_MS):
-            self._append_message('MCP 服务操作仍在执行，将在后台继续完成')
+            self._append_message(gt('MCP 服务操作仍在执行，将在后台继续完成'))
 
     def _port(self) -> int:
         """读取端口输入框；非法输入时回退默认端口。"""
@@ -355,14 +378,14 @@ class McpServiceInterface(VerticalScrollInterface):
     def _run_action(self, action: str) -> None:
         """提交服务操作到后台线程。"""
         if self._runner is not None and self._runner.isRunning():
-            self._append_message('已有 MCP 服务操作正在执行')
+            self._append_message(gt('已有 MCP 服务操作正在执行'))
             return
         port = self._port()
         self.status_card.setContent('执行中...')
         self.run_status_card.setContent('读取中...')
         self.copy_card.setContent(_server_url(port))
         self._set_buttons_enabled(False)
-        self._append_message(f'开始执行: {self._action_name(action)}')
+        self._append_message(gt('开始执行: {action}', action=self._action_name(action)))
         self._runner = McpServiceRunner(action, port, self)
         self._runner.finished.connect(self._on_action_finished)
         self._runner.start()
@@ -373,16 +396,16 @@ class McpServiceInterface(VerticalScrollInterface):
         self.run_status_card.setContent(run_status)
         self._last_run_status = run_status
         self._last_run_status_key = _run_status_change_key(run_status)
-        self._append_message(f'服务消息: {msg}')
-        self._append_message(f'当前运行状态: {run_status}')
+        self._append_message(gt('服务消息: {message}', message=msg))
+        self._append_message(gt('当前运行状态: {status}', status=run_status))
         self._set_buttons_enabled(True)
 
     def _copy_url(self) -> None:
         """复制当前端口对应的 MCP 地址。"""
         url = _server_url(self._port())
         QApplication.clipboard().setText(url)
-        self.copy_card.setContent(f'已复制: {url}')
-        self._append_message(f'已复制 MCP 地址: {url}')
+        self.copy_card.setContent(url)
+        self._append_message(gt('已复制 MCP 地址: {url}', url=url))
 
     def _append_message(self, message: str) -> None:
         """向消息框追加带时间戳的 GUI 操作消息。"""
@@ -409,11 +432,11 @@ class McpServiceInterface(VerticalScrollInterface):
     def _action_name(self, action: str) -> str:
         """把内部动作名转换为用户可读文本。"""
         names = {
-            'probe': '探测服务',
-            'start': '启动服务',
-            'stop': '停止服务',
-            'restart': '重启服务',
-            'status': '刷新当前运行状态',
+            'probe': gt('探测服务'),
+            'start': gt('启动服务'),
+            'stop': gt('停止服务'),
+            'restart': gt('重启服务'),
+            'status': gt('刷新当前运行状态'),
         }
         return names.get(action, action)
 
@@ -427,7 +450,7 @@ class McpServiceInterface(VerticalScrollInterface):
         if run_status_key != self._last_run_status_key:
             self._last_run_status = run_status
             self._last_run_status_key = run_status_key
-            self._append_message(f'当前运行状态: {run_status}')
+            self._append_message(gt('当前运行状态: {status}', status=run_status))
 
     def _poll_server_log(self) -> None:
         """尾读 MCP server 日志文件，把新增行追加到消息框。"""
@@ -449,7 +472,7 @@ class McpServiceInterface(VerticalScrollInterface):
                 text = _decode_log_bytes(log_file.read())
                 self._log_offset = log_file.tell()
         except OSError as e:
-            self._append_message(f'读取 MCP 日志失败: {e}')
+            self._append_message(gt('读取 MCP 日志失败: {error}', error=str(e)))
             return
         lines = self._filter_server_log_lines([line for line in text.splitlines() if line.strip()])
         if not lines:

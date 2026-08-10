@@ -51,7 +51,9 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
         )
 
         self.times_opt.init_with_adapter(get_prop_adapter(config, 'daily_plan_times'))
-        self.done_value.titleLabel.setText(f'当日: {run_record.daily_run_times}')
+        self.done_value.titleLabel.setText(
+            gt('当日: {count}', count=run_record.daily_run_times)
+        )
 
         team_list = ([ConfigItem('游戏内配队', -1)] +
                      [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])

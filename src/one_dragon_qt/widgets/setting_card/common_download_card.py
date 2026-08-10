@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal, QThread
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractButton
-from qfluentwidgets import SettingCard, FluentIconBase, PrimaryPushButton
+from qfluentwidgets import FluentIconBase, PrimaryPushButton
 from typing import Union, Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -179,7 +179,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content))
+        MultiPushSettingCard.setContent(self, content)
 
     def set_value_by_save_file_name(self, save_file_name: str) -> None:
         """

@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
                                QTableWidgetItem, QPushButton, QHeaderView, QAbstractItemView, QLabel, QMessageBox)
 from qfluentwidgets import FluentIcon, PushButton
 
+from one_dragon.utils.i18_utils import gt
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolLargeMapIcon
 
 
@@ -18,7 +19,7 @@ class IconEditorDialog(QDialog):
         self.current_icon_list = []
         self.selected_row = -1
         
-        self.setWindowTitle('图标编辑器')
+        self.setWindowTitle(gt('图标编辑器'))
         self.setModal(False)  # 非模态对话框，允许与主窗口交互
         self.resize(700, 500)
 
@@ -35,7 +36,9 @@ class IconEditorDialog(QDialog):
         # 创建表格
         self.table = QTableWidget()
         self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(['图标名称', '模板ID', 'X坐标', 'Y坐标', '传送X', '传送Y'])
+        self.table.setHorizontalHeaderLabels([
+            gt('图标名称'), gt('模板ID'), gt('X坐标'), gt('Y坐标'), gt('传送X'), gt('传送Y'),
+        ])
         
         # 设置表格属性
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -57,33 +60,33 @@ class IconEditorDialog(QDialog):
         layout.addWidget(self.table)
 
         # 状态标签
-        self.status_label = QLabel('提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标')
+        self.status_label = QLabel(gt('提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标'))
         self.status_label.setStyleSheet("color: #666; font-size: 12px; padding: 5px;")
         layout.addWidget(self.status_label)
 
         # 按钮布局
         button_layout = QHBoxLayout()
 
-        self.set_tp_pos_btn = PushButton('设置传送坐标', self)
+        self.set_tp_pos_btn = PushButton(gt('设置传送坐标'), self)
         self.set_tp_pos_btn.setIcon(FluentIcon.GLOBE)
-        self.set_tp_pos_btn.setToolTip('将主窗口当前计算坐标设置为选中图标的传送坐标')
+        self.set_tp_pos_btn.setToolTip(gt('将主窗口当前计算坐标设置为选中图标的传送坐标'))
         self.set_tp_pos_btn.clicked.connect(self._on_set_tp_pos_clicked)
         self.set_tp_pos_btn.setEnabled(False)  # 初始状态禁用
 
-        self.delete_btn = PushButton('删除图标', self)
+        self.delete_btn = PushButton(gt('删除图标'), self)
         self.delete_btn.setIcon(FluentIcon.DELETE)
-        self.delete_btn.setToolTip('删除选中的图标')
+        self.delete_btn.setToolTip(gt('删除选中的图标'))
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         self.delete_btn.setEnabled(False)  # 初始状态禁用
 
-        self.save_btn = PushButton('保存', self)
+        self.save_btn = PushButton(gt('保存'), self)
         self.save_btn.setIcon(FluentIcon.SAVE)
-        self.save_btn.setToolTip('保存图标名称修改')
+        self.save_btn.setToolTip(gt('保存图标名称修改'))
         self.save_btn.clicked.connect(self._on_save_clicked)
 
-        self.cancel_btn = PushButton('取消', self)
+        self.cancel_btn = PushButton(gt('取消'), self)
         self.cancel_btn.setIcon(FluentIcon.CANCEL)
-        self.cancel_btn.setToolTip('取消修改并关闭')
+        self.cancel_btn.setToolTip(gt('取消修改并关闭'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(self.set_tp_pos_btn)
@@ -225,8 +228,12 @@ class IconEditorDialog(QDialog):
             icon = self.current_icon_list[self.selected_row]
             reply = QMessageBox.question(
                 self,
-                '确认删除',
-                f'确定要删除图标 "{icon.icon_name}" ({icon.template_id}) 吗？\n此操作不可撤销。',
+                gt('确认删除'),
+                gt(
+                    '确定要删除图标 "{name}" ({template_id}) 吗？\n此操作不可撤销。',
+                    name=icon.icon_name,
+                    template_id=icon.template_id,
+                ),
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )

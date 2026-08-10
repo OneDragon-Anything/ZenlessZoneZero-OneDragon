@@ -1,10 +1,12 @@
 from collections.abc import Callable
 
 from PySide6.QtGui import QPainter
-from qfluentwidgets import FluentIconBase, NavigationBarPushButton
+from qfluentwidgets import FluentIconBase
+
+from one_dragon_qt.widgets.wrapped_navigation_bar import WrappedNavigationBarPushButton
 
 
-class NavigationButton(NavigationBarPushButton):
+class NavigationButton(WrappedNavigationBarPushButton):
     """导航栏自定义按钮的基类。
 
     子类需要：

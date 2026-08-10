@@ -15,9 +15,9 @@ class WelcomeDialog(MessageBoxBase):
         self.titleLabel = SubtitleLabel(gt(title))
         self.viewLayout.addWidget(self.titleLabel)
 
-        if get_default_lang() == 'zh':
+        if get_default_lang() == 'zh-CN':
             content_label = DisplayLabel(self)
-            content_label.setText("本软件完全<font color='red'>开源 免费</font><br>\n不要在<font color='red'>第三方渠道</font>购买<br>\n谨防<font color='red'>诈骗 盗号</font>")
+            content_label.setText(gt("本软件完全<font color='red'>开源 免费</font><br>\n不要在<font color='red'>第三方渠道</font>购买<br>\n谨防<font color='red'>诈骗 盗号</font>"))
         else:
             content_label = LargeTitleLabel(self)
             content_label.setText("This software is completely <font color='red'>Open Source and Free</font><br>\nDo not purchase from <font color='red'>Third-party Channels</font><br>\nBeware of <font color='red'>Scams and Account Theft</font>")

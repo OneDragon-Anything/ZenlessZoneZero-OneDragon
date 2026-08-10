@@ -149,7 +149,7 @@ class BaseInstallCard(MultiPushSettingCard):
         if self.display_checker.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
-        self.setContent(gt('检查中'))
+        self.setContent('检查中')
         self.display_checker.start()
 
     def get_display_content(self) -> Tuple[QIcon, str]:

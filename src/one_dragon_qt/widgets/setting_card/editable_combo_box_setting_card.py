@@ -12,6 +12,7 @@ from typing import Optional, List, Iterable
 from typing import Union
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -49,7 +50,8 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
 
         # 初始化下拉框
         self.combo_box = EditableComboBox(self)
-        self.combo_box.setPlaceholderText(input_placeholder)
+        self._input_placeholder_msgid = input_placeholder
+        self.combo_box.setPlaceholderText(gt(input_placeholder))
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
@@ -71,6 +73,17 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
 
         # 连接信号与槽
         self.combo_box.currentIndexChanged.connect(self._on_index_changed)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and editable combo-box labels after a language change."""
+        super().retranslate_ui()
+        self.combo_box.setPlaceholderText(gt(self._input_placeholder_msgid))
+        current_value = self.combo_box.currentData()
+        self.combo_box.blockSignals(True)
+        for index, option in enumerate(self._opts_list):
+            self.combo_box.setItemText(index, gt(option.ui_text))
+        self.combo_box.blockSignals(False)
+        self.setValue(current_value, emit_signal=False)
 
     def _initialize_options(self, options_enum: Optional[Iterable[Enum]], options_list: Optional[List[ConfigItem]]) -> None:
         """从枚举或列表初始化下拉框选项。"""

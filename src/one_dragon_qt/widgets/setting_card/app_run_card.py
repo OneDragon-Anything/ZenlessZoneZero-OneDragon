@@ -123,7 +123,9 @@ class AppRunCard(DraggableListItem):
         if self.run_record is None:
             self.content_widget.setContent('')
         else:
-            self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
+            self.content_widget.setContent(
+                gt('上次运行 {time}', time=self.run_record.run_time)
+            )
 
             status = self.run_record.run_status_under_now
             if status == AppRunRecord.STATUS_SUCCESS:
