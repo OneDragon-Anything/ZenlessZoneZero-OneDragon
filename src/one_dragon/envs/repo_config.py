@@ -33,20 +33,6 @@ class RepositoryBranch:
 
 
 @dataclass(frozen=True)
-class RegionPreset:
-    """YAML 中的一项代码源地区预设。"""
-
-    region_id: str
-    label: str
-    repository_id: str
-    values: dict[str, str]
-
-    @property
-    def config_item(self) -> ConfigItem:
-        return ConfigItem(self.label, self.region_id)
-
-
-@dataclass(frozen=True)
 class SourceOption:
     """YAML 中的一项下载源。"""
 
@@ -60,13 +46,12 @@ class SourceOption:
 
 
 class RepoConfig(YamlConfig):
-    """项目代码仓库、下载源和地区预设配置。
+    """项目代码仓库和下载源配置。
 
     使用 OneDragon 框架的项目应在 ``config/repository.yml`` 中提供：
 
     - ``repositories``：包含 ``primary``、``primary_branch``、``branches`` 和 ``options`` 的代码仓库配置组；
-    - 顶层下载源配置组：每组包含 ``default`` 和 ``options``；
-    - ``regions``：地区预设映射，包含显示标题、代码源和环境配置值。
+    - 顶层下载源配置组：每组包含 ``default`` 和 ``options``。
 
     最小 YAML 示例：
 
@@ -90,18 +75,13 @@ class RepoConfig(YamlConfig):
             main:
               label: 默认
               value: https://example.com/env/releases/download
-        regions:
-          default:
-            label: 默认
-            repository: main
-            values: {}
     """
 
     AUTO_REPOSITORY_VALUE = 'auto'
-    _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions'}
+    _SOURCE_EXCLUDED_KEYS = {'repositories'}
 
-    def __init__(self) -> None:
-        YamlConfig.__init__(self, module_name='repository')
+    def __init__(self, resource_first: bool = False) -> None:
+        YamlConfig.__init__(self, module_name='repository', resource_first=resource_first)
         repository_config = self._get_repository_config()
         primary_branch = repository_config.get('primary_branch', '')
         if not isinstance(primary_branch, str) or not primary_branch.strip():
@@ -123,10 +103,6 @@ class RepoConfig(YamlConfig):
             primary_repository_id,
             '主仓库',
         )
-        self.regions: tuple[RegionPreset, ...] = self._load_regions()
-        self._regions_by_id: dict[str, RegionPreset] = {
-            region.region_id: region for region in self.regions
-        }
         self.sources: dict[str, tuple[SourceOption, ...]] = self._load_sources()
         self.source_defaults: dict[str, str] = self._load_source_defaults()
 
@@ -199,36 +175,6 @@ class RepoConfig(YamlConfig):
             )
         return tuple(repositories)
 
-    def _load_regions(self) -> tuple[RegionPreset, ...]:
-        raw_regions = self.get('regions', {})
-        if not isinstance(raw_regions, dict) or not raw_regions:
-            raise ValueError('config/repository.yml 必须配置 regions')
-
-        regions: list[RegionPreset] = []
-        for region_id, raw_region in raw_regions.items():
-            if not isinstance(region_id, str) or not isinstance(raw_region, dict):
-                raise ValueError('地区预设配置必须是 ID 到对象的映射')
-            label = raw_region.get('label', '')
-            repository_id = raw_region.get('repository', '')
-            values = raw_region.get('values', {})
-            if not isinstance(label, str) or not label or not isinstance(repository_id, str) or not repository_id:
-                raise ValueError(f'地区预设 {region_id} 必须配置 label 和 repository')
-            if not isinstance(values, dict) or any(
-                not isinstance(key, str) or not isinstance(value, str)
-                for key, value in values.items()
-            ):
-                raise ValueError(f'地区预设 {region_id} 的 values 必须是字符串映射')
-            self._get_repository(repository_id, f'地区 {region_id}')
-            regions.append(
-                RegionPreset(
-                    region_id=region_id,
-                    label=label,
-                    repository_id=repository_id,
-                    values=dict(values),
-                )
-            )
-        return tuple(regions)
-
     def _load_sources(self) -> dict[str, tuple[SourceOption, ...]]:
         if 'sources' in self.data:
             raise ValueError('config/repository.yml 不再支持顶层 sources，请将下载源配置放到顶层')
@@ -293,21 +239,12 @@ class RepoConfig(YamlConfig):
             *(repository.config_item for repository in self.repositories),
         ]
 
-    @property
-    def region_options(self) -> list[ConfigItem]:
-        """获取供设置界面使用的地区预设选项。"""
-        return [region.config_item for region in self.regions]
-
     def find_repository(self, value: str) -> RepositoryItem | None:
         """按仓库 ID、显示标题或 URL 查找代码源。"""
         for repository in self.repositories:
             if value in (repository.repository_id, repository.label, repository.url):
                 return repository
         return None
-
-    def get_region_preset(self, region_id: str) -> RegionPreset | None:
-        """按地区 ID 查找地区预设。"""
-        return self._regions_by_id.get(region_id)
 
     def get_source_options(self, source_name: str) -> list[ConfigItem]:
         """获取指定下载源的设置选项。"""

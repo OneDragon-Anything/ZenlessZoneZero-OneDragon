@@ -1,5 +1,6 @@
 import locale
 import os
+import re
 
 from PySide6.QtCore import QEventLoop, QSize, Qt, QTimer
 from PySide6.QtGui import QPixmap
@@ -43,11 +44,17 @@ class DirectoryPickerTranslator:
                 'title': '请选择安装路径',
                 'placeholder': '选择安装路径...',
                 'browse': '浏览',
-                'confirm': '确认',
+                'confirm': '开始安装',
                 'select_directory': '选择目录',
                 'warning': '警告',
-                'root_directory_warning': '所选目录为根目录，请选择其他目录。',
-                'path_character_warning': '所选目录的路径包含非法字符，请确保路径全为英文字符且不包含空格。',
+                'path_ok': '路径可用',
+                'path_error_empty': '安装路径不能为空。',
+                'path_error_root': '所选目录为根目录，请选择其他目录。',
+                'path_error_space': '第 {pos} 个字符是空格，路径不能包含空格。',
+                'path_error_invalid_char': '第 {pos} 个字符“{ch}”是非法字符，路径不能包含 * ? " < > |。',
+                'path_error_cjk': '第 {pos} 个字符是中文，路径只能使用英文字符。',
+                'path_error_non_ascii': '第 {pos} 个字符不是英文字符，路径只能使用英文字符。',
+                'path_error_unreadable': '所选目录无法访问（权限受限或路径失效），请选择其他目录。',
                 'directory_not_empty_warning': '所选目录不为空，里面的内容将被覆盖：\n{path}\n\n是否继续使用此目录？',
                 'i_know': '我知道了',
                 'continue_use': '继续使用',
@@ -62,11 +69,17 @@ class DirectoryPickerTranslator:
                 'title': 'Please Select Installation Path',
                 'placeholder': 'Select installation path...',
                 'browse': 'Browse',
-                'confirm': 'Confirm',
+                'confirm': 'Start Install',
                 'select_directory': 'Select Directory',
                 'warning': 'Warning',
-                'root_directory_warning': 'The selected directory is a root directory, please select another directory.',
-                'path_character_warning': 'The selected directory path contains invalid characters, please ensure the path contains only English characters and no spaces.',
+                'path_ok': 'Path is valid',
+                'path_error_empty': 'Installation path cannot be empty.',
+                'path_error_root': 'The selected directory is a root directory. Please select another directory.',
+                'path_error_space': 'Character {pos} is a space. Path cannot contain spaces.',
+                'path_error_invalid_char': 'Character {pos} "{ch}" is invalid. Path cannot contain * ? " < > |.',
+                'path_error_cjk': 'Character {pos} is a Chinese character. Path can only use English characters.',
+                'path_error_non_ascii': 'Character {pos} is not an English character. Path can only use English characters.',
+                'path_error_unreadable': 'The selected directory is not accessible (permission denied or invalid path). Please select another directory.',
                 'directory_not_empty_warning': 'The selected directory is not empty, its contents will be overwritten:\n{path}\n\nDo you want to continue using this directory?',
                 'i_know': 'I Know',
                 'continue_use': 'Continue',
@@ -97,6 +110,28 @@ class DirectoryPickerTranslator:
                 return 'en'
         except Exception:
             return 'zh'
+
+
+def validate_install_path(path: str) -> tuple[bool, str, int, str]:
+    """精准校验安装路径。
+
+    :return: (是否合法, 不合法原因 key, 非法字符位置（从 1 开始，合法时为 0）, 非法字符本身)
+    """
+    path = path.strip()
+    if not path:
+        return False, 'path_error_empty', 0, ''
+    if re.match(r'^[A-Za-z]:[\\/]?$', path):
+        return False, 'path_error_root', 0, ''
+    for idx, ch in enumerate(path, start=1):
+        if ch == ' ':
+            return False, 'path_error_space', idx, ch
+        if ch in '*?"<>|':
+            return False, 'path_error_invalid_char', idx, ch
+        if not ch.isascii():
+            if '\u4e00' <= ch <= '\u9fff':
+                return False, 'path_error_cjk', idx, ch
+            return False, 'path_error_non_ascii', idx, ch
+    return True, '', 0, ''
 
 
 class DirectoryPickerInterface(QWidget):
@@ -160,7 +195,7 @@ class DirectoryPickerInterface(QWidget):
 
         self.path_input = LineEdit()
         self.path_input.setPlaceholderText(self.translator.get_text('placeholder'))
-        self.path_input.setReadOnly(True)
+        self.path_input.textChanged.connect(self._on_path_input_changed)
         path_layout.addWidget(self.path_input)
         self.browse_btn = PrimaryPushButton(self.translator.get_text('browse'))
         self.browse_btn.setIcon(FluentIcon.FOLDER_ADD)
@@ -185,6 +220,13 @@ class DirectoryPickerInterface(QWidget):
         pick_layout.setSpacing(20)
         pick_layout.addWidget(self.title_label)
         pick_layout.addLayout(path_layout)
+
+        # 校验状态栏：实时提示路径是否可用，不合法时红色精准提示原因
+        self.path_status_label = CaptionLabel('')
+        self.path_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.path_status_label.setWordWrap(True)
+        pick_layout.addWidget(self.path_status_label)
+
         pick_layout.addLayout(button_layout)
         pick_layout.addStretch(1)
 
@@ -228,6 +270,10 @@ class DirectoryPickerInterface(QWidget):
         # 添加弹性空间
         main_layout.addStretch(1)
 
+        # 默认以安装器 exe 所在目录作为安装路径；setText 会触发实时校验，由校验结果决定按钮状态
+        if self.installer_dir:
+            self.path_input.setText(self.installer_dir)
+
     def _on_browse_clicked(self):
         """浏览按钮点击事件"""
         selected_dir_path = QFileDialog.getExistingDirectory(
@@ -238,60 +284,69 @@ class DirectoryPickerInterface(QWidget):
         )
 
         if selected_dir_path:
-            # 检查路径是否为根目录
-            if len(selected_dir_path) <= 3:
-                w = MessageBox(
-                    self.translator.get_text('warning'),
-                    self.translator.get_text('root_directory_warning'),
-                    parent=self.window(),
-                )
-                w.yesButton.setText(self.translator.get_text('i_know'))
-                w.cancelButton.setVisible(False)
-                w.exec()
-                self.selected_path = ""
-                self.path_input.clear()
-                self.confirm_btn.setEnabled(False)
-                return self._on_browse_clicked()
+            self._validate_and_apply_path(selected_dir_path)
 
-            # 检查路径是否为全英文或者包含空格
-            if not all(c.isascii() for c in selected_dir_path) or ' ' in selected_dir_path:
-                w = MessageBox(
-                    self.translator.get_text('warning'),
-                    self.translator.get_text('path_character_warning'),
-                    parent=self.window(),
-                )
-                w.yesButton.setText(self.translator.get_text('i_know'))
-                w.cancelButton.setVisible(False)
-                w.exec()
-                self.selected_path = ""
-                self.path_input.clear()
-                self.confirm_btn.setEnabled(False)
-                return self._on_browse_clicked()
+    def _on_path_input_changed(self, text: str) -> None:
+        """用户手动输入或粘贴路径时，实时精准校验并更新状态栏与确认按钮。"""
+        self.selected_path = text.strip()
+        if not text.strip():
+            self.path_status_label.setText('')
+            self.confirm_btn.setEnabled(False)
+            return
+        ok, key, pos, ch = validate_install_path(text)
+        if ok:
+            self.path_status_label.setText(self.translator.get_text('path_ok'))
+            self.path_status_label.setStyleSheet('color: #00a854;')
+            self.confirm_btn.setEnabled(True)
+        else:
+            self.path_status_label.setText(self.translator.get_text(key, pos=pos, ch=ch))
+            self.path_status_label.setStyleSheet('color: #d13438;')
+            self.confirm_btn.setEnabled(False)
 
-            # 检查目录是否为空
-            if os.listdir(selected_dir_path):
-                w = MessageBox(
-                    title=self.translator.get_text('warning'),
-                    content=self.translator.get_text('directory_not_empty_warning', path=selected_dir_path),
-                    parent=self.window(),
-                )
-                w.yesButton.setText(self.translator.get_text('continue_use'))
-                w.cancelButton.setText(self.translator.get_text('select_other'))
-                if w.exec():
-                    self.selected_path = selected_dir_path
-                    self.path_input.setText(selected_dir_path)
-                    self.confirm_btn.setEnabled(True)
-                else:
-                    return self._on_browse_clicked()
-            else:
-                # 目录为空，直接使用
-                self.selected_path = selected_dir_path
-                self.path_input.setText(selected_dir_path)
-                self.confirm_btn.setEnabled(True)
+    def _validate_and_apply_path(self, path: str) -> bool:
+        """校验路径合法性并应用：非法字符走状态栏提示（不再弹窗），仅保留非空目录确认弹窗。通过返回 True。"""
+        ok, key, pos, ch = validate_install_path(path)
+        if not ok:
+            self.selected_path = ""
+            self.path_input.setText(path)
+            self.path_status_label.setText(self.translator.get_text(key, pos=pos, ch=ch))
+            self.path_status_label.setStyleSheet('color: #d13438;')
+            self.confirm_btn.setEnabled(False)
+            return False
+
+        # 检查目录是否为空；目录不可读时按「无法确认」处理，避免异常中断交互
+        dir_is_not_empty = False
+        if os.path.isdir(path):
+            try:
+                dir_is_not_empty = bool(os.listdir(path))
+            except OSError:
+                self.path_status_label.setText(self.translator.get_text('path_error_unreadable'))
+                self.path_status_label.setStyleSheet('color: #d13438;')
+                self.confirm_btn.setEnabled(False)
+                return False
+        if dir_is_not_empty:
+            w = MessageBox(
+                title=self.translator.get_text('warning'),
+                content=self.translator.get_text('directory_not_empty_warning', path=path),
+                parent=self.window(),
+            )
+            w.yesButton.setText(self.translator.get_text('continue_use'))
+            w.cancelButton.setText(self.translator.get_text('select_other'))
+            if not w.exec():
+                return False
+
+        self.selected_path = path
+        self.path_input.setText(path)
+        self.confirm_btn.setEnabled(True)
+        return True
 
     def _on_confirm_clicked(self):
         """确认按钮点击事件"""
         if not self.selected_path:
+            return
+
+        # 手动输入或粘贴的路径在确认时做与浏览一致的校验
+        if not self._validate_and_apply_path(self.selected_path):
             return
 
         window = self.window()
@@ -373,6 +428,8 @@ class DirectoryPickerInterface(QWidget):
         self.path_input.setPlaceholderText(self.translator.get_text('placeholder'))
         self.browse_btn.setText(self.translator.get_text('browse'))
         self.confirm_btn.setText(self.translator.get_text('confirm'))
+        # 语言切换后按当前输入重新生成状态栏文案
+        self._on_path_input_changed(self.path_input.text())
 
 
 class DirectoryPickerWindow(PhosWindow):

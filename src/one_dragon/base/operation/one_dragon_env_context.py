@@ -25,7 +25,8 @@ class OneDragonEnvContext:
 
     @cached_property
     def project_config(self):
-        return ProjectConfig()
+        # 安装器场景始终读打包自带的资源配置，不跟随工作目录
+        return ProjectConfig(resource_first=self.installer_dir is not None)
 
     @cached_property
     def env_config(self):
@@ -33,7 +34,8 @@ class OneDragonEnvContext:
 
     @cached_property
     def repo_config(self) -> RepoConfig:
-        return RepoConfig()
+        # 安装器场景始终读打包自带的资源配置，不跟随工作目录
+        return RepoConfig(resource_first=self.installer_dir is not None)
 
     @cached_property
     def download_service(self):

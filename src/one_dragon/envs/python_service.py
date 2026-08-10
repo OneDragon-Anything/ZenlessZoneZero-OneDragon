@@ -129,26 +129,40 @@ class PythonService:
         os.makedirs(DEFAULT_WHEELS_DIR_PATH, exist_ok=True)
         self._configure_uv_environment()
 
-        command = [
-            self.env_config.uv_path,
-            'sync',
-            '--find-links',
-            DEFAULT_WHEELS_DIR_PATH,
-            '--default-index',
-            self.env_config.pip_source
-        ]
+        pip_sources = self.env_config.repo_config.get_source_values('pip_source')
+        last_error = ''
+        for source in pip_sources:
+            msg = f"{gt('正在使用依赖源')}: {source.label}"
+            if progress_callback is not None:
+                progress_callback(-1, msg)
+            log.info(msg)
 
-        if groups is not None:
-            for group in groups:
-                command.extend(['--group', group])
+            command = [
+                self.env_config.uv_path,
+                'sync',
+                '--find-links',
+                DEFAULT_WHEELS_DIR_PATH,
+                '--default-index',
+                source.value
+            ]
 
-        result = cmd_utils.run_command(command)
-        success = result is not None
-        msg = gt('运行依赖安装成功') if success else gt('运行依赖安装失败')
-        log.info(msg)
+            if groups is not None:
+                for group in groups:
+                    command.extend(['--group', group])
+
+            result = cmd_utils.run_command(command)
+            if result is not None:
+                msg = gt('运行依赖安装成功')
+                log.info(msg)
+                if progress_callback is not None:
+                    progress_callback(1, msg)
+                return True, msg
+            last_error = gt('运行依赖安装失败')
+
+        log.error(last_error)
         if progress_callback is not None:
-            progress_callback(1, msg)
-        return success, msg
+            progress_callback(0, last_error)
+        return False, last_error
 
     def _uv_runtime_environment_synced(self) -> bool:
         """检查运行环境是否满足仓库锁文件，并保留额外依赖。"""
@@ -379,17 +393,5 @@ class PythonService:
             'pip_source',
             gt('pip源'),
             'pip_source',
-            progress_callback
-        )
-
-    def choose_best_cpython_source(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[str, int] | None:
-        """
-        对Python下载源进行测速 并选择最佳一个
-        :return: (最佳源的标签, 延迟ms) or None if no sources
-        """
-        return self._choose_best_source_by_ping(
-            'cpython_source',
-            gt('Python下载源'),
-            'cpython_source',
             progress_callback
         )

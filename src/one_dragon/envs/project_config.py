@@ -3,8 +3,8 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 class ProjectConfig(YamlConfig):
 
-    def __init__(self):
-        YamlConfig.__init__(self, module_name='project')
+    def __init__(self, resource_first: bool = False):
+        YamlConfig.__init__(self, module_name='project', resource_first=resource_first)
 
         self.project_name = self.get('project_name')
         self.python_version = self.get('python_version')

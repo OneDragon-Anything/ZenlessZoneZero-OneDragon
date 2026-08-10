@@ -1,10 +1,10 @@
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable
 
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.utils import http_utils, file_utils
+from one_dragon.utils import file_utils, http_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -17,19 +17,28 @@ class DownloadService:
         self.env_config: EnvConfig = env_config
 
     def download_env_file(self, file_name: str, save_file_path: str,
-                          progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+                          progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
-        下载环境文件
+        下载环境文件，按 cnb → github → gitee 顺序自动降级尝试。
         :param file_name: 要下载的文件名
         :param save_file_path: 保存路径，包含文件名
         :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
         :return: 是否下载成功
         """
-        download_url = f'{self.env_config.env_source}/{self.project_config.project_name}/{file_name}'
-        return self.download_file_from_url(download_url, save_file_path, progress_callback)
+        for source in self.env_config.repo_config.get_source_values('env_source'):
+            download_url = f'{source.value}/{self.project_config.project_name}/{file_name}'
+            msg = f"{gt('正在尝试下载源')}: {source.label}"
+            if progress_callback is not None:
+                progress_callback(-1, msg)
+            log.info(msg)
+
+            success = self.download_file_from_url(download_url, save_file_path, progress_callback)
+            if success:
+                return True
+        return False
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
-                               progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+                               progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
         从指定URL下载文件
         :param download_url: 下载URL
@@ -37,17 +46,13 @@ class DownloadService:
         :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
         :return: 是否下载成功
         """
-        proxy = None
-        if 'github.com' in download_url:
-            if self.env_config.is_gh_proxy:
-                download_url = f'{self.env_config.gh_proxy_url}/{download_url}'
-            elif self.env_config.is_personal_proxy:
-                proxy = self.env_config.personal_proxy
-
-        return http_utils.download_file(download_url, save_file_path, proxy, None, progress_callback)
+        # github 域自动使用系统代理（探测失败自动回退直连）；国内源始终直连
+        use_system_proxy = 'github.com' in download_url
+        return http_utils.download_file(download_url, save_file_path, None, None,
+                                        progress_callback, use_system_proxy=use_system_proxy)
 
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
-                                      progress_callback: Optional[Callable[[float, str], None]] = None,
+                                      progress_callback: Callable[[float, str], None] | None = None,
                                       clean_temp: bool = True, retry_count: int = 2) -> bool:
         """
         下载并解压环境文件的通用方法

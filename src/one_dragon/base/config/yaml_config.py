@@ -1,8 +1,10 @@
 import os
 import shutil
+import sys
 
 from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 
 
 class YamlConfig(YamlOperator):
@@ -15,7 +17,8 @@ class YamlConfig(YamlOperator):
             sub_dir: list[str] | None = None,
             sample: bool = False, copy_from_sample: bool = False,
             read_sample_only: bool = False,
-            is_mock: bool = False
+            is_mock: bool = False,
+            resource_first: bool = False
     ):
         self.instance_idx: int | None = instance_idx
         """传入时 该配置为一个的脚本实例独有的配置"""
@@ -41,6 +44,9 @@ class YamlConfig(YamlOperator):
         self._read_sample_only: bool = read_sample_only
         """是否只读取sample文件（即使.yml文件存在也只读sample）"""
 
+        self._resource_first: bool = resource_first
+        """安装器等场景下 优先读取打包自带的资源配置 不跟随工作目录里的同名配置"""
+
         file_path, write_file_path, copy_on_write_source_path = self._get_yaml_file_paths()
         YamlOperator.__init__(self, file_path)
         self._write_file_path = write_file_path
@@ -55,7 +61,7 @@ class YamlConfig(YamlOperator):
             return None, None, None
         sub_dir = ['config']
         if self.instance_idx is not None:
-            sub_dir.append('%02d' % self.instance_idx)
+            sub_dir.append(f'{self.instance_idx:02d}')
         if self.sub_dir is not None:
             sub_dir = sub_dir + self.sub_dir
 
@@ -63,6 +69,16 @@ class YamlConfig(YamlOperator):
 
         yml_path = os.path.join(dir_path, f'{self.module_name}.yml')
         sample_yml_path = os.path.join(dir_path, f'{self.module_name}.sample.yml')
+
+        # 安装器场景：优先读打包进 exe 的资源配置，避免被工作目录里同步代码的同名配置干扰
+        if self._resource_first and hasattr(sys, '_MEIPASS'):
+            bundled_path = os.path.join(
+                sys._MEIPASS, 'resources', *sub_dir, f'{self.module_name}.yml'
+            )
+            if os.path.exists(bundled_path):
+                return bundled_path, yml_path, bundled_path
+            # 打包环境缺失自带配置说明打包不完整，显式记录后仍回退（源码调试走不到这里）
+            log.warning('打包资源缺失，回退工作目录配置: %s', bundled_path)
 
         # 只读sample文件模式
         if self._read_sample_only and os.path.exists(sample_yml_path):

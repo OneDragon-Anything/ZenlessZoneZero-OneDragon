@@ -173,22 +173,6 @@ class EnvConfig(YamlConfig):
         self.update('auto_update_code', new_value)
 
     @property
-    def cpython_source(self) -> str:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        return self.get('cpython_source', self.repo_config.get_source_default('cpython_source'))
-
-    @cpython_source.setter
-    def cpython_source(self, new_value: str) -> None:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        self.update('cpython_source', new_value)
-
-    @property
     def pip_source(self) -> str:
         """
         pip源
@@ -430,14 +414,3 @@ class EnvConfig(YamlConfig):
         是否第一次运行
         """
         self.update('is_first_run', new_value)
-
-    def init_system_proxy(self):
-        """
-        初始化系统代理设置
-        """
-        if self.is_personal_proxy:
-            os.environ['HTTP_PROXY'] = self.personal_proxy
-            os.environ['HTTPS_PROXY'] = self.personal_proxy
-        else:
-            os.environ['HTTP_PROXY'] = ""
-            os.environ['HTTPS_PROXY'] = ""

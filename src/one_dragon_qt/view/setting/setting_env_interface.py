@@ -111,17 +111,6 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_python_group(self) -> SettingCardGroup:
         python_group = SettingCardGroup(gt('Python相关'))
 
-        self.cpython_source_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GLOBE,
-            title='Python下载源',
-            options_list=self.ctx.repo_config.get_source_options('cpython_source'),
-        )
-        self.cpython_build_choose_best_btn = PushButton(gt('自动测速选择'), self)
-        self.cpython_build_choose_best_btn.clicked.connect(self.on_cpython_build_choose_best_clicked)
-        self.cpython_source_opt.hBoxLayout.addWidget(self.cpython_build_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
-        self.cpython_source_opt.hBoxLayout.addSpacing(16)
-        python_group.addSettingCard(self.cpython_source_opt)
-
         self.pip_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.GLOBE,
             title='Pip源',
@@ -149,7 +138,6 @@ class SettingEnvInterface(VerticalScrollInterface):
             icon=FluentIcon.WIFI, title='个人代理',
             input_placeholder='http://127.0.0.1:7890'
         )
-        self.personal_proxy_input.value_changed.connect(lambda: self._on_proxy_changed())
         web_group.addSettingCard(self.personal_proxy_input)
 
         self.gh_proxy_url_opt = TextSettingCard(
@@ -219,7 +207,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
-        self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
         self.personal_proxy_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
@@ -229,14 +216,6 @@ class SettingEnvInterface(VerticalScrollInterface):
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
         self.update_proxy_ui()
-        self._on_proxy_changed()
-
-    def _on_proxy_changed(self) -> None:
-        """
-        代理发生改变
-        :return:
-        """
-        self.ctx.env_config.init_system_proxy()
 
     def on_fetch_gh_proxy_url_clicked(self) -> None:
         self.ctx.gh_proxy_service.update_proxy_url()
@@ -273,25 +252,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self._pip_speed_thread.result_signal.connect(pip_result)
         self._pip_speed_thread.start()
 
-    def on_cpython_build_choose_best_clicked(self) -> None:
-        # 异步测速python-build镜像源，toast显示日志和结果
-        self._python_speed_thread = PythonSourceSpeedTestThread(self.ctx)
-        self._python_speed_thread.log_signal.connect(lambda label, ms: self._show_info_bar(
-            title=f"测速：{label}",
-            content=f"耗时 {ms}ms",
-            duration=2000
-        ))
-        def python_result(label, ms, value):
-            self.ctx.env_config.cpython_source = value
-            self.cpython_source_opt.setValue(value)
-            self._show_info_bar(
-                title="测速结果",
-                content=f"已选择最快的Python下载源：{label}（{ms}ms）",
-                duration=3000
-            )
-        self._python_speed_thread.result_signal.connect(python_result)
-        self._python_speed_thread.start()
-
     def update_proxy_ui(self) -> None:
         """
         更新代理设置的UI
@@ -318,21 +278,6 @@ class SpeedTestRunnerBase(QThread):
     def __init__(self, ctx: OneDragonContext, parent=None):
         self.ctx: OneDragonContext = ctx
         super().__init__(parent)
-
-
-class PythonSourceSpeedTestThread(SpeedTestRunnerBase):
-    def __init__(self, ctx, parent=None):
-        SpeedTestRunnerBase.__init__(self, ctx, parent)
-
-    def run(self):
-        result = self.ctx.python_service.choose_best_cpython_source()
-
-        if result:
-            best_label, best_ms = result
-            best_source_value = self.ctx.env_config.cpython_source
-            self.result_signal.emit(best_label, best_ms, best_source_value)
-        else:
-            self.result_signal.emit("Error", 9999, "")
 
 
 class PipSourceSpeedTestThread(SpeedTestRunnerBase):
