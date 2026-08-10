@@ -43,6 +43,7 @@ class ZApplication(Application):
         Application.handle_resume(self)
 
     def after_operation_done(self, result: OperationResult) -> None:
+        """应用成功时返回大世界，再按最终结果更新记录和发送通知。"""
         if result.success and self.return_to_world_after_success:
             back_result = BackToNormalWorld(self.ctx).execute()
             if not back_result.success:
