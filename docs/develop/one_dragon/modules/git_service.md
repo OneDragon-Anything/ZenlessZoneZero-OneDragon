@@ -20,6 +20,12 @@
 
 候选源失败或超时后仍继续回退。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
 
+## GitHub 代理候选线路
+
+使用 GitHub 代理时（代理类型选择「GitHub 代理」），同一代码源按代理线路展开为多个候选：上次成功线路（`gh_proxy_url`）优先，其后是内置线路（`GH_PROXY_URLS`，按声明顺序，与上次成功线路去重）。每条线路只尝试一次，失败立即切换下一条，全部失败才算该代码源失败。
+
+线路列表为内置固定列表，不依赖解析第三方页面。fetch 成功后，本次成功线路写回 `gh_proxy_url`，下次优先尝试。
+
 ## fetch 线程隔离与作废式超时
 
 Git 网络拉取不直接写正式仓库。每个候选代码源由一个 daemon 线程在独立 bare 仓库中执行 fetch，临时目录位于工作目录的 `.install/git_fetch_tmp/fetch_<进程ID>_*`。已有仓库更新时，临时仓库通过 `objects/info/alternates` 只读复用正式仓库对象；首次克隆使用 `depth=1`。
