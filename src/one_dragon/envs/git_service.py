@@ -1148,7 +1148,13 @@ class GitService:
             except Exception:
                 log.warning('旧 Git 仓库无法打开，跳过 remote 检查并直接备份重建')
             else:
-                extra_remotes = sorted(set(opened_repo.remotes.names()) - {'origin'})
+                # one-dragon-fetch-* 是导入临时仓库时创建的内部 remote，
+                # 正常用完即删；仅进程被强杀等场景可能残留空配置，不算用户额外 remote。
+                extra_remotes = sorted(
+                    name
+                    for name in opened_repo.remotes.names()
+                    if name != 'origin' and not name.startswith('one-dragon-fetch-')
+                )
                 if extra_remotes:
                     log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
                     return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
