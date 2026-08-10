@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
