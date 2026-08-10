@@ -116,8 +116,7 @@ class AppRunCard(DraggableListItem):
         更新显示的状态
         :return:
         """
-        title = gt(self.app.app_name)
-        self.content_widget.setTitle(title)
+        self.content_widget.setTitle(self.app.app_name)
         self.migrated_label.setVisible(self.is_migrated)
         self.migrated_info_btn.setVisible(self.is_migrated)
         if self.run_record is None:

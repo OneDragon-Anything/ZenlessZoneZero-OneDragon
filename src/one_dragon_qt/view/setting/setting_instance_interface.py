@@ -95,7 +95,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
-        self.setTitle(title)
+        self.setTitleText(title)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the dynamic account title and inherited card text."""
+        super().retranslate_ui(_language)
+        self.update_title()
 
     def _on_name_changed(self, text: str) -> None:
         self.instance.name = text

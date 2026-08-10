@@ -100,7 +100,7 @@ class RouteOperationEditorDialog(QDialog):
         
         for i, op in enumerate(self.current_op_list):
             # 序号（只读）
-            index_item = QTableWidgetItem(str(i))
+            index_item = QTableWidgetItem(str(i + 1))
             index_item.setFlags(index_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(i, 0, index_item)
             

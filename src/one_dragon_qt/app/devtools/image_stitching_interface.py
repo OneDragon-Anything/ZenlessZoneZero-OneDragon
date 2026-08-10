@@ -1,8 +1,7 @@
 import cv2
 import numpy as np
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFileDialog, QMessageBox
-from qfluentwidgets import (FluentIcon, PushButton, SpinBox, ComboBox,
-                            BodyLabel)
+from qfluentwidgets import BodyLabel, FluentIcon, PushButton, SpinBox
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils import cv2_utils
@@ -10,6 +9,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.image_viewer_widget import ImageViewerWidget
+from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -124,13 +124,15 @@ class ImageStitchingInterface(VerticalScrollInterface):
         self.overlap_height_input.setSuffix('%')
         self.overlap_height_input.valueChanged.connect(self.on_overlap_changed)
 
+        self.overlap_width_label = BodyLabel(gt('宽度:'))
+        self.overlap_height_label = BodyLabel(gt('高度:'))
         overlap_card = MultiPushSettingCard(
             icon=FluentIcon.ZOOM,
             title='重叠比例',
             content='宽度和高度的重叠区域大小',
             btn_list=[
-                BodyLabel(gt('宽度:')), self.overlap_width_input,
-                BodyLabel(gt('高度:')), self.overlap_height_input
+                self.overlap_width_label, self.overlap_width_input,
+                self.overlap_height_label, self.overlap_height_input
             ]
         )
         control_layout.addWidget(overlap_card)
@@ -191,6 +193,22 @@ class ImageStitchingInterface(VerticalScrollInterface):
 
         control_layout.addStretch(1)
         return control_widget
+
+    def retranslate_ui(self) -> None:
+        """Refresh controls not managed by translatable setting-card components."""
+        super().retranslate_ui()
+        if not hasattr(self, 'load_base_btn'):
+            return
+        self.load_base_btn.setText(gt('加载底图'))
+        self.load_second_btn.setText(gt('加载第二张图'))
+        self.overlap_width_label.setText(gt('宽度:'))
+        self.overlap_height_label.setText(gt('高度:'))
+        self.auto_match_btn.setText(gt('自动匹配'))
+        self.apply_x_offset_btn.setText(gt('X偏移'))
+        self.apply_y_offset_btn.setText(gt('Y偏移'))
+        self.merge_btn.setText(gt('合并图像'))
+        self.save_btn.setText(gt('保存结果'))
+        self.clear_btn.setText(gt('清空图像'))
 
     def _init_image_display_panel(self) -> QWidget:
         """初始化图像显示面板。

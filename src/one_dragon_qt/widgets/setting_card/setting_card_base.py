@@ -16,9 +16,10 @@ from one_dragon_qt.utils.layout_utils import IconSize, Margins
 
 class SettingCardBase(SettingCard):
 
-    _title_msgid: str
+    _title_msgid: str | None
     _title_suffix: str
     _content_msgid: str | None
+    _content_text: str | None
     _content_kwargs: dict[str, Any]
 
     def __init__(self, icon: str | QIcon | FluentIconBase, title, content=None,
@@ -47,6 +48,7 @@ class SettingCardBase(SettingCard):
         self._title_msgid = title
         self._title_suffix = ''
         self._content_msgid = content
+        self._content_text = None
         self._content_kwargs = {}
         self.titleLabel = QLabel(gt(title), self)
         self.contentLabel = QLabel('', self)
@@ -86,9 +88,14 @@ class SettingCardBase(SettingCard):
         self,
         content: str | None,
         format_kwargs: dict[str, Any] | None = None,
+        translate: bool = True,
     ) -> None:
         """Render translated content while keeping the source message id."""
-        translated_content = gt(content, **(format_kwargs or {}))
+        translated_content = (
+            gt(content, **(format_kwargs or {}))
+            if translate
+            else content
+        )
         if translated_content is not None:
             font_metrics = self.contentLabel.fontMetrics()
             max_width = self.contentLabel.maximumWidth()
@@ -112,14 +119,16 @@ class SettingCardBase(SettingCard):
     def setContent(self, content: str | None, **format_kwargs: Any) -> None:
         """Set the card description and remember its source message id."""
         self._content_msgid = content
+        self._content_text = None
         self._content_kwargs = format_kwargs
         self._set_content_text(content, format_kwargs)
 
     def setContentText(self, content: str | None) -> None:
         """Display already-rendered dynamic text without treating it as a message ID."""
         self._content_msgid = None
+        self._content_text = content
         self._content_kwargs = {}
-        self._set_content_text(content)
+        self._set_content_text(content, translate=False)
 
     def setTitle(self, title: str, suffix: str = '') -> None:
         """Set a source title and an optional non-translated visual suffix."""
@@ -127,10 +136,20 @@ class SettingCardBase(SettingCard):
         self._title_suffix = suffix
         self.titleLabel.setText(f'{gt(title)}{suffix}')
 
+    def setTitleText(self, title: str) -> None:
+        """Display an already-rendered dynamic title without storing it as a message ID."""
+        self._title_msgid = None
+        self._title_suffix = ''
+        self.titleLabel.setText(title)
+
     def retranslate_ui(self, _language: str | None = None) -> None:
         """Refresh the card text after the application language changes."""
-        self.titleLabel.setText(f'{gt(self._title_msgid)}{self._title_suffix}')
-        self._set_content_text(self._content_msgid, self._content_kwargs)
+        if self._title_msgid is not None:
+            self.titleLabel.setText(f'{gt(self._title_msgid)}{self._title_suffix}')
+        if self._content_msgid is None:
+            self._set_content_text(self._content_text, translate=False)
+        else:
+            self._set_content_text(self._content_msgid, self._content_kwargs)
 
     def setIconSize(self, width: int, height: int):
         """设置图标的固定大小"""

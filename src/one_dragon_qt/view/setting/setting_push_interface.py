@@ -368,6 +368,10 @@ class SettingPushInterface(VerticalScrollInterface):
         super().retranslate_ui()
         if not hasattr(self, 'title_opt'):
             return
+        self.test_current_btn.setText(gt('测试当前方式'))
+        self.test_all_btn.setText(gt('测试全部'))
+        self.pwsh_curl_btn.setText(gt('PowerShell 风格'))
+        self.unix_curl_btn.setText(gt('Unix 风格'))
         if self.ctx.notify_config.title == '一条龙运行通知':
             self.title_opt.setValue(gt('一条龙运行通知'), emit_signal=False)
 
