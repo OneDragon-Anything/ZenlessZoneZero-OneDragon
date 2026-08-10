@@ -20,7 +20,7 @@ class NotifyApp(ZApplication):
             notify_const.APP_ID,
             op_name=notify_const.APP_NAME,
             need_check_game_win=True,
-            return_to_world_after_success=False,
+            after_success_operation_factory=None,
         )
 
     @operation_node(name='发送通知', is_start_node=True)

@@ -32,7 +32,7 @@ class ScreenshotHelperApp(ZApplication):
             ctx=ctx,
             app_id=screenshot_helper_const.APP_ID,
             op_name=screenshot_helper_const.APP_NAME,
-            return_to_world_after_success=False,
+            after_success_operation_factory=None,
         )
         self.config: ScreenshotHelperConfig = self.ctx.run_context.get_config(
             app_id=screenshot_helper_const.APP_ID,
