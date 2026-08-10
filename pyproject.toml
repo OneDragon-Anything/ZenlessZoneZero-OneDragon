@@ -12,7 +12,6 @@ dependencies = [
     "pyautogui==0.9.54",
     "pynput==1.8.1",
     "onnxruntime-directml==1.24.4",
-    "mss==9.0.1",
     "shapely==2.1.2",
     "pyclipper==1.4.0",
     "soundcard==0.4.6",
