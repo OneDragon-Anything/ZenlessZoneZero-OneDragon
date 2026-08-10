@@ -39,6 +39,7 @@ class ZApplication(Application):
         )
 
     def handle_resume(self) -> None:
+        """恢复运行时激活游戏窗口。"""
         self.ctx.controller.active_window()
         Application.handle_resume(self)
 
