@@ -30,7 +30,7 @@ class AutoBattleApp(ZApplication):
             ctx=ctx,
             app_id=auto_battle_const.APP_ID,
             op_name=auto_battle_const.APP_NAME,
-            after_success_operation_factory=None,
+            op_after=None,
         )
 
     def handle_init(self) -> None:

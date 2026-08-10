@@ -147,24 +147,24 @@ ctx.refresh_application_registration()
 
 ---
 
-## 成功后的默认操作
+## 默认的前置和后置操作
 
-继承 `ZApplication` 的应用成功结束后，会执行 `after_success_operation_factory` 创建的操作。默认工厂创建 `BackToNormalWorld`，让后续应用从稳定的大世界画面开始。成功后操作失败时，应用最终结果会改为失败；业务失败、超时或人工停止时不会执行该操作，以便保留故障现场。
+`ZApplication` 提供通用的 `op_before` 和 `op_after` 入参，接收已经实例化的 `Operation`。应用实例化时会把操作封装成普通节点，初始化流程图时直接追加节点和边，不需要在完成钩子中增加特殊逻辑。
 
-包装器、总控、持续辅助工具和开发工具如果不应改变当前游戏画面，需要在构造时传入 `None`：
+前置节点接在业务起点前；前置节点失败时不会进入业务流程。后置节点挂在业务节点的成功兜底出边；已有的成功出边继续优先匹配，只有业务流程成功结束时才进入后置节点。业务失败、超时或人工停止不会执行后置节点，以便保留故障现场。
+
+`op_after` 未传入时默认使用实例化的 `BackToNormalWorld`，让后续应用从稳定的大世界画面开始。包装器、总控、持续辅助工具和开发工具如果不应改变当前游戏画面，需要显式传入 `None`：
 
 ```python
 ZApplication.__init__(
     self,
     ctx=ctx,
     app_id=my_app_const.APP_ID,
-    after_success_operation_factory=None,
+    op_after=None,
 )
 ```
 
-如果应用成功后需要执行其他通用收尾，可以传入一个接收 `ZContext` 并返回新 `Operation` 的工厂。每次应用成功结束时都会创建新的操作实例，不能复用已有的有状态操作。
-
-如果应用的最终场景不是大世界，或需要在指定场景继续执行步骤，应传入 `after_success_operation_factory=None`，并保留自己的显式返回或收尾节点。默认操作只适用于最终应停留在大世界的应用。
+如果应用的最终场景不是大世界，或需要在指定场景继续执行步骤，应传入 `op_after=None`，并保留自己的显式返回或收尾节点。默认后置操作只适用于最终应停留在大世界的应用。
 
 ---
 

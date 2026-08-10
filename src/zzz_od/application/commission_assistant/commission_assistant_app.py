@@ -39,7 +39,7 @@ class CommissionAssistantApp(ZApplication):
             ctx=ctx,
             app_id=commission_assistant_const.APP_ID,
             op_name=commission_assistant_const.APP_NAME,
-            after_success_operation_factory=None,
+            op_after=None,
         )
         self.CHOSEN_OPT_HOLD_SEC: float = 0.5  # 点击右侧选项之后的保护时间 (绝区零按钮经常点了没反应而且按钮变透明, 此时即使ocr识别不到这个选项了也要一直逮着选)
         self.CHOSEN_OPT_MAX_SEC: float = 2  # 一个按钮连续存在2s则大概率是误识别

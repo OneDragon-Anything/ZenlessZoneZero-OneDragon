@@ -25,7 +25,7 @@ class DodgeAssistantApp(ZApplication):
             ctx=ctx,
             app_id=dodge_assistant_const.APP_ID,
             op_name=dodge_assistant_const.APP_NAME,
-            after_success_operation_factory=None,
+            op_after=None,
         )
 
     def handle_init(self) -> None:

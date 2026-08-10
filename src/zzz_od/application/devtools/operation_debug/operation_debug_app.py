@@ -30,7 +30,7 @@ class OperationDebugApp(ZApplication):
             ctx=ctx,
             app_id=operation_debug_const.APP_ID,
             op_name=operation_debug_const.APP_NAME,
-            after_success_operation_factory=None,
+            op_after=None,
         )
 
         self.ops: list[AtomicOp] | None = None
