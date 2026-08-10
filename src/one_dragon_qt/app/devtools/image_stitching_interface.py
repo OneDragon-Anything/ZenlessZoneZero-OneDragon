@@ -308,7 +308,8 @@ class ImageStitchingInterface(VerticalScrollInterface):
         """
         self.stitch_direction = self.direction_combo.currentData() or 'left'
         log.info(
-            '拼接方向设置为: %s (index=%s)',
+            '拼接方向设置为: %s (value=%s, index=%s)',
+            self.direction_combo.currentText(),
             self.stitch_direction,
             index,
         )

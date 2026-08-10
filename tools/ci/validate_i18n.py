@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
+import re
 import string
+from collections import Counter
 from pathlib import Path
 
 
@@ -37,6 +39,11 @@ RAW_TEXT_CONSTRUCTORS = {
     'TransparentPushButton',
 }
 RAW_TEXT_METHODS = {'setPlaceholderText', 'setText', 'setToolTip', 'setWindowTitle'}
+PERCENT_PLACEHOLDER_PATTERN = re.compile(
+    r'%(?:\((?P<name>[^)]+)\))?'
+    r'[#0\- +]*(?:\d+|\*)?(?:\.(?:\d+|\*))?'
+    r'[hlL]?(?P<type>[diouxXeEfFgGcrsa%])'
+)
 
 
 def read_catalog(path: Path) -> tuple[dict[str, str], set[str]]:
@@ -87,13 +94,22 @@ def read_catalog(path: Path) -> tuple[dict[str, str], set[str]]:
     return entries, duplicates
 
 
-def placeholders(value: str) -> set[str]:
-    """Return named format placeholders in a translated string."""
-    return {
-        field_name
-        for _, field_name, _, _ in string.Formatter().parse(value)
-        if field_name is not None and field_name
-    }
+def placeholders(value: str) -> Counter[str]:
+    """Return comparable brace-style and percent-style placeholder counts."""
+    result: Counter[str] = Counter()
+    for _, field_name, _, _ in string.Formatter().parse(value):
+        if field_name is None:
+            continue
+        token = 'brace:auto' if field_name == '' else f'brace:{field_name}'
+        result[token] += 1
+    for match in PERCENT_PLACEHOLDER_PATTERN.finditer(value):
+        placeholder_type = match.group('type')
+        if placeholder_type == '%':
+            continue
+        name = match.group('name')
+        token = f'percent:{name}:{placeholder_type}' if name else f'percent:{placeholder_type}'
+        result[token] += 1
+    return result
 
 
 def find_missing_ui_msgids(catalog: set[str]) -> set[str]:

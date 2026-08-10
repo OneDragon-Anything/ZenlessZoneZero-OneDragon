@@ -156,11 +156,11 @@ class SettingCustomInterface(VerticalScrollInterface):
         ):
             card.retranslate_options()
 
-    def _on_ui_language_changed(self, index: int, value: str) -> None:
-        language = self.ctx.custom_config.ui_language
-        if language == 'auto':
-            language = i18_utils.detect_language()
-        i18_utils.update_default_lang(language)
+    def _on_ui_language_changed(self, _index: int, value: str) -> None:
+        if value == 'auto':
+            i18_utils.detect_and_set_default_language()
+        else:
+            i18_utils.update_default_lang(value)
         self.retranslate_ui()
 
     def _on_theme_changed(self, index: int, value: str) -> None:

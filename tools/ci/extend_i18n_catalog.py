@@ -1204,6 +1204,9 @@ def quote(value: str) -> str:
 
 def write_catalog(path: Path, order: list[str], values: dict[str, str]) -> None:
     """Write a deterministic single-line catalog."""
+    missing = [msgid for msgid in order if msgid and msgid not in values]
+    if missing:
+        raise ValueError(f'Cannot write {path}: missing translations for {missing}')
     lines = [
         'msgid ""',
         'msgstr "Content-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\n"',
