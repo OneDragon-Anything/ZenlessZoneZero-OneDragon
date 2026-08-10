@@ -42,6 +42,7 @@ class WrappedNavigationBarPushButton(NavigationBarPushButton):
         selected_icon: str | QIcon | FluentIconBase | None = None,
         parent: QWidget | None = None,
     ) -> None:
+        """Initialize a compact navigation button with localized text wrapping."""
         super().__init__(
             icon=icon,
             text=text,
@@ -62,6 +63,7 @@ class WrappedNavigationBarPushButton(NavigationBarPushButton):
 
     @staticmethod
     def _wrap_label(text: str) -> str:
+        """Return a compact one- or two-line navigation label."""
         if get_default_lang() == 'en':
             compact_text = _COMPACT_ENGLISH_LABELS.get(text)
             if compact_text is not None:
@@ -76,6 +78,7 @@ class WrappedNavigationBarPushButton(NavigationBarPushButton):
         return f'{words[0]}\n{" ".join(words[1:])}'
 
     def _drawIcon(self, painter: QPainter) -> None:
+        """Draw the navigation icon using the current interaction state."""
         if (self.isPressed or not self.isEnter) and not (self.isSelected or self.isAboutSelected):
             painter.setOpacity(0.6)
         if not self.isEnabled():
@@ -92,6 +95,7 @@ class WrappedNavigationBarPushButton(NavigationBarPushButton):
             drawIcon(self._icon, painter, rect)
 
     def _drawText(self, painter: QPainter) -> None:
+        """Draw wrapped navigation text below the item icon."""
         if self.isSelected and not self._isSelectedTextVisible:
             return
 
@@ -113,6 +117,7 @@ class WrappedNavigationBar(NavigationBar):
     """Navigation bar that only customizes localized item rendering."""
 
     def __init__(self, parent=None) -> None:
+        """Initialize the navigation bar with standard Fluent behavior."""
         super().__init__(parent)
 
     def insertItem(
@@ -126,6 +131,7 @@ class WrappedNavigationBar(NavigationBar):
         selected_icon=None,
         position: NavigationItemPosition = NavigationItemPosition.TOP,
     ) -> WrappedNavigationBarPushButton | None:
+        """Insert a wrapped navigation item unless its route key already exists."""
         if route_key in self.items:
             return None
 

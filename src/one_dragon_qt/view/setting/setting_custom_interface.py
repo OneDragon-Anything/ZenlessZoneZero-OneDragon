@@ -157,6 +157,7 @@ class SettingCustomInterface(VerticalScrollInterface):
             card.retranslate_options()
 
     def _on_ui_language_changed(self, _index: int, value: str) -> None:
+        """Apply the selected language or refresh the detected system language."""
         if value == 'auto':
             i18_utils.detect_and_set_default_language()
         else:
