@@ -176,13 +176,9 @@ class SettingPushInterface(VerticalScrollInterface):
 
         """"""
         var_name = self._get_channel_field_card_name(channel_id, field)
-        title = gt(field.title)
+        title = field.title
         card_type = field.field_type
         is_required = field.required
-
-        # 如果是必选项，在标题后添加红色星号
-        if is_required:
-            title += " <span style='color: #ff6b6b;'>*</span>"
 
         if card_type == FieldTypeEnum.COMBO:
             options = field.options
@@ -212,6 +208,9 @@ class SettingPushInterface(VerticalScrollInterface):
                 input_placeholder=field.placeholder,
                 parent=self,
             )
+
+        if is_required:
+            card.setTitle(field.title, " <span style='color: #ff6b6b;'>*</span>")
 
         card.setObjectName(var_name)
         card.setVisible(False)
@@ -257,7 +256,7 @@ class SettingPushInterface(VerticalScrollInterface):
         except ValueError as e:
             self._show_error_message(str(e))
         except Exception as e:
-            self._show_error_message(gt('测试推送失败: {error}', error=str(e)))
+            self._show_error_message('测试推送失败: {error}', error=str(e))
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
@@ -275,7 +274,7 @@ class SettingPushInterface(VerticalScrollInterface):
         except ValueError as e:
             self._show_error_message(str(e))
         except Exception as e:
-            self._show_error_message(gt('测试推送失败: {error}', error=str(e)))
+            self._show_error_message('测试推送失败: {error}', error=str(e))
 
     def _get_test_screenshot(self) -> MatLike | None:
         """生成通知测试用标准色相图。"""
@@ -338,12 +337,14 @@ class SettingPushInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        if self.ctx.notify_config.title == '一条龙运行通知':
-            self.ctx.notify_config.title = gt('一条龙运行通知')
-
         config = self.ctx.push_service.push_config
 
-        self.title_opt.init_with_adapter(get_prop_adapter(self.ctx.notify_config, 'title'))
+        title_adapter = get_prop_adapter(self.ctx.notify_config, 'title')
+        if self.ctx.notify_config.title == '一条龙运行通知':
+            self.title_opt.adapter = title_adapter
+            self.title_opt.setValue(gt('一条龙运行通知'), emit_signal=False)
+        else:
+            self.title_opt.init_with_adapter(title_adapter)
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
         self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
         self.proxy_input_opt.init_with_adapter(get_prop_adapter(self.ctx.env_config, 'personal_proxy'))
@@ -361,6 +362,14 @@ class SettingPushInterface(VerticalScrollInterface):
         # 初始更新界面状态
         self._update_notification_ui()
         self._set_proxy_input_visibility()
+
+    def retranslate_ui(self) -> None:
+        """Refresh the localized default title without changing its config value."""
+        super().retranslate_ui()
+        if not hasattr(self, 'title_opt'):
+            return
+        if self.ctx.notify_config.title == '一条龙运行通知':
+            self.title_opt.setValue(gt('一条龙运行通知'), emit_signal=False)
 
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
@@ -420,22 +429,22 @@ class SettingPushInterface(VerticalScrollInterface):
         except (json.JSONDecodeError, TypeError):
             return False
 
-    def _show_success_message(self, message: str):
+    def _show_success_message(self, message: str, **format_kwargs: object) -> None:
         """显示成功消息提示"""
         InfoBar.success(
             title=gt('成功'),
-            content=gt(message),
+            content=gt(message, **format_kwargs),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=3000,
             parent=self
         )
 
-    def _show_error_message(self, message: str):
+    def _show_error_message(self, message: str, **format_kwargs: object) -> None:
         """显示错误消息提示"""
         InfoBar.error(
             title=gt('错误'),
-            content=gt(message),
+            content=gt(message, **format_kwargs),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=5000,

@@ -253,6 +253,7 @@ class PhosTitleBar(SplitTitleBar):
             self.codeVersionButton.setText(
                 f"{gt('ⓘ 代码版本')} {self.code_version}"
             )
+        self.questionButton.setText(gt('ⓘ 问题反馈'))
 
     def _apply_home_shadows(self) -> None:
         """给首页标题栏的文字和按钮补硬阴影，提升海报背景上的可读性。"""

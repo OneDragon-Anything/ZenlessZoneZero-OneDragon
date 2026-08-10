@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QCompleter
 from enum import Enum
 from qfluentwidgets import FluentIconBase
@@ -17,7 +16,6 @@ from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
@@ -81,7 +79,8 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         current_value = self.combo_box.currentData()
         self.combo_box.blockSignals(True)
         for index, option in enumerate(self._opts_list):
-            self.combo_box.setItemText(index, gt(option.ui_text))
+            self.combo_box.setItemText(index, option.ui_text)
+        self.set_completer_options(self._opts_list)
         self.combo_box.blockSignals(False)
         self.setValue(current_value, emit_signal=False)
 

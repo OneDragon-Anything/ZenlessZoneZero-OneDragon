@@ -2213,7 +2213,7 @@ msgid "一步可达时前往"
 msgstr "Go when reachable in one step"
 
 msgid "一键安装"
-msgstr "Quick Install"
+msgstr "One-click Install"
 
 msgid "一键生成"
 msgstr "Generate All"

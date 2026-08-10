@@ -123,7 +123,6 @@ class LineNumberArea(QWidget):
         bottom = top + int(self.editor.blockBoundingRect(block).height())
         line_height = self.editor.fontMetrics().height()
 
-        y_offset = 0
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 # 创建BodyLabel显示行号

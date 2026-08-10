@@ -394,7 +394,8 @@ class ImageMattingInterface(VerticalScrollInterface):
                 
                 # 转换为BGR格式保存
                 result_bgr = cv2.cvtColor(self.result_image, cv2.COLOR_RGB2BGR)
-                cv2.imwrite(file_path, result_bgr)
+                if not cv2.imwrite(file_path, result_bgr):
+                    raise OSError(f'OpenCV could not write {file_path}')
                 QMessageBox.information(self, gt('成功'), gt('扣图结果已保存'))
             except Exception as e:
                 QMessageBox.critical(self, gt('错误'), f"{gt('保存失败: ')}{e}")
@@ -420,7 +421,8 @@ class ImageMattingInterface(VerticalScrollInterface):
                 # 记录保存目录
                 ImageMattingInterface.last_save_directory = os.path.dirname(file_path)
                 
-                cv2.imwrite(file_path, self.mask_image)
+                if not cv2.imwrite(file_path, self.mask_image):
+                    raise OSError(f'OpenCV could not write {file_path}')
                 QMessageBox.information(self, gt('成功'), gt('掩码图已保存'))
             except Exception as e:
                 QMessageBox.critical(self, gt('错误'), f"{gt('保存失败: ')}{e}")

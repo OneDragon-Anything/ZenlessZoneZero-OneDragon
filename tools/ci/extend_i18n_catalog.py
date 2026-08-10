@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-import ast
 import json
 from pathlib import Path
+
+try:
+    from tools.ci.validate_i18n import read_catalog
+except ModuleNotFoundError:
+    # Direct script execution puts tools/ci, rather than the repository root, on sys.path.
+    from validate_i18n import read_catalog
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -167,7 +172,6 @@ ENGLISH_TRANSLATIONS: dict[str, str] = {
     '用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中': 'For development and bug reports. UIDs are masked and saved in the .debug/images/ folder',
     '调试按钮': 'Debug Button',
     '用于开发，部分应用开始调试': 'For development; enables debugging for some applications',
-    '测速结果': 'Speed Test Result',
     '点击启用后到各模块进行设置，各账户之间的设置是独立的。': 'After enabling this, configure each module separately. Settings are independent for each account',
     '自定义窗口标题': 'Custom Window Title',
     '强制重新登录': 'Force Re-login',
@@ -410,7 +414,15 @@ ENGLISH_TRANSLATIONS: dict[str, str] = {
     '未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动': 'vgamepad / ViGEmBus was not detected. Install the virtual controller driver first',
 }
 
-ENGLISH_TRANSLATIONS.update({
+def _extend_translations(translations: dict[str, str]) -> None:
+    """Add a translation batch and reject duplicate message IDs."""
+    duplicates = set(ENGLISH_TRANSLATIONS) & set(translations)
+    if duplicates:
+        raise ValueError(f'Duplicate English translation keys: {sorted(duplicates)}')
+    ENGLISH_TRANSLATIONS.update(translations)
+
+
+_extend_translations({
     '加载图片': 'Load Image',
     '图像加载': 'Image Loading',
     '颜色空间': 'Color Space',
@@ -587,7 +599,7 @@ ENGLISH_TRANSLATIONS.update({
     '闪光识别模型未下载 - 请在「设置 → 资源下载」中下载': 'The flash recognition model is not downloaded - download it in Settings → Resource Downloads',
 })
 
-ENGLISH_TRANSLATIONS.update({
+_extend_translations({
     'GitHub主页右上角点一个星星是最简单直接的': 'Click the star in the upper-right corner of the GitHub page; it is the simplest way to support us',
     'ID': 'ID',
     'Overlay 不可用': 'Overlay Unavailable',
@@ -620,7 +632,7 @@ ENGLISH_TRANSLATIONS.update({
     '值': 'Value',
     '停止': 'Stop',
     '免费代理地址': 'Free Proxy Address',
-    '兑换码': 'Redemption Code',
+    '兑换码': 'Redemption Codes',
     '兑换码已存在': 'Redemption code already exists',
     '全部模板已生成': 'All templates generated',
     '共享配置': 'Shared Configuration',
@@ -900,11 +912,8 @@ ENGLISH_TRANSLATIONS.update({
     'Overlay 刷新耗时': 'Overlay Refresh Time',
 })
 
-ENGLISH_TRANSLATIONS.update({
-    'MCP 服务': 'MCP Service',
+_extend_translations({
     '一条龙': 'OneDragon',
-    '一键安装': 'Quick Install',
-    '代理人模板生成': 'Agent Template Generator',
     '代码同步': 'Code Sync',
     '代码版本': 'Code Version',
     '暂时无法获取更新': 'Updates are temporarily unavailable',
@@ -919,7 +928,6 @@ ENGLISH_TRANSLATIONS.update({
     'Enjoy it & have fun!': 'Enjoy it & have fun!',
     '仪表盘': 'Dashboard',
     '体力计划': 'Stamina Plan',
-    '兑换码': 'Redemption Codes',
     '咖啡计划': 'Coffee Plan',
     '图像分析': 'Image Analysis',
     '图像处理': 'Image Processing',
@@ -951,7 +959,6 @@ ENGLISH_TRANSLATIONS.update({
     '设置': 'Settings',
     '账户管理': 'Account Management',
     '资源下载': 'Resource Download',
-    '路线列表': 'Route List',
     '迷失之地配置': 'Lost Void Configuration',
     '通知设置': 'Notification Settings',
     '锄地路线录制': 'World Patrol Route Recorder',
@@ -1044,14 +1051,11 @@ ENGLISH_TRANSLATIONS.update({
     '使用 STARTTLS': 'Use STARTTLS',
     '收发件邮箱': 'Sender/Recipient Email',
     '登录密码': 'Login Password',
-    '收发件人名称': 'Sender Name',
-    'SMTP 登录密码，也可能为特殊口令': 'SMTP login password, or possibly an app-specific password',
+    '收发件人名称': 'Sender/Recipient Name',
     '将由自己发给自己': 'Sent from yourself to yourself',
     '可随意填写': 'Any value is acceptable',
     '不使用代理发送': 'Do not use a proxy for sending',
     'SMTP邮件': 'SMTP Email',
-    '原始启动器': 'Original Launcher',
-    '集成启动器': 'Integrated Launcher',
     '稳定版': 'Stable',
     '测试版': 'Beta',
     'OCR识别': 'OCR Recognition',
@@ -1072,7 +1076,7 @@ ENGLISH_TRANSLATIONS.update({
     '企业微信机器人': 'WeCom Bot',
 })
 
-ENGLISH_TRANSLATIONS.update({
+_extend_translations({
     'API 地址': 'API Address',
     'Discord API 地址 (默认使用官方地址)': 'Discord API Address (official by default)',
     'Gotify 地址': 'Gotify Address',
@@ -1097,8 +1101,6 @@ ENGLISH_TRANSLATIONS.update({
     '企业微信后台 -> 我的企业 -> 企业信息 -> 企业 ID': 'WeCom Admin -> My Organization -> Organization Info -> Organization ID',
     '企业微信机器人 Key': 'WeCom Bot Key',
     '会把推送最终结果通知到这个地址上': 'The final notification result will be sent to this address',
-    '使用 SSL': 'Use SSL',
-    '使用 STARTTLS': 'Use STARTTLS',
     '创建机器人时勾选签名校验显示的密钥': 'Secret shown after enabling signature verification when creating the bot',
     '发送模板': 'Send Template',
     '发送渠道': 'Delivery Channel',
@@ -1107,11 +1109,9 @@ ENGLISH_TRANSLATIONS.update({
     '只填 Key': 'Enter only the Key',
     '可在公众号上扩展配置出更多渠道': 'More channels can be configured through the official account',
     '可选': 'Optional',
-    '可随意填写': 'Any value is acceptable',
     '填写在CHRONOCAT文件生成的访问密钥': 'Enter the access token generated in the CHRONOCAT file',
     '多个用英文分号;分隔': 'Separate multiple values with semicolons (;)',
     '好友令牌或用户ID': 'Friend Token or User ID',
-    '将由自己发给自己': 'Sent from yourself to yourself',
     '应用 AgentId': 'App AgentId',
     '应用 Secret': 'App Secret',
     '微信公众号：好友令牌；企业微信：用户ID': 'WeChat Official Account: friend token; WeCom: user ID',
@@ -1126,8 +1126,6 @@ ENGLISH_TRANSLATIONS.update({
     '推送是否存档': 'Archive Pushes',
     '推送跳转URL': 'Push Redirect URL',
     '推送铃声': 'Push Sound',
-    '收发件人名称': 'Sender/Recipient Name',
-    '收发件邮箱': 'Sender/Recipient Email',
     '服务地址': 'Service Address',
     '服务类型': 'Service Type',
     '机器人 Token': 'Bot Token',
@@ -1139,7 +1137,6 @@ ENGLISH_TRANSLATIONS.update({
     '用户动作': 'User Actions',
     '用户名称': 'Username',
     '用户密码': 'User Password',
-    '登录密码': 'Login Password',
     '目标名称': 'Target Name',
     '目标类型': 'Target Type',
     '群号': 'Group Number',
@@ -1186,7 +1183,6 @@ ENGLISH_TRANSLATIONS.update({
     '请输入飞书机器人的Webhook地址后缀': 'Enter the Feishu bot Webhook address suffix',
     '调用版本': 'Call Version',
     '通知类型': 'Notification Type',
-    '邮件服务器': 'Mail Server',
     '非必填，填写则用于发送图片': 'Optional; required only for sending images',
     '飞书': 'Feishu',
     '没有可用的推送渠道': 'No notification channel is available',
@@ -1194,20 +1190,11 @@ ENGLISH_TRANSLATIONS.update({
 
 
 def parse_catalog(path: Path) -> tuple[list[str], dict[str, str]]:
-    """Read the simple one-line PO format used by the project."""
-    order: list[str] = []
-    values: dict[str, str] = {}
-    lines = path.read_text(encoding='utf-8').splitlines()
-    for index, line in enumerate(lines):
-        if not line.startswith('msgid '):
-            continue
-        msgid = ast.literal_eval(line[6:])
-        msgstr_line = lines[index + 1]
-        if not msgstr_line.startswith('msgstr '):
-            raise ValueError(f'Unsupported PO entry near {msgid!r}')
-        order.append(msgid)
-        values[msgid] = ast.literal_eval(msgstr_line[7:])
-    return order, values
+    """Read a PO catalog while preserving its message order."""
+    values, duplicates = read_catalog(path)
+    if duplicates:
+        raise ValueError(f'Duplicate msgids in {path}: {sorted(duplicates)}')
+    return list(values), values
 
 
 def quote(value: str) -> str:
@@ -1239,10 +1226,17 @@ def main() -> None:
         'vi': CATALOG_DIR / 'vi.po',
     }
     parsed = {language: parse_catalog(path) for language, path in paths.items()}
-    all_ids = list(parsed['en'][0])
+    all_ids: list[str] = []
+    known_ids: set[str] = set()
+    for language in paths:
+        for msgid in parsed[language][0]:
+            if msgid not in known_ids:
+                all_ids.append(msgid)
+                known_ids.add(msgid)
     for msgid in ENGLISH_TRANSLATIONS:
-        if msgid not in all_ids:
+        if msgid not in known_ids:
             all_ids.append(msgid)
+            known_ids.add(msgid)
 
     for language, path in paths.items():
         _, values = parsed[language]
@@ -1253,6 +1247,14 @@ def main() -> None:
                 values[msgid] = msgid
             else:
                 values[msgid] = values.get(msgid, english)
+        for msgid in all_ids:
+            if msgid in values:
+                continue
+            english = ENGLISH_TRANSLATIONS.get(
+                msgid,
+                parsed['en'][1].get(msgid, msgid),
+            )
+            values[msgid] = msgid if language == 'zh' else english
         write_catalog(path, all_ids, values)
 
 

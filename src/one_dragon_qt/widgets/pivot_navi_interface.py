@@ -101,12 +101,17 @@ class PivotNavigatorInterface(BaseInterface):
         BaseInterface.retranslate_ui(self)
         for index in range(self.stacked_widget.count()):
             widget = self.stacked_widget.widget(index)
-            if not isinstance(widget, BaseInterface):
+            if isinstance(widget, PageStackWrapper):
+                widget.retranslate_ui()
+                interface = widget.sub_interface
+            elif isinstance(widget, BaseInterface):
+                widget.retranslate_ui()
+                interface = widget
+            else:
                 continue
-            widget.retranslate_ui()
-            item = getattr(self.pivot, 'items', {}).get(widget.objectName())
+            item = getattr(self.pivot, 'items', {}).get(interface.objectName())
             if item is not None:
-                item.setText(widget.nav_text)
+                item.setText(interface.nav_text)
 
     def push_setting_interface(self, title: str, content: QWidget) -> None:
         """在当前子页面的 PageStackWrapper 中推入二级设置界面。"""

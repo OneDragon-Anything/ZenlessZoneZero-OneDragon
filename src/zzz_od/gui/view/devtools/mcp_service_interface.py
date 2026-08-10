@@ -120,15 +120,15 @@ def _probe_server(port: int) -> tuple[bool, str]:
         return False, gt('探测失败: {error}', error=str(e))
 
 
-def _query_run_status(port: int) -> str:
+def _query_run_status(port: int) -> tuple[str, str]:
     """读取 server 当前运行状态，格式化成适合 SettingCard 展示的一行文本。"""
     try:
         with urllib.request.urlopen(_status_url(port), timeout=2) as resp:
             data = json.loads(resp.read().decode('utf-8'))
     except urllib.error.URLError:
-        return gt('服务未连接')
+        return 'disconnected', gt('服务未连接')
     except Exception as e:  # noqa: BLE001 GUI 状态兜底
-        return gt('状态读取失败: {error}', error=str(e))
+        return f'error:{type(e).__name__}', gt('状态读取失败: {error}', error=str(e))
 
     state = data.get('state', 'unknown')
     source = data.get('source') or '-'
@@ -136,19 +136,20 @@ def _query_run_status(port: int) -> str:
     node = data.get('current_node') or data.get('last_status') or '-'
     duration = data.get('duration_seconds')
     duration_text = f'{duration:.1f}s' if isinstance(duration, int | float) else '-'
-    return gt(
+    status_key = json.dumps(
+        {'state': state, 'source': source, 'app': app, 'node': node},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    status_text = gt(
         '{state}; 来源={source}; 应用={app}; 节点/结果={node}; 耗时={duration}',
-        state=state,
+        state=gt(str(state)),
         source=source,
         app=app,
-        node=node,
+        node=gt(str(node)),
         duration=duration_text,
     )
-
-
-def _run_status_change_key(run_status: str) -> str:
-    """生成用于判断状态是否变化的 key；忽略持续变化的耗时字段。"""
-    return run_status.rsplit('; ', 1)[0]
+    return status_key, status_text
 
 
 def _decode_log_bytes(data: bytes) -> str:
@@ -237,7 +238,7 @@ def _stop_server() -> str:
 class McpServiceRunner(QThread):
     """把启动/停止/重启这类慢操作放到后台线程，避免阻塞 Qt UI。"""
 
-    finished = Signal(str, str)
+    finished = Signal(str, str, str)
 
     def __init__(self, action: str, port: int, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -260,7 +261,8 @@ class McpServiceRunner(QThread):
             msg = gt('状态已刷新')
         else:
             msg = gt('未知操作: {action}', action=self.action)
-        self.finished.emit(msg, _query_run_status(self.port))
+        run_status_key, run_status = _query_run_status(self.port)
+        self.finished.emit(msg, run_status_key, run_status)
 
 
 class McpServiceInterface(VerticalScrollInterface):
@@ -383,19 +385,24 @@ class McpServiceInterface(VerticalScrollInterface):
         port = self._port()
         self.status_card.setContent('执行中...')
         self.run_status_card.setContent('读取中...')
-        self.copy_card.setContent(_server_url(port))
+        self.copy_card.setContentText(_server_url(port))
         self._set_buttons_enabled(False)
         self._append_message(gt('开始执行: {action}', action=self._action_name(action)))
         self._runner = McpServiceRunner(action, port, self)
         self._runner.finished.connect(self._on_action_finished)
         self._runner.start()
 
-    def _on_action_finished(self, msg: str, run_status: str) -> None:
+    def _on_action_finished(
+        self,
+        msg: str,
+        run_status_key: str,
+        run_status: str,
+    ) -> None:
         """服务操作结束后刷新卡片状态并写入消息框。"""
-        self.status_card.setContent(msg)
-        self.run_status_card.setContent(run_status)
+        self.status_card.setContentText(msg)
+        self.run_status_card.setContentText(run_status)
         self._last_run_status = run_status
-        self._last_run_status_key = _run_status_change_key(run_status)
+        self._last_run_status_key = run_status_key
         self._append_message(gt('服务消息: {message}', message=msg))
         self._append_message(gt('当前运行状态: {status}', status=run_status))
         self._set_buttons_enabled(True)
@@ -404,7 +411,7 @@ class McpServiceInterface(VerticalScrollInterface):
         """复制当前端口对应的 MCP 地址。"""
         url = _server_url(self._port())
         QApplication.clipboard().setText(url)
-        self.copy_card.setContent(url)
+        self.copy_card.setContentText(url)
         self._append_message(gt('已复制 MCP 地址: {url}', url=url))
 
     def _append_message(self, message: str) -> None:
@@ -444,13 +451,24 @@ class McpServiceInterface(VerticalScrollInterface):
         """定时刷新运行状态；有服务操作进行中时让后台线程统一回写。"""
         if self._runner is not None and self._runner.isRunning():
             return
-        run_status = _query_run_status(self._port())
-        self.run_status_card.setContent(run_status)
-        run_status_key = _run_status_change_key(run_status)
+        run_status_key, run_status = _query_run_status(self._port())
+        self.run_status_card.setContentText(run_status)
         if run_status_key != self._last_run_status_key:
             self._last_run_status = run_status
             self._last_run_status_key = run_status_key
             self._append_message(gt('当前运行状态: {status}', status=run_status))
+
+    def retranslate_ui(self) -> None:
+        """Refresh visible controls and reset dynamic status text for repolling."""
+        super().retranslate_ui()
+        if not hasattr(self, 'start_btn'):
+            return
+        self.start_btn.setText(gt('启动 F9'))
+        self.stop_btn.setText(gt('停止 F10'))
+        self.restart_btn.setText(gt('重启 F11'))
+        self.message_box.setPlaceholderText(gt('MCP 服务操作和运行状态消息会显示在这里'))
+        self.status_card.setContent('尚未探测')
+        self.run_status_card.setContent('读取中...')
 
     def _poll_server_log(self) -> None:
         """尾读 MCP server 日志文件，把新增行追加到消息框。"""

@@ -46,20 +46,27 @@ def read_catalog(path: Path) -> tuple[dict[str, str], set[str]]:
     msgid: str | None = None
     msgstr: str = ''
     active: str | None = None
+    has_msgstr = False
 
     for raw_line in path.read_text(encoding='utf-8').splitlines() + ['']:
         line = raw_line.strip()
         if line.startswith('msgid '):
             if msgid is not None:
+                if not has_msgstr:
+                    raise ValueError(f'Missing msgstr for {msgid!r} in {path}')
                 if msgid in entries:
                     duplicates.add(msgid)
                 entries[msgid] = msgstr
             msgid = ast.literal_eval(line[6:])
             msgstr = ''
             active = 'msgid'
+            has_msgstr = False
         elif line.startswith('msgstr '):
+            if msgid is None:
+                raise ValueError(f'msgstr without msgid in {path}')
             msgstr = ast.literal_eval(line[7:])
             active = 'msgstr'
+            has_msgstr = True
         elif line.startswith('"') and active is not None:
             value = ast.literal_eval(line)
             if active == 'msgid':
@@ -67,12 +74,15 @@ def read_catalog(path: Path) -> tuple[dict[str, str], set[str]]:
             else:
                 msgstr += value
         elif not line and msgid is not None:
+            if not has_msgstr:
+                raise ValueError(f'Missing msgstr for {msgid!r} in {path}')
             if msgid in entries:
                 duplicates.add(msgid)
             entries[msgid] = msgstr
             msgid = None
             msgstr = ''
             active = None
+            has_msgstr = False
 
     return entries, duplicates
 
@@ -312,9 +322,22 @@ def main() -> int:
             print(f'{language}: missing={missing}, extra={extra}')
 
     for key in reference:
-        expected = placeholders(catalogs['en'][key])
+        try:
+            expected = placeholders(catalogs['en'][key])
+        except ValueError:
+            failed = True
+            print(f'en: invalid format string for {key!r}')
+            continue
         for language, entries in catalogs.items():
-            if placeholders(entries[key]) != expected:
+            if key not in entries:
+                continue
+            try:
+                actual = placeholders(entries[key])
+            except ValueError:
+                failed = True
+                print(f'{language}: invalid format string for {key!r}')
+                continue
+            if actual != expected:
                 failed = True
                 print(f'{language}: incompatible placeholders for {key!r}')
 

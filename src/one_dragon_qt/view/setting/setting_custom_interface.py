@@ -158,6 +158,8 @@ class SettingCustomInterface(VerticalScrollInterface):
 
     def _on_ui_language_changed(self, index: int, value: str) -> None:
         language = self.ctx.custom_config.ui_language
+        if language == 'auto':
+            language = i18_utils.detect_language()
         i18_utils.update_default_lang(language)
         self.retranslate_ui()
 

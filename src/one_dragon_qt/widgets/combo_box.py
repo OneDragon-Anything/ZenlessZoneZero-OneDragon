@@ -4,7 +4,6 @@ from qfluentwidgets import ComboBox as qtComboBox
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import (
-    gt,
     subscribe_language_changed,
     unsubscribe_language_changed,
 )
@@ -46,7 +45,7 @@ class ComboBox(qtComboBox, AdapterInitMixin):
                 new_idx = i
 
         # 移除多余的选项
-        for i in range(new_len, old_len):
+        for _ in range(new_len, old_len):
             self.removeItem(new_len)
 
         # 添加新选项

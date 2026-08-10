@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
-                               QTableWidgetItem, QPushButton, QHeaderView, QAbstractItemView, QLabel, QMessageBox)
+                               QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel, QMessageBox)
 from qfluentwidgets import FluentIcon, PushButton
 
 from one_dragon.utils.i18_utils import gt

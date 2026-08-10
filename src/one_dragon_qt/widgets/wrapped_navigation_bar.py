@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Union
-
 from PySide6.QtCore import QRect, QRectF, Qt
 from PySide6.QtGui import QIcon, QPainter
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     FluentIconBase,
     NavigationBar,
@@ -37,13 +36,19 @@ class WrappedNavigationBarPushButton(NavigationBarPushButton):
 
     def __init__(
         self,
-        icon: Union[str, QIcon, FluentIconBase],
+        icon: str | QIcon | FluentIconBase,
         text: str,
         is_selectable: bool,
-        selected_icon=None,
-        parent=None,
+        selected_icon: str | QIcon | FluentIconBase | None = None,
+        parent: QWidget | None = None,
     ) -> None:
-        super().__init__(icon, text, is_selectable, selected_icon, parent)
+        super().__init__(
+            icon=icon,
+            text=text,
+            isSelectable=is_selectable,
+            selectedIcon=selected_icon,
+            parent=parent,
+        )
         self.setFixedSize(NAVIGATION_ITEM_WIDTH, NAVIGATION_ITEM_HEIGHT)
         font = self.font()
         font.setPixelSize(10)
@@ -114,7 +119,7 @@ class WrappedNavigationBar(NavigationBar):
         self,
         index: int,
         route_key: str,
-        icon: Union[str, QIcon, FluentIconBase],
+        icon: str | QIcon | FluentIconBase,
         text: str,
         on_click=None,
         selectable: bool = True,

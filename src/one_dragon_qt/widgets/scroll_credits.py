@@ -6,7 +6,11 @@ from qfluentwidgets import isDarkTheme
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import os_utils, yaml_utils
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import (
+    gt,
+    subscribe_language_changed,
+    unsubscribe_language_changed,
+)
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
@@ -30,8 +34,22 @@ class ScrollCreditsWidget(QWidget):
         # 加载贡献者数据
         self._load_commit_data()
 
+        self._language_callback = self.retranslate_ui
+        subscribe_language_changed(self._language_callback)
+        self.destroyed.connect(self._on_destroyed)
+
         # 启动滚动，但初始位置更合理
         self._start_scroll()
+
+    def _on_destroyed(self, _object=None) -> None:
+        """Unsubscribe after Qt destroys the credits widget."""
+        unsubscribe_language_changed(self._language_callback)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh translated headings and contributor category labels."""
+        self.subtitle_label.setText(gt('特别鸣谢'))
+        self.end_label.setText(gt('感谢您的支持与陪伴'))
+        self._load_commit_data()
 
     def _init_ui(self):
         """

@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, 
                                QTableWidgetItem, QPushButton, QHeaderView, 
-                               QComboBox, QLineEdit, QSpinBox, QMessageBox)
+                               QComboBox, QMessageBox)
 from qfluentwidgets import FluentIcon
 
 from one_dragon.utils.i18_utils import gt
@@ -158,7 +158,7 @@ class RouteOperationEditorDialog(QDialog):
             reply = QMessageBox.question(
                 self,
                 gt('确认删除'),
-                gt('确定要删除第{index}个操作吗？', index=current_row),
+                gt('确定要删除第{index}个操作吗？', index=current_row + 1),
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if reply == QMessageBox.StandardButton.Yes:
                 del self.current_op_list[current_row]
@@ -192,7 +192,7 @@ class RouteOperationEditorDialog(QDialog):
                 QMessageBox.warning(
                     self,
                     gt('数据错误'),
-                    gt('第{index}个操作的数据不完整', index=i),
+                    gt('第{index}个操作的数据不完整', index=i + 1),
                 )
                 return
             try:
@@ -203,7 +203,7 @@ class RouteOperationEditorDialog(QDialog):
                 QMessageBox.warning(
                     self,
                     gt('数据错误'),
-                    gt('第{index}个操作的坐标数据必须是数字', index=i),
+                    gt('第{index}个操作的坐标数据必须是数字', index=i + 1),
                 )
                 return
         

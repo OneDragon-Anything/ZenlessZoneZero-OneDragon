@@ -5,7 +5,11 @@ from __future__ import annotations
 import struct
 from pathlib import Path
 
-from validate_i18n import read_catalog
+try:
+    from tools.ci.validate_i18n import read_catalog
+except ModuleNotFoundError:
+    # Direct script execution puts tools/ci, rather than the repository root, on sys.path.
+    from validate_i18n import read_catalog
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +20,9 @@ OUTPUT_DIR = ROOT / 'assets' / 'text' / 'output'
 def compile_catalog(language: str) -> None:
     """Compile one PO catalog into the layout expected by gettext."""
     entries, _ = read_catalog(CATALOG_DIR / f'{language}.po')
-    msgids = sorted(entries)
+    msgids = sorted(
+        msgid for msgid, msgstr in entries.items() if msgstr or msgid == ''
+    )
     originals = b'\0'.join(msgid.encode('utf-8') for msgid in msgids) + b'\0'
     translations = b'\0'.join(entries[msgid].encode('utf-8') for msgid in msgids) + b'\0'
 

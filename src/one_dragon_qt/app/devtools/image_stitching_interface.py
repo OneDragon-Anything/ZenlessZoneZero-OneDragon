@@ -92,12 +92,15 @@ class ImageStitchingInterface(VerticalScrollInterface):
 
         # 拼接方向
         self.direction_combo = ComboBox()
-        self.direction_combo.set_items([
-            ConfigItem('左边', value='left'),
-            ConfigItem('右边', value='right'),
-            ConfigItem('上边', value='top'),
-            ConfigItem('下边', value='bottom'),
-        ])
+        self.direction_combo.set_items(
+            [
+                ConfigItem('左边', value='left'),
+                ConfigItem('右边', value='right'),
+                ConfigItem('上边', value='top'),
+                ConfigItem('下边', value='bottom'),
+            ],
+            target_value=self.stitch_direction,
+        )
         self.direction_combo.currentIndexChanged.connect(self.on_direction_changed)
 
         direction_card = MultiPushSettingCard(
@@ -295,16 +298,20 @@ class ImageStitchingInterface(VerticalScrollInterface):
             except Exception as e:
                 QMessageBox.warning(self, gt('错误'), f"{gt('加载第二张图失败: ')}{e}")
 
-    def on_direction_changed(self, _index: int):
+    def on_direction_changed(self, index: int) -> None:
         """处理拼接方向改变事件。
 
         当用户选择不同的拼接方向时，更新内部状态并记录日志。
 
         Args:
-            text: 用户选择的方向文本（中文）
+            index: The selected combo-box index.
         """
         self.stitch_direction = self.direction_combo.currentData() or 'left'
-        log.info(f'拼接方向设置为: {text}')
+        log.info(
+            '拼接方向设置为: %s (index=%s)',
+            self.stitch_direction,
+            index,
+        )
 
     def on_overlap_changed(self):
         """处理重叠比例改变事件。

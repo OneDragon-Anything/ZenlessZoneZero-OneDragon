@@ -40,7 +40,7 @@ class ExpandSettingCardGroup(ExpandSettingCard):
         """Unsubscribe the group after Qt destroys it."""
         unsubscribe_language_changed(self._language_callback)
 
-    def retranslate_ui(self) -> None:
+    def retranslate_ui(self, _language: str | None = None) -> None:
         """Refresh the group title and description after a language change."""
         self.card.titleLabel.setText(gt(self._title_msgid))
         if self._content_msgid:

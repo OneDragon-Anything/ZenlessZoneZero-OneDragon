@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QPushButton
 from qfluentwidgets import FluentIconBase
 from typing import Union, Optional

@@ -44,7 +44,7 @@ class DebugRouteRunner(QThread):
         try:
             self.ctx.run_context.start_running()
             self.op.execute()
-        except Exception as e:
+        except Exception:
             log.error('调试异常', exc_info=True)
         finally:
             self.ctx.run_context.stop_running()
@@ -572,7 +572,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
             self.chosen_route.add_move_operation(self.mini_map_pos_mr.center)
             self._update_large_map_display()
         else:
-            log.info(f'[计算坐标] 当前计算坐标失败')
+            log.info('[计算坐标] 当前计算坐标失败')
 
         self._update_btn_display()
 
@@ -654,9 +654,6 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         if self.chosen_route is None:
             return
         self.ctx.world_patrol_service.load_data()
-        if self.debug_runner.op is not None:
-            self.debug_runner.op
-
         self.debug_runner.op = WorldPatrolRunRoute(self.ctx, self.chosen_route,
                                                    start_idx=self.debug_start_input.value())
         self.debug_runner.start()

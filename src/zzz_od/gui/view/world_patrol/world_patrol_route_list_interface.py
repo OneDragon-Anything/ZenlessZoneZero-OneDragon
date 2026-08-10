@@ -144,9 +144,9 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
         list_layout.setSpacing(12)
 
         # 标题
-        title_label = BodyLabel(gt('路线列表'))
-        title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        list_layout.addWidget(title_label)
+        self.title_label = BodyLabel(gt('路线列表'))
+        self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        list_layout.addWidget(self.title_label)
 
         # 路线列表
         self.route_list_widget = QListWidget()
@@ -154,9 +154,9 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
         list_layout.addWidget(self.route_list_widget)
 
         # 可用路线列表
-        available_label = BodyLabel(gt('当前区域可用路线'))
-        available_label.setStyleSheet("font-size: 14px; font-weight: bold;")
-        list_layout.addWidget(available_label)
+        self.available_label = BodyLabel(gt('当前区域可用路线'))
+        self.available_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+        list_layout.addWidget(self.available_label)
 
         self.source_route_list_widget = QListWidget()
         self.source_route_list_widget.itemSelectionChanged.connect(self.on_source_selection_changed)
@@ -248,6 +248,25 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
             item = QListWidgetItem(display_text)
             item.setData(Qt.ItemDataRole.UserRole, route)
             self.source_route_list_widget.addItem(item)
+
+    def retranslate_ui(self) -> None:
+        """Refresh controls and dynamically generated route labels."""
+        super().retranslate_ui()
+        if not hasattr(self, 'route_list_widget'):
+            return
+        self.new_list_btn.setText(gt('新建'))
+        self.save_list_btn.setText(gt('保存'))
+        self.delete_list_btn.setText(gt('删除'))
+        self.cancel_btn.setText(gt('取消'))
+        self.add_area_btn.setText(gt('添加整个区域'))
+        self.add_route_btn.setText(gt('添加单条路线'))
+        self.move_up_btn.setText(gt('上移'))
+        self.move_down_btn.setText(gt('下移'))
+        self.remove_btn.setText(gt('移除'))
+        self.title_label.setText(gt('路线列表'))
+        self.available_label.setText(gt('当前区域可用路线'))
+        self._update_route_list_display()
+        self._update_available_routes()
 
     # 事件处理方法
     def on_route_list_changed(self, idx: int):

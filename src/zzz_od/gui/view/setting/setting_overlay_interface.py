@@ -419,7 +419,8 @@ class SettingOverlayInterface(VerticalScrollInterface):
     def _refresh_hotkey_content(self) -> None:
         key = self._format_hotkey_key(self.config.toggle_hotkey)
         self.enabled_opt.setContent(
-            gt('启用后可通过 Ctrl+Alt+{key} 切换显隐', key=key)
+            '启用后可通过 Ctrl+Alt+{key} 切换显隐',
+            key=key,
         )
 
     def retranslate_ui(self) -> None:

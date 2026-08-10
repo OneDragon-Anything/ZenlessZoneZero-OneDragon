@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
@@ -15,7 +17,9 @@ from one_dragon_qt.utils.layout_utils import IconSize, Margins
 class SettingCardBase(SettingCard):
 
     _title_msgid: str
+    _title_suffix: str
     _content_msgid: str | None
+    _content_kwargs: dict[str, Any]
 
     def __init__(self, icon: str | QIcon | FluentIconBase, title, content=None,
                  icon_size: IconSize = IconSize(16, 16),
@@ -41,7 +45,9 @@ class SettingCardBase(SettingCard):
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         self._title_msgid = title
+        self._title_suffix = ''
         self._content_msgid = content
+        self._content_kwargs = {}
         self.titleLabel = QLabel(gt(title), self)
         self.contentLabel = QLabel('', self)
 
@@ -76,9 +82,13 @@ class SettingCardBase(SettingCard):
         """Unsubscribe the card after Qt destroys it."""
         unsubscribe_language_changed(self._language_callback)
 
-    def _set_content_text(self, content: str | None) -> None:
+    def _set_content_text(
+        self,
+        content: str | None,
+        format_kwargs: dict[str, Any] | None = None,
+    ) -> None:
         """Render translated content while keeping the source message id."""
-        translated_content = gt(content)
+        translated_content = gt(content, **(format_kwargs or {}))
         if translated_content is not None:
             font_metrics = self.contentLabel.fontMetrics()
             max_width = self.contentLabel.maximumWidth()
@@ -99,15 +109,28 @@ class SettingCardBase(SettingCard):
             translated_content is not None and len(translated_content) > 0
         )
 
-    def setContent(self, content: str | None) -> None:
+    def setContent(self, content: str | None, **format_kwargs: Any) -> None:
         """Set the card description and remember its source message id."""
         self._content_msgid = content
+        self._content_kwargs = format_kwargs
+        self._set_content_text(content, format_kwargs)
+
+    def setContentText(self, content: str | None) -> None:
+        """Display already-rendered dynamic text without treating it as a message ID."""
+        self._content_msgid = None
+        self._content_kwargs = {}
         self._set_content_text(content)
+
+    def setTitle(self, title: str, suffix: str = '') -> None:
+        """Set a source title and an optional non-translated visual suffix."""
+        self._title_msgid = title
+        self._title_suffix = suffix
+        self.titleLabel.setText(f'{gt(title)}{suffix}')
 
     def retranslate_ui(self, _language: str | None = None) -> None:
         """Refresh the card text after the application language changes."""
-        self.titleLabel.setText(gt(self._title_msgid))
-        self._set_content_text(self._content_msgid)
+        self.titleLabel.setText(f'{gt(self._title_msgid)}{self._title_suffix}')
+        self._set_content_text(self._content_msgid, self._content_kwargs)
 
     def setIconSize(self, width: int, height: int):
         """设置图标的固定大小"""

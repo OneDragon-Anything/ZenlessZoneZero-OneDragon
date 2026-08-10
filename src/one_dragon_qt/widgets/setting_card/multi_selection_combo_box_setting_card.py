@@ -250,10 +250,11 @@ class MultiSelectionComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             # 获取第一个选中项的描述
             desc = selected_items[0].desc
             if len(selected_items) > 1:
-                desc = gt('已选 {count} 项', count=len(selected_items))
+                self.setContent('已选 {count} 项', count=len(selected_items))
+                return
             self.setContent(desc)
         else:
-            self.setContent(gt('未选择'))
+            self.setContent('未选择')
 
     def set_value(self, value: list, emit_signal: bool = True) -> None:
         """设置多选下拉框的值。"""

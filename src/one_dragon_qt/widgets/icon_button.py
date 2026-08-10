@@ -53,7 +53,7 @@ class IconButton(TransparentToolButton):
         """Unsubscribe the button after Qt destroys it."""
         unsubscribe_language_changed(self._language_callback)
 
-    def retranslate_ui(self) -> None:
+    def retranslate_ui(self, _language: str | None = None) -> None:
         """Refresh the tooltip text after the application language changes."""
         self.tip_title = gt(self._tip_title_msgid)
         self.tip_content = gt(self._tip_content_msgid)

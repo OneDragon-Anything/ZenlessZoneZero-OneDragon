@@ -78,10 +78,10 @@ class VerticalScrollInterface(BaseInterface):
         wrapper_layout.setSpacing(0)
         content_widget.setStyleSheet("QWidget { background-color: transparent; }")
         wrapper_layout.addWidget(content_widget)
-        self.retranslate_ui()
 
         scroll_area.setWidget(wrapper)
         self._init = True
+        self.retranslate_ui()
 
     def get_content_widget(self) -> QWidget:
         """
