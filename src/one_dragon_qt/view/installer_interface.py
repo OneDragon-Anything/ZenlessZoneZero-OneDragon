@@ -184,7 +184,7 @@ class InstallerInterface(VerticalScrollInterface):
 
     def launch_application(self) -> None:
         """启动一条龙：打开安装目录下的启动器，然后退出安装器。"""
-        import subprocess
+        import os
         from pathlib import Path
 
         from PySide6.QtWidgets import QApplication
@@ -192,5 +192,6 @@ class InstallerInterface(VerticalScrollInterface):
         launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
         if not launcher_path.exists():
             return
-        subprocess.Popen(f'cmd /c "start "" "{launcher_path}""', shell=True)
+        # 用 os.startfile 而非 shell 拼接，避免安装路径含 & 等字符时被 cmd 解释
+        os.startfile(launcher_path)
         QApplication.quit()
