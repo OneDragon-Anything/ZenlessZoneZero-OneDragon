@@ -6,6 +6,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation import Operation
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
@@ -138,6 +139,148 @@ class LostVoidRunLevel(ZOperation):
         self.had_been_list: list[str] = []  # 已经访问过的类型 1.5更新后 交互后交互类型的图标不会消失 需要自己过滤
         self.interacted_target_key_list: list[str] = []  # 本层已经交互过的具体对象
         self.stuck_state: LostVoidStuckState = LostVoidStuckState()  # 本层共享的脱困状态
+
+    def execute(self) -> OperationResult:
+        """
+        在框架执行基础上增加失败自救：
+        任意节点导致操作失败时，先尝试自救（识别当前画面恢复正常或重开挑战），
+        成功则重新执行整个层间移动，失败或达到每层上限 3 次才返回失败。
+        自救次数与寻路失败/战斗超时/阵亡共用 restart_count 上限。
+        自救耗尽时先尝试退出挑战回入口，避免游戏停留在未知画面导致下次运行继续卡死。
+        """
+        while True:
+            result = super().execute()
+            if result.success:
+                return result
+            if self.restart_count >= 3:
+                self._exit_lost_void_gracefully()
+                return result
+
+            self.restart_count += 1
+            log.info('迷失之地-层间移动 执行失败（%s），开始第 %d 次自救', result.status, self.restart_count)
+            if not self._try_rescue():
+                log.error('自救失败，尝试退出挑战后返回失败状态 %s', result.status)
+                self._exit_lost_void_gracefully()
+                return result
+
+            log.info('自救成功，重新执行层间移动')
+
+    def _exit_lost_void_gracefully(self) -> None:
+        """
+        自救耗尽后的兜底退出：尽力把游戏带出卡死状态（退出挑战回入口）。
+        退出失败不阻塞返回失败，只记录日志（尽力而为）。
+        """
+        try:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            op = ExitInBattle(self.ctx, '迷失之地-挑战结果', '按钮-完成')
+            op_result = op.execute()
+            if op_result.success:
+                log.info('自救耗尽，已退出挑战回入口')
+            else:
+                log.error('自救耗尽，退出挑战失败：%s', op_result.status)
+        except Exception as e:
+            log.error('自救耗尽，退出挑战异常：%s', e)
+
+    def _try_rescue(self) -> bool:
+        """
+        操作失败后的自救：识别当前画面并恢复正常，成功返回 True。
+
+        1. 已知交互画面（选择/商店等）：复用对应操作处理，处理完即可继续
+        2. 大世界：已恢复可寻路状态
+        3. 挑战结果/战斗失败：点掉结算画面
+        4. 未知画面：先尝试战斗内重开，再尝试退出挑战回入口
+        """
+        if self.last_screenshot is None:
+            self.screenshot()
+        self.save_screenshot(prefix='lost_void_rescue')
+
+        screen_name = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=[
+                '迷失之地-武备选择',
+                '迷失之地-通用选择',
+                '迷失之地-邦布商店',
+                '迷失之地-路径迭换',
+                '迷失之地-抽奖机',
+                '迷失之地-挑战结果',
+                '迷失之地-战斗失败',
+                '迷失之地-大世界',
+            ],
+        )
+        log.info('迷失之地 自救画面识别: %s', screen_name)
+
+        interact_op_map: dict[str, type[ZOperation]] = {
+            '迷失之地-武备选择': LostVoidChooseGear,
+            '迷失之地-通用选择': LostVoidChooseCommon,
+            '迷失之地-邦布商店': LostVoidBangbooStore,
+            '迷失之地-路径迭换': LostVoidRouteChange,
+            '迷失之地-抽奖机': LostVoidLottery,
+        }
+        op_cls = interact_op_map.get(screen_name)
+        if op_cls is not None:
+            op_result = op_cls(self.ctx).execute()
+            if op_result.success:
+                log.info('自救成功：已处理画面 %s', screen_name)
+                return True
+            log.error('自救失败：处理画面 %s 失败 %s', screen_name, op_result.status)
+            return False
+
+        if screen_name == '迷失之地-大世界':
+            log.info('自救成功：已回到大世界')
+            return True
+
+        if screen_name == '迷失之地-挑战结果':
+            for area_name in ['按钮-确定', '按钮-完成']:
+                result = self.round_by_find_and_click_area(
+                    screen=self.last_screenshot,
+                    screen_name='迷失之地-挑战结果',
+                    area_name=area_name,
+                    until_not_find_all=[('迷失之地-挑战结果', area_name)],
+                    success_wait=1,
+                    retry_wait=1,
+                )
+                if result.is_success:
+                    log.info('自救成功：已点击挑战结果 %s', area_name)
+                    return True
+            log.error('自救失败：挑战结果按钮点击失败')
+            return False
+
+        if screen_name == '迷失之地-战斗失败':
+            result = self.round_by_find_and_click_area(
+                screen=self.last_screenshot,
+                screen_name='迷失之地-战斗失败',
+                area_name='按钮-撤退',
+                until_not_find_all=[('迷失之地-战斗失败', '按钮-撤退')],
+                success_wait=1,
+                retry_wait=1,
+            )
+            if result.is_success:
+                log.info('自救成功：战斗失败已撤退')
+                return True
+            log.error('自救失败：战斗失败撤退点击失败')
+            return False
+
+        return self._rescue_unknown_screen()
+
+    def _rescue_unknown_screen(self) -> bool:
+        """
+        未知画面自救：先尝试战斗内重开，再尝试退出挑战回入口。
+        """
+        op = RestartInBattle(self.ctx)
+        op_result = op.execute()
+        if op_result.success:
+            log.info('自救成功：战斗内重新开始')
+            return True
+
+        self.ctx.auto_battle_context.stop_auto_battle()
+        op = ExitInBattle(self.ctx, '迷失之地-挑战结果', '按钮-完成')
+        op_result = op.execute()
+        if op_result.success:
+            log.info('自救成功：退出挑战回入口')
+            return True
+
+        log.error('自救失败：未知画面重开与退出均失败')
+        return False
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
