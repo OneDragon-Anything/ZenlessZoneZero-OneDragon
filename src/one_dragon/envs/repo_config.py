@@ -140,8 +140,10 @@ class RepoConfig(YamlConfig):
 
         self.branches: tuple[RepositoryBranch, ...] = self._load_branches(repository_config)
         primary_branch = repository_config.get('primary_branch', '')
-        if not isinstance(primary_branch, str) or not primary_branch.strip():
+        branch_names = {branch.branch_name for branch in self.branches}
+        if not isinstance(primary_branch, str) or primary_branch not in branch_names:
             primary_branch = self.branches[0].branch_name if self.branches else self.DEFAULT_BRANCH
+            log.warning(f'主分支配置无效，回退到 {primary_branch}')
         self.primary_branch: str = primary_branch
 
         self.repositories: tuple[RepositoryItem, ...] = self._load_repositories(repository_config)
@@ -167,6 +169,8 @@ class RepoConfig(YamlConfig):
     def _load_branches(self, repository_config: dict) -> tuple[RepositoryBranch, ...]:
         raw_branches = repository_config.get('branches', {})
         if not isinstance(raw_branches, dict) or not raw_branches:
+            if raw_branches:
+                log.warning('branches 配置不是映射，已忽略')
             return ()
 
         branches: list[RepositoryBranch] = []
@@ -241,6 +245,8 @@ class RepoConfig(YamlConfig):
     def _load_regions(self) -> tuple[RegionPreset, ...]:
         raw_regions = self.get('regions', {})
         if not isinstance(raw_regions, dict) or not raw_regions:
+            if raw_regions:
+                log.warning('regions 配置不是映射，已忽略')
             return ()
 
         regions: list[RegionPreset] = []
