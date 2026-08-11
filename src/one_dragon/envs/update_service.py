@@ -37,6 +37,8 @@ class UpdateService:
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
         self.git_service: GitService = git_service
+        # 版本信息缓存：检查线程查询后填入，UI 构造下载项只读缓存，避免主线程网络请求
+        self._launcher_version_cache: dict[str, tuple[str, str, str]] = {}
 
     @staticmethod
     def get_launcher_exe_name(launcher_type: LauncherType) -> str:
@@ -54,7 +56,10 @@ class UpdateService:
         return RUNTIME_LAUNCHER_ZIP_SUFFIX if launcher_type == 'runtime' else LAUNCHER_ZIP_SUFFIX
 
     def get_launcher_version_info(self, launcher_type: LauncherType) -> tuple[str, str, str]:
-        """获取当前启动器版本、最新稳定版和最新测试版。"""
+        """获取当前启动器版本、最新稳定版和最新测试版（带缓存，重复调用不重新请求网络）。"""
+        cached = self._launcher_version_cache.get(launcher_type)
+        if cached is not None:
+            return cached
         exe_path = Path(os_utils.get_work_dir()) / self.get_launcher_exe_name(launcher_type)
         current_version = app_utils.get_exe_version(str(exe_path)) if exe_path.exists() else ''
         try:
@@ -62,7 +67,9 @@ class UpdateService:
         except Exception:
             log.error('获取最新启动器版本失败', exc_info=True)
             latest_stable, latest_beta = '', ''
-        return current_version, latest_stable, latest_beta
+        result = (current_version, latest_stable, latest_beta)
+        self._launcher_version_cache[launcher_type] = result
+        return result
 
     def is_launcher_update_available(self) -> bool:
         """检查当前启动器通道是否存在可用更新。"""
