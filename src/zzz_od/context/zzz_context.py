@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import threading
 from functools import cached_property
+from pathlib import Path
 
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import (
+    DEFAULT_OCR_MODEL_NAME,
+    PPOCRV6_MODEL_NAME,
+    OnnxOcrMatcher,
+    OnnxOcrParam,
+    get_final_file_list,
+)
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.utils.log_utils import log
 
 
 class ZContext(OneDragonContext):
@@ -10,6 +20,7 @@ class ZContext(OneDragonContext):
     def __init__(self,):
 
         OneDragonContext.__init__(self)
+        self._ocr_v6_downloading: bool = False  # 后台下载 V6 是否进行中 防止重复启动
 
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
@@ -130,6 +141,85 @@ class ZContext(OneDragonContext):
             )
             # 初始化窗口标题
             self.controller.set_window_title(self._get_win_title())
+
+    def init_ocr(self) -> None:
+        """
+        初始化OCR 正常模式下按本地模型文件状态向 V6 收敛
+        """
+        super().init_ocr()
+
+        # 正常模式下 向 V6 收敛
+        if not self.env_config.is_debug:
+            if self._is_ocr_model_ready(PPOCRV6_MODEL_NAME):
+                # V6 已就绪（启动就有 或 刚同步下载完成） 落盘配置
+                self.model_config.ocr = PPOCRV6_MODEL_NAME
+            elif self._is_ocr_model_ready(DEFAULT_OCR_MODEL_NAME):
+                # 当前用 V5 顶住 后台下载 V6 成功后自动切换
+                self._download_ocr_v6_in_background()
+
+    def _decide_ocr_model_name(self) -> str:
+        """
+        决定本次初始化使用的 OCR 模型名 覆写框架层钩子
+
+        调试模式: 直接使用配置里的模型 不自动切换
+        正常模式: 向 V6 收敛
+          - V6 文件齐全 -> 用 V6
+          - V6 不齐 但 V5 齐全 -> 先用 V5 顶住 后台下载 V6
+          - 都没有 -> 直接用 V6（会触发下载）
+        """
+        if self.env_config.is_debug:
+            return self.model_config.ocr
+
+        if self._is_ocr_model_ready(PPOCRV6_MODEL_NAME):
+            return PPOCRV6_MODEL_NAME
+
+        if self._is_ocr_model_ready(DEFAULT_OCR_MODEL_NAME):
+            return DEFAULT_OCR_MODEL_NAME
+
+        return PPOCRV6_MODEL_NAME
+
+    @staticmethod
+    def _is_ocr_model_ready(ocr_model_name: str) -> bool:
+        """
+        判断某个 OCR 模型的文件是否已经全部就绪
+        """
+        return all(Path(f).exists() for f in get_final_file_list(ocr_model_name))
+
+    def _download_ocr_v6_in_background(self) -> None:
+        """
+        后台下载 V6 模型 下载成功后落盘配置 下次启动自动生效
+        已有下载任务进行中时 不重复启动
+        """
+        if self._ocr_v6_downloading:
+            return
+        self._ocr_v6_downloading = True
+
+        def download_task() -> None:
+            try:
+                v6_matcher = OnnxOcrMatcher(
+                    OnnxOcrParam(
+                        ocr_model_name=PPOCRV6_MODEL_NAME,
+                    )
+                )
+                done = v6_matcher.download(
+                    download_by_github=True,
+                    download_by_gitee=False,
+                    download_by_mirror_chan=False,
+                    ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+                    proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+                )
+                if done:
+                    # 只落盘配置 不立刻切换 避免切换失败导致当前可用的 V5 失效
+                    self.model_config.ocr = PPOCRV6_MODEL_NAME
+                    log.info('OCR V6 后台下载完成 配置已更新 下次启动自动切换')
+                else:
+                    log.error('OCR V6 后台下载失败 保持当前 V5 可用 下次启动再试')
+            except Exception:
+                log.error('OCR V6 后台下载异常 保持当前 V5 可用 下次启动再试', exc_info=True)
+            finally:
+                self._ocr_v6_downloading = False
+
+        threading.Thread(target=download_task, daemon=True, name='ocr_v6_download').start()
 
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据
