@@ -23,7 +23,7 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
-from one_dragon.envs.env_config import GitBranchEnum, ProxyTypeEnum
+from one_dragon.envs.env_config import ProxyTypeEnum
 from one_dragon.envs.git_service import GitLog, GitSyncStatus
 from one_dragon.envs.repo_config import ModelResourceDefinition
 from one_dragon.envs.update_service import LauncherType
@@ -147,7 +147,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
             icon=FluentIcon.GITHUB,
             title='代码分支',
             content='主分支用于稳定版本，测试分支用于提前体验新功能',
-            options_enum=GitBranchEnum,
+            options_list=self.ctx.repo_config.branch_options,
         )
         self.git_branch_opt.value_changed.connect(self._on_git_branch_changed)
 
@@ -735,7 +735,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
         text = self.custom_git_branch_lineedit.text()
         fallback = self.git_branch_opt.getValue()
         if fallback is None:
-            fallback = GitBranchEnum.MAIN.value.value
+            fallback = self.ctx.repo_config.primary_branch
         self.ctx.env_config.git_branch = text if text else str(fallback)
         self.code_card.check_and_update_display()
 
