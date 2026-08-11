@@ -361,7 +361,7 @@ class ResourceUpdateCoordinator(QObject):
     def _build_launcher_specs(self) -> list[ResourceDownloadSpec]:
         """构造当前已安装启动器的更新下载项。"""
         update_service = self.ctx.update_service
-        launcher_type = update_service.detect_installed_launcher_type() or 'launcher'
+        launcher_type = update_service.detect_running_launcher_type() or 'launcher'
         current, stable, beta = update_service.get_launcher_version_info(launcher_type)
         target = update_service.get_launcher_target_version(current, stable, beta)
         if not target or current == target:

@@ -1,9 +1,9 @@
 from contextlib import suppress
 
 from packaging import version
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
-from qfluentwidgets import ComboBox, FluentIcon, FluentThemeColor
+from qfluentwidgets import FluentIcon, FluentThemeColor
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
@@ -53,61 +53,35 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def __init__(self, ctx: OneDragonEnvContext) -> None:
         self.ctx: OneDragonEnvContext = ctx
-        self._launcher_type: LauncherType = 'launcher'
+        # 只处理当前正在运行的启动器类型 另一种类型不提供下载入口
+        self._launcher_type: LauncherType = (
+            ctx.update_service.detect_running_launcher_type() or 'launcher'
+        )
         self.version_checker = LauncherVersionChecker(ctx.update_service, self._launcher_type)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
-        self._retired_checkers: list[LauncherVersionChecker] = []  # 已替换但仍在运行的检查线程
         self.target_version = "latest"
         self.current_version: str | None = None
         self.latest_stable: str | None = None
         self.latest_beta: str | None = None
 
+        launcher_title = (
+            gt('集成启动器')
+            if self._launcher_type == 'runtime'
+            else gt('原始启动器')
+        )
         ZipDownloaderSettingCard.__init__(
             self,
             ctx=ctx,
             icon=FluentIcon.INFO,
-            title=gt('启动器'),
+            title=launcher_title,
             content=gt('检查中...'),
         )
-
-        # 启动器类型下拉框
-        self.type_combo = ComboBox()
-        self.type_combo.addItem(gt('原始启动器'), userData='launcher')
-        self.type_combo.addItem(gt('集成启动器'), userData='runtime')
-        self.type_combo.currentIndexChanged.connect(self._on_type_changed)
-        self.btn_layout.insertWidget(1, self.type_combo, alignment=Qt.AlignmentFlag.AlignRight)
 
         # 通道选项：稳定版 / 测试版
         self.set_options_by_list([
             ConfigItem('稳定版', 'stable'),
             ConfigItem('测试版', 'beta')
         ])
-
-    # ---- 启动器类型 ----
-
-    def _on_type_changed(self, _index: int) -> None:
-        self._launcher_type = self.type_combo.currentData()
-        self._refresh_queue_task_key()
-        # 断开旧检查器信号，避免竞态覆盖
-        old_checker = self.version_checker
-        old_checker.check_finished.disconnect(self._on_version_check_finished)
-        if old_checker.isRunning():
-            # 旧线程仍在运行 先持有引用 等线程结束后再释放 避免 QThread 被提前销毁
-            self._retired_checkers.append(old_checker)
-            old_checker.finished.connect(
-                lambda checker=old_checker: self._retired_checkers.remove(checker)
-            )
-        # 重建版本检查器（指向不同启动器类型）
-        self.version_checker = LauncherVersionChecker(
-            self.ctx.update_service,
-            self._launcher_type,
-        )
-        self.version_checker.check_finished.connect(self._on_version_check_finished)
-        # 重置版本状态，触发重新检查
-        self.current_version = None
-        self.latest_stable = None
-        self.latest_beta = None
-        self.check_and_update_display()
 
     def _get_downloader_param(self, _idx: int | None = None) -> CommonDownloaderParam:
         return self.ctx.update_service.get_launcher_download_param(
@@ -207,7 +181,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         """
         if self.download_queue is not None and self._apply_queue_display_state():
             self.combo_box.setEnabled(True)
-            self.type_combo.setEnabled(True)
             self.cancel_btn.setVisible(False)
             return
 
@@ -223,12 +196,10 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setText(gt('下载中'))
             self.download_btn.setDisabled(True)
             self.combo_box.setDisabled(True)
-            self.type_combo.setDisabled(True)
             return
 
         # 启用下拉框
         self.combo_box.setEnabled(True)
-        self.type_combo.setEnabled(True)
 
         # 检查版本检查线程状态
         is_checking = self.version_checker.isRunning()
