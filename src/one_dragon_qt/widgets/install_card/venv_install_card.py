@@ -1,10 +1,10 @@
+
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
-from typing import Tuple
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
 
 
 class VenvInstallCard(BaseInstallCard):
@@ -29,16 +29,18 @@ class VenvInstallCard(BaseInstallCard):
         else:
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
-    def get_display_content(self) -> Tuple[QIcon, str]:
+    def get_display_content(self) -> tuple[QIcon, str]:
         """
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
         """
         is_synced = self.ctx.python_service.uv_check_sync_status()
         if is_synced:
+            self._installed = True
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             msg = f"{gt('环境已同步')}"
         else:
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('环境未同步，请点击默认安装更新')
 

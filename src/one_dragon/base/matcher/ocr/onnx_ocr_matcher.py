@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import os
 import threading
 import time
 from collections.abc import Callable
 from logging import DEBUG
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cv2.typing import MatLike
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
 
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils

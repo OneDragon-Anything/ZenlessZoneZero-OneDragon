@@ -1,13 +1,11 @@
-import os
+from collections.abc import Callable
+
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
-from typing import Tuple, Optional, Callable
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
-from one_dragon.utils import cmd_utils, os_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
 
 
 class GamepadInstallCard(BaseInstallCard):
@@ -21,6 +19,7 @@ class GamepadInstallCard(BaseInstallCard):
             install_method=self.install_requirements,
             parent=parent
         )
+        self.include_in_one_click = False  # 虚拟手柄是可选项，不进一键安装
 
     def after_progress_done(self, success: bool, msg: str) -> None:
         """
@@ -34,24 +33,27 @@ class GamepadInstallCard(BaseInstallCard):
         else:
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
-    def get_display_content(self) -> Tuple[QIcon, str]:
+    def get_display_content(self) -> tuple[QIcon, str]:
         """
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
         """
         if not self.ctx.env_config.uv_path:
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
             msg = gt('未配置 UV')
         elif not self.ctx.python_service.uv_check_sync_status(groups=['gamepad']):
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
             msg = gt('需更新')
         else:
+            self._installed = True
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             msg = f"{gt('已安装')}"
 
         return icon, msg
 
-    def install_requirements(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
+    def install_requirements(self, progress_callback: Callable[[float, str], None] | None) -> tuple[bool, str]:
         """
         安装依赖
         :return:

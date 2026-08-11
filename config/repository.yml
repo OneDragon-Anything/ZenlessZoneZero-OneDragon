@@ -51,3 +51,36 @@ pip_source:
     pypi:
       label: 官方
       value: "https://pypi.org/simple"
+regions:
+  china_cnb:
+    label: 中国 - CNB
+    repository: cnb
+    values:
+      env_source: "https://cnb.cool/OneDragon-Anything/OneDragon-Env/-/releases/download"
+      cpython_source: "https://cnb.cool/OneDragon-Anything/OneDragon-Env/-/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: "None"
+  china_gitee:
+    label: 中国 - Gitee
+    repository: gitee
+    values:
+      env_source: "https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: "None"
+  china_ghproxy:
+    label: 中国 - GitHub 代理
+    repository: github
+    values:
+      env_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      pip_source: "https://mirrors.aliyun.com/pypi/simple"
+      proxy_type: ghproxy
+  oversea:
+    label: 海外
+    repository: github
+    values:
+      env_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      cpython_source: "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download"
+      pip_source: "https://pypi.org/simple"
+      proxy_type: "None"

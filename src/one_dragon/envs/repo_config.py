@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils.log_utils import log
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,20 @@ class RepositoryBranch:
     @property
     def config_item(self) -> ConfigItem:
         return ConfigItem(self.label, self.branch_name, self.desc)
+
+
+@dataclass(frozen=True)
+class RegionPreset:
+    """YAML 中的一项代码源地区预设。"""
+
+    region_id: str
+    label: str
+    repository_id: str
+    values: dict[str, str]
+
+    @property
+    def config_item(self) -> ConfigItem:
+        return ConfigItem(self.label, self.region_id)
 
 
 @dataclass(frozen=True)
@@ -75,68 +90,80 @@ class RepoConfig(YamlConfig):
             main:
               label: 默认
               value: https://example.com/env/releases/download
+
+    配置容错约定：任何字段缺失或无效都不会抛异常，缺省时回退默认值，
+    无效项直接跳过，保证配置文件不完整时程序也能正常启动。
     """
 
     AUTO_REPOSITORY_VALUE = 'auto'
-    _SOURCE_EXCLUDED_KEYS = {'repositories'}
+    DEFAULT_BRANCH = 'main'
+    _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions'}
+    # 内置兜底下载源：配置文件缺失对应源时使用，保证任何情况下都有可用源
+    _BUILTIN_SOURCE_OPTIONS: dict[str, tuple[SourceOption, ...]] = {
+        'env_source': (
+            SourceOption('github', 'GitHub 官方', 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download'),
+        ),
+        'pip_source': (
+            SourceOption('pypi', 'PyPI 官方', 'https://pypi.org/simple'),
+        ),
+    }
+    # 内置兜底代码源：配置文件完全没有 repositories 时使用
+    _BUILTIN_REPOSITORIES: tuple[RepositoryItem, ...] = (
+        RepositoryItem(
+            'github', 'GitHub 官方',
+            'https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git',
+            True,
+        ),
+    )
 
     def __init__(self, resource_first: bool = False) -> None:
         YamlConfig.__init__(self, module_name='repository', resource_first=resource_first)
         repository_config = self._get_repository_config()
+
+        self.branches: tuple[RepositoryBranch, ...] = self._load_branches(repository_config)
         primary_branch = repository_config.get('primary_branch', '')
         if not isinstance(primary_branch, str) or not primary_branch.strip():
-            raise ValueError('repositories 必须配置 primary_branch')
+            primary_branch = self.branches[0].branch_name if self.branches else self.DEFAULT_BRANCH
         self.primary_branch: str = primary_branch
-        self.branches: tuple[RepositoryBranch, ...] = self._load_branches(repository_config)
-        if not any(branch.branch_name == self.primary_branch for branch in self.branches):
-            raise ValueError(
-                f'repositories.primary_branch {self.primary_branch} 不在 repositories.branches 中'
-            )
+
         self.repositories: tuple[RepositoryItem, ...] = self._load_repositories(repository_config)
         self._repositories_by_id: dict[str, RepositoryItem] = {
             repository.repository_id: repository for repository in self.repositories
         }
-        primary_repository_id = repository_config.get('primary', '')
-        if not isinstance(primary_repository_id, str) or not primary_repository_id:
-            raise ValueError('repositories 必须配置 primary')
-        self.primary_repository: RepositoryItem = self._get_repository(
-            primary_repository_id,
-            '主仓库',
-        )
+        self.primary_repository: RepositoryItem = self._get_primary_repository(repository_config)
+        self.regions: tuple[RegionPreset, ...] = self._load_regions(repository_config)
+        self._regions_by_id: dict[str, RegionPreset] = {
+            region.region_id: region for region in self.regions
+        }
+
         self.sources: dict[str, tuple[SourceOption, ...]] = self._load_sources()
         self.source_defaults: dict[str, str] = self._load_source_defaults()
 
     def _get_repository_config(self) -> dict:
         raw_repositories = self.get('repositories', {})
-        if not isinstance(raw_repositories, dict):
-            raise ValueError('config/repository.yml 必须配置 repositories')
-        if not raw_repositories:
-            raise ValueError('repositories 必须配置 primary')
-        if 'primary' not in raw_repositories:
-            raise ValueError('repositories 必须配置 primary')
-        if 'primary_branch' not in raw_repositories:
-            raise ValueError('repositories 必须配置 primary_branch')
-        if 'branches' not in raw_repositories:
-            raise ValueError('repositories 必须配置 branches')
-        if 'options' not in raw_repositories:
-            raise ValueError('repositories 必须配置 options')
+        if not isinstance(raw_repositories, dict) or not raw_repositories:
+            log.warning('config/repository.yml 缺少 repositories 配置，将使用空配置')
+            return {}
         return raw_repositories
 
     def _load_branches(self, repository_config: dict) -> tuple[RepositoryBranch, ...]:
         raw_branches = repository_config.get('branches', {})
         if not isinstance(raw_branches, dict) or not raw_branches:
-            raise ValueError('repositories.branches 必须配置代码分支')
+            return ()
 
         branches: list[RepositoryBranch] = []
         for branch_name, raw_branch in raw_branches.items():
             if not isinstance(branch_name, str) or not branch_name or not isinstance(raw_branch, dict):
-                raise ValueError('代码分支配置必须是分支名到对象的映射')
+                log.warning(f'跳过无效代码分支配置: {branch_name}')
+                continue
             label = raw_branch.get('label', '')
             desc = raw_branch.get('desc', '')
             if not isinstance(label, str) or not label:
-                raise ValueError(f'代码分支 {branch_name} 必须配置 label')
+                log.warning(f'跳过无效代码分支 {branch_name}: 缺少 label')
+                continue
             if not isinstance(desc, str):
-                raise ValueError(f'代码分支 {branch_name} 的 desc 必须是字符串')
+                log.warning(f'跳过无效代码分支 {branch_name}: desc 不是字符串')
+                continue
             branches.append(
                 RepositoryBranch(
                     branch_name=branch_name,
@@ -149,22 +176,27 @@ class RepoConfig(YamlConfig):
     def _load_repositories(self, repository_config: dict) -> tuple[RepositoryItem, ...]:
         raw_repositories = repository_config.get('options', {})
         if not isinstance(raw_repositories, dict) or not raw_repositories:
-            raise ValueError('repositories.options 必须配置代码源')
+            log.warning('repositories.options 缺失，使用内置默认代码源')
+            return self._BUILTIN_REPOSITORIES
 
         repositories: list[RepositoryItem] = []
         for repository_id, raw_repository in raw_repositories.items():
-            if not isinstance(repository_id, str) or not isinstance(raw_repository, dict):
-                raise ValueError('代码源配置必须是 ID 到对象的映射')
+            if not isinstance(repository_id, str) or not repository_id or not isinstance(raw_repository, dict):
+                log.warning(f'跳过无效代码源配置: {repository_id}')
+                continue
             label = raw_repository.get('label', '')
             url = raw_repository.get('url', '')
             use_proxy = raw_repository.get('use_proxy', False)
-            if not repository_id or not isinstance(label, str) or not label or not isinstance(url, str) or not url:
-                raise ValueError(f'代码源 {repository_id} 必须配置 label 和 url')
+            if not isinstance(label, str) or not label or not isinstance(url, str) or not url:
+                log.warning(f'跳过无效代码源 {repository_id}: 缺少 label 或 url')
+                continue
             if not isinstance(use_proxy, bool):
-                raise ValueError(f'代码源 {repository_id} 的 use_proxy 必须是布尔值')
+                log.warning(f'跳过无效代码源 {repository_id}: use_proxy 不是布尔值')
+                continue
             parsed_url = urlparse(url)
             if parsed_url.scheme != 'https' or not parsed_url.netloc:
-                raise ValueError(f'代码源 {repository_id} 必须使用 HTTPS 链接')
+                log.warning(f'跳过无效代码源 {repository_id}: 必须使用 HTTPS 链接')
+                continue
             repositories.append(
                 RepositoryItem(
                     repository_id=repository_id,
@@ -175,9 +207,57 @@ class RepoConfig(YamlConfig):
             )
         return tuple(repositories)
 
+    def _get_primary_repository(self, repository_config: dict) -> RepositoryItem:
+        """获取主代码源，缺失或无效时回退到第一个可用代码源。"""
+        primary_repository_id = repository_config.get('primary', '')
+        if isinstance(primary_repository_id, str) and primary_repository_id:
+            repository = self._repositories_by_id.get(primary_repository_id)
+            if repository is not None:
+                return repository
+        if self.repositories:
+            log.warning(f'主代码源 {primary_repository_id} 不可用，回退到 {self.repositories[0].repository_id}')
+            return self.repositories[0]
+        log.warning('没有可用的代码源配置')
+        return RepositoryItem('', '', '', False)
+
+    def _load_regions(self, repository_config: dict) -> tuple[RegionPreset, ...]:
+        raw_regions = self.get('regions', {})
+        if not isinstance(raw_regions, dict) or not raw_regions:
+            return ()
+
+        regions: list[RegionPreset] = []
+        for region_id, raw_region in raw_regions.items():
+            if not isinstance(region_id, str) or not region_id or not isinstance(raw_region, dict):
+                log.warning(f'跳过无效地区预设配置: {region_id}')
+                continue
+            label = raw_region.get('label', '')
+            repository_id = raw_region.get('repository', '')
+            values = raw_region.get('values', {})
+            if not isinstance(label, str) or not label or not isinstance(repository_id, str) or not repository_id:
+                log.warning(f'跳过无效地区预设 {region_id}: 缺少 label 或 repository')
+                continue
+            if not isinstance(values, dict) or any(
+                not isinstance(key, str) or not isinstance(value, str)
+                for key, value in values.items()
+            ):
+                log.warning(f'跳过无效地区预设 {region_id}: values 必须是字符串映射')
+                continue
+            if self._repositories_by_id.get(repository_id) is None:
+                log.warning(f'跳过无效地区预设 {region_id}: 代码源 {repository_id} 不存在')
+                continue
+            regions.append(
+                RegionPreset(
+                    region_id=region_id,
+                    label=label,
+                    repository_id=repository_id,
+                    values=dict(values),
+                )
+            )
+        return tuple(regions)
+
     def _load_sources(self) -> dict[str, tuple[SourceOption, ...]]:
         if 'sources' in self.data:
-            raise ValueError('config/repository.yml 不再支持顶层 sources，请将下载源配置放到顶层')
+            log.warning('config/repository.yml 不再支持顶层 sources，已忽略')
         if not isinstance(self.data, dict):
             return {}
 
@@ -186,20 +266,29 @@ class RepoConfig(YamlConfig):
             if source_name in self._SOURCE_EXCLUDED_KEYS:
                 continue
             if not isinstance(source_name, str) or not isinstance(raw_source_group, dict):
-                raise ValueError('下载源配置必须是名称到对象的映射')
+                log.warning(f'跳过无效下载源配置: {source_name}')
+                continue
             raw_options = raw_source_group.get('options', {})
             if not isinstance(raw_options, dict):
-                raise ValueError(f'下载源 {source_name} 的 options 必须是映射')
+                log.warning(f'跳过无效下载源 {source_name}: options 不是映射')
+                continue
             options: list[SourceOption] = []
             for source_id, raw_option in raw_options.items():
-                if not isinstance(source_id, str) or not isinstance(raw_option, dict):
-                    raise ValueError(f'下载源 {source_name} 的选项配置无效')
+                if not isinstance(source_id, str) or not source_id or not isinstance(raw_option, dict):
+                    log.warning(f'跳过无效下载源 {source_name} 的选项: {source_id}')
+                    continue
                 label = raw_option.get('label', '')
                 value = raw_option.get('value', '')
                 if not isinstance(label, str) or not label or not isinstance(value, str) or not value:
-                    raise ValueError(f'下载源 {source_name} 的选项必须配置 label 和 value')
+                    log.warning(f'跳过无效下载源 {source_name} 的选项 {source_id}: 缺少 label 或 value')
+                    continue
                 options.append(SourceOption(source_id, label, value))
             sources[source_name] = tuple(options)
+        # 配置缺失的常用下载源用内置官方源兜底
+        for builtin_name, builtin_options in self._BUILTIN_SOURCE_OPTIONS.items():
+            if not sources.get(builtin_name):
+                log.warning(f'下载源 {builtin_name} 未配置，使用内置官方源')
+                sources[builtin_name] = builtin_options
         return sources
 
     def _load_source_defaults(self) -> dict[str, str]:
@@ -207,24 +296,23 @@ class RepoConfig(YamlConfig):
         for source_name, raw_source_group in self.data.items():
             if source_name in self._SOURCE_EXCLUDED_KEYS or not isinstance(raw_source_group, dict):
                 continue
-            default_id = raw_source_group.get('default', '')
             options = self.sources.get(source_name, ())
+            if not options:
+                continue
+            default_id = raw_source_group.get('default', '')
             default_option = next(
                 (option for option in options if option.source_id == default_id),
                 None,
             )
-            if not isinstance(default_id, str) or not default_id:
-                raise ValueError(f'下载源 {source_name} 必须配置 default')
             if default_option is None:
-                raise ValueError(f'下载源 {source_name} 的默认值 {default_id} 不在 options 中')
+                default_option = options[0]
+                log.warning(f'下载源 {source_name} 的默认值 {default_id} 无效，回退到 {default_option.source_id}')
             defaults[source_name] = default_option.value
+        # 内置兜底源的默认值
+        for builtin_name, builtin_options in self._BUILTIN_SOURCE_OPTIONS.items():
+            if builtin_name not in defaults and builtin_options:
+                defaults[builtin_name] = builtin_options[0].value
         return defaults
-
-    def _get_repository(self, repository_id: str, field_name: str) -> RepositoryItem:
-        repository = self._repositories_by_id.get(repository_id)
-        if repository is None:
-            raise ValueError(f'{field_name} {repository_id} 不在 repositories.options 中')
-        return repository
 
     @property
     def branch_options(self) -> list[ConfigItem]:
@@ -239,12 +327,21 @@ class RepoConfig(YamlConfig):
             *(repository.config_item for repository in self.repositories),
         ]
 
+    @property
+    def region_options(self) -> list[ConfigItem]:
+        """获取供设置界面使用的地区预设选项。"""
+        return [region.config_item for region in self.regions]
+
     def find_repository(self, value: str) -> RepositoryItem | None:
         """按仓库 ID、显示标题或 URL 查找代码源。"""
         for repository in self.repositories:
             if value in (repository.repository_id, repository.label, repository.url):
                 return repository
         return None
+
+    def get_region_preset(self, region_id: str) -> RegionPreset | None:
+        """按地区 ID 查找地区预设。"""
+        return self._regions_by_id.get(region_id)
 
     def get_source_options(self, source_name: str) -> list[ConfigItem]:
         """获取指定下载源的设置选项。"""

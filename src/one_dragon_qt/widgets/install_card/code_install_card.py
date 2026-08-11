@@ -95,17 +95,21 @@ class CodeInstallCard(BaseInstallCard):
         """
         current_branch = self.ctx.git_service.get_current_branch()
         if current_branch is None:
+            self._installed = False
             return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码')
         elif current_branch != self.ctx.env_config.git_branch:
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
             msg = f"{gt('当前分支')}: {current_branch}; {gt('建议分支')}: {self.ctx.env_config.git_branch}; {gt('不自动同步')}"
             return icon, msg
         else:
             latest, msg = self.ctx.git_service.is_current_branch_latest()
             if latest:
+                self._installed = True
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('代码已同步')}" + ' ' + current_branch
             else:
+                self._installed = False
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
 
             if self.updated:

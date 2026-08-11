@@ -1,6 +1,5 @@
 import re
-
-import requests
+import urllib.request
 
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.utils.log_utils import log
@@ -22,9 +21,9 @@ class GhProxyService:
             'Referer': 'https://ghproxy.link/'
         }
         try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            js_content = response.text
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=10) as response:
+                js_content = response.read().decode('utf-8', errors='ignore')
         except Exception:
             log.error('自动获取免费代理地址失败', exc_info=True)
             return False

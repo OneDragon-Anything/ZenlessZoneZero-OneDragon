@@ -77,8 +77,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         # 启动器类型下拉框
         self.type_combo = ComboBox()
-        self.type_combo.addItem(gt('原始启动器'), userData='launcher')
-        self.type_combo.addItem(gt('集成启动器'), userData='runtime')
+        self.type_combo.addItem(gt('开发者启动器'), userData='launcher')
+        self.type_combo.addItem(gt('用户启动器'), userData='runtime')
         self.type_combo.currentIndexChanged.connect(self._on_type_changed)
         self.btn_layout.insertWidget(1, self.type_combo, alignment=Qt.AlignmentFlag.AlignRight)
 

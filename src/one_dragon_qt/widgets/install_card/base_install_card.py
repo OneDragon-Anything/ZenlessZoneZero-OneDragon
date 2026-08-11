@@ -1,22 +1,25 @@
-from PySide6.QtCore import Signal, QThread
+from collections.abc import Callable
+
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, PrimaryPushButton
-from typing import Optional, Callable, Tuple, List
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 
 
 class InstallRunner(QThread):
     progress_changed = Signal(float, str)
     finished = Signal(bool, str)
 
-    def __init__(self, method: Callable[[Callable[[float, str], None]], Tuple[bool, str]]):
+    def __init__(self, method: Callable[[Callable[[float, str], None]], tuple[bool, str]]):
         super().__init__()
-        self.method: Callable[[Callable[[float, str], None]], Tuple[bool, str]] = method
+        self.method: Callable[[Callable[[float, str], None]], tuple[bool, str]] = method
 
     def run(self):
         """
@@ -40,10 +43,10 @@ class DisplayChecker(QThread):
 
     finished = Signal(QIcon, str)
 
-    def __init__(self, method: Callable[[], Tuple[QIcon, str]]):
+    def __init__(self, method: Callable[[], tuple[QIcon, str]]):
         super().__init__()
 
-        self.method: Callable[[], Tuple[QIcon, str]] = method
+        self.method: Callable[[], tuple[QIcon, str]] = method
 
     def run(self):
         """
@@ -63,15 +66,17 @@ class BaseInstallCard(MultiPushSettingCard):
     def __init__(self,
                  ctx: OneDragonEnvContext,
                  title_cn: str,
-                 install_method: Callable[[Callable[[float, str], None]], Tuple[bool, str]],
+                 install_method: Callable[[Callable[[float, str], None]], tuple[bool, str]],
                  install_btn_icon: FluentIcon = FluentIcon.DOWN,
-                 install_btn_text_cn: str = '默认安装',
+                 install_btn_text_cn: str = '独立安装',
                  content_cn: str = '未安装',
-                 left_widgets: List[QWidget] = None,
+                 left_widgets: list[QWidget] = None,
                  parent=None
                  ):
         self.ctx: OneDragonEnvContext = ctx
         self.title: str = gt(title_cn)
+        self._installed: bool = False  # 最近一次状态检查是否已安装，用于切换按钮文字
+        self.include_in_one_click: bool = True  # 是否参与底部「一键安装」，虚拟手柄等可选组件设 False
 
         btn_list = []
         if left_widgets is not None:
@@ -152,14 +157,14 @@ class BaseInstallCard(MultiPushSettingCard):
         self.setContent(gt('检查中'))
         self.display_checker.start()
 
-    def get_display_content(self) -> Tuple[QIcon, str]:
+    def get_display_content(self) -> tuple[QIcon, str]:
         """
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
         """
         pass
 
-    def update_display(self, icon: Optional[QIcon], message: str):
+    def update_display(self, icon: QIcon | None, message: str):
         """
         更新显示
         :param icon: 图标
@@ -170,3 +175,13 @@ class BaseInstallCard(MultiPushSettingCard):
             self.setContent(message)
         if icon is not None:
             self.iconLabel.setIcon(icon)
+        self.install_btn.setText(gt('重新安装') if self._installed else gt('独立安装'))
+
+    def update_install_btn_by_installed(self, installed: bool) -> None:
+        """
+        根据是否已安装切换按钮文字：已安装 -> 重新安装；未安装 -> 独立安装
+        :param installed: 是否已安装
+        :return:
+        """
+        self._installed = installed
+        self.install_btn.setText(gt('重新安装') if installed else gt('独立安装'))

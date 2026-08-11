@@ -2,6 +2,7 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon_qt.app.installer import InstallerWindowBase
 from one_dragon_qt.view.installer_interface import InstallerInterface
 from zzz_od.gui.view.installer.gamepad_install_card import GamepadInstallCard
+from zzz_od.gui.view.installer.model_install_card import ModelInstallCard
 
 
 class ZInstallerWindow(InstallerWindowBase):
@@ -33,7 +34,7 @@ class ZInstallerWindow(InstallerWindowBase):
 
     def create_sub_interface(self):
         # 创建主安装界面
-        extend_install_cards = [GamepadInstallCard(self.ctx)]
+        extend_install_cards = [ModelInstallCard(self.ctx), GamepadInstallCard(self.ctx)]
         self.main_installer_interface = InstallerInterface(self.ctx, parent=self,
                                                            extra_install_cards=extend_install_cards)
         self.add_sub_interface(self.main_installer_interface)

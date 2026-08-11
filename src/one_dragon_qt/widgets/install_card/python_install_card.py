@@ -1,12 +1,14 @@
 import os
+
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
-from typing import Tuple
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import DEFAULT_VENV_DIR_PATH, DEFAULT_VENV_PYTHON_PATH
-from one_dragon_qt.widgets.install_card.wtih_existed_install_card import WithExistedInstallCard
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.install_card.wtih_existed_install_card import (
+    WithExistedInstallCard,
+)
 
 
 class PythonInstallCard(WithExistedInstallCard):
@@ -40,7 +42,7 @@ class PythonInstallCard(WithExistedInstallCard):
         else:
             self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
-    def get_display_content(self) -> Tuple[QIcon, str]:
+    def get_display_content(self) -> tuple[QIcon, str]:
         """
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
@@ -48,24 +50,30 @@ class PythonInstallCard(WithExistedInstallCard):
         python_path = self.ctx.env_config.python_path
 
         if python_path == '':
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = f"{gt('未安装。可选择手动创建')} {DEFAULT_VENV_DIR_PATH}"
         elif not os.path.exists(python_path):
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('文件不存在') + ' ' + python_path
         elif python_path != DEFAULT_VENV_PYTHON_PATH:
+            self._installed = False
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = f"{gt('请确保手动创建的虚拟环境目录为')}: {DEFAULT_VENV_DIR_PATH}"
         else:
             python_version = self.ctx.python_service.get_python_version()
             if python_version is None:
+                self._installed = False
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
                 msg = gt('无法获取 Python 版本') + ' ' + python_path
             elif not python_version.startswith(self.ctx.project_config.python_version):
+                self._installed = False
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
                 msg = (f"{gt('当前版本')}: {python_version}; {gt('建议版本')}: {self.ctx.project_config.python_version}"
                        + ' ' + python_path)
             else:
+                self._installed = True
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('已安装')}" + ' ' + python_path
 

@@ -1,6 +1,10 @@
-from collections.abc import Callable
+from __future__ import annotations
 
-from cv2.typing import MatLike
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList
