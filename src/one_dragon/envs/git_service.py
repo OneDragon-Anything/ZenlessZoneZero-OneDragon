@@ -29,7 +29,13 @@ from pygit2 import (
     init_repository,
     settings,
 )
-from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
+from pygit2.enums import (
+    CheckoutStrategy,
+    ConfigLevel,
+    ReferenceType,
+    ResetMode,
+    SortMode,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
@@ -884,8 +890,10 @@ class GitService:
 
         callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
 
+        hidden_refs: list[tuple[str, Oid]] = []
         try:
             log.info(f'开始导入临时 Git 仓库: {remote_path}')
+            hidden_refs = self._hide_non_commit_refs(active_repo)
             active_repo.remotes.create(remote_name, remote_path)
             active_repo.config[f'remote.{remote_name}.tagopt'] = '--no-tags'
             remote = active_repo.remotes[remote_name]
@@ -932,6 +940,18 @@ class GitService:
             except Exception:
                 log.error('恢复 Git 导入前状态失败', exc_info=True)
             raise
+        finally:
+            if hidden_refs:
+                try:
+                    restore_repo = self._open_repo()
+                    self._restore_hidden_refs(restore_repo, hidden_refs)
+                    restore_repo.free()
+                except Exception:
+                    log.error(
+                        '恢复导入前隐藏的非 commit 引用失败，对象仍保留在对象库，'
+                        '可用 git fsck --lost-found 找回',
+                        exc_info=True,
+                    )
 
     def _fetch_remote_once(
         self,
@@ -1116,6 +1136,45 @@ class GitService:
         if 'object not found' in message:
             return True
         return re.fullmatch(r"'{0,1}[0-9a-f]{40}'{0,1}", message) is not None
+
+    @staticmethod
+    def _hide_non_commit_refs(repo: Repository) -> list[tuple[str, Oid]]:
+        """删除指向非 commit 对象的引用并记录原名与目标，规避 libgit2 导入报错。
+
+        libgit2 本地 transport 导入 fetch 时会枚举正式仓库的全部引用做 revwalk
+        hide，若某个引用指向 tree/blob 等非 commit 对象（如 Codex CLI 的
+        checkpoint 引用），会报 "object is not a committish" 导致代码同步失败。
+        导入前临时删除这些引用，导入完成后按记录重建；对象本身仍留在对象库，
+        重建不丢数据。
+        """
+        hidden: list[tuple[str, Oid]] = []
+        for ref_name in list(repo.references):
+            ref = repo.references[ref_name]
+            if ref.type != ReferenceType.DIRECT:
+                continue
+            try:
+                repo[ref.target].peel(Commit)
+            except Exception:
+                pass
+            else:
+                continue
+            hidden.append((ref.name, ref.target))
+            repo.references.delete(ref.name)
+        if hidden:
+            log.info(
+                '导入前临时隐藏 %d 个非 commit 引用: %s',
+                len(hidden),
+                ', '.join(name for name, _ in hidden),
+            )
+        return hidden
+
+    @staticmethod
+    def _restore_hidden_refs(repo: Repository, hidden: list[tuple[str, Oid]]) -> None:
+        """按记录重建导入前删除的非 commit 引用。"""
+        for ref_name, target in hidden:
+            repo.references.create(ref_name, target, force=True)
+        if hidden:
+            log.info(f'已恢复 {len(hidden)} 个非 commit 引用')
 
     def _rebuild_repository(
         self,
