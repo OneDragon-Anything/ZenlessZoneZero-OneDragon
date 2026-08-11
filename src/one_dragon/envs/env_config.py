@@ -232,22 +232,6 @@ class EnvConfig(YamlConfig):
         self.update('auto_update_code', new_value)
 
     @property
-    def cpython_source(self) -> str:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        return self.get('cpython_source', self.repo_config.get_source_default('cpython_source'))
-
-    @cpython_source.setter
-    def cpython_source(self, new_value: str) -> None:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        self.update('cpython_source', new_value)
-
-    @property
     def pip_source(self) -> str:
         """
         pip源

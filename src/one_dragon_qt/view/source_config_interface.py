@@ -107,12 +107,6 @@ class SourceConfigInterface(VerticalScrollInterface):
             options_list=self.ctx.repo_config.get_source_options('env_source'),
         )
 
-        self.cpython_source_opt = ComboBoxSettingCard(
-            icon=FluentIcon.DOWNLOAD,
-            title='Python下载源',
-            options_list=self.ctx.repo_config.get_source_options('cpython_source'),
-        )
-
         self.pip_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.APPLICATION,
             title='Pip源',
@@ -127,7 +121,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         )
 
         # 创建横向布局组件
-        first_row = HorizontalSettingCardGroup([self.repository_url_opt, self.cpython_source_opt])
+        first_row = HorizontalSettingCardGroup([self.repository_url_opt])
         second_row = HorizontalSettingCardGroup([self.env_source_opt, self.pip_source_opt])
 
         # 将横向布局组件添加到源组
@@ -203,7 +197,6 @@ class SourceConfigInterface(VerticalScrollInterface):
         self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
         self.resource_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('resource_source'))
         self.env_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('env_source'))
-        self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
 

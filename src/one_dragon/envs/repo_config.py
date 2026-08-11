@@ -120,7 +120,8 @@ class RepoConfig(YamlConfig):
           default:
             label: 默认
             repository: main
-            values: {}
+            values:
+              env_source: main  # 可引用下载源 options 中的选项名 会解析为对应 value
     """
 
     AUTO_REPOSITORY_VALUE = 'auto'
@@ -150,12 +151,12 @@ class RepoConfig(YamlConfig):
             primary_repository_id,
             '主仓库',
         )
+        self.sources: dict[str, tuple[SourceOption, ...]] = self._load_sources()
+        self.source_defaults: dict[str, str] = self._load_source_defaults()
         self.regions: tuple[RegionPreset, ...] = self._load_regions()
         self._regions_by_id: dict[str, RegionPreset] = {
             region.region_id: region for region in self.regions
         }
-        self.sources: dict[str, tuple[SourceOption, ...]] = self._load_sources()
-        self.source_defaults: dict[str, str] = self._load_source_defaults()
         self.resource_sources: tuple[ResourceSource, ...] = self._load_resource_sources()
         self._resource_sources_by_id: dict[str, ResourceSource] = {
             source.source_id: source for source in self.resource_sources
@@ -260,10 +261,26 @@ class RepoConfig(YamlConfig):
                     region_id=region_id,
                     label=label,
                     repository_id=repository_id,
-                    values=dict(values),
+                    values={
+                        key: self._resolve_region_value(key, value)
+                        for key, value in values.items()
+                    },
                 )
             )
         return tuple(regions)
+
+    def _resolve_region_value(self, key: str, value: str) -> str:
+        """地区预设的下载源字段引用 options 选项名 解析为对应 URL。"""
+        options = self.sources.get(key)
+        if options is None:
+            # 非下载源字段（如 proxy_type）保持原样
+            return value
+        for option in options:
+            if option.source_id == value:
+                return option.value
+        raise ValueError(
+            f'地区预设值 {key}={value} 不是下载源 {key} 的选项'
+        )
 
     def _load_sources(self) -> dict[str, tuple[SourceOption, ...]]:
         if 'sources' in self.data:

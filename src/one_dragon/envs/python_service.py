@@ -381,15 +381,3 @@ class PythonService:
             'pip_source',
             progress_callback
         )
-
-    def choose_best_cpython_source(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[str, int] | None:
-        """
-        对Python下载源进行测速 并选择最佳一个
-        :return: (最佳源的标签, 延迟ms) or None if no sources
-        """
-        return self._choose_best_source_by_ping(
-            'cpython_source',
-            gt('Python下载源'),
-            'cpython_source',
-            progress_callback
-        )
