@@ -5,7 +5,6 @@ from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import (
     BitBltScreencapper,
 )
-from one_dragon.base.controller.pc_screenshot.mss_screencapper import MssScreencapper
 from one_dragon.base.controller.pc_screenshot.pil_screencapper import PilScreencapper
 from one_dragon.base.controller.pc_screenshot.print_window_screencapper import (
     PrintWindowScreencapper,
@@ -32,7 +31,6 @@ class PcScreenshotController:
         self.strategies: dict[str, ScreencapperBase] = {
             ScreenshotMethodEnum.PRINT_WINDOW.value.value: PrintWindowScreencapper(game_win, standard_width, standard_height),
             ScreenshotMethodEnum.BITBLT.value.value: BitBltScreencapper(game_win, standard_width, standard_height),
-            ScreenshotMethodEnum.MSS.value.value: MssScreencapper(game_win, standard_width, standard_height),
             ScreenshotMethodEnum.PIL.value.value: PilScreencapper(game_win, standard_width, standard_height),
         }
         self.active_strategy_name: str | None = None
@@ -136,7 +134,6 @@ class PcScreenshotController:
         default_priority = [
             ScreenshotMethodEnum.PRINT_WINDOW.value.value,
             ScreenshotMethodEnum.BITBLT.value.value,
-            ScreenshotMethodEnum.MSS.value.value,
             ScreenshotMethodEnum.PIL.value.value,
         ]
 

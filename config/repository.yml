@@ -1,5 +1,13 @@
 repositories:
   primary: github
+  primary_branch: main
+  branches:
+    main:
+      label: 主分支
+      desc: 选择后请点击同步最新代码
+    test:
+      label: 测试分支
+      desc: 选择后请点击同步最新代码
   options:
     github:
       label: GitHub
