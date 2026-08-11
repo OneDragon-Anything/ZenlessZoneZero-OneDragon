@@ -270,7 +270,10 @@ class RepoConfig(YamlConfig):
         return tuple(regions)
 
     def _resolve_region_value(self, key: str, value: str) -> str:
-        """地区预设的下载源字段引用 options 选项名 解析为对应 URL。"""
+        """地区预设的下载源字段：完整 URL 原样保留，选项名解析为对应 URL。"""
+        if value.startswith('http://') or value.startswith('https://'):
+            # 旧格式：直接写完整 URL，保持向后兼容
+            return value
         options = self.sources.get(key)
         if options is None:
             # 非下载源字段（如 proxy_type）保持原样
