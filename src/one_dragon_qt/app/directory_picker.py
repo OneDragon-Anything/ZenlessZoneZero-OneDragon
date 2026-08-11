@@ -307,8 +307,8 @@ class DirectoryPickerInterface(QWidget):
         """校验路径合法性并应用：非法字符走状态栏提示（不再弹窗），仅保留非空目录确认弹窗。通过返回 True。"""
         ok, key, pos, ch = validate_install_path(path)
         if not ok:
-            self.selected_path = ""
             self.path_input.setText(path)
+            self.selected_path = ""
             self.path_status_label.setText(self.translator.get_text(key, pos=pos, ch=ch))
             self.path_status_label.setStyleSheet('color: #d13438;')
             self.confirm_btn.setEnabled(False)
