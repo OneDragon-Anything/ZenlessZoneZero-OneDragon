@@ -89,6 +89,7 @@ class ResourceUpdateCoordinator(QObject):
         self._suppressed_update_keys: set[str] = set()
         self._update_dialog_scheduled: bool = False
         self._update_dialog_open: bool = False
+        self._ocr_waiting: bool = False
         self._last_check_time: float = 0
         self._check_interval: float = 300
         self._checks_started: bool = False
@@ -120,7 +121,9 @@ class ResourceUpdateCoordinator(QObject):
         self._check_runners[resource_check.check_id] = runner
 
     def check_updates(self, force: bool = False) -> None:
-        """按冷却时间并行启动各资源提供器的检查。"""
+        """每次启动只检查一次；启动检查完成后，后续非强制调用不再检查。"""
+        if self._checks_started and not force:
+            return
         current_time = time.time()
         if not force and current_time - self._last_check_time <= self._check_interval:
             return
@@ -168,6 +171,7 @@ class ResourceUpdateCoordinator(QObject):
             or not self._checks_started
             or not all(self._checks_complete.values())
             or not (has_pending_update or self._pending_ocr_request is not None)
+            or self._ocr_waiting
             or self._update_dialog_scheduled
             or self._update_dialog_open
         ):
@@ -185,6 +189,7 @@ class ResourceUpdateCoordinator(QObject):
         specs = self._build_pending_specs(included_ocr_request)
         if not specs:
             self._update_dialog_open = False
+            self._reset_pending_updates()
             return
 
         self._suppressed_update_keys.update(
@@ -214,7 +219,7 @@ class ResourceUpdateCoordinator(QObject):
                         False,
                     )
                 self._update_dialog_open = False
-                self._schedule_update_dialog()
+                self._reset_pending_updates()
                 return
             selected_specs = dialog.selected_specs()
             remember_choice = dialog.remember_choice
@@ -225,6 +230,7 @@ class ResourceUpdateCoordinator(QObject):
             remember_choice,
         )
         self._update_dialog_open = False
+        self._reset_pending_updates()
         self._schedule_update_dialog()
 
     def _build_pending_specs(
@@ -314,6 +320,7 @@ class ResourceUpdateCoordinator(QObject):
             ResourceDownloadTaskState.FAILED,
             ResourceDownloadTaskState.CANCELLED,
         )
+        self._ocr_waiting = True
         if task.state in terminal_states:
             self._respond_ocr_request(
                 request,
@@ -347,6 +354,11 @@ class ResourceUpdateCoordinator(QObject):
         self.queue.task_updated.connect(_on_task_updated)
         self.queue.task_removed.connect(_on_task_removed)
 
+    def _reset_pending_updates(self) -> None:
+        """弹窗已展示并处理完毕后清除本轮待更新标记，避免立即重复弹窗。"""
+        for check_id in self._pending_updates:
+            self._pending_updates[check_id] = False
+
     def _respond_ocr_request(
         self,
         request: ContextDownloadRequestEvent,
@@ -356,6 +368,7 @@ class ResourceUpdateCoordinator(QObject):
         """结束指定 OCR 下载确认请求，不影响后来到达的新请求。"""
         if self._pending_ocr_request is request:
             self._pending_ocr_request = None
+        self._ocr_waiting = False
         request.respond(confirmed=confirmed, remember=remember)
 
     def _build_launcher_specs(self) -> list[ResourceDownloadSpec]:
