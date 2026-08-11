@@ -47,6 +47,9 @@ class InstallerInterface(VerticalScrollInterface):
         for card in self.extra_install_cards:
             card.finished.connect(self.on_install_card_finished)
         for card in self.all_install_cards:
+            if not card.include_in_one_click:
+                # 可选卡（虚拟手柄）单独安装，不走一键链式推进
+                card.finished.connect(self.on_optional_card_finished)
             card.progress_changed.connect(self.on_install_progress)
             card.check_and_update_display()
 
@@ -173,12 +176,25 @@ class InstallerInterface(VerticalScrollInterface):
         if message:
             log.info(message)
 
+    def on_optional_card_finished(self, success: bool) -> None:
+        """可选卡（虚拟手柄）单独安装结束：恢复按钮并刷新状态。"""
+        self.gamepad_btn.setEnabled(True)
+        self.gamepad_btn.setText(gt('安装虚拟手柄'))
+        for card in self.all_install_cards:
+            if not card.include_in_one_click:
+                card.check_and_update_display()
+                return
+
     # -------------------- 成功页逻辑 -------------------- #
 
     def on_gamepad_clicked(self) -> None:
         """安装虚拟手柄（控制器），不进一键安装。"""
+        if self._installing:  # 一键安装进行中，不允许并发
+            return
         for card in self.all_install_cards:
             if not card.include_in_one_click:
+                self.gamepad_btn.setDisabled(True)
+                self.gamepad_btn.setText(gt('安装中...'))
                 card.start_progress()
                 return
 
