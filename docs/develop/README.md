@@ -7,7 +7,7 @@
 - **开发环境与工具**：[快速开始](setup/quickstart.md) · [相关仓库](setup/repositories.md) · [AI 编码助手接入](setup/ai_coding.md)
 - **编码规范**：[agent_guidelines.md](spec/agent_guidelines.md)
 - **开发流程**：[端到端开发流程](development_workflow.md)
-- **架构设计**：[一条龙整体架构](one_dragon/one_dragon_architecture.md) · [集成启动器 RuntimeLauncher](one_dragon/runtime_launcher.md) · [Git 服务与代码源回退](one_dragon/modules/git_service.md) · [项目工作目录](one_dragon/modules/work_directory.md) · [模块文档](one_dragon/modules/)
+- **架构设计**：[一条龙整体架构](one_dragon/one_dragon_architecture.md) · [用户启动器 RuntimeLauncher](one_dragon/runtime_launcher.md) · [Git 服务与代码源回退](one_dragon/modules/git_service.md) · [项目工作目录](one_dragon/modules/work_directory.md) · [模块文档](one_dragon/modules/)
 - **开发指引**：[应用插件开发](guides/application_plugin_guide.md) · [应用设置界面](guides/application_setting_guide.md)
 - **游戏业务**：[自动战斗](zzz/auto_battle.md) · [进游戏](zzz/enter_game.md) · [转向与灵敏度](zzz/turn_sensitivity.md) · [功能模块](zzz/application/) · [迷失之地](zzz/application/lost_void/) · [后端服务层](zzz/backend/) · [截图存档](zzz/screenshot_archive.md)
 - **AI Harness 工程**：[总览与路线图](harness/README.md)
@@ -72,6 +72,14 @@ uv run --env-file .env pytest zzz-od-test/
 
 ### 3.1.安装器
 
+安装器是两窗口流程：
+1. **窗口1（路径选择器）**：用户选择安装目录，点「开始安装」进入安装流程
+2. **窗口2（横向卡片）**：7 张安装卡（代码 / UV / Python 虚拟环境 / 运行环境 / 模型下载 / 启动器 / 虚拟手柄），每张卡独立检查状态并支持「独立安装 / 重新安装」切换；底部「一键安装」手动触发，按序安装基础五卡 + 模型下载卡（跳过已装好的），虚拟手柄是可选组件不进一键安装；全部成功后进入成功页，可安装虚拟手柄或直接启动一条龙
+
+打包注意：
+- 版本号 `src/one_dragon/version.py` 由 CI 注入（`tools/ci/get_version.py`），本地打包前需临时写入 `__version__ = "dev+短hash"`，打包后恢复
+- spec 已显式收集 `cffi` / `_cffi_backend`（pygit2 的 cffi ABI 二进制依赖）与 Python 自带 OpenSSL DLL（剔除 Git mingw64 收集的不兼容版本）
+
 生成spec文件并打包
 
 ```shell
@@ -84,7 +92,7 @@ uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/install
 uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 ```
 
-### 3.2.启动器（原始）
+### 3.2.开发者启动器
 
 使用spec打包，会自动生成种子文件
 
@@ -92,13 +100,13 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
 
-### 3.3.集成启动器（RuntimeLauncher）
+### 3.3.用户启动器（RuntimeLauncher）
 
 > 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)
 
 #### 架构概述
 
-集成启动器将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
+用户启动器将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
 
 - **PyInstaller 目录模式**：`contents_directory='.runtime'`，运行时文件放在 `.runtime/` 子目录
 - **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
@@ -120,4 +128,4 @@ uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
 | `deploy/hook_path_inject.py` | 运行时钩子，注入 `src/` 到 `sys.path` |
 | `deploy/generate_module_manifest.py` | 生成外部依赖清单 |
 | `deploy/module_manifest.py` | 自动生成的依赖清单（打包时生成） |
-| `src/zzz_od/win_exe/runtime_launcher.py` | 集成启动器入口 |
+| `src/zzz_od/win_exe/runtime_launcher.py` | 用户启动器入口 |

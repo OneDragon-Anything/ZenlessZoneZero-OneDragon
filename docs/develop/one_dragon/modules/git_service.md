@@ -126,11 +126,11 @@ checkout 目标本地分支
 
 模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
 
-首次初始化仓库时，集成启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<git_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
+首次初始化仓库时，用户启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<git_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
 
 如果所有代码源都无法取得内置 tag，不退化为最新分支，以免首次 checkout 到不兼容代码。只有 `_fetch_remote()` 返回 `REMOTE_UNAVAILABLE` 时，首次初始化才转换为 `BUILTIN_TAG_UNAVAILABLE`；本地对象重建、远程地址恢复或仓库应用失败继续返回 `LOCAL_UPDATE_FAILED`，不能伪装成 tag 不可用。纯远程失败时保留新建的 `.git` 和安装包内置源码；目标本地分支仍不存在，所以下次启动仍按同一内置 tag 重试。即使导入 tag 时确认本地对象缺失并触发仓库重建，重建流程也继续使用该 tag，不改拉配置分支。非正式版本（`v0.0.0`、`dev+...`、`pr...`）不指定 tag，仍使用分支 fetch 和模块清单检查。
 
-没有指定内置 tag 的首次初始化，以及已有仓库更新，都会在 checkout 前执行模块清单检查。不兼容时保留已拉取对象和远程跟踪引用，但不创建或切换本地分支；集成启动器继续运行安装包内或当前工作区中与 `.runtime` 匹配的源码。升级集成启动器后，下次同步可继续完成 checkout。
+没有指定内置 tag 的首次初始化，以及已有仓库更新，都会在 checkout 前执行模块清单检查。不兼容时保留已拉取对象和远程跟踪引用，但不创建或切换本地分支；用户启动器继续运行安装包内或当前工作区中与 `.runtime` 匹配的源码。升级用户启动器后，下次同步可继续完成 checkout。
 
 `fetch_latest_code()` 使用结构化状态，不让调用方比较错误文案：
 

@@ -7,7 +7,7 @@ from one_dragon.launcher.exe_launcher import ExeLauncher
 
 
 class RuntimeLauncher(ExeLauncher):
-    """集成启动器基类
+    """用户启动器基类
 
     将 Python 运行时嵌入到应用目录中的启动器。
     提供代码同步、控制台隐藏等通用功能。
@@ -25,7 +25,7 @@ class RuntimeLauncher(ExeLauncher):
         from one_dragon.utils.i18_utils import gt
         from one_dragon.utils.log_utils import log
         from one_dragon.version import __version__
-        log.info(f"OneDragon 集成启动器 {__version__}")
+        log.info(f"OneDragon 用户启动器 {__version__}")
 
         env_context = OneDragonEnvContext()
         env_config = env_context.env_config
@@ -110,7 +110,7 @@ class RuntimeLauncher(ExeLauncher):
         ctypes.windll.user32.MessageBoxW(
             None,
             f"启动失败，报错信息如下:\n{error_info}",
-            "OneDragon 集成启动器",
+            "OneDragon 用户启动器",
             0x10,  # MB_ICONERROR
         )
         sys.exit(1)

@@ -1,14 +1,14 @@
-# 集成启动器（RuntimeLauncher）详细设计文档
+# 用户启动器（RuntimeLauncher）详细设计文档
 
 ## 概述
 
-集成启动器是一种将 Python 运行时直接嵌入发行包的启动方案。与原始启动器（需要用户单独安装 Python 和 uv）不同，集成启动器解压即可运行，适合首次安装或不熟悉 Python 环境的用户。
+用户启动器是一种将 Python 运行时直接嵌入发行包的启动方案。与开发者启动器（需要用户单独安装 Python 和 uv）不同，用户启动器解压即可运行，适合首次安装或不熟悉 Python 环境的用户。
 
 ## 整体架构
 
 ### 两种启动器对比
 
-| 特性 | 原始启动器 | 集成启动器 |
+| 特性 | 开发者启动器 | 用户启动器 |
 |------|-----------|-----------|
 | 运行方式 | exe → 子进程调用系统 Python | exe 内嵌 Python，直接 import 运行 |
 | Python 环境 | 用户自行安装 | 打包在 `.runtime/` 目录中 |
@@ -21,19 +21,19 @@
 ```
 LauncherBase          → 基础参数解析、run() 入口
   └── ExeLauncher     → 版本显示、参数构建、pyuac 管理员提升
-        └── RuntimeLauncher  → 集成启动器基类：代码同步、控制台隐藏、致命错误弹窗、模板方法
+        └── RuntimeLauncher  → 用户启动器基类：代码同步、控制台隐藏、致命错误弹窗、模板方法
               └── ZLauncher  → 绝区零专用入口（导入 app.py / zzz_application_launcher.py）
 ```
 
 - `LauncherBase` 和 `ExeLauncher` 位于 `src/one_dragon/launcher/`，是框架通用代码
-- `RuntimeLauncher` 也在框架层，提供集成启动器的通用能力
+- `RuntimeLauncher` 也在框架层，提供用户启动器的通用能力
 - `ZLauncher` 在 `src/zzz_od/win_exe/runtime_launcher.py`，是具体游戏的入口
 
 ## 打包机制
 
 ### PyInstaller 目录模式
 
-集成启动器使用 PyInstaller 的目录模式（非单文件），运行时文件存放在 `.runtime/` 子目录中。最终目录结构如下：
+用户启动器使用 PyInstaller 的目录模式（非单文件），运行时文件存放在 `.runtime/` 子目录中。最终目录结构如下：
 
 ```
 安装目录/
@@ -75,7 +75,7 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ### 问题背景
 
-集成启动器的二进制依赖（pygit2、PySide6 等）打包在 `.runtime/` 中，不会随代码更新而变化。如果代码更新后 `import` 了一个新的外部库，而 `.runtime/` 中没有该库，就会导致 `ModuleNotFoundError`。
+用户启动器的二进制依赖（pygit2、PySide6 等）打包在 `.runtime/` 中，不会随代码更新而变化。如果代码更新后 `import` 了一个新的外部库，而 `.runtime/` 中没有该库，就会导致 `ModuleNotFoundError`。
 
 ### 解决方案
 
@@ -83,7 +83,7 @@ LauncherBase          → 基础参数解析、run() 入口
 
 代码更新时，`GitService._check_manifest_compatible()` 对比本地清单和目标 commit 的清单：
 - 相同 → 兼容，允许更新
-- 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
+- 不同 → 不兼容，阻止更新并提示用户下载新版用户启动器
 
 代码源配置、候选源顺序和 fetch 回退机制见 [Git 服务与代码源回退](modules/git_service.md)。
 
@@ -98,12 +98,12 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ## 代码同步流程
 
-集成启动器的 `_sync_code()` 方法在每次启动时执行：
+用户启动器的 `_sync_code()` 方法在每次启动时执行：
 
 1. 记录当前 `sys.modules` 快照（用于后续清理）
 2. 延迟导入并创建框架 `OneDragonEnvContext`（来自 `src/`），由它统一加载环境、项目和仓库配置
 3. 判断首次 checkout 是否完成（检查配置的目标本地分支是否存在；仅有 `.git` 和远程引用仍算未完成）
-4. 首次正式发布包 → 按集成启动器内置版本号拉取对应 Git tag；非正式版本或后续运行 → 根据 `auto_update_code` 配置决定是否更新分支
+4. 首次正式发布包 → 按用户启动器内置版本号拉取对应 Git tag；非正式版本或后续运行 → 根据 `auto_update_code` 配置决定是否更新分支
 5. tag 拉取成功 → peel 到 commit 并建立目标本地分支；分支更新 → checkout 前检查目标代码与当前集成运行时是否兼容
 6. `SUCCESS` → 清除同步期间加载的源码模块，并调用 `importlib.invalidate_caches()`
 7. `UP_TO_DATE` → 直接继续启动，不做无意义的模块清理
@@ -129,13 +129,13 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ## 错误处理
 
-### 集成启动器的 try/except
+### 用户启动器的 try/except
 
 `RuntimeLauncher.run_gui_mode()` 和 `run_onedragon_mode()` 将整个执行流程（包括 `_sync_code()` 和子类的 `_do_run_gui()` / `_do_run_onedragon()`）包裹在 try/except 中。任何未捕获的异常都会通过 `_show_fatal_error()` 弹出 Windows MessageBox 并退出，避免闪退后用户看不到错误信息。
 
 ### app.py 的模块级 try
 
-`app.py` 顶层有一个 try/except 包裹所有 import 语句。这是因为 import 阶段的错误（如依赖缺失）发生在 `main()` 被调用之前，集成启动器的 try/except 也能捕获到，但模块级 try 提供了更精确的错误信息。
+`app.py` 顶层有一个 try/except 包裹所有 import 语句。这是因为 import 阶段的错误（如依赖缺失）发生在 `main()` 被调用之前，用户启动器的 try/except 也能捕获到，但模块级 try 提供了更精确的错误信息。
 
 ### ZLauncher 的 src 目录检查
 
@@ -143,25 +143,25 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ## 发行产物
 
-CI 构建生成以下集成启动器相关产物：
+CI 构建生成以下用户启动器相关产物：
 
 | 文件 | 内容 | 用途 |
 |------|------|------|
-| `{version}-WithRuntime-Full.zip` | 集成启动器 exe + .runtime + src + 模型 | 首次部署，解压即用且无需额外下载模型 |
-| `{version}-WithRuntime.zip` | 集成启动器 exe + .runtime + src | 首次部署，模型按需下载 |
-| `RuntimeLauncher.zip` | 集成启动器 exe + .runtime（不含 src） | 就地升级已有环境 |
+| `{version}-WithRuntime-Full.zip` | 用户启动器 exe + .runtime + src + 模型 | 首次部署，解压即用且无需额外下载模型 |
+| `{version}-WithRuntime.zip` | 用户启动器 exe + .runtime + src | 首次部署，模型按需下载 |
+| `RuntimeLauncher.zip` | 用户启动器 exe + .runtime（不含 src） | 就地升级已有环境 |
 
-两个 WithRuntime 包都包含 src/，因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压后首次启动，集成启动器会自动初始化 git 仓库并设置远程跟踪。WithRuntime-Full 复用普通 Full 包准备好的模型，将其写入压缩包的 `assets/models/`；CI 不会因此重复下载模型。
+两个 WithRuntime 包都包含 src/，因为首次部署时还没有 .git 目录，无法通过 git clone 获取源码。用户解压后首次启动，用户启动器会自动初始化 git 仓库并设置远程跟踪。WithRuntime-Full 复用普通 Full 包准备好的模型，将其写入压缩包的 `assets/models/`；CI 不会因此重复下载模型。
 
 ## 启动器下载卡（UI）
 
-`LauncherDownloadCard` 提供了一个类型下拉框，让用户在「原始启动器」和「集成启动器」之间切换。切换时会：
+`LauncherDownloadCard` 提供了一个类型下拉框，让用户在「开发者启动器」和「用户启动器」之间切换。切换时会：
 
 1. 断开旧版本检查器的信号连接（防止竞态覆盖）
 2. 创建新的版本检查器（指向对应的 exe 文件）
 3. 重置版本状态并触发重新检查
 
 下载时的备份/回滚机制：
-- 下载前将当前 exe 重命名为 `.bak`（集成启动器还会重命名 `.runtime` 为 `.runtime.bak`）
+- 下载前将当前 exe 重命名为 `.bak`（用户启动器还会重命名 `.runtime` 为 `.runtime.bak`）
 - 下载成功 → 删除备份
 - 下载失败 → 回滚备份
