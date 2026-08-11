@@ -202,6 +202,7 @@ class ZContext(OneDragonContext):
                     )
                 )
                 done = v6_matcher.download(
+                    download_by_cnb=True,
                     download_by_github=True,
                     download_by_gitee=False,
                     download_by_mirror_chan=False,

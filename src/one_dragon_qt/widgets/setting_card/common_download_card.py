@@ -34,6 +34,8 @@ class DownloadRunner(QThread):
         """
         try:
             result = self.downloader.download(
+                download_by_cnb=True,
+                download_by_github=True,
                 ghproxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 proxy_url=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
                 skip_if_existed=False,

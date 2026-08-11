@@ -5,13 +5,13 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.yolo_utils import (
-    get_gitee_model_download_url,
+    get_cnb_model_download_url,
     get_github_model_download_url,
 )
 
 YOLO_RELEASE_TAG = 'zzz_model'
+YOLO_CNB_MODEL_DOWNLOAD_URL = get_cnb_model_download_url(YOLO_RELEASE_TAG)
 YOLO_GITHUB_MODEL_DOWNLOAD_URL = get_github_model_download_url(YOLO_RELEASE_TAG)
-YOLO_GITEE_MODEL_DOWNLOAD_URL = get_gitee_model_download_url(YOLO_RELEASE_TAG)
 
 _DEFAULT_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250921'
 _BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
@@ -135,8 +135,8 @@ def get_flash_classifier_opts() -> list[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
+            cnb_release_download_url=f'{YOLO_CNB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),
@@ -167,8 +167,8 @@ def get_hollow_zero_event_opts() -> list[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
+            cnb_release_download_url=f'{YOLO_CNB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),
@@ -199,8 +199,8 @@ def get_lost_void_det_opts() -> list[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
+            cnb_release_download_url=f'{YOLO_CNB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             github_release_download_url=f'{YOLO_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{YOLO_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
             check_existed_list=[
                 os.path.join(model_dir, 'model.onnx'),
                 os.path.join(model_dir, 'labels.csv'),

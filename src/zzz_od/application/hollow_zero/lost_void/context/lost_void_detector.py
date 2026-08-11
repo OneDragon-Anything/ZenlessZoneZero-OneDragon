@@ -5,7 +5,10 @@ from cv2.typing import MatLike
 
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
-from one_dragon.yolo.yolo_utils import get_github_model_download_url
+from one_dragon.yolo.yolo_utils import (
+    get_cnb_model_download_url,
+    get_github_model_download_url,
+)
 from one_dragon.yolo.yolov8_onnx_det import Yolov8Detector
 from zzz_od.config.model_config import YOLO_RELEASE_TAG
 
@@ -41,7 +44,8 @@ class LostVoidDetector(Yolov8Detector):
             model_name=model_name,
             backup_model_name=backup_model_name,
             model_parent_dir_path=yolo_config_utils.get_model_category_dir('lost_void_det'),
-            model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
+            model_download_url=get_cnb_model_download_url(YOLO_RELEASE_TAG),
+            backup_model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
             gh_proxy=gh_proxy,
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,

@@ -22,10 +22,12 @@ class OnnxModelLoader:
                  personal_proxy: str | None = '',
                  gpu: bool = False,
                  backup_model_name: str | None = None,
+                 backup_model_download_url: str | None = None,
                  ):
         self.model_name: str = model_name
         self.backup_model_name: str = backup_model_name  # 备用模型 默认在本地一定有的模型 在新模型无法下载使用时使用
         self.model_download_url: str = model_download_url  # 模型下载地址
+        self.backup_model_download_url: str | None = backup_model_download_url  # 备用模型下载地址 主地址失败时使用
         self.model_parent_dir_path: str = model_parent_dir_path
         self.model_dir_path = os.path.join(self.model_parent_dir_path, self.model_name)
         self.gh_proxy: bool = gh_proxy
@@ -71,18 +73,29 @@ class OnnxModelLoader:
     def download_model(self) -> bool:
         """
         下载模型
+        主下载地址失败后 自动尝试备用下载地址
         :return: 是否成功下载模型
         """
         if not os.path.exists(self.model_dir_path):
             os.mkdir(self.model_dir_path)
 
-        download_url = f'{self.model_download_url}/{self.model_name}.zip'
         if self.personal_proxy is not None and len(self.personal_proxy) > 0:
             os.environ['http_proxy'] = self.personal_proxy
             os.environ['https_proxy'] = self.personal_proxy
-        elif self.gh_proxy:
-            download_url = f'{self.gh_proxy_url}/{self.model_download_url}/{self.model_name}.zip'
-        log.info('开始下载 %s %s', self.model_name, download_url)
+
+        # 主地址优先（CNB 直连），备用地址（GitHub）可走 ghproxy 加速；
+        # 通过域名判断，GitHub 地址自动加 ghproxy 前缀，CNB 等地址直连
+        download_urls: list[str] = []
+        primary_url = f'{self.model_download_url}/{self.model_name}.zip'
+        if self.gh_proxy and 'github.com' in self.model_download_url:
+            primary_url = f'{self.gh_proxy_url}/{primary_url}'
+        download_urls.append(primary_url)
+        if self.backup_model_download_url:
+            backup_url = f'{self.backup_model_download_url}/{self.model_name}.zip'
+            if self.gh_proxy and 'github.com' in self.backup_model_download_url:
+                backup_url = f'{self.gh_proxy_url}/{backup_url}'
+            download_urls.append(backup_url)
+
         zip_file_path = os.path.join(self.model_dir_path, f'{self.model_name}.zip')
         last_log_time = time.time()
 
@@ -96,14 +109,18 @@ class OnnxModelLoader:
             progress = downloaded / total_size_mb * 100
             log.info(f"正在下载 {self.model_name}: {downloaded:.2f}/{total_size_mb:.2f} MB ({progress:.2f}%)")
 
-        try:
-            _, _ = urllib.request.urlretrieve(download_url, zip_file_path, log_download_progress)
-            log.info('下载完成 %s', self.model_name)
-            self.unzip_model(zip_file_path)
-            return True
-        except Exception:
-            log.error('下载失败模型失败', exc_info=True)
-            return False
+        for download_url in download_urls:
+            log.info('开始下载 %s %s', self.model_name, download_url)
+            try:
+                _, _ = urllib.request.urlretrieve(download_url, zip_file_path, log_download_progress)
+                log.info('下载完成 %s', self.model_name)
+                self.unzip_model(zip_file_path)
+                return True
+            except Exception:
+                log.error(f'下载模型失败: {download_url}', exc_info=True)
+                continue
+
+        return False
 
     def unzip_model(self, zip_file_path: str):
         """

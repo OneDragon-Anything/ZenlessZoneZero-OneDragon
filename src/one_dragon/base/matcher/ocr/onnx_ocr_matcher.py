@@ -20,7 +20,7 @@ from one_dragon.utils.log_utils import log
 DEFAULT_OCR_MODEL_NAME: str = 'ppocrv5'
 PPOCRV6_MODEL_NAME: str = 'ppocrv6'
 GITHUB_DOWNLOAD_URL: str = 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download'
-GITEE_DOWNLOAD_URL: str = 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download'
+CNB_DOWNLOAD_URL: str = 'https://cnb.cool/OneDragon-Anything/OneDragon-Env/-/releases/download'
 
 
 def get_ocr_model_dir(ocr_model_name: str) -> str:
@@ -31,8 +31,8 @@ def get_ocr_download_url_github(ocr_model_name: str) -> str:
     return get_ocr_download_url(GITHUB_DOWNLOAD_URL, ocr_model_name)
 
 
-def get_ocr_download_url_gitee(ocr_model_name: str) -> str:
-    return get_ocr_download_url(GITEE_DOWNLOAD_URL, ocr_model_name)
+def get_ocr_download_url_cnb(ocr_model_name: str) -> str:
+    return get_ocr_download_url(CNB_DOWNLOAD_URL, ocr_model_name)
 
 
 def get_ocr_download_url(website: str, ocr_model_name: str) -> str:
@@ -151,8 +151,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         param = CommonDownloaderParam(
             save_file_path=ocr_param.models_dir,
             save_file_name=f'{ocr_param.ocr_model_name}.zip',
+            cnb_release_download_url=get_ocr_download_url_cnb(ocr_param.ocr_model_name),
             github_release_download_url=get_ocr_download_url_github(ocr_param.ocr_model_name),
-            gitee_release_download_url=get_ocr_download_url_gitee(ocr_param.ocr_model_name),
             mirror_chan_download_url='',
             check_existed_list=get_final_file_list(ocr_param.ocr_model_name)
         )
@@ -199,6 +199,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
     def init_model(
             self,
+            download_by_cnb: bool = False,
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
@@ -216,6 +217,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
             # 先检查模型文件和下载模型
             done: bool = self.download(
+                download_by_cnb=download_by_cnb,
                 download_by_github=download_by_github,
                 download_by_gitee=download_by_gitee,
                 download_by_mirror_chan=download_by_mirror_chan,

@@ -28,6 +28,7 @@ class ZipDownloader(CommonDownloader):
 
     def download(
             self,
+            download_by_cnb: bool = False,
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
@@ -40,6 +41,7 @@ class ZipDownloader(CommonDownloader):
         for i in range(2):
             download_result = CommonDownloader.download(
                 self,
+                download_by_cnb=download_by_cnb,
                 download_by_github=download_by_github,
                 download_by_gitee=download_by_gitee,
                 download_by_mirror_chan=download_by_mirror_chan,

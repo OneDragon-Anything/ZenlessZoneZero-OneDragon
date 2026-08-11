@@ -23,6 +23,7 @@ class Yolov8Detector(OnnxModelLoader):
                  personal_proxy: Optional[str] = None,
                  gpu: bool = False,
                  backup_model_name: Optional[str] = None,
+                 backup_model_download_url: str | None = None,
                  keep_result_seconds: float = 2
                  ):
         """
@@ -30,6 +31,8 @@ class Yolov8Detector(OnnxModelLoader):
         参考自 https://github.com/ibaiGorordo/ONNX-YOLOv8-Object-Detection
         :param model_name: 模型名称 在根目录下会有一个以模型名称创建的子文件夹
         :param backup_model_name: 备用模型名称 通常是上一个版本的模型 在新版本模型无法下载时兜底使用
+        :param model_download_url: 模型下载地址 失败后使用备用地址
+        :param backup_model_download_url: 备用模型下载地址
         :param model_parent_dir_path: 放置所有模型的根目录
         :param gpu: 是否启用GPU运算
         :param keep_result_seconds: 保留多长时间的识别结果
@@ -43,7 +46,8 @@ class Yolov8Detector(OnnxModelLoader):
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,
             gpu=gpu,
-            backup_model_name=backup_model_name
+            backup_model_name=backup_model_name,
+            backup_model_download_url=backup_model_download_url
         )
 
         self.keep_result_seconds: float = keep_result_seconds  # 保留识别结果的秒数

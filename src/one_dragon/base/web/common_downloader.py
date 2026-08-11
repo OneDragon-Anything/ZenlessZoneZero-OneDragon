@@ -14,11 +14,12 @@ class CommonDownloaderParam:
             github_release_download_url: str | None = None,
             gitee_release_download_url: str | None = None,
             mirror_chan_download_url: str | None = None,
+            cnb_release_download_url: str | None = None,
             check_existed_list: list[str] | None = None,
             unzip_dir_path: str | None = None,
     ):
         """
-        一个通用下载器 可提供3个下载源 并检查文件是否存在 如果存在则不进行下载
+        一个通用下载器 可提供多个下载源 并检查文件是否存在 如果存在则不进行下载
 
         Args:
             save_file_path (str): 文件保存的路径
@@ -26,6 +27,7 @@ class CommonDownloaderParam:
             github_release_download_url (Optional[str], optional): Github Release下载地址. Defaults to None.
             gitee_release_download_url (Optional[str], optional): Gitee Release下载地址. Defaults to None.
             mirror_chan_download_url (Optional[str], optional): Mirror酱下载地址. Defaults to None.
+            cnb_release_download_url (Optional[str], optional): CNB Release下载地址. Defaults to None.
             check_existed_list (Optional[list[str]], optional): 需要检查文件是否存在的列表 完整路径的列表. Defaults to None.
             unzip_dir_path (Optional[str], optional): 解压目录路径，如果为None则解压到save_file_path. Defaults to None.
         """
@@ -34,6 +36,7 @@ class CommonDownloaderParam:
         self.github_release_download_url: str | None = github_release_download_url
         self.gitee_release_download_url: str | None = gitee_release_download_url
         self.mirror_chan_download_url: str | None = mirror_chan_download_url
+        self.cnb_release_download_url: str | None = cnb_release_download_url
         self.check_existed_list: list[str] = [] if check_existed_list is None else check_existed_list
         self.unzip_dir_path: str | None = unzip_dir_path
 
@@ -54,6 +57,7 @@ class CommonDownloader:
 
     def download(
             self,
+            download_by_cnb: bool = False,
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
@@ -66,27 +70,40 @@ class CommonDownloader:
         if skip_if_existed and self.is_file_existed():
             return True
 
-        download_url: str = ''
+        # 按优先级顺序尝试启用的下载源：CNB → GitHub → Gitee → Mirror酱
+        # 某个源失败后自动尝试下一个 全部失败才返回 False
+        candidates: list[tuple[str, bool]] = []
+        if download_by_cnb and self.param.cnb_release_download_url is not None:
+            candidates.append((self.param.cnb_release_download_url, False))
         if download_by_github and self.param.github_release_download_url is not None:
-            if ghproxy_url is not None:
-                download_url=f'{ghproxy_url}/{self.param.github_release_download_url}'
-            else:
-                download_url = self.param.github_release_download_url
-        elif download_by_gitee and self.param.gitee_release_download_url is not None:
-            download_url = self.param.gitee_release_download_url
-        elif download_by_mirror_chan and self.param.mirror_chan_download_url is not None:
-            download_url = self.param.mirror_chan_download_url
+            candidates.append((self.param.github_release_download_url, True))
+        if download_by_gitee and self.param.gitee_release_download_url is not None:
+            candidates.append((self.param.gitee_release_download_url, False))
+        if download_by_mirror_chan and self.param.mirror_chan_download_url is not None:
+            candidates.append((self.param.mirror_chan_download_url, False))
 
-        if download_url == '':
+        if not candidates:
             log.error('没有指定下载方法或对应的下载地址')
             return False
 
-        return http_utils.download_file(
-            download_url=download_url,
-            save_file_path=os.path.join(self.param.save_file_path, self.param.save_file_name),
-            proxy=proxy_url,
-            progress_signal=progress_signal,
-            progress_callback=progress_callback)
+        for download_url, use_ghproxy in candidates:
+            if use_ghproxy and ghproxy_url is not None:
+                download_url = f'{ghproxy_url}/{download_url}'
+            try:
+                if http_utils.download_file(
+                    download_url=download_url,
+                    save_file_path=os.path.join(self.param.save_file_path, self.param.save_file_name),
+                    proxy=proxy_url,
+                    progress_signal=progress_signal,
+                    progress_callback=progress_callback,
+                ):
+                    return True
+            except Exception:
+                log.error(f'下载源失败: {download_url}', exc_info=True)
+                continue
+            log.warning(f'下载源失败 尝试下一个: {download_url}')
+
+        return False
 
     def is_file_existed(self) -> bool:
         """

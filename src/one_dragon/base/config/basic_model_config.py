@@ -4,7 +4,7 @@ from one_dragon.base.matcher.ocr.onnx_ocr_matcher import (
     DEFAULT_OCR_MODEL_NAME,
     PPOCRV6_MODEL_NAME,
     get_final_file_list,
-    get_ocr_download_url_gitee,
+    get_ocr_download_url_cnb,
     get_ocr_download_url_github,
     get_ocr_model_dir,
 )
@@ -48,8 +48,8 @@ def get_ocr_opts() -> list[ConfigItem]:
         param = CommonDownloaderParam(
             save_file_path=model_dir,
             save_file_name=zip_file_name,
+            cnb_release_download_url=get_ocr_download_url_cnb(model),
             github_release_download_url=get_ocr_download_url_github(model),
-            gitee_release_download_url=get_ocr_download_url_gitee(model),
             check_existed_list=get_final_file_list(model),
         )
         config_list.append(
