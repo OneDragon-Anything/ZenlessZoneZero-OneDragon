@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -10,6 +10,7 @@ from qfluentwidgets import (
     MessageBoxBase,
     ProgressBar,
     PushButton,
+    SimpleCardWidget,
     StrongBodyLabel,
     SubtitleLabel,
 )
@@ -66,8 +67,8 @@ def format_byte_size(size: int) -> str:
     return f'{value:.1f} GB'
 
 
-class DownloadQueueItemWidget(QWidget):
-    """下载队列中的单项状态组件。"""
+class DownloadQueueItemWidget(SimpleCardWidget):
+    """下载队列中的单项状态卡片。"""
 
     def __init__(
         self,
@@ -75,8 +76,8 @@ class DownloadQueueItemWidget(QWidget):
         task: ResourceDownloadTask,
         parent: QWidget | None = None,
     ) -> None:
-        """创建任务行。"""
-        super().__init__(parent)
+        """创建任务卡片。"""
+        SimpleCardWidget.__init__(self, parent)
         self.service: DownloadQueueService = service
         self.task: ResourceDownloadTask = task
 
@@ -84,22 +85,13 @@ class DownloadQueueItemWidget(QWidget):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(6)
 
-        title_row = QHBoxLayout()
         self.title_label = StrongBodyLabel(task.spec.title)
-        self.state_label = BodyLabel('')
         self.title_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Preferred,
         )
         self.title_label.setToolTip(task.spec.title)
-        self.state_label.setSizePolicy(
-            QSizePolicy.Policy.Minimum,
-            QSizePolicy.Policy.Preferred,
-        )
-        title_row.addWidget(self.title_label)
-        title_row.addStretch(1)
-        title_row.addWidget(self.state_label)
-        layout.addLayout(title_row)
+        layout.addWidget(self.title_label)
 
         self.version_label = ElidedCaptionLabel(self._version_text())
         self.version_label.setSizePolicy(
@@ -108,25 +100,24 @@ class DownloadQueueItemWidget(QWidget):
         )
         layout.addWidget(self.version_label)
 
+        progress_row = QHBoxLayout()
         self.progress_bar = ProgressBar()
         self.progress_bar.setRange(0, 100)
-        layout.addWidget(self.progress_bar)
-
         self.indeterminate_bar = IndeterminateProgressBar()
         self.indeterminate_bar.setVisible(False)
-        layout.addWidget(self.indeterminate_bar)
+        self.action_button = PushButton('')
+        self.action_button.clicked.connect(self._on_action_clicked)
+        progress_row.addWidget(self.progress_bar, stretch=1)
+        progress_row.addWidget(self.indeterminate_bar, stretch=1)
+        progress_row.addWidget(self.action_button)
+        layout.addLayout(progress_row)
 
-        detail_row = QHBoxLayout()
         self.detail_label = CaptionLabel('')
         self.detail_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Preferred,
         )
-        self.action_button = PushButton('')
-        self.action_button.clicked.connect(self._on_action_clicked)
-        detail_row.addWidget(self.detail_label, stretch=1)
-        detail_row.addWidget(self.action_button)
-        layout.addLayout(detail_row)
+        layout.addWidget(self.detail_label)
         self.refresh(task)
 
     def _version_text(self) -> str:
@@ -140,18 +131,6 @@ class DownloadQueueItemWidget(QWidget):
         self.task = task
         version_text = self._version_text()
         self.version_label.setText(version_text)
-        state_text = {
-            ResourceDownloadTaskState.WAITING: '等待中',
-            ResourceDownloadTaskState.DOWNLOADING: '下载中',
-            ResourceDownloadTaskState.EXTRACTING: '正在解压',
-            ResourceDownloadTaskState.APPLYING: '正在应用更新',
-            ResourceDownloadTaskState.CANCELLING: '正在取消',
-            ResourceDownloadTaskState.CANCELLED: '已取消',
-            ResourceDownloadTaskState.SUCCEEDED: '已完成',
-            ResourceDownloadTaskState.FAILED: '失败',
-        }[task.state]
-        self.state_label.setText(gt(state_text))
-
         indeterminate = task.state in (
             ResourceDownloadTaskState.EXTRACTING,
             ResourceDownloadTaskState.APPLYING,
@@ -166,7 +145,7 @@ class DownloadQueueItemWidget(QWidget):
         self.detail_label.setText(self._detail_text())
 
         action_text = {
-            ResourceDownloadTaskState.WAITING: '移出队列',
+            ResourceDownloadTaskState.WAITING: '取消',
             ResourceDownloadTaskState.DOWNLOADING: '取消',
             ResourceDownloadTaskState.EXTRACTING: '取消',
             ResourceDownloadTaskState.APPLYING: '取消',
@@ -193,8 +172,24 @@ class DownloadQueueItemWidget(QWidget):
                 parts.append(downloaded)
         if progress.bytes_per_second:
             parts.append(f'{format_byte_size(int(progress.bytes_per_second))}/s')
-        if not parts and progress.message:
-            parts.append(gt(progress.message))
+        state_text = {
+            ResourceDownloadTaskState.WAITING: '等待中',
+            ResourceDownloadTaskState.DOWNLOADING: '下载中',
+            ResourceDownloadTaskState.EXTRACTING: '正在解压',
+            ResourceDownloadTaskState.APPLYING: '正在应用更新',
+            ResourceDownloadTaskState.CANCELLING: '正在取消',
+            ResourceDownloadTaskState.CANCELLED: '已取消',
+            ResourceDownloadTaskState.SUCCEEDED: '已完成',
+            ResourceDownloadTaskState.FAILED: '失败',
+        }[self.task.state]
+        if self.task.state == ResourceDownloadTaskState.FAILED and progress.message:
+            state_text = progress.message
+        elif (
+            self.task.state == ResourceDownloadTaskState.DOWNLOADING
+            and progress.phase == 'connecting'
+        ):
+            state_text = '正在连接'
+        parts.append(gt(state_text))
         return ' · '.join(parts)
 
     def _on_action_clicked(self) -> None:
@@ -224,6 +219,7 @@ class DownloadQueueDialog(MessageBoxBase):
         super().__init__(parent)
         self.service: DownloadQueueService = service
         self.item_widgets: dict[str, DownloadQueueItemWidget] = {}
+        self._task_states: dict[str, ResourceDownloadTaskState] = {}
 
         self.yesButton.setText(gt('关闭'))
         self.cancelButton.hide()
@@ -256,15 +252,6 @@ class DownloadQueueDialog(MessageBoxBase):
         self.scroll_area.setMinimumHeight(260)
         self.viewLayout.addWidget(self.scroll_area)
 
-        button_row = QHBoxLayout()
-        self.cancel_all_button = PushButton(gt('取消全部'))
-        self.clear_button = PushButton(gt('清除已完成'))
-        self.cancel_all_button.clicked.connect(self.service.cancel_all)
-        self.clear_button.clicked.connect(self.service.clear_finished)
-        button_row.addWidget(self.cancel_all_button)
-        button_row.addWidget(self.clear_button)
-        self.viewLayout.addLayout(button_row)
-
         self.widget.setMinimumWidth(620)
         self.service.task_added.connect(self._on_task_added)
         self.service.task_updated.connect(self._on_task_updated)
@@ -278,6 +265,7 @@ class DownloadQueueDialog(MessageBoxBase):
         self.show()
         self.raise_()
         self.activateWindow()
+        QTimer.singleShot(0, self._scroll_to_running_task)
 
     def refresh_all(self) -> None:
         """根据服务状态重建缺失的任务行。"""
@@ -299,14 +287,6 @@ class DownloadQueueDialog(MessageBoxBase):
             f'{gt("等待")} {waiting} · {gt("运行")} {running} · {gt("失败")} {failed}'
         )
         self.empty_label.setVisible(len(self.service.tasks) == 0)
-        self.cancel_all_button.setEnabled(active > 0)
-        self.clear_button.setEnabled(any(
-            task.state in (
-                ResourceDownloadTaskState.SUCCEEDED,
-                ResourceDownloadTaskState.CANCELLED,
-            )
-            for task in self.service.tasks
-        ))
 
     def _on_task_added(self, task: ResourceDownloadTask) -> None:
         """为新任务增加状态行。"""
@@ -315,20 +295,51 @@ class DownloadQueueDialog(MessageBoxBase):
         widget = DownloadQueueItemWidget(self.service, task, self.scroll_content)
         self.items_layout.insertWidget(self.items_layout.count() - 1, widget)
         self.item_widgets[task.task_key] = widget
+        self._task_states[task.task_key] = task.state
         self.refresh_summary()
 
     def _on_task_updated(self, task: ResourceDownloadTask) -> None:
-        """刷新已有任务行。"""
+        """刷新已有任务行，并在后续任务开始下载时滚动到该卡片。"""
         widget = self.item_widgets.get(task.task_key)
         if widget is None:
             self._on_task_added(task)
             widget = self.item_widgets[task.task_key]
+        previous_state = self._task_states.get(task.task_key)
         widget.refresh(task)
+        self._task_states[task.task_key] = task.state
+        if (
+            self.isVisible()
+            and task.state == ResourceDownloadTaskState.DOWNLOADING
+            and previous_state != ResourceDownloadTaskState.DOWNLOADING
+        ):
+            QTimer.singleShot(
+                0,
+                lambda task_key=task.task_key: self._scroll_to_task(task_key),
+            )
         self.refresh_summary()
+
+    def _scroll_to_running_task(self) -> None:
+        """打开队列时将当前运行任务滚动到可见区域。"""
+        for task in self.service.tasks:
+            if task.state in (
+                ResourceDownloadTaskState.DOWNLOADING,
+                ResourceDownloadTaskState.EXTRACTING,
+                ResourceDownloadTaskState.APPLYING,
+                ResourceDownloadTaskState.CANCELLING,
+            ):
+                self._scroll_to_task(task.task_key)
+                return
+
+    def _scroll_to_task(self, task_key: str) -> None:
+        """将指定任务卡片滚动到可见区域。"""
+        widget = self.item_widgets.get(task_key)
+        if widget is not None:
+            self.scroll_area.ensureWidgetVisible(widget, 0, 8)
 
     def _on_task_removed(self, task_key: str) -> None:
         """移除任务行。"""
         widget = self.item_widgets.pop(task_key, None)
+        self._task_states.pop(task_key, None)
         if widget is not None:
             self.items_layout.removeWidget(widget)
             widget.deleteLater()
