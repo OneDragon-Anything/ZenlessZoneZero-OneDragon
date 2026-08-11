@@ -47,7 +47,7 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def flash_classifier_gpu(self) -> bool:
-        return self.get('flash_classifier_gpu', False)
+        return self.get('flash_classifier_gpu', True)
 
     @flash_classifier_gpu.setter
     def flash_classifier_gpu(self, new_value: bool) -> None:
@@ -75,7 +75,7 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def hollow_zero_event_gpu(self) -> bool:
-        return self.get('hollow_zero_event_gpu', False)
+        return self.get('hollow_zero_event_gpu', True)
 
     @hollow_zero_event_gpu.setter
     def hollow_zero_event_gpu(self, new_value: bool) -> None:
@@ -103,7 +103,7 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def lost_void_det_gpu(self) -> bool:
-        return self.get('lost_void_det_gpu', False)
+        return self.get('lost_void_det_gpu', True)
 
     @lost_void_det_gpu.setter
     def lost_void_det_gpu(self, new_value: bool) -> None:

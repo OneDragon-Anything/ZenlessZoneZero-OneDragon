@@ -26,7 +26,7 @@ class BasicModelConfig(YamlConfig):
 
     @property
     def ocr_use_gpu(self) -> bool:
-        return self.get('ocr_use_gpu', False)
+        return self.get('ocr_use_gpu', True)
 
     @ocr_use_gpu.setter
     def ocr_use_gpu(self, new_value: bool) -> None:
