@@ -40,7 +40,7 @@ class LauncherVersionChecker(QThread):
     def run(self) -> None:
         try:
             current_version, latest_stable, latest_beta = (
-                self.update_service.get_launcher_version_info(self.launcher_type)
+                self.update_service.fetch_launcher_version_info(self.launcher_type)
             )
         except Exception:
             # 检查失败也要发出信号 否则界面会永远停在检查中且按钮不可用
