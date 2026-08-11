@@ -132,7 +132,7 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout.addWidget(
             self.launchTagLabel,
             0,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
         self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
@@ -239,7 +239,7 @@ class PhosTitleBar(SplitTitleBar):
         color = themeColor().name()
         self.launchTagLabel.setStyleSheet(
             f"color: white; background-color: {color}; "
-            "border-radius: 8px; padding: 1px 8px; "
+            "border-radius: 8px; padding: 4px 8px; "
             "font: 11px 'Segoe UI', 'Microsoft YaHei';"
         )
 
