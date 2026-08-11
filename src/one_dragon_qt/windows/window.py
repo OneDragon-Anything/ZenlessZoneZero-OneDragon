@@ -132,7 +132,7 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout.addWidget(
             self.launchTagLabel,
             0,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
 
         self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
