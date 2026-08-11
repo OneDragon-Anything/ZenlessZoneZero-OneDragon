@@ -29,6 +29,7 @@ from one_dragon.envs.repo_config import ModelResourceDefinition
 from one_dragon.envs.update_service import LauncherType
 from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.download_queue_service import (
     DownloadQueueService,
     ResourceDownloadSpec,
@@ -80,6 +81,20 @@ class FetchPageRunner(QThread):
 
     def run(self) -> None:
         self.finished.emit(self.method())
+
+
+class OcrReloadRunner(QThread):
+    """后台重新初始化 OCR 模型 避免下载与加载阻塞界面线程。"""
+
+    def __init__(self, ctx: OneDragonContext):
+        super().__init__()
+        self.ctx: OneDragonContext = ctx
+
+    def run(self) -> None:
+        try:
+            self.ctx.init_ocr()
+        except Exception:
+            log.error('后台重新加载 OCR 模型失败', exc_info=True)
 
 
 class ResourceManagementInterface(VerticalScrollInterface):
@@ -509,8 +524,23 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
     def _on_ocr_gpu_changed(self, value: bool) -> None:
         """更新 OCR GPU 配置。"""
+        previous = self.ctx.model_config.ocr_use_gpu
         self.ctx.model_config.ocr_use_gpu = value
-        self.ctx.init_ocr()
+        # 重新初始化 OCR 可能触发下载和模型加载 放到后台避免卡住界面
+        self._ocr_reload_runner = OcrReloadRunner(self.ctx)
+        self._ocr_reload_runner.finished.connect(
+            lambda: self._on_ocr_reload_finished(previous, value)
+        )
+        self._ocr_reload_runner.start()
+
+    def _on_ocr_reload_finished(self, previous: bool, requested: bool) -> None:
+        """OCR 后台重载结束后恢复界面状态。"""
+        ocr = self.ctx.ocr
+        if ocr is None or ocr._model is None:
+            # 加载失败 回滚开关和配置 避免界面显示与实际引擎不一致
+            if previous != requested:
+                self.ctx.model_config.ocr_use_gpu = previous
+                self.ocr_opt.gpu_opt.setChecked(previous)
 
     def _show_history_dialog(self) -> None:
         """按需加载并展示代码版本记录。"""

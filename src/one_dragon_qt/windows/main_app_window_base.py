@@ -246,9 +246,15 @@ class MainAppWindowBase(AppWindowBase):
             event.ignore()
             return
 
-        # 取消是异步的 记录退出意图 等队列没有活动任务后再真正关闭
-        self._closing_after_cancel = True
+        # 取消等待任务是同步的 若取消后已无活动任务 直接完成关闭
         self.download_queue.cancel_all()
+        if not self.download_queue.has_active_tasks():
+            self._closing_after_cancel = False
+            super().closeEvent(event)
+            return
+
+        # 仍有下载线程在收尾 记录退出意图 等队列清空后再真正关闭
+        self._closing_after_cancel = True
         self.show_download_queue()
         event.ignore()
 

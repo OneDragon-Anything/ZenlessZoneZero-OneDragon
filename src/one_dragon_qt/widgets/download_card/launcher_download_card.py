@@ -266,16 +266,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 设置为稳定版（包括未安装、未检查或稳定版的情况）
             self.combo_box.setCurrentIndex(0)
 
-    def _on_download_click(self) -> None:
-        if self.download_queue is not None:
-            ZipDownloaderSettingCard._on_download_click(self)
-            return
-        self.ctx.update_service.prepare_launcher_update(self._launcher_type)
-        ZipDownloaderSettingCard._on_download_click(self)
-
     def _on_download_finish(self, success: bool, message: str) -> None:
-        """下载完成后处理备份：成功则删除备份，失败则回滚。"""
-        self.ctx.update_service.finish_launcher_update(self._launcher_type, success)
+        """下载完成后重新检查版本。"""
         if success and not self.version_checker.isRunning():
             self.version_checker.start()
 
