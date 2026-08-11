@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import sys
@@ -32,10 +33,15 @@ def get_exe_version(exe_path: str) -> str:
         str: 版本号，失败返回空字符串
     """
     try:
+        env = os.environ.copy()
+        # 部分用户会在 Windows 兼容性设置中强制启动器以管理员身份运行
+        # 查询版本不需要管理员权限，避免子进程因请求提权而无法读取输出
+        env['__COMPAT_LAYER'] = 'RunAsInvoker'
         result = subprocess.run(
-            f'"{exe_path}" --version',
+            [exe_path, '--version'],
             capture_output=True, text=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
+            env=env,
         )
         version_output = ANSI_ESCAPE_PATTERN.sub('', result.stdout).strip()
         return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
