@@ -34,9 +34,11 @@ def get_exe_version(exe_path: str) -> str:
     """
     try:
         env = os.environ.copy()
-        # 部分用户会在 Windows 兼容性设置中强制启动器以管理员身份运行
-        # 查询版本不需要管理员权限，避免子进程因请求提权而无法读取输出
-        env['__COMPAT_LAYER'] = 'RunAsInvoker'
+        # 版本查询无需提权，也不能复用父启动器的 PyInstaller 临时环境
+        env.update({
+            '__COMPAT_LAYER': 'RunAsInvoker',
+            'PYINSTALLER_RESET_ENVIRONMENT': '1',
+        })
         result = subprocess.run(
             [exe_path, '--version'],
             capture_output=True, text=True,
