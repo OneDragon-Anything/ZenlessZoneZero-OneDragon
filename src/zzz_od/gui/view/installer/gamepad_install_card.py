@@ -15,7 +15,7 @@ class GamepadInstallCard(BaseInstallCard):
         BaseInstallCard.__init__(
             self,
             ctx=ctx,
-            title_cn='虚拟手柄',
+            title_cn='虚拟手柄（可选）',
             install_method=self.install_requirements,
             parent=parent
         )
