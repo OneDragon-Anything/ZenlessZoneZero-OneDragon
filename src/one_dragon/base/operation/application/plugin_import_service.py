@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import re
 import shutil
 import zipfile
@@ -28,6 +29,8 @@ from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+_MAX_EXTRACT_SIZE: int = 512 * 1024 * 1024
 
 
 @dataclass
@@ -68,12 +71,20 @@ class PluginPreviewInfo:
 
 @dataclass(frozen=True)
 class _ZipLayout:
-    """已校验的 ZIP 插件目录结构。"""
+    """ZIP 中一个已校验插件根的布局。"""
 
     plugin_dir_name: str
-    root_prefix: str | None
     members: list[tuple[zipfile.ZipInfo, PurePosixPath]]
-    preview_const_path: PurePosixPath
+    preview_const_info: zipfile.ZipInfo
+
+
+@dataclass(frozen=True)
+class _DirectoryLayout:
+    """松散目录中一个已校验插件根的布局。"""
+
+    plugin_dir_name: str
+    source_dir: Path
+    preview_const_path: Path
 
 
 class PluginImportService:
@@ -101,90 +112,174 @@ class PluginImportService:
             return Path(cls_file).parent.parent / "plugins"
 
     def import_plugins(self, zip_paths: list[str | Path], overwrite: bool = False) -> list[ImportResult]:
-        """导入多个插件
-
-        Args:
-            zip_paths: zip 文件路径列表
-            overwrite: 是否覆盖已存在的插件
-
-        Returns:
-            list[ImportResult]: 导入结果列表
-        """
+        """按旧单插件语义导入多个 ZIP 文件。"""
         results: list[ImportResult] = []
         for zip_path in zip_paths:
             results.append(self.import_plugin(zip_path, overwrite=overwrite))
         return results
 
     def import_plugin(self, zip_path: str | Path, overwrite: bool = False) -> ImportResult:
-        """导入单个 ZIP 插件
+        """按旧单插件语义导入一个 ZIP 文件。"""
+        results = self._import_zip_source(
+            Path(zip_path),
+            overwrite=overwrite,
+            selected_plugin_names=None,
+            require_single=True,
+        )
+        return results[0]
 
-        Args:
-            zip_path: zip 文件路径
-            overwrite: 是否覆盖已存在的插件
+    def import_plugins_from_zip(
+        self,
+        zip_path: str | Path,
+        overwrite: bool = False,
+        selected_plugin_names: set[str] | None = None,
+    ) -> list[ImportResult]:
+        """导入一个 ZIP 来源中的全部或指定插件。"""
+        return self._import_zip_source(
+            Path(zip_path),
+            overwrite=overwrite,
+            selected_plugin_names=selected_plugin_names,
+            require_single=False,
+        )
 
-        Returns:
-            ImportResult: 导入结果
-        """
-        zip_path = Path(zip_path)
-        plugin_name = zip_path.stem
-
+    def _import_zip_source(
+        self,
+        zip_path: Path,
+        overwrite: bool,
+        selected_plugin_names: set[str] | None,
+        require_single: bool,
+    ) -> list[ImportResult]:
+        """分析一个 ZIP 来源，并按插件根分别导入。"""
+        source_name = zip_path.stem
         if not zip_path.exists():
-            return ImportResult(
-                success=False,
-                plugin_name=plugin_name,
-                message=f"文件不存在: {zip_path}",
-            )
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message=f"文件不存在: {zip_path}",
+                )
+            ]
 
         if zip_path.suffix.lower() != ".zip":
-            return ImportResult(
-                success=False,
-                plugin_name=plugin_name,
-                message="只支持 .zip 格式的文件",
-            )
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message="只支持 .zip 格式的文件",
+                )
+            ]
 
-        staging_dir: Path | None = None
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
-                try:
-                    layout = self._analyze_zip(zf)
-                except ValueError as e:
-                    return ImportResult(
-                        success=False,
-                        plugin_name=plugin_name,
-                        message=str(e),
-                    )
+                layouts = self._analyze_zip(zf)
+                if require_single and len(layouts) != 1:
+                    return [
+                        ImportResult(
+                            success=False,
+                            plugin_name=source_name,
+                            message="无效的插件结构: ZIP 包含多个互不隶属的插件",
+                        )
+                    ]
 
-                plugin_name = layout.plugin_dir_name
-                target_dir = self._get_target_dir(plugin_name)
-                if self._path_exists(target_dir) and not overwrite:
-                    return ImportResult(
-                        success=False,
-                        plugin_name=plugin_name,
-                        message=f"插件目录已存在: {plugin_name}",
-                        plugin_dir=target_dir,
-                    )
+                if selected_plugin_names is not None:
+                    requested_names = {name.casefold() for name in selected_plugin_names}
+                    available_names = {layout.plugin_dir_name.casefold() for layout in layouts}
+                    missing_names = sorted(requested_names - available_names)
+                    if missing_names:
+                        return [
+                            ImportResult(
+                                success=False,
+                                plugin_name=source_name,
+                                message=f"ZIP 中不存在指定插件: {', '.join(missing_names)}",
+                            )
+                        ]
+                    layouts = [
+                        layout
+                        for layout in layouts
+                        if layout.plugin_dir_name.casefold() in requested_names
+                    ]
 
-                staging_dir = self._new_staging_dir(plugin_name)
-                self._extract_plugin(zf, staging_dir, layout)
-                self._find_primary_const_file(staging_dir)
-                self._replace_plugin_dir(staging_dir, target_dir, overwrite)
+                total_size = sum(
+                    info.file_size
+                    for layout in layouts
+                    for info, _ in layout.members
+                    if not info.is_dir()
+                )
+                if total_size > _MAX_EXTRACT_SIZE:
+                    return [
+                        ImportResult(
+                            success=False,
+                            plugin_name=source_name,
+                            message=(
+                                f"插件解压后体积过大: 总计 {total_size} 字节"
+                                f"（上限 {_MAX_EXTRACT_SIZE} 字节）"
+                            ),
+                        )
+                    ]
 
-                log.info(f"插件导入成功: {plugin_name}")
+                return [
+                    self._import_zip_layout(zf, layout, overwrite)
+                    for layout in layouts
+                ]
+        except ValueError as e:
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message=str(e),
+                )
+            ]
+        except zipfile.BadZipFile:
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message="无效的 zip 文件",
+                )
+            ]
+        except Exception as e:
+            log.error(f"导入 ZIP 来源失败: {e}", exc_info=True)
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message=f"导入失败: {e}",
+                )
+            ]
+
+    def _import_zip_layout(
+        self,
+        zf: zipfile.ZipFile,
+        layout: _ZipLayout,
+        overwrite: bool,
+    ) -> ImportResult:
+        """独立导入 ZIP 中的一个插件根。"""
+        plugin_name = layout.plugin_dir_name
+        staging_dir: Path | None = None
+        try:
+            target_dir = self._get_target_dir(plugin_name)
+            if self._path_exists(target_dir) and not overwrite:
                 return ImportResult(
-                    success=True,
+                    success=False,
                     plugin_name=plugin_name,
-                    message="导入成功",
+                    message=f"插件目录已存在: {plugin_name}",
                     plugin_dir=target_dir,
                 )
 
-        except zipfile.BadZipFile:
+            staging_dir = self._new_staging_dir(plugin_name)
+            self._extract_plugin(zf, staging_dir, layout)
+            self._find_primary_const_file(staging_dir)
+            self._replace_plugin_dir(staging_dir, target_dir, overwrite)
+
+            log.info(f"插件导入成功: {plugin_name}")
             return ImportResult(
-                success=False,
+                success=True,
                 plugin_name=plugin_name,
-                message="无效的 zip 文件",
+                message="导入成功",
+                plugin_dir=target_dir,
             )
         except Exception as e:
-            log.error(f"导入插件失败: {e}", exc_info=True)
+            log.error(f"导入插件失败: {plugin_name}, {e}", exc_info=True)
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
@@ -192,38 +287,41 @@ class PluginImportService:
             )
         finally:
             if staging_dir is not None and self._path_exists(staging_dir):
-                self._remove_path(staging_dir)
-
-    def _validate_zip_structure(self, zf: zipfile.ZipFile) -> ImportResult:
-        """验证 ZIP 文件结构。"""
-        try:
-            layout = self._analyze_zip(zf)
-        except ValueError as e:
-            return ImportResult(success=False, plugin_name="", message=str(e))
-        return ImportResult(success=True, plugin_name=layout.plugin_dir_name, message="")
+                try:
+                    self._remove_path(staging_dir)
+                except Exception as e:
+                    log.warning(f"清理插件临时目录失败: {staging_dir}, {e}")
 
     def preview_plugin(self, zip_path: str | Path) -> PluginPreviewInfo | None:
-        """预览 ZIP 中的插件信息（不解压）。"""
+        """按旧单插件语义预览一个 ZIP 文件。"""
+        previews = self.preview_plugins_from_zip(zip_path)
+        return previews[0] if len(previews) == 1 else None
+
+    def preview_plugins_from_zip(self, zip_path: str | Path) -> list[PluginPreviewInfo]:
+        """预览一个 ZIP 来源中的全部插件。"""
         zip_path = Path(zip_path)
         if not zip_path.exists() or zip_path.suffix.lower() != ".zip":
-            return None
+            return []
 
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
-                layout = self._analyze_zip(zf)
-                const_info = next(
-                    info
-                    for info, path in layout.members
-                    if path == layout.preview_const_path
-                )
-                content = zf.read(const_info).decode("utf-8")
-                return PluginPreviewInfo(
-                    plugin_name=layout.plugin_dir_name,
-                    version=self._extract_const_value(content, "PLUGIN_VERSION"),
-                    author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
-                )
+                layouts = self._analyze_zip(zf)
+                return [self._preview_zip_layout(zf, layout) for layout in layouts]
         except Exception:
-            return None
+            return []
+
+    def _preview_zip_layout(
+        self,
+        zf: zipfile.ZipFile,
+        layout: _ZipLayout,
+    ) -> PluginPreviewInfo:
+        """读取 ZIP 中一个插件根的预览信息。"""
+        content = zf.read(layout.preview_const_info).decode("utf-8")
+        return PluginPreviewInfo(
+            plugin_name=layout.plugin_dir_name,
+            version=self._extract_const_value(content, "PLUGIN_VERSION"),
+            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+        )
 
     def _extract_const_value(self, content: str, const_name: str) -> str | None:
         """从代码内容中提取字符串常量值。"""
@@ -231,9 +329,9 @@ class PluginImportService:
         match = re.search(pattern, content)
         return match.group(1) if match else None
 
-    def _analyze_zip(self, zf: zipfile.ZipFile) -> _ZipLayout:
-        """校验 ZIP 成员并确定插件根目录和预览 const 文件。"""
-        members: list[tuple[zipfile.ZipInfo, PurePosixPath]] = []
+    def _analyze_zip(self, zf: zipfile.ZipFile) -> list[_ZipLayout]:
+        """校验 ZIP 成员，并识别全部最外层合法插件根。"""
+        archive_members: list[tuple[zipfile.ZipInfo, PurePosixPath]] = []
         file_paths: list[PurePosixPath] = []
         path_types: dict[str, bool] = {}
 
@@ -246,7 +344,7 @@ class PluginImportService:
             if path_key in path_types:
                 raise ValueError(f"ZIP 包含重复路径: {info.filename}")
             path_types[path_key] = info.is_dir()
-            members.append((info, path))
+            archive_members.append((info, path))
             if not info.is_dir():
                 file_paths.append(path)
 
@@ -255,6 +353,58 @@ class PluginImportService:
             if any(path_key.startswith(f"{file_path_key}/") for path_key in path_types):
                 raise ValueError(f"ZIP 包含文件与目录路径冲突: {file_path_key}")
 
+        plugin_roots = self._find_outermost_plugin_roots(file_paths)
+        layouts: list[_ZipLayout] = []
+        for plugin_root in plugin_roots:
+            root_factory_path = next(
+                path
+                for path in file_paths
+                if path.parent == plugin_root and path.name.endswith("_factory.py")
+            )
+            plugin_dir_name = (
+                plugin_root.name
+                if plugin_root.parts
+                else root_factory_path.name.removesuffix("_factory.py")
+            )
+            self._validate_plugin_dir_name(plugin_dir_name)
+
+            preview_const_path = next(
+                path
+                for path in file_paths
+                if path.parent == plugin_root and path.name.endswith("_const.py")
+            )
+            preview_const_info = next(
+                info for info, path in archive_members if path == preview_const_path
+            )
+
+            members: list[tuple[zipfile.ZipInfo, PurePosixPath]] = []
+            for info, path in archive_members:
+                if plugin_root.parts:
+                    if not path.is_relative_to(plugin_root):
+                        continue
+                    relative_path = path.relative_to(plugin_root)
+                else:
+                    relative_path = path
+
+                if relative_path.parts:
+                    members.append((info, relative_path))
+
+            layouts.append(
+                _ZipLayout(
+                    plugin_dir_name=plugin_dir_name,
+                    members=members,
+                    preview_const_info=preview_const_info,
+                )
+            )
+
+        self._validate_unique_plugin_names([layout.plugin_dir_name for layout in layouts])
+        return layouts
+
+    def _find_outermost_plugin_roots(
+        self,
+        file_paths: list[PurePosixPath],
+    ) -> list[PurePosixPath]:
+        """从来源文件列表中找出互不隶属的最外层合法插件根。"""
         factory_paths = sorted(
             (path for path in file_paths if path.name.endswith("_factory.py")),
             key=lambda path: (len(path.parts), path.as_posix()),
@@ -262,49 +412,48 @@ class PluginImportService:
         if not factory_paths:
             raise ValueError("无效的插件结构: 缺少 *_factory.py 文件")
 
-        const_paths = [path for path in file_paths if path.name.endswith("_const.py")]
         factory_paths_by_dir: dict[PurePosixPath, list[PurePosixPath]] = {}
         const_paths_by_dir: dict[PurePosixPath, list[PurePosixPath]] = {}
-        for factory_path in factory_paths:
-            factory_paths_by_dir.setdefault(factory_path.parent, []).append(factory_path)
-        for const_path in const_paths:
-            const_paths_by_dir.setdefault(const_path.parent, []).append(const_path)
+        for path in factory_paths:
+            factory_paths_by_dir.setdefault(path.parent, []).append(path)
+        for path in file_paths:
+            if path.name.endswith("_const.py"):
+                const_paths_by_dir.setdefault(path.parent, []).append(path)
 
-        for factory_dir, files in factory_paths_by_dir.items():
-            if len(files) > 1:
-                raise ValueError("无效的插件结构: 同一目录不能包含多个 *_factory.py 文件")
-            const_files = const_paths_by_dir.get(factory_dir, [])
-            if not const_files:
-                raise ValueError("无效的插件结构: factory 文件所在目录缺少 *_const.py 文件")
-            if len(const_files) > 1:
-                raise ValueError("无效的插件结构: 同一目录不能包含多个 *_const.py 文件")
+        plugin_roots: list[PurePosixPath] = []
+        for factory_dir in sorted(
+            factory_paths_by_dir,
+            key=lambda path: (len(path.parts), path.as_posix()),
+        ):
+            if any(factory_dir == root or factory_dir.is_relative_to(root) for root in plugin_roots):
+                continue
 
-        root_factories = [path for path in factory_paths if len(path.parts) == 1]
+            root_factory_paths = factory_paths_by_dir[factory_dir]
+            if len(root_factory_paths) > 1:
+                raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_factory.py 文件")
 
-        if root_factories:
-            primary_factory = root_factories[0]
-            root_prefix = None
-            plugin_dir_name = primary_factory.name.removesuffix("_factory.py")
-        else:
-            factory_roots = {path.parts[0] for path in factory_paths}
-            if len(factory_roots) != 1:
-                raise ValueError("无效的插件结构: ZIP 只能包含一个顶层插件目录")
-            root_prefix = next(iter(factory_roots))
-            plugin_dir_name = root_prefix
-            primary_factory = factory_paths[0]
+            root_const_paths = const_paths_by_dir.get(factory_dir, [])
+            if not root_const_paths:
+                raise ValueError("无效的插件结构: 插件根目录缺少 *_const.py 文件")
+            if len(root_const_paths) > 1:
+                raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_const.py 文件")
 
-        self._validate_plugin_dir_name(plugin_dir_name)
-        preview_const_path = min(
-            (path for path in const_paths if path.parent == primary_factory.parent),
-            key=lambda path: path.as_posix(),
-        )
+            plugin_roots.append(factory_dir)
 
-        return _ZipLayout(
-            plugin_dir_name=plugin_dir_name,
-            root_prefix=root_prefix,
-            members=members,
-            preview_const_path=preview_const_path,
-        )
+        return plugin_roots
+
+    def _validate_unique_plugin_names(self, plugin_names: list[str]) -> None:
+        """拒绝在 Windows 目标目录中会发生冲突的插件名。"""
+        seen_names: dict[str, str] = {}
+        for plugin_name in plugin_names:
+            name_key = plugin_name.casefold()
+            existing_name = seen_names.get(name_key)
+            if existing_name is not None:
+                raise ValueError(
+                    f"无效的插件结构: 来源包含重复插件目录名: "
+                    f"{existing_name}, {plugin_name}"
+                )
+            seen_names[name_key] = plugin_name
 
     def _normalize_zip_member_path(self, member_name: str) -> PurePosixPath:
         """把 ZIP 成员名转换为安全的相对 POSIX 路径。"""
@@ -329,21 +478,14 @@ class PluginImportService:
         )
 
     def _extract_plugin(self, zf: zipfile.ZipFile, target_dir: Path, layout: _ZipLayout) -> None:
-        """把已校验的 ZIP 内容写入临时插件目录。"""
+        """把已校验的插件根子树写入临时插件目录。"""
         plugins_root = self._plugins_root()
         target_dir_resolved = target_dir.resolve(strict=False)
         if target_dir_resolved == plugins_root or not target_dir_resolved.is_relative_to(plugins_root):
             raise ValueError("插件临时目录不在 plugins 目录内")
 
         target_dir.mkdir(parents=True, exist_ok=False)
-        for info, member_path in layout.members:
-            relative_path = member_path
-            if layout.root_prefix is not None and member_path.parts[0] == layout.root_prefix:
-                relative_parts = member_path.parts[1:]
-                if not relative_parts:
-                    continue
-                relative_path = PurePosixPath(*relative_parts)
-
+        for info, relative_path in layout.members:
             dest_path = target_dir.joinpath(*relative_path.parts)
             dest_path_resolved = dest_path.resolve(strict=False)
             if not dest_path_resolved.is_relative_to(target_dir_resolved):
@@ -358,41 +500,113 @@ class PluginImportService:
                 shutil.copyfileobj(source, destination)
 
     def import_directory(self, dir_path: str | Path, overwrite: bool = False) -> ImportResult:
-        """导入目录格式的插件。"""
+        """按旧单插件语义导入所选目录本身。"""
         dir_path = Path(dir_path)
         plugin_name = dir_path.name
+        invalid_result = self._validate_directory_source_path(dir_path)
+        if invalid_result is not None:
+            return invalid_result
 
+        try:
+            const_file = self._find_primary_const_file(dir_path)
+            self._validate_plugin_dir_name(plugin_name)
+            self._validate_directory_symlinks(dir_path)
+        except ValueError as e:
+            return ImportResult(success=False, plugin_name=plugin_name, message=str(e))
+
+        return self._import_directory_layout(
+            _DirectoryLayout(
+                plugin_dir_name=plugin_name,
+                source_dir=dir_path,
+                preview_const_path=const_file,
+            ),
+            overwrite,
+        )
+
+    def import_plugins_from_directory(
+        self,
+        dir_path: str | Path,
+        overwrite: bool = False,
+        selected_plugin_names: set[str] | None = None,
+    ) -> list[ImportResult]:
+        """导入一个松散目录来源中的全部或指定插件。"""
+        dir_path = Path(dir_path)
+        source_name = dir_path.name
+        invalid_result = self._validate_directory_source_path(dir_path)
+        if invalid_result is not None:
+            return [invalid_result]
+
+        try:
+            layouts = self._analyze_directory(dir_path)
+            if selected_plugin_names is not None:
+                requested_names = {name.casefold() for name in selected_plugin_names}
+                available_names = {layout.plugin_dir_name.casefold() for layout in layouts}
+                missing_names = sorted(requested_names - available_names)
+                if missing_names:
+                    return [
+                        ImportResult(
+                            success=False,
+                            plugin_name=source_name,
+                            message=f"目录中不存在指定插件: {', '.join(missing_names)}",
+                        )
+                    ]
+                layouts = [
+                    layout
+                    for layout in layouts
+                    if layout.plugin_dir_name.casefold() in requested_names
+                ]
+        except ValueError as e:
+            return [ImportResult(success=False, plugin_name=source_name, message=str(e))]
+
+        return [
+            self._import_directory_layout(layout, overwrite)
+            for layout in layouts
+        ]
+
+    def _validate_directory_source_path(self, dir_path: Path) -> ImportResult | None:
+        """校验目录来源路径，并在失败时返回统一结果。"""
+        plugin_name = dir_path.name
         if not dir_path.exists():
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
                 message=f"目录不存在: {dir_path}",
             )
-
         if not dir_path.is_dir():
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
                 message="路径不是目录",
             )
-
-        try:
-            self._find_primary_const_file(dir_path)
-            target_dir = self._get_target_dir(plugin_name)
-        except ValueError as e:
-            return ImportResult(success=False, plugin_name=plugin_name, message=str(e))
-
-        if self._path_exists(target_dir) and not overwrite:
+        if dir_path.is_symlink():
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
-                message=f"插件目录已存在: {plugin_name}",
-                plugin_dir=target_dir,
+                message="所选插件目录不能是符号链接",
             )
+        return None
 
-        staging_dir = self._new_staging_dir(plugin_name)
+    def _import_directory_layout(
+        self,
+        layout: _DirectoryLayout,
+        overwrite: bool,
+    ) -> ImportResult:
+        """独立导入松散来源中的一个插件根。"""
+        plugin_name = layout.plugin_dir_name
+        staging_dir: Path | None = None
         try:
-            shutil.copytree(dir_path, staging_dir)
+            target_dir = self._get_target_dir(plugin_name)
+            if self._path_exists(target_dir) and not overwrite:
+                return ImportResult(
+                    success=False,
+                    plugin_name=plugin_name,
+                    message=f"插件目录已存在: {plugin_name}",
+                    plugin_dir=target_dir,
+                )
+
+            self._validate_directory_symlinks(layout.source_dir)
+            staging_dir = self._new_staging_dir(plugin_name)
+            shutil.copytree(layout.source_dir, staging_dir)
             self._find_primary_const_file(staging_dir)
             self._replace_plugin_dir(staging_dir, target_dir, overwrite)
             log.info(f"目录插件导入成功: {plugin_name}")
@@ -403,24 +617,28 @@ class PluginImportService:
                 plugin_dir=target_dir,
             )
         except Exception as e:
-            log.error(f"导入目录插件失败: {e}", exc_info=True)
+            log.error(f"导入目录插件失败: {plugin_name}, {e}", exc_info=True)
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
                 message=f"导入失败: {e}",
             )
         finally:
-            if self._path_exists(staging_dir):
-                self._remove_path(staging_dir)
+            if staging_dir is not None and self._path_exists(staging_dir):
+                try:
+                    self._remove_path(staging_dir)
+                except Exception as e:
+                    log.warning(f"清理插件临时目录失败: {staging_dir}, {e}")
 
     def preview_directory(self, dir_path: str | Path) -> PluginPreviewInfo | None:
-        """预览目录中的插件信息。"""
+        """按旧单插件语义预览所选目录本身。"""
         dir_path = Path(dir_path)
-        if not dir_path.exists() or not dir_path.is_dir():
+        if self._validate_directory_source_path(dir_path) is not None:
             return None
 
         try:
             const_file = self._find_primary_const_file(dir_path)
+            self._validate_directory_symlinks(dir_path)
             content = const_file.read_text(encoding="utf-8")
         except Exception:
             return None
@@ -431,30 +649,139 @@ class PluginImportService:
             author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
         )
 
-    def _find_primary_const_file(self, plugin_dir: Path) -> Path:
-        """查找最浅层 factory 对应的同目录 const 文件。"""
-        factory_files = sorted(
-            plugin_dir.rglob("*_factory.py"),
-            key=lambda path: (len(path.relative_to(plugin_dir).parts), path.as_posix()),
+    def preview_plugins_from_directory(
+        self,
+        dir_path: str | Path,
+    ) -> list[PluginPreviewInfo]:
+        """预览一个松散目录来源中的全部插件。"""
+        dir_path = Path(dir_path)
+        if self._validate_directory_source_path(dir_path) is not None:
+            return []
+
+        try:
+            layouts = self._analyze_directory(dir_path)
+            return [self._preview_directory_layout(layout) for layout in layouts]
+        except Exception:
+            return []
+
+    def _preview_directory_layout(
+        self,
+        layout: _DirectoryLayout,
+    ) -> PluginPreviewInfo:
+        """读取松散目录中一个插件根的预览信息。"""
+        content = layout.preview_const_path.read_text(encoding="utf-8")
+        return PluginPreviewInfo(
+            plugin_name=layout.plugin_dir_name,
+            version=self._extract_const_value(content, "PLUGIN_VERSION"),
+            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
         )
-        if not factory_files:
-            raise ValueError("无效的插件结构: 缺少 *_factory.py 文件")
 
-        factory_files_by_dir: dict[Path, list[Path]] = {}
-        for factory_file in factory_files:
-            factory_files_by_dir.setdefault(factory_file.parent, []).append(factory_file)
+    def _analyze_directory(self, source_dir: Path) -> list[_DirectoryLayout]:
+        """识别松散目录中的全部最外层合法插件根。"""
+        file_paths = self._collect_directory_file_paths(source_dir)
+        plugin_roots = self._find_outermost_plugin_roots(file_paths)
+        layouts: list[_DirectoryLayout] = []
+        for plugin_root in plugin_roots:
+            plugin_source_dir = (
+                source_dir.joinpath(*plugin_root.parts)
+                if plugin_root.parts
+                else source_dir
+            )
+            plugin_dir_name = plugin_root.name if plugin_root.parts else source_dir.name
+            self._validate_plugin_dir_name(plugin_dir_name)
+            preview_const_path = next(
+                path
+                for path in file_paths
+                if path.parent == plugin_root and path.name.endswith("_const.py")
+            )
+            layouts.append(
+                _DirectoryLayout(
+                    plugin_dir_name=plugin_dir_name,
+                    source_dir=plugin_source_dir,
+                    preview_const_path=source_dir.joinpath(*preview_const_path.parts),
+                )
+            )
 
-        for factory_dir, files in factory_files_by_dir.items():
-            if len(files) > 1:
-                raise ValueError("无效的插件结构: 同一目录不能包含多个 *_factory.py 文件")
-            const_files = sorted(factory_dir.glob("*_const.py"))
-            if not const_files:
-                raise ValueError("无效的插件结构: factory 文件所在目录缺少 *_const.py 文件")
-            if len(const_files) > 1:
-                raise ValueError("无效的插件结构: 同一目录不能包含多个 *_const.py 文件")
+        self._validate_unique_plugin_names([layout.plugin_dir_name for layout in layouts])
+        for layout in layouts:
+            self._validate_directory_symlinks(layout.source_dir)
+        return layouts
 
-        primary_factory = factory_files[0]
-        return next(primary_factory.parent.glob("*_const.py"))
+    def _collect_directory_file_paths(self, source_dir: Path) -> list[PurePosixPath]:
+        """收集松散目录文件，不跟随符号链接目录。"""
+        file_paths: list[PurePosixPath] = []
+        for current_root, dir_names, file_names in os.walk(source_dir, followlinks=False):
+            current_dir = Path(current_root)
+            relative_dir = current_dir.relative_to(source_dir)
+            dir_names[:] = sorted(
+                name
+                for name in dir_names
+                if name != "__MACOSX" and not (current_dir / name).is_symlink()
+            )
+            for file_name in sorted(file_names):
+                relative_path = PurePosixPath(*relative_dir.parts, file_name)
+                if not self._is_metadata_path(relative_path):
+                    file_paths.append(relative_path)
+        return file_paths
+
+    def _validate_directory_symlinks(self, plugin_dir: Path) -> None:
+        """拒绝越出插件根或形成复制循环的符号链接。"""
+        plugin_root = plugin_dir.resolve(strict=True)
+        visited_dirs: set[Path] = set()
+        active_dirs: set[Path] = set()
+
+        def visit_directory(directory: Path) -> None:
+            if directory in active_dirs:
+                raise ValueError(f"插件目录包含循环符号链接: {directory}")
+            if directory in visited_dirs:
+                return
+
+            active_dirs.add(directory)
+            try:
+                for entry_path in directory.iterdir():
+                    if entry_path.is_symlink():
+                        try:
+                            target_path = entry_path.resolve(strict=True)
+                        except (OSError, RuntimeError) as e:
+                            raise ValueError(
+                                f"插件目录包含无效符号链接: {entry_path}"
+                            ) from e
+
+                        if directory == plugin_root and entry_path.suffix.casefold() == ".py":
+                            raise ValueError(
+                                f"插件根第一层 Python 文件不能是符号链接: {entry_path}"
+                            )
+                        if not target_path.is_relative_to(plugin_root):
+                            raise ValueError(f"插件目录包含越界符号链接: {entry_path}")
+                        if target_path.is_dir():
+                            if target_path in active_dirs:
+                                raise ValueError(
+                                    f"插件目录包含循环符号链接: {entry_path}"
+                                )
+                            visit_directory(target_path)
+                    elif entry_path.is_dir():
+                        visit_directory(entry_path.resolve(strict=True))
+            finally:
+                active_dirs.remove(directory)
+            visited_dirs.add(directory)
+
+        visit_directory(plugin_root)
+
+    def _find_primary_const_file(self, plugin_dir: Path) -> Path:
+        """校验插件根第一层，并返回主 factory 对应的 const 文件。"""
+        root_factory_files = sorted(plugin_dir.glob("*_factory.py"))
+        if not root_factory_files:
+            raise ValueError("无效的插件结构: 插件根目录缺少 *_factory.py 文件")
+        if len(root_factory_files) > 1:
+            raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_factory.py 文件")
+
+        root_const_files = sorted(plugin_dir.glob("*_const.py"))
+        if not root_const_files:
+            raise ValueError("无效的插件结构: 插件根目录缺少 *_const.py 文件")
+        if len(root_const_files) > 1:
+            raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_const.py 文件")
+
+        return root_const_files[0]
 
     def _plugins_root(self) -> Path:
         """返回规范化后的 plugins 根目录。"""

@@ -1,12 +1,10 @@
 import contextlib
-import os
-import subprocess
-import sys
 import webbrowser
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from packaging import version
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
@@ -21,7 +19,9 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.operation.application.plugin_import_service import (
+    ImportResult,
     PluginImportService,
+    PluginPreviewInfo,
 )
 from one_dragon.base.operation.application.plugin_info import PluginInfo
 from one_dragon.utils.i18_utils import gt
@@ -164,7 +164,11 @@ class SettingPluginInterface(VerticalScrollInterface):
         self.open_dir_btn.clicked.connect(self._on_open_dir_clicked)
 
         self.open_market_btn = PushButton(FluentIcon.SHOPPING_CART, gt('插件市场'))
-        self.open_market_btn.clicked.connect(lambda: QDesktopServices.openUrl('https://onedragon-anyone.github.io/plugin-registry/'))
+        self.open_market_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(
+                QUrl('https://onedragon-anyone.github.io/plugin-registry/')
+            )
+        )
 
         # 创建操作卡片
         action_card = MultiPushSettingCard(
@@ -177,7 +181,10 @@ class SettingPluginInterface(VerticalScrollInterface):
 
         # 说明卡片
         self.help_card = HelpCard(
-            url='',
+            url=(
+                'https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/'
+                'blob/main/docs/develop/guides/application_plugin_guide.md'
+            ),
             title='插件开发说明',
             content='第三方插件需要包含 *_const.py 和 *_factory.py 文件，详见 plugins 目录下的 README.md'
         )
@@ -227,9 +234,7 @@ class SettingPluginInterface(VerticalScrollInterface):
 
         if not third_party_plugins:
             # 隐藏所有插件卡片，显示空状态
-            for card in self._plugin_cards:
-                with contextlib.suppress(RuntimeError):
-                    card.hide()
+            self._clear_plugin_cards()
             self._empty_card.show()
             self.plugin_list_group.adjustSize()
             return
@@ -268,7 +273,7 @@ class SettingPluginInterface(VerticalScrollInterface):
         self.plugin_list_group.adjustSize()
 
     def _on_import_clicked(self) -> None:
-        """导入按钮点击"""
+        """导入 ZIP 来源。"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             gt('选择插件压缩包'),
@@ -279,123 +284,147 @@ class SettingPluginInterface(VerticalScrollInterface):
         if not file_paths:
             return
 
-        # 预览所有插件信息
-        previews = []
-        for fp in file_paths:
-            preview = self.plugin_import_service.preview_plugin(fp)
-            if preview:
-                previews.append((fp, preview))
+        previews: list[tuple[str, PluginPreviewInfo | None]] = []
+        for file_path in file_paths:
+            source_previews = self.plugin_import_service.preview_plugins_from_zip(file_path)
+            if source_previews:
+                previews.extend((file_path, preview) for preview in source_previews)
             else:
-                previews.append((fp, None))
+                previews.append((file_path, None))
 
-        # 构建预览信息
-        preview_lines = []
-        for fp, preview in previews:
-            if preview:
-                line = f"• {preview.plugin_name}"
-                if preview.version:
-                    line += f" (v{preview.version})"
-                if preview.author:
-                    line += f" - {preview.author}"
-                preview_lines.append(line)
-            else:
-                preview_lines.append(f"• {Path(fp).stem} (无法读取信息)")
+        preview_lines: list[str] = []
+        for file_path, preview in previews:
+            if preview is None:
+                preview_lines.append(f"• {Path(file_path).stem} (无法读取信息)")
+                continue
 
-        # 显示预览确认对话框
+            line = f"• {preview.plugin_name}"
+            if preview.version:
+                line += f" (v{preview.version})"
+            if preview.author:
+                line += f" - {preview.author}"
+            preview_lines.append(line)
+
         msg = MessageBox(
             title=gt('确认导入'),
-            content=gt(f'即将导入以下插件：\n\n{chr(10).join(preview_lines)}'),
-            parent=self
+            content=f'{gt("即将导入以下插件：")}\n\n{chr(10).join(preview_lines)}',
+            parent=self.window()
         )
         msg.yesButton.setText(gt('确认导入'))
         msg.cancelButton.setText(gt('取消'))
-
         if not msg.exec():
             return
 
-        # 执行导入（不覆盖）
-        results = self.plugin_import_service.import_plugins(file_paths, overwrite=False)
+        results: list[tuple[str, ImportResult]] = []
+        for file_path in file_paths:
+            source_results = self.plugin_import_service.import_plugins_from_zip(
+                file_path,
+                overwrite=False,
+            )
+            results.extend((file_path, result) for result in source_results)
 
-        # 找出因已存在而失败的插件
         existing_plugins = [
-            (file_paths[i], r) for i, r in enumerate(results)
-            if not r.success and r.plugin_dir is not None
+            (file_path, result)
+            for file_path, result in results
+            if not result.success and result.plugin_dir is not None
         ]
-
-        # 如果有已存在的插件，询问是否覆盖
         if existing_plugins:
-            # 获取已安装插件的版本信息
-            installed_plugins = self._get_installed_plugins_by_package()
+            preview_by_key = {
+                self._get_source_plugin_key(file_path, preview.plugin_name): preview
+                for file_path, preview in previews
+                if preview is not None
+            }
+            installed_plugins = {
+                name.casefold(): plugin
+                for name, plugin in self._get_installed_plugins_by_package().items()
+            }
+            overwrite_info: list[tuple[str, str, str | None, str | None, bool]] = []
+            for file_path, result in existing_plugins:
+                preview = preview_by_key.get(
+                    self._get_source_plugin_key(file_path, result.plugin_name)
+                )
+                new_version = preview.version if preview else None
+                installed_plugin = installed_plugins.get(result.plugin_name.casefold())
+                old_version = installed_plugin.version if installed_plugin else None
+                overwrite_info.append(
+                    (
+                        file_path,
+                        result.plugin_name,
+                        new_version,
+                        old_version,
+                        self._is_version_lower(new_version, old_version),
+                    )
+                )
 
-            # 检查版本信息
-            overwrite_info = []  # (file_path, plugin_name, new_ver, old_ver, is_downgrade)
-            for fp, r in existing_plugins:
-                preview = self.plugin_import_service.preview_plugin(fp)
-                new_ver = preview.version if preview else None
-                old_ver = installed_plugins.get(r.plugin_name, None)
-                old_ver_str = old_ver.version if old_ver else None
+            normal_overwrite = [
+                (file_path, name)
+                for file_path, name, _, _, is_downgrade in overwrite_info
+                if not is_downgrade
+            ]
+            downgrade_overwrite = [
+                (file_path, name, new_version, old_version)
+                for file_path, name, new_version, old_version, is_downgrade in overwrite_info
+                if is_downgrade
+            ]
+            selected_overwrites: dict[str, set[str]] = {}
 
-                is_downgrade = self._is_version_lower(new_ver, old_ver_str)
-                overwrite_info.append((fp, r.plugin_name, new_ver, old_ver_str, is_downgrade))
-
-            # 区分正常覆盖和降级覆盖
-            normal_overwrite = [(fp, name) for fp, name, _, _, is_down in overwrite_info if not is_down]
-            downgrade_overwrite = [(fp, name, new_v, old_v) for fp, name, new_v, old_v, is_down in overwrite_info if is_down]
-
-            overwrite_paths = []
-
-            # 处理正常覆盖
             if normal_overwrite:
                 names = [name for _, name in normal_overwrite]
                 msg = MessageBox(
                     title=gt('插件已存在'),
-                    content=gt(f'以下插件已存在，是否覆盖安装？\n\n{chr(10).join(names)}'),
-                    parent=self
+                    content=f'{gt("以下插件已存在，是否覆盖安装？")}\n\n{chr(10).join(names)}',
+                    parent=self.window()
                 )
                 msg.yesButton.setText(gt('覆盖安装'))
                 msg.cancelButton.setText(gt('跳过'))
                 if msg.exec():
-                    overwrite_paths.extend([fp for fp, _ in normal_overwrite])
+                    for file_path, name in normal_overwrite:
+                        selected_overwrites.setdefault(file_path, set()).add(name)
 
-            # 处理降级覆盖（单独警告）
             if downgrade_overwrite:
                 warnings = [
-                    f'{name}: {new_v or "未知"} ← {old_v or "未知"}'
-                    for _, name, new_v, old_v in downgrade_overwrite
+                    f'{name}: {new_version or "未知"} ← {old_version or "未知"}'
+                    for _, name, new_version, old_version in downgrade_overwrite
                 ]
                 msg = MessageBox(
                     title=gt('⚠️ 版本降级警告'),
-                    content=gt(f'以下插件将降级安装，确定继续？\n\n{chr(10).join(warnings)}'),
-                    parent=self
+                    content=f'{gt("以下插件将降级安装，确定继续？")}\n\n{chr(10).join(warnings)}',
+                    parent=self.window()
                 )
                 msg.yesButton.setText(gt('确认降级'))
                 msg.cancelButton.setText(gt('取消'))
                 if msg.exec():
-                    overwrite_paths.extend([fp for fp, _, _, _ in downgrade_overwrite])
+                    for file_path, name, _, _ in downgrade_overwrite:
+                        selected_overwrites.setdefault(file_path, set()).add(name)
 
-            # 执行覆盖安装
-            if overwrite_paths:
-                overwrite_results = self.plugin_import_service.import_plugins(
-                    overwrite_paths, overwrite=True
-                )
-                # 更新结果
-                for i, fp in enumerate(overwrite_paths):
-                    idx = file_paths.index(fp)
-                    results[idx] = overwrite_results[i]
+            if selected_overwrites:
+                selected_keys = {
+                    self._get_source_plugin_key(file_path, name)
+                    for file_path, names in selected_overwrites.items()
+                    for name in names
+                }
+                results = [
+                    (file_path, result)
+                    for file_path, result in results
+                    if self._get_source_plugin_key(file_path, result.plugin_name)
+                    not in selected_keys
+                ]
+                for file_path, names in selected_overwrites.items():
+                    overwrite_results = self.plugin_import_service.import_plugins_from_zip(
+                        file_path,
+                        overwrite=True,
+                        selected_plugin_names=names,
+                    )
+                    results.extend((file_path, result) for result in overwrite_results)
 
-        # 统计结果
-        success_count = sum(1 for r in results if r.success)
+        success_count = sum(1 for _, result in results if result.success)
         fail_count = len(results) - success_count
-
-        # 显示结果
         if success_count > 0:
-            # 刷新应用注册
             self.ctx.refresh_application_registration()
             self._refresh_plugin_list()
-
             InfoBar.success(
                 title=gt('导入成功'),
-                content=gt(f'成功导入 {success_count} 个插件'),
+                content=gt('成功导入 {count} 个插件').format(count=success_count),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -404,7 +433,11 @@ class SettingPluginInterface(VerticalScrollInterface):
             )
 
         if fail_count > 0:
-            fail_messages = [f"{r.plugin_name}: {r.message}" for r in results if not r.success]
+            fail_messages = [
+                f"{result.plugin_name}: {result.message}"
+                for _, result in results
+                if not result.success
+            ]
             InfoBar.warning(
                 title=gt('部分导入失败'),
                 content='\n'.join(fail_messages),
@@ -416,7 +449,7 @@ class SettingPluginInterface(VerticalScrollInterface):
             )
 
     def _on_import_dir_clicked(self) -> None:
-        """导入目录按钮点击"""
+        """导入松散目录来源。"""
         dir_path = QFileDialog.getExistingDirectory(
             self,
             gt('选择插件目录'),
@@ -426,13 +459,11 @@ class SettingPluginInterface(VerticalScrollInterface):
         if not dir_path:
             return
 
-        # 预览插件信息
-        preview = self.plugin_import_service.preview_directory(dir_path)
-
-        if not preview:
+        previews = self.plugin_import_service.preview_plugins_from_directory(dir_path)
+        if not previews:
             InfoBar.error(
                 title=gt('无效的插件目录'),
-                content=gt('该目录不包含有效的插件结构（缺少 *_factory.py 文件）'),
+                content=gt('该目录不包含有效的插件结构（缺少或冲突的 *_factory.py / *_const.py 文件）'),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -441,94 +472,135 @@ class SettingPluginInterface(VerticalScrollInterface):
             )
             return
 
-        # 构建预览信息
-        preview_text = f"• {preview.plugin_name}"
-        if preview.version:
-            preview_text += f" (v{preview.version})"
-        if preview.author:
-            preview_text += f" - {preview.author}"
+        preview_lines: list[str] = []
+        for preview in previews:
+            line = f"• {preview.plugin_name}"
+            if preview.version:
+                line += f" (v{preview.version})"
+            if preview.author:
+                line += f" - {preview.author}"
+            preview_lines.append(line)
 
-        # 显示预览确认对话框
         msg = MessageBox(
             title=gt('确认导入'),
-            content=gt(f'即将导入以下插件：\n\n{preview_text}'),
-            parent=self
+            content=f'{gt("即将导入以下插件：")}\n\n{chr(10).join(preview_lines)}',
+            parent=self.window()
         )
         msg.yesButton.setText(gt('确认导入'))
         msg.cancelButton.setText(gt('取消'))
-
         if not msg.exec():
             return
 
-        # 尝试导入
-        result = self.plugin_import_service.import_directory(dir_path, overwrite=False)
+        results = self.plugin_import_service.import_plugins_from_directory(
+            dir_path,
+            overwrite=False,
+        )
+        existing_plugins = [
+            result
+            for result in results
+            if not result.success and result.plugin_dir is not None
+        ]
+        if existing_plugins:
+            preview_by_name = {
+                preview.plugin_name.casefold(): preview
+                for preview in previews
+            }
+            installed_plugins = {
+                name.casefold(): plugin
+                for name, plugin in self._get_installed_plugins_by_package().items()
+            }
+            overwrite_info: list[tuple[str, str | None, str | None, bool]] = []
+            for result in existing_plugins:
+                preview = preview_by_name.get(result.plugin_name.casefold())
+                new_version = preview.version if preview else None
+                installed_plugin = installed_plugins.get(result.plugin_name.casefold())
+                old_version = installed_plugin.version if installed_plugin else None
+                overwrite_info.append(
+                    (
+                        result.plugin_name,
+                        new_version,
+                        old_version,
+                        self._is_version_lower(new_version, old_version),
+                    )
+                )
 
-        if result.success:
+            normal_overwrite = [
+                name
+                for name, _, _, is_downgrade in overwrite_info
+                if not is_downgrade
+            ]
+            downgrade_overwrite = [
+                (name, new_version, old_version)
+                for name, new_version, old_version, is_downgrade in overwrite_info
+                if is_downgrade
+            ]
+            selected_names: set[str] = set()
+
+            if normal_overwrite:
+                msg = MessageBox(
+                    title=gt('插件已存在'),
+                    content=f'{gt("以下插件已存在，是否覆盖安装？")}\n\n{chr(10).join(normal_overwrite)}',
+                    parent=self.window()
+                )
+                msg.yesButton.setText(gt('覆盖安装'))
+                msg.cancelButton.setText(gt('跳过'))
+                if msg.exec():
+                    selected_names.update(normal_overwrite)
+
+            if downgrade_overwrite:
+                warnings = [
+                    f'{name}: {new_version or "未知"} ← {old_version or "未知"}'
+                    for name, new_version, old_version in downgrade_overwrite
+                ]
+                msg = MessageBox(
+                    title=gt('⚠️ 版本降级警告'),
+                    content=f'{gt("以下插件将降级安装，确定继续？")}\n\n{chr(10).join(warnings)}',
+                    parent=self.window()
+                )
+                msg.yesButton.setText(gt('确认降级'))
+                msg.cancelButton.setText(gt('取消'))
+                if msg.exec():
+                    selected_names.update(name for name, _, _ in downgrade_overwrite)
+
+            if selected_names:
+                selected_name_keys = {name.casefold() for name in selected_names}
+                results = [
+                    result
+                    for result in results
+                    if result.plugin_name.casefold() not in selected_name_keys
+                ]
+                results.extend(
+                    self.plugin_import_service.import_plugins_from_directory(
+                        dir_path,
+                        overwrite=True,
+                        selected_plugin_names=selected_names,
+                    )
+                )
+
+        success_count = sum(1 for result in results if result.success)
+        fail_count = len(results) - success_count
+        if success_count > 0:
             self.ctx.refresh_application_registration()
             self._refresh_plugin_list()
             InfoBar.success(
                 title=gt('导入成功'),
-                content=gt(f'插件 "{result.plugin_name}" 已导入'),
+                content=gt('成功导入 {count} 个插件').format(count=success_count),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=3000,
                 parent=self
             )
-        elif result.plugin_dir is not None:
-            # 插件已存在，询问是否覆盖
-            # 获取已安装版本
-            installed = self._get_installed_plugins_by_package().get(result.plugin_name)
-            old_ver = installed.version if installed else None
-            new_ver = preview.version
 
-            is_downgrade = self._is_version_lower(new_ver, old_ver)
-
-            if is_downgrade:
-                msg = MessageBox(
-                    title=gt('⚠️ 版本降级警告'),
-                    content=gt(f'插件 "{result.plugin_name}" 将从 {old_ver or "未知"} 降级到 {new_ver or "未知"}，确定继续？'),
-                    parent=self
-                )
-                msg.yesButton.setText(gt('确认降级'))
-            else:
-                msg = MessageBox(
-                    title=gt('插件已存在'),
-                    content=gt(f'插件 "{result.plugin_name}" 已存在，是否覆盖安装？'),
-                    parent=self
-                )
-                msg.yesButton.setText(gt('覆盖安装'))
-
-            msg.cancelButton.setText(gt('取消'))
-
-            if msg.exec():
-                overwrite_result = self.plugin_import_service.import_directory(dir_path, overwrite=True)
-                if overwrite_result.success:
-                    self.ctx.refresh_application_registration()
-                    self._refresh_plugin_list()
-                    InfoBar.success(
-                        title=gt('导入成功'),
-                        content=gt(f'插件 "{overwrite_result.plugin_name}" 已覆盖安装'),
-                        orient=Qt.Horizontal,
-                        isClosable=True,
-                        position=InfoBarPosition.TOP,
-                        duration=3000,
-                        parent=self
-                    )
-                else:
-                    InfoBar.error(
-                        title=gt('导入失败'),
-                        content=overwrite_result.message,
-                        orient=Qt.Horizontal,
-                        isClosable=True,
-                        position=InfoBarPosition.TOP,
-                        duration=5000,
-                        parent=self
-                    )
-        else:
-            InfoBar.error(
-                title=gt('导入失败'),
-                content=result.message,
+        if fail_count > 0:
+            fail_messages = [
+                f"{result.plugin_name}: {result.message}"
+                for result in results
+                if not result.success
+            ]
+            InfoBar.warning(
+                title=gt('部分导入失败'),
+                content='\n'.join(fail_messages),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -564,24 +636,19 @@ class SettingPluginInterface(VerticalScrollInterface):
 
     def _on_open_dir_clicked(self) -> None:
         """打开插件目录"""
-
         plugins_dir = self.plugin_import_service.plugins_dir
         plugins_dir.mkdir(parents=True, exist_ok=True)
-
-        if sys.platform == 'win32':
-            os.startfile(plugins_dir)
-        elif sys.platform == 'darwin':
-            subprocess.run(['open', plugins_dir])
-        else:
-            subprocess.run(['xdg-open', plugins_dir])
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(plugins_dir)))
 
     def _on_delete_plugin(self, plugin_info: PluginInfo) -> None:
         """删除插件"""
         # 确认对话框
         msg_box = MessageBox(
             gt('确认删除'),
-            gt(f'确定要删除插件 "{plugin_info.app_name}" 吗？此操作不可恢复。'),
-            self
+            gt('确定要删除插件 "{name}" 吗？此操作不可恢复。').format(
+                name=plugin_info.app_name
+            ),
+            self.window()
         )
         msg_box.yesButton.setText(gt('删除'))
         msg_box.cancelButton.setText(gt('取消'))
@@ -591,36 +658,56 @@ class SettingPluginInterface(VerticalScrollInterface):
 
         # 执行删除
         plugin_package_dir = self._get_plugin_package_dir(plugin_info)
-        if plugin_package_dir is not None:
-            result = self.plugin_import_service.delete_plugin(plugin_package_dir)
-            if result.success:
-                # 刷新应用注册
-                self.ctx.refresh_application_registration()
-                self._refresh_plugin_list()
-                InfoBar.success(
-                    title=gt('删除成功'),
-                    content=gt(f'插件 "{plugin_info.app_name}" 已删除'),
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=3000,
-                    parent=self
-                )
-            else:
-                InfoBar.error(
-                    title=gt('删除失败'),
-                    content=result.message,
-                    orient=Qt.Horizontal,
-                    isClosable=True,
-                    position=InfoBarPosition.TOP,
-                    duration=5000,
-                    parent=self
-                )
+        if plugin_package_dir is None:
+            InfoBar.error(
+                title=gt('删除失败'),
+                content=gt('无法定位插件目录，只能删除 plugins 目录下的插件'),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
+            return
+
+        result = self.plugin_import_service.delete_plugin(plugin_package_dir)
+        if result.success:
+            # 刷新应用注册
+            self.ctx.refresh_application_registration()
+            self._refresh_plugin_list()
+            InfoBar.success(
+                title=gt('删除成功'),
+                content=gt('插件 "{name}" 已删除').format(name=plugin_info.app_name),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
+        else:
+            InfoBar.error(
+                title=gt('删除失败'),
+                content=result.message,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
 
     def _on_open_homepage(self, plugin_info: PluginInfo) -> None:
         """打开插件主页"""
         if plugin_info.homepage:
             webbrowser.open(plugin_info.homepage)
+
+    @staticmethod
+    def _get_source_plugin_key(
+        source_path: str | Path,
+        plugin_name: str,
+    ) -> tuple[str, str]:
+        """返回来源路径和插件名组成的大小写不敏感匹配键。"""
+        normalized_source = str(Path(source_path).resolve(strict=False)).casefold()
+        return normalized_source, plugin_name.casefold()
 
     def _get_plugin_package_dir(self, plugin_info: PluginInfo) -> Path | None:
         """获取插件所属的顶层插件目录。"""
@@ -667,8 +754,6 @@ class SettingPluginInterface(VerticalScrollInterface):
             return False  # 无法比较时不认为是降级
 
         try:
-            from packaging import version
             return version.parse(new_ver) < version.parse(old_ver)
-        except Exception:
-            # 简单字符串比较作为后备
-            return new_ver < old_ver
+        except version.InvalidVersion:
+            return False

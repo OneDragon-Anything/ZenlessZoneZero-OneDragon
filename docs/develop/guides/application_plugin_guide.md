@@ -118,22 +118,91 @@ class MyPluginFactory(ApplicationFactory):
 ## 通过 GUI 导入插件
 
 1. 打开设置 → 插件管理
-2. 点击"导入插件"按钮
-3. 选择 `.zip` 格式的插件压缩包
-4. 插件自动解压到 `plugins/` 并注册
+2. 点击“导入 ZIP”或“导入目录”
+3. 选择插件压缩包、单个插件目录或包含多个插件的集合目录
+4. 插件分别安装到 `plugins/<插件名>/` 并注册
 
-### zip 包结构
+### ZIP 包结构
+
+一个可安装插件包必须在插件根目录直接放置一个主 `*_factory.py` 和一个 `*_const.py`：
 
 ```
 my_plugin.zip
-└── my_plugin/
+└── my_plugin/                 # 插件根目录
     ├── __init__.py
     ├── my_plugin_const.py
-    ├── my_plugin_factory.py
-    └── my_plugin.py
+    ├── my_plugin_factory.py   # 唯一 factory
+    ├── my_plugin.py
+    ├── src/
+    │   └── ...
+    └── assets/
+        └── ...
 ```
 
-导入时以 ZIP 的顶层插件目录作为一个插件包。插件包内可以在任意深度放置 factory，但每个 `*_factory.py` 所在目录必须同时包含 `*_const.py`。ZIP 根目录没有外层插件目录时，导入器会根据最浅层 factory 的文件名创建插件目录。`__MACOSX` 和 `.DS_Store` 等系统元数据不会参与结构判断。
+ZIP 外层可以有仓库目录、发布目录或说明文件。导入器会把主 factory 所在目录作为插件根，只导入该目录的子树：
+
+```
+repository-main/
+├── README.md                  # 不导入
+├── registry.json             # 不导入
+└── my_plugin/                 # 从这里开始导入
+    ├── my_plugin_const.py
+    ├── my_plugin_factory.py
+    └── operations/
+```
+
+第三方插件只注册插件根第一层的主 factory。插件根子目录可以放置普通 Python 模块和资源，但其中的 `*_factory.py` 不会被自动发现或注册。
+
+一个 ZIP 可以包含多个互不隶属的合法插件根。插件管理界面会把它视为插件集合，分别预览、安装、覆盖和报告结果：
+
+```
+plugin_bundle.zip
+└── repository-main/
+    ├── README.md              # 不安装
+    ├── plugin_a/              # 安装到 plugins/plugin_a/
+    │   ├── plugin_a_factory.py
+    │   └── plugin_a_const.py
+    └── plugin_b/              # 安装到 plugins/plugin_b/
+        ├── plugin_b_factory.py
+        └── plugin_b_const.py
+```
+
+如果 ZIP 根本身已经是合法插件根，整个 ZIP 只作为一个插件，根内更深的 factory 不会再拆成其他插件。集合中大小写不敏感的插件目录名重复时，整个来源会在写盘前被拒绝。
+
+### 插件根和运行文件边界
+
+主 factory 所在目录就是可安装插件根。导入器只安装该目录及其子树，插件运行所需的代码、资源和配置必须全部放在这个范围内。当前导入器不读取 `plugin.json` 来声明插件根、源码根或额外安装目录。
+
+可以在插件根内使用 `src/`、`assets/` 等目录：
+
+```
+my_plugin/                     # 插件根
+├── my_plugin_factory.py       # 主 factory
+├── my_plugin_const.py
+├── src/
+│   └── ...
+└── assets/
+    └── ...
+```
+
+不能把运行资源放在主 factory 目录之外：
+
+```
+repository/
+├── src/
+│   └── my_plugin/
+│       ├── my_plugin_factory.py   # 导入器会把这里识别为插件根
+│       └── my_plugin_const.py
+└── assets/                        # 位于插件根外，不会安装
+```
+
+源码仓库可以自由使用 `src-layout`、测试目录和构建脚本，但提供给插件管理器的 ZIP 必须包含一个自包含的运行包。可以在发布时整理成上面的 `my_plugin/` 结构，也可以在源码仓库中直接维护一个独立的运行包目录。
+
+插件内的 Python 模块可以使用相对导入引用插件根内的代码；不能越过插件根依赖外部代码或文件。导入器不会修改原 ZIP，但插件根外的内容不会复制到 `plugins/`。
+
+导入目录时，如果所选目录本身是合法插件根，就按单个插件处理；否则向下查找多个互不隶属的最外层合法插件根。集合目录本身和各插件根之外的文件不会复制到 `plugins/`。目录中的符号链接不能指向所属插件根之外，也不能形成复制循环；插件根第一层的 Python 文件不能是符号链接。
+
+导入器会拒绝绝对路径、上级路径、重复落盘路径和文件/目录冲突；`__MACOSX`、`.DS_Store` 等系统元数据不会参与结构判断。一个 ZIP 中所有本次选中插件根的解压后总体积不能超过 512 MiB。每个插件独立使用临时目录和替换回滚，一个插件失败不会撤销同一来源中其他已成功插件；覆盖重试也只处理用户确认的插件。
 
 插件管理、覆盖和删除都以 `plugins/<插件目录>/` 为单位，不要求插件目录名与 `APP_ID` 相同，但插件目录名必须唯一。
 
