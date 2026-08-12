@@ -18,15 +18,17 @@ class MapTransport(ZOperation):
 
         self.area_name: str = area_name
         self.tp_name: str = tp_name
-        self._reselect_area_times: int = 0
+        # 首次识别到主区域时确定滑动方向，后续保持不变，避免搜索方向来回切换。
+        self._area_search_drag_x: int | None = None
+        # 保存上一轮识别到的主区域集合，用于判断滑动后列表是否仍在变化。
+        self._last_area_idx_set: set[int] | None = None
+        self._same_area_times: int = 0
+        # 当前方向连续三轮没有变化后只反向一次，反向后仍无变化才结束查找。
+        self._area_search_reversed: bool = False
 
     @node_from(from_name='选择传送点', success=False)
     @operation_node(name='选择区域', is_start_node=True)
     def choose_area(self) -> OperationRoundResult:
-        self._reselect_area_times += 1
-        if self._reselect_area_times > 3:
-            return self.round_fail(self.previous_node.result.status)
-
         area_name_list: list[str] = []
         for area in self.ctx.map_service.area_list:
             area_name_list.append(gt(area.area_name, 'game'))
@@ -34,34 +36,68 @@ class MapTransport(ZOperation):
         target_area: MapArea = self.ctx.map_service.area_name_map[self.area_name]
         target_area_idx: int = str_utils.find_best_match_by_difflib(gt(target_area.area_name, 'game'), area_name_list)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        max_current_area_idx: int = -1
-        for ocr_result, mrl in ocr_result_map.items():
-            current_idx = str_utils.find_best_match_by_difflib(ocr_result, area_name_list)
+        # 先做整屏 OCR，再用区域框过滤结果，避免底部传送点名称误匹配成主区域。
+        area = self.ctx.screen_loader.get_area('地图', '主区域名称')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            self.last_screenshot,
+            rect=area.rect,
+            crop_first=False,
+        )
+        # 收藏数量和排列不固定，使用 OCR 结果中最后一个主区域判断初始翻页方向。
+        last_current_area_idx: int = -1
+        current_area_idx_set: set[int] = set()
+        for ocr_result in ocr_result_list:
+            current_idx = str_utils.find_best_match_by_difflib(ocr_result.data, area_name_list)
             if current_idx is None or current_idx < 0:
                 continue
             if current_idx == target_area_idx:
-                self.ctx.controller.click(mrl.max.center)
+                self.ctx.controller.click(ocr_result.center)
                 return self.round_success(wait=1)
-            elif current_idx > max_current_area_idx:
-                max_current_area_idx = current_idx
+            last_current_area_idx = current_idx
+            current_area_idx_set.add(current_idx)
 
-        if max_current_area_idx < 0:
-            return self.round_retry('未识别到地图区域', wait=0.5)
+        if last_current_area_idx < 0:
+            # 地图转场期间只等待，不改变翻页判断状态。
+            return self.round_wait('未识别到地图区域', wait=0.5)
+
+        if self._area_search_drag_x is None:
+            if last_current_area_idx > target_area_idx:
+                self._area_search_drag_x = 500
+            else:
+                self._area_search_drag_x = -500
+
+        # 连续三轮识别到相同的主区域集合，视为当前方向没有再翻出新区域。
+        if current_area_idx_set == self._last_area_idx_set:
+            self._same_area_times += 1
+        else:
+            self._last_area_idx_set = current_area_idx_set
+            self._same_area_times = 0
+
+        search_reversed = False
+        if self._same_area_times >= 3:
+            if self._area_search_reversed:
+                return self.round_fail('未找到目标地图区域')
+            self._area_search_reversed = True
+            self._area_search_drag_x = -self._area_search_drag_x
+            self._same_area_times = 0
+            search_reversed = True
 
         start_point = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-        if max_current_area_idx > target_area_idx:
-            end_point = start_point + Point(500, 0)
-        else:
-            end_point = start_point - Point(500, 0)
+        end_point = start_point + Point(self._area_search_drag_x, 0)
         self.ctx.controller.drag_to(start=start_point, end=end_point)
-        return self.round_retry(wait=0.5)
+        if search_reversed:
+            return self.round_wait('切换相反方向查找地图区域', wait=0.5)
+        return self.round_wait(wait=0.5)
 
     @node_from(from_name='选择区域')
     @operation_node(name='选择传送点', node_max_retry_times=10)
     def choose_tp(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('地图', '传送点名称')
-        ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        ocr_map = self.ctx.ocr_service.get_ocr_result_map(
+            self.last_screenshot,
+            rect=area.rect,
+            crop_first=False,
+        )
         if len(ocr_map) == 0:
             return self.round_retry('未识别到传送点', wait_round_time=1)
 
