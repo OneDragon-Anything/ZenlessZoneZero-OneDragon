@@ -34,7 +34,12 @@ class MapTransport(ZOperation):
         target_area: MapArea = self.ctx.map_service.area_name_map[self.area_name]
         target_area_idx: int = str_utils.find_best_match_by_difflib(gt(target_area.area_name, 'game'), area_name_list)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        area = self.ctx.screen_loader.get_area('地图', '主区域名称')  # pr #2724
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            self.last_screenshot,
+            rect=area.rect,
+            crop_first=False,
+        )
         max_current_area_idx: int = -1
         for ocr_result, mrl in ocr_result_map.items():
             current_idx = str_utils.find_best_match_by_difflib(ocr_result, area_name_list)
@@ -61,7 +66,11 @@ class MapTransport(ZOperation):
     @operation_node(name='选择传送点', node_max_retry_times=10)
     def choose_tp(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('地图', '传送点名称')
-        ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        ocr_map = self.ctx.ocr_service.get_ocr_result_map(
+            self.last_screenshot,
+            rect=area.rect,
+            crop_first=False,
+        )
         if len(ocr_map) == 0:
             return self.round_retry('未识别到传送点', wait_round_time=1)
 
