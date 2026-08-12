@@ -10,6 +10,7 @@ from qfluentwidgets import (
     SimpleCardWidget,
 )
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
@@ -46,13 +47,13 @@ class TemplateCardWidget(SimpleCardWidget):
         btn_row = Row(spacing=10, margins=Margins(0, 0, 0, 0))
         layout.addWidget(btn_row)
 
-        self.btn_choose_screenshot = PushButton(text='选择截图', icon=FluentIcon.FOLDER)
+        self.btn_choose_screenshot = PushButton(text=gt('选择截图'), icon=FluentIcon.FOLDER)
         btn_row.add_widget(self.btn_choose_screenshot)
 
-        self.btn_capture_game = PushButton(text='游戏截图', icon=FluentIcon.CAMERA)
+        self.btn_capture_game = PushButton(text=gt('游戏截图'), icon=FluentIcon.CAMERA)
         btn_row.add_widget(self.btn_capture_game)
 
-        self.btn_save = PrimaryPushButton(text='保存', icon=FluentIcon.SAVE)
+        self.btn_save = PrimaryPushButton(text=gt('保存'), icon=FluentIcon.SAVE)
         self.btn_save.setEnabled(False)
         btn_row.add_widget(self.btn_save)
 

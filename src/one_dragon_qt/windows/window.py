@@ -22,6 +22,7 @@ from qfluentwidgets.common.animation import BackgroundAnimationWidget
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qfluentwidgets.window.stacked_widget import StackedWidget
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import apply_shadow
 
 
@@ -123,7 +124,7 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
+        self.launcherVersionButton = QPushButton(f"ⓘ {gt('启动器版本')} {gt('未知')}")
         self.launcherVersionButton.setObjectName("launcherVersionButton")
         self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
         self.launcherVersionButton.setVisible(False)
@@ -133,7 +134,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.codeVersionButton = QPushButton("ⓘ 代码版本 未知")
+        self.codeVersionButton = QPushButton(f"ⓘ {gt('代码版本')} {gt('未知')}")
         self.codeVersionButton.setObjectName("codeVersionButton")
         self.codeVersionButton.clicked.connect(lambda: self.copy_version(self.code_version))
         self.codeVersionButton.setVisible(False)
@@ -143,7 +144,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.questionButton = QPushButton("ⓘ 问题反馈")
+        self.questionButton = QPushButton(f"ⓘ {gt('问题反馈')}")
         self.questionButton.setObjectName("questionButton")
         self.questionButton.clicked.connect(self.open_github)
         btn_layout.addWidget(
@@ -185,7 +186,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('启动器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -196,7 +197,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.code_version = version
-        self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
+        self.codeVersionButton.setText(f"ⓘ {gt('代码版本')} {version}")
         if version:
             self.codeVersionButton.setVisible(True)
 
@@ -207,7 +208,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 安装器版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('安装器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -218,7 +219,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 程序版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('程序版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -261,7 +262,7 @@ class PhosTitleBar(SplitTitleBar):
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
         InfoBar.success(
-            title="已复制版本号",
+            title=gt("已复制版本号"),
             content="",
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
