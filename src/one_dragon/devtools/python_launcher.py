@@ -331,7 +331,7 @@ def run_python(app_path, no_windows: bool = True, args: list[str] | None = None,
         print_message(f"OneDragon 启动器 {__version__}", "INFO")
         cwd = verify_working_directory()
         from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-        ctx = OneDragonEnvContext()
+        ctx = OneDragonEnvContext(prefer_bundled_config=True)
         configure_environment(ctx, cwd)
         fetch_latest_code(ctx)
         sync_dependencies(ctx)

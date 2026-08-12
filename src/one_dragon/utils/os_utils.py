@@ -34,18 +34,29 @@ def get_path_under_work_dir(*sub_paths: str) -> str:
     return join_dir_path_with_mk(get_work_dir(), *sub_paths)
 
 
-def get_resource_path(*sub_paths: str) -> str:
+def get_resource_path(
+        *sub_paths: str,
+        prefer_bundled: bool = False,
+) -> str:
     """获取资源文件路径。
 
-    优先查找工作目录下的路径，不存在时回退到 PyInstaller _MEIPASS。
+    默认优先查找工作目录下的路径，不存在时回退到 PyInstaller _MEIPASS。
+    ``prefer_bundled`` 开启时交换两者的优先级。
     """
     work_path = os.path.join(get_work_dir(), *sub_paths)
+    runtime_dir = getattr(sys, '_MEIPASS', None)
+    bundled_path = (
+        os.path.join(runtime_dir, 'resources', *sub_paths)
+        if runtime_dir is not None
+        else None
+    )
+
+    if prefer_bundled and bundled_path is not None and os.path.exists(bundled_path):
+        return bundled_path
     if os.path.exists(work_path):
         return work_path
-    if hasattr(sys, '_MEIPASS'):
-        mei_path = os.path.join(sys._MEIPASS, 'resources', *sub_paths)
-        if os.path.exists(mei_path):
-            return mei_path
+    if bundled_path is not None and os.path.exists(bundled_path):
+        return bundled_path
     return work_path
 
 
