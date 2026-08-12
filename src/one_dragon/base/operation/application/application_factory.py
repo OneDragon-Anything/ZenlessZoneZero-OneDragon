@@ -42,7 +42,6 @@ class ApplicationFactory:
             - APP_ID: 应用唯一标识符
             - APP_NAME: 显示用的应用名称
             - DEFAULT_GROUP: 是否属于默认应用组
-            - STANDALONE: 是否可在应用运行中手动添加（可选）
             - NEED_NOTIFY: 应用是否需要通知
             - PRIORITY: 默认组排序优先级（可选）
 
@@ -52,7 +51,6 @@ class ApplicationFactory:
         self.app_id: str = app_const.APP_ID
         self.app_name: str = app_const.APP_NAME
         self.default_group: bool = app_const.DEFAULT_GROUP
-        self.standalone: bool = getattr(app_const, 'STANDALONE', False)
         self.need_notify: bool = app_const.NEED_NOTIFY
         priority = getattr(app_const, 'PRIORITY', None)
         if priority is not None and (

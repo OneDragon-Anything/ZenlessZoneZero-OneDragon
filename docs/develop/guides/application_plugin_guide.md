@@ -23,10 +23,8 @@ src/zzz_od/application/my_app/    # 内置应用
 
 APP_ID = "my_app"
 APP_NAME = "我的应用"
-DEFAULT_GROUP = True   # True → 出现在一条龙列表; False → 不自动加入一条龙
+DEFAULT_GROUP = True   # True → 出现在一条龙列表; False → 独立工具
 NEED_NOTIFY = True     # 是否需要通知
-# 非默认组应用如需在“应用运行”中手动添加，显式声明：
-# STANDALONE = True
 ```
 
 ### 步骤 2: 创建工厂类
@@ -79,8 +77,6 @@ APP_ID = "my_plugin"
 APP_NAME = "我的插件"
 DEFAULT_GROUP = True
 NEED_NOTIFY = True
-# DEFAULT_GROUP = False 时，声明后可在“应用运行”中手动添加：
-# STANDALONE = True
 
 # 可选元数据（用于 GUI 显示）
 PLUGIN_AUTHOR = "作者名"
@@ -153,11 +149,10 @@ ctx.refresh_application_registration()
 
 ## 应用分组
 
-| 分组 | `DEFAULT_GROUP` | `STANDALONE` | 场景 |
-|------|:---------------:|:------------:|------|
-| 默认组 | `True` | 不需要声明 | 默认出现在一条龙列表，也可在“应用运行”中手动添加 |
-| 非默认组 | `False` | `True` | 不自动加入一条龙，可在“应用运行”中手动添加 |
-| 非默认组 | `False` | 未声明或 `False` | 仅保留给内部工具或已有配置，不会显示在“应用运行”的添加列表 |
+| 分组 | `DEFAULT_GROUP` | 场景 |
+|------|:---------------:|------|
+| 默认组 | `True` | 默认出现在一条龙列表，用于日常任务（体力刷本、咖啡店、邮件等） |
+| 非默认组 | `False` | 默认不出现在一条龙列表；若实例配置中已有该应用且处于启用状态，则继续显示，禁用后永久移除 |
 
 ---
 
@@ -187,7 +182,7 @@ class MyContext(OneDragonContext):
 
 1. **APP_ID 全局唯一**：重复的 APP_ID 会被拒绝，先注册者胜
 2. **一模块一工厂**：每个 `_factory.py` 中只定义一个 `ApplicationFactory` 子类
-3. **const 必需字段**：`APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`；非默认组应用需在“应用运行”手动添加时，额外声明 `STANDALONE = True`
+3. **const 必需字段**：`APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`
 4. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
 5. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
 6. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)
