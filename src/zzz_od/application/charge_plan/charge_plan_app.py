@@ -58,7 +58,7 @@ class ChargePlanApp(ZApplication):
         self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
-        self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
+        self.double_reward_checked: bool = False  # 本次运行是否已检查过多倍活动
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
@@ -144,55 +144,88 @@ class ChargePlanApp(ZApplication):
             return self.round_success('查看双倍活动')
         return self.round_success('查找候选计划')
 
+    @staticmethod
+    def _is_reward_event(activity_text: str) -> bool:
+        """活动横幅是否包含双倍或三倍奖励。"""
+        normalized = ''.join(activity_text.split())
+        return any(text in normalized for text in ('双倍', '两倍', '三倍'))
+
+    @staticmethod
+    def _get_reward_times(reward_times_text: str) -> int | None:
+        """从「剩余/总数」中识别剩余量，不固定活动总数。"""
+        digit = str_utils.get_positive_digits(reward_times_text, None)
+        if digit is None:
+            return None
+        times_left, total = divmod(digit, 10)
+        if times_left > total:
+            return None
+        return times_left
+
     @node_from(from_name='识别电量', status='查看双倍活动')
     @operation_node(name='查看双倍活动')
     def check_double_reward_event(self) -> OperationRoundResult:
-        """
-        实战模拟室的每日双倍总数都是5次, 刷盘子的2次暂不考虑. 理由:
-        1. 如果没抽角色, 体力没事干的时候就去屯金盘收益最高, 此时体力计划能顺便覆盖盘子双倍
-        2. 双倍盘子活动出现的时机一般在卡池开了之后几天, 此时如果抽了角色也差不多养好了要刷盘子了
-        3. 双倍基础材料活动都是在版本末期, 没事干的时候整一出双倍材料, 总不能没事干的时候一直刷基础材料吧.
-           这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
-        """
+        """检查实战模拟室和区域巡防的双倍、三倍活动。
 
-        op = TransportByCompendium(self.ctx, '训练', '实战模拟室')
-        result1 = self.round_by_op_result(op.execute())
-        if not result1.is_success:
-            return result1
-
-        # 查看剩余几次的文字
-        result1 = self.round_by_find_area(
-            self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数'
+        两种活动共用横幅区域，但文案和每次电量消耗不同。倍数只影响游戏发放的奖励份数，
+        临时计划仍按实战模拟室每张20电量、区域巡防每次60电量计算可执行次数。
+        """
+        # 两个栏目的横幅布局相同：左侧识别活动倍数，右侧识别剩余/总次数
+        activity_area = self.ctx.screen_loader.get_area(
+            '快捷手册', '每日怪物卡双倍掉落次数'
         )
-        if not result1.is_success:
-            return self.round_success('无双倍活动')
-        # ocr 检测剩余次数
-        area = self.ctx.screen_loader.get_area('快捷手册', '怪物卡双倍剩余次数')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        digit = str_utils.get_positive_digits(ocr_result, None)
-        if digit is None:
-            return self.round_retry('双倍活动识别出错', wait=1)
-        times_left = digit // 10
-        if times_left == 0 or digit % 10 != 5:
-            return self.round_success('无双倍活动')
-        # 识别出错
-        if times_left > 5:
-            return self.round_retry('双倍活动识别出错', wait=1)
+        reward_times_area = self.ctx.screen_loader.get_area(
+            '快捷手册', '怪物卡双倍剩余次数'
+        )
+        event_list = (
+            ('实战模拟室', 20),  # 每张怪物卡 20 电量
+            ('区域巡防', 60),  # 每次 60 电量
+        )
 
-        card_num = min(self.battery_charge // 20, times_left)
-        if card_num <= 0:
-            self.temp_plan = None
-            return self.round_success('无双倍活动')
+        # 依次切换到两个栏目，使用同一组横幅区域检查活动
+        for category_name, charge_per_run in event_list:
+            op = TransportByCompendium(self.ctx, '训练', category_name)
+            op_result = self.round_by_op_result(op.execute())
+            if not op_result.is_success:
+                return op_result
 
-        temp_plan = self.config.combat_simulation_double_reward_config
-        temp_plan.skipped = False
-        temp_plan.run_times = 1
-        temp_plan.plan_times = 1
-        temp_plan.card_num = str(card_num)
+            # 左侧文案只用于判断是否有双倍或三倍活动
+            screen = self.screenshot()
+            activity_part = cv2_utils.crop_image_only(screen, activity_area.rect)
+            activity_text = self.ctx.ocr.run_ocr_single_line(activity_part)
+            if not self._is_reward_event(activity_text):
+                continue
 
-        self.temp_plan = temp_plan
-        return self.round_success()
+            # 右侧剩余量中，实战模拟室指怪物卡数，区域巡防指挑战次数
+            reward_times_part = cv2_utils.crop_image_only(screen, reward_times_area.rect)
+            reward_times_text = self.ctx.ocr.run_ocr_single_line(reward_times_part)
+            times_left = self._get_reward_times(reward_times_text)
+            if times_left is None:
+                return self.round_retry('多倍活动识别出错', wait=1)
+
+            # 活动倍数不影响消耗，取当前电量可执行次数与活动剩余次数的较小值
+            executable_times = min(self.battery_charge // charge_per_run, times_left)
+            if executable_times <= 0:
+                continue
+
+            # 实战模拟室选对应数量的怪物卡，区域巡防按对应次数「再来一次」
+            if category_name == '实战模拟室':
+                temp_plan = self.config.combat_simulation_double_reward_config
+                temp_plan.card_num = str(executable_times)
+                temp_plan.run_times = 1
+                temp_plan.plan_times = 1
+            else:
+                temp_plan = self.config.area_patrol_double_reward_config
+                if temp_plan.category_name != category_name:
+                    continue
+                temp_plan.run_times = 0
+                temp_plan.plan_times = executable_times
+
+            temp_plan.skipped = False
+            self.temp_plan = temp_plan
+            log.info('识别到%s多倍活动，计划执行%s次', category_name, executable_times)
+            return self.round_success()
+
+        return self.round_success('无多倍活动')
 
     @node_from(from_name='识别电量', status='查找候选计划')
     @node_from(from_name='查看双倍活动')
@@ -298,7 +331,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.current_plan)
+        op = AreaPatrol(self.ctx, self.current_plan, is_temp_plan=self.current_plan is self.temp_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
