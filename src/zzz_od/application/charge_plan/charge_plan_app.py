@@ -171,10 +171,10 @@ class ChargePlanApp(ZApplication):
         """
         # 两个栏目的横幅布局相同：左侧识别活动倍数，右侧识别剩余/总次数
         activity_area = self.ctx.screen_loader.get_area(
-            '快捷手册', '每日怪物卡双倍掉落次数'
+            '快捷手册', '多倍活动存在特征区'
         )
         reward_times_area = self.ctx.screen_loader.get_area(
-            '快捷手册', '怪物卡双倍剩余次数'
+            '快捷手册', '多倍活动剩余次数区'
         )
         event_list = (
             ('实战模拟室', 20),  # 每张怪物卡 20 电量
