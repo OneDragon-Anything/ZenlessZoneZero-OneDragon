@@ -27,34 +27,6 @@ class CoffeeConfig(ApplicationConfig):
             group_id=group_id,
         )
 
-        self._migrate_legacy_config()
-
-    def _migrate_legacy_config(self) -> None:
-        changed = False
-        if self.get('choose_way', None) != CoffeeChooseWay.TINMAN_ONLY.value.value:
-            self.data['choose_way'] = CoffeeChooseWay.TINMAN_ONLY.value.value
-            changed = True
-
-        for key in (
-            'challenge_way',
-            'card_num',
-            'auto_battle',
-            'predefined_team_idx',
-            'day_coffee_1',
-            'day_coffee_2',
-            'day_coffee_3',
-            'day_coffee_4',
-            'day_coffee_5',
-            'day_coffee_6',
-            'day_coffee_7',
-        ):
-            if key in self.data:
-                self.data.pop(key)
-                changed = True
-
-        if changed:
-            self.save()
-
     @property
     def transport_point(self) -> str:
         return self.get('transport_point', CoffeeTransportPoint.POINT_1.value.value)
@@ -65,7 +37,7 @@ class CoffeeConfig(ApplicationConfig):
 
     @property
     def choose_way(self) -> str:
-        return self.get('choose_way', CoffeeChooseWay.TINMAN_ONLY.value.value)
+        return CoffeeChooseWay.TINMAN_ONLY.value.value
 
     @choose_way.setter
     def choose_way(self, new_value: str) -> None:
