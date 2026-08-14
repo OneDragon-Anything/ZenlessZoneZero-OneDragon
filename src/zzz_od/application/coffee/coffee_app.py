@@ -15,9 +15,7 @@ from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
-from zzz_od.application.charge_plan.charge_plan_app import ChargePlanApp
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
@@ -27,7 +25,6 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeChallengeWay,
     CoffeeChooseWay,
     CoffeeConfig,
-    CoffeeEndAction,
     CoffeeTransportPoint,
 )
 from zzz_od.application.zzz_application import ZApplication
@@ -235,31 +232,33 @@ class CoffeeApp(ZApplication):
         """
         to_choose_list = []
 
-        charge_plan_run_record = self.ctx.run_context.get_run_record(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-        )
-        self.charge_plan_config.try_reset_plan_times_by_dt(charge_plan_run_record.get_current_dt())
-
         for i in self.ctx.compendium_service.get_extra_coffee_list():
             if i.coffee_name in self.had_coffee_list:
                 continue
             to_choose_list.append(i.coffee_name)
 
         if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
-            opt_coffee_list = [coffee for coffee in self.ctx.compendium_service.coffee_schedule[day] if coffee.coffee_name != '浓缩咖啡']
+            opt_coffee_list = self.ctx.compendium_service.coffee_schedule[day]
 
-            if self.charge_plan_config.loop and self.charge_plan_config.all_plan_finished():
-                self.charge_plan_config.reset_plans()
-
-            # 只使用本轮未完成的计划匹配增益咖啡
+            self.charge_plan_config.reset_plans()
+            # 先找还没有完成的计划
             for plan in self.charge_plan_config.plan_list:
                 if plan.run_times >= plan.plan_times:
                     continue
                 for coffee in opt_coffee_list:
-                    if not self._is_coffee_for_plan(coffee, plan):
+                    if self._is_coffee_for_plan(coffee, plan):
+                        to_choose_list.append(coffee.coffee_name)
+                    break
+
+            # 再找还已经完成的计划
+            for plan in self.charge_plan_config.plan_list:
+                if plan.run_times < plan.plan_times:
+                    continue
+                for coffee in opt_coffee_list:
+                    if coffee.coffee_name in self.had_coffee_list:
                         continue
-                    to_choose_list.append(coffee.coffee_name)
+                    if self._is_coffee_for_plan(coffee, plan):
+                        to_choose_list.append(coffee.coffee_name)
                     break
 
             # 没有符合的咖啡 就把兜底的咖啡加进来
@@ -273,9 +272,7 @@ class CoffeeApp(ZApplication):
             day_config_coffee = self.config.get_coffee_by_day(day)
         else:
             day_config_coffee = self.config.choose_way
-        if day_config_coffee == '浓缩咖啡':
-            day_config_coffee = CoffeeChooseWay.TINMAN_ONLY.value.value
-        if day_config_coffee not in self.had_coffee_list and day_config_coffee not in to_choose_list:
+        if day_config_coffee not in self.had_coffee_list:
             to_choose_list.append(day_config_coffee)
 
         return to_choose_list
@@ -290,8 +287,8 @@ class CoffeeApp(ZApplication):
         if plan.category_name == '合成电池':
             return False
 
-        if coffee.coffee_name == '浓缩咖啡':
-            return False
+        if plan.category_name == '实战模拟室' and coffee.coffee_name == '浓缩咖啡':
+            return True
 
         if coffee.without_benefit:
             return False
@@ -299,7 +296,10 @@ class CoffeeApp(ZApplication):
         if coffee.mission_type.mission_type_name != plan.mission_type_name:
             return False
 
-        return coffee.mission is None or coffee.mission.mission_name == plan.mission_name
+        if coffee.mission is not None and coffee.mission.mission_name != plan.mission_name:
+            return False
+
+        return True
 
     @node_from(from_name='选择咖啡')
     @operation_node(name='点单')
@@ -406,7 +406,10 @@ class CoffeeApp(ZApplication):
                 coffee_plan = plan
                 break
 
-        card_num = self.config.card_num if coffee_plan is None else coffee_plan.card_num
+        if coffee_plan is None:
+            card_num = self.config.card_num
+        else:
+            card_num = coffee_plan.card_num
 
         self.charge_plan = ChargePlanItem(
             tab_name=self.chosen_coffee.tab.tab_name,
@@ -415,7 +418,7 @@ class CoffeeApp(ZApplication):
             mission_name=None if self.chosen_coffee.mission is None else self.chosen_coffee.mission.mission_name,
             predefined_team_idx=self.config.predefined_team_idx,
             auto_battle_config=self.config.auto_battle,
-            run_times=1,
+            run_times=0,
             plan_times=1,
             card_num=card_num
         )
@@ -460,53 +463,17 @@ class CoffeeApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='返回大世界')
-    @operation_node(name='结束后处理')
+    @operation_node(name='结束后运行体力计划')
     def charge_plan_afterwards(self) -> OperationRoundResult:
-        if self.config.end_action == CoffeeEndAction.NONE.value.value:
+        if self.config.run_charge_plan_afterwards:
+            op = self.ctx.run_context.get_application(
+                app_id=charge_plan_const.APP_ID,
+                instance_idx=self.ctx.current_instance_idx,
+                group_id=application_const.DEFAULT_GROUP_ID,
+            )
+            return self.round_by_op_result(op.execute())
+        else:
             return self.round_success('无需运行')
-
-        charge_plan_app: ChargePlanApp = self.ctx.run_context.get_application(
-            app_id=charge_plan_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
-        op_result = charge_plan_app.execute()
-        should_fallback = (
-            self.config.end_action
-            == CoffeeEndAction.RUN_CHARGE_PLAN_WITH_FALLBACK.value.value
-        )
-        if not op_result.success or not should_fallback:
-            return self.round_by_op_result(op_result)
-
-        fallback_plan = self._build_remaining_charge_fallback_plan(charge_plan_app.battery_charge)
-        if fallback_plan is None:
-            return self.round_by_op_result(op_result)
-
-        return self.round_by_op_result(charge_plan_app.execute_plan_once(fallback_plan))
-
-    def _build_remaining_charge_fallback_plan(self, battery_charge: int) -> ChargePlanItem | None:
-        """按咖啡结束后处理规则生成一次性剩余电量兜底计划"""
-        if battery_charge < 20 or battery_charge >= 60:
-            return None
-
-        source_plan = self.config.remaining_charge_fallback_plan
-        if (
-            source_plan.category_name != '实战模拟室'
-            or source_plan.is_agent_plan
-            or source_plan.mission_name is None
-        ):
-            log.warning('剩余电量兜底必须选择具体的实战模拟室卡片')
-            return None
-
-        plan_data = source_plan.to_dict()
-        plan_data['plan_id'] = None
-        fallback_plan = ChargePlanItem.from_dict(plan_data)
-        fallback_plan.run_times = 1
-        fallback_plan.plan_times = 1
-        fallback_plan.card_num = str(min(battery_charge // 20, 2))
-        fallback_plan.skipped = False
-        log.info('使用剩余电量兜底刷 %s 张卡片', fallback_plan.card_num)
-        return fallback_plan
 
 
 def __debug():
