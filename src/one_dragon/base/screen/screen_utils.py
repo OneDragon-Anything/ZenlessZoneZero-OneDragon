@@ -467,7 +467,7 @@ def is_target_screen(
     existed_id_mark: bool = False
     fit_id_mark: bool = True
     for screen_area in screen_info.area_list:
-        if not screen_area.id_mark:
+        if not screen_area.id_mark or not screen_area.can_match:
             continue
         existed_id_mark = True
 

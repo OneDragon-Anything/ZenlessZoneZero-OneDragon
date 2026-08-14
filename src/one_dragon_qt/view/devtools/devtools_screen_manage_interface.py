@@ -3,7 +3,7 @@ import os
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QKeyEvent
@@ -127,7 +127,7 @@ def _format_color_range(color_range: list[list[int]] | None) -> str:
 
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
-    AREA_COLUMNS: list[ColumnMeta] = [
+    AREA_COLUMNS: ClassVar[list[ColumnMeta]] = [
         ColumnMeta('操作', width=40),
         ColumnMeta('标识', width=40),
         ColumnMeta('类型', 'area_type', _parse_area_type, 110, _format_area_type),
@@ -139,8 +139,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                    formatter=lambda v: '' if v is None else str(v)),
     ]
 
-    AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
-    AREA_PARAM_PARSERS: dict[str, Callable[[str], Any]] = {
+    AREA_FIELD_2_COLUMN: ClassVar[dict[str, int]] = {
+        col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)
+    }
+    AREA_PARAM_PARSERS: ClassVar[dict[str, Callable[[str], Any]]] = {
         'area_type': _parse_area_type,
         'area_name': lambda x: x,
         'pc_rect': _parse_rect,
@@ -527,7 +529,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                 if col.attr_name == 'area_type':
                     area_type_combo = ComboBox()
                     area_type_combo.set_items(AREA_TYPE_ITEMS, area_item.area_type)
-                    area_type_combo.setProperty('row_idx', idx)
                     area_type_combo.currentIndexChanged.connect(self._on_area_type_changed)
                     self.area_table.setCellWidget(idx, col_idx, area_type_combo)
                     continue
@@ -778,8 +779,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if combo is None:
             return
 
-        row_idx = combo.property('row_idx')
-        if row_idx is None or row_idx < 0 or row_idx >= len(self.chosen_screen.area_list):
+        row_idx = self.area_table.indexAt(combo.pos()).row()
+        if row_idx < 0 or row_idx >= len(self.chosen_screen.area_list):
             return
 
         area_item = self.chosen_screen.area_list[row_idx]
@@ -796,7 +797,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             'row_index': row_idx,
             'change_type': 'area_type',
             'old_value': old_value,
-            'new_value': new_value,
+            'new_value': new_value.value,
         }
         self._add_history_record(table_change)
         self._update_area_param_display()
