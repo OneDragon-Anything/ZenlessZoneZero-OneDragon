@@ -31,7 +31,7 @@ from one_dragon.base.operation.application.application_run_context import (
     RunFinishReason,
 )
 from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.base.screen.screen_area import ScreenArea
+from one_dragon.base.screen.screen_area import ScreenArea, ScreenAreaType
 from one_dragon.base.screen.screen_match import find_screen_matches
 from one_dragon.utils import cv2_utils, debug_utils, os_utils
 from one_dragon.utils.log_utils import mask_text
@@ -581,6 +581,7 @@ class ZzzBackendContext:
         goto_list: list[str] | None = None,
         id_mark: bool = False,
         gamepad_key: str | None = None,
+        area_type: ScreenAreaType | str | None = None,
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类。
 
@@ -591,14 +592,15 @@ class ZzzBackendContext:
             screen_name: 目标画面名(中文,对齐 get_screen / analyze 返回)。
             area_name: 区域名(同 screen 内唯一,作匹配键)。
             pc_rect: ``[x1, y1, x2, y2]``,1920×1080 内、x2>x1、y2>y1。
-            text: 文本区域的 OCR 文本(空则非文本区)。
+            text: 文本区域的固定目标文本；动态文本区域可留空。
             lcs_percent: 文本匹配阈值。
             template_sub_dir / template_id: 模板引用;template_id 非空时模板必须存在,否则阻断。
             template_match_threshold: 模板匹配阈值。
-            color_range: 文本颜色筛选 ``[[lower], [upper]]`` 或 None。
+            color_range: 文本识别前的颜色过滤范围。
             goto_list: 交互后可能跳转的画面名列表。
-            id_mark: 是否画面唯一标识。
+            id_mark: 是否画面唯一标识；区域必须可自行匹配。
             gamepad_key: 手柄动作名。
+            area_type: 区域类型；支持 none、text、template，None 表示兼容旧配置推断。
 
         Returns:
             ``{success, screen_name, area_name, action(inserted/updated), area_count, error}``。
@@ -609,18 +611,30 @@ class ZzzBackendContext:
             rect_msg = _validate_pc_rect(pc_rect)
             if rect_msg is not None:
                 return _area_result(False, screen_name, area_name, None, error=rect_msg)
-            if template_id and self._ctx.template_loader.load_template(template_sub_dir, template_id) is None:
-                return _area_result(False, screen_name, area_name, None,
-                                    error=f'模板不存在: {template_sub_dir}/{template_id}')
             area = ScreenArea(
                 area_name=area_name,
+                area_type=area_type,
                 pc_rect=Rect(int(pc_rect[0]), int(pc_rect[1]), int(pc_rect[2]), int(pc_rect[3])),
-                text=text, lcs_percent=lcs_percent,
-                template_id=template_id, template_sub_dir=template_sub_dir,
+                text=text,
+                lcs_percent=lcs_percent,
+                template_id=template_id,
+                template_sub_dir=template_sub_dir,
                 template_match_threshold=template_match_threshold,
-                color_range=color_range, goto_list=goto_list or [],
-                id_mark=id_mark, gamepad_key=gamepad_key,
+                color_range=color_range,
+                goto_list=goto_list or [],
+                id_mark=id_mark,
+                gamepad_key=gamepad_key,
             )
+            if (area.is_template_area and area.template_id
+                    and self._ctx.template_loader.load_template(
+                        area.template_sub_dir,
+                        area.template_id,
+                    ) is None):
+                return _area_result(False, screen_name, area_name, None,
+                                    error=f'模板不存在: {area.template_sub_dir}/{area.template_id}')
+            if id_mark and not area.can_match:
+                return _area_result(False, screen_name, area_name, None,
+                                    error='id_mark 只能用于可自行匹配的文本或模板区域')
             screen_info = self._ctx.screen_loader.get_screen(screen_name)  # 未找到 raise
             action = screen_info.upsert_area(area)
             self._ctx.screen_loader.save_screen(screen_info)
