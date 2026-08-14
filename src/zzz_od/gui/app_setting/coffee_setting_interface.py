@@ -41,10 +41,15 @@ class CoffeeSettingInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.transport_point_opt = ComboBoxSettingCard(icon=FluentIcon.SEND, title='传送地点', options_enum=CoffeeTransportPoint)
+        self.transport_point_opt = ComboBoxSettingCard(icon=FluentIcon.SEND, title='传送地点', content='选择前往的咖啡店', options_enum=CoffeeTransportPoint)
         content_widget.add_widget(self.transport_point_opt)
 
-        self.choose_way_opt = ComboBoxSettingCard(icon=FluentIcon.CALENDAR, title='咖啡选择', options_enum=CoffeeChooseWay)
+        self.choose_way_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='咖啡选择',
+            content=CoffeeChooseWay.TINMAN_ONLY.value.desc,
+            options_enum=CoffeeChooseWay,
+        )
         content_widget.add_widget(self.choose_way_opt)
 
         self.challenge_way_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='喝后挑战', options_enum=CoffeeChallengeWay)

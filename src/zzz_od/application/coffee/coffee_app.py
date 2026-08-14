@@ -13,7 +13,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, os_utils, str_utils
+from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
@@ -149,8 +149,7 @@ class CoffeeApp(ZApplication):
         if not result.is_success:
             return self.round_success(status='已喝过', wait=1)
 
-        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
-        to_choose_list = self._get_coffee_to_choose(day)
+        to_choose_list = self._get_coffee_to_choose()
 
         # 背景文字会干扰 OCR，不能根据区域内是否有文字判断状态，只尝试当天候选咖啡名
         area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
@@ -173,8 +172,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='电量确认', status=STATUS_EXTRA_COFFEE)
     @operation_node(name='选择咖啡')
     def choose_coffee(self) -> OperationRoundResult:
-        day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
-        to_choose_list = self._get_coffee_to_choose(day)
+        to_choose_list = self._get_coffee_to_choose()
 
         # from one_dragon.utils import debug_utils
         # screen = debug_utils.get_debug_image('424905412-5c9df2d3-186d-4be5-a610-865553fd6adb')
@@ -218,63 +216,19 @@ class CoffeeApp(ZApplication):
                 self.ctx.controller.click(mrl.max.center + area.left_top + Point(0, -50))
                 return self.round_success(self.chosen_coffee.coffee_name, wait=0.5)
 
-        if day == 7:  # 目前只有星期日需要右滑找咖啡
-            start = area.center
-            end = start + Point(-200, 0)
-            self.ctx.controller.drag_to(start=start, end=end)
-
         return self.round_retry(status='没找到目标咖啡', wait=1)
 
-    def _get_coffee_to_choose(self, day: int) -> list[str]:
-        """
-        获取需要选择的咖啡名称列表
-        :return:
-        """
-        to_choose_list = []
-
-        for i in self.ctx.compendium_service.get_extra_coffee_list():
-            if i.coffee_name in self.had_coffee_list:
+    def _get_coffee_to_choose(self) -> list[str]:
+        """获取候选咖啡，额外咖啡喝完后固定选择汀曼特调"""
+        to_choose_list: list[str] = []
+        for coffee in self.ctx.compendium_service.get_extra_coffee_list():
+            if coffee.coffee_name in self.had_coffee_list:
                 continue
-            to_choose_list.append(i.coffee_name)
+            to_choose_list.append(coffee.coffee_name)
 
-        if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
-            opt_coffee_list = self.ctx.compendium_service.coffee_schedule[day]
-
-            self.charge_plan_config.reset_plans()
-            # 先找还没有完成的计划
-            for plan in self.charge_plan_config.plan_list:
-                if plan.run_times >= plan.plan_times:
-                    continue
-                for coffee in opt_coffee_list:
-                    if self._is_coffee_for_plan(coffee, plan):
-                        to_choose_list.append(coffee.coffee_name)
-                    break
-
-            # 再找还已经完成的计划
-            for plan in self.charge_plan_config.plan_list:
-                if plan.run_times < plan.plan_times:
-                    continue
-                for coffee in opt_coffee_list:
-                    if coffee.coffee_name in self.had_coffee_list:
-                        continue
-                    if self._is_coffee_for_plan(coffee, plan):
-                        to_choose_list.append(coffee.coffee_name)
-                    break
-
-            # 没有符合的咖啡 就把兜底的咖啡加进来
-            if len(to_choose_list) == 0:
-                for coffee in opt_coffee_list:
-                    if coffee.without_benefit:
-                        to_choose_list.append(coffee.coffee_name)
-                        break
-
-        if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
-            day_config_coffee = self.config.get_coffee_by_day(day)
-        else:
-            day_config_coffee = self.config.choose_way
-        if day_config_coffee not in self.had_coffee_list:
-            to_choose_list.append(day_config_coffee)
-
+        tinman_coffee = CoffeeChooseWay.TINMAN_ONLY.value.value
+        if tinman_coffee not in self.had_coffee_list:
+            to_choose_list.append(tinman_coffee)
         return to_choose_list
 
     def _is_coffee_for_plan(self, coffee: Coffee, plan: ChargePlanItem) -> bool:

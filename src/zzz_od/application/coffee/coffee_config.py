@@ -2,7 +2,6 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from zzz_od.game_data.map_area import TransportPoint
 
 
@@ -15,9 +14,7 @@ class CoffeeTransportPoint(Enum):
 
 class CoffeeChooseWay(Enum):
 
-    PLAN_PRIORITY = ConfigItem('优先体力计划', desc='优先选择符合体力计划的咖啡，实战模拟室计划会选浓缩咖啡，没有匹配时选择汀曼特调')
-    TINMAN_ONLY = ConfigItem('汀曼特调', desc='只选择汀曼特调')
-    ESPRESSO_ONLY = ConfigItem('浓缩咖啡', desc='只选择浓缩咖啡')
+    TINMAN_ONLY = ConfigItem('汀曼特调', desc='固定选择汀曼特调')
 
 
 class CoffeeChallengeWay(Enum):
@@ -42,6 +39,30 @@ class CoffeeConfig(ApplicationConfig):
             group_id=group_id,
         )
 
+        self._migrate_legacy_coffee_choice()
+
+    def _migrate_legacy_coffee_choice(self) -> None:
+        changed = False
+        if self.get('choose_way', None) != CoffeeChooseWay.TINMAN_ONLY.value.value:
+            self.data['choose_way'] = CoffeeChooseWay.TINMAN_ONLY.value.value
+            changed = True
+
+        for key in (
+            'day_coffee_1',
+            'day_coffee_2',
+            'day_coffee_3',
+            'day_coffee_4',
+            'day_coffee_5',
+            'day_coffee_6',
+            'day_coffee_7',
+        ):
+            if key in self.data:
+                self.data.pop(key)
+                changed = True
+
+        if changed:
+            self.save()
+
     @property
     def transport_point(self) -> str:
         return self.get('transport_point', CoffeeTransportPoint.POINT_1.value.value)
@@ -52,7 +73,7 @@ class CoffeeConfig(ApplicationConfig):
 
     @property
     def choose_way(self) -> str:
-        return self.get('choose_way', CoffeeChooseWay.PLAN_PRIORITY.value.value)
+        return self.get('choose_way', CoffeeChooseWay.TINMAN_ONLY.value.value)
 
     @choose_way.setter
     def choose_way(self, new_value: str) -> None:
@@ -82,82 +103,9 @@ class CoffeeConfig(ApplicationConfig):
     def auto_battle(self, new_value: str) -> None:
         self.update('auto_battle', new_value)
 
-    @property
-    def day_coffee_1(self) -> str:
-        return self.get('day_coffee_1', '汀曼特调')
-
-    @day_coffee_1.setter
-    def day_coffee_1(self, new_value: str) -> None:
-        self.update('day_coffee_1', new_value)
-
-    @property
-    def day_coffee_2(self) -> str:
-        return self.get('day_coffee_2', '汀曼特调')
-
-    @day_coffee_2.setter
-    def day_coffee_2(self, new_value: str) -> None:
-        self.update('day_coffee_2', new_value)
-
-    @property
-    def day_coffee_3(self) -> str:
-        return self.get('day_coffee_3', '汀曼特调')
-
-    @day_coffee_3.setter
-    def day_coffee_3(self, new_value: str) -> None:
-        self.update('day_coffee_3', new_value)
-
-    @property
-    def day_coffee_4(self) -> str:
-        return self.get('day_coffee_4', '汀曼特调')
-
-    @day_coffee_4.setter
-    def day_coffee_4(self, new_value: str) -> None:
-        self.update('day_coffee_4', new_value)
-
-    @property
-    def day_coffee_5(self) -> str:
-        return self.get('day_coffee_5', '汀曼特调')
-
-    @day_coffee_5.setter
-    def day_coffee_5(self, new_value: str) -> None:
-        self.update('day_coffee_5', new_value)
-
-    @property
-    def day_coffee_6(self) -> str:
-        return self.get('day_coffee_6', '汀曼特调')
-
-    @day_coffee_6.setter
-    def day_coffee_6(self, new_value: str) -> None:
-        self.update('day_coffee_6', new_value)
-
-    @property
-    def day_coffee_7(self) -> str:
-        return self.get('day_coffee_7', '汀曼特调')
-
-    @day_coffee_7.setter
-    def day_coffee_7(self, new_value: str) -> None:
-        self.update('day_coffee_7', new_value)
-
-    def get_coffee_by_day(self, day: int) -> str:
-        """
-        根据星期几获取对应的咖啡名称
-        :param day: 1~7
-        :return:
-        """
-        if day == 1:
-            return self.day_coffee_1
-        elif day == 2:
-            return self.day_coffee_2
-        elif day == 3:
-            return self.day_coffee_3
-        elif day == 4:
-            return self.day_coffee_4
-        elif day == 5:
-            return self.day_coffee_5
-        elif day == 6:
-            return self.day_coffee_6
-        elif day == 7:
-            return self.day_coffee_7
+    def get_coffee_by_day(self, _day: int) -> str:
+        """所有星期固定返回汀曼特调"""
+        return CoffeeChooseWay.TINMAN_ONLY.value.value
 
     @property
     def predefined_team_idx(self) -> int:
