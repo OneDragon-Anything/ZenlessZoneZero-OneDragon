@@ -7,7 +7,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.config.basic_game_config import TypeInputWay
 from one_dragon.base.config.game_account_config import GameRegionEnum
-from one_dragon.base.config.one_dragon_config import InstanceRun
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
@@ -36,8 +35,7 @@ class EnterGame(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('进入游戏'))
 
         self.force_login: bool = (
-            (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-             and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            self.ctx.one_dragon_config.current_instance_should_force_login
             or self.ctx.one_dragon_config.current_instance_force_login
         )
 
@@ -412,6 +410,11 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
+        for area_name in ('二周年自选奖励', '一周年自选奖励'):
+            result = self.round_by_find_and_click_area(screen, '打开游戏', area_name)
+            if result.is_success:
+                return self.round_wait(status=result.status, wait=1)
+
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         back_btn_result = self.round_by_find_area(screen, '菜单', '返回')
 

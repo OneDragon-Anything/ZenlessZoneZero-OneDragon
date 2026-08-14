@@ -3,17 +3,16 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 class ProjectConfig(YamlConfig):
 
-    def __init__(self):
-        YamlConfig.__init__(self, module_name='project')
+    def __init__(self, prefer_bundled_config: bool = False) -> None:
+        YamlConfig.__init__(
+            self,
+            module_name='project',
+            prefer_bundled_config=prefer_bundled_config,
+        )
 
         self.project_name = self.get('project_name')
         self.python_version = self.get('python_version')
         self.github_homepage = self.get('github_homepage')
-        self.github_https_repository = self.get('github_https_repository')
-        self.github_ssh_repository = self.get('github_ssh_repository')
-        self.gitee_https_repository = self.get('gitee_https_repository')
-        self.gitee_ssh_repository = self.get('gitee_ssh_repository')
-        self.project_git_branch = self.get('project_git_branch')
         self.env_archive_name = f'{self.project_name}-Environment.zip'
         self.game_executable_name = self.get('game_executable_name', '')
 

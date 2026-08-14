@@ -551,6 +551,14 @@ class AutoBattleContext:
         """
         in_battle = self.is_normal_attack_btn_available(screen)
         self.last_check_in_battle = in_battle
+        if in_battle:
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
+        else:
+            # 离开战斗(普攻按钮消失):立即清状态,不依赖默认时间窗口在战后自然失效,
+            # 避免战后残留的"按键可用"让 速切模板-通用 兜底继续发普攻(#2157)
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, is_clear=True))
 
         future_list: list[Future] = []
 

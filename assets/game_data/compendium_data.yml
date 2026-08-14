@@ -1,7 +1,4 @@
 - tab_name: "目标"
-  category_list:
-    - category_name: "绳匠传奇"
-    - category_name: "修者纪行"
 - tab_name: "日常"
 - tab_name: "训练"
   category_list:
@@ -59,6 +56,8 @@
               mission_name_display: "风属性"
             - mission_name: "共鸣测试"
               mission_name_display: "以太"
+            - mission_name: "琢光测试"
+              mission_name_display: "流明"
         - mission_type_name: "自定义模板"
           mission_list:
             - mission_name: "自定义卡组1"
@@ -102,6 +101,8 @@
           mission_type_name_display: "雪兔梦游仙境 囚徒手记"
         - mission_type_name: "机师与叛甲"
           mission_type_name_display: "呼啸沙龙 拂晓行纪"
+        - mission_type_name: "迅雷与裂爪"
+          mission_type_name_display: "谶羽之誓 荆棘玫瑰"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
@@ -146,6 +147,9 @@
 
 - tab_name: "作战"
   category_list:
+    - category_name: "周期征讨"
+      mission_type_list:
+        - mission_type_name: "迷失之地"
     - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"

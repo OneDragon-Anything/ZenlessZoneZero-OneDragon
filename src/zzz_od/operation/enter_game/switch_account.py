@@ -5,6 +5,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.enter_game import EnterGame
+from zzz_od.operation.goto.goto_menu import GotoMenu
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -18,7 +19,8 @@ class SwitchAccount(ZOperation):
     def open_menu(self) -> OperationRoundResult:
         if not self.ctx.game_account_config.has_login_info:
             log.warning('多账户切换未配置完整登录信息，后续登录可能失败')
-        return self.round_by_goto_screen(screen_name='菜单')
+        op = GotoMenu(self.ctx)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='打开菜单')
     @operation_node(name='点击更多')

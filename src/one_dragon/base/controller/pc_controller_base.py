@@ -568,8 +568,7 @@ def win_scroll(clicks: int, pos: Point = None):
     """
     if pos is not None:
         pyautogui.moveTo(pos.x, pos.y)
-    d = 2000 if get_mouse_sensitivity() <= 10 else 1000
-    pyautogui.scroll(-d * clicks, pos.x, pos.y)
+    pyautogui.scroll(-120 * clicks, pos.x, pos.y)
 
 
 @lru_cache
@@ -603,6 +602,7 @@ def drag_mouse(start: Point, end: Point, duration: float = 0.5):
         cx = int(start.x + (end.x - start.x) * t)
         cy = int(start.y + (end.y - start.y) * t)
         pyautogui.moveTo(cx, cy)
+        ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_MOVE, 0, 0, 0, 0)
         time.sleep(duration_drag / steps)
     # 松开之前先定住鼠标以消除滑动惯性
     time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_END)

@@ -26,6 +26,7 @@ xcopy /E /I /Y "..\src" "%DIST_DIR%\OneDragon-RuntimeLauncher\src\"
 
 rem Copy additional resources from spec file
 copy "..\config\project.yml" "%TARGET_DIR%\config\"
+copy "..\config\repository.yml" "%TARGET_DIR%\config\"
 xcopy /E /I /Y "..\assets\text" "%TARGET_DIR%\assets\text\"
 xcopy /E /I /Y "..\assets\ui" "%TARGET_DIR%\assets\ui\"
 copy "..\pyproject.toml" "%TARGET_DIR%\"

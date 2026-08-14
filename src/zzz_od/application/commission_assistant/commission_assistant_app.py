@@ -31,6 +31,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class CommissionAssistantApp(ZApplication):
 
+    """委托助手:辅助工具,剧情/委托/钓鱼等画面自动推进。非玩法、无独立消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
@@ -461,10 +463,18 @@ class CommissionAssistantApp(ZApplication):
                 return self.round_wait('等待跳过键和确认框', wait=0.1)
 
         # region 容易和剧情模式穿插的界面, 放在剧情模式之后检测
-        # 判断二级菜单
+        # 排除二级菜单
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
         if result.is_success:
             return self.round_wait('处于二级界面, 等待用户操作', wait=1)
+        # 排除勘域中的对话
+        result = self.round_by_find_area(self.last_screenshot, '大世界-勘域', '勘域-菜单')
+        if result.is_success:
+            return self.round_wait('在勘域中, 不自动点击鼠标', wait=1)
+        # 排除主线空洞中的对话
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '战斗-菜单')
+        if result.is_success:
+            return self.round_wait('在空洞自由行动场景中, 不自动点击鼠标', wait=1)
         # 判断玩法引导
         result = self.check_game_tutorial()
         if result.is_success:

@@ -40,7 +40,8 @@ LauncherBase          → 基础参数解析、run() 入口
 ├── OneDragon-RuntimeLauncher.exe    ← 启动入口
 ├── .runtime/                        ← Python 运行时 + 冻结模块
 │   ├── module_manifest.py           ← 外部依赖清单
-│   ├── config/project.yml           ← 项目配置
+│   ├── config/project.yml           ← 项目配置与运行时协议字段
+│   ├── config/repository.yml        ← 项目仓库列表、回退策略和地区预设
 │   └── ...                          ← Python DLL、so、pyd 等
 └── src/                             ← 源代码目录（通过 git 同步）
     ├── one_dragon/
@@ -84,6 +85,8 @@ LauncherBase          → 基础参数解析、run() 入口
 - 相同 → 兼容，允许更新
 - 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
 
+代码源配置、候选源顺序和 fetch 回退机制见 [Git 服务与代码源回退](modules/git_service.md)。
+
 ### 清单路径配置
 
 远程清单的路径不是硬编码的，而是从目标 commit 的 `config/project.yml` 中的 `manifest_path` 字段读取。这样即使清单文件改名或移动位置，只要 `project.yml` 正确指向它就能找到。
@@ -98,13 +101,31 @@ LauncherBase          → 基础参数解析、run() 入口
 集成启动器的 `_sync_code()` 方法在每次启动时执行：
 
 1. 记录当前 `sys.modules` 快照（用于后续清理）
-2. 延迟导入 `EnvConfig`、`GitService`、`ProjectConfig`（来自 `src/`）
-3. 判断是否首次运行（检查 `.git` 目录是否存在）
-4. 首次运行 → 克隆仓库；非首次 → 根据 `auto_update_code` 配置决定是否更新
-5. 成功后清除同步过程中加载的模块（`del sys.modules[...]`），调用 `importlib.invalidate_caches()`
-6. 首次克隆失败 → 退出；后续更新失败 → 打日志继续运行
+2. 延迟导入并创建框架 `OneDragonEnvContext`（来自 `src/`），由它统一加载环境、项目和仓库配置
+3. 判断首次 checkout 是否完成（检查配置的目标本地分支是否存在；仅有 `.git` 和远程引用仍算未完成）
+4. 首次正式发布包 → 按集成启动器内置版本号拉取对应 Git tag；非正式版本或后续运行 → 根据 `auto_update_code` 配置决定是否更新分支
+5. tag 拉取成功 → peel 到 commit 并建立目标本地分支；分支更新 → checkout 前检查目标代码与当前集成运行时是否兼容
+6. `SUCCESS` → 清除同步期间加载的源码模块，并调用 `importlib.invalidate_caches()`
+7. `UP_TO_DATE` → 直接继续启动，不做无意义的模块清理
+8. 可以确认磁盘代码未变化的阻断状态 → 显示警告并继续使用当前版本
+9. `LOCAL_UPDATE_FAILED` 或兜底 `FAILED` → 停止启动，避免加载可能只更新了一部分的磁盘代码
 
-步骤 5 的模块清理确保了主程序后续导入的是更新后的代码，而非同步过程中缓存的旧版本。
+步骤 6 的模块清理确保主程序后续导入的是更新后的代码，而非同步过程中缓存的旧版本。首次安装包已经包含与 `.runtime` 匹配的 `src/`；正式发布包只按同版本 tag 初始化，不会退化到最新分支。
+
+各状态的启动规则如下：
+
+| 状态 | 启动器提示 | 行为 |
+|---|---|---|
+| `SUCCESS` | `更新完成` | 清理源码模块后继续启动 |
+| `UP_TO_DATE` | `当前已是最新版本` | 不清理模块，直接继续 |
+| `RUNTIME_INCOMPATIBLE` | `新版本需要更新启动器才能使用，继续使用当前版本` | 继续启动 |
+| `BUILTIN_TAG_UNAVAILABLE` | `暂时无法获取当前版本所需文件，继续使用内置版本` | 继续启动；下次仍重试同一内置版本 |
+| `REMOTE_UNAVAILABLE` | `暂时无法获取更新，继续使用当前版本` | 已有 checkout 时继续；首次且没有可用 checkout 时退出 |
+| `LOCAL_CHANGES` | `检测到程序文件有改动，未自动更新，继续使用当前版本` | 继续启动 |
+| `LOCAL_UPDATE_FAILED` | `更新没有完成，请重新运行启动器；仍然失败时请重新安装` | 退出 |
+| `FAILED` | `更新失败，请查看日志后重试` | 退出 |
+
+用户提示只说明结果、影响和下一步，不展示 tag、checkout、reset、OID 或模块清单等实现细节。具体错误继续写日志。
 
 ## 错误处理
 
@@ -139,6 +160,8 @@ CI 构建生成以下集成启动器相关产物：
 1. 断开旧版本检查器的信号连接（防止竞态覆盖）
 2. 创建新的版本检查器（指向对应的 exe 文件）
 3. 重置版本状态并触发重新检查
+
+版本检查会调用所选启动器的 `--version` 参数。查询时会临时使用普通权限，并要求 PyInstaller 启动全新进程，避免 Windows 兼容性提权或父启动器遗留的临时环境导致界面误报“未安装”；这些设置只影响版本查询，不改变用户正常启动启动器时的权限
 
 下载时的备份/回滚机制：
 - 下载前将当前 exe 重命名为 `.bak`（集成启动器还会重命名 `.runtime` 为 `.runtime.bak`）

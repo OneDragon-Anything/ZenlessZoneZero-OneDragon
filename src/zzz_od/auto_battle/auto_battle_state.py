@@ -24,3 +24,4 @@ class BattleStateEnum(Enum):
     STATUS_CHAIN_READY = '按键可用-连携技'
     STATUS_QUICK_ASSIST_READY = '按键可用-快速支援'
     STATUS_SWITCH_BACKUP_READY = '按键可用-切换后援'
+    STATUS_NORMAL_ATTACK_READY = '按键可用-普通攻击'

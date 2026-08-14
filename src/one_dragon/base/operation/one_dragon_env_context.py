@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
-from typing import Optional
 
 from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig
@@ -8,28 +7,38 @@ from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.python_service import PythonService
+from one_dragon.envs.repo_config import RepoConfig
 
 ONE_DRAGON_CONTEXT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='one_dragon_context', max_workers=1)
 
 
 class OneDragonEnvContext:
 
-    def __init__(self):
+    def __init__(self, prefer_bundled_config: bool = False) -> None:
         """
         存项目和环境信息的
         安装器可以使用这个减少引入依赖
         """
-        self.installer_dir: Optional[str] = None
+        self.installer_dir: str | None = None
+        self._prefer_bundled_config: bool = prefer_bundled_config
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
     @cached_property
-    def project_config(self):
-        return ProjectConfig()
+    def project_config(self) -> ProjectConfig:
+        return ProjectConfig(
+            prefer_bundled_config=self._prefer_bundled_config,
+        )
 
     @cached_property
     def env_config(self):
-        return EnvConfig()
+        return EnvConfig(self.repo_config)
+
+    @cached_property
+    def repo_config(self) -> RepoConfig:
+        return RepoConfig(
+            prefer_bundled_config=self._prefer_bundled_config,
+        )
 
     @cached_property
     def download_service(self):
@@ -37,7 +46,7 @@ class OneDragonEnvContext:
 
     @cached_property
     def git_service(self):
-        return GitService(self.project_config, self.env_config)
+        return GitService(self.env_config, self.repo_config)
 
     @cached_property
     def python_service(self):

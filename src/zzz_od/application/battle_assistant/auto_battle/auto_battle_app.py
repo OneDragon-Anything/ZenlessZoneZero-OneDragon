@@ -2,20 +2,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
+from zzz_od.application.battle_assistant.battle_assistant_input_mode import (
+    apply_battle_assistant_input_mode,
+)
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.config.game_config import ControlMethodEnum
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
 class AutoBattleApp(ZApplication):
+
+    """自动战斗:辅助工具,按配置循环播放战斗指令(搭配手动操作的战斗)。非玩法、无独立消耗。"""
 
     EVENT_OP_LOADED: ClassVar[str] = '指令已加载'
 
@@ -43,21 +46,8 @@ class AutoBattleApp(ZApplication):
         检测手柄
         :return:
         """
-        gamepad_type = self.ctx.battle_assistant_config.control_method
-        if gamepad_type == ControlMethodEnum.KEYBOARD.value.value:
-            self.ctx.controller.enable_keyboard()
-
-            return self.round_success(status='无需手柄')
-        elif not pc_button_utils.is_vgamepad_installed():
-            self.ctx.controller.enable_keyboard()
-            return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
-            self.ctx.controller.enable_xbox()
-            self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
-            self.ctx.controller.enable_ds4()
-            self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
-        return self.round_success(status='已安装虚拟手柄依赖')
+        success, status = apply_battle_assistant_input_mode(self.ctx)
+        return self.round_success(status=status) if success else self.round_fail(status=status)
 
     @node_from(from_name='手柄检测')
     @operation_node(name='加载自动战斗指令')

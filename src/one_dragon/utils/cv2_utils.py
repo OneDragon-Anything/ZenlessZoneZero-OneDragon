@@ -199,6 +199,11 @@ def match_template(source: MatLike, template: MatLike, threshold,
     :return: 所有匹配结果
     """
     tx, ty = template.shape[1], template.shape[0]
+    # 防御:source 比 template 还小(如 area 的 pc_rect 占位 [0,0,0,0] 裁出空图)时,
+    # cv2.matchTemplate 会触发断言(_img >= _templ)失败,让整个 analyze 中断。
+    # 此时直接返回空结果(视为不匹配),由调用方按"未命中"处理。
+    if source.shape[0] < ty or source.shape[1] < tx:
+        return MatchResultList(only_best=only_best)
     # 进行模板匹配
     # show_image(source, win_name='source')
     # show_image(template, win_name='template')

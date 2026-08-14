@@ -56,4 +56,6 @@
 
 > 跳过的 app 待 MCP 补足 `transport`/`move`/`drag`/键盘注入能力后,或用框架 `run_standalone_app` 跑通后沿途截图补。
 
+| 预备编队 | [预备编队.md](预备编队.md) | **通用画面**(多玩法共用预备编队列表);两子态:选择(准备出战,有 SELECT/预备出战)/ 编辑管理(PredefinedTeamChecker,只能编辑);当前命中实战模拟室,无独立 screen_info |
+
 (后续自由补充)

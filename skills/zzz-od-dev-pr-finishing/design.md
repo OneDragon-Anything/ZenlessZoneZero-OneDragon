@@ -28,6 +28,15 @@
 8. **push 后不自动触发 = 被 auto-pause(非偶发)**:CodeRabbit 有 `reviews.auto_review.auto_pause_after_reviewed_commits` 机制 —— PR 活跃开发 / 频繁 commit 时**自动暂停** review,之后**每次 push 都不自动触发**(不是偶尔)。检测:PR 有 `Reviews paused` comment(grep body 含 `Reviews paused` / `review paused`)。暂停下两命令语义不同:`@coderabbitai review` = **单次**触发(保持暂停,下次 push 仍不自动);`@coderabbitai resume` = **恢复**自动(之后 push 自动触发,ack `Reviews resumed.`)。ack 里那句「此命令仅在自动 review 暂停时适用」就是在提示当前处于暂停态。预防:调 `.coderabbit.yaml` 的 `auto_pause_after_reviewed_commits` 阈值 / 关闭。实战:PR 2419 从 7-01 起被 auto-pause,故每轮 push 都要手动补 —— 曾误判为「偶尔不触发」,实际是**始终暂停**。
 9. **增量 review 无建议时 API 无痕**:增量 review 没新建议时,CodeRabbit 不建 check run、不留 review 记录,只回复一条 issue comment(`✅ Action performed` / `Review finished`)。故「review 完成」的可靠判据是这条 ack comment 的 body,不是 check run / reviews(实战:PR 2419 增量 review 完成但 API reviews 停在上一天、该 commit 无 CodeRabbit check run)。**手动 @ 后 ack 的演变**:ack comment 先回 `Review triggered`(review 进行中),真正完成后 CodeRabbit **编辑同一条** comment 为 `Review finished`(不另发新 comment)。`triggered` 是中间态 —— 判完成必须看到 `finished`,别把 `triggered` 当结果(实战:PR 2419 bf2ebfea 手动 @ 后 06:38Z 回 triggered,review 完成后同条被编辑成 finished)。
 10. **时区**:GitHub API 时间是 UTC(`Z` 后缀),显示给用户前转本地(维护者 UTC+8);避免时间串造成困惑。
+11. **关联 PR 用 git 验证,不只查 open PR**:`gh pr list --repo OneDragon-Anything/zzz-od-test --head <分支>` 查 open PR 为空 ≠ 无配套 —— 测试仓改动可能挂在同分支但没开 PR(有改动但没开 PR)。收尾主仓前必须 `git -C zzz-od-test fetch origin && git -C zzz-od-test log origin/main..origin/<同名分支>` 验证无未合改动。**为什么不用 open PR 判**:PR #2608 收尾时查测试仓同分支 open PR 为空就判"无配套"、直接合了主仓,事后才发现测试仓分支有 11 个未合 commit(有改动、没开 PR)→ 补救才开测试仓 #35。根因:open PR 是「是否已开 PR」的判据,不是「是否有配套改动」的判据;后者要看 git 分支。该方法进 SKILL.md §6;配套的预防约束(开发阶段就同开关联 PR)进 AGENTS.md「提交流程与协作边界」+ development_workflow.md §4(泛化到非游戏流程改动)。
+
+12. **作者开 PR 写 desc 作 commit body,合并者 review(issue #2615)**:仓库 squash + merge commit 取整段 PR description 作 commit message(`*_title=PR_TITLE`、`*_message=PR_BODY`)。**方法论:作者开 PR 时写好 desc(why + 改动要点 + 关联)作 commit body;合并者 merge 前 review,好就 merge,不好微调**。写 desc 的规范在 AGENTS.md(作者,读者广),本 skill(收尾)只 review 不写。
+    - **实测(本 PR verify-squash-body 验证)**:squash `PR_BODY` **取整段 PR desc**(含 `##` 标题、CodeRabbit summary),不截断到第一个 `##`。之前「## 截断」假设错。
+    - **CodeRabbit summary 配置**:`.coderabbit.yaml` 设 `high_level_summary_in_walkthrough: true` 让 summary 放 comment(不进 PR desc/commit body);`high_level_summary_instructions` 用 Keep a Changelog 分类(Added/Changed/Deprecated/Removed/Fixed/Security)只写 what。why 由作者写(CR 读 diff 给不了 why)。
+    - **本项目设置**:squash + merge commit 都 `*_title=PR_TITLE`、`*_message=PR_BODY`;查询 `gh api repos/<owner>/<repo> --jq '{squash_merge_commit_title, merge_commit_title, squash_merge_commit_message, merge_commit_message}'`(admin 可在 GitHub Settings 看,普通 contributor 看不到)。
+    - **规范分层(决策 7)**:单个迭代 commit 宽松 / 需要 commit message 的 merge 严格 Conventional Commits(作者开 PR 写 desc),两层规范在 AGENTS.md;本 skill 收尾只 review。
+    - **为什么不把写 desc 方法论写进本 skill**:写 desc 读者是所有开 PR 的 AI(不止收尾),规范进 AGENTS.md(单一源);本 skill 只放收尾 review 动作。
+    - **不主动 merge**(用户明确要求时才执行):以 review / 提示为主(与 AGENTS.md「提交流程」一致)。
 
 ## 落点
 
