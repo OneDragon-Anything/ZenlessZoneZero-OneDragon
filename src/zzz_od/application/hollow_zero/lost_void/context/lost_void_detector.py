@@ -3,6 +3,7 @@ from typing import ClassVar
 import cv2
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
 from one_dragon.yolo.yolo_utils import get_github_model_download_url
@@ -27,8 +28,9 @@ class LostVoidDetector(Yolov8Detector):
                  gh_proxy_url: str | None = None,
                  personal_proxy: str | None = None,
                  gpu: bool = False,
-                 keep_result_seconds: float = 2
-                 ):
+                 keep_result_seconds: float = 2,
+                 debug_trace_bus: DebugTraceBus | None = None
+                 ) -> None:
         """
         崩铁用的YOLO模型 参考自 https://github.com/ibaiGorordo/ONNX-YOLOv8-Object-Detection
         :param model_name: 模型名称 在根目录下会有一个以模型名称创建的子文件夹
@@ -46,7 +48,8 @@ class LostVoidDetector(Yolov8Detector):
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,
             gpu=gpu,
-            keep_result_seconds=keep_result_seconds
+            keep_result_seconds=keep_result_seconds,
+            debug_trace_bus=debug_trace_bus
         )
 
     def mask_battle_avatars(self, image: MatLike) -> MatLike:
