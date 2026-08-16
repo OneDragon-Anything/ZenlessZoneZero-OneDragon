@@ -171,8 +171,7 @@ class AutoBattleDodgeContext:
         self._last_check_dodge_time: float = 0
         self._last_check_audio_time: float = 0
 
-        # 音频事件去重时间间隔
-        self._audio_event_interval: float = 0.1
+        # 最近一次命中音频模板的时间，保留给后续事件判断使用
         self._last_audio_event_time: float = 0
 
     def _on_audio_record_error(self, error: RuntimeError) -> None:
@@ -382,7 +381,7 @@ class AutoBattleDodgeContext:
             matched_idx = int(np.argmax(corr))
             max_corr = float(corr[matched_idx])
 
-            # 事件去重逻辑
+            # 记录命中时间并清空当前录音缓冲区
             if max_corr > self._audio_recorder.trigger_threshold:
                 self._last_audio_event_time = screenshot_time
                 self._audio_recorder.clear_audio()
