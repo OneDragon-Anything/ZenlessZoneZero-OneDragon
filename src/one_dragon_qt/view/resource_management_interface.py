@@ -368,6 +368,11 @@ class ResourceManagementInterface(VerticalScrollInterface):
     def _update_proxy_ui(self) -> None:
         """按后端代理类型绑定对应地址配置。"""
         proxy_type = self.ctx.env_config.proxy_type
+        proxy_enabled = proxy_type != ProxyTypeEnum.NONE.value.value
+        if not proxy_enabled:
+            self.proxy_group.setExpand(False)
+        self.proxy_group.card.expandButton.setEnabled(proxy_enabled)
+
         if proxy_type == ProxyTypeEnum.PERSONAL.value.value:
             self.proxy_url_input.init_with_adapter(
                 self.ctx.env_config.get_prop_adapter('personal_proxy')
