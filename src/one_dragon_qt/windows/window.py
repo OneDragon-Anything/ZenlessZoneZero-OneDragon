@@ -17,7 +17,6 @@ from qfluentwidgets import (
     SplitTitleBar,
     isDarkTheme,
     qconfig,
-    themeColor,
 )
 from qfluentwidgets.common.animation import BackgroundAnimationWidget
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
@@ -171,10 +170,6 @@ class PhosTitleBar(SplitTitleBar):
         self.code_version: str = ""
         self.launch_tag: str = ""
 
-        # 主题色变化时刷新 tag 样式
-        qconfig.themeColorChanged.connect(self._update_launch_tag_style)
-        qconfig.themeChangedFinished.connect(self._update_launch_tag_style)
-
         # 首页模式下需要添加阴影的控件列表
         self._home_shadow_targets: list[QWidget] = [
             self.titleLabel,
@@ -227,21 +222,9 @@ class PhosTitleBar(SplitTitleBar):
         self.launch_tag = tag
         if tag:
             self.launchTagLabel.setText(tag)
-            self._update_launch_tag_style()
             self.launchTagLabel.setVisible(True)
         else:
             self.launchTagLabel.setVisible(False)
-
-    def _update_launch_tag_style(self) -> None:
-        """按当前主题色刷新 tag 样式（主题色或明暗主题变化时调用）"""
-        if not self.launch_tag:
-            return
-        color = themeColor().name()
-        self.launchTagLabel.setStyleSheet(
-            f"color: white; background-color: {color}; "
-            "border-radius: 8px; padding: 4px 8px; "
-            "font: 11px 'Segoe UI', 'Microsoft YaHei';"
-        )
 
     def setInstallerVersion(self, version: str) -> None:
         """
