@@ -2,7 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import QSizePolicy, QTableWidgetItem, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QTableWidgetItem, QWidget
 from qfluentwidgets import (
     Dialog,
     FluentIcon,
@@ -109,6 +109,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.page_size: int = 10
         self.ctx: OneDragonContext = ctx
         self.download_queue: DownloadQueueService = download_queue
+        self._last_proxy_type: str = ctx.env_config.proxy_type
 
         VerticalScrollInterface.__init__(
             self,
@@ -123,8 +124,13 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.fetch_page_runner = FetchPageRunner(self.fetch_page)
         self.fetch_page_runner.finished.connect(self.update_page)
 
-    def get_content_widget(self) -> Column:
+    def get_content_widget(self) -> QWidget:
         content_widget = Column(spacing=20)
+        content_widget.setMaximumWidth(1180)
+        content_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
         content_widget.v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.code_card = CodeInstallCard(self.ctx)
@@ -235,7 +241,13 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.pager.setItemAlignment(Qt.AlignmentFlag.AlignCenter)
         self._add_resource_content(content_widget)
 
-        return content_widget
+        page_widget = QWidget()
+        page_layout = QHBoxLayout(page_widget)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.addStretch(1)
+        page_layout.addWidget(content_widget, stretch=100)
+        page_layout.addStretch(1)
+        return page_widget
 
     def _add_resource_content(self, content_widget: Column) -> None:
         """添加框架通用资源和项目资源。"""
@@ -246,6 +258,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
             content='自动模式优先使用上次成功源，失败后继续尝试其他源',
             options_list=build_resource_source_options(self.ctx.env_config),
         )
+        self.resource_source_opt.combo_box.setFixedWidth(160)
         self.download_settings_group.addSettingCard(self.resource_source_opt)
 
         self.proxy_group = ExpandSettingCardGroup(
@@ -266,7 +279,9 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.proxy_url_input = TextSettingCard(
             icon=FluentIcon.WIFI,
             title='代理地址',
+            input_max_width=300,
         )
+        self.proxy_url_input.line_edit.setFixedWidth(300)
         self.proxy_url_input.value_changed.connect(
             lambda _value: self.ctx.env_config.init_system_proxy()
         )
@@ -276,8 +291,11 @@ class ResourceManagementInterface(VerticalScrollInterface):
             icon=FluentIcon.SYNC,
             title='自动获取免费代理地址',
             content='仅在使用 GitHub 代理时生效',
+            on_text_cn='',
+            off_text_cn='',
         )
         self.fetch_proxy_btn = PushButton(gt('立即获取'), self)
+        self.fetch_proxy_btn.setFixedWidth(112)
         self.fetch_proxy_btn.clicked.connect(self._fetch_proxy_url)
         self.auto_fetch_proxy_opt.hBoxLayout.addWidget(
             self.fetch_proxy_btn,
@@ -292,6 +310,8 @@ class ResourceManagementInterface(VerticalScrollInterface):
             icon=FluentIcon.DOWNLOAD,
             title='资源自动下载',
             content='发现资源缺失或有新版本时，跳过确认并自动下载',
+            on_text_cn='',
+            off_text_cn='',
         )
         self.download_settings_group.addSettingCard(self.auto_download_opt)
         content_widget.add_widget(self.download_settings_group)
@@ -362,7 +382,14 @@ class ResourceManagementInterface(VerticalScrollInterface):
         _value: str,
     ) -> None:
         """代理类型变化后刷新输入项并应用系统代理。"""
+        proxy_type = self.ctx.env_config.proxy_type
         self._update_proxy_ui()
+        if (
+            self._last_proxy_type == ProxyTypeEnum.NONE.value.value
+            and proxy_type != ProxyTypeEnum.NONE.value.value
+        ):
+            self.proxy_group.setExpand(True)
+        self._last_proxy_type = proxy_type
         self.ctx.env_config.init_system_proxy()
 
     def _update_proxy_ui(self) -> None:
