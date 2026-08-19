@@ -123,6 +123,17 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
+        # 启动器类型 tag（集成/源码），使用主题色背景
+        self.launchTagLabel = QLabel(self)
+        self.launchTagLabel.setObjectName("launchTagLabel")
+        self.launchTagLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.launchTagLabel.setVisible(False)
+        btn_layout.addWidget(
+            self.launchTagLabel,
+            0,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+        )
+
         self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
         self.launcherVersionButton.setObjectName("launcherVersionButton")
         self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
@@ -157,10 +168,12 @@ class PhosTitleBar(SplitTitleBar):
         self.issue_url: str = ""
         self.launcher_version: str = ""
         self.code_version: str = ""
+        self.launch_tag: str = ""
 
         # 首页模式下需要添加阴影的控件列表
         self._home_shadow_targets: list[QWidget] = [
             self.titleLabel,
+            self.launchTagLabel,
             self.launcherVersionButton,
             self.codeVersionButton,
             self.questionButton,
@@ -199,6 +212,19 @@ class PhosTitleBar(SplitTitleBar):
         self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
         if version:
             self.codeVersionButton.setVisible(True)
+
+    def setLaunchTag(self, tag: str) -> None:
+        """
+        设置启动器类型 tag（集成/源码） 会更新UI
+        @param tag: 启动器类型
+        @return:
+        """
+        self.launch_tag = tag
+        if tag:
+            self.launchTagLabel.setText(tag)
+            self.launchTagLabel.setVisible(True)
+        else:
+            self.launchTagLabel.setVisible(False)
 
     def setInstallerVersion(self, version: str) -> None:
         """
