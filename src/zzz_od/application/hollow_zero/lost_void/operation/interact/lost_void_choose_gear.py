@@ -31,13 +31,14 @@ class LostVoidChooseGear(ZOperation):
         """
         入口处 人物武备和通用武备的选择
         :param ctx:
-        :param completed_name_list: 入口层已完成选择的武备名称列表 跨交互共享
+        :param completed_name_list: 入口层已完成选择画面的首个武备名列表 跨交互共享
             传入时 若当前画面首个武备命中列表 说明重复交互了同一个NPC 直接返回退出 不再重复整套选择
-            完成一次选择后 本画面识别到的武备名称会补充进列表
+            完成一次选择后 本画面的首个武备名会补充进列表
+            判断信号与存储信号对称(都是画面首个武备名) 避免与其他画面的非首个武备误匹配
         """
         ZOperation.__init__(self, ctx, op_name='迷失之地-武备选择')
         self.completed_name_list: list[str] | None = completed_name_list
-        self.recognized_name_list: list[str] = []  # 本次画面识别到的武备名称 携带成功后写入 completed_name_list
+        self.recognized_name_list: list[str] = []  # 本次画面识别到的武备名称 首个在携带成功后写入 completed_name_list
 
     @operation_node(name='选择武备', is_start_node=True)
     def choose_gear(self) -> OperationRoundResult:
@@ -56,11 +57,12 @@ class LostVoidChooseGear(ZOperation):
             return self.round_retry(status='无法识别武备槽位')
 
         # 入口层可能因为交互判定(角度>距离)命中了刚选完武备的NPC 重复打开同一个画面
-        # 此时只看首个武备名称 命中已完成列表则直接退出 避免重复整套点击识别
+        # 此时只看首个武备名称 命中已完成列表(各画面首个武备名)则直接退出 避免重复整套点击识别
+        # cutoff=0.8 只容忍同名的OCR错字 不同画面即使名称相近也不会误判为重复
         if self.completed_name_list is not None and len(self.completed_name_list) > 0:
             first_name = self._get_first_gear_name(gear_context)
             if (first_name is not None
-                    and str_utils.find_best_match_by_difflib(first_name, self.completed_name_list, cutoff=0.7) is not None):
+                    and str_utils.find_best_match_by_difflib(first_name, self.completed_name_list, cutoff=0.8) is not None):
                 log.info(f'重复进入已完成选择的武备画面 直接返回 首个武备={first_name}')
                 return self.round_success(LostVoidChooseGear.STATUS_REPEATED)
 
@@ -319,10 +321,12 @@ class LostVoidChooseGear(ZOperation):
         if result.is_success:
             self.ctx.lost_void.priority_updated = False
             log.info("武备选择成功，已设置优先级更新标志")
-            if self.completed_name_list is not None:
-                for name in self.recognized_name_list:
-                    if name not in self.completed_name_list:
-                        self.completed_name_list.append(name)
+            # 只记录本画面的首个武备名 与重复判断读取的信号一致
+            # 记录全部名称会让其他画面的首个武备有机会与本画面的非首个武备误匹配
+            if self.completed_name_list is not None and len(self.recognized_name_list) > 0:
+                first_name = self.recognized_name_list[0]
+                if first_name not in self.completed_name_list:
+                    self.completed_name_list.append(first_name)
         return result
 
     @node_from(from_name='选择武备', status=STATUS_REPEATED)

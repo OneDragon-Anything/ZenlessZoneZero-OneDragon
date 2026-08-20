@@ -140,7 +140,7 @@ class LostVoidRunLevel(ZOperation):
         self.stuck_state: LostVoidStuckState = LostVoidStuckState()  # 本层共享的脱困状态
 
         self.attempt_start_time: float = 0  # 重开挑战后重新计时的起点 0=使用指令开始时间
-        self.entry_gear_name_list: list[str] = []  # 入口层已完成选择的武备名称 用于识别重复交互同一个NPC
+        self.entry_gear_name_list: list[str] = []  # 入口层已完成选择画面的首个武备名 用于识别重复交互同一个NPC
         self.entry_gear_repeat_times: int = 0  # 入口层重复进入已完成武备选择画面的次数
         self.entry_gear_interact_done: bool = False  # 刚完成了一次入口层武备选择交互 交互后需要调整站位
 
