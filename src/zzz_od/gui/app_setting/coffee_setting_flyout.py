@@ -9,10 +9,7 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.coffee import coffee_app_const
-from zzz_od.application.coffee.coffee_config import (
-    CoffeeChooseWay,
-    CoffeeTransportPoint,
-)
+from zzz_od.application.coffee.coffee_config import CoffeeTransportPoint
 
 
 class CoffeeSettingFlyout(AppSettingFlyout):
@@ -27,15 +24,6 @@ class CoffeeSettingFlyout(AppSettingFlyout):
             margins=self.card_margins,
         )
         layout.addWidget(self.transport_point_opt)
-
-        self.choose_way_opt = ComboBoxSettingCard(
-            icon='',
-            title='咖啡选择',
-            content=CoffeeChooseWay.TINMAN_ONLY.value.desc,
-            options_enum=CoffeeChooseWay,
-            margins=self.card_margins,
-        )
-        layout.addWidget(self.choose_way_opt)
 
         self.run_charge_plan_afterwards_opt = SwitchSettingCard(
             icon='',
@@ -52,7 +40,6 @@ class CoffeeSettingFlyout(AppSettingFlyout):
             group_id=self.group_id,
         )
         self.transport_point_opt.init_with_adapter(get_prop_adapter(config, 'transport_point'))
-        self.choose_way_opt.init_with_adapter(get_prop_adapter(config, 'choose_way'))
         self.run_charge_plan_afterwards_opt.init_with_adapter(
             get_prop_adapter(config, 'run_charge_plan_afterwards')
         )
