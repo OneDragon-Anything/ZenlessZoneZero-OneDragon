@@ -1,0 +1,69 @@
+template_name: "速切模板-希格莉德"
+handlers:
+  - states: "[前台-希格莉德]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-希格莉德]"
+    sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        operations:
+          - operation_template: "希格莉德-终结技"
+
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "通用-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "通用-闪A"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "通用-连携攻击"
+
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[自定义-快速支援换人, 0, 0.5]"
+            operations:
+              - operation_template: "通用-快速支援"
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      # 蓝了立刻长按，不蓝立刻打断；进入巡游先打标记，供后续判断三连是否已放出
+      - states: "[希格莉德-巡空枪势]"
+        interrupt_states: "![希格莉德-巡空枪势]"
+        debug_name: "希格莉德-巡空枪势长按"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-希格莉德-巡游"
+          - operation_template: "希格莉德-长按普攻"
+
+      # 巡游标记还在但已经不蓝：说明三连已放出、蓝条被消耗，长按动作已到尾声，可以合轴
+      - states: "[自定义-希格莉德-巡游] & ![希格莉德-巡空枪势]"
+        debug_name: "希格莉德-巡游结束可合轴"
+        operations:
+          - op_name: "清除状态"
+            state: "自定义-希格莉德-巡游"
+          - op_name: "设置状态"
+            state: "自定义-合轴时间"
+
+      # 不蓝时常规输出：有大开大，没大有强化特殊技，否则普攻攒豆
+      - states: ""
+        interrupt_states: "[希格莉德-巡空枪势]"
+        debug_name: "希格莉德-常规输出"
+        sub_handlers:
+          - states: "[希格莉德-终结技可用]"
+            debug_name: "希格莉德-终结技"
+            operations:
+              - operation_template: "希格莉德-终结技"
+
+          - states: "[希格莉德-特殊技可用]"
+            debug_name: "希格莉德-强化特殊技"
+            operations:
+              - operation_template: "希格莉德-强化特殊技"
+
+          - states: ""
+            debug_name: "希格莉德-普通攻击"
+            operations:
+              - operation_template: "希格莉德-普通攻击"
