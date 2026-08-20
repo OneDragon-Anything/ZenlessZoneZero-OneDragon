@@ -34,11 +34,13 @@ class LostVoidChooseGear(ZOperation):
         :param completed_name_list: 入口层已完成选择画面的首个武备名列表 跨交互共享
             传入时 若当前画面首个武备命中列表 说明重复交互了同一个NPC 直接返回退出 不再重复整套选择
             完成一次选择后 本画面的首个武备名会补充进列表
-            判断信号与存储信号对称(都是画面首个武备名) 避免与其他画面的非首个武备误匹配
+            判断信号与存储信号对称(都是画面最左侧槽位的武备名) 避免与其他画面的非首个武备误匹配
         """
         ZOperation.__init__(self, ctx, op_name='迷失之地-武备选择')
         self.completed_name_list: list[str] | None = completed_name_list
-        self.recognized_name_list: list[str] = []  # 本次画面识别到的武备名称 首个在携带成功后写入 completed_name_list
+        # 本次画面最左侧槽位的武备名 携带成功后写入 completed_name_list
+        # 最左侧槽位OCR解析失败时为None 本画面不记录(宁可下次重复识别 也不存错位的名字)
+        self.first_slot_gear_name: str | None = None
 
     @operation_node(name='选择武备', is_start_node=True)
     def choose_gear(self) -> OperationRoundResult:
@@ -69,8 +71,6 @@ class LostVoidChooseGear(ZOperation):
         gear_list, has_level_list = self.get_gear_pos_by_click_ocr(gear_contours, gear_context)
         if len(gear_list) == 0:
             return self.round_retry(status='无法识别武备名称')
-
-        self.recognized_name_list = [i.artifact.display_name for i in gear_list]
 
         if self.ctx.lost_void.challenge_config.chase_new_mode:
             unlocked_gears: list[LostVoidArtifactPos] = [
@@ -243,6 +243,7 @@ class LostVoidChooseGear(ZOperation):
             crop_first=False,
         )
         name_list = self._extract_names_from_stitched_ocr(ocr_map, len(slice_list), slice_list[0].shape[0])
+        self._update_first_slot_gear_name(name_list)
 
         result_list: list[LostVoidArtifactPos] = []
         total_cnt = min(len(click_rect_list), len(name_list))
@@ -267,6 +268,20 @@ class LostVoidChooseGear(ZOperation):
         display_text = ','.join([i.artifact.display_name for i in result_list]) if len(result_list) > 0 else '无'
         log.info(f'当前识别武备 {display_text}')
         return result_list, has_level_list
+
+    def _update_first_slot_gear_name(self, name_list: list[str]) -> None:
+        """
+        从各槽位的OCR文本更新最左侧槽位的武备名 解析失败时为None
+
+        与入口重复判断(_get_first_gear_name 点击最左格)读取的槽位保持一致
+        不能用识别结果列表的首元素代替: 结果列表会跳过解析失败的槽位 首元素不一定是最左格
+        :param name_list: 按槽位从左到右的OCR文本列表
+        """
+        self.first_slot_gear_name = None
+        if len(name_list) > 0 and len(name_list[0]) > 0:
+            first_art, _ = self._build_artifact_from_ocr_name(name_list[0])
+            if first_art is not None:
+                self.first_slot_gear_name = first_art.display_name
 
     def _extract_names_from_stitched_ocr(
             self,
@@ -321,12 +336,12 @@ class LostVoidChooseGear(ZOperation):
         if result.is_success:
             self.ctx.lost_void.priority_updated = False
             log.info("武备选择成功，已设置优先级更新标志")
-            # 只记录本画面的首个武备名 与重复判断读取的信号一致
-            # 记录全部名称会让其他画面的首个武备有机会与本画面的非首个武备误匹配
-            if self.completed_name_list is not None and len(self.recognized_name_list) > 0:
-                first_name = self.recognized_name_list[0]
-                if first_name not in self.completed_name_list:
-                    self.completed_name_list.append(first_name)
+            # 只记录本画面最左侧槽位的武备名 与重复判断读取的信号一致
+            # 记录其他槽位名称会让别的画面的首个武备有机会与本画面的非首个武备误匹配
+            if (self.completed_name_list is not None
+                    and self.first_slot_gear_name is not None
+                    and self.first_slot_gear_name not in self.completed_name_list):
+                self.completed_name_list.append(self.first_slot_gear_name)
         return result
 
     @node_from(from_name='选择武备', status=STATUS_REPEATED)
