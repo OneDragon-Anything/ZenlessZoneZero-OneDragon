@@ -20,6 +20,19 @@ class RepositoryItem:
 
 
 @dataclass(frozen=True)
+class RepositoryBranch:
+    """YAML 中的一项代码分支。"""
+
+    branch_name: str
+    label: str
+    desc: str
+
+    @property
+    def config_item(self) -> ConfigItem:
+        return ConfigItem(self.label, self.branch_name, self.desc)
+
+
+@dataclass(frozen=True)
 class RegionPreset:
     """YAML 中的一项代码源地区预设。"""
 
@@ -51,7 +64,7 @@ class RepoConfig(YamlConfig):
 
     使用 OneDragon 框架的项目应在 ``config/repository.yml`` 中提供：
 
-    - ``repositories``：包含 ``primary`` 和 ``options`` 的代码源配置组；
+    - ``repositories``：包含 ``primary``、``primary_branch``、``branches`` 和 ``options`` 的代码仓库配置组；
     - 顶层下载源配置组：每组包含 ``default`` 和 ``options``；
     - ``regions``：地区预设映射，包含显示标题、代码源和环境配置值。
 
@@ -61,6 +74,11 @@ class RepoConfig(YamlConfig):
 
         repositories:
           primary: main
+          primary_branch: main
+          branches:
+            main:
+              label: 主分支
+              desc: 选择后请点击同步最新代码
           options:
             main:
               label: 主仓库
@@ -82,9 +100,22 @@ class RepoConfig(YamlConfig):
     AUTO_REPOSITORY_VALUE = 'auto'
     _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions'}
 
-    def __init__(self) -> None:
-        YamlConfig.__init__(self, module_name='repository')
+    def __init__(self, prefer_bundled_config: bool = False) -> None:
+        YamlConfig.__init__(
+            self,
+            module_name='repository',
+            prefer_bundled_config=prefer_bundled_config,
+        )
         repository_config = self._get_repository_config()
+        primary_branch = repository_config.get('primary_branch', '')
+        if not isinstance(primary_branch, str) or not primary_branch.strip():
+            raise ValueError('repositories 必须配置 primary_branch')
+        self.primary_branch: str = primary_branch
+        self.branches: tuple[RepositoryBranch, ...] = self._load_branches(repository_config)
+        if not any(branch.branch_name == self.primary_branch for branch in self.branches):
+            raise ValueError(
+                f'repositories.primary_branch {self.primary_branch} 不在 repositories.branches 中'
+            )
         self.repositories: tuple[RepositoryItem, ...] = self._load_repositories(repository_config)
         self._repositories_by_id: dict[str, RepositoryItem] = {
             repository.repository_id: repository for repository in self.repositories
@@ -111,9 +142,37 @@ class RepoConfig(YamlConfig):
             raise ValueError('repositories 必须配置 primary')
         if 'primary' not in raw_repositories:
             raise ValueError('repositories 必须配置 primary')
+        if 'primary_branch' not in raw_repositories:
+            raise ValueError('repositories 必须配置 primary_branch')
+        if 'branches' not in raw_repositories:
+            raise ValueError('repositories 必须配置 branches')
         if 'options' not in raw_repositories:
             raise ValueError('repositories 必须配置 options')
         return raw_repositories
+
+    def _load_branches(self, repository_config: dict) -> tuple[RepositoryBranch, ...]:
+        raw_branches = repository_config.get('branches', {})
+        if not isinstance(raw_branches, dict) or not raw_branches:
+            raise ValueError('repositories.branches 必须配置代码分支')
+
+        branches: list[RepositoryBranch] = []
+        for branch_name, raw_branch in raw_branches.items():
+            if not isinstance(branch_name, str) or not branch_name or not isinstance(raw_branch, dict):
+                raise ValueError('代码分支配置必须是分支名到对象的映射')
+            label = raw_branch.get('label', '')
+            desc = raw_branch.get('desc', '')
+            if not isinstance(label, str) or not label:
+                raise ValueError(f'代码分支 {branch_name} 必须配置 label')
+            if not isinstance(desc, str):
+                raise ValueError(f'代码分支 {branch_name} 的 desc 必须是字符串')
+            branches.append(
+                RepositoryBranch(
+                    branch_name=branch_name,
+                    label=label,
+                    desc=desc,
+                )
+            )
+        return tuple(branches)
 
     def _load_repositories(self, repository_config: dict) -> tuple[RepositoryItem, ...]:
         raw_repositories = repository_config.get('options', {})
@@ -224,6 +283,11 @@ class RepoConfig(YamlConfig):
         if repository is None:
             raise ValueError(f'{field_name} {repository_id} 不在 repositories.options 中')
         return repository
+
+    @property
+    def branch_options(self) -> list[ConfigItem]:
+        """获取供代码版本下拉框使用的分支选项。"""
+        return [branch.config_item for branch in self.branches]
 
     @property
     def repository_options(self) -> list[ConfigItem]:

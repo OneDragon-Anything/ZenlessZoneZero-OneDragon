@@ -1,7 +1,6 @@
 project_name: "ZenlessZoneZero-OneDragon"
 python_version: "3.11"
 github_homepage: "https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon"
-project_git_branch: "main"
 manifest_path: "deploy/module_manifest.py"
 game_executable_name: "ZenlessZoneZero.exe"
 screen_standard_width: 1920

@@ -484,6 +484,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        ocr_model_name = self._decide_ocr_model_name()
+
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
             if hasattr(self.ocr, 'cleanup'):
@@ -491,7 +493,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr = OnnxOcrMatcher(
             OnnxOcrParam(
-                ocr_model_name=self.model_config.ocr,
+                ocr_model_name=ocr_model_name,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
@@ -504,6 +506,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
+
+    def _decide_ocr_model_name(self) -> str:
+        """
+        决定本次初始化使用的 OCR 模型名 默认使用配置里的模型名 子类可按项目需要覆写
+        """
+        return self.model_config.ocr
 
     def after_app_shutdown(self) -> None:
         """

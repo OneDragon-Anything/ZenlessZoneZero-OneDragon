@@ -15,7 +15,8 @@ class YamlConfig(YamlOperator):
             sub_dir: list[str] | None = None,
             sample: bool = False, copy_from_sample: bool = False,
             read_sample_only: bool = False,
-            is_mock: bool = False
+            is_mock: bool = False,
+            prefer_bundled_config: bool = False,
     ):
         self.instance_idx: int | None = instance_idx
         """传入时 该配置为一个的脚本实例独有的配置"""
@@ -31,6 +32,9 @@ class YamlConfig(YamlOperator):
 
         self.is_mock: bool = is_mock
         """mock情况下 不读取文件 也不会实际保存 用于测试"""
+
+        self._prefer_bundled_config: bool = prefer_bundled_config
+        """是否优先读取 PyInstaller 包内的配置"""
 
         self._sample: bool = sample
         """是否有sample文件"""
@@ -67,6 +71,15 @@ class YamlConfig(YamlOperator):
         # 只读sample文件模式
         if self._read_sample_only and os.path.exists(sample_yml_path):
             return sample_yml_path, sample_yml_path, None
+
+        if self._prefer_bundled_config:
+            resource_path = os_utils.get_resource_path(
+                *sub_dir,
+                f'{self.module_name}.yml',
+                prefer_bundled=True,
+            )
+            if resource_path != yml_path and os.path.exists(resource_path):
+                return resource_path, yml_path, resource_path
 
         # 指定文件存在时 直接使用
         if os.path.exists(yml_path):
