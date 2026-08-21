@@ -12,6 +12,47 @@ from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
+def match_team_name(target: str, candidates: list[str]) -> str | None:
+    """
+    在OCR候选文本里找目标编队名
+
+    规则: 去空白后先精确匹配; 再用 difflib 模糊匹配(>=0.6)兜底OCR错字,
+    但排除「非数字部分相同、数字部分不同」的候选 —— 那是另一支编队。
+    例如编队列表一页只显示约6个编队, 目标「编队8」不在当前页时,
+    直接 get_close_matches 会把「编队1」按 0.67 相似度当成命中 → 点错编队,
+    且永远不会触发翻页(翻页只在完全没匹配时走)。
+
+    :param target: 目标编队名
+    :param candidates: OCR识别出的全部文本
+    :return: 命中的候选原文 找不到返回 None
+    """
+    def _clean(s: str) -> str:
+        return ''.join(s.split())
+
+    def _digits(s: str) -> str:
+        return ''.join(c for c in s if c.isdigit())
+
+    def _non_digits(s: str) -> str:
+        return ''.join(c for c in s if not c.isdigit())
+
+    target_clean = _clean(target)
+    best_key: str | None = None
+    best_ratio: float = 0.0
+    for cand in candidates:
+        cand_clean = _clean(cand)
+        if cand_clean == target_clean:
+            return cand
+        if (_non_digits(cand_clean) == _non_digits(target_clean)
+                and _digits(cand_clean) != _digits(target_clean)):
+            # 同前缀不同编号 = 另一支编队 不允许模糊命中
+            continue
+        ratio = difflib.SequenceMatcher(None, target_clean, cand_clean).ratio()
+        if ratio >= 0.6 and ratio > best_ratio:
+            best_ratio = ratio
+            best_key = cand
+    return best_key
+
+
 class ChoosePredefinedTeam(ZOperation):
 
     TEAM_SCROLL_STEP: int = 4
@@ -69,13 +110,12 @@ class ChoosePredefinedTeam(ZOperation):
             target_team_name = team_list[target_team_idx].name
 
             ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            target_list = list(ocr_map.keys())
-            best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
+            best_match = match_team_name(target_team_name, list(ocr_map.keys()))
 
-            if best_match is None or len(best_match) == 0:
+            if best_match is None:
                 return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
-            ocr_result: MatchResultList = ocr_map.get(best_match[0], None)
+            ocr_result: MatchResultList = ocr_map.get(best_match, None)
             if ocr_result is None or ocr_result.max is None:
                 return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
