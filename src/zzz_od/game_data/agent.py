@@ -563,3 +563,10 @@ class AgentEnum(Enum):
             ),
         ],
     )
+
+    SIGRID = Agent('sigrid', '希格莉德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ICE,
+                   ['sigrid', 'sigrid_majestic_wavechaser'],
+                   state_list=[AgentStateDef('希格莉德-巡空枪势', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                                             template_id='sigrid_sky_patrol',
+                                             hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
+                                             connect_cnt=1)])
