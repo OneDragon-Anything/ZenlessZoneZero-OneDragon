@@ -325,11 +325,13 @@ class CommissionAssistantApp(ZApplication):
                 bottom_mr = mr
                 bottom_text = mr.data
 
-        if bottom_mr is None:
+        if bottom_text is None:
             return self.round_fail()
 
         if '以上为最新' in bottom_text:
             return self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-短信-关闭')
+        elif str_utils.find_by_lcs('密友同行', bottom_text, 0.75):
+            return self.round_success('忽略密友同行界面', wait=1)
 
         self.ctx.controller.click(bottom_mr.center)
         return self.round_success(bottom_text)
