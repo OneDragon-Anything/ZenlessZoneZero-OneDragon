@@ -5,6 +5,7 @@ PRIORITY = 600
 NEED_NOTIFY = True
 
 STATUS_SWITCH_TEAM = '需要切换配队'
+STATUS_TEAM_EXHAUSTED = '没有后续预备编队'
 
 S_RANK_BATTLE_TIMEOUT_SECONDS: dict[str, int] = {
     '实战模拟室': 120,
