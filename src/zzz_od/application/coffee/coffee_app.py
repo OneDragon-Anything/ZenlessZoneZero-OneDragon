@@ -18,7 +18,6 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.coffee.coffee_config import (
-    CoffeeChooseWay,
     CoffeeConfig,
     CoffeeTransportPoint,
 )
@@ -211,7 +210,7 @@ class CoffeeApp(ZApplication):
                 continue
             to_choose_list.append(coffee.coffee_name)
 
-        tinman_coffee = CoffeeChooseWay.TINMAN_ONLY.value.value
+        tinman_coffee = '汀曼特调'
         if tinman_coffee not in self.had_coffee_list:
             to_choose_list.append(tinman_coffee)
         return to_choose_list

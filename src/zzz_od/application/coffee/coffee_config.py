@@ -1,6 +1,5 @@
 from enum import Enum
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.game_data.map_area import TransportPoint
 
@@ -10,11 +9,6 @@ class CoffeeTransportPoint(Enum):
     POINT_1 = TransportPoint('六分街', '咖啡店')
     POINT_2 = TransportPoint('澄辉坪', '汀曼咖啡')
     POINT_3 = TransportPoint('布亚斯特城区', '片刻闲')
-
-
-class CoffeeChooseWay(Enum):
-
-    TINMAN_ONLY = ConfigItem('汀曼特调', desc='固定选择汀曼特调')
 
 
 class CoffeeConfig(ApplicationConfig):
@@ -34,18 +28,6 @@ class CoffeeConfig(ApplicationConfig):
     @transport_point.setter
     def transport_point(self, new_value: str) -> None:
         self.update('transport_point', new_value)
-
-    @property
-    def choose_way(self) -> str:
-        return CoffeeChooseWay.TINMAN_ONLY.value.value
-
-    @choose_way.setter
-    def choose_way(self, new_value: str) -> None:
-        self.update('choose_way', new_value)
-
-    def get_coffee_by_day(self, _day: int) -> str:
-        """所有星期固定返回汀曼特调"""
-        return CoffeeChooseWay.TINMAN_ONLY.value.value
 
     @property
     def run_charge_plan_afterwards(self) -> bool:
