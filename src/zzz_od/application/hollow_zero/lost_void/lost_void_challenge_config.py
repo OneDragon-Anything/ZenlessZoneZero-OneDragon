@@ -135,7 +135,7 @@ class LostVoidChallengeConfig(YamlConfig):
         return self.get('up_team_auto_compose', False)
 
     @up_team_auto_compose.setter
-    def up_team_auto_compose(self, new_value: bool):
+    def up_team_auto_compose(self, new_value: bool) -> None:
         self.update('up_team_auto_compose', new_value)
 
     @property
@@ -147,7 +147,7 @@ class LostVoidChallengeConfig(YamlConfig):
         return self.get('matrix_up_auto_team', False)
 
     @matrix_up_auto_team.setter
-    def matrix_up_auto_team(self, new_value: bool):
+    def matrix_up_auto_team(self, new_value: bool) -> None:
         self.update('matrix_up_auto_team', new_value)
 
     @property

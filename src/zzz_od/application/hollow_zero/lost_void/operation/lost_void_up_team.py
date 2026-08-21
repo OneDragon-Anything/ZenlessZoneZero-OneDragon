@@ -2,6 +2,8 @@ import time
 from collections import Counter
 from typing import TYPE_CHECKING, ClassVar
 
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
@@ -78,7 +80,7 @@ def compute_up_lineup(up_agents: list[Agent],
     return lineup
 
 
-def recognize_matrix_up(ctx: 'ZContext', screen) -> tuple[list[Agent], list[Agent]]:
+def recognize_matrix_up(ctx: 'ZContext', screen: MatLike) -> tuple[list[Agent], list[Agent]]:
     """
     在矩阵行动入口面板识别「UP代理人」头像行
 
@@ -111,7 +113,7 @@ def recognize_matrix_up(ctx: 'ZContext', screen) -> tuple[list[Agent], list[Agen
     return mains, support
 
 
-def find_up_in_agent_grid(ctx: 'ZContext', screen, rect: Rect) -> list[Agent]:
+def find_up_in_agent_grid(ctx: 'ZContext', screen: MatLike, rect: Rect) -> list[Agent]:
     """
     在代理人网格里按UP徽章找UP代理人
 
@@ -185,6 +187,7 @@ class LostVoidComposeUpTeam(ZOperation):
         self.plan_idx: int = 0
         self.placed: list[Agent] = []
         self.missed: list[Agent] = []
+        self.kept_up: bool = False  # 原编队是否已有UP
 
     def _read_current_member_ids(self) -> list[str | None]:
         """
@@ -214,6 +217,7 @@ class LostVoidComposeUpTeam(ZOperation):
 
         lineup_ids = [a.agent_id for a in self.lineup]
         keep = {i for i in current if i is not None and i in lineup_ids}
+        self.kept_up = any(i is not None and i in self.up_ids for i in current)
         to_place = [a for a in self.lineup if a.agent_id not in keep]
         slots_to_fill = [i for i, c in enumerate(current) if c is None or c not in lineup_ids]
 
@@ -276,6 +280,10 @@ class LostVoidComposeUpTeam(ZOperation):
             # 返回箭头退出面板 不确认任何选择
             self.ctx.controller.click(LostVoidComposeUpTeam.BACK_POS)
             time.sleep(1.5)
+            if not self._can_still_get_up():
+                # UP已经拿不到了 剩余槽位不再改动 让编队保持原样回退预备编队匹配
+                log.warning('UP自动配队 已无法换入UP 保持原编队并回退')
+                return self.round_fail(status='未找到UP')
             return self.round_wait(status='继续调整')
 
         # 3. 点卡片 → 点丝带确认换入
@@ -288,6 +296,17 @@ class LostVoidComposeUpTeam(ZOperation):
         self.plan_idx += 1
         return self.round_wait(status='继续调整')
 
+    def _can_still_get_up(self) -> bool:
+        """
+        是否还有机会让编队含UP: 原编队自带 / 已换入 / 计划里还有没试过的UP
+        :return: 还有机会为True
+        """
+        if self.kept_up:
+            return True
+        if any(a.agent_id in self.up_ids for a in self.placed):
+            return True
+        return any(agent.agent_id in self.up_ids for _, agent in self.plan[self.plan_idx:])
+
     @node_from(from_name='识别当前编队', status='无需调整')
     @node_from(from_name='调整槽位', status='调整完成')
     @operation_node(name='校验编队')
@@ -296,6 +315,8 @@ class LostVoidComposeUpTeam(ZOperation):
         up_in_team = [i for i in current if i is not None and i in self.up_ids]
         member_names = [i if i is not None else '(空)' for i in current]
         if len(up_in_team) > 0:
+            if len(self.missed) > 0:
+                log.warning(f'UP自动配队 选人面板未找到 {[a.agent_name for a in self.missed]} 保留原槽位')
             log.info(f'UP自动配队 完成: {member_names} (含{len(up_in_team)}个UP)')
             return self.round_success(status='配队完成')
         log.warning(f'UP自动配队 校验失败: 编队 {member_names} 不含UP')
