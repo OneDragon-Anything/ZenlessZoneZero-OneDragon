@@ -36,10 +36,12 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
 
+    # 按下鼠标后到开始拖动前的等待时间 (用于稳定按压)
+    SLEEP_BEFORE_DRAG_START: float = 0.3
     # 拖动后的等待时间 (用于消除拖动惯性)
-    SLEEP_BEFORE_DRAG_END:float = 0.2
-    # (DRAG_MIN_DURATION + SLEEP_BEFORE_DRAG_END) 为整个拖动过程的最小时间
-    DRAG_MIN_DURATION:float = 0.1
+    SLEEP_BEFORE_DRAG_END: float = 0.2
+    # (DRAG_MIN_DURATION + SLEEP_BEFORE_DRAG_START + SLEEP_BEFORE_DRAG_END) 为整个拖动过程的最小时间
+    DRAG_MIN_DURATION: float = 0.1
 
     def __init__(self,
                  screenshot_method: str,
@@ -592,9 +594,10 @@ def drag_mouse(start: Point, end: Point, duration: float = 0.5):
     # 移动到起点并按下
     pyautogui.moveTo(start.x, start.y)
     pyautogui.mouseDown()
+    time.sleep(PcControllerBase.SLEEP_BEFORE_DRAG_START)
 
-    # 减去 PcControllerBase.SLEEP_BEFORE_DRAG_END 之后的间隔
-    duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
+    # 减去拖动前后停顿之后的移动时长
+    duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_START - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
     # 分步移动到终点
     steps = max(int(duration_drag / 0.02), 5)
     for i in range(1, steps + 1):
