@@ -34,8 +34,7 @@ class ChargePlanApp(ZApplication):
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
     STATUS_FIND_NEXT_PLAN: ClassVar[str] = '继续查找下一个计划'
-    STATUS_RETRY_CURRENT_PLAN: ClassVar[str] = '重新运行当前计划'
-    STATUS_TEAM_EXHAUSTED: ClassVar[str] = '没有后续预备编队'
+    STATUS_TEAM_EXHAUSTED: ClassVar[str] = charge_plan_const.STATUS_TEAM_EXHAUSTED
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -77,7 +76,6 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='跳过或结束计划', status=STATUS_FIND_NEXT_PLAN)
-    @node_from(from_name='切换配队', status=STATUS_RETRY_CURRENT_PLAN)
     @operation_node(name='前往大世界')
     def back_before_open_compendium(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
@@ -295,40 +293,48 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='实战模拟室')
     @operation_node(name='实战模拟室')
     def combat_simulation(self) -> OperationRoundResult:
-        op = CombatSimulation(self.ctx, self.current_plan)
+        op = CombatSimulation(self.ctx, self.current_plan, switch_team_callback=self.switch_team)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.current_plan)
+        op = AreaPatrol(self.ctx, self.current_plan, switch_team_callback=self.switch_team)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
     @operation_node(name='专业挑战室')
     def expert_challenge(self) -> OperationRoundResult:
-        op = ExpertChallenge(self.ctx, self.current_plan)
+        op = ExpertChallenge(self.ctx, self.current_plan, switch_team_callback=self.switch_team)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
-        op = NotoriousHunt(self.ctx, self.current_plan, use_charge_power=True)
+        op = NotoriousHunt(
+            self.ctx,
+            self.current_plan,
+            use_charge_power=True,
+            switch_team_callback=self.switch_team,
+        )
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='实战模拟室', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
-    @node_from(from_name='区域巡防', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
-    @node_from(from_name='专业挑战室', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
-    @node_from(from_name='恶名狩猎', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
-    @operation_node(name='切换配队')
-    def switch_team(self) -> OperationRoundResult:
+    def switch_team(self, reason: str) -> bool:
+        """切换到当前计划的下一支预备编队并保存配置。
+
+        Args:
+            reason: 触发换队的原因，用于日志记录。
+
+        Returns:
+            是否找到并写回了下一支预备编队。
+        """
         if self.current_plan is None:
-            return self.round_fail('当前计划为空')
+            log.error('体力计划触发换队时当前计划为空')
+            return False
 
         team_list = self.ctx.team_config.team_list
         old_team_idx = self.current_plan.predefined_team_idx
         next_team_idx = 0 if old_team_idx == -1 else old_team_idx + 1
-        reason = self.previous_node.data or self.previous_node.status
 
         if old_team_idx == -1:
             old_team_name = '游戏内配队'
@@ -339,7 +345,7 @@ class ChargePlanApp(ZApplication):
 
         if next_team_idx >= len(team_list):
             log.info('体力计划触发换队：%s；%s 后没有可用的后续预备编队', reason, old_team_name)
-            return self.round_success(ChargePlanApp.STATUS_TEAM_EXHAUSTED)
+            return False
 
         next_team_name = team_list[next_team_idx].name
         self.current_plan.predefined_team_idx = next_team_idx
@@ -359,7 +365,7 @@ class ChargePlanApp(ZApplication):
             old_team_name,
             next_team_name,
         )
-        return self.round_success(ChargePlanApp.STATUS_RETRY_CURRENT_PLAN)
+        return True
 
     @node_from(from_name='实战模拟室', success=True)
     @node_from(from_name='实战模拟室', success=False)
@@ -393,7 +399,10 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
-    @node_from(from_name='切换配队', status=STATUS_TEAM_EXHAUSTED)
+    @node_from(from_name='实战模拟室', success=False, status=STATUS_TEAM_EXHAUSTED)
+    @node_from(from_name='区域巡防', success=False, status=STATUS_TEAM_EXHAUSTED)
+    @node_from(from_name='专业挑战室', success=False, status=STATUS_TEAM_EXHAUSTED)
+    @node_from(from_name='恶名狩猎', success=False, status=STATUS_TEAM_EXHAUSTED)
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan

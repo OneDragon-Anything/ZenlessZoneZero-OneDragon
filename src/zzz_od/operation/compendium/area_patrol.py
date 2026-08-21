@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
@@ -32,7 +33,12 @@ class AreaPatrol(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
+    def __init__(
+        self,
+        ctx: ZContext,
+        plan: ChargePlanItem,
+        switch_team_callback: Callable[[str], bool] | None = None,
+    ) -> None:
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -49,6 +55,7 @@ class AreaPatrol(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
+        self.switch_team_callback: Callable[[str], bool] | None = switch_team_callback
         self._switch_team_requested: bool = False
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
@@ -94,6 +101,7 @@ class AreaPatrol(ZOperation):
     # @node_from(from_name='处理家政券', success=False)
     # @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
     @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
+    @node_from(from_name='切换配队')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
@@ -141,6 +149,7 @@ class AreaPatrol(ZOperation):
     @node_from(from_name='判断下一次', status='战斗结果-再来一次')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
+        self._switch_team_requested = False
         if self.plan.predefined_team_idx == -1:
             auto_battle = self.plan.auto_battle_config
         else:
@@ -246,6 +255,30 @@ class AreaPatrol(ZOperation):
             return self.round_success(result.status, wait=5)
 
         return self.round_retry(result.status, wait=1)
+
+    @node_from(
+        from_name='点击挑战结果退出',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @node_from(
+        from_name='战斗失败',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @operation_node(name='切换配队')
+    def switch_team(self) -> OperationRoundResult:
+        """请求外层体力计划切换到下一支预备编队。
+
+        Returns:
+            换队请求的处理结果。
+        """
+        reason = self.previous_node.data or self.previous_node.status
+        if self.switch_team_callback is None:
+            return self.round_fail(status=charge_plan_const.STATUS_SWITCH_TEAM, data=reason)
+        if not self.switch_team_callback(reason):
+            return self.round_fail(status=charge_plan_const.STATUS_TEAM_EXHAUSTED, data=reason)
+        return self.round_success()
 
     def handle_pause(self):
         self.ctx.auto_battle_context.stop_auto_battle()
