@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: sigrid_sky_patrol_3_1
+template_name: 角色状态-希格莉德-巡空枪势
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 131, 123
+- 132, 124
