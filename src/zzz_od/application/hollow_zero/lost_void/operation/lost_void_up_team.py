@@ -221,7 +221,14 @@ class LostVoidComposeUpTeam(ZOperation):
         to_place = [a for a in self.lineup if a.agent_id not in keep]
         slots_to_fill = [i for i, c in enumerate(current) if c is None or c not in lineup_ids]
 
-        self.plan = list(zip(slots_to_fill, to_place, strict=False))
+        # 当前持有UP但不在目标配队里的槽位(如队里已有的试用UP) 只允许换成UP 不给搭档顶掉
+        # 否则UP换入失败时 kept_up 依据的那个UP会被后面的换搭档推翻 队里反而没UP
+        up_slots = [i for i in slots_to_fill if current[i] in self.up_ids]
+        other_slots = [i for i in slots_to_fill if current[i] not in self.up_ids]
+        to_place_up = [a for a in to_place if a.agent_id in self.up_ids]
+        to_place_partner = [a for a in to_place if a.agent_id not in self.up_ids]
+        self.plan = list(zip(other_slots, to_place_up + to_place_partner, strict=False))
+        self.plan += list(zip(up_slots, to_place_up[len(other_slots):], strict=False))
         self.plan_idx = 0
         if len(self.plan) == 0:
             return self.round_success(status='无需调整')
