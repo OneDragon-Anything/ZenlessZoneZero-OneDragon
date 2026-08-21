@@ -102,6 +102,17 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.priority_team_opt.value_changed.connect(self.on_priority_team_changed)
         widget.add_widget(self.priority_team_opt)
 
+        self.up_auto_compose_opt = SwitchSettingCard(
+            icon=FluentIcon.PEOPLE, title='特遣调查 - UP自动配队',
+            content='与当期UP代理人一起开启 识别UP后直接在出战画面从角色池配队(可用试用UP)')
+        widget.add_widget(self.up_auto_compose_opt)
+
+        self.matrix_up_auto_team_opt = SwitchSettingCard(
+            icon=FluentIcon.PEOPLE, title='矩阵行动 - UP自动配队',
+            content='识别当期UP后自动从代理人列表选出UP+搭档配队 与手动选择代理人互斥')
+        self.matrix_up_auto_team_opt.value_changed.connect(self.on_matrix_up_auto_team_changed)
+        widget.add_widget(self.matrix_up_auto_team_opt)
+
         self.manually_choose_agent_opt = SwitchSettingCard(icon=FluentIcon.PEOPLE, title='矩阵行动 - 手动选择代理人',
                                                            content='需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）')
         self.manually_choose_agent_opt.value_changed.connect(self.on_manually_choose_agent_changed)
@@ -221,6 +232,9 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.name_opt.setValue(self.chosen_config.module_name)
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
             self.priority_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('choose_team_by_priority'))
+            self.up_auto_compose_opt.init_with_adapter(self.chosen_config.get_prop_adapter('up_team_auto_compose'))
+            self.matrix_up_auto_team_opt.init_with_adapter(
+                self.chosen_config.get_prop_adapter('matrix_up_auto_team'))
             self.manually_choose_agent_opt.init_with_adapter(
                 self.chosen_config.get_prop_adapter('manually_choose_agent'))
             self.team_info_card.init_setting_card([], PredefinedTeamInfo(-1, '', '', self.chosen_config.team_info))
@@ -266,6 +280,9 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                                              or self.chosen_config.choose_team_by_priority
                                              or self.chosen_config.manually_choose_agent)
         self.priority_team_opt.setDisabled(not chosen or is_sample or self.chosen_config.manually_choose_agent)
+        self.up_auto_compose_opt.setDisabled(not chosen or is_sample
+                                             or not self.chosen_config.choose_team_by_priority)
+        self.matrix_up_auto_team_opt.setDisabled(not chosen or is_sample or self.chosen_config.manually_choose_agent)
         self.manually_choose_agent_opt.setDisabled(not chosen or is_sample or self.chosen_config.choose_team_by_priority)
         self.team_info_card.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
         self.auto_battle_opt.setDisabled(not chosen or is_sample)
@@ -443,6 +460,8 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.predefined_team_opt.setDisabled(
             self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
         self.manually_choose_agent_opt.setDisabled(value)
+        # 特遣调查的UP自动配队只在「当期UP代理人」开启时才会被读取 关掉时一并禁用 避免设置静默失效
+        self.up_auto_compose_opt.setDisabled(not value)
 
     def on_manually_choose_agent_changed(self, value: bool) -> None:
         self.predefined_team_opt.setDisabled(
@@ -450,6 +469,16 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.predefined_team_opt.setDisabled(value)
         self.priority_team_opt.setDisabled(value)
         self.team_info_card.setEnabled(value)
+        # 与矩阵UP自动配队互斥 运行时自动配队优先 这里直接关掉另一个 避免两个都存着但只生效一个
+        if value and self.chosen_config is not None and self.chosen_config.matrix_up_auto_team:
+            self.matrix_up_auto_team_opt.setValue(False)
+        self.matrix_up_auto_team_opt.setDisabled(value)
+
+    def on_matrix_up_auto_team_changed(self, value: bool) -> None:
+        # 与手动选择代理人互斥 见 on_manually_choose_agent_changed
+        if value and self.chosen_config is not None and self.chosen_config.manually_choose_agent:
+            self.manually_choose_agent_opt.setValue(False)
+        self.manually_choose_agent_opt.setDisabled(value)
 
     def _on_team_info_changed(self, team: PredefinedTeamInfo) -> None:
         """

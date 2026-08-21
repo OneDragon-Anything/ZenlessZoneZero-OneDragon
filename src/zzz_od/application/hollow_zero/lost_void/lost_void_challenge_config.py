@@ -126,6 +126,31 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('choose_team_by_priority', new_value)
 
     @property
+    def up_team_auto_compose(self) -> bool:
+        """
+        特遣调查-UP自动配队: 识别当期UP后直接在出战画面从角色池配队(可用试用UP)
+        需要与 choose_team_by_priority 一起开启; 配队失败会回退预备编队匹配
+        :return:
+        """
+        return self.get('up_team_auto_compose', False)
+
+    @up_team_auto_compose.setter
+    def up_team_auto_compose(self, new_value: bool) -> None:
+        self.update('up_team_auto_compose', new_value)
+
+    @property
+    def matrix_up_auto_team(self) -> bool:
+        """
+        矩阵行动-UP自动配队: 识别当期UP后自动从代理人列表选出UP+搭档配队
+        :return:
+        """
+        return self.get('matrix_up_auto_team', False)
+
+    @matrix_up_auto_team.setter
+    def matrix_up_auto_team(self, new_value: bool) -> None:
+        self.update('matrix_up_auto_team', new_value)
+
+    @property
     def manually_choose_agent(self) -> bool:
         """
         自选代理人开关
