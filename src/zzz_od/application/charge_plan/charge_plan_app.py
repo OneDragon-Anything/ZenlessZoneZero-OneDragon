@@ -34,6 +34,8 @@ class ChargePlanApp(ZApplication):
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
     STATUS_FIND_NEXT_PLAN: ClassVar[str] = '继续查找下一个计划'
+    STATUS_RETRY_CURRENT_PLAN: ClassVar[str] = '重新运行当前计划'
+    STATUS_TEAM_EXHAUSTED: ClassVar[str] = '没有后续预备编队'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -75,6 +77,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='跳过或结束计划', status=STATUS_FIND_NEXT_PLAN)
+    @node_from(from_name='切换配队', status=STATUS_RETRY_CURRENT_PLAN)
     @operation_node(name='前往大世界')
     def back_before_open_compendium(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
@@ -313,6 +316,51 @@ class ChargePlanApp(ZApplication):
         op = NotoriousHunt(self.ctx, self.current_plan, use_charge_power=True)
         return self.round_by_op_result(op.execute())
 
+    @node_from(from_name='实战模拟室', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
+    @node_from(from_name='区域巡防', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
+    @node_from(from_name='专业挑战室', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
+    @node_from(from_name='恶名狩猎', success=False, status=charge_plan_const.STATUS_SWITCH_TEAM)
+    @operation_node(name='切换配队')
+    def switch_team(self) -> OperationRoundResult:
+        if self.current_plan is None:
+            return self.round_fail('当前计划为空')
+
+        team_list = self.ctx.team_config.team_list
+        old_team_idx = self.current_plan.predefined_team_idx
+        next_team_idx = 0 if old_team_idx == -1 else old_team_idx + 1
+        reason = self.previous_node.data or self.previous_node.status
+
+        if old_team_idx == -1:
+            old_team_name = '游戏内配队'
+        elif 0 <= old_team_idx < len(team_list):
+            old_team_name = team_list[old_team_idx].name
+        else:
+            old_team_name = f'预备编队 {old_team_idx + 1}'
+
+        if next_team_idx >= len(team_list):
+            log.info('体力计划触发换队：%s；%s 后没有可用的后续预备编队', reason, old_team_name)
+            return self.round_success(ChargePlanApp.STATUS_TEAM_EXHAUSTED)
+
+        next_team_name = team_list[next_team_idx].name
+        self.current_plan.predefined_team_idx = next_team_idx
+        self.current_plan.skipped = False
+        self.last_tried_plan = None
+
+        if self.current_plan is self.temp_plan:
+            saved_plan = self.config.combat_simulation_double_reward_config
+            saved_plan.predefined_team_idx = next_team_idx
+            self.config.combat_simulation_double_reward_config = saved_plan
+        else:
+            self.config.save()
+
+        log.info(
+            '体力计划触发换队：%s；%s -> %s',
+            reason,
+            old_team_name,
+            next_team_name,
+        )
+        return self.round_success(ChargePlanApp.STATUS_RETRY_CURRENT_PLAN)
+
     @node_from(from_name='实战模拟室', success=True)
     @node_from(from_name='实战模拟室', success=False)
     @node_from(from_name='区域巡防', success=True)
@@ -345,13 +393,18 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
+    @node_from(from_name='切换配队', status=STATUS_TEAM_EXHAUSTED)
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         is_agent_plan = self.current_plan.is_agent_plan
         is_blocked_by_left_times = (
             self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
         )
-        if self.config.skip_plan or is_agent_plan or is_blocked_by_left_times:
+        is_team_exhausted = self.previous_node.status == ChargePlanApp.STATUS_TEAM_EXHAUSTED
+        should_skip = self.config.skip_plan or (
+            not is_team_exhausted and (is_agent_plan or is_blocked_by_left_times)
+        )
+        if should_skip:
             # 标记当前计划为跳过，继续尝试下一个
             self.current_plan.skipped = True
             self.last_tried_plan = self.current_plan
