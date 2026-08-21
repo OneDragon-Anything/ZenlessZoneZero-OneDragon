@@ -12,7 +12,7 @@ from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
-    OperationRoundResult,
+    OperationRoundResult, OperationRoundResultEnum,
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -311,10 +311,14 @@ class CommissionAssistantApp(ZApplication):
     def check_knock_knock(self) -> OperationRoundResult:
         """
         判断是否在短信中
+        返回值:
+        wait 表示检测成功, 上游执行 wait 操作
+        retry 表示检测失败, 上游会继续检测别的场景
+        本函数不返回 success 和 fail
         """
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信')
         if not result.is_success:
-            return result
+            return self.round_retry()
 
         area = self.ctx.screen_loader.get_area('委托助手', '区域-短信-文本框')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(image=self.last_screenshot, rect=area.rect)
@@ -326,15 +330,19 @@ class CommissionAssistantApp(ZApplication):
                 bottom_text = mr.data
 
         if bottom_text is None:
-            return self.round_fail()
+            return self.round_retry()
 
         if '以上为最新' in bottom_text:
-            return self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-短信-关闭')
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-短信-关闭')
+            if result.is_success:
+                return self.round_wait(result.status, wait=1)
+            else:
+                return self.round_retry()
         elif str_utils.find_by_lcs('密友同行', bottom_text, 0.75):
-            return self.round_success('忽略密友同行界面', wait=1)
+            return self.round_wait('忽略密友同行界面', wait=1)
 
         self.ctx.controller.click(bottom_mr.center)
-        return self.round_success(bottom_text)
+        return self.round_wait(bottom_text, wait=0.3)
 
     @node_from(from_name='委托助手', status='自动战斗模式')
     @operation_node(name='自动战斗模式')
@@ -483,8 +491,8 @@ class CommissionAssistantApp(ZApplication):
             return self.round_wait(result.status, wait=1)
         # 判断短信
         result = self.check_knock_knock()
-        if result.is_success:
-            return self.round_wait(result.status, wait=0.3)
+        if result.result == OperationRoundResultEnum.WAIT:
+            return result
         # 判断钓鱼
         result = self.check_fishing()
         if result is not None:
