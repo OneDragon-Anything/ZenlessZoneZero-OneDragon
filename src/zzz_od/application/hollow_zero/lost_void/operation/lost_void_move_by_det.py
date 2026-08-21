@@ -63,26 +63,34 @@ def is_same_box_constellation(
     if len(old_box_list) == 0 or len(old_box_list) != len(new_box_list):
         return False
 
-    used_idx_set: set[int] = set()
+    # 每个新目标可配对的旧目标下标
+    candidate_list: list[list[int]] = []
     for new_x, new_y, new_w in new_box_list:
-        matched_idx: int | None = None
-        matched_dis: float | None = None
+        candidates: list[int] = []
         for idx, (old_x, old_y, old_w) in enumerate(old_box_list):
-            if idx in used_idx_set:
-                continue
-            dis = math.dist((old_x, old_y), (new_x, new_y))
-            if dis >= max_dis:
+            if math.dist((old_x, old_y), (new_x, new_y)) >= max_dis:
                 continue
             if old_w <= 0 or not (min_width_ratio <= new_w / old_w <= max_width_ratio):
                 continue
-            if matched_dis is None or dis < matched_dis:
-                matched_idx = idx
-                matched_dis = dis
-        if matched_idx is None:
+            candidates.append(idx)
+        if len(candidates) == 0:
             return False
-        used_idx_set.add(matched_idx)
+        candidate_list.append(candidates)
 
-    return True
+    # 增广路径求完全二分匹配 避免贪心按遍历顺序漏配
+    old_matched_new: dict[int, int] = {}  # 旧目标下标 -> 已配对的新目标下标
+
+    def try_assign(new_idx: int, visited_old: set[int]) -> bool:
+        for old_idx in candidate_list[new_idx]:
+            if old_idx in visited_old:
+                continue
+            visited_old.add(old_idx)
+            if old_idx not in old_matched_new or try_assign(old_matched_new[old_idx], visited_old):
+                old_matched_new[old_idx] = new_idx
+                return True
+        return False
+
+    return all(try_assign(new_idx, set()) for new_idx in range(len(new_box_list)))
 
 
 class MoveTargetWrapper:
@@ -362,6 +370,8 @@ class LostVoidMoveByDet(ZOperation):
                 self.target_lost_start_time = current_time
             if current_time - self.target_lost_start_time < 1:
                 self.ctx.controller.stop_moving_forward()
+                # 已停止前进 清除前进帧时间 避免停顿期被计入累计前进时长
+                self.last_move_frame_time = 0
                 return self.round_wait('短暂丢失目标', wait_round_time=0.1)
 
             if self.target_type == LostVoidDetector.CLASS_ENTRY:
