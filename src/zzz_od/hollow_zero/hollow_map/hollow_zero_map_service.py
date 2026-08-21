@@ -1,5 +1,4 @@
 import time
-from typing import List, Optional
 
 from cv2.typing import MatLike
 
@@ -17,8 +16,8 @@ class HollowZeroMapService:
         self.ctx: ZContext = ctx
 
         self.data_service: HallowZeroDataService = data_service
-        self.event_model: Optional[HollowEventDetector] = None
-        self.map_list: List[HollowZeroMap] = []
+        self.event_model: HollowEventDetector | None = None
+        self.map_list: list[HollowZeroMap] = []
 
     def init_event_yolo(self) -> None:
         use_gpu = self.ctx.model_config.hollow_zero_event_gpu
@@ -29,11 +28,11 @@ class HollowZeroMapService:
                 gh_proxy=self.ctx.env_config.is_gh_proxy,
                 gh_proxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
-                gpu=use_gpu
+                gpu=use_gpu,
+                debug_trace_bus=self.ctx.debug_trace_bus,
             )
-            self.event_model.overlay_debug_bus = self.ctx.overlay_debug_bus
 
-    def cal_current_map_by_screen(self, screen: MatLike, screenshot_time: float) -> Optional[HollowZeroMap]:
+    def cal_current_map_by_screen(self, screen: MatLike, screenshot_time: float) -> HollowZeroMap | None:
         """
         根据当前的游戏画面 计算对应的空洞地图
         :param screen: 游戏画面
@@ -50,7 +49,7 @@ class HollowZeroMapService:
 
         return hollow_map_utils.construct_map_from_yolo_result(self.ctx, result, self.data_service.name_2_entry)
 
-    def cal_map_by_screen(self, screen: MatLike, screenshot_time: float) -> Optional[HollowZeroMap]:
+    def cal_map_by_screen(self, screen: MatLike, screenshot_time: float) -> HollowZeroMap | None:
         """
         根据游戏画面 计算空洞地图
         会与过去一段时间识别到的地图进行合并
