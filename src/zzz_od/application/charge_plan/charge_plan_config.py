@@ -345,6 +345,15 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('combat_simulation_double_reward_config', new_value.to_dict())
 
     @property
+    def area_patrol_double_reward_config(self) -> ChargePlanItem:
+        data = self.get('area_patrol_double_reward_config', {})
+        return ChargePlanItem.from_dict(data)
+
+    @area_patrol_double_reward_config.setter
+    def area_patrol_double_reward_config(self, new_value: ChargePlanItem) -> None:
+        self.update('area_patrol_double_reward_config', new_value.to_dict())
+
+    @property
     def restore_charge(self) -> str:
         return self.get('restore_charge', RestoreChargeEnum.NONE.value.value)
 
