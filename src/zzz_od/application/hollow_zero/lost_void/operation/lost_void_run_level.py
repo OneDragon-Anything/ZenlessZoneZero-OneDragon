@@ -143,6 +143,7 @@ class LostVoidRunLevel(ZOperation):
         self.entry_gear_name_list: list[str] = []  # 入口层已完成选择画面的首个武备名 用于识别重复交互同一个NPC
         self.entry_gear_repeat_times: int = 0  # 入口层重复进入已完成武备选择画面的次数
         self.entry_gear_interact_done: bool = False  # 刚完成了一次入口层武备选择交互 交互后需要调整站位
+        self.entry_door_block_times: int = 0  # 入口层放弃感叹号后 交互文本不是入口时前进重试的次数
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -554,6 +555,35 @@ class LostVoidRunLevel(ZOperation):
                         self.interact_target = current_interact_target
                         self.move_after_interact()
                         return self.round_fail('重复交互对象')
+
+                # 入口层已放弃感叹号后 按键前先看交互文本(游戏交互判定是角度>距离 容易命中错误目标):
+                # - 文本是入口 → 按键进门
+                # - 文本是没交互过的NPC → 按键(正是此前一直没命中的感叹号NPC 补上这次交互)
+                # - 文本是已交互过的NPC(按下会重复打开武备画面) 或识别不出(门口常读到杂讯) → 不按
+                #   蛇形走位(前进+左右交替横移 摆脱栅栏等场景卡位)后重新识别; 达到上限后直接按键 由判重退出兜底
+                if (self.region_type == LostVoidRegionType.ENTRY
+                        and LostVoidDetector.CLASS_INTERACT[5:] in self.had_been_list):
+                    confirmed_entry = current_interact_target is not None and current_interact_target.is_entry
+                    fresh_target = (current_interact_target is not None
+                                    and not current_interact_target.is_entry
+                                    and self.get_interact_target_key(current_interact_target) not in self.interacted_target_key_list)
+                    if not confirmed_entry and not fresh_target:
+                        if self.entry_door_block_times < 8:
+                            self.entry_door_block_times += 1
+                            target_name = current_interact_target.name if current_interact_target is not None else '未识别'
+                            log.info(f'入口层交互文本 [{target_name}] 不是入口或未交互目标 '
+                                     f'走位后重试 第{self.entry_door_block_times}次')
+                            self.ctx.controller.move_w(press=True, press_time=0.4, release=True)
+                            time.sleep(0.1)
+                            if self.entry_door_block_times % 2 == 1:
+                                self.ctx.controller.move_a(press=True, press_time=0.3, release=True)
+                            else:
+                                self.ctx.controller.move_d(press=True, press_time=0.3, release=True)
+                            time.sleep(0.2)  # 消除惯性
+                            return self.round_wait('走位接近下层入口', wait=0.2)
+                        log.info('入口层交互文本一直未确认到可交互目标 走位重试已达上限 直接交互')
+
+                if current_interact_target is not None:
                     self.interact_target = current_interact_target
                     self.locked_interact_target = current_interact_target
 
@@ -641,6 +671,7 @@ class LostVoidRunLevel(ZOperation):
                     self.entry_gear_interact_done = True
                     if op_result.status == LostVoidChooseGear.STATUS_REPEATED:
                         self.entry_gear_repeat_times += 1
+                        self.entry_door_block_times = 0  # 每次重复退出后重新给尝试交互的前进重试次数
                         interact_class_name = LostVoidDetector.CLASS_INTERACT[5:]
                         if self.entry_gear_repeat_times >= 2 and interact_class_name not in self.had_been_list:
                             # 重复交互多次说明一直命中同一个NPC 放弃剩余感叹号 直接前往下层入口
@@ -931,6 +962,15 @@ class LostVoidRunLevel(ZOperation):
         因此先贴近刚交互的NPC 再朝剩余感叹号的方向横移一步 让下一次交互命中目标NPC
         没有剩余感叹号时 正常后退 方便识别下层入口
         """
+        if LostVoidDetector.CLASS_INTERACT[5:] in self.had_been_list:
+            # 已放弃感叹号 剩余目标只有下层入口 不需要贴近NPC调整站位
+            # 也不能后退 否则会退回刚才被NPC抢交互的位置 保持前进让下一轮从更近处接近入口
+            # 每次仍被抢都说明NPC还在角色与门之间 步长随重复次数加大 加快脱离NPC的交互范围
+            press_time = min(0.4 + 0.2 * self.entry_gear_repeat_times, 1.5)
+            log.info(f'入口层已放弃感叹号 保持朝下层入口前进 {press_time:.1f}秒')
+            self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
+            return
+
         frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
             self.last_screenshot, screenshot_time=self.last_screenshot_time,
             ignore_list=self.had_been_list)
@@ -939,10 +979,12 @@ class LostVoidRunLevel(ZOperation):
             self.ctx.controller.move_s(press=True, press_time=2, release=True)
             return
 
-        log.info('入口层武备选择后 朝剩余感叹号调整站位')
+        target_x = interact_result.center[0]
+        to_left = target_x < self.ctx.controller.standard_width // 2
+        log.info(f'入口层武备选择后 朝剩余感叹号调整站位 目标x={target_x:.0f} 侧移={"左" if to_left else "右"}')
         self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
         time.sleep(0.2)  # 消除惯性
-        if interact_result.center[0] < self.ctx.controller.standard_width // 2:
+        if to_left:
             self.ctx.controller.move_a(press=True, press_time=0.1, release=True)
         else:
             self.ctx.controller.move_d(press=True, press_time=0.1, release=True)
@@ -1116,6 +1158,18 @@ class LostVoidRunLevel(ZOperation):
     @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='处理寻路失败或阵亡')
     def handle_find_target_fail(self) -> OperationRoundResult:
+        interact_class_name = LostVoidDetector.CLASS_INTERACT[5:]
+        if (self.region_type == LostVoidRegionType.ENTRY
+                and len(self.entry_gear_name_list) > 0
+                and interact_class_name not in self.had_been_list):
+            # 入口层完成过武备选择后的超时 大多是剩余感叹号被桌子/栅栏遮挡走不到
+            # 先放弃感叹号直接找下层入口 不消耗重开次数; 门也走不到会再次超时 走下面的重开
+            # 一个武备都没选到的超时保持重开(重摇布局比绕路更划算)
+            self.had_been_list.append(interact_class_name)
+            self.attempt_start_time = time.time()
+            log.info('入口层超时且完成过武备选择 本层放弃感叹号 直接前往下层入口')
+            return self.round_success(status='准备重试')
+
         if self.restart_count < 3:
             self.restart_count += 1
             log.info(f'寻路失败或阵亡，开始第 {self.restart_count} 次重试')
@@ -1130,6 +1184,7 @@ class LostVoidRunLevel(ZOperation):
                 self.entry_gear_name_list.clear()
                 self.entry_gear_repeat_times = 0
                 self.entry_gear_interact_done = False
+                self.entry_door_block_times = 0
                 self.ao_fei_li_ya_talked = False
                 # 重试时 按进入下一层的逻辑处理
                 return self.round_success(status='准备重试')
