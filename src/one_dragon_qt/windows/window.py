@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from qfluentwidgets import (
+    FluentIcon,
     FluentStyleSheet,
     InfoBar,
     InfoBarPosition,
@@ -95,6 +96,9 @@ class PhosTitleBar(SplitTitleBar):
     注意: 若 SplitTitleBar/TitleBar 新增属性，需在此处手动同步。
     """
 
+    download_queue_requested = Signal()
+    developer_mode_requested = Signal()
+
     def __init__(self, parent=None):
         # 跳过 SplitTitleBar.__init__，直接调用 TitleBar.__init__
         super(SplitTitleBar, self).__init__(parent)
@@ -143,6 +147,18 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
+        self.downloadQueueButton = QPushButton("下载")
+        self.downloadQueueButton.setObjectName("downloadQueueButton")
+        self.downloadQueueButton.setIcon(FluentIcon.DOWNLOAD.icon())
+        self.downloadQueueButton.setIconSize(QSize(12, 12))
+        self.downloadQueueButton.setToolTip("下载队列")
+        self.downloadQueueButton.clicked.connect(self.download_queue_requested.emit)
+        btn_layout.addWidget(
+            self.downloadQueueButton,
+            0,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+        )
+
         self.questionButton = QPushButton("ⓘ 问题反馈")
         self.questionButton.setObjectName("questionButton")
         self.questionButton.clicked.connect(self.open_github)
@@ -163,12 +179,16 @@ class PhosTitleBar(SplitTitleBar):
             self.titleLabel,
             self.launcherVersionButton,
             self.codeVersionButton,
+            self.downloadQueueButton,
             self.questionButton,
             self.minBtn,
             self.maxBtn,
             self.closeBtn,
         ]
         self._is_home_mode: bool = False
+        self._code_version_click_times: list[float] = []
+
+        self.codeVersionButton.clicked.connect(self._record_code_version_click)
 
         self.setProperty("homeMode", "false")
 
@@ -199,6 +219,31 @@ class PhosTitleBar(SplitTitleBar):
         self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
         if version:
             self.codeVersionButton.setVisible(True)
+
+    def set_download_queue_counts(self, active: int, failed: int) -> None:
+        """更新标题栏下载队列数量。"""
+        if active > 0:
+            self.downloadQueueButton.setText(f"下载 {active}")
+        elif failed > 0:
+            self.downloadQueueButton.setText(f"下载 {failed}")
+        else:
+            self.downloadQueueButton.setText("下载")
+        self.downloadQueueButton.setProperty("hasError", failed > 0)
+        self.downloadQueueButton.setStyleSheet('color: #d13438;' if failed > 0 else '')
+
+    def _record_code_version_click(self) -> None:
+        """连续点击代码版本七次时请求开启开发者模式。"""
+        import time
+
+        now = time.monotonic()
+        self._code_version_click_times = [
+            click_time for click_time in self._code_version_click_times
+            if now - click_time <= 5
+        ]
+        self._code_version_click_times.append(now)
+        if len(self._code_version_click_times) >= 7:
+            self._code_version_click_times.clear()
+            self.developer_mode_requested.emit()
 
     def setInstallerVersion(self, version: str) -> None:
         """
