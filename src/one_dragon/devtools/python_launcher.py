@@ -276,7 +276,7 @@ def execute_python_script(
         full_command = " ".join(powershell_command)
         # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
         subprocess.Popen(
-            ["powershell", "-Command", full_command],
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", full_command],
             creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0
         )
         print_message("等待主界面弹出...", "INFO")
