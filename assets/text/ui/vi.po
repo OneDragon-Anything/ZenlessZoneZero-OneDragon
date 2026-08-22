@@ -8,31 +8,31 @@ msgid "ZenlessZoneZero-OneDragon"
 msgstr "Zenless Zone Zero OneDragon"
 
 msgid "ZenlessZoneZero-OneDragon-installer"
-msgstr "Zenless Zone Zero OneDragon Installer"
+msgstr "Trình cài đặt Zenless Zone Zero OneDragon"
 
 msgid "设置"
-msgstr "Settings"
+msgstr "Cài đặt"
 
 msgid "语言"
-msgstr "Language"
+msgstr "Ngôn ngữ"
 
 msgid "语言切换"
-msgstr "Language Switch"
+msgstr "Đổi ngôn ngữ"
 
 msgid "语言切换成功，需要重启应用程序以生效"
-msgstr "Language changed successfully. Please restart the application for changes to take effect."
+msgstr "Đã đổi ngôn ngữ thành công. Vui lòng khởi động lại ứng dụng."
 
 msgid "界面语言"
-msgstr "UI Language"
+msgstr "Ngôn ngữ giao diện"
 
 msgid "外观"
-msgstr "Appearance"
+msgstr "Giao diện"
 
 msgid "当前账户设置"
 msgstr "Current Account Settings"
 
 msgid "游戏基础"
-msgstr "Game Basic"
+msgstr "Cài đặt game cơ bản"
 
 msgid "游戏按键"
 msgstr "Game Keys"
@@ -59,13 +59,13 @@ msgid "请按键"
 msgstr "Press Key"
 
 msgid "启动一条龙"
-msgstr "Launch OneDragon"
+msgstr "Khởi chạy OneDragon"
 
 msgid "开始运行"
-msgstr "Start Running"
+msgstr "Bắt đầu chạy"
 
 msgid "停止运行"
-msgstr "Stop Running"
+msgstr "Dừng chạy"
 
 msgid "运行设置"
 msgstr "Run Settings"
@@ -77,7 +77,7 @@ msgid "结束后"
 msgstr "After Completion"
 
 msgid "无"
-msgstr "None"
+msgstr "Không"
 
 msgid "关闭游戏"
 msgstr "Close Game"
@@ -92,28 +92,28 @@ msgid "仅运行当前"
 msgstr "Current Only"
 
 msgid "游戏截图"
-msgstr "Game Screenshot"
+msgstr "Ảnh chụp game"
 
 msgid "确认"
-msgstr "Confirm"
+msgstr "Xác nhận"
 
 msgid "取消"
-msgstr "Cancel"
+msgstr "Hủy"
 
 msgid "浏览"
 msgstr "Browse"
 
 msgid "选择"
-msgstr "Select"
+msgstr "Chọn"
 
 msgid "重置"
-msgstr "Reset"
+msgstr "Đặt lại"
 
 msgid "删除"
-msgstr "Delete"
+msgstr "Xóa"
 
 msgid "保存"
-msgstr "Save"
+msgstr "Lưu"
 
 msgid "确定"
 msgstr "OK"
@@ -128,25 +128,25 @@ msgid "游戏路径"
 msgstr "Game Path"
 
 msgid "游戏区服"
-msgstr "Game Server"
+msgstr "Máy chủ game"
 
 msgid "账号"
-msgstr "Account"
+msgstr "Tài khoản"
 
 msgid "密码"
-msgstr "Password"
+msgstr "Mật khẩu"
 
 msgid "输入方式"
-msgstr "Input Method"
+msgstr "Phương thức nhập"
 
 msgid "切换HDR状态"
 msgstr "Toggle HDR Status"
 
 msgid "启用HDR"
-msgstr "Enable HDR"
+msgstr "Bật HDR"
 
 msgid "禁用HDR"
-msgstr "Disable HDR"
+msgstr "Tắt HDR"
 
 msgid "窗口尺寸"
 msgstr "Window Size"
@@ -215,31 +215,31 @@ msgid "单次按键持续时间(秒)"
 msgstr "Single Key Duration (seconds)"
 
 msgid "界面主题"
-msgstr "UI Theme"
+msgstr "Chủ đề giao diện"
 
 msgid "主页公告"
 msgstr "Homepage Announcement"
 
 msgid "版本海报"
-msgstr "Version Poster"
+msgstr "Poster phiên bản"
 
 msgid "静态背景"
-msgstr "Static Background"
+msgstr "Nền tĩnh"
 
 msgid "动态背景"
-msgstr "Dynamic Background"
+msgstr "Nền động"
 
 msgid "自定义主页背景"
-msgstr "Custom Homepage Background"
+msgstr "Nền trang chủ tùy chỉnh"
 
 msgid "仪表盘"
-msgstr "Dashboard"
+msgstr "Bảng điều khiển"
 
 msgid "一条龙"
 msgstr "OneDragon"
 
 msgid "游戏设置"
-msgstr "Game Settings"
+msgstr "Cài đặt game"
 
 msgid "其他设置"
 msgstr "Other Settings"
@@ -248,10 +248,10 @@ msgid "式舆防卫战"
 msgstr "Shiyu Defense"
 
 msgid "预备编队"
-msgstr "Predefined Teams"
+msgstr "Đội hình định sẵn"
 
 msgid "恶名狩猎计划"
-msgstr "Notorious Hunt Plan"
+msgstr "Notorious Hunt"
 
 msgid "杂项任务"
 msgstr "Miscellaneous Tasks"
@@ -263,7 +263,7 @@ msgid "源配置"
 msgstr "Source Configuration"
 
 msgid "吃拉面"
-msgstr "Eat Ramen"
+msgstr "Ăn mì ramen"
 
 msgid "模拟按键"
 msgstr "Simulate Key"
@@ -284,13 +284,13 @@ msgid "开始街机游戏"
 msgstr "Start Arcade Game"
 
 msgid "进入游戏"
-msgstr "Enter Game"
+msgstr "Vào game"
 
 msgid "切换账号"
-msgstr "Switch Account"
+msgstr "Đổi tài khoản"
 
 msgid "打开游戏"
-msgstr "Open Game"
+msgstr "Mở game"
 
 msgid "打开并登录游戏"
 msgstr "Open and Login Game"
@@ -365,7 +365,7 @@ msgid "剧变节点 重置运行记录"
 msgstr "Critical Node Reset Run Records"
 
 msgid "资源下载"
-msgstr "Resource Download"
+msgstr "Tải tài nguyên"
 
 msgid "下载说明"
 msgstr "Download Instructions"
@@ -419,7 +419,7 @@ msgid "测试通知"
 msgstr "Test Notification"
 
 msgid "通知方式"
-msgstr "Notification Method"
+msgstr "Phương thức thông báo"
 
 msgid "邮箱服务选择"
 msgstr "Email Service Selection"
@@ -458,7 +458,7 @@ msgid "第二优先级刷新次数"
 msgstr "Second Priority Refresh Count"
 
 msgid "当前"
-msgstr "Current"
+msgstr "Hiện tại"
 
 msgid "选择你的 ZenlessZoneZero.exe"
 msgstr "Select your ZenlessZoneZero.exe"
@@ -509,34 +509,34 @@ msgid "未选择模型"
 msgstr "No model selected"
 
 msgid "检查中"
-msgstr "Checking"
+msgstr "Đang kiểm tra"
 
 msgid "已下载"
-msgstr "Downloaded"
+msgstr "Đã tải"
 
 msgid "下载中"
-msgstr "Downloading"
+msgstr "Đang tải"
 
 msgid "未选择"
-msgstr "None Selected"
+msgstr "Not Selected"
 
 msgid "请选择一条配置进行下载。"
 msgstr "Please select a configuration to download."
 
 msgid "错误"
-msgstr "Error"
+msgstr "Lỗi"
 
 msgid "下载链接无法构建，战斗 ID 为 None"
 msgstr "Download link cannot be constructed, battle ID is None"
 
 msgid "成功"
-msgstr "Success"
+msgstr "Thành công"
 
 msgid "文件已下载并保存到"
 msgstr "File has been downloaded and saved to"
 
 msgid "下载失败"
-msgstr "Download Failed"
+msgstr "Tải thất bại"
 
 msgid "下载过程中出错"
 msgstr "Error occurred during download"
@@ -560,7 +560,7 @@ msgid "使用此功能需要密码哦~"
 msgstr "Password required to use this feature~"
 
 msgid "快速开始"
-msgstr "Quick Start"
+msgstr "Bắt đầu nhanh"
 
 msgid "自助排障"
 msgstr "Self-service Troubleshooting"
@@ -578,13 +578,13 @@ msgid "启用"
 msgstr "Activate"
 
 msgid "登录"
-msgstr "Login"
+msgstr "Đăng nhập"
 
 msgid "账户列表"
 msgstr "Account List"
 
 msgid "新增"
-msgstr "Add New"
+msgstr "Thêm mới"
 
 msgid "上次运行"
 msgstr "Last Run"
@@ -635,37 +635,37 @@ msgid "语言已切换成功"
 msgstr "Language switched successfully"
 
 msgid "提示"
-msgstr "Notice"
+msgstr "Thông báo"
 
 msgid "立即重启"
-msgstr "Restart Now"
+msgstr "Khởi động lại ngay"
 
 msgid "稍后重启"
-msgstr "Restart Later"
+msgstr "Khởi động lại sau"
 
 msgid "会把推送最终结果通知到这个地址上"
-msgstr "The final notification result will be sent to this address"
+msgstr "Will notify the final push result to this address"
 
 msgid "好友令牌或用户ID"
 msgstr "Friend Token or User ID"
 
 msgid "微信公众号：好友令牌；企业微信：用户ID"
-msgstr "WeChat Official Account: friend token; WeCom: user ID"
+msgstr "WeChat Official Account: Friend Token; Enterprise WeChat: User ID"
 
 msgid "用户令牌"
 msgstr "User Token"
 
 msgid "请输入用户令牌"
-msgstr "Enter the user token"
+msgstr "Please enter user token"
 
 msgid "消息接收者"
-msgstr "Message Recipient"
+msgstr "Message Receiver"
 
 msgid "请输入消息接收者"
-msgstr "Enter the message recipient"
+msgstr "Please enter message receiver"
 
 msgid "调用版本"
-msgstr "Call Version"
+msgstr "API Version"
 
 msgid "可选"
 msgstr "Optional"
@@ -677,7 +677,7 @@ msgid "请输入 Qmsg 酱的 QMSG_TYPE"
 msgstr "Please enter Qmsg's QMSG_TYPE"
 
 msgid "企业微信代理地址"
-msgstr "WeCom Proxy Address"
+msgstr "Enterprise WeChat Proxy Address"
 
 msgid "所有信息都明文保存在本地"
 msgstr "All information is saved locally in plain text"
@@ -695,25 +695,25 @@ msgid "设置后重启脚本生效"
 msgstr "Restart script for changes to take effect"
 
 msgid "设置说明"
-msgstr "Settings Guide"
+msgstr "Hướng dẫn cài đặt"
 
 msgid "游戏路径、输入方式等基础设置，建议首次使用前检查一遍"
 msgstr "Review these basic settings, including the game path and input method, before first use"
 
 msgid "启用 HDR"
-msgstr "Enable HDR"
+msgstr "Bật HDR"
 
 msgid "禁用 HDR"
-msgstr "Disable HDR"
+msgstr "Tắt HDR"
 
 msgid "后台模式（测试版）"
-msgstr "Background Mode (Beta)"
+msgstr "Chế độ nền (Beta)"
 
 msgid "需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。"
 msgstr "Requires a virtual gamepad driver and PrintWindow capture. The mouse may be briefly taken over for clicks, so the game window does not need to stay in front. Do not play a gamepad-enabled game in the foreground."
 
 msgid "后台手柄类型"
-msgstr "Background Gamepad Type"
+msgstr "Loại tay cầm nền"
 
 msgid "闪切时长（秒）"
 msgstr "Foreground Switch Duration (seconds)"
@@ -722,43 +722,43 @@ msgid "后台模式切换键鼠输入时的前台停留时长，过小可能切�
 msgstr "How long the window stays in front when background mode switches to mouse and keyboard input; a value that is too small may fail"
 
 msgid "操控方式"
-msgstr "Control Method"
+msgstr "Phương thức điều khiển"
 
 msgid "仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。"
 msgstr "Only affects auto battle. Install the virtual gamepad dependency before using a gamepad."
 
 msgid "键盘按键"
-msgstr "Keyboard Keys"
+msgstr "Phím bàn phím"
 
 msgid "自行调整，过小可能按键被吞，过大可能影响操作"
 msgstr "Adjust as needed; a value that is too small may drop inputs, while a value that is too large may affect control"
 
 msgid "截图方法"
-msgstr "Screenshot Method"
+msgstr "Phương thức chụp màn hình"
 
 msgid "代码源"
-msgstr "Code Source"
+msgstr "Nguồn mã"
 
 msgid "自动更新"
-msgstr "Automatic Updates"
+msgstr "Tự động cập nhật"
 
 msgid "强制更新"
-msgstr "Force Update"
+msgstr "Buộc cập nhật"
 
 msgid "网络相关"
-msgstr "Network"
+msgstr "Mạng"
 
 msgid "网络代理"
-msgstr "Network Proxy"
+msgstr "Proxy mạng"
 
 msgid "自定义设置"
-msgstr "Custom Settings"
+msgstr "Cài đặt tùy chỉnh"
 
 msgid "主页背景类型"
-msgstr "Homepage Background Type"
+msgstr "Loại nền trang chủ"
 
 msgid "自定义主题色"
-msgstr "Custom Theme Color"
+msgstr "Màu chủ đề tùy chỉnh"
 
 msgid "开启后可自定义主题色"
 msgstr "Enable this to customize the theme color"
@@ -767,10 +767,10 @@ msgid "选择主页显示的背景"
 msgstr "Choose the background shown on the homepage"
 
 msgid "脚本环境"
-msgstr "Script Environment"
+msgstr "Môi trường script"
 
 msgid "通知设置"
-msgstr "Notification Settings"
+msgstr "Cài đặt thông báo"
 
 msgid "Overlay"
 msgstr "Overlay"
@@ -809,40 +809,40 @@ msgid "深色"
 msgstr "Dark"
 
 msgid "语言、主题和背景调整后，部分效果可能需要重启后生效"
-msgstr "Some changes to language, theme, and background may require a restart"
+msgstr "Một số thay đổi về ngôn ngữ, chủ đề và nền có thể cần khởi động lại"
 
 msgid "Overlay 属于测试功能，显示异常或影响截图时请先查看说明"
-msgstr "Overlay is experimental; read the guide first if it displays incorrectly or affects screenshots"
+msgstr "Overlay là tính năng thử nghiệm; hãy xem hướng dẫn nếu hiển thị lỗi hoặc ảnh hưởng ảnh chụp"
 
 msgid "启用 Overlay"
-msgstr "Enable Overlay"
+msgstr "Bật Overlay"
 
 msgid "默认显示"
-msgstr "Show by Default"
+msgstr "Hiển thị mặc định"
 
 msgid "防截图保护"
-msgstr "Screenshot Protection"
+msgstr "Bảo vệ ảnh chụp màn hình"
 
 msgid "启用视觉层"
-msgstr "Enable Visual Layer"
+msgstr "Bật lớp hiển thị"
 
 msgid "游戏助手"
-msgstr "Game Assistant"
+msgstr "Trợ lý game"
 
 msgid "应用运行"
-msgstr "App Runner"
+msgstr "Chạy ứng dụng"
 
 msgid "点赞"
-msgstr "Like"
+msgstr "Thích"
 
 msgid "开发工具"
-msgstr "Developer Tools"
+msgstr "Công cụ phát triển"
 
 msgid "代码同步"
-msgstr "Code Sync"
+msgstr "Đồng bộ mã nguồn"
 
 msgid "账户管理"
-msgstr "Account Management"
+msgstr "Quản lý tài khoản"
 
 msgid "{count} 项待配置 "
 msgstr "{count} item(s) need configuration"
@@ -2270,7 +2270,7 @@ msgid "免费代理地址"
 msgstr "Free Proxy Address"
 
 msgid "兑换码"
-msgstr "Redemption Codes"
+msgstr "Redemption Code"
 
 msgid "兑换码已存在"
 msgstr "Redemption code already exists"
@@ -3287,7 +3287,7 @@ msgid "请输入密码"
 msgstr "Enter password"
 
 msgid "国服"
-msgstr "China Server"
+msgstr "Mainland Server"
 
 msgid "B服"
 msgstr "Bilibili Server"
@@ -3374,7 +3374,7 @@ msgid "登录密码"
 msgstr "Login Password"
 
 msgid "收发件人名称"
-msgstr "Sender/Recipient Name"
+msgstr "Sender Name"
 
 msgid "SMTP 登录密码，也可能为特殊口令"
 msgstr "SMTP login password, or possibly an app-specific password"

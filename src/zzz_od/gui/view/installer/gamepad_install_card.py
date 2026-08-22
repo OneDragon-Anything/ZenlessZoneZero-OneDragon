@@ -1,13 +1,9 @@
-import os
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
 from typing import Tuple, Optional, Callable
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
-from one_dragon.utils import cmd_utils, os_utils
-from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 
 
 class GamepadInstallCard(BaseInstallCard):
@@ -32,7 +28,7 @@ class GamepadInstallCard(BaseInstallCard):
         if success:
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), msg)
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -41,13 +37,13 @@ class GamepadInstallCard(BaseInstallCard):
         """
         if not self.ctx.env_config.uv_path:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = gt('未配置 UV')
+            msg = '未配置 UV'
         elif not self.ctx.python_service.uv_check_sync_status(groups=['gamepad']):
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = gt('需更新')
+            msg = '需更新'
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-            msg = f"{gt('已安装')}"
+            msg = '已安装'
 
         return icon, msg
 
@@ -58,6 +54,6 @@ class GamepadInstallCard(BaseInstallCard):
         """
         progress_callback(-1, '正在安装...安装过程可能需要安装驱动 正常安装即可')
         if not self.ctx.env_config.uv_path:
-            return False, '未配置UV'
+            return False, '未配置 UV'
         success, msg = self.ctx.python_service.uv_sync(progress_callback, groups=['gamepad'])
         return success, msg

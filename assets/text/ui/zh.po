@@ -1,20 +1,15 @@
 msgid ""
-msgstr ""
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+msgstr "Content-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
 
-# ZZZ-OD
 msgid "ZenlessZoneZero"
 msgstr "绝区零"
 
-# ZZZ-OD UI
 msgid "ZenlessZoneZero-OneDragon"
 msgstr "绝区零 一条龙"
 
 msgid "ZenlessZoneZero-OneDragon-installer"
 msgstr "绝区零 一条龙 安装器"
 
-# 基础界面
 msgid "设置"
 msgstr "设置"
 
@@ -54,20 +49,6 @@ msgstr "启动参数"
 msgid "代理人皮肤"
 msgstr "代理人皮肤"
 
-# 语言切换相关
-msgid "语言已切换成功"
-msgstr "语言已切换成功"
-
-msgid "提示"
-msgstr "提示"
-
-msgid "立即重启"
-msgstr "立即重启"
-
-msgid "稍后重启"
-msgstr "稍后重启"
-
-# 按钮和操作
 msgid "开"
 msgstr "开"
 
@@ -143,7 +124,6 @@ msgstr "运行记录"
 msgid "挑战配置"
 msgstr "挑战配置"
 
-# 游戏相关
 msgid "游戏路径"
 msgstr "游戏路径"
 
@@ -183,7 +163,6 @@ msgstr "显示器序号"
 msgid "高级参数"
 msgstr "高级参数"
 
-# 按键设置
 msgid "普通攻击"
 msgstr "普通攻击"
 
@@ -229,20 +208,17 @@ msgstr "移动-右"
 msgid "锁定敌人"
 msgstr "锁定敌人"
 
-# 手柄设置
 msgid "手柄类型"
 msgstr "手柄类型"
 
 msgid "单次按键持续时间(秒)"
 msgstr "单次按键持续时间(秒)"
 
-# 界面主题
 msgid "界面主题"
 msgstr "界面主题"
 
 msgid "主页公告"
 msgstr "主页公告"
-
 
 msgid "版本海报"
 msgstr "版本海报"
@@ -256,7 +232,6 @@ msgstr "动态背景"
 msgid "自定义主页背景"
 msgstr "自定义主页背景"
 
-# 导航标签
 msgid "仪表盘"
 msgstr "仪表盘"
 
@@ -287,7 +262,6 @@ msgstr "咖啡计划"
 msgid "源配置"
 msgstr "源配置"
 
-# 功能相关
 msgid "吃拉面"
 msgstr "吃拉面"
 
@@ -321,9 +295,6 @@ msgstr "打开游戏"
 msgid "打开并登录游戏"
 msgstr "打开并登录游戏"
 
-msgid "禁用HDR"
-msgstr "禁用HDR"
-
 msgid "恢复HDR"
 msgstr "恢复HDR"
 
@@ -348,7 +319,6 @@ msgstr "返回大世界"
 msgid "开始录制"
 msgstr "开始录制"
 
-# 游戏设置
 msgid "使用默认队伍名称出现错选时 可更改名字解决"
 msgstr "使用默认队伍名称出现错选时 可更改名字解决"
 
@@ -364,10 +334,6 @@ msgstr "切换 HDR 状态"
 msgid "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
 msgstr "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
 
-msgid "窗口尺寸"
-msgstr "窗口尺寸"
-
-# 代理人设置
 msgid "妮可"
 msgstr "妮可"
 
@@ -383,7 +349,6 @@ msgstr "仪玄"
 msgid "匹配所有可能的皮肤"
 msgstr "匹配所有可能的皮肤"
 
-# 其他设置
 msgid "影像店代理人-1"
 msgstr "影像店代理人-1"
 
@@ -399,7 +364,6 @@ msgstr "全部已弃置"
 msgid "剧变节点 重置运行记录"
 msgstr "剧变节点 重置运行记录"
 
-# 资源下载相关
 msgid "资源下载"
 msgstr "资源下载"
 
@@ -421,7 +385,6 @@ msgstr "空洞格子识别"
 msgid "迷失之地识别"
 msgstr "迷失之地识别"
 
-# 咖啡和体力计划
 msgid "咖啡选择"
 msgstr "咖啡选择"
 
@@ -437,7 +400,6 @@ msgstr "自动战斗"
 msgid "结束后运行体力计划"
 msgstr "结束后运行体力计划"
 
-# 调试相关
 msgid "指令配置"
 msgstr "指令配置"
 
@@ -447,7 +409,6 @@ msgstr "循环指令"
 msgid "调试"
 msgstr "调试"
 
-# 通知设置
 msgid "自定义通知标题"
 msgstr "自定义通知标题"
 
@@ -463,7 +424,6 @@ msgstr "通知方式"
 msgid "邮箱服务选择"
 msgstr "邮箱服务选择"
 
-# 空洞零
 msgid "挑战副本"
 msgstr "挑战副本"
 
@@ -497,7 +457,6 @@ msgstr "第一优先级刷新次数"
 msgid "第二优先级刷新次数"
 msgstr "第二优先级刷新次数"
 
-# 提示信息
 msgid "当前"
 msgstr "当前"
 
@@ -540,14 +499,12 @@ msgstr "代理类型"
 msgid "代理地址"
 msgstr "代理地址"
 
-# 欢迎对话框
 msgid "欢迎使用绝区零一条龙"
 msgstr "欢迎使用绝区零一条龙"
 
 msgid "欢迎使用一条龙"
 msgstr "欢迎使用一条龙"
 
-# 下载和安装相关
 msgid "未选择模型"
 msgstr "未选择模型"
 
@@ -590,7 +547,6 @@ msgstr "状态检查中..."
 msgid "未选择图片"
 msgstr "未选择图片"
 
-# 密码相关对话框
 msgid "嘻嘻~"
 msgstr "嘻嘻~"
 
@@ -603,7 +559,6 @@ msgstr "再试试吧"
 msgid "使用此功能需要密码哦~"
 msgstr "使用此功能需要密码哦~"
 
-# 欢迎对话框按钮
 msgid "快速开始"
 msgstr "快速开始"
 
@@ -613,14 +568,12 @@ msgstr "自助排障"
 msgid "开源地址"
 msgstr "开源地址"
 
-# 计划相关
 msgid "已运行次数"
 msgstr "已运行次数"
 
 msgid "计划次数"
 msgstr "计划次数"
 
-# 账户操作
 msgid "启用"
 msgstr "启用"
 
@@ -633,11 +586,9 @@ msgstr "账户列表"
 msgid "新增"
 msgstr "新增"
 
-# 运行状态
 msgid "上次运行"
 msgstr "上次运行"
 
-# Git 和代码同步相关
 msgid "未配置Git"
 msgstr "未配置Git"
 
@@ -659,11 +610,9 @@ msgstr "已同步代码"
 msgid "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
 msgstr "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
 
-# 安装相关
 msgid "安装指南"
 msgstr "安装指南"
 
-# 环境设置相关
 msgid "基础"
 msgstr "基础"
 
@@ -682,7 +631,18 @@ msgstr "按下截图按键时，自动将截图复制到剪贴板"
 msgid "Git相关"
 msgstr "Git相关"
 
-# 推送设置占位符文本
+msgid "语言已切换成功"
+msgstr "语言已切换成功"
+
+msgid "提示"
+msgstr "提示"
+
+msgid "立即重启"
+msgstr "立即重启"
+
+msgid "稍后重启"
+msgstr "稍后重启"
+
 msgid "会把推送最终结果通知到这个地址上"
 msgstr "会把推送最终结果通知到这个地址上"
 
@@ -719,19 +679,11 @@ msgstr "请输入 Qmsg 酱的 QMSG_TYPE"
 msgid "企业微信代理地址"
 msgstr "企业微信代理地址"
 
-# 账户设置相关
-msgid "游戏区服"
-msgstr "游戏区服"
-
 msgid "所有信息都明文保存在本地"
 msgstr "所有信息都明文保存在本地"
 
 msgid "请自行妥善管理"
 msgstr "请自行妥善管理"
-
-# 主题和外观设置
-msgid "界面主题"
-msgstr "界面主题"
 
 msgid "版本活动海报持续整个版本"
 msgstr "版本活动海报持续整个版本"
@@ -739,8 +691,3497 @@ msgstr "版本活动海报持续整个版本"
 msgid "关闭后仅用本地图片"
 msgstr "关闭后仅用本地图片"
 
-msgid "自定义主页背景"
-msgstr "自定义主页背景"
-
 msgid "设置后重启脚本生效"
 msgstr "设置后重启脚本生效"
+
+msgid "设置说明"
+msgstr "设置说明"
+
+msgid "游戏路径、输入方式等基础设置，建议首次使用前检查一遍"
+msgstr "游戏路径、输入方式等基础设置，建议首次使用前检查一遍"
+
+msgid "启用 HDR"
+msgstr "启用 HDR"
+
+msgid "禁用 HDR"
+msgstr "禁用 HDR"
+
+msgid "后台模式（测试版）"
+msgstr "后台模式（测试版）"
+
+msgid "需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。"
+msgstr "需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。"
+
+msgid "后台手柄类型"
+msgstr "后台手柄类型"
+
+msgid "闪切时长（秒）"
+msgstr "闪切时长（秒）"
+
+msgid "后台模式切换键鼠输入时的前台停留时长，过小可能切换失败"
+msgstr "后台模式切换键鼠输入时的前台停留时长，过小可能切换失败"
+
+msgid "操控方式"
+msgstr "操控方式"
+
+msgid "仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。"
+msgstr "仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。"
+
+msgid "键盘按键"
+msgstr "键盘按键"
+
+msgid "自行调整，过小可能按键被吞，过大可能影响操作"
+msgstr "自行调整，过小可能按键被吞，过大可能影响操作"
+
+msgid "截图方法"
+msgstr "截图方法"
+
+msgid "代码源"
+msgstr "代码源"
+
+msgid "自动更新"
+msgstr "自动更新"
+
+msgid "强制更新"
+msgstr "强制更新"
+
+msgid "网络相关"
+msgstr "网络相关"
+
+msgid "网络代理"
+msgstr "网络代理"
+
+msgid "自定义设置"
+msgstr "自定义设置"
+
+msgid "主页背景类型"
+msgstr "主页背景类型"
+
+msgid "自定义主题色"
+msgstr "自定义主题色"
+
+msgid "开启后可自定义主题色"
+msgstr "开启后可自定义主题色"
+
+msgid "选择主页显示的背景"
+msgstr "选择主页显示的背景"
+
+msgid "脚本环境"
+msgstr "脚本环境"
+
+msgid "通知设置"
+msgstr "通知设置"
+
+msgid "Overlay"
+msgstr "Overlay"
+
+msgid "ⓘ 启动器版本"
+msgstr "ⓘ 启动器版本"
+
+msgid "ⓘ 代码版本"
+msgstr "ⓘ 代码版本"
+
+msgid "ⓘ 安装器版本"
+msgstr "ⓘ 安装器版本"
+
+msgid "ⓘ 程序版本"
+msgstr "ⓘ 程序版本"
+
+msgid "ⓘ 启动器版本 未知"
+msgstr "ⓘ 启动器版本 未知"
+
+msgid "ⓘ 代码版本 未知"
+msgstr "ⓘ 代码版本 未知"
+
+msgid "ⓘ 问题反馈"
+msgstr "ⓘ 问题反馈"
+
+msgid "已复制版本号"
+msgstr "已复制版本号"
+
+msgid "跟随系统"
+msgstr "跟随系统"
+
+msgid "浅色"
+msgstr "浅色"
+
+msgid "深色"
+msgstr "深色"
+
+msgid "语言、主题和背景调整后，部分效果可能需要重启后生效"
+msgstr "语言、主题和背景调整后，部分效果可能需要重启后生效"
+
+msgid "Overlay 属于测试功能，显示异常或影响截图时请先查看说明"
+msgstr "Overlay 属于测试功能，显示异常或影响截图时请先查看说明"
+
+msgid "启用 Overlay"
+msgstr "启用 Overlay"
+
+msgid "默认显示"
+msgstr "默认显示"
+
+msgid "防截图保护"
+msgstr "防截图保护"
+
+msgid "启用视觉层"
+msgstr "启用视觉层"
+
+msgid "游戏助手"
+msgstr "游戏助手"
+
+msgid "应用运行"
+msgstr "应用运行"
+
+msgid "点赞"
+msgstr "点赞"
+
+msgid "开发工具"
+msgstr "开发工具"
+
+msgid "代码同步"
+msgstr "代码同步"
+
+msgid "账户管理"
+msgstr "账户管理"
+
+msgid "{count} 项待配置 "
+msgstr "{count} 项待配置 "
+
+msgid "官网"
+msgstr "官网"
+
+msgid "使用说明 · 功能介绍"
+msgstr "使用说明 · 功能介绍"
+
+msgid "源码 · 反馈 · Star⭐"
+msgstr "源码 · 反馈 · Star⭐"
+
+msgid "帮助文档"
+msgstr "帮助文档"
+
+msgid "遇到问题？点这里找答案"
+msgstr "遇到问题？点这里找答案"
+
+msgid "官方频道"
+msgstr "官方频道"
+
+msgid "加入官方交流频道"
+msgstr "加入官方交流频道"
+
+msgid "使用exe启动时，自动检测并更新代码"
+msgstr "使用exe启动时，自动检测并更新代码"
+
+msgid "不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效"
+msgstr "不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效"
+
+msgid "自定义分支"
+msgstr "自定义分支"
+
+msgid "更新合并配置文件"
+msgstr "更新合并配置文件"
+
+msgid "手动更改yml文件后 需要触发更新生效"
+msgstr "手动更改yml文件后 需要触发更新生效"
+
+msgid "更新"
+msgstr "更新"
+
+msgid "鼠标点击坐标"
+msgstr "鼠标点击坐标"
+
+msgid "图片左上角为(0, 0)"
+msgstr "图片左上角为(0, 0)"
+
+msgid "画面"
+msgstr "画面"
+
+msgid "模板ID"
+msgstr "模板ID"
+
+msgid "模板名称"
+msgstr "模板名称"
+
+msgid "微调"
+msgstr "微调"
+
+msgid "形状"
+msgstr "形状"
+
+msgid "自动生成掩码"
+msgstr "自动生成掩码"
+
+msgid "形状使用说明"
+msgstr "形状使用说明"
+
+msgid "温馨提示"
+msgstr "温馨提示"
+
+msgid "请先选择或创建模板"
+msgstr "请先选择或创建模板"
+
+msgid "访问GitHub指南"
+msgstr "访问GitHub指南"
+
+msgid "赞赏"
+msgstr "赞赏"
+
+msgid "应用通知"
+msgstr "应用通知"
+
+msgid "合并模式失败节点立即通知"
+msgstr "合并模式失败节点立即通知"
+
+msgid "节点通知为全部合并时，失败节点会额外立即推送"
+msgstr "节点通知为全部合并时，失败节点会额外立即推送"
+
+msgid "不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整"
+msgstr "不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整"
+
+msgid "自动模式优先使用上次成功源"
+msgstr "自动模式优先使用上次成功源"
+
+msgid "自动模式优先使用上次成功源，失败或超时后继续尝试其他代码源"
+msgstr "自动模式优先使用上次成功源，失败或超时后继续尝试其他代码源"
+
+msgid "免费代理仅能加速工具和模型下载，无法加速代码同步"
+msgstr "免费代理仅能加速工具和模型下载，无法加速代码同步"
+
+msgid "个人代理"
+msgstr "个人代理"
+
+msgid "免费代理"
+msgstr "免费代理"
+
+msgid "自动获取免费代理地址"
+msgstr "自动获取免费代理地址"
+
+msgid "获取失败时 可前往 https://ghproxy.link/ 查看自行更新"
+msgstr "获取失败时 可前往 https://ghproxy.link/ 查看自行更新"
+
+msgid "开始、暂停、恢复某个应用"
+msgstr "开始、暂停、恢复某个应用"
+
+msgid "停止正在运行的应用，不能恢复"
+msgstr "停止正在运行的应用，不能恢复"
+
+msgid "用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中"
+msgstr "用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中"
+
+msgid "调试按钮"
+msgstr "调试按钮"
+
+msgid "用于开发，部分应用开始调试"
+msgstr "用于开发，部分应用开始调试"
+
+msgid "测速结果"
+msgstr "测速结果"
+
+msgid "点击启用后到各模块进行设置，各账户之间的设置是独立的。"
+msgstr "点击启用后到各模块进行设置，各账户之间的设置是独立的。"
+
+msgid "自定义窗口标题"
+msgstr "自定义窗口标题"
+
+msgid "强制重新登录"
+msgstr "强制重新登录"
+
+msgid "单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态"
+msgstr "单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态"
+
+msgid "B服使用提示"
+msgstr "B服使用提示"
+
+msgid "B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。"
+msgstr "B服请在『设置 - 脚本环境 - 基础』中设置截图方法为BitBit，否则可能无法识别登录框。"
+
+msgid "B服用户名"
+msgstr "B服用户名"
+
+msgid "B服为选择已有登录记录的用户进行登录，需要先手动登录游戏"
+msgstr "B服为选择已有登录记录的用户进行登录，需要先手动登录游戏"
+
+msgid "填写游戏中切换B服账号时显示的用户名"
+msgstr "填写游戏中切换B服账号时显示的用户名"
+
+msgid "配置运行通知的推送方式或渠道，所有已配置的渠道都会启用"
+msgstr "配置运行通知的推送方式或渠道，所有已配置的渠道都会启用"
+
+msgid "一条龙运行通知"
+msgstr "一条龙运行通知"
+
+msgid "代理设置"
+msgstr "代理设置"
+
+msgid "个人代理地址"
+msgstr "个人代理地址"
+
+msgid "测试当前方式"
+msgstr "测试当前方式"
+
+msgid "测试全部"
+msgstr "测试全部"
+
+msgid "测试通知方式"
+msgstr "测试通知方式"
+
+msgid "发送测试消息验证通知配置"
+msgstr "发送测试消息验证通知配置"
+
+msgid "PowerShell 风格"
+msgstr "PowerShell 风格"
+
+msgid "Unix 风格"
+msgstr "Unix 风格"
+
+msgid "生成 cURL 命令"
+msgstr "生成 cURL 命令"
+
+msgid "选择后自动填充相关配置"
+msgstr "选择后自动填充相关配置"
+
+msgid "传送地点"
+msgstr "传送地点"
+
+msgid "咖啡店在体力计划后运行可开启"
+msgstr "咖啡店在体力计划后运行可开启"
+
+msgid "选择签到商店"
+msgstr "选择签到商店"
+
+msgid "拆解等级"
+msgstr "拆解等级"
+
+msgid "刷满经验"
+msgstr "刷满经验"
+
+msgid "每日次数"
+msgstr "每日次数"
+
+msgid "完成次数"
+msgstr "完成次数"
+
+msgid "恶名狩猎（周期挑战）开始日"
+msgstr "恶名狩猎（周期挑战）开始日"
+
+msgid "从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束"
+msgstr "从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束"
+
+msgid "循环执行"
+msgstr "循环执行"
+
+msgid "开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮"
+msgstr "开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮"
+
+msgid "自动托管"
+msgstr "自动托管"
+
+msgid "启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用"
+msgstr "启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用"
+
+msgid "饮茶仙"
+msgstr "饮茶仙"
+
+msgid "饮茶仙-委托刷新"
+msgstr "饮茶仙-委托刷新"
+
+msgid "派遣-时长"
+msgstr "派遣-时长"
+
+msgid "派遣-副本优先级"
+msgstr "派遣-副本优先级"
+
+msgid "按优先级将剩余小队派遣"
+msgstr "按优先级将剩余小队派遣"
+
+msgid "制造坊-最大下拉次数"
+msgstr "制造坊-最大下拉次数"
+
+msgid "跳过底部的低级商品"
+msgstr "跳过底部的低级商品"
+
+msgid "好物铺购买"
+msgstr "好物铺购买"
+
+msgid "自动购买好物铺中的指定商品"
+msgstr "自动购买好物铺中的指定商品"
+
+msgid "邦巢-购买"
+msgstr "邦巢-购买"
+
+msgid "自动刷新购买S级别邦布。随便观25级后可用。"
+msgstr "自动刷新购买S级别邦布。随便观25级后可用。"
+
+msgid "邦巢-最低购买价格"
+msgstr "邦巢-最低购买价格"
+
+msgid "GPU运算"
+msgstr "GPU运算"
+
+msgid "游戏画面掉帧的话 可以不启用"
+msgstr "游戏画面掉帧的话 可以不启用"
+
+msgid "截图间隔 (秒)"
+msgstr "截图间隔 (秒)"
+
+msgid "一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力"
+msgstr "一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力"
+
+msgid "操作方式"
+msgstr "操作方式"
+
+msgid "使用说明"
+msgstr "使用说明"
+
+msgid "先看说明 再使用与提问"
+msgstr "先看说明 再使用与提问"
+
+msgid "战斗配置"
+msgstr "战斗配置"
+
+msgid "全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。"
+msgstr "全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。"
+
+msgid "终结技一好就放"
+msgstr "终结技一好就放"
+
+msgid "终结技无视时机立刻释放"
+msgstr "终结技无视时机立刻释放"
+
+msgid "使用合并配置文件"
+msgstr "使用合并配置文件"
+
+msgid "关闭用于调试模板文件 正常开启即可"
+msgstr "关闭用于调试模板文件 正常开启即可"
+
+msgid "闪避方式"
+msgstr "闪避方式"
+
+msgid "截图间隔(秒)"
+msgstr "截图间隔(秒)"
+
+msgid "持续时间(秒)"
+msgstr "持续时间(秒)"
+
+msgid "保存截图按键"
+msgstr "保存截图按键"
+
+msgid "按下后，保存 持续时间(秒) 内的截图，用于捕捉漏判"
+msgstr "按下后，保存 持续时间(秒) 内的截图，用于捕捉漏判"
+
+msgid "闪避检测"
+msgstr "闪避检测"
+
+msgid "脚本识别黄光红光时，自动截图，用于捕捉误判"
+msgstr "脚本识别黄光红光时，自动截图，用于捕捉误判"
+
+msgid "按键前截图"
+msgstr "按键前截图"
+
+msgid "开启时截图按键之前的画面，关闭时截图按键之后的画面"
+msgstr "开启时截图按键之前的画面，关闭时截图按键之后的画面"
+
+msgid "小地图朝向检测"
+msgstr "小地图朝向检测"
+
+msgid "无法计算朝向时截图"
+msgstr "无法计算朝向时截图"
+
+msgid "端口"
+msgstr "端口"
+
+msgid "仅监听 127.0.0.1"
+msgstr "仅监听 127.0.0.1"
+
+msgid "服务状态"
+msgstr "服务状态"
+
+msgid "尚未探测"
+msgstr "尚未探测"
+
+msgid "刷新"
+msgstr "刷新"
+
+msgid "MCP 地址"
+msgstr "MCP 地址"
+
+msgid "复制"
+msgstr "复制"
+
+msgid "启动 F9"
+msgstr "启动 F9"
+
+msgid "停止 F10"
+msgstr "停止 F10"
+
+msgid "重启 F11"
+msgstr "重启 F11"
+
+msgid "服务控制"
+msgstr "服务控制"
+
+msgid "按当前端口管理本机 zzz_od.backend.entry.server 进程"
+msgstr "按当前端口管理本机 zzz_od.backend.entry.server 进程"
+
+msgid "当前运行状态"
+msgstr "当前运行状态"
+
+msgid "尚未读取"
+msgstr "尚未读取"
+
+msgid "在 config/auto_battle_operation 文件夹"
+msgstr "在 config/auto_battle_operation 文件夹"
+
+msgid "不断重复指令 确保可以连贯执行"
+msgstr "不断重复指令 确保可以连贯执行"
+
+msgid "选择截图"
+msgstr "选择截图"
+
+msgid "游戏在后台时暂停"
+msgstr "游戏在后台时暂停"
+
+msgid "对话选项优先级"
+msgstr "对话选项优先级"
+
+msgid "对话点击间隔(秒)"
+msgstr "对话点击间隔(秒)"
+
+msgid "剧情模式"
+msgstr "剧情模式"
+
+msgid "无内容时等待时间(秒)"
+msgstr "无内容时等待时间(秒)"
+
+msgid "当画面检测不到任何内容时, 开启下一轮检测的等待时间"
+msgstr "当画面检测不到任何内容时, 开启下一轮检测的等待时间"
+
+msgid "自动闪避"
+msgstr "自动闪避"
+
+msgid "自动闪避开关"
+msgstr "自动闪避开关"
+
+msgid "按键后，进入/退出自动闪避"
+msgstr "按键后，进入/退出自动闪避"
+
+msgid "自动战斗开关"
+msgstr "自动战斗开关"
+
+msgid "按键后，进入/退出自动战斗"
+msgstr "按键后，进入/退出自动战斗"
+
+msgid "默认配置复制后可修改"
+msgstr "默认配置复制后可修改"
+
+msgid "当期UP代理人"
+msgstr "当期UP代理人"
+
+msgid "每周第1次 优先选择包含当期UP的编队"
+msgstr "每周第1次 优先选择包含当期UP的编队"
+
+msgid "矩阵行动 - 手动选择代理人"
+msgstr "矩阵行动 - 手动选择代理人"
+
+msgid "需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）"
+msgstr "需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）"
+
+msgid "预备编队使用游戏内配队时生效"
+msgstr "预备编队使用游戏内配队时生效"
+
+msgid "追新模式"
+msgstr "追新模式"
+
+msgid "优先选择未满级的调查战略，开启后将禁用下方的调查战略选项"
+msgstr "优先选择未满级的调查战略，开启后将禁用下方的调查战略选项"
+
+msgid "调查战略"
+msgstr "调查战略"
+
+msgid "周期增益"
+msgstr "周期增益"
+
+msgid "商店-使用金币购买"
+msgstr "商店-使用金币购买"
+
+msgid "想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭"
+msgstr "想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭"
+
+msgid "商店-使用血量购买"
+msgstr "商店-使用血量购买"
+
+msgid "练度低情况下 仅建议绝境武备开启"
+msgstr "练度低情况下 仅建议绝境武备开启"
+
+msgid "血量 ≥ x% 时 才会进行购买"
+msgstr "血量 ≥ x% 时 才会进行购买"
+
+msgid "优先选择NEW!藏品"
+msgstr "优先选择NEW!藏品"
+
+msgid "最高优先级 但不保证识别正确"
+msgstr "最高优先级 但不保证识别正确"
+
+msgid "只购买第一优先级"
+msgstr "只购买第一优先级"
+
+msgid "刷新多少次数内 只购买第一优先级内的藏品"
+msgstr "刷新多少次数内 只购买第一优先级内的藏品"
+
+msgid "只购买第二优先级"
+msgstr "只购买第二优先级"
+
+msgid "刷新多少次数内 只购买第二优先级内的藏品"
+msgstr "刷新多少次数内 只购买第二优先级内的藏品"
+
+msgid "选择副本"
+msgstr "选择副本"
+
+msgid "刷取目标"
+msgstr "刷取目标"
+
+msgid "重置记录"
+msgstr "重置记录"
+
+msgid "选择角色、鸣徽和事件"
+msgstr "选择角色、鸣徽和事件"
+
+msgid "分摊到每天运行"
+msgstr "分摊到每天运行"
+
+msgid "选择空洞及难度等级"
+msgstr "选择空洞及难度等级"
+
+msgid "每周基础次数"
+msgstr "每周基础次数"
+
+msgid "完整通关，用于完成委托任务"
+msgstr "完整通关，用于完成委托任务"
+
+msgid "额外刷取"
+msgstr "额外刷取"
+
+msgid "完成基础次数后，继续刷取"
+msgstr "完成基础次数后，继续刷取"
+
+msgid "将空洞分摊到每天运行"
+msgstr "将空洞分摊到每天运行"
+
+msgid "额外刷取方式"
+msgstr "额外刷取方式"
+
+msgid "额外刷取时，选择何时退出"
+msgstr "额外刷取时，选择何时退出"
+
+msgid "体力计划说明"
+msgstr "体力计划说明"
+
+msgid "合理安排每日体力消耗，支持自定义优先级和循环执行"
+msgstr "合理安排每日体力消耗，支持自定义优先级和循环执行"
+
+msgid "开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划"
+msgstr "开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划"
+
+msgid "跳过计划"
+msgstr "跳过计划"
+
+msgid "开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划"
+msgstr "开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划"
+
+msgid "每日重置"
+msgstr "每日重置"
+
+msgid "开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零"
+msgstr "开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零"
+
+msgid "恢复电量"
+msgstr "恢复电量"
+
+msgid "电量不足时尝试按所选方式有效补足缺口"
+msgstr "电量不足时尝试按所选方式有效补足缺口"
+
+msgid "双倍活动"
+msgstr "双倍活动"
+
+msgid "有活动时自动添加对应任务"
+msgstr "有活动时自动添加对应任务"
+
+msgid "启用双倍活动"
+msgstr "启用双倍活动"
+
+msgid "删除已完成"
+msgstr "删除已完成"
+
+msgid "删除所有"
+msgstr "删除所有"
+
+msgid "删除体力计划"
+msgstr "删除体力计划"
+
+msgid "点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动"
+msgstr "点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动"
+
+msgid "预备编队识别"
+msgstr "预备编队识别"
+
+msgid "应用运行说明"
+msgstr "应用运行说明"
+
+msgid "从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程"
+msgstr "从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程"
+
+msgid "区域"
+msgstr "区域"
+
+msgid "加载"
+msgstr "加载"
+
+msgid "截图(1)"
+msgstr "截图(1)"
+
+msgid "定位(2)"
+msgstr "定位(2)"
+
+msgid "重叠(3)"
+msgstr "重叠(3)"
+
+msgid "合并(4)"
+msgstr "合并(4)"
+
+msgid "回退"
+msgstr "回退"
+
+msgid "编辑图标"
+msgstr "编辑图标"
+
+msgid "使用图标计算坐标"
+msgstr "使用图标计算坐标"
+
+msgid "图标匹配阈值"
+msgstr "图标匹配阈值"
+
+msgid "调整图标识别的匹配阈值，默认0.7"
+msgstr "调整图标识别的匹配阈值，默认0.7"
+
+msgid "缩放"
+msgstr "缩放"
+
+msgid "调整大地图的，只有第一次需要"
+msgstr "调整大地图的，只有第一次需要"
+
+msgid "角色坐标"
+msgstr "角色坐标"
+
+msgid "点击大地图可更新坐标"
+msgstr "点击大地图可更新坐标"
+
+msgid "名单选择"
+msgstr "名单选择"
+
+msgid "新建"
+msgstr "新建"
+
+msgid "编辑"
+msgstr "编辑"
+
+msgid "区域选择"
+msgstr "区域选择"
+
+msgid "添加整个区域"
+msgstr "添加整个区域"
+
+msgid "添加单条路线"
+msgstr "添加单条路线"
+
+msgid "添加路线"
+msgstr "添加路线"
+
+msgid "上移"
+msgstr "上移"
+
+msgid "下移"
+msgstr "下移"
+
+msgid "移除"
+msgstr "移除"
+
+msgid "顺序调整"
+msgstr "顺序调整"
+
+msgid "路线"
+msgstr "路线"
+
+msgid "编辑操作"
+msgstr "编辑操作"
+
+msgid "传送点"
+msgstr "传送点"
+
+msgid "选择路线起始传送点"
+msgstr "选择路线起始传送点"
+
+msgid "添加移动(4)"
+msgstr "添加移动(4)"
+
+msgid "回退(5)"
+msgstr "回退(5)"
+
+msgid "操作"
+msgstr "操作"
+
+msgid "可选择从第几步开始, 0代表需要传送，1代表已完成第1步"
+msgstr "可选择从第几步开始, 0代表需要传送，1代表已完成第1步"
+
+msgid "点击后自动追加移动"
+msgstr "点击后自动追加移动"
+
+msgid "界面消失预警时间"
+msgstr "界面消失预警时间"
+
+msgid "UI完全消失持续到该秒数后判定为卡电梯"
+msgstr "UI完全消失持续到该秒数后判定为卡电梯"
+
+msgid "单条路线重试上限"
+msgstr "单条路线重试上限"
+
+msgid "单条路线累计重试次数，超限后跳过该路线"
+msgstr "单条路线累计重试次数，超限后跳过该路线"
+
+msgid "锄地每日循环次数"
+msgstr "锄地每日循环次数"
+
+msgid "一次任务执行内总共执行的轮数"
+msgstr "一次任务执行内总共执行的轮数"
+
+msgid "路线名单"
+msgstr "路线名单"
+
+msgid "界面消失处理方式"
+msgstr "界面消失处理方式"
+
+msgid "判定为疑似卡电梯后的处理方式"
+msgstr "判定为疑似卡电梯后的处理方式"
+
+msgid "路线重试处理方式"
+msgstr "路线重试处理方式"
+
+msgid "路线脱困失败，重试后再次卡住时的处理方式"
+msgstr "路线脱困失败，重试后再次卡住时的处理方式"
+
+msgid "每轮最少占用时长（敌人刷新时间）"
+msgstr "每轮最少占用时长（敌人刷新时间）"
+
+msgid "每轮跑完：不足则补等到该秒数，超过则立即开始下一轮"
+msgstr "每轮跑完：不足则补等到该秒数，超过则立即开始下一轮"
+
+msgid "启用后可通过 Ctrl+Alt+O 切换显隐"
+msgstr "启用后可通过 Ctrl+Alt+O 切换显隐"
+
+msgid "显隐热键主键"
+msgstr "显隐热键主键"
+
+msgid "组合键固定 Ctrl+Alt，主键可自定义"
+msgstr "组合键固定 Ctrl+Alt，主键可自定义"
+
+msgid "启动后 Overlay 是否默认可见"
+msgstr "启动后 Overlay 是否默认可见"
+
+msgid "使用 WDA_EXCLUDEFROMCAPTURE 隐藏 Overlay"
+msgstr "使用 WDA_EXCLUDEFROMCAPTURE 隐藏 Overlay"
+
+msgid "显示 YOLO/OCR/Template/CV 绘制结果"
+msgstr "显示 YOLO/OCR/Template/CV 绘制结果"
+
+msgid "显示 YOLO"
+msgstr "显示 YOLO"
+
+msgid "显示 OCR"
+msgstr "显示 OCR"
+
+msgid "显示 Template"
+msgstr "显示 Template"
+
+msgid "显示 CV Pipeline"
+msgstr "显示 CV Pipeline"
+
+msgid "视觉层 X 偏移"
+msgstr "视觉层 X 偏移"
+
+msgid "用于校正识别框左右偏移（像素）"
+msgstr "用于校正识别框左右偏移（像素）"
+
+msgid "视觉层 Y 偏移"
+msgstr "视觉层 Y 偏移"
+
+msgid "用于校正识别框上下偏移（像素）"
+msgstr "用于校正识别框上下偏移（像素）"
+
+msgid "视觉层 X 缩放"
+msgstr "视觉层 X 缩放"
+
+msgid "视觉层 Y 缩放"
+msgstr "视觉层 Y 缩放"
+
+msgid "显示日志面板"
+msgstr "显示日志面板"
+
+msgid "显示状态面板"
+msgstr "显示状态面板"
+
+msgid "显示决策链路面板"
+msgstr "显示决策链路面板"
+
+msgid "显示时间轴面板"
+msgstr "显示时间轴面板"
+
+msgid "显示性能面板"
+msgstr "显示性能面板"
+
+msgid "面板编辑模式"
+msgstr "面板编辑模式"
+
+msgid "开启后可拖拽调整位置，并可在日志窗调整字体/透明度"
+msgstr "开启后可拖拽调整位置，并可在日志窗调整字体/透明度"
+
+msgid "面板字体大小"
+msgstr "面板字体大小"
+
+msgid "文字颜色"
+msgstr "文字颜色"
+
+msgid "Hex 颜色，例如 #f2f2f2"
+msgstr "Hex 颜色，例如 #f2f2f2"
+
+msgid "日志最大行数"
+msgstr "日志最大行数"
+
+msgid "日志过期秒数"
+msgstr "日志过期秒数"
+
+msgid "窗口跟随间隔(ms)"
+msgstr "窗口跟随间隔(ms)"
+
+msgid "状态刷新间隔(ms)"
+msgstr "状态刷新间隔(ms)"
+
+msgid "面板透明度(%)"
+msgstr "面板透明度(%)"
+
+msgid "重置面板位置"
+msgstr "重置面板位置"
+
+msgid "重置 Overlay 面板到默认位置与尺寸"
+msgstr "重置 Overlay 面板到默认位置与尺寸"
+
+msgid "保存 patched 合成图"
+msgstr "保存 patched 合成图"
+
+msgid "保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片"
+msgstr "保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片"
+
+msgid "patched 文件后缀"
+msgstr "patched 文件后缀"
+
+msgid "默认 _patched"
+msgstr "默认 _patched"
+
+msgid "后台模式不可用"
+msgstr "后台模式不可用"
+
+msgid "手柄操控不可用"
+msgstr "手柄操控不可用"
+
+msgid "未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动"
+msgstr "未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动"
+
+msgid "启用后可通过 Ctrl+Alt+{key} 切换显隐"
+msgstr "启用后可通过 Ctrl+Alt+{key} 切换显隐"
+
+msgid "加载图片"
+msgstr "加载图片"
+
+msgid "图像加载"
+msgstr "图像加载"
+
+msgid "颜色空间"
+msgstr "颜色空间"
+
+msgid "选择颜色过滤的颜色空间"
+msgstr "选择颜色过滤的颜色空间"
+
+msgid "颜色下限"
+msgstr "颜色下限"
+
+msgid "设置颜色过滤的下限值 (R,G,B 或 H,S,V)"
+msgstr "设置颜色过滤的下限值 (R,G,B 或 H,S,V)"
+
+msgid "颜色上限"
+msgstr "颜色上限"
+
+msgid "设置颜色过滤的上限值 (R,G,B 或 H,S,V)"
+msgstr "设置颜色过滤的上限值 (R,G,B 或 H,S,V)"
+
+msgid "应用颜色过滤"
+msgstr "应用颜色过滤"
+
+msgid "执行颜色过滤"
+msgstr "执行颜色过滤"
+
+msgid "处理选项"
+msgstr "处理选项"
+
+msgid "自动裁剪到有效区域"
+msgstr "自动裁剪到有效区域"
+
+msgid "自动裁剪:"
+msgstr "自动裁剪:"
+
+msgid "保存扣图结果"
+msgstr "保存扣图结果"
+
+msgid "保存掩码图"
+msgstr "保存掩码图"
+
+msgid "清空图像"
+msgstr "清空图像"
+
+msgid "保存操作"
+msgstr "保存操作"
+
+msgid "加载底图"
+msgstr "加载底图"
+
+msgid "加载第二张图"
+msgstr "加载第二张图"
+
+msgid "拼接方向"
+msgstr "拼接方向"
+
+msgid "第二张图相对于底图的位置"
+msgstr "第二张图相对于底图的位置"
+
+msgid "左边"
+msgstr "左边"
+
+msgid "右边"
+msgstr "右边"
+
+msgid "上边"
+msgstr "上边"
+
+msgid "下边"
+msgstr "下边"
+
+msgid "重叠比例"
+msgstr "重叠比例"
+
+msgid "宽度和高度的重叠区域大小"
+msgstr "宽度和高度的重叠区域大小"
+
+msgid "宽度:"
+msgstr "宽度:"
+
+msgid "高度:"
+msgstr "高度:"
+
+msgid "自动匹配"
+msgstr "自动匹配"
+
+msgid "图像匹配"
+msgstr "图像匹配"
+
+msgid "X偏移"
+msgstr "X偏移"
+
+msgid "Y偏移"
+msgstr "Y偏移"
+
+msgid "手动调整"
+msgstr "手动调整"
+
+msgid "微调第二张图的位置（累积偏移）"
+msgstr "微调第二张图的位置（累积偏移）"
+
+msgid "合并图像"
+msgstr "合并图像"
+
+msgid "保存结果"
+msgstr "保存结果"
+
+msgid "合并操作"
+msgstr "合并操作"
+
+msgid "已有应用在运行中"
+msgstr "已有应用在运行中"
+
+msgid "未找到可用的 ctx，无法打开帮助文档"
+msgstr "未找到可用的 ctx，无法打开帮助文档"
+
+msgid "解析失败"
+msgstr "解析失败"
+
+msgid "点击查看形状使用说明"
+msgstr "点击查看形状使用说明"
+
+msgid "像素颜色信息"
+msgstr "像素颜色信息"
+
+msgid "未配置登录操作"
+msgstr "未配置登录操作"
+
+msgid "原图"
+msgstr "原图"
+
+msgid "色彩通道分析"
+msgstr "色彩通道分析"
+
+msgid "画中画"
+msgstr "画中画"
+
+msgid "节点通知"
+msgstr "节点通知"
+
+msgid "请输入 JSON 格式的请求体"
+msgstr "请输入 JSON 格式的请求体"
+
+msgid "# 输入 Python 脚本"
+msgstr "# 输入 Python 脚本"
+
+msgid "打开外部编辑器失败: %s"
+msgstr "打开外部编辑器失败: %s"
+
+msgid "JSON 代码编辑器"
+msgstr "JSON 代码编辑器"
+
+msgid "格式化 JSON 失败"
+msgstr "格式化 JSON 失败"
+
+msgid "紧凑化 JSON 失败"
+msgstr "紧凑化 JSON 失败"
+
+msgid "未选择资源"
+msgstr "未选择资源"
+
+msgid "当前没有下载任务在运行"
+msgstr "当前没有下载任务在运行"
+
+msgid "我知道你很急 但你先别急 正在运行了"
+msgstr "我知道你很急 但你先别急 正在运行了"
+
+msgid "图标编辑器"
+msgstr "图标编辑器"
+
+msgid "将主窗口当前计算坐标设置为选中图标的传送坐标"
+msgstr "将主窗口当前计算坐标设置为选中图标的传送坐标"
+
+msgid "删除选中的图标"
+msgstr "删除选中的图标"
+
+msgid "保存图标名称修改"
+msgstr "保存图标名称修改"
+
+msgid "取消修改并关闭"
+msgstr "取消修改并关闭"
+
+msgid "确认删除"
+msgstr "确认删除"
+
+msgid "数据错误"
+msgstr "数据错误"
+
+msgid "MCP 服务操作和运行状态消息会显示在这里"
+msgstr "MCP 服务操作和运行状态消息会显示在这里"
+
+msgid "执行中..."
+msgstr "执行中..."
+
+msgid "读取中..."
+msgstr "读取中..."
+
+msgid "目标配队"
+msgstr "目标配队"
+
+msgid "按照自动战斗配置 选择角色位置"
+msgstr "按照自动战斗配置 选择角色位置"
+
+msgid "仅购买优先级"
+msgstr "仅购买优先级"
+
+msgid "邦布商人购买时只购买符合优先级的"
+msgstr "邦布商人购买时只购买符合优先级的"
+
+msgid "寻路方式"
+msgstr "寻路方式"
+
+msgid "代理人"
+msgstr "代理人"
+
+msgid "编辑路线操作"
+msgstr "编辑路线操作"
+
+msgid "确定要清空所有图像吗？"
+msgstr "确定要清空所有图像吗？"
+
+msgid "确认清空"
+msgstr "确认清空"
+
+msgid "请先选择区域"
+msgstr "请先选择区域"
+
+msgid "请先选择传送点"
+msgstr "请先选择传送点"
+
+msgid "没有可保存的路线"
+msgstr "没有可保存的路线"
+
+msgid "路线保存失败"
+msgstr "路线保存失败"
+
+msgid "没有可删除的路线"
+msgstr "没有可删除的路线"
+
+msgid "无法删除未保存的路线"
+msgstr "无法删除未保存的路线"
+
+msgid "没有正在编辑的路线"
+msgstr "没有正在编辑的路线"
+
+msgid "[截图] 请先选择区域加载地图"
+msgstr "[截图] 请先选择区域加载地图"
+
+msgid "请先新建路线"
+msgstr "请先新建路线"
+
+msgid "请先选择路线"
+msgstr "请先选择路线"
+
+msgid "调试异常"
+msgstr "调试异常"
+
+msgid "[计算坐标] 未有上次坐标 请选点击选择一个坐标"
+msgstr "[计算坐标] 未有上次坐标 请选点击选择一个坐标"
+
+msgid "运行记录未初始化"
+msgstr "运行记录未初始化"
+
+msgid "捕获 Overlay 图像失败"
+msgstr "捕获 Overlay 图像失败"
+
+msgid "保存 Overlay 面板位置失败"
+msgstr "保存 Overlay 面板位置失败"
+
+msgid "保存 Overlay 编辑模式失败"
+msgstr "保存 Overlay 编辑模式失败"
+
+msgid "更新 Overlay 窗口失败"
+msgstr "更新 Overlay 窗口失败"
+
+msgid "Overlay 已禁用：系统版本低于 Windows 10 2004（build 19041）"
+msgstr "Overlay 已禁用：系统版本低于 Windows 10 2004（build 19041）"
+
+msgid "更新 Overlay 交互模式失败"
+msgstr "更新 Overlay 交互模式失败"
+
+msgid "刷新 Overlay 状态面板失败"
+msgstr "刷新 Overlay 状态面板失败"
+
+msgid "自由"
+msgstr "自由"
+
+msgid "切换到锁定模式"
+msgstr "切换到锁定模式"
+
+msgid "锁定"
+msgstr "锁定"
+
+msgid "切换到自由模式"
+msgstr "切换到自由模式"
+
+msgid "画中画截图器初始化失败"
+msgstr "画中画截图器初始化失败"
+
+msgid "画中画轮询异常"
+msgstr "画中画轮询异常"
+
+msgid "加载配置项失败"
+msgstr "加载配置项失败"
+
+msgid "图标名称"
+msgstr "图标名称"
+
+msgid "X坐标"
+msgstr "X坐标"
+
+msgid "Y坐标"
+msgstr "Y坐标"
+
+msgid "传送X"
+msgstr "传送X"
+
+msgid "传送Y"
+msgstr "传送Y"
+
+msgid "提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标"
+msgstr "提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标"
+
+msgid "确定要删除图标 \"{name}\" ({template_id}) 吗？\n此操作不可撤销。"
+msgstr "确定要删除图标 \"{name}\" ({template_id}) 吗？\n此操作不可撤销。"
+
+msgid "序号"
+msgstr "序号"
+
+msgid "操作类型"
+msgstr "操作类型"
+
+msgid "数据1"
+msgstr "数据1"
+
+msgid "数据2"
+msgstr "数据2"
+
+msgid "MCP 服务"
+msgstr "MCP 服务"
+
+msgid "运行消息"
+msgstr "运行消息"
+
+msgid "探测服务"
+msgstr "探测服务"
+
+msgid "启动服务"
+msgstr "启动服务"
+
+msgid "停止服务"
+msgstr "停止服务"
+
+msgid "重启服务"
+msgstr "重启服务"
+
+msgid "刷新当前运行状态"
+msgstr "刷新当前运行状态"
+
+msgid "服务操作"
+msgstr "服务操作"
+
+msgid "请先加载图片并选择区域"
+msgstr "请先加载图片并选择区域"
+
+msgid "颜色值格式错误，请使用 \"R,G,B\" 或 \"H,S,V\" 格式"
+msgstr "颜色值格式错误，请使用 \"R,G,B\" 或 \"H,S,V\" 格式"
+
+msgid "扣图结果已保存"
+msgstr "扣图结果已保存"
+
+msgid "掩码图已保存"
+msgstr "掩码图已保存"
+
+msgid "请先加载两张图像"
+msgstr "请先加载两张图像"
+
+msgid "请先加载第二张图"
+msgstr "请先加载第二张图"
+
+msgid "没有可保存的图像"
+msgstr "没有可保存的图像"
+
+msgid "图像保存成功"
+msgstr "图像保存成功"
+
+msgid "坐标"
+msgstr "坐标"
+
+msgid "无有效颜色信息"
+msgstr "无有效颜色信息"
+
+msgid "特别鸣谢"
+msgstr "特别鸣谢"
+
+msgid "感谢您的支持与陪伴"
+msgstr "感谢您的支持与陪伴"
+
+msgid "contributors.yaml文件不存在"
+msgstr "contributors.yaml文件不存在"
+
+msgid "未获取到贡献者信息"
+msgstr "未获取到贡献者信息"
+
+msgid "本软件完全<font color='red'>开源 免费</font><br>\n不要在<font color='red'>第三方渠道</font>购买<br>\n谨防<font color='red'>诈骗 盗号</font>"
+msgstr "本软件完全<font color='red'>开源 免费</font><br>\n不要在<font color='red'>第三方渠道</font>购买<br>\n谨防<font color='red'>诈骗 盗号</font>"
+
+msgid "外部编辑"
+msgstr "外部编辑"
+
+msgid "游历"
+msgstr "游历"
+
+msgid "制造"
+msgstr "制造"
+
+msgid "售卖"
+msgstr "售卖"
+
+msgid "路线列表"
+msgstr "路线列表"
+
+msgid "当前区域可用路线"
+msgstr "当前区域可用路线"
+
+msgid "保存路线列表失败"
+msgstr "保存路线列表失败"
+
+msgid "删除路线列表失败"
+msgstr "删除路线列表失败"
+
+msgid "当前区域没有可用路线"
+msgstr "当前区域没有可用路线"
+
+msgid "加载图片失败: "
+msgstr "加载图片失败: "
+
+msgid "颜色过滤失败: "
+msgstr "颜色过滤失败: "
+
+msgid "保存失败: "
+msgstr "保存失败: "
+
+msgid "自动匹配失败: "
+msgstr "自动匹配失败: "
+
+msgid "图像合并失败: "
+msgstr "图像合并失败: "
+
+msgid "加载底图失败: "
+msgstr "加载底图失败: "
+
+msgid "加载第二张图失败: "
+msgstr "加载第二张图失败: "
+
+msgid "保存图像"
+msgstr "保存图像"
+
+msgid "确定要删除第{index}个操作吗？"
+msgstr "确定要删除第{index}个操作吗？"
+
+msgid "第{index}个操作的数据不完整"
+msgstr "第{index}个操作的数据不完整"
+
+msgid "第{index}个操作的坐标数据必须是数字"
+msgstr "第{index}个操作的坐标数据必须是数字"
+
+msgid "未设置游戏路径 - 请在「账户管理 → 多账户管理 → 当前账户设置」中配置"
+msgstr "未设置游戏路径 - 请在「账户管理 → 多账户管理 → 当前账户设置」中配置"
+
+msgid "闪光识别模型未下载 - 请在「设置 → 资源下载」中下载"
+msgstr "闪光识别模型未下载 - 请在「设置 → 资源下载」中下载"
+
+msgid "GitHub主页右上角点一个星星是最简单直接的"
+msgstr "GitHub主页右上角点一个星星是最简单直接的"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Overlay 不可用"
+msgstr "Overlay 不可用"
+
+msgid "Overlay 基础"
+msgstr "Overlay 基础"
+
+msgid "Overlay 面板位置已重置"
+msgstr "Overlay 面板位置已重置"
+
+msgid "PC 点击需 Alt"
+msgstr "PC 点击需 Alt"
+
+msgid "Python相关"
+msgstr "Python相关"
+
+msgid "⚠ 已跳过此步骤"
+msgstr "⚠ 已跳过此步骤"
+
+msgid "✓ 安装完成"
+msgstr "✓ 安装完成"
+
+msgid "✓ 已满足所有条件"
+msgstr "✓ 已满足所有条件"
+
+msgid "✗ 安装失败"
+msgstr "✗ 安装失败"
+
+msgid "一条龙安装向导"
+msgstr "一条龙安装向导"
+
+msgid "一步可达时前往"
+msgstr "一步可达时前往"
+
+msgid "一键安装"
+msgstr "一键安装"
+
+msgid "一键生成"
+msgstr "一键生成"
+
+msgid "上一步"
+msgstr "上一步"
+
+msgid "下一步"
+msgstr "下一步"
+
+msgid "下载"
+msgstr "下载"
+
+msgid "为指定角色生成6个头像模板"
+msgstr "为指定角色生成6个头像模板"
+
+msgid "仍然继续"
+msgstr "仍然继续"
+
+msgid "代理人模板生成"
+msgstr "代理人模板生成"
+
+msgid "代码已同步"
+msgstr "代码已同步"
+
+msgid "代码已更新，重启以应用更改"
+msgstr "代码已更新，重启以应用更改"
+
+msgid "以下配置项未就绪，可能影响正常运行："
+msgstr "以下配置项未就绪，可能影响正常运行："
+
+msgid "优先途经点"
+msgstr "优先途经点"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "保存掩码"
+msgstr "保存掩码"
+
+msgid "保存模板"
+msgstr "保存模板"
+
+msgid "保存配置"
+msgstr "保存配置"
+
+msgid "值"
+msgstr "值"
+
+msgid "停止"
+msgstr "停止"
+
+msgid "免费代理地址"
+msgstr "免费代理地址"
+
+msgid "兑换码"
+msgstr "兑换码"
+
+msgid "兑换码已存在"
+msgstr "兑换码已存在"
+
+msgid "全部模板已生成"
+msgstr "全部模板已生成"
+
+msgid "共享配置"
+msgstr "共享配置"
+
+msgid "关闭"
+msgstr "关闭"
+
+msgid "关闭后将从一条龙列表中永久移除"
+msgstr "关闭后将从一条龙列表中永久移除"
+
+msgid "内容"
+msgstr "内容"
+
+msgid "切换视图"
+msgstr "切换视图"
+
+msgid "删除图标"
+msgstr "删除图标"
+
+msgid "删除步骤"
+msgstr "删除步骤"
+
+msgid "前往"
+msgstr "前往"
+
+msgid "前往社区"
+msgstr "前往社区"
+
+msgid "前往配置"
+msgstr "前往配置"
+
+msgid "加载失败"
+msgstr "加载失败"
+
+msgid "区域类型优先级"
+msgstr "区域类型优先级"
+
+msgid "区域表格编辑"
+msgstr "区域表格编辑"
+
+msgid "原始启动器"
+msgstr "原始启动器"
+
+msgid "原始图像"
+msgstr "原始图像"
+
+msgid "参数设置"
+msgstr "参数设置"
+
+msgid "反向抠图"
+msgstr "反向抠图"
+
+msgid "发生了一个未知错误"
+msgstr "发生了一个未知错误"
+
+msgid "取消中"
+msgstr "取消中"
+
+msgid "另存为"
+msgstr "另存为"
+
+msgid "另存为失败"
+msgstr "另存为失败"
+
+msgid "可下载"
+msgstr "可下载"
+
+msgid "可开启“强制更新”后重试"
+msgstr "可开启“强制更新”后重试"
+
+msgid "可选安装或配置"
+msgstr "可选安装或配置"
+
+msgid "名称"
+msgstr "名称"
+
+msgid "启动器"
+msgstr "启动器"
+
+msgid "启动程序"
+msgstr "启动程序"
+
+msgid "回滚"
+msgstr "回滚"
+
+msgid "回滚失败"
+msgstr "回滚失败"
+
+msgid "在线配置"
+msgstr "在线配置"
+
+msgid "复制方法"
+msgstr "复制方法"
+
+msgid "失败"
+msgstr "失败"
+
+msgid "失败模板"
+msgstr "失败模板"
+
+msgid "奖励优先级"
+msgstr "奖励优先级"
+
+msgid "如何让AI打得更好？"
+msgstr "如何让AI打得更好？"
+
+msgid "如果喜欢本项目，你也可以为作者赞助一点维护费用~"
+msgstr "如果喜欢本项目，你也可以为作者赞助一点维护费用~"
+
+msgid "安装中"
+msgstr "安装中"
+
+msgid "安装启动器失败"
+msgstr "安装启动器失败"
+
+msgid "安装启动器成功"
+msgstr "安装启动器成功"
+
+msgid "安装失败"
+msgstr "安装失败"
+
+msgid "安装失败！"
+msgstr "安装失败！"
+
+msgid "安装失败！已自动打开排障文档"
+msgstr "安装失败！已自动打开排障文档"
+
+msgid "安装完成！"
+msgstr "安装完成！"
+
+msgid "安装成功"
+msgstr "安装成功"
+
+msgid "安装日志"
+msgstr "安装日志"
+
+msgid "安装进度"
+msgstr "安装进度"
+
+msgid "完成"
+msgstr "完成"
+
+msgid "完整模板"
+msgstr "完整模板"
+
+msgid "官方社区"
+msgstr "官方社区"
+
+msgid "导入模板区域"
+msgstr "导入模板区域"
+
+msgid "已保存"
+msgstr "已保存"
+
+msgid "已删除"
+msgstr "已删除"
+
+msgid "已存在，是否覆盖？"
+msgstr "已存在，是否覆盖？"
+
+msgid "已安装"
+msgstr "已安装"
+
+msgid "已将方法代码复制到剪贴板"
+msgstr "已将方法代码复制到剪贴板"
+
+msgid "已迁移"
+msgstr "已迁移"
+
+msgid "已选择区域"
+msgstr "已选择区域"
+
+msgid "已重置"
+msgstr "已重置"
+
+msgid "应用"
+msgstr "应用"
+
+msgid "应用设置"
+msgstr "应用设置"
+
+msgid "建议版本"
+msgstr "建议版本"
+
+msgid "开始"
+msgstr "开始"
+
+msgid "开始安装"
+msgstr "开始安装"
+
+msgid "弹出表格"
+msgstr "弹出表格"
+
+msgid "当前图像"
+msgstr "当前图像"
+
+msgid "当前版本"
+msgstr "当前版本"
+
+msgid "当前状态"
+msgstr "当前状态"
+
+msgid "性能分析"
+msgstr "性能分析"
+
+msgid "性能指标"
+msgstr "性能指标"
+
+msgid "总耗时"
+msgstr "总耗时"
+
+msgid "恢复"
+msgstr "恢复"
+
+msgid "您确定要删除流水线"
+msgstr "您确定要删除流水线"
+
+msgid "我们匿名收集你的信息用于改进我们的产品，感谢您的参与！"
+msgstr "我们匿名收集你的信息用于改进我们的产品，感谢您的参与！"
+
+msgid "截图"
+msgstr "截图"
+
+msgid "截图读取失败"
+msgstr "截图读取失败"
+
+msgid "打开图片"
+msgstr "打开图片"
+
+msgid "打开图片文件"
+msgstr "打开图片文件"
+
+msgid "执行"
+msgstr "执行"
+
+msgid "按键设置"
+msgstr "按键设置"
+
+msgid "插入变量"
+msgstr "插入变量"
+
+msgid "搜索"
+msgstr "搜索"
+
+msgid "撤回"
+msgstr "撤回"
+
+msgid "撤销"
+msgstr "撤销"
+
+msgid "文件不存在"
+msgstr "文件不存在"
+
+msgid "文件已存在"
+msgstr "文件已存在"
+
+msgid "文件已成功删除"
+msgstr "文件已成功删除"
+
+msgid "新增体力计划"
+msgstr "新增体力计划"
+
+msgid "新增恶名狩猎计划"
+msgstr "新增恶名狩猎计划"
+
+msgid "无可用模板"
+msgstr "无可用模板"
+
+msgid "无法获取 Python 版本"
+msgstr "无法获取 Python 版本"
+
+msgid "无法获取 UV 版本"
+msgstr "无法获取 UV 版本"
+
+msgid "无法连接服务器"
+msgstr "无法连接服务器"
+
+msgid "日志显示"
+msgstr "日志显示"
+
+msgid "时间"
+msgstr "时间"
+
+msgid "暂停"
+msgstr "暂停"
+
+msgid "更多"
+msgstr "更多"
+
+msgid "更新后需重启脚本生效。如不能运行，请更新启动器"
+msgstr "更新后需重启脚本生效。如不能运行，请更新启动器"
+
+msgid "更新完成"
+msgstr "更新完成"
+
+msgid "服务器返回的数据格式不正确"
+msgstr "服务器返回的数据格式不正确"
+
+msgid "服务异常"
+msgstr "服务异常"
+
+msgid "未安装"
+msgstr "未安装"
+
+msgid "未安装。可选择你自己的 uv.exe"
+msgstr "未安装。可选择你自己的 uv.exe"
+
+msgid "未安装。可选择手动创建"
+msgstr "未安装。可选择手动创建"
+
+msgid "未知错误"
+msgstr "未知错误"
+
+msgid "未配置 UV"
+msgstr "未配置 UV"
+
+msgid "本地配置"
+msgstr "本地配置"
+
+msgid "查看指南"
+msgstr "查看指南"
+
+msgid "框选模式"
+msgstr "框选模式"
+
+msgid "检查中..."
+msgstr "检查中..."
+
+msgid "模式:"
+msgstr "模式:"
+
+msgid "模板保存失败"
+msgstr "模板保存失败"
+
+msgid "模板原图"
+msgstr "模板原图"
+
+msgid "模板抠图"
+msgstr "模板抠图"
+
+msgid "模板掩码"
+msgstr "模板掩码"
+
+msgid "横"
+msgstr "横"
+
+msgid "横移"
+msgstr "横移"
+
+msgid "正在安装..."
+msgstr "正在安装..."
+
+msgid "正在检查版本..."
+msgstr "正在检查版本..."
+
+msgid "此操作无法撤销。"
+msgstr "此操作无法撤销。"
+
+msgid "没有可用的图像进行分析"
+msgstr "没有可用的图像进行分析"
+
+msgid "没法访问GitHub可以查看帮助文档"
+msgstr "没法访问GitHub可以查看帮助文档"
+
+msgid "流水线"
+msgstr "流水线"
+
+msgid "流水线保存失败"
+msgstr "流水线保存失败"
+
+msgid "流水线已另存为"
+msgstr "流水线已另存为"
+
+msgid "流水线已重命名为"
+msgstr "流水线已重命名为"
+
+msgid "测试推送通知"
+msgstr "测试推送通知"
+
+msgid "添加应用"
+msgstr "添加应用"
+
+msgid "添加步骤"
+msgstr "添加步骤"
+
+msgid "清除点位"
+msgstr "清除点位"
+
+msgid "清除选择"
+msgstr "清除选择"
+
+msgid "游戏截图失败"
+msgstr "游戏截图失败"
+
+msgid "源"
+msgstr "源"
+
+msgid "点位"
+msgstr "点位"
+
+msgid "点击模式"
+msgstr "点击模式"
+
+msgid "状态"
+msgstr "状态"
+
+msgid "状态值"
+msgstr "状态值"
+
+msgid "环境已同步"
+msgstr "环境已同步"
+
+msgid "环境未同步，请点击默认安装更新"
+msgstr "环境未同步，请点击默认安装更新"
+
+msgid "画面信息"
+msgstr "画面信息"
+
+msgid "目标版本"
+msgstr "目标版本"
+
+msgid "确定要删除吗"
+msgstr "确定要删除吗"
+
+msgid "移到顶部"
+msgstr "移到顶部"
+
+msgid "移动"
+msgstr "移动"
+
+msgid "系统版本低于 Windows 10 2004，Overlay 已禁用"
+msgstr "系统版本低于 Windows 10 2004，Overlay 已禁用"
+
+msgid "纵"
+msgstr "纵"
+
+msgid "纵移"
+msgstr "纵移"
+
+msgid "继续"
+msgstr "继续"
+
+msgid "缩放比例:"
+msgstr "缩放比例:"
+
+msgid "网络代理设置"
+msgstr "网络代理设置"
+
+msgid "背景图片"
+msgstr "背景图片"
+
+msgid "自动测速选择"
+msgstr "自动测速选择"
+
+msgid "自定义安装"
+msgstr "自定义安装"
+
+msgid "色彩通道"
+msgstr "色彩通道"
+
+msgid "节点"
+msgstr "节点"
+
+msgid "获取"
+msgstr "获取"
+
+msgid "藏品第一优先级"
+msgstr "藏品第一优先级"
+
+msgid "藏品第二优先级 (无刷新时考虑)"
+msgstr "藏品第二优先级 (无刷新时考虑)"
+
+msgid "裁剪失败，请检查模板配置"
+msgstr "裁剪失败，请检查模板配置"
+
+msgid "视觉绘制"
+msgstr "视觉绘制"
+
+msgid "触发秒数"
+msgstr "触发秒数"
+
+msgid "警告"
+msgstr "警告"
+
+msgid "设置传送坐标"
+msgstr "设置传送坐标"
+
+msgid "请先打开一张图片"
+msgstr "请先打开一张图片"
+
+msgid "请先更新启动器"
+msgstr "请先更新启动器"
+
+msgid "请先输入角色ID"
+msgstr "请先输入角色ID"
+
+msgid "请先选择一个流水线"
+msgstr "请先选择一个流水线"
+
+msgid "请先选择截图或游戏截图"
+msgstr "请先选择截图或游戏截图"
+
+msgid "请确保手动创建的虚拟环境目录为"
+msgstr "请确保手动创建的虚拟环境目录为"
+
+msgid "请稍后重试"
+msgstr "请稍后重试"
+
+msgid "请稍后重试或切换代码源"
+msgstr "请稍后重试或切换代码源"
+
+msgid "请稍后重试；仍然失败时请查看日志"
+msgstr "请稍后重试；仍然失败时请查看日志"
+
+msgid "请输入兑换码"
+msgstr "请输入兑换码"
+
+msgid "请输入流水线名称"
+msgstr "请输入流水线名称"
+
+msgid "请选择主题色"
+msgstr "请选择主题色"
+
+msgid "请重启后重试；仍然失败时请重新安装"
+msgstr "请重启后重试；仍然失败时请重新安装"
+
+msgid "跳过此步骤"
+msgstr "跳过此步骤"
+
+msgid "输入代理人英文名"
+msgstr "输入代理人英文名"
+
+msgid "输入关键字进行搜索..."
+msgstr "输入关键字进行搜索..."
+
+msgid "输入状态关键词过滤..."
+msgstr "输入状态关键词过滤..."
+
+msgid "过期日期"
+msgstr "过期日期"
+
+msgid "运行"
+msgstr "运行"
+
+msgid "运行前检查"
+msgstr "运行前检查"
+
+msgid "运行环境"
+msgstr "运行环境"
+
+msgid "返回"
+msgstr "返回"
+
+msgid "这是一条测试消息"
+msgstr "这是一条测试消息"
+
+msgid "适应窗口"
+msgstr "适应窗口"
+
+msgid "选择你的"
+msgstr "选择你的"
+
+msgid "选择区域"
+msgstr "选择区域"
+
+msgid "选择区域: 未选择"
+msgstr "选择区域: 未选择"
+
+msgid "选择图片"
+msgstr "选择图片"
+
+msgid "选择已有"
+msgstr "选择已有"
+
+msgid "选择或新建流水线"
+msgstr "选择或新建流水线"
+
+msgid "选择模板配置文件"
+msgstr "选择模板配置文件"
+
+msgid "选择路径"
+msgstr "选择路径"
+
+msgid "选项优先级"
+msgstr "选项优先级"
+
+msgid "通用"
+msgstr "通用"
+
+msgid "避免途经点"
+msgstr "避免途经点"
+
+msgid "部分失败"
+msgstr "部分失败"
+
+msgid "重启后生效"
+msgstr "重启后生效"
+
+msgid "重命名"
+msgstr "重命名"
+
+msgid "重置进度"
+msgstr "重置进度"
+
+msgid "键"
+msgstr "键"
+
+msgid "集成启动器"
+msgstr "集成启动器"
+
+msgid "需下载"
+msgstr "需下载"
+
+msgid "需更新"
+msgstr "需更新"
+
+msgid "需要安装或配置"
+msgstr "需要安装或配置"
+
+msgid "面板与刷新"
+msgstr "面板与刷新"
+
+msgid "选择图片文件"
+msgstr "选择图片文件"
+
+msgid "选择底图"
+msgstr "选择底图"
+
+msgid "选择第二张图"
+msgstr "选择第二张图"
+
+msgid "测速：{label}"
+msgstr "测速：{label}"
+
+msgid "耗时 {ms}ms"
+msgstr "耗时 {ms}ms"
+
+msgid "已选择最快的Pip源：{label}（{ms}ms）"
+msgstr "已选择最快的Pip源：{label}（{ms}ms）"
+
+msgid "已选择最快的Python下载源：{label}（{ms}ms）"
+msgstr "已选择最快的Python下载源：{label}（{ms}ms）"
+
+msgid "已向当前通知方式发送测试消息"
+msgstr "已向当前通知方式发送测试消息"
+
+msgid "正在向所有已配置的通知方式发送测试消息..."
+msgstr "正在向所有已配置的通知方式发送测试消息..."
+
+msgid "已向所有已配置的通知方式发送测试消息"
+msgstr "已向所有已配置的通知方式发送测试消息"
+
+msgid "测试推送失败: {error}"
+msgstr "测试推送失败: {error}"
+
+msgid "请先配置 Webhook URL"
+msgstr "请先配置 Webhook URL"
+
+msgid "Webhook URL 不能为空"
+msgstr "Webhook URL 不能为空"
+
+msgid "cURL 命令已复制到剪贴板！"
+msgstr "cURL 命令已复制到剪贴板！"
+
+msgid "点击位置"
+msgstr "点击位置"
+
+msgid "RGB"
+msgstr "RGB"
+
+msgid "HSV"
+msgstr "HSV"
+
+msgid "HSV中心"
+msgstr "HSV中心"
+
+msgid "HSV差值"
+msgstr "HSV差值"
+
+msgid "色彩空间"
+msgstr "色彩空间"
+
+msgid "已选 {count} 项"
+msgstr "已选 {count} 项"
+
+msgid "无法找到包含 {marker} 的项目根目录"
+msgstr "无法找到包含 {marker} 的项目根目录"
+
+msgid "当日: {count}"
+msgstr "当日: {count}"
+
+msgid "已完成悬赏委托 如错误可重置"
+msgstr "已完成悬赏委托 如错误可重置"
+
+msgid "已完成刷取周期奖励 如错误可重置"
+msgstr "已完成刷取周期奖励 如错误可重置"
+
+msgid "已完成刷取周期性奖励 如错误可重置"
+msgstr "已完成刷取周期性奖励 如错误可重置"
+
+msgid "已完成刷取业绩 如错误可重置"
+msgstr "已完成刷取业绩 如错误可重置"
+
+msgid "通关次数 本日: {daily}, 本周: {weekly}"
+msgstr "通关次数 本日: {daily}, 本周: {weekly}"
+
+msgid "游戏内配队"
+msgstr "游戏内配队"
+
+msgid "{idx:02d} - {tp_name} ({count}步)"
+msgstr "{idx:02d} - {tp_name} ({count}步)"
+
+msgid "{idx:02d}. {tp_name} ({count}步)"
+msgstr "{idx:02d}. {tp_name} ({count}步)"
+
+msgid "传送点({x}, {y})"
+msgstr "传送点({x}, {y})"
+
+msgid "新建路线列表"
+msgstr "新建路线列表"
+
+msgid "请输入列表名称:"
+msgstr "请输入列表名称:"
+
+msgid "启动一条龙失败，报错信息如下:\n{trace}"
+msgstr "启动一条龙失败，报错信息如下:\n{trace}"
+
+msgid "启动一条龙失败,报错信息如下:\n\n{trace}\n\n是否打开排障文档查看解决方案?"
+msgstr "启动一条龙失败,报错信息如下:\n\n{trace}\n\n是否打开排障文档查看解决方案?"
+
+msgid "已启动: {url}"
+msgstr "已启动: {url}"
+
+msgid "端口 {port} 有响应,但不是 zzz_od MCP 服务"
+msgstr "端口 {port} 有响应,但不是 zzz_od MCP 服务"
+
+msgid "发现 MCP server 进程 PID={pid},但 /health 暂不可用"
+msgstr "发现 MCP server 进程 PID={pid},但 /health 暂不可用"
+
+msgid "未启动: {url}"
+msgstr "未启动: {url}"
+
+msgid "探测失败: {error}"
+msgstr "探测失败: {error}"
+
+msgid "服务未连接"
+msgstr "服务未连接"
+
+msgid "状态读取失败: {error}"
+msgstr "状态读取失败: {error}"
+
+msgid "{state}; 来源={source}; 应用={app}; 节点/结果={node}; 耗时={duration}"
+msgstr "{state}; 来源={source}; 应用={app}; 节点/结果={node}; 耗时={duration}"
+
+msgid "{status}; PID={pid}; 日志: {log_path}"
+msgstr "{status}; PID={pid}; 日志: {log_path}"
+
+msgid "进程已启动 PID={pid},等待服务就绪; 日志: {log_path}"
+msgstr "进程已启动 PID={pid},等待服务就绪; 日志: {log_path}"
+
+msgid "启动失败,返回码 {code}; 日志: {log_path}"
+msgstr "启动失败,返回码 {code}; 日志: {log_path}"
+
+msgid "MCP server 未运行"
+msgstr "MCP server 未运行"
+
+msgid "MCP server 已停止 PID={pid}"
+msgstr "MCP server 已停止 PID={pid}"
+
+msgid "停止失败: {error}"
+msgstr "停止失败: {error}"
+
+msgid "MCP server 已停止"
+msgstr "MCP server 已停止"
+
+msgid "状态已刷新"
+msgstr "状态已刷新"
+
+msgid "已有 MCP 服务操作正在执行"
+msgstr "已有 MCP 服务操作正在执行"
+
+msgid "开始执行: {action}"
+msgstr "开始执行: {action}"
+
+msgid "服务消息: {message}"
+msgstr "服务消息: {message}"
+
+msgid "当前运行状态: {status}"
+msgstr "当前运行状态: {status}"
+
+msgid "已复制: {url}"
+msgstr "已复制: {url}"
+
+msgid "已复制 MCP 地址: {url}"
+msgstr "已复制 MCP 地址: {url}"
+
+msgid "读取 MCP 日志失败: {error}"
+msgstr "读取 MCP 日志失败: {error}"
+
+msgid "未知操作: {action}"
+msgstr "未知操作: {action}"
+
+msgid "显示 {metric}"
+msgstr "显示 {metric}"
+
+msgid "OCR 耗时"
+msgstr "OCR 耗时"
+
+msgid "YOLO 耗时"
+msgstr "YOLO 耗时"
+
+msgid "节点轮次耗时"
+msgstr "节点轮次耗时"
+
+msgid "Overlay 刷新耗时"
+msgstr "Overlay 刷新耗时"
+
+msgid "上次运行 {time}"
+msgstr "上次运行 {time}"
+
+msgid "体力计划"
+msgstr "体力计划"
+
+msgid "图像分析"
+msgstr "图像分析"
+
+msgid "图像处理"
+msgstr "图像处理"
+
+msgid "图像扣图"
+msgstr "图像扣图"
+
+msgid "图片拼接"
+msgstr "图片拼接"
+
+msgid "多账户管理"
+msgstr "多账户管理"
+
+msgid "大地图录制"
+msgstr "大地图录制"
+
+msgid "委托助手"
+msgstr "委托助手"
+
+msgid "战斗助手"
+msgstr "战斗助手"
+
+msgid "截图助手"
+msgstr "截图助手"
+
+msgid "扩展安装"
+msgstr "扩展安装"
+
+msgid "指令调试"
+msgstr "指令调试"
+
+msgid "挑战配置-枯"
+msgstr "挑战配置-枯"
+
+msgid "挑战配置-迷"
+msgstr "挑战配置-迷"
+
+msgid "枯萎之都配置"
+msgstr "枯萎之都配置"
+
+msgid "模板管理"
+msgstr "模板管理"
+
+msgid "灵敏度校准"
+msgstr "灵敏度校准"
+
+msgid "画面管理"
+msgstr "画面管理"
+
+msgid "迷失之地配置"
+msgstr "迷失之地配置"
+
+msgid "锄地路线录制"
+msgstr "锄地路线录制"
+
+msgid "锄大地配置"
+msgstr "锄大地配置"
+
+msgid "随便观"
+msgstr "随便观"
+
+msgid "全配队通用"
+msgstr "全配队通用"
+
+msgid "键鼠"
+msgstr "键鼠"
+
+msgid "[触发器]"
+msgstr "[触发器]"
+
+msgid "[条件集]"
+msgstr "[条件集]"
+
+msgid "[持续时间]"
+msgstr "[持续时间]"
+
+msgid "空闲"
+msgstr "空闲"
+
+msgid "添加操作"
+msgstr "添加操作"
+
+msgid "删除选中"
+msgstr "删除选中"
+
+msgid "是否删除所有已完成的体力计划？"
+msgstr "是否删除所有已完成的体力计划？"
+
+msgid "是否删除所有体力计划？"
+msgstr "是否删除所有体力计划？"
+
+msgid "从 GitHub 仓库同步最新项目代码，确保使用最新功能和修复。"
+msgstr "从 GitHub 仓库同步最新项目代码，确保使用最新功能和修复。"
+
+msgid "配置 Python 运行环境和依赖管理工具，为项目运行做好准备。"
+msgstr "配置 Python 运行环境和依赖管理工具，为项目运行做好准备。"
+
+msgid "下载项目启动器，用于启动和管理一条龙应用。"
+msgstr "下载项目启动器，用于启动和管理一条龙应用。"
+
+msgid "安装项目所需的扩展组件和特定功能模块，提供完整的功能体验。"
+msgstr "安装项目所需的扩展组件和特定功能模块，提供完整的功能体验。"
+
+msgid "闪避助手"
+msgstr "闪避助手"
+
+msgid "体力刷本"
+msgstr "体力刷本"
+
+msgid "丽都城募"
+msgstr "丽都城募"
+
+msgid "咖啡店"
+msgstr "咖啡店"
+
+msgid "每日签到"
+msgstr "每日签到"
+
+msgid "闪避截图"
+msgstr "闪避截图"
+
+msgid "驱动盘拆解"
+msgstr "驱动盘拆解"
+
+msgid "邮件"
+msgstr "邮件"
+
+msgid "活跃度奖励"
+msgstr "活跃度奖励"
+
+msgid "鼠标灵敏度检测"
+msgstr "鼠标灵敏度检测"
+
+msgid "预备编队角色识别"
+msgstr "预备编队角色识别"
+
+msgid "迷失之地"
+msgstr "迷失之地"
+
+msgid "枯萎之都"
+msgstr "枯萎之都"
+
+msgid "吼吼饼铺"
+msgstr "吼吼饼铺"
+
+msgid "情报板"
+msgstr "情报板"
+
+msgid "真·拿命验收"
+msgstr "真·拿命验收"
+
+msgid "通知"
+msgstr "通知"
+
+msgid "恶名狩猎"
+msgstr "恶名狩猎"
+
+msgid "录像店营业"
+msgstr "录像店营业"
+
+msgid "丽都周纪 (领奖励)"
+msgstr "丽都周纪 (领奖励)"
+
+msgid "刮刮卡"
+msgstr "刮刮卡"
+
+msgid "卦象集录"
+msgstr "卦象集录"
+
+msgid "锄大地"
+msgstr "锄大地"
+
+msgid "一条龙运行"
+msgstr "一条龙运行"
+
+msgid "点击查看指南"
+msgstr "点击查看指南"
+
+msgid "点此查看指南"
+msgstr "点此查看指南"
+
+msgid "请输入密码"
+msgstr "请输入密码"
+
+msgid "国服"
+msgstr "国服"
+
+msgid "B服"
+msgstr "B服"
+
+msgid "美服"
+msgstr "美服"
+
+msgid "欧服"
+msgstr "欧服"
+
+msgid "亚服"
+msgstr "亚服"
+
+msgid "港澳台服"
+msgstr "港澳台服"
+
+msgid "剪贴板"
+msgstr "剪贴板"
+
+msgid "键盘输入"
+msgstr "键盘输入"
+
+msgid "出现剪切板失败时 切换到输入法"
+msgstr "出现剪切板失败时 切换到输入法"
+
+msgid "出现剪切板失效时 切换到输入法"
+msgstr "出现剪切板失效时 切换到输入法"
+
+msgid "一条龙中运行"
+msgstr "一条龙中运行"
+
+msgid "公告要闻"
+msgstr "公告要闻"
+
+msgid "软件科研"
+msgstr "软件科研"
+
+msgid "软件科普"
+msgstr "软件科普"
+
+msgid "游戏攻略"
+msgstr "游戏攻略"
+
+msgid "一条龙中不运行"
+msgstr "一条龙中不运行"
+
+msgid "切换后援"
+msgstr "切换后援"
+
+msgid "功能导览"
+msgstr "功能导览"
+
+msgid "地图"
+msgstr "地图"
+
+msgid "小地图"
+msgstr "小地图"
+
+msgid "快捷手册"
+msgstr "快捷手册"
+
+msgid "菜单"
+msgstr "菜单"
+
+msgid "窗口化"
+msgstr "窗口化"
+
+msgid "简体中文"
+msgstr "简体中文"
+
+msgid "邮件服务器"
+msgstr "邮件服务器"
+
+msgid "使用 SSL"
+msgstr "使用 SSL"
+
+msgid "使用 STARTTLS"
+msgstr "使用 STARTTLS"
+
+msgid "收发件邮箱"
+msgstr "收发件邮箱"
+
+msgid "登录密码"
+msgstr "登录密码"
+
+msgid "收发件人名称"
+msgstr "收发件人名称"
+
+msgid "SMTP 登录密码，也可能为特殊口令"
+msgstr "SMTP 登录密码，也可能为特殊口令"
+
+msgid "将由自己发给自己"
+msgstr "将由自己发给自己"
+
+msgid "可随意填写"
+msgstr "可随意填写"
+
+msgid "不使用代理发送"
+msgstr "不使用代理发送"
+
+msgid "SMTP邮件"
+msgstr "SMTP邮件"
+
+msgid "稳定版"
+msgstr "稳定版"
+
+msgid "测试版"
+msgstr "测试版"
+
+msgid "不启用"
+msgstr "不启用"
+
+msgid "智能微秘书"
+msgstr "智能微秘书"
+
+msgid "钉钉机器人"
+msgstr "钉钉机器人"
+
+msgid "Discord 机器人"
+msgstr "Discord 机器人"
+
+msgid "下面的方法无人维护，遇到问题请自行解决"
+msgstr "下面的方法无人维护，遇到问题请自行解决"
+
+msgid "飞书/Lark 机器人"
+msgstr "飞书/Lark 机器人"
+
+msgid "Qmsg 酱"
+msgstr "Qmsg 酱"
+
+msgid "Server酱"
+msgstr "Server酱"
+
+msgid "通用Webhook"
+msgstr "通用Webhook"
+
+msgid "微加机器人"
+msgstr "微加机器人"
+
+msgid "企业微信应用"
+msgstr "企业微信应用"
+
+msgid "企业微信机器人"
+msgstr "企业微信机器人"
+
+msgid "核心贡献者"
+msgstr "核心贡献者"
+
+msgid "文档贡献者"
+msgstr "文档贡献者"
+
+msgid "社区维护者"
+msgstr "社区维护者"
+
+msgid "近期贡献者"
+msgstr "近期贡献者"
+
+msgid "其他贡献者"
+msgstr "其他贡献者"
+
+msgid "加载贡献者信息失败: {error}"
+msgstr "加载贡献者信息失败: {error}"
+
+msgid "矩形模板：左键拖拽选择矩形区域，或单击两个对角点"
+msgstr "矩形模板：左键拖拽选择矩形区域，或单击两个对角点"
+
+msgid "圆形模板：左键拖拽选择外接矩形，或单击圆心和边界点"
+msgstr "圆形模板：左键拖拽选择外接矩形，或单击圆心和边界点"
+
+msgid "四边形模板：左键拖拽选择矩形区域，或依次单击四个顶点"
+msgstr "四边形模板：左键拖拽选择矩形区域，或依次单击四个顶点"
+
+msgid "多边形模板：左键单击添加顶点，或拖拽添加矩形顶点"
+msgstr "多边形模板：左键单击添加顶点，或拖拽添加矩形顶点"
+
+msgid "多矩形模板：左键拖拽添加矩形区域，或单击添加点位"
+msgstr "多矩形模板：左键拖拽添加矩形区域，或单击添加点位"
+
+msgid "左键单击添加点位，右键显示颜色信息"
+msgstr "左键单击添加点位，右键显示颜色信息"
+
+msgid "\n\n快捷键：Ctrl+左键拖拽移动图片，滚轮缩放\nCtrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
+msgstr "\n\n快捷键：Ctrl+左键拖拽移动图片，滚轮缩放\nCtrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
+
+msgid "减小字号 (Ctrl+滚轮下)"
+msgstr "减小字号 (Ctrl+滚轮下)"
+
+msgid "增大字号 (Ctrl+滚轮上)"
+msgstr "增大字号 (Ctrl+滚轮上)"
+
+msgid "降低面板不透明度"
+msgstr "降低面板不透明度"
+
+msgid "提高面板不透明度"
+msgstr "提高面板不透明度"
+
+msgid "切换锁定/自由模式"
+msgstr "切换锁定/自由模式"
+
+msgid "关闭编辑模式"
+msgstr "关闭编辑模式"
+
+msgid "当前为默认配置，点击复制后可修改"
+msgstr "当前为默认配置，点击复制后可修改"
+
+msgid "MCP 服务操作仍在执行，将在后台继续完成"
+msgstr "MCP 服务操作仍在执行，将在后台继续完成"
+
+msgid "正在安装...安装过程可能需要安装驱动 正常安装即可"
+msgstr "正在安装...安装过程可能需要安装驱动 正常安装即可"
+
+msgid "左摇杆-上"
+msgstr "左摇杆-上"
+
+msgid "左摇杆-下"
+msgstr "左摇杆-下"
+
+msgid "左摇杆-左"
+msgstr "左摇杆-左"
+
+msgid "左摇杆-右"
+msgstr "左摇杆-右"
+
+msgid "左摇杆-按下"
+msgstr "左摇杆-按下"
+
+msgid "右摇杆-上"
+msgstr "右摇杆-上"
+
+msgid "右摇杆-下"
+msgstr "右摇杆-下"
+
+msgid "右摇杆-左"
+msgstr "右摇杆-左"
+
+msgid "右摇杆-右"
+msgstr "右摇杆-右"
+
+msgid "右摇杆-按下"
+msgstr "右摇杆-按下"
+
+msgid "十字键-上"
+msgstr "十字键-上"
+
+msgid "十字键-下"
+msgstr "十字键-下"
+
+msgid "十字键-左"
+msgstr "十字键-左"
+
+msgid "十字键-右"
+msgstr "十字键-右"
+
+msgid "触控板"
+msgstr "触控板"
+
+msgid "自动"
+msgstr "自动"
+
+msgid "阿里云"
+msgstr "阿里云"
+
+msgid "GitHub 代理"
+msgstr "GitHub 代理"
+
+msgid "主分支"
+msgstr "主分支"
+
+msgid "测试分支"
+msgstr "测试分支"
+
+msgid "历史记录"
+msgstr "历史记录"
+
+msgid "Ctrl+Z 撤回，Ctrl+Shift+Z 恢复"
+msgstr "Ctrl+Z 撤回，Ctrl+Shift+Z 恢复"
+
+msgid "[ 新建流水线... ]"
+msgstr "[ 新建流水线... ]"
+
+msgid "区域名称"
+msgstr "区域名称"
+
+msgid "OCR文本"
+msgstr "OCR文本"
+
+msgid "OCR阈值"
+msgstr "OCR阈值"
+
+msgid "模板目录"
+msgstr "模板目录"
+
+msgid "模板阈值"
+msgstr "模板阈值"
+
+msgid "颜色范围"
+msgstr "颜色范围"
+
+msgid "前往画面"
+msgstr "前往画面"
+
+msgid "手柄键"
+msgstr "手柄键"
+
+msgid "1号位大头像"
+msgstr "1号位大头像"
+
+msgid "2号位小头像"
+msgstr "2号位小头像"
+
+msgid "连携头像"
+msgstr "连携头像"
+
+msgid "快速支援头像"
+msgstr "快速支援头像"
+
+msgid "零号空洞头像"
+msgstr "零号空洞头像"
+
+msgid "组队预设头像"
+msgstr "组队预设头像"
+
+msgid "1号大头像：3人组队，目标角色切到1号位"
+msgstr "1号大头像：3人组队，目标角色切到1号位"
+
+msgid "2号小头像：3人组队，目标角色切到2号位"
+msgstr "2号小头像：3人组队，目标角色切到2号位"
+
+msgid "连携头像：触发目标角色连携（头像在左边）"
+msgstr "连携头像：触发目标角色连携（头像在左边）"
+
+msgid "快速支援：触发目标角色快速支援"
+msgstr "快速支援：触发目标角色快速支援"
+
+msgid "空洞头像：走格子，目标角色在编队1号位"
+msgstr "空洞头像：走格子，目标角色在编队1号位"
+
+msgid "预备编队：菜单-更多，目标角色在1号队伍1号位"
+msgstr "预备编队：菜单-更多，目标角色在1号队伍1号位"
+
+msgid "默认数量"
+msgstr "默认数量"
+
+msgid "1张卡片"
+msgstr "1张卡片"
+
+msgid "2张卡片"
+msgstr "2张卡片"
+
+msgid "3张卡片"
+msgstr "3张卡片"
+
+msgid "4张卡片"
+msgstr "4张卡片"
+
+msgid "5张卡片"
+msgstr "5张卡片"
+
+msgid "不使用"
+msgstr "不使用"
+
+msgid "使用储蓄电量"
+msgstr "使用储蓄电量"
+
+msgid "使用以太电池"
+msgstr "使用以太电池"
+
+msgid "同时使用储蓄电量和以太电池"
+msgstr "同时使用储蓄电量和以太电池"
+
+msgid "不挑战"
+msgstr "不挑战"
+
+msgid "全都挑战"
+msgstr "全都挑战"
+
+msgid "只挑战体力计划"
+msgstr "只挑战体力计划"
+
+msgid "优先体力计划"
+msgstr "优先体力计划"
+
+msgid "汀曼特调"
+msgstr "汀曼特调"
+
+msgid "浓缩咖啡"
+msgstr "浓缩咖啡"
+
+msgid "A及以下"
+msgstr "A及以下"
+
+msgid "S及以下"
+msgstr "S及以下"
+
+msgid "不进行"
+msgstr "不进行"
+
+msgid "2层业绩后退出"
+msgstr "2层业绩后退出"
+
+msgid "3层业绩后退出"
+msgstr "3层业绩后退出"
+
+msgid "通关"
+msgstr "通关"
+
+msgid "入口"
+msgstr "入口"
+
+msgid "战斗-鸣徽"
+msgstr "战斗-鸣徽"
+
+msgid "战斗-武备"
+msgstr "战斗-武备"
+
+msgid "战斗-硬币"
+msgstr "战斗-硬币"
+
+msgid "挑战-无伤"
+msgstr "挑战-无伤"
+
+msgid "挑战-限时"
+msgstr "挑战-限时"
+
+msgid "挑战-收割"
+msgstr "挑战-收割"
+
+msgid "偶遇事件"
+msgstr "偶遇事件"
+
+msgid "代价之间"
+msgstr "代价之间"
+
+msgid "休憩调息"
+msgstr "休憩调息"
+
+msgid "邦布商店"
+msgstr "邦布商店"
+
+msgid "挚交会谈"
+msgstr "挚交会谈"
+
+msgid "战斗-道中危机"
+msgstr "战斗-道中危机"
+
+msgid "战斗-终结之役"
+msgstr "战斗-终结之役"
+
+msgid "第二个"
+msgstr "第二个"
+
+msgid "第三个"
+msgstr "第三个"
+
+msgid "刷新0次"
+msgstr "刷新0次"
+
+msgid "刷新1次(50硬币)"
+msgstr "刷新1次(50硬币)"
+
+msgid "刷新2次(100硬币)"
+msgstr "刷新2次(100硬币)"
+
+msgid "刷新3次(200硬币)"
+msgstr "刷新3次(200硬币)"
+
+msgid "刷新4次(300硬币)"
+msgstr "刷新4次(300硬币)"
+
+msgid "一直刷新"
+msgstr "一直刷新"
+
+msgid "完成悬赏委托"
+msgstr "完成悬赏委托"
+
+msgid "刷满业绩点"
+msgstr "刷满业绩点"
+
+msgid "刷满周期奖励"
+msgstr "刷满周期奖励"
+
+msgid "完成周计划次数"
+msgstr "完成周计划次数"
+
+msgid "周一"
+msgstr "周一"
+
+msgid "周二"
+msgstr "周二"
+
+msgid "周三"
+msgstr "周三"
+
+msgid "周四"
+msgstr "周四"
+
+msgid "周五"
+msgstr "周五"
+
+msgid "周六"
+msgstr "周六"
+
+msgid "周日"
+msgstr "周日"
+
+msgid "默认等级"
+msgstr "默认等级"
+
+msgid "等级Lv.65"
+msgstr "等级Lv.65"
+
+msgid "等级Lv.60"
+msgstr "等级Lv.60"
+
+msgid "等级Lv.50"
+msgstr "等级Lv.50"
+
+msgid "等级Lv.40"
+msgstr "等级Lv.40"
+
+msgid "等级Lv.30"
+msgstr "等级Lv.30"
+
+msgid "第一个BUFF"
+msgstr "第一个BUFF"
+
+msgid "第二个BUFF"
+msgstr "第二个BUFF"
+
+msgid "第三个BUFF"
+msgstr "第三个BUFF"
+
+msgid "第一个"
+msgstr "第一个"
+
+msgid "最后一个"
+msgstr "最后一个"
+
+msgid "自动点击"
+msgstr "自动点击"
+
+msgid "等待剧情自动播放"
+msgstr "等待剧情自动播放"
+
+msgid "跳过剧情"
+msgstr "跳过剧情"
+
+msgid "中国 - CNB"
+msgstr "中国 - CNB"
+
+msgid "中国 - GitHub 代理"
+msgstr "中国 - GitHub 代理"
+
+msgid "中国 - Gitee"
+msgstr "中国 - Gitee"
+
+msgid "官方"
+msgstr "官方"
+
+msgid "海外"
+msgstr "海外"
+
+msgid "清华大学"
+msgstr "清华大学"
+
+msgid "代码版本"
+msgstr "代码版本"
+
+msgid "暂时无法获取更新"
+msgstr "暂时无法获取更新"
+
+msgid "标识"
+msgstr "标识"
+
+msgid "位置"
+msgstr "位置"
+
+msgid "代码已是最新版本"
+msgstr "代码已是最新版本"
+
+msgid "有新版本啦"
+msgstr "有新版本啦"
+
+msgid "稍安勿躁~"
+msgstr "稍安勿躁~"
+
+msgid "有新模型啦"
+msgstr "有新模型啦"
+
+msgid "有新启动器啦"
+msgstr "有新启动器啦"
+
+msgid "到[设置-资源下载]更新吧~"
+msgstr "到[设置-资源下载]更新吧~"
+
+msgid "背景已更新"
+msgstr "背景已更新"
+
+msgid "新的背景已成功应用"
+msgstr "新的背景已成功应用"
+
+msgid "Enjoy it & have fun!"
+msgstr "Enjoy it & have fun!"
+
+msgid "API 地址"
+msgstr "API 地址"
+
+msgid "Discord API 地址 (默认使用官方地址)"
+msgstr "Discord API 地址 (默认使用官方地址)"
+
+msgid "Gotify 地址"
+msgstr "Gotify 地址"
+
+msgid "Gotify 的 App Token"
+msgstr "Gotify 的 App Token"
+
+msgid "HTTP 方法"
+msgstr "HTTP 方法"
+
+msgid "QQ 号"
+msgstr "QQ 号"
+
+msgid "QQ 配置"
+msgstr "QQ 配置"
+
+msgid "Webhook 编码"
+msgstr "Webhook 编码"
+
+msgid "Webhook地址后缀"
+msgstr "Webhook地址后缀"
+
+msgid "ntfy 应用 Topic"
+msgstr "ntfy 应用 Topic"
+
+msgid "ntfy 应用 token"
+msgstr "ntfy 应用 token"
+
+msgid "ntfy 应用密码"
+msgstr "ntfy 应用密码"
+
+msgid "ntfy 应用用户名"
+msgstr "ntfy 应用用户名"
+
+msgid "ntfy 用户动作，最多三个"
+msgstr "ntfy 用户动作，最多三个"
+
+msgid "ntfy服务器"
+msgstr "ntfy服务器"
+
+msgid "二者至少配置其中之一"
+msgstr "二者至少配置其中之一"
+
+msgid "企业 ID"
+msgstr "企业 ID"
+
+msgid "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> AgentId"
+msgstr "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> AgentId"
+
+msgid "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> Secret"
+msgstr "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> Secret"
+
+msgid "企业微信后台 -> 我的企业 -> 企业信息 -> 企业 ID"
+msgstr "企业微信后台 -> 我的企业 -> 企业信息 -> 企业 ID"
+
+msgid "企业微信机器人 Key"
+msgstr "企业微信机器人 Key"
+
+msgid "创建机器人时勾选签名校验显示的密钥"
+msgstr "创建机器人时勾选签名校验显示的密钥"
+
+msgid "发送模板"
+msgstr "发送模板"
+
+msgid "发送渠道"
+msgstr "发送渠道"
+
+msgid "发送结果回调地址"
+msgstr "发送结果回调地址"
+
+msgid "发送群名或者好友昵称，和 type 要对应"
+msgstr "发送群名或者好友昵称，和 type 要对应"
+
+msgid "只填 Key"
+msgstr "只填 Key"
+
+msgid "可在公众号上扩展配置出更多渠道"
+msgstr "可在公众号上扩展配置出更多渠道"
+
+msgid "填写在CHRONOCAT文件生成的访问密钥"
+msgstr "填写在CHRONOCAT文件生成的访问密钥"
+
+msgid "多个用英文分号;分隔"
+msgstr "多个用英文分号;分隔"
+
+msgid "应用 AgentId"
+msgstr "应用 AgentId"
+
+msgid "应用 Secret"
+msgstr "应用 Secret"
+
+msgid "成员ID，多个用 '|' 分隔。默认 @all"
+msgstr "成员ID，多个用 '|' 分隔。默认 @all"
+
+msgid "接收者 ID"
+msgstr "接收者 ID"
+
+msgid "推送 Key"
+msgstr "推送 Key"
+
+msgid "推送 URL"
+msgstr "推送 URL"
+
+msgid "推送中断级别"
+msgstr "推送中断级别"
+
+msgid "推送分组"
+msgstr "推送分组"
+
+msgid "推送图标"
+msgstr "推送图标"
+
+msgid "推送地址或 Key"
+msgstr "推送地址或 Key"
+
+msgid "推送是否存档"
+msgstr "推送是否存档"
+
+msgid "推送跳转URL"
+msgstr "推送跳转URL"
+
+msgid "推送铃声"
+msgstr "推送铃声"
+
+msgid "服务地址"
+msgstr "服务地址"
+
+msgid "服务类型"
+msgstr "服务类型"
+
+msgid "机器人 Token"
+msgstr "机器人 Token"
+
+msgid "机器人签名校验密钥"
+msgstr "机器人签名校验密钥"
+
+msgid "消息优先级"
+msgstr "消息优先级"
+
+msgid "用户 ID"
+msgstr "用户 ID"
+
+msgid "用户动作"
+msgstr "用户动作"
+
+msgid "用户名称"
+msgstr "用户名称"
+
+msgid "用户密码"
+msgstr "用户密码"
+
+msgid "目标名称"
+msgstr "目标名称"
+
+msgid "目标类型"
+msgstr "目标类型"
+
+msgid "群号"
+msgstr "群号"
+
+msgid "群组编号"
+msgstr "群组编号"
+
+msgid "自建应用 App ID"
+msgstr "自建应用 App ID"
+
+msgid "自建应用 Secret"
+msgstr "自建应用 Secret"
+
+msgid "设备码"
+msgstr "设备码"
+
+msgid "访问令牌"
+msgstr "访问令牌"
+
+msgid "请填写图标的URL"
+msgstr "请填写图标的URL"
+
+msgid "请填写推送分组"
+msgstr "请填写推送分组"
+
+msgid "请填写推送跳转URL"
+msgstr "请填写推送跳转URL"
+
+msgid "请填写设备码"
+msgstr "请填写设备码"
+
+msgid "请填写铃声名称"
+msgstr "请填写铃声名称"
+
+msgid "请求体 (Payload)"
+msgstr "请求体 (Payload)"
+
+msgid "请求地址"
+msgstr "请求地址"
+
+msgid "请求头 (Headers)"
+msgstr "请求头 (Headers)"
+
+msgid "请输入 Bark 推送地址或 Key"
+msgstr "请输入 Bark 推送地址或 Key"
+
+msgid "请输入 Discord 机器人的 Token"
+msgstr "请输入 Discord 机器人的 Token"
+
+msgid "请输入 OneBot 的 Token"
+msgstr "请输入 OneBot 的 Token"
+
+msgid "请输入 PushDeer 的 KEY"
+msgstr "请输入 PushDeer 的 KEY"
+
+msgid "请输入 PushDeer 的 推送URL"
+msgstr "请输入 PushDeer 的 推送URL"
+
+msgid "请输入 PushMe 的 KEY"
+msgstr "请输入 PushMe 的 KEY"
+
+msgid "请输入 PushMe 的 URL"
+msgstr "请输入 PushMe 的 URL"
+
+msgid "请输入 Qmsg 酱的 KEY"
+msgstr "请输入 Qmsg 酱的 KEY"
+
+msgid "请输入 Server酱 的 PUSH_KEY"
+msgstr "请输入 Server酱 的 PUSH_KEY"
+
+msgid "请输入 Synology Chat 的 Token"
+msgstr "请输入 Synology Chat 的 Token"
+
+msgid "请输入 Synology Chat 的 URL"
+msgstr "请输入 Synology Chat 的 URL"
+
+msgid "请输入 Webhook URL"
+msgstr "请输入 Webhook URL"
+
+msgid "请输入 appToken"
+msgstr "请输入 appToken"
+
+msgid "请输入 iGot 的 推送 Key"
+msgstr "请输入 iGot 的 推送 Key"
+
+msgid "请输入个人中心的 APIKEY"
+msgstr "请输入个人中心的 APIKEY"
+
+msgid "请输入目标 QQ 号"
+msgstr "请输入目标 QQ 号"
+
+msgid "请输入目标群号"
+msgstr "请输入目标群号"
+
+msgid "请输入群组编号"
+msgstr "请输入群组编号"
+
+msgid "请输入要接收私信的用户 ID"
+msgstr "请输入要接收私信的用户 ID"
+
+msgid "请输入请求体内容"
+msgstr "请输入请求体内容"
+
+msgid "请输入请求地址"
+msgstr "请输入请求地址"
+
+msgid "请输入钉钉机器人的Secret密钥"
+msgstr "请输入钉钉机器人的Secret密钥"
+
+msgid "请输入钉钉机器人的Token密钥"
+msgstr "请输入钉钉机器人的Token密钥"
+
+msgid "请输入飞书机器人的Webhook地址后缀"
+msgstr "请输入飞书机器人的Webhook地址后缀"
+
+msgid "通知类型"
+msgstr "通知类型"
+
+msgid "非必填，填写则用于发送图片"
+msgstr "非必填，填写则用于发送图片"
+
+msgid "飞书"
+msgstr "飞书"
+
+msgid "群组编码"
+msgstr "群组编码"
+
+msgid "请输入群组编码"
+msgstr "请输入群组编码"
+
+msgid "没有可用的推送渠道"
+msgstr "没有可用的推送渠道"

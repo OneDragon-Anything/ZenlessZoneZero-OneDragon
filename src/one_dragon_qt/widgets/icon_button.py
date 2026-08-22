@@ -7,6 +7,11 @@ from qfluentwidgets import (
 )
 from qfluentwidgets.common.overload import singledispatchmethod
 
+from one_dragon.utils.i18_utils import (
+    gt,
+    subscribe_language_changed,
+    unsubscribe_language_changed,
+)
 from one_dragon_qt.widgets.teaching_tip import TeachingTip
 
 
@@ -37,8 +42,21 @@ class IconButton(TransparentToolButton):
         if isTooltip:
             self.installEventFilter(self)
 
-        self.tip_title: str = tip_title
-        self.tip_content: str = tip_content
+        self._tip_title_msgid: str = tip_title
+        self._tip_content_msgid: str = tip_content
+        self._language_callback = self.retranslate_ui
+        subscribe_language_changed(self._language_callback)
+        self.destroyed.connect(self._on_destroyed)
+        self.retranslate_ui()
+
+    def _on_destroyed(self, _object=None) -> None:
+        """Unsubscribe the button after Qt destroys it."""
+        unsubscribe_language_changed(self._language_callback)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the tooltip text after the application language changes."""
+        self.tip_title = gt(self._tip_title_msgid)
+        self.tip_content = gt(self._tip_content_msgid)
 
     def eventFilter(self, watched, event: QEvent) -> bool:
         """处理鼠标事件。"""

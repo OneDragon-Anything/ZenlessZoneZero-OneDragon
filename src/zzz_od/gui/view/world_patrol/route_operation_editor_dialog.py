@@ -1,9 +1,10 @@
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, 
                                QTableWidgetItem, QPushButton, QHeaderView, 
-                               QComboBox, QLineEdit, QSpinBox, QMessageBox)
+                               QComboBox, QMessageBox)
 from qfluentwidgets import FluentIcon
 
+from one_dragon.utils.i18_utils import gt
 from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolOperation, WorldPatrolOpType
 
 
@@ -17,7 +18,7 @@ class RouteOperationEditorDialog(QDialog):
         self.original_op_list = op_list
         self.current_op_list = []
         
-        self.setWindowTitle('编辑路线操作')
+        self.setWindowTitle(gt('编辑路线操作'))
         self.setModal(True)  # 模态对话框
         self.resize(800, 600)
         
@@ -34,7 +35,7 @@ class RouteOperationEditorDialog(QDialog):
         # 创建表格
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(['序号', '操作类型', '数据1', '数据2'])
+        self.table.setHorizontalHeaderLabels([gt('序号'), gt('操作类型'), gt('数据1'), gt('数据2')])
         
         # 设置表格列宽
         header = self.table.horizontalHeader()
@@ -50,19 +51,19 @@ class RouteOperationEditorDialog(QDialog):
         # 操作按钮行
         button_layout = QHBoxLayout()
         
-        self.add_btn = QPushButton('添加操作')
+        self.add_btn = QPushButton(gt('添加操作'))
         self.add_btn.clicked.connect(self._on_add_clicked)
         button_layout.addWidget(self.add_btn)
         
-        self.delete_btn = QPushButton('删除选中')
+        self.delete_btn = QPushButton(gt('删除选中'))
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         button_layout.addWidget(self.delete_btn)
         
-        self.move_up_btn = QPushButton('上移')
+        self.move_up_btn = QPushButton(gt('上移'))
         self.move_up_btn.clicked.connect(self._on_move_up_clicked)
         button_layout.addWidget(self.move_up_btn)
         
-        self.move_down_btn = QPushButton('下移')
+        self.move_down_btn = QPushButton(gt('下移'))
         self.move_down_btn.clicked.connect(self._on_move_down_clicked)
         button_layout.addWidget(self.move_down_btn)
         
@@ -73,11 +74,11 @@ class RouteOperationEditorDialog(QDialog):
         confirm_layout = QHBoxLayout()
         confirm_layout.addStretch()
         
-        self.save_btn = QPushButton('保存')
+        self.save_btn = QPushButton(gt('保存'))
         self.save_btn.clicked.connect(self._on_save_clicked)
         confirm_layout.addWidget(self.save_btn)
         
-        self.cancel_btn = QPushButton('取消')
+        self.cancel_btn = QPushButton(gt('取消'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         confirm_layout.addWidget(self.cancel_btn)
         
@@ -99,7 +100,7 @@ class RouteOperationEditorDialog(QDialog):
         
         for i, op in enumerate(self.current_op_list):
             # 序号（只读）
-            index_item = QTableWidgetItem(str(i))
+            index_item = QTableWidgetItem(str(i + 1))
             index_item.setFlags(index_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table.setItem(i, 0, index_item)
             
@@ -154,8 +155,10 @@ class RouteOperationEditorDialog(QDialog):
         """删除选中的操作"""
         current_row = self.table.currentRow()
         if 0 <= current_row < len(self.current_op_list):
-            reply = QMessageBox.question(self, '确认删除', 
-                                       f'确定要删除第{current_row}个操作吗？',
+            reply = QMessageBox.question(
+                self,
+                gt('确认删除'),
+                gt('确定要删除第{index}个操作吗？', index=current_row + 1),
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if reply == QMessageBox.StandardButton.Yes:
                 del self.current_op_list[current_row]
@@ -186,14 +189,22 @@ class RouteOperationEditorDialog(QDialog):
         # 验证数据
         for i, op in enumerate(self.current_op_list):
             if len(op.data) < 2:
-                QMessageBox.warning(self, '数据错误', f'第{i}个操作的数据不完整')
+                QMessageBox.warning(
+                    self,
+                    gt('数据错误'),
+                    gt('第{index}个操作的数据不完整', index=i + 1),
+                )
                 return
             try:
                 # 验证坐标是否为数字
                 float(op.data[0])
                 float(op.data[1])
             except ValueError:
-                QMessageBox.warning(self, '数据错误', f'第{i}个操作的坐标数据必须是数字')
+                QMessageBox.warning(
+                    self,
+                    gt('数据错误'),
+                    gt('第{index}个操作的坐标数据必须是数字', index=i + 1),
+                )
                 return
         
         self.operations_updated.emit(self.current_op_list)

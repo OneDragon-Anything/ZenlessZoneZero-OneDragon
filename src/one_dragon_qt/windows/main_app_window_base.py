@@ -4,11 +4,13 @@ import contextlib
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import InfoBar, InfoBarIcon, InfoBarPosition
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.utils import i18_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_manager import AppSettingManager
 from one_dragon_qt.widgets.back_navigation_button import BackNavigationButton
@@ -53,6 +55,21 @@ class MainAppWindowBase(AppWindowBase):
 
         self.context_notify_signal.connect(self._show_context_notify)
         self.ctx.listen_event(ContextNotifyEvent.EVENT_ID, self._emit_context_notify)
+        i18_utils.subscribe_language_changed(self._on_language_changed)
+
+    def _on_language_changed(self, _language: str) -> None:
+        """Refresh visible navigation and page labels after a language change."""
+        self.refresh_navigation_text()
+        for interface in self.findChildren(BaseInterface):
+            interface.retranslate_ui()
+        for widget in self.findChildren(QWidget):
+            BaseInterface._retranslate_widget_text(widget)
+        if hasattr(self, 'titleBar') and hasattr(self.titleBar, 'retranslate_ui'):
+            self.titleBar.retranslate_ui()
+        self.setWindowTitle(
+            f'{gt(self.ctx.project_config.project_name)} '
+            f'{self.ctx.one_dragon_config.current_active_instance.name}'
+        )
 
     def create_sub_interface(self) -> None:
         # 导航栏返回按钮（最上方，在子界面之前添加）

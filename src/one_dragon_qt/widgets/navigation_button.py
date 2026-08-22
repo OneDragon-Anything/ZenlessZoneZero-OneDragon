@@ -1,10 +1,13 @@
 from collections.abc import Callable
 
 from PySide6.QtGui import QPainter
-from qfluentwidgets import FluentIconBase, NavigationBarPushButton
+from PySide6.QtWidgets import QWidget
+from qfluentwidgets import FluentIconBase
+
+from one_dragon_qt.widgets.wrapped_navigation_bar import WrappedNavigationBarPushButton
 
 
-class NavigationButton(NavigationBarPushButton):
+class NavigationButton(WrappedNavigationBarPushButton):
     """导航栏自定义按钮的基类。
 
     子类需要：
@@ -18,9 +21,9 @@ class NavigationButton(NavigationBarPushButton):
         text: str,
         icon: FluentIconBase,
         on_click: Callable[[], None],
-        parent=None,
+        parent: QWidget | None = None,
     ) -> None:
-        super().__init__(icon, text, False, parent)
+        super().__init__(icon, text, False, parent=parent)
         self.setObjectName(object_name)
         self.on_click = on_click
 
@@ -37,7 +40,7 @@ class NavigationToggleButton(NavigationButton):
         tooltip_off: str,
         tooltip_on: str,
         on_click: Callable[[], None],
-        parent=None,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(object_name, text, icon_off, on_click, parent)
 

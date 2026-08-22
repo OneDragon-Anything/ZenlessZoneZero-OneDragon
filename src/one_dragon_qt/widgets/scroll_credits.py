@@ -6,6 +6,11 @@ from qfluentwidgets import isDarkTheme
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import os_utils, yaml_utils
+from one_dragon.utils.i18_utils import (
+    gt,
+    subscribe_language_changed,
+    unsubscribe_language_changed,
+)
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 
@@ -29,8 +34,22 @@ class ScrollCreditsWidget(QWidget):
         # 加载贡献者数据
         self._load_commit_data()
 
+        self._language_callback = self.retranslate_ui
+        subscribe_language_changed(self._language_callback)
+        self.destroyed.connect(self._on_destroyed)
+
         # 启动滚动，但初始位置更合理
         self._start_scroll()
+
+    def _on_destroyed(self, _object=None) -> None:
+        """Unsubscribe after Qt destroys the credits widget."""
+        unsubscribe_language_changed(self._language_callback)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh translated headings and contributor category labels."""
+        self.subtitle_label.setText(gt('特别鸣谢'))
+        self.end_label.setText(gt('感谢您的支持与陪伴'))
+        self._load_commit_data()
 
     def _init_ui(self):
         """
@@ -91,7 +110,7 @@ class ScrollCreditsWidget(QWidget):
         self.content_layout.addWidget(self.title_label)
 
         # 子标题
-        self.subtitle_label = QLabel("特别鸣谢")
+        self.subtitle_label = QLabel(gt("特别鸣谢"))
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle_label.setStyleSheet(f"""
             QLabel {{
@@ -113,7 +132,7 @@ class ScrollCreditsWidget(QWidget):
         self.content_layout.addWidget(self.credits_container)
 
         # 结尾标语
-        self.end_label = QLabel("感谢您的支持与陪伴")
+        self.end_label = QLabel(gt("感谢您的支持与陪伴"))
         self.end_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.end_label.setStyleSheet(f"""
             QLabel {{
@@ -150,7 +169,7 @@ class ScrollCreditsWidget(QWidget):
 
             if not os.path.exists(contributors_file):
                 # 如果文件不存在，显示提示
-                no_file_label = QLabel("contributors.yaml文件不存在")
+                no_file_label = QLabel(gt("contributors.yaml文件不存在"))
                 no_file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 no_file_label.setStyleSheet("""
                     QLabel {
@@ -173,8 +192,8 @@ class ScrollCreditsWidget(QWidget):
             # core_contributors 和 documentation_contributors 中的每个项目是独立的贡献者
             # community_maintainers, recent_contributors, other_contributors 可能包含分组
             categories_individual = [
-                ('core_contributors', '核心贡献者', 'core'),
-                ('documentation_contributors', '文档贡献者', 'documentation')
+                ('core_contributors', gt('核心贡献者'), 'core'),
+                ('documentation_contributors', gt('文档贡献者'), 'documentation')
             ]
 
             # 为个体贡献者类别添加标题和内容
@@ -206,9 +225,9 @@ class ScrollCreditsWidget(QWidget):
 
             # 处理可能包含分组的类别
             categories_grouped = [
-                ('community_maintainers', '社区维护者', 'community'),
-                ('recent_contributors', '近期贡献者', 'recent'),
-                ('other_contributors', '其他贡献者', 'other')
+                ('community_maintainers', gt('社区维护者'), 'community'),
+                ('recent_contributors', gt('近期贡献者'), 'recent'),
+                ('other_contributors', gt('其他贡献者'), 'other')
             ]
 
             for category_key, display_name, category_type in categories_grouped:
@@ -252,7 +271,7 @@ class ScrollCreditsWidget(QWidget):
 
             # 如果没有贡献者信息，显示提示
             if not all_contributors:
-                no_data_label = QLabel("未获取到贡献者信息")
+                no_data_label = QLabel(gt("未获取到贡献者信息"))
                 no_data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 no_data_label.setStyleSheet("""
                     QLabel {
@@ -266,7 +285,7 @@ class ScrollCreditsWidget(QWidget):
         except Exception as e:
             log.error(f"加载贡献者数据失败: {e}")
             # 添加错误信息
-            error_label = QLabel(f"加载贡献者信息失败: {str(e)}")
+            error_label = QLabel(gt("加载贡献者信息失败: {error}", error=str(e)))
             error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             error_label.setStyleSheet("""
                 QLabel {

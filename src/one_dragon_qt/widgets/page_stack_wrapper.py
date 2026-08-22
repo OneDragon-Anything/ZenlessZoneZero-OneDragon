@@ -27,6 +27,17 @@ class PageStackWrapper(QWidget):
     def is_secondary_shown(self) -> bool:
         return self._page_stack.currentWidget() is not self._sub_interface
 
+    @property
+    def sub_interface(self) -> BaseInterface:
+        """Return the root interface wrapped by this page stack."""
+        return self._sub_interface
+
+    def retranslate_ui(self) -> None:
+        """Refresh the root page and any active secondary interface."""
+        self._sub_interface.retranslate_ui()
+        if isinstance(self._secondary_content, BaseInterface):
+            self._secondary_content.retranslate_ui()
+
     def push_setting(self, title: str, content: QWidget) -> None:
         self._sub_interface.on_interface_hidden()
         self._clear_secondary()

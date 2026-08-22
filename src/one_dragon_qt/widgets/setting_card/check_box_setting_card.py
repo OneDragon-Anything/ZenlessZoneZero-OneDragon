@@ -1,12 +1,10 @@
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from qfluentwidgets import CheckBox
-from qfluentwidgets import SettingCard, FluentIconBase
+from qfluentwidgets import FluentIconBase
 from typing import Union, Optional
 
-from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 
@@ -53,7 +51,7 @@ class CheckBoxSettingCard(SettingCardBase):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content))
+        SettingCardBase.setContent(self, content)
 
     def setValue(self, bool_value: bool) -> None:
         """
