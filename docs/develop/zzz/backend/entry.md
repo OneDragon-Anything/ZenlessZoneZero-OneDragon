@@ -79,7 +79,7 @@ GUI 的「开发工具 -> MCP 服务」页面提供本机 server 管理：
 
 ## 依赖（dev 组）
 
-- `mcp`：FastMCP / streamable-http。
+- `mcp>=2,<3`：MCPServer / streamable-http。
 - `uvicorn`：ASGI server。
 
 ## 远程 SSH
