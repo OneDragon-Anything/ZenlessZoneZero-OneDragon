@@ -16,7 +16,7 @@ Window {
     property bool logVisible: true
     property bool stateVisible: true
     property bool decisionVisible: true
-    property bool perfVisible: true
+    property bool perfVisible: false
 
     // 面板淡入淡出透明度（Python 侧驱动：信息 15 秒未更新则淡出，0 隐藏 1 全显）
     property real logFade: 0
@@ -384,6 +384,7 @@ Window {
         anchors.rightMargin: 4
         anchors.top: parent.top
         anchors.topMargin: 4
+        visible: root.perfVisible
         radius: 6
         color: "#CC000000"
         width: perfColumn.width + 12
