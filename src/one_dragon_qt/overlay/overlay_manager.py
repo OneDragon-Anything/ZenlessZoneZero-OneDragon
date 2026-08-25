@@ -1,24 +1,20 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
-from typing import Optional
 
-from PySide6.QtCore import QObject, QPoint, QTimer, Signal, Qt
+from PySide6.QtCore import QObject, QPoint, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 
-from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
+from one_dragon_qt.overlay.overlay_hud_window import OverlayHudWindow
 from one_dragon_qt.overlay.overlay_log_handler import OverlayLogHandler
 from one_dragon_qt.overlay.overlay_window import OverlayWindow
-from one_dragon_qt.overlay.panels.decision_panel import DecisionPanel
-from one_dragon_qt.overlay.panels.log_panel import LogPanel
-from one_dragon_qt.overlay.panels.performance_panel import PerformancePanel
-from one_dragon_qt.overlay.panels.state_panel import StatePanel
-from one_dragon_qt.overlay.panels.timeline_panel import TimelinePanel
 from one_dragon_qt.overlay.utils import win32_utils
 
 try:
@@ -34,7 +30,7 @@ class _OverlaySignalBridge(QObject):
 class OverlayManager(QObject):
     """Singleton manager for overlay lifecycle and runtime behavior."""
 
-    _instance: Optional["OverlayManager"] = None
+    _instance: OverlayManager | None = None
 
     def __init__(self, ctx, parent=None):
         super().__init__(parent)
@@ -45,17 +41,14 @@ class OverlayManager(QObject):
         self._warned_unsupported = False
         self._warned_waiting_game_window = False
         self._started = False
-        self._overlay_window: Optional[OverlayWindow] = None
-        self._log_panel: Optional["LogPanel"] = None
-        self._state_panel: Optional["StatePanel"] = None
-        self._decision_panel: Optional["DecisionPanel"] = None
-        self._timeline_panel: Optional["TimelinePanel"] = None
-        self._performance_panel: Optional["PerformancePanel"] = None
-        self._log_handler: Optional[OverlayLogHandler] = None
+        self._overlay_window: OverlayWindow | None = None
+        self._hud_window: OverlayHudWindow | None = None
+        self._log_handler: OverlayLogHandler | None = None
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
-        self._last_toggle_hotkey_time = 0.0
-        self._last_game_qt_rect: Rect | None = None
+        self._toast_until: float = 0
+        # 各面板最近一次内容更新的时间戳，驱动 15 秒无更新淡出
+        self._panel_last_active: dict[str, float] = {}
 
         self._signal_bridge = _OverlaySignalBridge()
         self._signal_bridge.log_received.connect(self._on_log_received_signal)
@@ -70,13 +63,13 @@ class OverlayManager(QObject):
         self._state_timer.timeout.connect(self._safe_refresh_state)
 
     @classmethod
-    def create(cls, ctx, parent=None) -> "OverlayManager":
+    def create(cls, ctx, parent=None) -> OverlayManager:
         if cls._instance is None:
             cls._instance = OverlayManager(ctx, parent=parent)
         return cls._instance
 
     @classmethod
-    def instance(cls) -> Optional["OverlayManager"]:
+    def instance(cls) -> OverlayManager | None:
         return cls._instance
 
     def start(self) -> None:
@@ -109,26 +102,9 @@ class OverlayManager(QObject):
             self._overlay_window.deleteLater()
             self._overlay_window = None
 
-        if self._log_panel is not None:
-            self._log_panel.close()
-            self._log_panel.deleteLater()
-            self._log_panel = None
-        if self._state_panel is not None:
-            self._state_panel.close()
-            self._state_panel.deleteLater()
-            self._state_panel = None
-        if self._decision_panel is not None:
-            self._decision_panel.close()
-            self._decision_panel.deleteLater()
-            self._decision_panel = None
-        if self._timeline_panel is not None:
-            self._timeline_panel.close()
-            self._timeline_panel.deleteLater()
-            self._timeline_panel = None
-        if self._performance_panel is not None:
-            self._performance_panel.close()
-            self._performance_panel.deleteLater()
-            self._performance_panel = None
+        if self._hud_window is not None:
+            self._hud_window.close()
+            self._hud_window = None
 
         OverlayManager._instance = None
 
@@ -136,11 +112,6 @@ class OverlayManager(QObject):
         self.config = OverlayConfig()
         self._toggle_combo_pressed = False
         self._apply_timer_intervals()
-        for panel_name, panel in self._iter_side_panels():
-            if panel is None:
-                continue
-            geo = self._panel_geometry_with_fallback(panel_name)
-            panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         self._safe_follow_window()
 
     def toggle_visibility(self) -> None:
@@ -148,18 +119,6 @@ class OverlayManager(QObject):
             return
         self.config.visible = not self.config.visible
         self._safe_follow_window()
-
-    def reset_panel_geometry(self) -> None:
-        self.config.reset_panel_geometry()
-        for panel_name, _panel in self._iter_side_panels():
-            geo = self._panel_geometry_with_fallback(panel_name)
-            self.config.set_panel_geometry(panel_name, geo)
-
-        for panel_name, panel in self._iter_side_panels():
-            if panel is None:
-                continue
-            geo = self.config.get_panel_geometry(panel_name)
-            panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
 
     def capture_overlay_rgba(self):
         if self._overlay_window is None or not self._overlay_window.isVisible():
@@ -183,25 +142,50 @@ class OverlayManager(QObject):
             return
         self._signal_bridge.log_received.emit(event.data)
 
-    def _toggle_hotkey_if_allowed(self) -> None:
+    def _toggle_display_mode(self) -> None:
+        """按调试热键（默认 F12）循环切换显示模式：关闭 -> 普通 -> debug。"""
         if not self.config.enabled:
             return
-        if not self._is_game_window_active():
-            return
-        now = time.time()
-        if now - self._last_toggle_hotkey_time < 0.35:
-            return
-        self._last_toggle_hotkey_time = now
-        self.toggle_visibility()
+        order = ["off", "normal", "debug"]
+        current = self.config.display_mode
+        next_mode = order[(order.index(current) + 1) % len(order)]
+        self.config.display_mode = next_mode
+        toast_text = {"off": "HUD 已关闭", "normal": "HUD 开启", "debug": "HUD 调试"}[next_mode]
+        self._toast_until = time.time() + 5.0
+        self._safe_follow_window()
+        if self._hud_window is not None:
+            self._hud_window.set_toast(toast_text)
+        log.info(f"Overlay 显示模式切换为 {next_mode}")
 
     def _on_log_received_signal(self, payload: object) -> None:
-        if self._log_panel is None:
+        if self._hud_window is None:
             return
         if not isinstance(payload, OverlayLogEvent):
             return
-        if not self.config.log_panel_enabled:
-            return
-        self._log_panel.append_log(payload)
+        self._panel_last_active["log_panel"] = time.time()
+        import html
+
+        source = f"{payload.filename}:{payload.lineno}"
+        level_name = (payload.level_name or "").upper()
+        level_color = {
+            "DEBUG": "#8cb4ff",
+            "INFO": "#6ad192",
+            "WARNING": "#ffcb6b",
+            "ERROR": "#ff7c7c",
+            "CRITICAL": "#ff5f5f",
+        }.get(level_name, "#d0d0d0")
+        self._hud_window.append_log(
+            {
+                "created": payload.created,
+                "time": time.strftime("%H:%M:%S", time.localtime(payload.created)),
+                "level": level_name,
+                "levelColor": level_color,
+                "source": html.escape(source),
+                "message": html.escape(payload.message),
+            }
+        )
+        # 日志面板常驻，只按固定行数裁剪（样式写死，不读配置）
+        self._hud_window.trim_log(100)
 
     def _ensure_overlay_window(self) -> OverlayWindow:
         if self._overlay_window is None:
@@ -210,186 +194,21 @@ class OverlayManager(QObject):
                 int(self.ctx.project_config.screen_standard_width),
                 int(self.ctx.project_config.screen_standard_height),
             )
-        if self._log_panel is None:
-            self._log_panel = LogPanel(parent=None)
-            self._init_top_panel("log_panel", self._log_panel)
-            self._log_panel.geometry_changed.connect(
-                lambda g: self._on_panel_geometry_changed("log_panel", g)
-            )
-            self._log_panel.appearance_changed.connect(
-                self._on_panel_appearance_changed
-            )
-            self._log_panel.free_mode_changed.connect(
-                self._on_panel_free_mode_changed
-            )
-            self._log_panel.edit_mode_changed.connect(
-                self._on_panel_edit_mode_changed
-            )
-            geo = self._panel_geometry_with_fallback("log_panel")
-            self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
-        if self._state_panel is None:
-            self._state_panel = StatePanel(parent=None)
-            self._init_top_panel("state_panel", self._state_panel)
-            self._state_panel.geometry_changed.connect(
-                lambda g: self._on_panel_geometry_changed("state_panel", g)
-            )
-            self._state_panel.appearance_changed.connect(self._on_panel_appearance_changed)
-            self._state_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
-            self._state_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
-            geo = self._panel_geometry_with_fallback("state_panel")
-            self._state_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
-        if self._decision_panel is None:
-            self._decision_panel = DecisionPanel(parent=None)
-            self._init_top_panel("decision_panel", self._decision_panel)
-            self._decision_panel.geometry_changed.connect(
-                lambda g: self._on_panel_geometry_changed("decision_panel", g)
-            )
-            self._decision_panel.appearance_changed.connect(self._on_panel_appearance_changed)
-            self._decision_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
-            self._decision_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
-            geo = self._panel_geometry_with_fallback("decision_panel")
-            self._decision_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
-        if self._timeline_panel is None:
-            self._timeline_panel = TimelinePanel(parent=None)
-            self._init_top_panel("timeline_panel", self._timeline_panel)
-            self._timeline_panel.geometry_changed.connect(
-                lambda g: self._on_panel_geometry_changed("timeline_panel", g)
-            )
-            self._timeline_panel.appearance_changed.connect(self._on_panel_appearance_changed)
-            self._timeline_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
-            self._timeline_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
-            geo = self._panel_geometry_with_fallback("timeline_panel")
-            self._timeline_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
-        if self._performance_panel is None:
-            self._performance_panel = PerformancePanel(parent=None)
-            self._init_top_panel("performance_panel", self._performance_panel)
-            self._performance_panel.geometry_changed.connect(
-                lambda g: self._on_panel_geometry_changed("performance_panel", g)
-            )
-            self._performance_panel.appearance_changed.connect(self._on_panel_appearance_changed)
-            self._performance_panel.free_mode_changed.connect(self._on_panel_free_mode_changed)
-            self._performance_panel.edit_mode_changed.connect(self._on_panel_edit_mode_changed)
-            geo = self._panel_geometry_with_fallback("performance_panel")
-            self._performance_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         return self._overlay_window
 
-    def _init_top_panel(self, panel_name: str, panel) -> None:
-        panel.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.Tool
-            | Qt.WindowType.WindowStaysOnTopHint
-        )
-        panel.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        panel.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
-        panel.set_title_visible(False)
-        panel.set_drag_anywhere(False)
-        panel.set_passthrough_on_body(True)
-        panel.set_free_mode(self.config.is_panel_free_mode(panel_name))
-        panel.set_edit_mode(self.config.panel_edit_mode)
+    def _ensure_hud_window(self) -> OverlayHudWindow:
+        if self._hud_window is None:
+            self._hud_window = OverlayHudWindow()
+            self._hud_window.ensure_created()
+        return self._hud_window
 
-    def _iter_side_panels(self):
+    def _iter_panel_names(self):
         return [
-            ("log_panel", self._log_panel),
-            ("state_panel", self._state_panel),
-            ("decision_panel", self._decision_panel),
-            ("timeline_panel", self._timeline_panel),
-            ("performance_panel", self._performance_panel),
+            "log_panel",
+            "state_panel",
+            "decision_panel",
+            "performance_panel",
         ]
-
-    def _panel_geometry_with_fallback(self, panel_name: str) -> dict[str, int]:
-        geometry = self.config.get_panel_geometry(panel_name)
-        if panel_name == "log_panel" and self._is_log_panel_factory_geometry(geometry):
-            resolved = self._resolve_panel_geometry_for_game(panel_name)
-            if resolved is not None:
-                return resolved
-
-        if panel_name in ("state_panel", "decision_panel", "timeline_panel", "performance_panel"):
-            if int(geometry.get("x", 0)) == 0 and int(geometry.get("y", 0)) == 0:
-                resolved = self._resolve_panel_geometry_for_game(panel_name)
-                if resolved is not None:
-                    return resolved
-
-        return geometry
-
-    @staticmethod
-    def _is_log_panel_factory_geometry(geometry: dict[str, int]) -> bool:
-        return (
-            int(geometry.get("x", 0)) == 100
-            and int(geometry.get("y", 0)) == 100
-            and int(geometry.get("w", 0)) == 480
-            and int(geometry.get("h", 0)) == 200
-        )
-
-    def _resolve_panel_geometry_for_game(self, panel_name: str) -> dict[str, int] | None:
-        base_geo = self.config.get_panel_geometry(panel_name)
-        game_rect = self._get_game_rect()
-        if game_rect is None:
-            return base_geo
-
-        qt_rect = self._to_qt_rect(game_rect)
-        margin = 16
-        qr_x1 = int(getattr(qt_rect, "x1", 0))
-        qr_y1 = int(getattr(qt_rect, "y1", 0))
-        qr_x2 = int(getattr(qt_rect, "x2", 0))
-        qr_y2 = int(getattr(qt_rect, "y2", 0))
-        game_w = max(100, qr_x2 - qr_x1)
-        game_h = max(100, qr_y2 - qr_y1)
-
-        w = max(180, min(int(base_geo.get("w", 320)), game_w - margin * 2))
-        h = max(90, min(int(base_geo.get("h", 180)), game_h - margin * 2))
-
-        if panel_name == "log_panel":
-            x = qr_x1 + margin
-            y = qr_y1 + margin
-        else:
-            right_x = qr_x2 - margin - w
-            top_start = qr_y1 + margin
-            vertical_gap = 8
-            index = {
-                "state_panel": 0,
-                "decision_panel": 1,
-                "timeline_panel": 2,
-                "performance_panel": 3,
-            }.get(panel_name, 0)
-            x = right_x
-            y = top_start + index * (h + vertical_gap)
-            if y + h > qr_y2 - margin:
-                y = max(qr_y1 + margin, qr_y2 - margin - h)
-
-        return {"x": int(x), "y": int(y), "w": int(w), "h": int(h)}
-
-    def _on_panel_geometry_changed(self, panel_name: str, geometry: dict[str, int]) -> None:
-        try:
-            if not self.config.is_panel_free_mode(panel_name):
-                game_rect = self._get_game_rect()
-                if game_rect is not None:
-                    qt_rect = self._to_qt_rect(game_rect)
-                    geometry = self._clamp_geometry_dict_to_game_rect(geometry, qt_rect)
-            self.config.set_panel_geometry(panel_name, geometry)
-        except Exception:
-            log.error("保存 Overlay 面板位置失败", exc_info=True)
-
-    def _on_panel_appearance_changed(
-        self, panel_name: str, font_size: int, panel_opacity: int
-    ) -> None:
-        try:
-            self.config.set_panel_appearance(panel_name, font_size=font_size, opacity=panel_opacity)
-        except Exception:
-            log.error(f"保存 Overlay {panel_name} 样式失败", exc_info=True)
-
-    def _on_panel_edit_mode_changed(self, enabled: bool) -> None:
-        try:
-            self.config.panel_edit_mode = bool(enabled)
-            self._safe_follow_window()
-        except Exception:
-            log.error("保存 Overlay 编辑模式失败", exc_info=True)
-
-    def _on_panel_free_mode_changed(self, panel_name: str, enabled: bool) -> None:
-        try:
-            self.config.set_panel_free_mode(panel_name, bool(enabled))
-            self._safe_follow_window()
-        except Exception:
-            log.error(f"保存 Overlay {panel_name} 窗口模式失败", exc_info=True)
 
     def _safe_follow_window(self) -> None:
         try:
@@ -417,151 +236,75 @@ class OverlayManager(QObject):
             return
         self._warned_waiting_game_window = False
 
-        if not self._is_game_window_active() and not self.config.panel_edit_mode:
+        if not self._is_game_window_active():
             self._hide_overlay()
             return
 
-        overlay = self._ensure_overlay_window()
         game_qt_rect = self._to_qt_rect(game_rect)
+
+        overlay = self._ensure_overlay_window()
         overlay.update_with_game_rect(game_qt_rect)
-        # State/decision/timeline/perf now render as independent windows.
-        overlay.set_info_hud_enabled(False)
-        overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
+        overlay.set_vision_layer_enabled(
+            self.config.vision_layer_enabled and self.config.display_mode == "debug"
+        )
         overlay.set_vision_transform(
             offset_x=self.config.vision_offset_x,
             offset_y=self.config.vision_offset_y,
             scale_x=self.config.vision_scale_x,
             scale_y=self.config.vision_scale_y,
         )
-        overlay.set_anti_capture(self.config.anti_capture)
+        overlay.set_anti_capture(self.config.display_mode != "debug")
         overlay.set_overlay_visible(self.config.visible)
         if self.config.visible:
             overlay.set_passthrough(not self._ctrl_interaction)
 
-        self._sync_side_panels(game_qt_rect)
-        self._last_game_qt_rect = game_qt_rect
+        hud = self._ensure_hud_window()
+        hud.set_geometry(self._qt_rect_to_qrect(game_qt_rect))
+        # off 模式下 toast 展示期（5 秒）窗口仍可见，展示结束自动隐藏
+        toast_showing = time.time() < self._toast_until
+        hud.set_visible(self.config.visible and (self.config.display_mode != "off" or toast_showing))
+        if self.config.visible and (self.config.display_mode != "off" or toast_showing):
+            hud.set_passthrough(True)
+            hud.set_anti_capture(self.config.display_mode != "debug")
 
-    def _sync_side_panels(self, game_qt_rect: Rect) -> None:
-        edit_mode = self.config.panel_edit_mode
+        self._sync_hud_panels(game_qt_rect)
+
+    @staticmethod
+    def _qt_rect_to_qrect(qt_rect: Rect):
+        from PySide6.QtCore import QRect
+
+        return QRect(
+            int(getattr(qt_rect, "x1", 0)),
+            int(getattr(qt_rect, "y1", 0)),
+            int(getattr(qt_rect, "x2", 0)) - int(getattr(qt_rect, "x1", 0)),
+            int(getattr(qt_rect, "y2", 0)) - int(getattr(qt_rect, "y1", 0)),
+        )
+
+    def _sync_hud_panels(self, game_qt_rect: Rect) -> None:
+        mode = self.config.display_mode
+        # off：全部隐藏；normal：顶部灵动岛 + 底部战斗状态 + 决策 + 日志；debug：全部显示
         panel_visible_map = {
-            "log_panel": self.config.log_panel_enabled,
-            "state_panel": self.config.state_panel_enabled,
-            "decision_panel": self.config.decision_panel_enabled,
-            "timeline_panel": self.config.timeline_panel_enabled,
-            "performance_panel": self.config.performance_panel_enabled,
+            "log_panel": mode in ("normal", "debug"),
+            "state_panel": mode in ("normal", "debug"),
+            "decision_panel": mode in ("normal", "debug"),
+            "performance_panel": mode == "debug",
         }
 
-        # If game window moved, shift panel windows with it before clamping.
-        delta_x = 0
-        delta_y = 0
-        if self._last_game_qt_rect is not None:
-            delta_x = int(getattr(game_qt_rect, "x1", 0)) - int(getattr(self._last_game_qt_rect, "x1", 0))
-            delta_y = int(getattr(game_qt_rect, "y1", 0)) - int(getattr(self._last_game_qt_rect, "y1", 0))
-
-        for panel_name, panel in self._iter_side_panels():
-            if panel is None:
-                continue
-            lock_in_game = not self.config.is_panel_free_mode(panel_name)
-
-            if panel_name == "log_panel":
-                panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
-            pa = self.config.get_panel_appearance(panel_name)
-            panel.set_free_mode(not lock_in_game)
-            panel.set_appearance(pa["font_size"], pa["opacity"])
-            if edit_mode:
-                panel.setWindowOpacity(1.0)
-            else:
-                panel.setWindowOpacity(pa["opacity"] / 100.0)
-            if hasattr(panel, "set_text_color"):
-                panel.set_text_color(self.config.panel_text_color)
-            # set_edit_mode last so placeholder is not overwritten by set_appearance/set_text_color
-            panel.set_edit_mode(edit_mode)
-            panel.set_passthrough_on_body(False)
-
-            show_panel = self.config.visible and panel_visible_map.get(panel_name, True)
-            if not show_panel:
-                if panel.isVisible():
-                    panel.hide()
-                continue
-
-            if lock_in_game and (delta_x != 0 or delta_y != 0):
-                g = panel.geometry()
-                panel.setGeometry(g.x() + delta_x, g.y() + delta_y, g.width(), g.height())
-
-            if lock_in_game:
-                self._clamp_panel_to_game_rect(panel, game_qt_rect)
-
-            if not panel.isVisible():
-                panel.show()
-                panel.raise_()
-
-            panel_hwnd = int(panel.winId())
-            win32_utils.set_window_display_affinity(panel_hwnd, self.config.anti_capture)
-            # Non-edit mode: all clicks pass through to underlying game window.
-            win32_utils.set_window_click_through(panel_hwnd, not edit_mode)
-
-    @staticmethod
-    def _clamp_panel_to_game_rect(panel, game_qt_rect: Rect) -> None:
-        g = panel.geometry()
-        left = int(getattr(game_qt_rect, "x1", 0))
-        top = int(getattr(game_qt_rect, "y1", 0))
-        right = int(getattr(game_qt_rect, "x2", 0))
-        bottom = int(getattr(game_qt_rect, "y2", 0))
-        margin = 4
-
-        max_w = max(120, right - left - margin * 2)
-        max_h = max(80, bottom - top - margin * 2)
-        w = min(g.width(), max_w)
-        h = min(g.height(), max_h)
-
-        min_x = left + margin
-        min_y = top + margin
-        max_x = right - margin - w
-        max_y = bottom - margin - h
-
-        x = min(max(g.x(), min_x), max_x)
-        y = min(max(g.y(), min_y), max_y)
-
-        if x != g.x() or y != g.y() or w != g.width() or h != g.height():
-            panel.setGeometry(int(x), int(y), int(w), int(h))
-
-    @staticmethod
-    def _clamp_geometry_dict_to_game_rect(geometry: dict[str, int], game_qt_rect: Rect) -> dict[str, int]:
-        g_x = int(geometry.get("x", 0))
-        g_y = int(geometry.get("y", 0))
-        g_w = max(80, int(geometry.get("w", 0)))
-        g_h = max(60, int(geometry.get("h", 0)))
-
-        left = int(getattr(game_qt_rect, "x1", 0))
-        top = int(getattr(game_qt_rect, "y1", 0))
-        right = int(getattr(game_qt_rect, "x2", 0))
-        bottom = int(getattr(game_qt_rect, "y2", 0))
-        margin = 4
-
-        max_w = max(120, right - left - margin * 2)
-        max_h = max(80, bottom - top - margin * 2)
-        w = min(g_w, max_w)
-        h = min(g_h, max_h)
-
-        min_x = left + margin
-        min_y = top + margin
-        max_x = right - margin - w
-        max_y = bottom - margin - h
-        x = min(max(g_x, min_x), max_x)
-        y = min(max(g_y, min_y), max_y)
-
-        return {"x": int(x), "y": int(y), "w": int(w), "h": int(h)}
+        # 面板位置由 QML anchors 相对 HUD 窗口固定（HUD 整体跟随游戏窗口），这里只同步可见性
+        for panel_name in self._iter_panel_names():
+            if self._hud_window is None:
+                return
+            show_panel = self.config.visible and panel_visible_map.get(panel_name, False)
+            self._hud_window.set_panel_visible(panel_name, show_panel)
 
     def _hide_overlay(self) -> None:
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
-        self._last_game_qt_rect = None
         if self._overlay_window is not None:
             self._overlay_window.set_vision_items([])
             self._overlay_window.set_overlay_visible(False)
-        for _panel_name, panel in self._iter_side_panels():
-            if panel is not None and panel.isVisible():
-                panel.hide()
+        if self._hud_window is not None:
+            self._hud_window.set_visible(False)
 
     def _safe_poll_input_mode(self) -> None:
         try:
@@ -570,10 +313,11 @@ class OverlayManager(QObject):
             log.error("更新 Overlay 交互模式失败", exc_info=True)
 
     def _poll_input_mode(self) -> None:
-        toggle_combo_now = win32_utils.is_hotkey_combo_pressed(self.config.toggle_hotkey)
-        if toggle_combo_now and not self._toggle_combo_pressed:
-            self._toggle_hotkey_if_allowed()
-        self._toggle_combo_pressed = toggle_combo_now
+        toggle_key = str(self.ctx.key_debug or "f12").lower()
+        toggle_now = win32_utils.is_key_pressed(win32_utils.key_to_vk(toggle_key) or 0)
+        if toggle_now and not self._toggle_combo_pressed:
+            self._toggle_display_mode()
+        self._toggle_combo_pressed = toggle_now
 
         if self._overlay_window is None or not self._overlay_window.isVisible():
             self._ctrl_interaction = False
@@ -587,13 +331,10 @@ class OverlayManager(QObject):
         self._overlay_window.set_passthrough(not ctrl_now)
 
     def _safe_refresh_state(self) -> None:
-        start = time.time()
         try:
             self._refresh_state_panel()
         except Exception:
             log.error("刷新 Overlay 状态面板失败", exc_info=True)
-        finally:
-            self._emit_overlay_refresh_perf(start)
 
     def _refresh_state_panel(self) -> None:
         if self._overlay_window is None or not self._overlay_window.isVisible():
@@ -601,10 +342,73 @@ class OverlayManager(QObject):
 
         self._refresh_debug_panels()
 
-        if not self.config.state_panel_enabled or self._state_panel is None:
+        if self._hud_window is not None:
+            self._hud_window.set_status_line(self._build_run_status_line())
+
+        self._sync_panel_fade()
+
+        if self._hud_window is None:
             return
-        items = self._collect_state_items()
-        self._state_panel.update_snapshot(items)
+        items = self._collect_auto_battle_items()
+        if items:
+            self._panel_last_active["state_panel"] = time.time()
+        state_rows = self._build_state_rows(items)
+        self._hud_window.sync_state_items(state_rows)
+
+    def _sync_panel_fade(self) -> None:
+        """按各面板最近内容更新时间驱动淡入淡出：15 秒无更新则淡出。"""
+        if self._hud_window is None:
+            return
+        now = time.time()
+        log_active = now - self._panel_last_active.get("log_panel", 0.0) <= 15.0
+        self._hud_window.set_panel_fade("log_panel", 1.0 if log_active else 0.0)
+
+        auto_running = self._is_auto_battle_running()
+        self._hud_window.set_running(auto_running)
+        self._sync_fairy_state()
+        for name in ("state_panel", "decision_panel"):
+            active = auto_running and now - self._panel_last_active.get(name, 0.0) <= 15.0
+            self._hud_window.set_panel_fade(name, 1.0 if active else 0.0)
+
+    def _sync_fairy_state(self) -> None:
+        """按运行上下文三态推送 fairy 徽章：running=旋转 / pause=停转 / stop=消失。"""
+        if self._hud_window is None:
+            return
+        try:
+            run_ctx = self.ctx.run_context
+            if run_ctx.is_context_running:
+                state = "running"
+            elif run_ctx.is_context_pause:
+                state = "pause"
+            else:
+                state = "stop"
+        except Exception:
+            state = "stop"
+        self._hud_window.set_fairy_state(state)
+
+    def _is_auto_battle_running(self) -> bool:
+        try:
+            auto_op = self.ctx.auto_battle_context.auto_op
+            return auto_op is not None and auto_op.is_running
+        except Exception:
+            return False
+
+    def _build_state_rows(self, items: list[tuple[str, str, str]]) -> list[dict]:
+        """把 (状态名, 秒数, 状态值) 转成 QML stateModel 行：首行黄块大号，其余青色竖条。"""
+        rows: list[dict] = []
+        for idx, (key, seconds, value) in enumerate(items):
+            accent = "#ffd400" if idx == 0 else "#00e5ff"
+            rows.append(
+                {
+                    "big": idx == 0,
+                    "accent": accent,
+                    "key": key,
+                    "value": seconds,
+                    "stateValue": value,
+                    "valueColor": "#ffffff",
+                }
+            )
+        return rows
 
     def _refresh_debug_panels(self) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
@@ -612,33 +416,114 @@ class OverlayManager(QObject):
             return
 
         snapshot = bus.snapshot()
+        if snapshot.decision_items:
+            # 以最新一条决策的时间为面板活跃基准
+            self._panel_last_active["decision_panel"] = max(
+                float(x.created) for x in snapshot.decision_items
+            )
         if self._overlay_window is not None:
             self._overlay_window.set_vision_items(self._filter_vision_items(snapshot.vision_items))
-        if self._decision_panel is not None:
-            self._decision_panel.update_items(snapshot.decision_items)
-        if self._timeline_panel is not None:
-            self._timeline_panel.update_items(snapshot.timeline_items)
-        if self._performance_panel is not None:
-            self._performance_panel.set_enabled_metric_map(self.config.performance_metric_enabled_map)
-            self._performance_panel.update_items(snapshot.performance_items)
-
-    def _emit_overlay_refresh_perf(self, start_time: float) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
-        if bus is None:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except Exception:
-            return
-        elapsed_ms = (time.time() - start_time) * 1000.0
-        bus.add_performance(
-            PerfMetricSample(
-                metric="overlay_refresh_ms",
-                value=elapsed_ms,
-                unit="ms",
-                ttl_seconds=20.0,
+        if self._hud_window is not None:
+            self._hud_window.set_decision_items(self._build_decision_rows(snapshot.decision_items))
+            self._hud_window.set_decision_title(self._build_decision_title(snapshot.decision_items))
+            self._hud_window.set_perf_items(
+                self._build_perf_rows(snapshot.performance_items)
             )
-        )
+            self._hud_window.set_operation_duration(
+                self._build_operation_duration_text(snapshot.performance_items)
+            )
+
+    @staticmethod
+    def _build_operation_duration_text(items) -> str:
+        """从性能样本里取最新的 operation_round_ms，格式化成灵动岛用时文本。"""
+        latest = None
+        for item in items:
+            if getattr(item, "metric", "") != "operation_round_ms":
+                continue
+            if latest is None or float(item.created) > float(latest.created):
+                latest = item
+        if latest is None:
+            return ""
+        value = float(latest.value)
+        if value <= 0:
+            return ""
+        return f"{value:.1f}ms"
+
+    def _build_decision_rows(self, items) -> list[dict]:
+        import html
+        import time
+
+        rows: list[dict] = []
+        for item in sorted(items, key=lambda x: x.created, reverse=True)[:24]:
+            rows.append(
+                {
+                    "time": time.strftime("%H:%M:%S", time.localtime(item.created)),
+                    "source": html.escape(item.source),
+                    "trigger": html.escape(item.trigger),
+                    "expr": html.escape(item.expression),
+                    "action": html.escape(item.operation),
+                    "status": html.escape(item.status),
+                }
+            )
+        return rows
+
+    @staticmethod
+    def _build_decision_title(items) -> str:
+        """取最新一条决策的正文（expr）作为标题栏文本。"""
+        if not items:
+            return ""
+        latest = max(items, key=lambda x: x.created)
+        expr = str(getattr(latest, "expression", "") or "").strip()
+        if not expr:
+            return ""
+        return expr
+
+    def _build_perf_rows(self, items) -> list[dict]:
+        import time
+
+        now = time.time()
+        metric_keys = self._sorted_perf_metric_keys({item.metric for item in items})
+
+        rows: list[dict] = []
+        for key in metric_keys:
+            # 取最近 10 秒内的样本，算平均与峰值
+            samples = [
+                float(item.value)
+                for item in items
+                if getattr(item, "metric", "") == key
+                and now - float(getattr(item, "created", 0.0) or 0.0) <= 10.0
+            ]
+            if not samples:
+                continue
+            avg = sum(samples) / len(samples)
+            peak = max(samples)
+            rows.append(
+                {
+                    "name": self._perf_metric_display_name(key),
+                    "avgText": f"{avg:.0f}",
+                    "peakText": f"{peak:.0f}",
+                }
+            )
+        return rows
+
+    @staticmethod
+    def _perf_metric_display_name(metric: str) -> str:
+        return {
+            "ocr_ms": "ocr",
+            "yolo_ms": "yolo",
+            "cv_pipeline_ms": "cvpipe",
+        }.get(metric, metric)
+
+    @staticmethod
+    def _sorted_perf_metric_keys(metric_keys) -> list[str]:
+        core_order = [
+            "ocr_ms",
+            "yolo_ms",
+            "cv_pipeline_ms",
+        ]
+        core = [key for key in core_order if key in metric_keys]
+        rest = sorted([key for key in metric_keys if key not in core_order])
+        return core + rest
 
     def _filter_vision_items(self, items):
         if not self.config.vision_layer_enabled:
@@ -655,7 +540,29 @@ class OverlayManager(QObject):
             for item in items
             if source_enabled.get(getattr(item, "source", ""), True)
         ]
+        filtered_items = self._dedupe_latest_by_label(filtered_items)
         return self._dedupe_yolo_vision_items(filtered_items)
+
+    def _dedupe_latest_by_label(self, items):
+        """template/ocr 是离散触发，同一目标多次识别只保留最新一个框。
+
+        items 按时间先后排列（旧在前新在后），从最新开始遍历，
+        同 source 同 label 只保留第一个遇到的（最新）。
+        """
+        kept_items = []
+        seen_keys: set[tuple[str, str]] = set()
+        for item in reversed(items):
+            source = getattr(item, "source", "")
+            if source not in ("template", "ocr"):
+                kept_items.append(item)
+                continue
+            key = (source, str(getattr(item, "label", "") or ""))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            kept_items.append(item)
+        kept_items.reverse()
+        return kept_items
 
     def _dedupe_yolo_vision_items(self, items):
         kept_items = []
@@ -711,128 +618,58 @@ class OverlayManager(QObject):
 
         return inter_area / union_area
 
-    def _collect_state_items(self) -> list[tuple[str, str]]:
-        run_ctx = self.ctx.run_context
-        items: list[tuple[str, str]] = [
-            ("RunState", run_ctx.run_status_text),
-            ("CurrentAppId", str(run_ctx.current_app_id or "-")),
-        ]
-
-        app = getattr(run_ctx, "current_application", None)
-        app_name = "-"
-        current_node = "-"
-        previous_node = "-"
-        retry_times = "0"
-        if app is not None:
-            app_name = str(getattr(app, "display_name", None) or getattr(app, "op_name", "-"))
-            try:
-                current_node = str(app.current_node.name or "-")
-                previous_node = str(app.previous_node.name or "-")
-            except Exception:
-                current_node = "-"
-                previous_node = "-"
-            retry_times = str(getattr(app, "node_retry_times", 0))
-
-        items.extend(
-            [
-                ("CurrentApp", app_name),
-                ("CurrentNode", current_node),
-                ("PreviousNode", previous_node),
-                ("NodeRetry", retry_times),
-            ]
-        )
-
-        if hasattr(self.ctx, "auto_battle_context"):
-            items.extend(self._collect_auto_battle_items())
-
-        return items
-
     def _collect_auto_battle_items(self) -> list[tuple[str, str]]:
+        """只显示游戏里看不到的信息：自定义状态 + 角色专属状态。
+
+        常规信息（前台角色、技能可用、闪避、距离等）游戏 UI 本身可见，
+        overlay 不重复显示。
+        """
         auto_ctx = self.ctx.auto_battle_context
         auto_op = auto_ctx.auto_op
-        is_running = auto_op is not None and auto_op.is_running
+        if auto_op is None or not auto_op.is_running:
+            return []
 
-        items: list[tuple[str, str]] = [("AutoBattle", "RUNNING" if is_running else "STOP")]
-        if not is_running:
-            return items
-
-        front_agent_name = "-"
-        front_special = "-"
-        front_ultimate = "-"
-
-        team_info = auto_ctx.agent_context.team_info
-        if team_info.agent_list:
-            front_agent = team_info.agent_list[0]
-            if front_agent.agent is not None:
-                front_agent_name = front_agent.agent.agent_name
-            front_special = "Y" if front_agent.special_ready else "N"
-            front_ultimate = "Y" if front_agent.ultimate_ready else "N"
-
-        distance = "-"
-        if auto_ctx.last_check_distance >= 0:
-            distance = f"{auto_ctx.last_check_distance:.1f}m"
-
-        dodge_text = self._latest_dodge_state_text()
-        chain_text = "READY" if self._is_state_recent("连携技-准备", 1.2) else "-"
-        quick_text = self._latest_quick_assist_text(team_info)
-
-        items.extend(
-            [
-                ("FrontAgent", front_agent_name),
-                ("FrontSpecial", front_special),
-                ("FrontUltimate", front_ultimate),
-                ("Dodge", dodge_text),
-                ("Chain", chain_text),
-                ("QuickAssist", quick_text),
-                ("Distance", distance),
+        try:
+            from zzz_od.game_data.agent import AgentEnum
+        except Exception:
+            agent_prefixes: list[str] = []
+        else:
+            agent_prefixes = [
+                agent_enum.value.agent_name + "-" for agent_enum in AgentEnum
             ]
-        )
+
+        items: list[tuple[str, str]] = []
+        for state_name in sorted(auto_op.usage_states):
+            is_custom = state_name.startswith("自定义-")
+            is_agent_state = any(
+                state_name.startswith(prefix) for prefix in agent_prefixes
+            )
+            if not (is_custom or is_agent_state):
+                continue
+            recorder = auto_ctx.state_record_service.get_state_recorder(state_name)
+            if recorder is None or recorder.last_record_time <= 0:
+                continue
+            # 显示距状态触发已过去的秒数（精确到 0.01）和上次记录的状态值
+            seconds_text = f"{time.time() - recorder.last_record_time:.2f}s"
+            value_text = str(recorder.last_value) if recorder.last_value is not None else "-"
+            items.append((state_name, seconds_text, value_text))
         return items
 
-    def _latest_dodge_state_text(self) -> str:
-        candidates = ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
-        latest_name = "-"
-        latest_time = 0.0
-        now = time.time()
-        for name in candidates:
-            recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(name)
-            if recorder is None:
-                continue
-            ts = recorder.last_record_time
-            if ts <= 0 or now - ts > 2.0:
-                continue
-            if ts > latest_time:
-                latest_time = ts
-                latest_name = name
-        return latest_name
-
-    def _latest_quick_assist_text(self, team_info) -> str:
-        now = time.time()
-        latest_name = "-"
-        latest_time = 0.0
-        if not team_info.agent_list:
-            return latest_name
-
-        for agent_info in team_info.agent_list:
-            if agent_info.agent is None:
-                continue
-            state_name = f"快速支援-{agent_info.agent.agent_name}"
-            recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state_name)
-            if recorder is None:
-                continue
-            ts = recorder.last_record_time
-            if ts <= 0 or now - ts > 2.0:
-                continue
-            if ts > latest_time:
-                latest_time = ts
-                latest_name = agent_info.agent.agent_name
-        return latest_name
-
-    def _is_state_recent(self, state_name: str, seconds: float) -> bool:
-        recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state_name)
-        if recorder is None or recorder.last_record_time <= 0:
-            return False
-        return time.time() - recorder.last_record_time <= seconds
+    def _build_run_status_line(self) -> str:
+        """运行状态精简为一行中文，左下角常驻显示。"""
+        run_ctx = self.ctx.run_context
+        parts = [str(run_ctx.run_status_text or "-")]
+        app = getattr(run_ctx, "current_application", None)
+        if app is not None:
+            app_name = str(getattr(app, "display_name", None) or getattr(app, "op_name", "-"))
+            if app_name and app_name != "-":
+                parts.append(app_name)
+            node = "-"
+            with contextlib.suppress(Exception):
+                node = str(app.current_node.name or "-")
+            if node and node != "-":
+                parts.append(node)
+        return "｜".join(parts)
 
     def _get_game_rect(self):
         if self.ctx.controller is None:
@@ -944,15 +781,11 @@ class OverlayManager(QObject):
         if self._log_handler is None:
             return
 
-        try:
+        with contextlib.suppress(Exception):
             log.removeHandler(self._log_handler)
-        except Exception:
-            pass
 
         if yolo_log is not None:
-            try:
+            with contextlib.suppress(Exception):
                 yolo_log.removeHandler(self._log_handler)
-            except Exception:
-                pass
 
         self._log_handler = None
