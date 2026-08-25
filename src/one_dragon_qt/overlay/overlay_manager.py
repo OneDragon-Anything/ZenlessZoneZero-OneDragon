@@ -585,8 +585,21 @@ class OverlayManager(QObject):
         for recent_item in recent_items:
             if item_label != str(getattr(recent_item, "label", "") or ""):
                 continue
-            if self._vision_item_iou(item, recent_item) >= 0.3:
-                return True
+            # 外接圆圆心距近似：中心点 x/y 偏差各 ≤ 80px，视为同一目标
+            # （不用 sqrt：只比大小，恒等变换下 Chebyshev 与欧氏同序）
+            ax1 = float(getattr(item, "x1", 0))
+            ay1 = float(getattr(item, "y1", 0))
+            ax2 = float(getattr(item, "x2", 0))
+            ay2 = float(getattr(item, "y2", 0))
+            bx1 = float(getattr(recent_item, "x1", 0))
+            by1 = float(getattr(recent_item, "y1", 0))
+            bx2 = float(getattr(recent_item, "x2", 0))
+            by2 = float(getattr(recent_item, "y2", 0))
+            if abs((ax1 + ax2) - (bx1 + bx2)) / 2 > 80:
+                continue
+            if abs((ay1 + ay2) - (by1 + by2)) / 2 > 80:
+                continue
+            return True
         return False
 
     @staticmethod

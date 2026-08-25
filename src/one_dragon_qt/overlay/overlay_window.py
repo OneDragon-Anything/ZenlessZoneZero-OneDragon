@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
-from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPen
+from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
@@ -148,26 +148,66 @@ class OverlayWindow(QWidget):
             if rect is None:
                 continue
 
-            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
+            # 光晕色 = 来源色（ocr 粉 / template 橙 / yolo 青 / cv 绿），主体白色描边
+            glow_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
             if item.color:
-                base_color = QColor(item.color)
-            if not base_color.isValid():
-                base_color = QColor("#bdbdbd")
+                glow_color = QColor(item.color)
+            if not glow_color.isValid():
+                glow_color = QColor("#bdbdbd")
 
-            pen = QPen(base_color)
-            pen.setWidth(3)
+            radius = 8
+            path = QPainterPath()
+            path.addRoundedRect(rect, radius, radius)
+
+            # 外发光：多层平滑渐隐（最外层超宽超淡做羽化，光晕末端化开，无硬环边）
+            glow_layers = (
+                (17, 14),
+                (13, 30),
+                (9, 60),
+                (5, 110),
+                (2, 170),
+            )
+            for glow_w, glow_alpha in glow_layers:
+                gc = QColor(glow_color)
+                gc.setAlpha(glow_alpha)
+                gp = QPen(gc)
+                gp.setWidth(glow_w)
+                gp.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(gp)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawPath(path)
+
+            # 主框：白色圆角细线
+            pen = QPen(QColor(255, 255, 255))
+            pen.setWidth(2)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRect(rect)
+            painter.drawPath(path)
 
             label = self._format_vision_label(item)
             if not label:
                 continue
 
             text_h = painter.fontMetrics().height() + 4
-            text_w = min(rect.width() + 18, painter.fontMetrics().horizontalAdvance(label) + 8)
-            text_y = max(0, rect.top() - text_h - 2)
-            text_rect = QRect(rect.left(), text_y, max(40, text_w), text_h)
+            # 背景框宽度按完整文本宽度自适应，不裁剪模板名
+            text_w = painter.fontMetrics().horizontalAdvance(label) + 12
+
+            # 标签放在朝向屏幕中心的一侧（框在上半放下面、下半放上面、左半放右边、右半放左边）
+            # 取偏移更大的轴定方向，并 clamp 到窗口内，避免边缘出屏
+            gap = 4
+            box_c = rect.center()
+            screen_c = QPoint(self.width() // 2, self.height() // 2)
+            if abs(box_c.x() - screen_c.x()) >= abs(box_c.y() - screen_c.y()):
+                x = rect.right() + gap if box_c.x() < screen_c.x() else rect.left() - text_w - gap
+                y = box_c.y() - text_h // 2
+                x = max(2, min(x, self.width() - text_w - 2))
+                y = max(2, min(y, self.height() - text_h - 2))
+            else:
+                y = rect.bottom() + gap if box_c.y() < screen_c.y() else rect.top() - text_h - gap
+                x = box_c.x() - text_w // 2
+                y = max(2, min(y, self.height() - text_h - 2))
+                x = max(2, min(x, self.width() - text_w - 2))
+            text_rect = QRect(x, y, text_w, text_h)
 
             painter.fillRect(text_rect, QColor(0, 0, 0, 205))
             label_font = painter.font()
@@ -183,8 +223,6 @@ class OverlayWindow(QWidget):
     @staticmethod
     def _format_vision_label(item: VisionDrawItem) -> str:
         label = (item.label or "").strip()
-        if len(label) > 42:
-            label = label[:39] + "..."
         if item.score is None:
             return label
         return f"{label} {item.score:.2f}".strip()
