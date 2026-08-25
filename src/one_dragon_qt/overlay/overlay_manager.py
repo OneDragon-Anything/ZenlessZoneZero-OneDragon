@@ -354,6 +354,7 @@ class OverlayManager(QObject):
             self._panel_last_active["state_panel"] = time.time()
         state_rows = self._build_state_rows(items)
         self._hud_window.sync_state_items(state_rows)
+        self._hud_window.set_state_title(self._build_state_title())
 
     def _sync_panel_fade(self) -> None:
         """按各面板最近内容更新时间驱动淡入淡出：15 秒无更新则淡出。"""
@@ -612,7 +613,21 @@ class OverlayManager(QObject):
 
         return inter_area / union_area
 
-    def _collect_auto_battle_items(self) -> list[tuple[str, str]]:
+    def _build_state_title(self) -> str:
+        """状态面板标题：当前前台角色名（如「前台-艾莲」），无则回退「战斗状态」。"""
+        try:
+            from zzz_od.game_data.agent import AgentEnum
+        except Exception:
+            return "战斗状态"
+        auto_ctx = self.ctx.auto_battle_context
+        for agent_enum in AgentEnum:
+            agent_name = agent_enum.value.agent_name
+            recorder = auto_ctx.state_record_service.get_state_recorder(f"前台-{agent_name}")
+            if recorder is not None and recorder.last_record_time > 0:
+                return f"前台-{agent_name}"
+        return "战斗状态"
+
+    def _collect_auto_battle_items(self) -> list[tuple[str, str, str]]:
         """只显示游戏里看不到的信息：自定义状态 + 角色专属状态。
 
         常规信息（前台角色、技能可用、闪避、距离等）游戏 UI 本身可见，
@@ -632,21 +647,28 @@ class OverlayManager(QObject):
                 agent_enum.value.agent_name + "-" for agent_enum in AgentEnum
             ]
 
-        items: list[tuple[str, str]] = []
+        items: list[tuple[str, str, str]] = []
+        # 第二批（常规状态：按键可用 / 前台等），排在自定义/角色专属状态之后
+        batch2_names = ("按键可用-", "前台-")
+        batch1: list[tuple[str, str, str]] = []
+        batch2: list[tuple[str, str, str]] = []
         for state_name in sorted(auto_op.usage_states):
             is_custom = state_name.startswith("自定义-")
             is_agent_state = any(
                 state_name.startswith(prefix) for prefix in agent_prefixes
             )
-            if not (is_custom or is_agent_state):
-                continue
             recorder = auto_ctx.state_record_service.get_state_recorder(state_name)
             if recorder is None or recorder.last_record_time <= 0:
                 continue
             # 显示距状态触发已过去的秒数（精确到 0.01）和上次记录的状态值
             seconds_text = f"{time.time() - recorder.last_record_time:.2f}s"
             value_text = str(recorder.last_value) if recorder.last_value is not None else "-"
-            items.append((state_name, seconds_text, value_text))
+            row = (state_name, seconds_text, value_text)
+            if is_custom or is_agent_state:
+                batch1.append(row)
+            elif state_name.startswith(batch2_names):
+                batch2.append(row)
+        items = batch1 + batch2
         return items
 
     def _build_run_status_line(self) -> str:

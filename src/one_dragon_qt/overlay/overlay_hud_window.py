@@ -287,6 +287,10 @@ class OverlayHudWindow:
         """增量同步状态行，触发 QML 插入/移除动画。"""
         self._models["stateModel"].sync_items(items, key_field="key")
 
+    def set_state_title(self, text: str) -> None:
+        """设置状态面板标题栏文本（当前前台角色名）。"""
+        self._set("stateTitle", str(text or ""))
+
     def set_decision_items(self, items: list[dict]) -> None:
         self._models["decisionModel"].set_items(items)
 

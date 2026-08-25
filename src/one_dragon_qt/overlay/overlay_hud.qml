@@ -35,6 +35,9 @@ Window {
     // 决策面板标题栏文本（由 Python 注入，显示最新一条决策状态）
     property string decisionTitle: ""
 
+    // 状态面板标题栏文本（由 Python 注入，显示当前前台角色）
+    property string stateTitle: "战斗状态"
+
     // 模式切换提示文本（由 Python 注入，如 "HUD 已关闭"，5 秒后自动消失）
     property string toastText: ""
 
@@ -174,7 +177,7 @@ Window {
                     anchors.left: parent.left
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "战斗状态"
+                    text: root.stateTitle
                     color: "#0d0d0d"
                     font.pixelSize: 17
                     font.bold: true
@@ -184,7 +187,7 @@ Window {
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "STATE"
+                    text: "前台角色"
                     color: "#0d0d0d"
                     font.pixelSize: 12
                     font.bold: true
