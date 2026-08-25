@@ -766,7 +766,7 @@ class Operation(OperationBase):
             return
         bus.add_performance(
             PerfMetricSample(
-                metric="operation_round_ms",
+                metric="operations",
                 value=float(elapsed_ms),
                 unit="ms",
                 ttl_seconds=20.0,

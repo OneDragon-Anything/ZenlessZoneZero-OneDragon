@@ -245,10 +245,6 @@ class OverlayHudWindow:
     def set_status_line(self, text: str) -> None:
         self._set("statusLine", str(text or ""))
 
-    def set_operation_duration(self, text: str) -> None:
-        """设置灵动岛右侧的当前节点轮次用时（如 "12.3ms"，空串不显示）。"""
-        self._set("operationDuration", str(text or ""))
-
     def set_running(self, running: bool) -> None:
         """设置自动战斗运行状态，控制灵动岛流光动画。"""
         self._set("isRunning", bool(running))

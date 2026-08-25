@@ -26,9 +26,6 @@ Window {
     // 左下角运行状态行（由 Python 注入）
     property string statusLine: ""
 
-    // 当前节点轮次实时用时（由 Python 注入，格式如 "12.3ms"，空则不显示）
-    property string operationDuration: ""
-
     // 自动战斗是否运行中（由 Python 注入，控制灵动岛流光动画）
     property bool isRunning: false
 
@@ -377,45 +374,45 @@ Window {
         }
     }
 
-    // ---------- 性能面板（右上，半透明黑底，紧凑三行） ----------
-    Item {
-        id: perfBox
+    // ---------- 性能面板（右上，半透明黑底，尺寸随内容自动调整） ----------
+    Rectangle {
+        id: perfBg
         anchors.right: parent.right
         anchors.rightMargin: 4
         anchors.top: parent.top
         anchors.topMargin: 4
-        width: 150
-        height: 70
-        visible: root.perfVisible
+        radius: 6
+        color: "#CC000000"
+        width: perfColumn.width + 12
+        height: perfColumn.height + 12
 
-        Rectangle {
-            anchors.fill: parent
-            color: "#CC000000"
-            radius: 6
+        Column {
+            id: perfColumn
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.topMargin: 6
+            anchors.leftMargin: 6
+            spacing: 4
+            width: childrenRect.width
+            height: childrenRect.height
 
-            Column {
-                anchors.fill: parent
-                anchors.margins: 6
-                spacing: 4
-
-                Repeater {
-                    model: perfModel
-                    delegate: Row {
-                        spacing: 6
-                        Text {
-                            text: model.name
-                            color: "#ffffff"
-                            font.pixelSize: 14
-                            font.bold: true
-                            font.family: root.monoFont
-                        }
-                        Text {
-                            text: model.avgText + "(" + model.peakText + ")ms"
-                            color: "#00e5ff"
-                            font.pixelSize: 14
-                            font.bold: true
-                            font.family: root.monoFont
-                        }
+            Repeater {
+                model: perfModel
+                delegate: Row {
+                    spacing: 6
+                    Text {
+                        text: model.name
+                        color: "#ffffff"
+                        font.pixelSize: 14
+                        font.bold: true
+                        font.family: root.monoFont
+                    }
+                    Text {
+                        text: model.avgText + "(" + model.peakText + ")ms"
+                        color: "#00e5ff"
+                        font.pixelSize: 14
+                        font.bold: true
+                        font.family: root.monoFont
                     }
                 }
             }
@@ -635,16 +632,6 @@ Window {
                     font.family: root.zhFont
                 }
             }
-        }
-
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.operationDuration
-            color: "#00e5ff"
-            font.pixelSize: 15
-            font.bold: true
-            font.family: root.monoFont
-            visible: text.length > 0
         }
     }
 

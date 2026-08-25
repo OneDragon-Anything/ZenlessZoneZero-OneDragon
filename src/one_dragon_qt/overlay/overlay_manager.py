@@ -429,25 +429,6 @@ class OverlayManager(QObject):
             self._hud_window.set_perf_items(
                 self._build_perf_rows(snapshot.performance_items)
             )
-            self._hud_window.set_operation_duration(
-                self._build_operation_duration_text(snapshot.performance_items)
-            )
-
-    @staticmethod
-    def _build_operation_duration_text(items) -> str:
-        """从性能样本里取最新的 operation_round_ms，格式化成灵动岛用时文本。"""
-        latest = None
-        for item in items:
-            if getattr(item, "metric", "") != "operation_round_ms":
-                continue
-            if latest is None or float(item.created) > float(latest.created):
-                latest = item
-        if latest is None:
-            return ""
-        value = float(latest.value)
-        if value <= 0:
-            return ""
-        return f"{value:.1f}ms"
 
     def _build_decision_rows(self, items) -> list[dict]:
         import html
