@@ -53,6 +53,12 @@ class LostVoidChooseGear(ZOperation):
             # 进入本指令之前 有可能识别错画面
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
+        # 入口层只有两个武备NPC 两个都完成过还进武备画面 必为重复 直接退出
+        # 省掉判重的点击首格+OCR(约10秒) 去门途中被NPC抢交互时的自愈更快
+        if self.completed_name_list is not None and len(self.completed_name_list) >= 2:
+            log.info('入口层两个武备均已完成 当前武备画面必为重复 直接返回')
+            return self.round_success(LostVoidChooseGear.STATUS_REPEATED)
+
         choose_new: bool = False
         gear_contours, gear_context = self._find_gears_with_status()
         if not gear_contours:
