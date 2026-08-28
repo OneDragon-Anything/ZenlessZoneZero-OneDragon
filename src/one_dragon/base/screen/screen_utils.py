@@ -337,7 +337,7 @@ def _match_screen_or_collect_failure(
     ctx: OneDragonContext,
     screen: MatLike,
     screen_info: ScreenInfo,
-    near_miss_map: dict[str, list[str]],
+    near_miss_map: dict[str, list[str]] | None,
     crop_first: bool = True,
 ) -> str | None:
     """
@@ -347,7 +347,7 @@ def _match_screen_or_collect_failure(
         ctx: 上下文
         screen: 游戏截图
         screen_info: 待判断的画面
-        near_miss_map: 收集"接近匹配"画面的失败特征。键为画面名，值为未命中的 id_mark 区域描述
+        near_miss_map: 可选的失败特征收集表。键为画面名，值为未命中的 id_mark 区域描述
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
 
     Returns:
