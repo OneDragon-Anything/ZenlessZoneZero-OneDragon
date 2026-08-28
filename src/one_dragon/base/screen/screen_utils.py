@@ -363,11 +363,15 @@ def _match_screen_or_collect_failure(
 
 def _log_screen_match_failure(near_miss_map: dict[str, list[str]]) -> None:
     """
-    画面识别全部失败时，输出一条带失败特征详情的日志，方便排查。
+    画面识别全部失败时，输出识别失败的日志，方便排查。
 
-    会列出接近匹配（有画面标识 id_mark 但未命中）的画面及各自未命中的标识区域；
-    带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题。
+    有接近匹配的画面（有画面标识 id_mark 但未命中）时，列出各自未命中的标识区域，
+    带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题；
+    完全没有接近匹配的画面（如候选画面没有 id_mark）时，只输出通用的识别失败日志，不静默。
     """
+    if not near_miss_map:
+        log.warning('未能识别当前画面，且没有接近匹配的画面')
+        return
     detail = '；'.join(
         f'{screen_name}({", ".join(marks)})'
         for screen_name, marks in near_miss_map.items()
@@ -418,8 +422,7 @@ def get_match_screen_name(
 
     if target_name is not None:
         return target_name
-    if near_miss_map:
-        _log_screen_match_failure(near_miss_map)
+    _log_screen_match_failure(near_miss_map)
     return None
 
 
