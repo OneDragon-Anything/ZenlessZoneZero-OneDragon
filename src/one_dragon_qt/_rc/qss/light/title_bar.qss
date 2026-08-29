@@ -29,6 +29,7 @@
 
 #TitleBar[homeMode="false"] > #launcherVersionButton,
 #TitleBar[homeMode="false"] > #codeVersionButton,
+#TitleBar[homeMode="false"] > #downloadQueueButton,
 #TitleBar[homeMode="false"] > #questionButton {
     border-radius: 5px;
     padding: 4px 8px;
@@ -36,12 +37,14 @@
 
 #TitleBar[homeMode="false"] > #launcherVersionButton:hover,
 #TitleBar[homeMode="false"] > #codeVersionButton:hover,
+#TitleBar[homeMode="false"] > #downloadQueueButton:hover,
 #TitleBar[homeMode="false"] > #questionButton:hover {
     background-color: rgba(0, 0, 0, 9);
 }
 
 #TitleBar[homeMode="false"] > #launcherVersionButton:pressed,
 #TitleBar[homeMode="false"] > #codeVersionButton:pressed,
+#TitleBar[homeMode="false"] > #downloadQueueButton:pressed,
 #TitleBar[homeMode="false"] > #questionButton:pressed {
     background-color: rgba(0, 0, 0, 6);
 }
@@ -96,6 +99,7 @@
 
 #TitleBar[homeMode="true"] > #launcherVersionButton,
 #TitleBar[homeMode="true"] > #codeVersionButton,
+#TitleBar[homeMode="true"] > #downloadQueueButton,
 #TitleBar[homeMode="true"] > #questionButton {
     border-radius: 5px;
     padding: 4px 8px;
@@ -103,12 +107,14 @@
 
 #TitleBar[homeMode="true"] > #launcherVersionButton:hover,
 #TitleBar[homeMode="true"] > #codeVersionButton:hover,
+#TitleBar[homeMode="true"] > #downloadQueueButton:hover,
 #TitleBar[homeMode="true"] > #questionButton:hover {
     background-color: rgba(255, 255, 255, 30);
 }
 
 #TitleBar[homeMode="true"] > #launcherVersionButton:pressed,
 #TitleBar[homeMode="true"] > #codeVersionButton:pressed,
+#TitleBar[homeMode="true"] > #downloadQueueButton:pressed,
 #TitleBar[homeMode="true"] > #questionButton:pressed {
     background-color: rgba(255, 255, 255, 20);
 }
