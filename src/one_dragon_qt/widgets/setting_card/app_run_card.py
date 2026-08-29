@@ -116,14 +116,16 @@ class AppRunCard(DraggableListItem):
         更新显示的状态
         :return:
         """
-        title = gt(self.app.app_name)
-        self.content_widget.setTitle(title)
+        self.content_widget.setTitle(self.app.app_name)
         self.migrated_label.setVisible(self.is_migrated)
         self.migrated_info_btn.setVisible(self.is_migrated)
         if self.run_record is None:
             self.content_widget.setContent('')
         else:
-            self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
+            self.content_widget.setContent(
+                '上次运行 {time}',
+                time=self.run_record.run_time,
+            )
 
             status = self.run_record.run_status_under_now
             if status == AppRunRecord.STATUS_SUCCESS:

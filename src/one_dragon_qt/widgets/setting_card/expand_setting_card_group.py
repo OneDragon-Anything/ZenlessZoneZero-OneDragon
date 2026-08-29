@@ -4,7 +4,11 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import ExpandSettingCard, FluentIconBase
 from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
 
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import (
+    gt,
+    subscribe_language_changed,
+    unsubscribe_language_changed,
+)
 
 
 class ExpandSettingCardGroup(ExpandSettingCard):
@@ -20,12 +24,27 @@ class ExpandSettingCardGroup(ExpandSettingCard):
         content: str | None = None,
         parent: QWidget | None = None,
     ):
+        self._title_msgid = title
+        self._content_msgid = content
         super().__init__(icon, gt(title), parent=parent)
         if content:
             self.card.setContent(gt(content))
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
         self.viewLayout.setSpacing(0)
         self._card_sep_pairs: list[tuple[QWidget, GroupSeparator | None]] = []
+        self._language_callback = self.retranslate_ui
+        subscribe_language_changed(self._language_callback)
+        self.destroyed.connect(self._on_destroyed)
+
+    def _on_destroyed(self, _object: QObject | None = None) -> None:
+        """Unsubscribe the group after Qt destroys it."""
+        unsubscribe_language_changed(self._language_callback)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the group title and description after a language change."""
+        self.card.titleLabel.setText(gt(self._title_msgid))
+        if self._content_msgid:
+            self.card.setContent(gt(self._content_msgid))
 
     def addHeaderWidget(self, widget: QWidget) -> None:
         """在头部 expandButton 左侧添加操作组件"""

@@ -2,13 +2,15 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils.i18_utils import normalize_language
 
 
 class UILanguageEnum(Enum):
 
     AUTO = ConfigItem('跟随系统', 'auto')
-    ZH = ConfigItem('简体中文', 'zh')
+    ZH = ConfigItem('简体中文', 'zh-CN')
     EN = ConfigItem('English', 'en')
+    VI = ConfigItem('Tiếng Việt', 'vi')
 
 class ThemeEnum(Enum):
 
@@ -37,7 +39,10 @@ class CustomConfig(YamlConfig):
         界面语言
         :return:
         """
-        return self.get('ui_language', UILanguageEnum.AUTO.value.value)
+        value = self.get('ui_language', UILanguageEnum.AUTO.value.value)
+        if value == 'zh':
+            return 'zh-CN'
+        return normalize_language(value) if value != 'auto' else value
 
     @ui_language.setter
     def ui_language(self, new_value: str) -> None:

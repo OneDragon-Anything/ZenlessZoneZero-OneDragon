@@ -151,7 +151,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         ]
 
         for item in hint_items:
-            item_label = CaptionLabel(text=item)
+            item_label = CaptionLabel(text=gt(item))
             hint_layout.add_widget(item_label)
 
         left_column.add_widget(hint_card)

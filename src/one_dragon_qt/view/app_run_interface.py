@@ -187,6 +187,23 @@ class AppRunInterface(VerticalScrollInterface):
         self.start_btn.setIcon(icon)
         self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
 
+    def retranslate_ui(self) -> None:
+        """Refresh runtime controls after the application language changes."""
+        super().retranslate_ui()
+        if not hasattr(self, 'start_btn'):
+            return
+        if self.ctx.run_context.is_context_running:
+            start_text = gt('暂停')
+        elif self.ctx.run_context.is_context_pause:
+            start_text = gt('继续')
+        else:
+            start_text = gt('开始')
+        self.start_btn.setText(f"{start_text} {self.ctx.key_start_running.upper()}")
+        self.stop_btn.setText(f"{gt('停止')} {self.ctx.key_stop_running.upper()}")
+        self.state_text.setText(
+            f"{gt('当前状态')} {self.ctx.run_context.run_status_text}"
+        )
+
     def _on_start_clicked(self) -> None:
         if self.ctx.run_context.is_context_stop:
             self.run_app()

@@ -1,7 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QPushButton
 from qfluentwidgets import FluentIconBase
 from typing import Union, Optional
@@ -32,10 +31,15 @@ class PushSettingCard(SettingCardBase):
             parent=parent
         )
 
-        # 创建按钮并添加到布局中
+        self._button_text_msgid = text
         self.button = QPushButton(gt(text), self)
         self.hBoxLayout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
         # 连接按钮点击信号到自定义的 clicked 信号
         self.button.clicked.connect(self.clicked.emit)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and button text after a language change."""
+        super().retranslate_ui()
+        self.button.setText(gt(self._button_text_msgid))

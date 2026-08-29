@@ -796,8 +796,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             center_hsv = hsv_result['center_hsv']
             diff_hsv = hsv_result['diff_hsv']
 
-            content += f"\nHSV中心: {center_hsv}"
-            content += f"\nHSV差值: {diff_hsv}"
+            content += f"\n{gt('HSV中心')}: {center_hsv}"
+            content += f"\n{gt('HSV差值')}: {diff_hsv}"
 
         # 显示结果
         InfoBar.success(
@@ -847,7 +847,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         self.pipeline_combo.clear()
 
         pipelines = self.logic.get_pipeline_names()
-        all_items = [self._CREATE_NEW_PIPELINE_TEXT] + pipelines
+        all_items = [gt(self._CREATE_NEW_PIPELINE_TEXT)] + pipelines
         self.pipeline_combo.addItems(all_items)
 
         if current_text in all_items:
@@ -875,7 +875,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             return
 
         pipeline_name = self.pipeline_combo.itemText(index)
-        if pipeline_name == self._CREATE_NEW_PIPELINE_TEXT:
+        if pipeline_name == gt(self._CREATE_NEW_PIPELINE_TEXT):
             self.logic.active_pipeline_name = None
             self.logic.pipeline.steps.clear()
         else:

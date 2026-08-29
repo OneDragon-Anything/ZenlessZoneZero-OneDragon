@@ -60,13 +60,10 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
-        target_idx = 0
-        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
-            opt = opt_enum.value
-            self.run_opt.addItem(text=opt.label, userData=opt.value)
-            if opt.value == self.instance.active_in_od:
-                target_idx = run_idx
-        self.run_opt.setCurrentIndex(target_idx)
+        self.run_opt.set_items(
+            [option.value for option in RunInOneDragonApp],
+            target_value=self.instance.active_in_od,
+        )
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
         self.active_btn = PushButton(text=gt("启用"))
@@ -98,7 +95,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
-        self.setTitle(title)
+        self.setTitleText(title)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the dynamic account title and inherited card text."""
+        super().retranslate_ui(_language)
+        self.update_title()
 
     def _on_name_changed(self, text: str) -> None:
         self.instance.name = text
