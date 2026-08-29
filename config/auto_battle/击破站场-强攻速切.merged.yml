@@ -9743,7 +9743,35 @@
             "seconds": 0.5
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 5
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-松开"
           "states": "[蕾米埃尔-虚曜]{3,3}"
         - "debug_name": "长按强化特殊技"
           "interrupt_states": "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
@@ -9761,7 +9789,35 @@
             "seconds": 0.5
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 5
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击-松开"
           "states": "[蕾米埃尔-浮晖]{100,100}"
         - "debug_name": "其他情况：普通攻击"
           "interrupt_states": "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
