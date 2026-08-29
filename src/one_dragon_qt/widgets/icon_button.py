@@ -7,6 +7,7 @@ from qfluentwidgets import (
 )
 from qfluentwidgets.common.overload import singledispatchmethod
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.teaching_tip import TeachingTip
 
 
@@ -53,8 +54,8 @@ class IconButton(TransparentToolButton):
         self._hide_tooltip()  # 先关闭已有的 tip
         self._tooltip = TeachingTip.create(
             target=self,
-            title=self.tip_title,
-            content=self.tip_content,
+            title=gt(self.tip_title),
+            content=gt(self.tip_content),
             tailPosition=TeachingTipTailPosition.RIGHT,
             isClosable=False,
             duration=-1,

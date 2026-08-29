@@ -13,6 +13,7 @@ class GameLanguageEnum(Enum):
 
     CN = ConfigItem('简体中文', 'cn')
     EN = ConfigItem('English', 'en')
+    JA = ConfigItem('日本語', 'ja')
 
 
 class GameRegionEnum(Enum):
