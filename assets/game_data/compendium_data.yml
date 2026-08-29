@@ -2,6 +2,8 @@
 - tab_name: "日常"
 - tab_name: "训练"
   category_list:
+    - category_name: "特训目标"
+
     - category_name: "实战模拟室"
       mission_type_list:
         - mission_type_name: "基础材料"

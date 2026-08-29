@@ -28,6 +28,9 @@ class RestoreChargeEnum(Enum):
     BOTH = ConfigItem('同时使用储蓄电量和以太电池')
 
 
+TRAINING_GOAL_CATEGORY_NAME = '特训目标'
+
+
 @dataclass
 class ChargePlanItem:
     tab_name: str = '训练'
@@ -43,6 +46,7 @@ class ChargePlanItem:
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
     plan_id: str | None = None  # 计划的唯一标识符
     skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
+    use_burnout_mode: bool = field(default=False, repr=False, metadata={'persist': False})  # 专业挑战室是否保留燃竭模式
 
     def __post_init__(self) -> None:
         if self.plan_id is None:
@@ -51,6 +55,11 @@ class ChargePlanItem:
     @property
     def is_agent_plan(self) -> bool:
         return self.mission_type_name == '代理人方案培养'
+
+    @property
+    def is_training_goal(self) -> bool:
+        """是否由快捷手册统一页动态决定实际副本。"""
+        return self.category_name == TRAINING_GOAL_CATEGORY_NAME
 
     @property
     def uid(self) -> str:
@@ -62,7 +71,12 @@ class ChargePlanItem:
 
     @property
     def estimated_charge_power(self) -> int:
+        """返回进入计划前用于筛选的最低电量估算。"""
         # 进本前只做体力预估；未知类型交给副本内流程再检查真实消耗
+        if self.is_training_goal:
+            # 统一页最便宜的是实战模拟室 1 张卡。先用最低消耗挡住完全
+            # 无法开本的情况，实际副本和更高消耗仍在读取页面后确定。
+            return 20
         if self.category_name == '实战模拟室':
             if self.card_num == CardNumEnum.DEFAULT.value.value:
                 return 20
@@ -70,7 +84,7 @@ class ChargePlanItem:
         if self.category_name == '区域巡防':
             return 60
         if self.category_name == '专业挑战室':
-            return 40
+            return 80 if self.use_burnout_mode else 40
         if self.category_name == '恶名狩猎':
             return 60
         if self.category_name == '合成电池':
@@ -154,34 +168,42 @@ class ChargePlanConfig(ApplicationConfig):
     def reset_plans(self) -> None:
         """
         根据运行次数重置运行计划。
-        普通计划按整轮扣减，已跳过的代理人计划在进入下一轮时清零。
+        未跳过的普通计划按整轮扣减；本次已跳过的计划保持不变，
+        其中动态计划的遗留运行次数在进入下一轮时清零。
         """
         if len(self.plan_list) == 0:
             return
 
-        eligible = [p for p in self.plan_list if not (p.skipped and p.is_agent_plan) and p.plan_times > 0]
-        skipped_agent_plans = [p for p in self.plan_list if p.skipped and p.is_agent_plan]
-        modified = False
-
+        eligible = [
+            p for p in self.plan_list
+            if not p.skipped and p.plan_times > 0
+        ]
+        skipped_dynamic_plans = [
+            p for p in self.plan_list
+            if p.skipped and (p.is_agent_plan or p.is_training_goal)
+        ]
         if eligible:
+            reset_rounds = 0
             while True:
                 if any(p.run_times < p.plan_times for p in eligible):
                     break
 
                 for plan in eligible:
                     plan.run_times -= plan.plan_times
-                modified = True
+                reset_rounds += 1
+                self.save()
 
-            if not modified:
+            if reset_rounds == 0:
                 return
 
-        for plan in skipped_agent_plans:
+        dynamic_plan_reset = False
+        for plan in skipped_dynamic_plans:
             if plan.run_times == 0:
                 continue
             plan.run_times = 0
-            modified = True
+            dynamic_plan_reset = True
 
-        if modified:
+        if dynamic_plan_reset:
             self.save()
 
     def try_reset_plan_times_by_dt(self, current_dt: str) -> bool:
@@ -241,7 +263,7 @@ class ChargePlanConfig(ApplicationConfig):
             plan = self.plan_list[i]
             if plan.skipped:
                 continue
-            if plan.run_times < plan.plan_times:
+            if plan.is_training_goal or plan.run_times < plan.plan_times:
                 return plan
 
         # 4. 检查完一轮都没找到合适的计划
@@ -249,14 +271,16 @@ class ChargePlanConfig(ApplicationConfig):
 
     def all_plan_finished(self) -> bool:
         """
-        是否全部计划已完成（跳过已标记跳过的代理人计划）
+        是否全部未跳过计划都已完成。
         """
         if self.plan_list is None:
             return True
 
         for plan in self.plan_list:
-            if plan.skipped and plan.is_agent_plan:
+            if plan.skipped:
                 continue
+            if plan.is_training_goal:
+                return False
             if plan.run_times < plan.plan_times:
                 return False
         return True
@@ -269,6 +293,12 @@ class ChargePlanConfig(ApplicationConfig):
         for plan in self.plan_list:
             if not self._is_same_plan(plan, to_add):
                 continue
+            if plan.is_training_goal:
+                # 动态子计划与持久计划共用 plan_id。子计划完成一轮后只更新运行态，
+                # 让副本内流程退出“再来一次”；持久计划保持未完成，下一轮重新读页面。
+                if plan is not to_add:
+                    to_add.run_times += 1
+                return
             if plan.run_times >= plan.plan_times:
                 continue
             plan.run_times += 1
@@ -279,6 +309,10 @@ class ChargePlanConfig(ApplicationConfig):
         for plan in self.plan_list:
             if not self._is_same_plan(plan, to_add):
                 continue
+            if plan.is_training_goal:
+                if plan is not to_add:
+                    to_add.run_times += 1
+                return
             plan.run_times += 1
             self.save()
             return
