@@ -7,6 +7,7 @@ from qfluentwidgets import (
     LineEdit,
     PrimaryPushButton,
     PushButton,
+    SpinBox,
     ToolButton,
 )
 
@@ -93,6 +94,15 @@ class ChargePlanCard(DraggableListItem):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
+        self.battle_timeout_label = CaptionLabel(text=gt('换队时限（0 为关闭）'))
+        self.battle_timeout_input = SpinBox()
+        self.battle_timeout_input.setRange(0, 600)
+        self.battle_timeout_input.setSuffix(' 秒')
+        self.battle_timeout_input.setSpecialValueText(gt('关闭'))
+        self.battle_timeout_input.valueChanged.connect(self._on_battle_timeout_changed)
+        self.battle_timeout_preset_btn = PushButton()
+        self.battle_timeout_preset_btn.clicked.connect(self._on_battle_timeout_preset_clicked)
+
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
@@ -117,6 +127,9 @@ class ChargePlanCard(DraggableListItem):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
+                    self.battle_timeout_label,
+                    self.battle_timeout_input,
+                    self.battle_timeout_preset_btn,
                     self.move_top_btn,
                     self.del_btn,
                 ]
@@ -195,6 +208,17 @@ class ChargePlanCard(DraggableListItem):
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
 
+    def init_battle_timeout_input(self) -> None:
+        preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
+        self.battle_timeout_input.blockSignals(True)
+        self.battle_timeout_input.setValue(self.plan.battle_timeout_seconds)
+        self.battle_timeout_label.setVisible(preset_seconds is not None)
+        self.battle_timeout_input.setVisible(preset_seconds is not None)
+        self.battle_timeout_input.blockSignals(False)
+        self.battle_timeout_preset_btn.setVisible(preset_seconds is not None)
+        if preset_seconds is not None:
+            self.battle_timeout_preset_btn.setText(gt(f'S级时限 {preset_seconds} 秒'))
+
     def init_with_plan(
         self,
         plan: ChargePlanItem,
@@ -217,6 +241,7 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_run_times_input()
         self.init_plan_times_input()
+        self.init_battle_timeout_input()
 
     def _on_category_changed(self, idx: int) -> None:
         category_name = self.category_combo_box.itemData(idx)
@@ -232,6 +257,7 @@ class ChargePlanCard(DraggableListItem):
         self.init_notorious_hunt_buff_num_opt()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
+        self.init_battle_timeout_input()
 
         self._emit_value()
 
@@ -276,6 +302,15 @@ class ChargePlanCard(DraggableListItem):
         self.plan.plan_times = int(self.plan_times_input.text())
         self._emit_value()
 
+    def _on_battle_timeout_changed(self, value: int) -> None:
+        self.plan.battle_timeout_seconds = value
+        self._emit_value()
+
+    def _on_battle_timeout_preset_clicked(self) -> None:
+        preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
+        if preset_seconds is not None:
+            self.battle_timeout_input.setValue(preset_seconds)
+
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
 
@@ -316,6 +351,15 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         self.auto_battle_combo_box = ComboBox()
         self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
 
+        self.battle_timeout_label = CaptionLabel(text=gt('换队时限（0 为关闭）'))
+        self.battle_timeout_input = SpinBox()
+        self.battle_timeout_input.setRange(0, 600)
+        self.battle_timeout_input.setSuffix(' 秒')
+        self.battle_timeout_input.setSpecialValueText(gt('关闭'))
+        self.battle_timeout_input.valueChanged.connect(self._on_battle_timeout_changed)
+        self.battle_timeout_preset_btn = PushButton()
+        self.battle_timeout_preset_btn.clicked.connect(self._on_battle_timeout_preset_clicked)
+
         MultiLineSettingCard.__init__(
             self,
             icon=FluentIcon.CALENDAR,
@@ -327,7 +371,12 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
                     self.mission_combo_box,
                     self.predefined_team_opt,
                     self.auto_battle_combo_box,
-                ]
+                ],
+                [
+                    self.battle_timeout_label,
+                    self.battle_timeout_input,
+                    self.battle_timeout_preset_btn,
+                ],
             ]
         )
 
@@ -346,6 +395,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         self.init_mission_combo_box()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
+        self.init_battle_timeout_input()
 
     def init_category_combo_box(self) -> None:
         self.category_combo_box.set_items([ConfigItem(self.category_name, self.category_name)], self.category_name)
@@ -377,6 +427,17 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         self.auto_battle_combo_box.set_items(config_list, self.plan.auto_battle_config)
         self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
 
+    def init_battle_timeout_input(self) -> None:
+        preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
+        self.battle_timeout_input.blockSignals(True)
+        self.battle_timeout_input.setValue(self.plan.battle_timeout_seconds)
+        self.battle_timeout_input.blockSignals(False)
+        self.battle_timeout_label.setVisible(preset_seconds is not None)
+        self.battle_timeout_input.setVisible(preset_seconds is not None)
+        self.battle_timeout_preset_btn.setVisible(preset_seconds is not None)
+        if preset_seconds is not None:
+            self.battle_timeout_preset_btn.setText(gt(f'S级时限 {preset_seconds} 秒'))
+
     def _on_mission_type_changed(self, idx: int) -> None:
         self.plan.mission_type_name = self.mission_type_combo_box.itemData(idx)
         self.init_mission_combo_box()
@@ -394,6 +455,15 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
     def _on_auto_battle_changed(self, idx: int) -> None:
         self.plan.auto_battle_config = self.auto_battle_combo_box.itemData(idx)
         self._emit_value()
+
+    def _on_battle_timeout_changed(self, value: int) -> None:
+        self.plan.battle_timeout_seconds = value
+        self._emit_value()
+
+    def _on_battle_timeout_preset_clicked(self) -> None:
+        preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
+        if preset_seconds is not None:
+            self.battle_timeout_input.setValue(preset_seconds)
 
     def _emit_value(self) -> None:
         self.changed.emit(self.plan)
