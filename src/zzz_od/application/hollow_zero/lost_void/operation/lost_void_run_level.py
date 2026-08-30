@@ -139,6 +139,12 @@ class LostVoidRunLevel(ZOperation):
         self.interacted_target_key_list: list[str] = []  # 本层已经交互过的具体对象
         self.stuck_state: LostVoidStuckState = LostVoidStuckState()  # 本层共享的脱困状态
 
+        self.attempt_start_time: float = 0  # 重开挑战后重新计时的起点 0=使用指令开始时间
+        self.entry_gear_name_list: list[str] = []  # 入口层已完成选择画面的首个武备名 用于识别重复交互同一个NPC
+        self.entry_gear_repeat_times: int = 0  # 入口层重复进入已完成武备选择画面的次数
+        self.entry_gear_interact_done: bool = False  # 刚完成了一次入口层武备选择交互 交互后需要调整站位
+        self.entry_door_block_times: int = 0  # 入口层放弃感叹号后 交互文本不是入口时前进重试的次数
+
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
     @node_from(from_name='处理寻路失败或阵亡', status='准备重试')  # 寻路失败后重试
@@ -265,7 +271,9 @@ class LostVoidRunLevel(ZOperation):
 
         # 在大世界 判断整体超时
         # 在这里判断是因为需要确保在大世界画面 可以按到菜单退出按钮 防止卡在事件选择之类的地方
-        if self.last_screenshot_time - self.operation_start_time >= 600:  # 10分钟超时
+        # 重开挑战后以 attempt_start_time 重新计时 否则重试会立刻再次超时
+        timeout_start_time = self.attempt_start_time if self.attempt_start_time > 0 else self.operation_start_time
+        if self.last_screenshot_time - timeout_start_time >= 600:  # 10分钟超时
             return self.round_fail(Operation.STATUS_TIMEOUT)
 
         # 黄金魔神邦布开战前对话
@@ -534,19 +542,74 @@ class LostVoidRunLevel(ZOperation):
                 area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
                 ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
                 current_interact_target: LostVoidInteractTarget | None = None
-                for ocr_result in ocr_result_map:
+                current_target_label_x: float | None = None  # 当前瞄准目标名字标签的屏幕x 用于识别其感叹号图标
+                for ocr_result, mrl in ocr_result_map.items():
                     target = match_interact_target(self.ctx, ocr_result)
                     if target is not None:
                         current_interact_target = target
+                        if mrl.max is not None:
+                            # 游戏只给当前瞄准的对象显示「> 名字 <」标签 且标签就在其感叹号正下方
+                            current_target_label_x = area.rect.x1 + mrl.max.center.x
                         break
 
                 if current_interact_target is not None:
                     target_key = self.get_interact_target_key(current_interact_target)
                     if self.region_type != LostVoidRegionType.ENTRY and target_key in self.interacted_target_key_list:
                         log.info('当前层已交互过 %s，本次不再交互，先离开当前对象', target_key)
+                        # 反复走回已交互对象 说明卡在其附近 计入卡住次数让后续脱困策略升级
+                        self.stuck_state.stuck_times += 1
                         self.interact_target = current_interact_target
                         self.move_after_interact()
                         return self.round_fail('重复交互对象')
+
+                # 入口层交互文本闭环校验(实机验证过的游戏机制 2026-08-26):
+                # - 交互目标 = 角色朝向180°扇面内 按角度优先(角度>距离)选出; 朝向=最后一次移动方向
+                # - 当前瞄准的对象会显示「> 名字 <」标签(只有它显示) 交互文本OCR读到的就是按F会命中谁
+                # - 朝目标NPC方向迈一小步 就能把瞄准切过去
+                # 完成过至少一次交互后 每次按键前都先看交互文本:
+                # - 文本是入口 → 按键进门
+                # - 文本是没交互过的NPC → 按键(正是要补交互的目标NPC)
+                # - 文本是已交互过的NPC 或识别不出 → 不按 朝"排除当前瞄准图标后最近的感叹号"迈步再试
+                #   (此前只在放弃感叹号后校验且朝最右侧感叹号侧移 而最右恰是刚交互完的NPC 永远走不到另一个)
+                # - 已放弃感叹号(找门)时 朝下层入口图标迈步
+                # 达到上限后直接按键 由武备画面判重退出兜底
+                gave_up_interact = LostVoidDetector.CLASS_INTERACT[5:] in self.had_been_list
+                if (self.region_type == LostVoidRegionType.ENTRY
+                        and (gave_up_interact or len(self.interacted_target_key_list) > 0)):
+                    confirmed_entry = current_interact_target is not None and current_interact_target.is_entry
+                    fresh_target = (current_interact_target is not None
+                                    and not current_interact_target.is_entry
+                                    and self.get_interact_target_key(current_interact_target) not in self.interacted_target_key_list)
+                    if not confirmed_entry and not fresh_target:
+                        if self.entry_door_block_times < 8:
+                            self.entry_door_block_times += 1
+                            target_name = current_interact_target.name if current_interact_target is not None else '未识别'
+                            log.info(f'入口层交互文本 [{target_name}] 不是入口或未交互目标 '
+                                     f'走位后重试 第{self.entry_door_block_times}次')
+                            if gave_up_interact:
+                                # 找门: 感叹号已放弃 朝检测到的下层入口图标迈步(检测不到才蛇形兜底)
+                                self._steer_towards_other_interact_icon(current_target_label_x, prefer_entry=True)
+                            else:
+                                # 找相邻NPC: 朝排除当前瞄准图标后的剩余感叹号迈步 让朝向指向它
+                                self._steer_towards_other_interact_icon(current_target_label_x)
+                            return self.round_wait('走位调整交互目标', wait=0.2)
+                        # 上限后: 标签明确是已交互NPC时硬按必进重复画面(白费40秒+) 后退换角度重新接近
+                        # 只有读不出标签时才硬按(可能是门 只是标签没读出来)
+                        if (current_interact_target is not None
+                                and not current_interact_target.is_entry
+                                and self.get_interact_target_key(current_interact_target) in self.interacted_target_key_list):
+                            log.info('入口层走位重试达上限 目标仍是已交互NPC 后退换角度重新接近')
+                            self.entry_door_block_times = 0
+                            self.stuck_state.stuck_times += 1
+                            self.ctx.controller.move_s(press=True, press_time=1.2, release=True)
+                            time.sleep(0.2)
+                            return self.round_fail('重复交互对象')
+                        log.info('入口层交互文本一直未确认到可交互目标 走位重试已达上限 直接交互')
+                    else:
+                        # 文本已确认到目标 本轮走位重试计数清零 后续目标重新计数
+                        self.entry_door_block_times = 0
+
+                if current_interact_target is not None:
                     self.interact_target = current_interact_target
                     self.locked_interact_target = current_interact_target
 
@@ -570,6 +633,10 @@ class LostVoidRunLevel(ZOperation):
         time.sleep(0.2)
         self.ctx.controller.move_w(press=True, press_time=0.2, release=True)
         time.sleep(1)
+
+        if self.node_retry_times >= self.node_max_retry_times:
+            # 本轮重试后节点将失败 说明反复走到目标附近都无法交互 计入卡住次数让后续脱困策略升级
+            self.stuck_state.stuck_times += 1
 
         return self.round_retry('未发现交互按键')
 
@@ -600,7 +667,10 @@ class LostVoidRunLevel(ZOperation):
         interact_op: ZOperation | None = None
         interact_type: str | None = None
         if screen_name == '迷失之地-武备选择':
-            interact_op = LostVoidChooseGear(self.ctx)
+            interact_op = LostVoidChooseGear(
+                self.ctx,
+                completed_name_list=self.entry_gear_name_list if self.region_type == LostVoidRegionType.ENTRY else None,
+            )
         elif screen_name == '迷失之地-通用选择':
             interact_op = LostVoidChooseCommon(self.ctx)
         elif screen_name == '迷失之地-邦布商店':
@@ -625,6 +695,18 @@ class LostVoidRunLevel(ZOperation):
             if op_result.success:
                 if interact_type is not None:
                     self.had_been_list.append(interact_type)
+
+                if screen_name == '迷失之地-武备选择' and self.region_type == LostVoidRegionType.ENTRY:
+                    # 入口层完成一次武备选择交互后 需要调整站位 让下一次交互能命中相邻的另一个NPC
+                    self.entry_gear_interact_done = True
+                    if op_result.status == LostVoidChooseGear.STATUS_REPEATED:
+                        self.entry_gear_repeat_times += 1
+                        self.entry_door_block_times = 0  # 每次重复退出后重新给尝试交互的前进重试次数
+                        interact_class_name = LostVoidDetector.CLASS_INTERACT[5:]
+                        if self.entry_gear_repeat_times >= 3 and interact_class_name not in self.had_been_list:
+                            # 重复交互多次说明转向策略一直失败 放弃剩余感叹号 直接前往下层入口(最后兜底)
+                            self.had_been_list.append(interact_class_name)
+                            log.info('入口层武备选择重复交互多次 本层忽略感叹号 前往下层入口')
 
                 return self.round_wait(op_result.status, wait=2)
             else:
@@ -794,6 +876,16 @@ class LostVoidRunLevel(ZOperation):
                         and self.locked_interact_target.name == LostVoidInteractNPC.MA_LIN.value
                         and LostVoidRegionType.ENCOUNTER.value.value not in self.had_been_list):
                     self.had_been_list.append(LostVoidRegionType.ENCOUNTER.value.value)
+
+                # 入口层三个NPC(奥菲莉亚/蕾/研究员)都交互完后 剩余感叹号已无价值
+                # 主动忽略 不再走过去 直接前往下层入口 避免去门途中被NPC反复抢交互
+                interact_class_name = LostVoidDetector.CLASS_INTERACT[5:]
+                if (self.region_type == LostVoidRegionType.ENTRY
+                        and interact_class_name not in self.had_been_list
+                        and len(self.entry_gear_name_list) >= 2
+                        and f'感叹号:{LostVoidInteractNPC.SCGMDYJY.value}' in self.interacted_target_key_list):
+                    self.had_been_list.append(interact_class_name)
+                    log.info('入口层三个NPC均已交互完成 忽略剩余感叹号 直接前往下层入口')
             self.locked_interact_target = None
 
         if in_normal_world:
@@ -843,6 +935,8 @@ class LostVoidRunLevel(ZOperation):
         if self.region_type == LostVoidRegionType.ENTRY:
             # 第一层 两个武备选择后 往后走 可以方便走上楼梯
             # 2.0版本 入口左侧增加了一个研究员 因此交互后往后多走一点 方便看到这个研究员
+            gear_interact_done = self.entry_gear_interact_done
+            self.entry_gear_interact_done = False
             if self.interact_target.is_npc:
                 default_move_back: bool = False
                 # 俩npc在一起时, self.interact_target.name 有概率识别错误, 故使用 ao_fei_li_ya_talked 来判断是否选择了关卡武备
@@ -866,10 +960,16 @@ class LostVoidRunLevel(ZOperation):
                 elif self.interact_target.name == LostVoidInteractNPC.SCGMDYJY.value:
                     # 研究员交互后 往右一点方便走到白点位置
                     self.ctx.controller.move_d(press=True, press_time=0.5, release=True)
+                elif gear_interact_done:
+                    # 蕾等武备选择NPC交互后 若场上还有其他感叹号 朝它调整站位 避免下一次交互又命中同一个NPC
+                    self._approach_remaining_interact_target()
                 else:
                     default_move_back = True
                 if default_move_back:
                     self.ctx.controller.move_s(press=True, press_time=2, release=True)
+            elif gear_interact_done:
+                # 交互文本没识别出NPC名 但确实完成了武备选择 同样需要调整站位
+                self._approach_remaining_interact_target()
         elif self.region_type == LostVoidRegionType.FRIENDLY_TALK:
             # 挚交会谈
             if self.interact_target.is_agent:  # 如果是代理人 向后右移动 可以避开中间桌子的障碍
@@ -892,6 +992,107 @@ class LostVoidRunLevel(ZOperation):
             # 兜底的情况 统一往后走
             # 1. 由于奸商布的位置和商店很靠近 交互后往后移动可以避开奸商布
             self.ctx.controller.move_s(press=True, press_time=1, release=True)
+
+    def _approach_remaining_interact_target(self) -> None:
+        """
+        入口层完成武备选择后 调整站位
+
+        此刻角色紧贴刚交互完的NPC 后退一步让两个感叹号图标都进入画面
+        后续接近+按键前的闭环校验(_steer_towards_other_interact_icon)会把朝向转向未交互的NPC
+        已放弃感叹号(找门)时不后退 保持前进脱离NPC交互范围
+        """
+        if LostVoidDetector.CLASS_INTERACT[5:] in self.had_been_list:
+            # 已放弃感叹号 剩余目标只有下层入口 不需要贴近NPC调整站位
+            # 也不能后退 否则会退回刚才被NPC抢交互的位置 保持前进让下一轮从更近处接近入口
+            # 每次仍被抢都说明NPC还在角色与门之间 步长随重复次数加大 加快脱离NPC的交互范围
+            press_time = min(0.4 + 0.2 * self.entry_gear_repeat_times, 1.5)
+            log.info(f'入口层已放弃感叹号 保持朝下层入口前进 {press_time:.1f}秒')
+            self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
+            return
+
+        log.info('入口层武备选择后 后退让相邻感叹号进入视野')
+        self.ctx.controller.move_s(press=True, press_time=0.8, release=True)
+        time.sleep(0.2)  # 消除惯性
+
+    def _steer_towards_other_interact_icon(self, exclude_x: float | None, prefer_entry: bool = False) -> None:
+        """
+        入口层按键前交互文本命中已交互NPC(或读不出)时的走位调整
+
+        实机验证的机制: 交互目标按「角色朝向扇面内角度优先」选出 朝向=最后一次移动方向
+        朝目标NPC方向迈一小步 瞄准就会切换过去(名字标签跟着换)
+
+        当前瞄准对象的名字标签就在其感叹号正下方 用标签x坐标排除该图标
+        (已交互NPC的感叹号图标会消失 但本体仍在交互扫描里 图标残留/延迟消失时靠这个排除)
+        再朝剩余图标里最大(=最近)的一个迈步 让角色朝向指向它
+        :param exclude_x: 当前瞄准目标名字标签的屏幕x 无法识别时为None(不排除)
+        :param prefer_entry: 已放弃感叹号找门时为True 直接朝下层入口图标迈步 不看感叹号
+        """
+        frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
+            self.last_screenshot, screenshot_time=self.last_screenshot_time,
+            ignore_list=self.had_been_list)
+
+        if not prefer_entry:
+            icon_list = [
+                result
+                for result in frame_result.results
+                if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT
+            ]
+            if exclude_x is not None:
+                kept_list = [i for i in icon_list if abs(i.center[0] - exclude_x) > 100]
+            else:
+                kept_list = icon_list
+
+            if len(kept_list) > 0:
+                target = max(kept_list, key=lambda i: i.height)  # 图标越大离得越近
+                target_x = target.center[0]
+                dx = target_x - self.ctx.controller.standard_width // 2
+                log.info(f'入口层朝剩余感叹号迈步 目标x={target_x:.0f} dx={dx:.0f}')
+                # 先前进收距离 再按目标偏向横移 最后一步移动方向决定朝向
+                self.ctx.controller.move_w(press=True, press_time=0.18, release=True)
+                time.sleep(0.1)
+                self._sidestep_by_dx(dx)
+                time.sleep(0.2)  # 消除惯性
+                return
+
+        # 找门(prefer_entry) 或 剩余感叹号不可见: 朝检测到的下层入口图标迈步
+        # 前进多一点直接推出NPC交互范围 比盲目蛇形快得多
+        entry_icon = None
+        for result in frame_result.results:
+            if result.detect_class.class_name in (LostVoidDetector.CLASS_INTERACT, LostVoidDetector.CLASS_DISTANCE):
+                continue
+            if entry_icon is None or result.height > entry_icon.height:
+                entry_icon = result
+        if entry_icon is not None:
+            dx = entry_icon.center[0] - self.ctx.controller.standard_width // 2
+            log.info(f'入口层朝下层入口图标迈步 目标x={entry_icon.center[0]:.0f} dx={dx:.0f}')
+            self.ctx.controller.move_w(press=True, press_time=0.3, release=True)
+            time.sleep(0.1)
+            self._sidestep_by_dx(dx)
+            time.sleep(0.2)  # 消除惯性
+            return
+
+        # 什么图标都没检测到 前进+左右交替兜底
+        log.info('入口层未检测到可用图标 前进+交替侧移兜底')
+        self.ctx.controller.move_w(press=True, press_time=0.2, release=True)
+        time.sleep(0.1)
+        if self.entry_door_block_times % 2 == 1:
+            self.ctx.controller.move_a(press=True, press_time=0.15, release=True)
+        else:
+            self.ctx.controller.move_d(press=True, press_time=0.15, release=True)
+        time.sleep(0.2)  # 消除惯性
+
+    def _sidestep_by_dx(self, dx: float) -> None:
+        """
+        按目标图标的水平偏移横移一步 偏得越多步子越大 减少收敛轮数
+        :param dx: 目标图标中心相对画面中心的水平偏移(1080p像素)
+        """
+        if abs(dx) <= 60:
+            return
+        press_time = min(0.3, 0.1 + abs(dx) / 800)
+        if dx < 0:
+            self.ctx.controller.move_a(press=True, press_time=press_time, release=True)
+        else:
+            self.ctx.controller.move_d(press=True, press_time=press_time, release=True)
 
     @node_from(from_name='非战斗画面识别', status='进入战斗')  # 非挑战类型的 识别开始战斗后
     @node_from(from_name='非战斗画面识别', status=LostVoidMoveByDet.STATUS_IN_BATTLE)  # 移动过程中 识别到战斗
@@ -1062,12 +1263,36 @@ class LostVoidRunLevel(ZOperation):
     @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='处理寻路失败或阵亡')
     def handle_find_target_fail(self) -> OperationRoundResult:
+        interact_class_name = LostVoidDetector.CLASS_INTERACT[5:]
+        if (self.region_type == LostVoidRegionType.ENTRY
+                and len(self.entry_gear_name_list) > 0
+                and interact_class_name not in self.had_been_list):
+            # 入口层完成过武备选择后的超时 大多是剩余感叹号被桌子/栅栏遮挡走不到
+            # 先放弃感叹号直接找下层入口 不消耗重开次数; 门也走不到会再次超时 走下面的重开
+            # 一个武备都没选到的超时保持重开(重摇布局比绕路更划算)
+            self.had_been_list.append(interact_class_name)
+            self.attempt_start_time = time.time()
+            log.info('入口层超时且完成过武备选择 本层放弃感叹号 直接前往下层入口')
+            return self.round_success(status='准备重试')
+
         if self.restart_count < 3:
             self.restart_count += 1
             log.info(f'寻路失败或阵亡，开始第 {self.restart_count} 次重试')
             op = RestartInBattle(self.ctx)
             op_result = op.execute()
             if op_result.success:
+                # 重开后重新计时 否则超时导致的重试会立刻再次超时
+                self.attempt_start_time = time.time()
+                # 重开后回到最初状态 重置本层交互相关状态
+                self.had_been_list.clear()
+                self.interacted_target_key_list.clear()
+                self.entry_gear_name_list.clear()
+                self.entry_gear_repeat_times = 0
+                self.entry_gear_interact_done = False
+                self.entry_door_block_times = 0
+                self.ao_fei_li_ya_talked = False
+                # 重开后角色位置重置 卡住计数也重新开始 否则上一轮的累计次数会让新一轮直接放弃寻路
+                self.stuck_state = LostVoidStuckState()
                 # 重试时 按进入下一层的逻辑处理
                 return self.round_success(status='准备重试')
             else:
