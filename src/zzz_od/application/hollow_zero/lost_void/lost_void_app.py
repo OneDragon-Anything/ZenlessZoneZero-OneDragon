@@ -26,6 +26,12 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import (
     LostVoidRunLevel,
 )
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_up_team import (
+    LostVoidComposeUpTeam,
+    compute_up_lineup,
+    find_up_in_agent_grid,
+    recognize_matrix_up,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
@@ -66,6 +72,15 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
+
+        # 矩阵行动 UP自动配队状态
+        self.matrix_up_mains: list[Agent] = []  # 入口面板识别到的主战UP
+        self.matrix_entry_up_done: bool = False  # 是否已在入口面板做过UP识别
+        self.matrix_next_clicked: int = 0  # 点击下一步后的等待轮数
+        self.matrix_next_total: int = 0  # 下一步总点击次数
+        self.matrix_wait_cnt: int = 0  # 编队选择过场等待轮数
+        self.matrix_confirm_cnt: int = 0  # 空编队校验弹窗确认次数
+        self.matrix_auto_agent_list: list[str] | None = None  # 自动配队算出的代理人ID列表
 
         # debug
         self.lost_void_debug = lost_void_debug
@@ -200,13 +215,95 @@ class LostVoidApp(ZApplication):
     # ========== 矩阵行动入口流程节点 ==========
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
-    @operation_node(name='矩阵行动-前往入口')
+    @operation_node(name='矩阵行动-前往入口', node_max_retry_times=40)
     def matrix_goto_entry(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+        """
+        前往矩阵行动编队选择画面
+        开启UP自动配队时 在矩阵入口面板停留一步识别「UP代理人」头像行 再进编队选择。
+        编队选择过场加载可超30秒 且下一步按钮与编队选择的开始挑战按钮坐标重叠
+        (过场中重复点击会误点开始挑战 空编队时弹「至少选择1位代理人出战」)
+        → 按当前画面分别处理 未识别画面只等待不点击
+        """
+        if not self.ctx.lost_void.challenge_config.matrix_up_auto_team:
+            return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+
+        current = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=['迷失之地-矩阵行动', '迷失之地-矩阵行动-编队选择'])
+
+        if current == '迷失之地-矩阵行动-编队选择':
+            if not self.matrix_entry_up_done:
+                # 接力场景: 已在编队选择画面 跳过入口识别 (点击预备编队节点还有网格徽章识别兜底)
+                self.matrix_entry_up_done = True
+                log.info('已在编队选择画面 跳过矩阵入口UP识别')
+            return self.round_success()
+
+        if current == '迷失之地-矩阵行动':
+            if not self.matrix_entry_up_done:
+                mains, support = recognize_matrix_up(self.ctx, self.last_screenshot)
+                self.matrix_up_mains = mains
+                self.matrix_entry_up_done = True
+                log.info(f'矩阵入口UP识别: 主战{[a.agent_name for a in mains]} '
+                         f'协战{[a.agent_name for a in support]}')
+            # 点一次下一步后先等几轮 画面迟迟不变才允许再点
+            if 0 < self.matrix_next_clicked <= 3:
+                self.matrix_next_clicked += 1
+                return self.round_wait(status='等待编队选择加载', wait=1.5)
+            if self.matrix_next_total >= 5:
+                return self.round_retry(status='下一步点击无效', wait=1)
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '迷失之地-矩阵行动', '下一步')
+            if result.is_success:
+                self.matrix_next_clicked = 1
+                self.matrix_next_total += 1
+                return self.round_wait(status='等待编队选择加载', wait=2)
+            return self.round_retry(status='未找到下一步按钮', wait=1)
+
+        if not self.matrix_entry_up_done:
+            # 还没到过矩阵入口面板: 交给画面路由从当前画面(通常是入口-周期)前进一步
+            result = self.round_by_goto_screen(screen_name='迷失之地-矩阵行动')
+            if result.is_success:
+                return self.round_wait(status='已到矩阵行动入口', wait=1)
+            return result
+
+        # 已点过下一步: 可能在过场加载 也可能被空编队校验弹窗挡住
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(image=self.last_screenshot)
+        texts = [i.data for i in ocr_result_list]
+        if any('至少选择' in t for t in texts):
+            self.matrix_confirm_cnt += 1
+            if self.matrix_confirm_cnt > 2:
+                return self.round_retry(status='空编队校验弹窗反复出现', wait=1)
+            for ocr_text in ocr_result_list:
+                if ocr_text.data.strip() in ('确认', '确定'):
+                    self.ctx.controller.click(ocr_text.center)
+                    log.info('已确认「至少选择1位代理人出战」弹窗 交由选人流程填队')
+                    return self.round_wait(status='已确认弹窗', wait=1.5)
+
+        self.matrix_wait_cnt += 1
+        if self.matrix_wait_cnt <= 30:
+            return self.round_wait(status='等待画面加载', wait=1)
+        return self.round_retry(status='编队选择加载超时', wait=1)
 
     @node_from(from_name='矩阵行动-前往入口')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
+        if self.ctx.lost_void.challenge_config.matrix_up_auto_team:
+            mains: list[Agent] = list(self.matrix_up_mains)
+            # 编队选择网格的UP徽章识别 与入口识别取并集 (徽章OCR召回不全 双源互补)
+            area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '代理人列表')
+            if area is not None:
+                grid_up = find_up_in_agent_grid(self.ctx, self.last_screenshot, area.rect)
+                known = {a.agent_id for a in mains}
+                mains += [a for a in grid_up if a.agent_id not in known]
+            if len(mains) > 0:
+                lineup = compute_up_lineup(mains, self.ctx.team_config.team_list, slot_cnt=3)
+                if len(lineup) > 0:
+                    self.matrix_auto_agent_list = [a.agent_id for a in lineup]
+                    log.info(f'矩阵行动UP {[a.agent_name for a in mains]} '
+                             f'-> 目标配队: {[a.agent_name for a in lineup]}')
+                    return self.round_success('手动选取角色')
+            log.warning('矩阵行动未识别到UP代理人 回退预备编队选择')
+
         if self.ctx.lost_void.challenge_config.manually_choose_agent:
             return self.round_success('手动选取角色')
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动-编队选择', '预备编队')
@@ -274,8 +371,11 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击预备编队', status='手动选取角色')
     @operation_node(name='矩阵行动-选择代理人')
     def matrix_select_agent(self) -> OperationRoundResult:
-        # 代理人列表
-        agent_list_str = self.ctx.lost_void.challenge_config.team_info
+        # 代理人列表: UP自动配队算出的优先 否则用配置的固定列表
+        if self.matrix_auto_agent_list is not None:
+            agent_list_str = self.matrix_auto_agent_list
+        else:
+            agent_list_str = self.ctx.lost_void.challenge_config.team_info
         # agent_list_str = ['anby', 'yeshunguang', 'ellen']
         # 记录角色在第几页的哪个位置
         agent_page_match_list: list[[int, Point] | None] = [None] * len(agent_list_str)
@@ -665,18 +765,70 @@ class LostVoidApp(ZApplication):
     def check_predefined_team(self) -> OperationRoundResult:
         """
         根据配置判断是否需要切换编队
+
+        特遣调查开启「当期UP代理人」时 本周第一次挑战:
+        1. 开启UP自动配队 → 直接在出战画面从角色池换入「UP+搭档」目标配队
+        2. 否则按识别到的UP与各预备编队比对 选UP最多的编队;
+           没有任何编队包含UP时按固定编队出战 且不算作已使用UP
+           (use_priority_agent 只在真的用上UP时为 True 避免误标记本周已完成)
         :return:
         """
         self.use_priority_agent = False
         mission_name = self.config.mission_name
         if mission_name == '特遣调查':
-            # 本周第一次挑战 且开启了优先级配队
-            if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                    and not self.run_record.complete_task_force_with_up):
-                self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
-                if self.ctx.lost_void.predefined_team_idx != -1:
-                    self.use_priority_agent = True
-                    return self.round_success(status='需选择预备编队')
+            challenge_config = self.ctx.lost_void.challenge_config
+            if challenge_config.choose_team_by_priority:
+                if self.run_record.complete_task_force_with_up:
+                    log.info('本周已用UP编队完成过特遣调查 本次按固定编队出战')
+                else:
+                    up_names = ', '.join([i.agent_name for i in self.priority_agent_list])
+
+                    # UP自动配队: 直接在出战画面从角色池换人 失败回退预备编队匹配
+                    if challenge_config.up_team_auto_compose and len(self.priority_agent_list) > 0:
+                        lineup = compute_up_lineup(
+                            self.priority_agent_list, self.ctx.team_config.team_list, slot_cnt=3)
+                        if len(lineup) > 0:
+                            log.info(f'当期UP [{up_names}] -> 自动配队目标: '
+                                     f'{[a.agent_name for a in lineup]}')
+                            up_ids = {a.agent_id for a in self.priority_agent_list}
+                            op = LostVoidComposeUpTeam(self.ctx, lineup, up_ids)
+                            op_result = op.execute()
+                            if op_result.success:
+                                self.use_priority_agent = True
+                                return self.round_success(status='无需选择预备编队')
+                            log.warning(f'UP自动配队失败({op_result.status}) 回退预备编队匹配')
+
+                    # 预备编队匹配: 选包含UP最多的编队
+                    team_list = self.ctx.team_config.team_list
+                    best_idx: int = -1
+                    best_cnt: int = 0
+                    any_team_configured: bool = False
+                    for idx, team in enumerate(team_list):
+                        if any(agent_id != 'unknown' for agent_id in team.agent_id_list):
+                            any_team_configured = True
+                        match_cnt = sum(
+                            1 for agent in self.priority_agent_list
+                            if agent.agent_id in team.agent_id_list
+                        )
+                        if match_cnt > 0:
+                            log.info(f'编队 [{team.name}] 含 {match_cnt} 个当期UP')
+                        if match_cnt > best_cnt:
+                            best_idx = idx
+                            best_cnt = match_cnt
+
+                    if best_cnt > 0:
+                        self.ctx.lost_void.predefined_team_idx = best_idx
+                        self.use_priority_agent = True
+                        log.info(f'当期UP [{up_names}] -> 选择编队 '
+                                 f'[{team_list[best_idx].name}] (含{best_cnt}个UP 本周首次)')
+                        return self.round_success(status='需选择预备编队')
+
+                    # 匹配失败: 按固定编队出战 不标记本周已用UP 后续运行继续尝试
+                    if not any_team_configured:
+                        log.warning(f'预备编队配置为空 无法匹配当期UP [{up_names}]; '
+                                    f'请在「预备编队」页配置或识别编队')
+                    else:
+                        log.warning(f'没有任何预备编队包含当期UP [{up_names}] 本次按固定编队出战')
 
         # 配置中选择特定编队
         if self.ctx.lost_void.challenge_config.predefined_team_idx != -1:
@@ -684,25 +836,6 @@ class LostVoidApp(ZApplication):
             return self.round_success(status='需选择预备编队')
 
         return self.round_success(status='无需选择预备编队')
-
-    def get_target_team_idx_by_priority(self) -> int:
-        """
-        根据当前识别的优先代理人 选择最合适的预备编队
-        :return:
-        """
-        best_match_team_idx: int = self.ctx.lost_void.challenge_config.predefined_team_idx  # 如果都没匹配 使用默认的预备编队
-        best_match_agent_cnt: int = 0
-        for idx, team in enumerate(self.ctx.team_config.team_list):
-            match_agent_cnt: int = 0
-            for agent in self.priority_agent_list:
-                if agent.agent_id in team.agent_id_list:
-                    match_agent_cnt += 1
-
-            if match_agent_cnt > best_match_agent_cnt:
-                best_match_team_idx = idx
-                best_match_agent_cnt = match_agent_cnt
-
-        return best_match_team_idx
 
     @node_from(from_name='检查预备编队', status='需选择预备编队')
     @operation_node(name='选择预备编队')
