@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="266" height="266" viewBox="60 70 266 266">
+  <defs>
+    <radialGradient id="discGrad" cx="42%" cy="40%" r="78%">
+      <stop offset="0%" stop-color="#3d63e8"/>
+      <stop offset="55%" stop-color="#1f41de"/>
+      <stop offset="100%" stop-color="#16359e"/>
+    </radialGradient>
+    <radialGradient id="coreGrad" cx="40%" cy="38%" r="80%">
+      <stop offset="0%" stop-color="#123a9c"/>
+      <stop offset="100%" stop-color="#082f7b"/>
+    </radialGradient>
+    <!-- 高光外发光滤镜 -->
+    <filter id="glowHighlight" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 透明背景 -->
+
+  <g transform="translate(193,203)">
+    <!-- 外盘亮蓝：往里收20px，r150 -> r130 -->
+    <circle cx="0" cy="0" r="130" fill="url(#discGrad)"/>
+    <!-- 最外圈白边：纯白，随外盘收到 r130 -->
+    <circle cx="0" cy="0" r="130" fill="none" stroke="#ffffff" stroke-width="6"/>
+
+    <!-- 深蓝带圈 #00126E 变细：中心线91.5 宽16 -->
+    <circle cx="0" cy="0" r="91.5" fill="none" stroke="#00126e" stroke-width="16"/>
+
+    <!-- 白圈 #C4C2C6 加粗：中心线61 宽35 -->
+    <circle cx="0" cy="0" r="61" fill="none" stroke="#c4c2c6" stroke-width="35"/>
+    <circle cx="0" cy="0" r="78" fill="none" stroke="#8a97bf" stroke-width="4" opacity="0.4"/>
+
+    <!-- 灰圈 #7689B7 -->
+    <circle cx="0" cy="0" r="47" fill="none" stroke="#7e8eba" stroke-width="13"/>
+
+    <!-- 蓝圈白描边 -->
+    <circle cx="0" cy="0" r="39" fill="none" stroke="#5a7ec0" stroke-width="5"/>
+
+    <!-- 蓝圈 #0A58B9 -->
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#1e64ba" stroke-width="13"/>
+
+    <!-- 中心深蓝圈 #082F7D -->
+    <circle cx="0" cy="0" r="23" fill="url(#coreGrad)"/>
+
+    <!-- 高光：#C4C6D0 外发光 -->
+    <circle cx="44.88" cy="33" r="22.5" fill="#C4C6D0" filter="url(#glowHighlight)"/>
+  </g>
+</svg>

@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
-from PySide6.QtCore import QRect, Qt, Signal
-from PySide6.QtGui import QColor, QImage, QPaintEvent, QPainter, QPen, QResizeEvent
+from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QWidget
 
-from one_dragon.base.operation.overlay_debug_bus import (
-    DecisionTraceItem,
-    PerfMetricSample,
-    TimelineItem,
-    VisionDrawItem,
-)
-from one_dragon_qt.overlay.panels.info_hud_panel import InfoHudPanel
+from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
 from one_dragon_qt.overlay.utils import win32_utils
-
 
 _VISION_SOURCE_COLOR = {
     "ocr": "#ff4fa3",
@@ -28,12 +21,8 @@ _VISION_SOURCE_COLOR = {
 class OverlayWindow(QWidget):
     """Top-most transparent overlay window.
 
-    Contains only the vision-draw paint layer and an InfoHudPanel
-    (Afterburner-style OSD).  The LogPanel is now managed externally as
-    an independent top-level window by OverlayManager.
+    只负责 vision 检测框绘制层；信息面板已迁移到 Qt Quick (overlay_hud.qml)。
     """
-
-    panel_geometry_changed = Signal(str, dict)
 
     def __init__(self):
         super().__init__(None)
@@ -58,15 +47,6 @@ class OverlayWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-        # InfoHudPanel replaces the old state/decision/timeline/performance panels
-        self.info_hud_panel = InfoHudPanel(self)
-
-    def set_info_hud_enabled(self, enabled: bool) -> None:
-        self.info_hud_panel.setVisible(enabled)
-
-    def set_panel_appearance(self, font_size: int, panel_opacity: int) -> None:
-        self.info_hud_panel.set_appearance(font_size, panel_opacity)
 
     def set_standard_resolution(self, width: int, height: int) -> None:
         self._standard_width = max(1, int(width))
@@ -97,21 +77,6 @@ class OverlayWindow(QWidget):
             return
         self._vision_items = list(items)
         self.update()
-
-    def set_decision_items(self, items: Sequence[DecisionTraceItem]) -> None:
-        self.info_hud_panel.update_decisions(list(items))
-
-    def set_timeline_items(self, items: Sequence[TimelineItem]) -> None:
-        self.info_hud_panel.update_timeline(list(items))
-
-    def set_performance_items(self, items: Sequence[PerfMetricSample]) -> None:
-        self.info_hud_panel.update_performance(list(items))
-
-    def set_performance_metric_enabled_map(self, metric_enabled: dict[str, bool] | None) -> None:
-        self.info_hud_panel.set_enabled_metric_map(metric_enabled)
-
-    def update_state_snapshot(self, items: list[tuple[str, str]]) -> None:
-        self.info_hud_panel.update_state(items)
 
     def capture_overlay_rgba(self) -> np.ndarray | None:
         if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
@@ -153,13 +118,6 @@ class OverlayWindow(QWidget):
             if self.isVisible():
                 self.hide()
 
-    def apply_panel_geometry(self, panel_name: str, geometry: dict[str, int]) -> None:
-        """No-op: panels are now either InfoHudPanel (auto-docked) or independent LogPanel."""
-        pass
-
-    def panel_geometries(self) -> dict[str, dict[str, int]]:
-        return {}
-
     def update_with_game_rect(self, rect) -> None:
         if rect is None:
             return
@@ -170,22 +128,6 @@ class OverlayWindow(QWidget):
         if width <= 0 or height <= 0:
             return
         self.setGeometry(QRect(left, top, width, height))
-        self._dock_info_hud()
-
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self._dock_info_hud()
-        super().resizeEvent(event)
-
-    def _dock_info_hud(self) -> None:
-        """Position InfoHudPanel at the right edge of the overlay window."""
-        if self.width() <= 0 or self.height() <= 0:
-            return
-        margin = 8
-        hud_w = max(200, min(320, int(self.width() * 0.19)))
-        hud_h = max(120, min(self.height() - margin * 2, int(self.height() * 0.55)))
-        x = max(0, self.width() - margin - hud_w)
-        y = margin
-        self.info_hud_panel.setGeometry(x, y, hud_w, hud_h)
 
     def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)
@@ -206,28 +148,71 @@ class OverlayWindow(QWidget):
             if rect is None:
                 continue
 
-            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
+            # 光晕色 = 来源色（ocr 粉 / template 橙 / yolo 青 / cv 绿），主体白色描边
+            glow_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
             if item.color:
-                base_color = QColor(item.color)
-            if not base_color.isValid():
-                base_color = QColor("#bdbdbd")
+                glow_color = QColor(item.color)
+            if not glow_color.isValid():
+                glow_color = QColor("#bdbdbd")
 
-            pen = QPen(base_color)
+            radius = 8
+            path = QPainterPath()
+            path.addRoundedRect(rect, radius, radius)
+
+            # 外发光：多层平滑渐隐（最外层超宽超淡做羽化，光晕末端化开，无硬环边）
+            glow_layers = (
+                (17, 14),
+                (13, 30),
+                (9, 60),
+                (5, 110),
+                (2, 170),
+            )
+            for glow_w, glow_alpha in glow_layers:
+                gc = QColor(glow_color)
+                gc.setAlpha(glow_alpha)
+                gp = QPen(gc)
+                gp.setWidth(glow_w)
+                gp.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(gp)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawPath(path)
+
+            # 主框：白色圆角细线
+            pen = QPen(QColor(255, 255, 255))
             pen.setWidth(2)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRect(rect)
+            painter.drawPath(path)
 
             label = self._format_vision_label(item)
             if not label:
                 continue
 
             text_h = painter.fontMetrics().height() + 4
-            text_w = min(rect.width() + 18, painter.fontMetrics().horizontalAdvance(label) + 8)
-            text_y = max(0, rect.top() - text_h - 2)
-            text_rect = QRect(rect.left(), text_y, max(40, text_w), text_h)
+            # 背景框宽度按完整文本宽度自适应，不裁剪模板名
+            text_w = painter.fontMetrics().horizontalAdvance(label) + 12
 
-            painter.fillRect(text_rect, QColor(0, 0, 0, 170))
+            # 标签放在朝向屏幕中心的一侧（框在上半放下面、下半放上面、左半放右边、右半放左边）
+            # 取偏移更大的轴定方向，并 clamp 到窗口内，避免边缘出屏
+            gap = 4
+            box_c = rect.center()
+            screen_c = QPoint(self.width() // 2, self.height() // 2)
+            if abs(box_c.x() - screen_c.x()) >= abs(box_c.y() - screen_c.y()):
+                x = rect.right() + gap if box_c.x() < screen_c.x() else rect.left() - text_w - gap
+                y = box_c.y() - text_h // 2
+                x = max(2, min(x, self.width() - text_w - 2))
+                y = max(2, min(y, self.height() - text_h - 2))
+            else:
+                y = rect.bottom() + gap if box_c.y() < screen_c.y() else rect.top() - text_h - gap
+                x = box_c.x() - text_w // 2
+                y = max(2, min(y, self.height() - text_h - 2))
+                x = max(2, min(x, self.width() - text_w - 2))
+            text_rect = QRect(x, y, text_w, text_h)
+
+            painter.fillRect(text_rect, QColor(0, 0, 0, 205))
+            label_font = painter.font()
+            label_font.setBold(True)
+            painter.setFont(label_font)
             painter.setPen(QPen(QColor(255, 255, 255)))
             painter.drawText(
                 text_rect.adjusted(4, 1, -4, -1),
@@ -238,8 +223,6 @@ class OverlayWindow(QWidget):
     @staticmethod
     def _format_vision_label(item: VisionDrawItem) -> str:
         label = (item.label or "").strip()
-        if len(label) > 42:
-            label = label[:39] + "..."
         if item.score is None:
             return label
         return f"{label} {item.score:.2f}".strip()
@@ -264,11 +247,3 @@ class OverlayWindow(QWidget):
         w = max(1, x2 - x1)
         h = max(1, y2 - y1)
         return QRect(x1, y1, w, h)
-
-    def _panel_by_name(self, panel_name: str):
-        return None
-
-    @staticmethod
-    def _panel_geometry(panel) -> dict[str, int]:
-        g = panel.geometry()
-        return {"x": g.x(), "y": g.y(), "w": g.width(), "h": g.height()}
