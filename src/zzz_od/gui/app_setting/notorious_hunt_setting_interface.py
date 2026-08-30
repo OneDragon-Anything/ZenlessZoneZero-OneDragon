@@ -238,7 +238,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.loop_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC,
             title='循环执行',
-            content='开启后，全部计划均达到计划次数后，已运行次数会清零并开始下一轮',
+            content='开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划',
         )
 
         self.content_widget.add_widget(
