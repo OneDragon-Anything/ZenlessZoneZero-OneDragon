@@ -79,9 +79,8 @@
 
 ### 一条龙结束后动作
 
-一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机等收尾动作。
-GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
-通用运行上下文只返回运行结果，不感知关闭游戏或关机；单项应用运行也不会触发一条龙的结束后动作。
+一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机、休眠、睡眠等收尾动作。
+GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作（`--close-game`、`--shutdown`、`--hibernate`、`--sleep`）。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
 `STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
 
 ## 核心流程
