@@ -98,9 +98,10 @@ class OcrMatcher:
         """
         from one_dragon.utils import cv2_utils
         part = cv2_utils.crop_image_only(image, rect)
-        bus = getattr(self, 'overlay_debug_bus', None)
+        bus = getattr(self, 'debug_trace_bus', None)
         if bus is not None:
-            bus.set_crop_offset(rect.x1, rect.y1)
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + rect.x1, parent_y + rect.y1)
         try:
             result = self.run_ocr(part, threshold, merge_line_distance)
         finally:

@@ -7,6 +7,12 @@ from typing import Any
 
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
+)
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
@@ -144,10 +150,15 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_param: OnnxOcrParam | None =  None):
+    def __init__(
+        self,
+        ocr_param: OnnxOcrParam | None = None,
+        debug_trace_bus: DebugTraceBus | None = None,
+    ) -> None:
         if ocr_param is None:
             ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
+        self.debug_trace_bus: DebugTraceBus | None = debug_trace_bus
         param = CommonDownloaderParam(
             save_file_path=ocr_param.models_dir,
             save_file_name=f'{ocr_param.ocr_model_name}.zip',
@@ -164,7 +175,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._model = None
         self._init_lock = threading.Lock()
         self._loading: bool = False
-        self.overlay_debug_bus = None
 
     @staticmethod
     def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
@@ -337,8 +347,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                                                                      merge_line_distance=merge_line_distance)
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision(result_map)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
+        self._emit_debug_vision(result_map)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
@@ -465,28 +475,22 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             pass  # TODO
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
+        self._emit_debug_vision_from_ocr_results(ocr_result_list)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(ocr_result_list))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
         return ocr_result_list
 
-    def _emit_overlay_vision(
+    def _emit_debug_vision(
         self,
         result_map: dict[str, MatchResultList],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not result_map:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled or not result_map:
             return
 
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
-            return
-
-        ox, oy = bus.crop_offset
         pushed = 0
         max_items = 60
         for text, match_list in result_map.items():
@@ -499,79 +503,60 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 if len(label) > 32:
                     label = label[:29] + "..."
                 bus.add_vision(
-                    VisionDrawItem(
+                    VisionTraceItem(
                         source="ocr",
                         label=label,
-                        x1=match.x + ox,
-                        y1=match.y + oy,
-                        x2=match.x + match.w + ox,
-                        y2=match.y + match.h + oy,
+                        x1=match.x,
+                        y1=match.y,
+                        x2=match.x + match.w,
+                        y2=match.y + match.h,
                         score=match.confidence,
-                        color="#ff6ac1",
-                        ttl_seconds=1.4,
                     )
                 )
                 pushed += 1
 
-    def _emit_overlay_vision_from_ocr_results(
+    def _emit_debug_vision_from_ocr_results(
         self,
         ocr_results: list[OcrMatchResult],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not ocr_results:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled or not ocr_results:
             return
 
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
-            return
-
-        offset_x, offset_y = bus.crop_offset
         for result in ocr_results[:60]:
             label = str(result.data or "").strip()
             if len(label) > 32:
                 label = label[:29] + "..."
             bus.add_vision(
-                VisionDrawItem(
+                VisionTraceItem(
                     source="ocr",
                     label=label,
-                    x1=result.x + offset_x,
-                    y1=result.y + offset_y,
-                    x2=result.x + result.w + offset_x,
-                    y2=result.y + result.h + offset_y,
+                    x1=result.x,
+                    y1=result.y,
+                    x2=result.x + result.w,
+                    y2=result.y + result.h,
                     score=result.confidence,
-                    color="#ff6ac1",
-                    ttl_seconds=1.4,
                 )
             )
 
-    def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None:
+    def _emit_debug_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import (
-                PerfMetricSample,
-                TimelineItem,
-            )
-        except Exception:
-            return
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="ocr_ms",
                 value=float(elapsed_ms),
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"text_items": item_count},
             )
         )
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="vision",
                 title="ocr",
                 detail=f"{item_count} items / {elapsed_ms:.1f}ms",
                 level="DEBUG",
-                ttl_seconds=15.0,
             )
         )
 
