@@ -5,7 +5,6 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
-import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
@@ -82,7 +81,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self.btn_listener.start()
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -299,6 +297,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+
+            self.btn_listener.start()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -411,6 +411,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @staticmethod
     def _compose_overlay_patched_image(base_image, overlay_rgba):
+        import cv2
+
         if base_image is None or overlay_rgba is None:
             return None
         if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
