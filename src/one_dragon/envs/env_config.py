@@ -173,6 +173,18 @@ class EnvConfig(YamlConfig):
         self.update('auto_update_code', new_value)
 
     @property
+    def notify_on_update(self) -> bool:
+        """
+        后台发现新版本时是否推送通知
+        :return:
+        """
+        return self.get('notify_on_update', True)
+
+    @notify_on_update.setter
+    def notify_on_update(self, new_value: bool) -> None:
+        self.update('notify_on_update', new_value)
+
+    @property
     def cpython_source(self) -> str:
         """
         cpython-build-standalone 源

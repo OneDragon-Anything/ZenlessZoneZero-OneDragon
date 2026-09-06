@@ -1719,6 +1719,22 @@ class GitService:
         except Exception:
             return None
 
+    def get_remote_head_commit_id(self, short: bool = False) -> str | None:
+        """获取远程跟踪分支的 commit hash"""
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        try:
+            repo = self._open_repo()
+            if remote_ref not in repo.references:
+                return None
+            oid = str(repo.references[remote_ref].target)
+            return oid[:8] if short else oid
+        except Exception:
+            return None
+
+    def check_remote_manifest_compatible(self) -> tuple[bool, str]:
+        """检查远程最新代码的模块清单是否与当前运行环境兼容"""
+        return self._check_remote_manifest_compatible()
+
     def is_current_branch_latest(self) -> tuple[bool, str]:
         """
         当前分支是否已经最新 与远程分支一致

@@ -482,9 +482,10 @@ class HomeInterface(BaseInterface):
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
+        # 代码更新由 UpdateCheckService 后台定时检查 这里只读取它发现的信号 不再每次进首页都 fetch
         self._check_code_runner = CheckRunner(
             self.ctx,
-            lambda ctx: not ctx.git_service.is_current_branch_latest()[0],
+            lambda ctx: ctx.signal.code_update_available,
             self
         )
         self._check_code_runner.need_update.connect(
@@ -661,10 +662,11 @@ class HomeInterface(BaseInterface):
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
-            self._show_info_bar("代码已是最新版本", "Enjoy it & have fun!")
+            # 信号未置位时不提示 是否最新以后台检查服务的结果为准
             return
-        else:
-            self._show_info_bar("有新版本啦", "稍安勿躁~")
+        # 后台服务已把新版本对象下载到本地仓库 下次启动由启动器落盘生效
+        self.ctx.signal.code_update_available = False
+        self._show_info_bar("有新版本啦", "已在后台下载 下次启动自动生效~")
 
     def _need_to_update_model(self, with_new: bool):
         if with_new:
