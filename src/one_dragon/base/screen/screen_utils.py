@@ -361,22 +361,31 @@ def _match_screen_or_collect_failure(
     return None
 
 
-def _log_screen_match_failure(near_miss_map: dict[str, list[str]]) -> None:
+def _log_screen_match_failure(ctx: OneDragonContext, near_miss_map: dict[str, list[str]]) -> None:
     """
     画面识别全部失败时，输出识别失败的日志，方便排查。
 
     有接近匹配的画面（有画面标识 id_mark 但未命中）时，列出各自未命中的标识区域，
     带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题；
     完全没有接近匹配的画面（如候选画面没有 id_mark）时，只输出通用的识别失败日志，不静默。
+
+    日志节流：同一失败详情只在首次出现时输出（识别成功后由调用方重置），
+    避免导航等待循环每秒重复输出刷爆日志。
     """
     if not near_miss_map:
-        log.warning('未能识别当前画面，且没有接近匹配的画面')
+        detail = '未能识别当前画面，且没有接近匹配的画面'
+    else:
+        detail_list = '；'.join(
+            f'{screen_name}({", ".join(marks)})'
+            for screen_name, marks in near_miss_map.items()
+        )
+        detail = f'未能识别当前画面，以下画面存在未命中的标识特征：{detail_list}'
+
+    screen_loader = ctx.screen_loader
+    if screen_loader.last_screen_match_failure_detail == detail:
         return
-    detail = '；'.join(
-        f'{screen_name}({", ".join(marks)})'
-        for screen_name, marks in near_miss_map.items()
-    )
-    log.warning('未能识别当前画面，以下画面存在未命中的标识特征：%s', detail)
+    screen_loader.last_screen_match_failure_detail = detail
+    log.warning(detail)
 
 
 def get_match_screen_name(
@@ -421,8 +430,10 @@ def get_match_screen_name(
                 break
 
     if target_name is not None:
+        # 识别成功: 重置失败日志节流状态, 便于下次识别失败时重新输出诊断
+        ctx.screen_loader.last_screen_match_failure_detail = None
         return target_name
-    _log_screen_match_failure(near_miss_map)
+    _log_screen_match_failure(ctx, near_miss_map)
     return None
 
 
@@ -539,7 +550,7 @@ def _is_target_screen_detail(
     crop_first: bool = True,
 ) -> tuple[bool, list[str]]:
     """
-    判断是否目标画面，并返回未命中的画面标识(id_mark)区域描述，用于失败时打详细日志。
+    判断是否目标画面，并返回首个未命中的画面标识(id_mark)区域描述，用于失败时打详细日志。
 
     Args:
         ctx: 上下文
@@ -548,7 +559,8 @@ def _is_target_screen_detail(
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
 
     Returns:
-        (是否目标画面, 未命中的 id_mark 区域名列表)。区域名带 color_range 时会标注"(颜色过滤)"。
+        (是否目标画面, 首个未命中的 id_mark 区域名列表)。区域名带 color_range 时会标注"(颜色过滤)"。
+        保持与旧逻辑一致的短路：首个未命中即停止识别后续标识，避免热路径全量 OCR/模板匹配。
     """
     failed_marks: list[str] = []
     existed_id_mark: bool = False
@@ -561,7 +573,8 @@ def _is_target_screen_detail(
         if find_area_in_screen(ctx, screen, screen_area, crop_first) != FindAreaResultEnum.TRUE:
             fit_id_mark = False
             failed_marks.append(_describe_failed_id_mark(screen_area))
-            # 不 break：继续收集所有未命中的标识区域，便于诊断
+            # 短路: 与旧 is_target_screen 一致, 首个未命中即停, 保证热路径识别性能
+            break
 
     return existed_id_mark and fit_id_mark, failed_marks
 
