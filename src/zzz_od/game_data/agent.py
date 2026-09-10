@@ -13,6 +13,7 @@ class AgentTypeEnum(Enum):
     DEFENSE = '防护'
     ANOMALY = '异常'
     RUPTURE = '命破'
+    ARMORER = '锋御'
     UNKNOWN = '未知'
 
     @classmethod
@@ -570,3 +571,11 @@ class AgentEnum(Enum):
                                              template_id='sigrid_sky_patrol',
                                              hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
                                              connect_cnt=1)])
+
+    CLARET = Agent('claret', '克拉蕾', RareTypeEnum.S, AgentTypeEnum.ARMORER, DmgTypeEnum.ELECTRIC, ['claret'],
+                   state_list=[
+                       AgentStateDef('克拉蕾-猩红铭刻', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='claret',
+                                     lower_color=(150, 0, 0), upper_color=(255, 90, 50),
+                                     max_length=100, min_value_trigger_state=5),
+                   ])
