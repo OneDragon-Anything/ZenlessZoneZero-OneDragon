@@ -9,7 +9,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class TextSettingCard(SettingCardBase, AdapterInitMixin):
@@ -42,6 +41,7 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
         # 创建输入框控件
         self.line_edit = LineEdit(self)
         self.line_edit.setMaximumWidth(input_max_width)
+        self._input_placeholder_msgid = input_placeholder
         self.line_edit.setPlaceholderText(gt(input_placeholder))
         self.line_edit.setClearButtonEnabled(True)
 
@@ -74,6 +74,11 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
 
         # 绑定输入框内容变化信号
         self.line_edit.editingFinished.connect(self._on_text_changed)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and input placeholder after a language change."""
+        super().retranslate_ui()
+        self.line_edit.setPlaceholderText(gt(self._input_placeholder_msgid))
 
     def _toggle_password_visibility(self):
         """切换密码显示模式"""

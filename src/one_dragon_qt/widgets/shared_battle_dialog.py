@@ -115,7 +115,7 @@ class SharedConfigDialog(FramelessDialog):
             if os.path.exists(os.path.join(current_path, marker)):
                 return current_path
             if current_path == os.path.dirname(current_path):
-                raise FileNotFoundError(f"无法找到包含 {marker} 的项目根目录")
+                raise FileNotFoundError(gt('无法找到包含 {marker} 的项目根目录', marker=marker))
             current_path = os.path.dirname(current_path)
 
     def save_downloaded_file(self, file_name, data, base_folder):

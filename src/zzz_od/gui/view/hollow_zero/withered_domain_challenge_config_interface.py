@@ -391,7 +391,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         if msg is None or len(msg) == 0:
             self.error_message.setVisible(False)
         else:
-            self.error_message.setText(msg)
+            self.error_message.setText(gt(msg))
             self.error_message.setVisible(True)
 
     def _on_resonium_priority_changed(self) -> None:

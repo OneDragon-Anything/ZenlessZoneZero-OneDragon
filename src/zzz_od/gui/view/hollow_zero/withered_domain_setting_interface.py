@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
@@ -162,11 +163,15 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def _update_run_record_display(self) -> None:
         if self.run_record.period_reward_complete:
-            content = '已完成刷取周期性奖励 如错误可重置'
+            content = gt('已完成刷取周期性奖励 如错误可重置')
         elif self.run_record.no_eval_point:
-            content = '已完成刷取业绩 如错误可重置'
+            content = gt('已完成刷取业绩 如错误可重置')
         else:
-            content = f'通关次数 本日: {self.run_record.daily_run_times}, 本周: {self.run_record.weekly_run_times}'
+            content = gt(
+                '通关次数 本日: {daily}, 本周: {weekly}',
+                daily=self.run_record.daily_run_times,
+                weekly=self.run_record.weekly_run_times,
+            )
         self.run_record_opt.setContent(content)
 
     def _update_mission_options(self) -> None:

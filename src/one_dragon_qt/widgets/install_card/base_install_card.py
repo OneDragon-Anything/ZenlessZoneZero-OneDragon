@@ -71,7 +71,8 @@ class BaseInstallCard(MultiPushSettingCard):
                  parent=None
                  ):
         self.ctx: OneDragonEnvContext = ctx
-        self.title: str = gt(title_cn)
+        self.title: str = title_cn
+        self._install_btn_text_msgid: str = install_btn_text_cn
 
         btn_list = []
         if left_widgets is not None:
@@ -94,9 +95,14 @@ class BaseInstallCard(MultiPushSettingCard):
             btn_list=btn_list,
             icon=FluentIcon.INFO,
             title=self.title,
-            content=gt(content_cn),
+            content=content_cn,
             parent=parent
         )
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and install-button labels."""
+        super().retranslate_ui(_language)
+        self.install_btn.setText(gt(self._install_btn_text_msgid))
 
     def start_progress(self) -> None:
         """
@@ -149,7 +155,7 @@ class BaseInstallCard(MultiPushSettingCard):
         if self.display_checker.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
-        self.setContent(gt('检查中'))
+        self.setContent('检查中')
         self.display_checker.start()
 
     def get_display_content(self) -> Tuple[QIcon, str]:

@@ -1,4 +1,4 @@
-from PySide6.QtGui import QIcon, Qt
+from PySide6.QtGui import QIcon, QShowEvent, Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase
 
@@ -32,6 +32,11 @@ class VerticalScrollInterface(BaseInterface):
         """
         BaseInterface.on_interface_shown(self)
 
+        self._init_layout()
+
+    def showEvent(self, event: QShowEvent) -> None:
+        """Build deferred content whenever Qt makes this page visible."""
+        QWidget.showEvent(self, event)
         self._init_layout()
 
     def _init_layout(self) -> None:
@@ -76,6 +81,7 @@ class VerticalScrollInterface(BaseInterface):
 
         scroll_area.setWidget(wrapper)
         self._init = True
+        self.retranslate_ui()
 
     def get_content_widget(self) -> QWidget:
         """

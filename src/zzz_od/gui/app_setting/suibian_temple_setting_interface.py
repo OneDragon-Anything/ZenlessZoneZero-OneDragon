@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QLabel, QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
@@ -120,15 +121,18 @@ class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.boo_box_sell_price = ComboBox()
         self.boo_box_sell_price.set_items(boo_box_price_options)
 
+        self.boo_box_adventure_label = QLabel(gt('游历'))
+        self.boo_box_craft_label = QLabel(gt('制造'))
+        self.boo_box_sell_label = QLabel(gt('售卖'))
         self.boo_box_price = MultiPushSettingCard(
             icon=FluentIcon.VIDEO,
             title="邦巢-最低购买价格",
             btn_list=[
-                QLabel('游历'),
+                self.boo_box_adventure_label,
                 self.boo_box_adventure_price,
-                QLabel('制造'),
+                self.boo_box_craft_label,
                 self.boo_box_craft_price,
-                QLabel('售卖'),
+                self.boo_box_sell_label,
                 self.boo_box_sell_price,
             ]
         )
@@ -136,6 +140,15 @@ class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         content_widget.add_stretch(1)
         return content_widget
+
+    def retranslate_ui(self) -> None:
+        """Refresh labels that are not managed by setting-card components."""
+        super().retranslate_ui()
+        if not hasattr(self, 'boo_box_adventure_label'):
+            return
+        self.boo_box_adventure_label.setText(gt('游历'))
+        self.boo_box_craft_label.setText(gt('制造'))
+        self.boo_box_sell_label.setText(gt('售卖'))
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)

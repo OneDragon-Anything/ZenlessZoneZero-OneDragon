@@ -2,9 +2,8 @@ from PySide6.QtCore import QObject
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from qfluentwidgets import PushButton
-from qfluentwidgets import SettingCard, FluentIconBase
+from qfluentwidgets import FluentIconBase
 from typing import Union, Optional
 
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
@@ -12,7 +11,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class KeyEventWorker(QObject):
@@ -104,7 +102,7 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content))
+        SettingCardBase.setContent(self, content)
 
     def setValue(self, value: str, emit_signal: bool = True) -> None:
         """
