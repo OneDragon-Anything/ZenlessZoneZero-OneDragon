@@ -33,6 +33,7 @@ from one_dragon.base.push.channel.webhook import Webhook
 from one_dragon.base.push.channel.work_weixin_app import WorkWeixinApp
 from one_dragon.base.push.channel.work_weixin_bot import WorkWeixinBot
 from one_dragon.base.push.channel.wx_pusher import WxPusher
+from one_dragon.base.push.channel.wpush import WPush
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.base.push.push_config import PushConfig, PushProxy
@@ -79,6 +80,7 @@ class PushService:
             self._add_channel(Bark())
             self._add_channel(ServerChan())
             self._add_channel(PushPlus())
+            self._add_channel(WPush())
             self._add_channel(Discord())
             self._add_channel(Telegram())
             self._add_channel(Ntfy())
