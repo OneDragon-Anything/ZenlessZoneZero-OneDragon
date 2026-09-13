@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import time
 
-from one_dragon.base.operation.overlay_debug_bus import DecisionTraceItem
+from one_dragon.base.debug.debug_trace_bus import DecisionTraceItem
 from one_dragon_qt.overlay.panels.resizable_panel import ResizablePanel
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
 
