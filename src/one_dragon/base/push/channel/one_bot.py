@@ -91,6 +91,7 @@ class OneBot(PushChannel):
                 url += "" if url.endswith("/send_msg") else "/send_msg"
 
             headers = {'Content-Type': "application/json"}
+            proxies = self.get_proxy(proxy_url)
             message = [{"type": "text", "data": {"text": f"{title}\n{content}"}}]
 
             if image is not None:
@@ -112,7 +113,13 @@ class OneBot(PushChannel):
                 data_private["message_type"] = "private"
                 data_private["user_id"] = user_id
                 try:
-                    response_private = requests.post(url, data=json.dumps(data_private), headers=headers, timeout=15)
+                    response_private = requests.post(
+                        url,
+                        data=json.dumps(data_private),
+                        headers=headers,
+                        proxies=proxies,
+                        timeout=15,
+                    )
                     response_private.raise_for_status()
                     result_private = response_private.json()
 
@@ -133,7 +140,13 @@ class OneBot(PushChannel):
                 data_group["message_type"] = "group"
                 data_group["group_id"] = group_id
                 try:
-                    response_group = requests.post(url, data=json.dumps(data_group), headers=headers, timeout=15)
+                    response_group = requests.post(
+                        url,
+                        data=json.dumps(data_group),
+                        headers=headers,
+                        proxies=proxies,
+                        timeout=15,
+                    )
                     response_group.raise_for_status()
                     result_group = response_group.json()
 
@@ -212,11 +225,18 @@ class OneBot(PushChannel):
         url: str,
         data: dict,
         headers: dict[str, str],
+        proxies: dict[str, str | None],
         label: str,
     ) -> tuple[bool, str]:
         """发送单批合并转发请求"""
         try:
-            resp = requests.post(url, data=json.dumps(data), headers=headers, timeout=30)
+            resp = requests.post(
+                url,
+                data=json.dumps(data),
+                headers=headers,
+                proxies=proxies,
+                timeout=30,
+            )
             resp.raise_for_status()
             result = resp.json()
             if result.get('status') == 'ok':
@@ -255,6 +275,7 @@ class OneBot(PushChannel):
             token = config.get('TOKEN', '')
 
             headers = {'Content-Type': 'application/json'}
+            proxies = self.get_proxy(proxy_url)
             if token and len(token) > 0:
                 headers['Authorization'] = f'Bearer {token}'
 
@@ -293,6 +314,7 @@ class OneBot(PushChannel):
                         base_url + '/send_private_forward_msg',
                         {'user_id': user_id, 'messages': batch},
                         headers,
+                        proxies,
                         f'私聊合并转发{suffix}',
                     )
                     if ok:
@@ -305,6 +327,7 @@ class OneBot(PushChannel):
                         base_url + '/send_group_forward_msg',
                         {'group_id': group_id, 'messages': batch},
                         headers,
+                        proxies,
                         f'群聊合并转发{suffix}',
                     )
                     if ok:
