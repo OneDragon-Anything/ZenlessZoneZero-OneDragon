@@ -27,6 +27,14 @@
     background: rgba(0, 0, 0, 51);
 }
 
+#TitleBar > #launchTagLabel {
+    color: white;
+    background-color: --ThemeColorPrimary;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font: 11px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+}
+
 #TitleBar[homeMode="false"] > #launcherVersionButton,
 #TitleBar[homeMode="false"] > #codeVersionButton,
 #TitleBar[homeMode="false"] > #questionButton {

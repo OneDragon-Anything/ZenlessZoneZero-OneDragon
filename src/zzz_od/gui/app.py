@@ -6,7 +6,7 @@ try:
     from qfluentwidgets import NavigationItemPosition, Theme, setTheme
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
-    from one_dragon.utils import app_utils
+    from one_dragon.utils import app_utils, os_utils
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -43,7 +43,11 @@ try:
         def run(self):
             launcher_version = app_utils.get_launcher_version()
             code_version = self.ctx.git_service.get_current_version()
-            versions = (launcher_version, code_version)
+
+            # 区分启动器类型：集成启动器（exe 打包运行）与源码启动器
+            launch_tag = '集成' if os_utils.run_in_exe() else '源码'
+
+            versions = (launcher_version, code_version, launch_tag)
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
@@ -61,11 +65,8 @@ try:
             MainAppWindowBase.__init__(
                 self,
                 ctx=ctx,
-                win_title="%s %s"
-                % (
-                    gt(ctx.project_config.project_name),
-                    ctx.one_dragon_config.current_active_instance.name,
-                ),
+                win_title=f"{gt(ctx.project_config.project_name)} "
+                f"{ctx.one_dragon_config.current_active_instance.name}",
                 project_config=ctx.project_config,
                 app_icon="logo.ico",
                 parent=parent,
@@ -123,15 +124,21 @@ try:
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
             # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+            from zzz_od.gui.view.game_assistant.game_assistant_interface import (
+                GameAssistantInterface,
+            )
             self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
-            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import (
+                ZOneDragonInterface,
+            )
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
             # 应用运行
-            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import ZStandaloneAppInterface
+            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import (
+                ZStandaloneAppInterface,
+            )
             self.add_sub_interface(ZStandaloneAppInterface(self.ctx, parent=self))
 
             # 画中画
@@ -147,7 +154,9 @@ try:
             )
 
             # 开发工具
-            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+            from zzz_od.gui.view.devtools.app_devtools_interface import (
+                AppDevtoolsInterface,
+            )
             self.add_sub_interface(
                 AppDevtoolsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
@@ -161,14 +170,18 @@ try:
             )
 
             # 多账号管理
-            from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+            from zzz_od.gui.view.accounts.app_accounts_interface import (
+                AccountsInterface,
+            )
             self.add_sub_interface(
                 AccountsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 设置
-            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+            from zzz_od.gui.view.setting.app_setting_interface import (
+                AppSettingInterface,
+            )
             self.add_sub_interface(
                 AppSettingInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
@@ -194,21 +207,19 @@ try:
             :return:
             """
             self.setWindowTitle(
-                "%s %s"
-                % (
-                    gt(self.ctx.project_config.project_name),
-                    self.ctx.one_dragon_config.current_active_instance.name,
-                )
+                f"{gt(self.ctx.project_config.project_name)} "
+                f"{self.ctx.one_dragon_config.current_active_instance.name}"
             )
 
-        def _update_version(self, versions: tuple[str, str]) -> None:
+        def _update_version(self, versions: tuple[str, str, str]) -> None:
             """
             更新版本显示
-            @param ver:
+            @param versions: (启动器版本, 代码版本, 启动器类型tag)
             @return:
             """
             self.titleBar.setLauncherVersion(versions[0])
             self.titleBar.setCodeVersion(versions[1])
+            self.titleBar.setLaunchTag(versions[2])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
