@@ -15,6 +15,7 @@ from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 from zzz_od.game_data.agent import Agent, AgentEnum, AgentStateCheckWay, CommonAgentStateEnum, AgentStateDef
 
 if TYPE_CHECKING:
+    from one_dragon.base.geometry.rectangle import Rect
     from zzz_od.context.zzz_context import ZContext
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
@@ -441,7 +442,7 @@ class AutoBattleAgentContext:
 
         for i in range(4):
             if should_check[i]:
-                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents))
+                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents, area_rect[i]))
             else:
                 future_list.append(None)
 
@@ -470,6 +471,7 @@ class AutoBattleAgentContext:
         img: MatLike,
         is_front: bool,
         possible_agents: List[Tuple[Agent, Optional[str]]],
+        area_rect: Rect,
     ) -> Tuple[Optional[Agent], Optional[str]]:
         """
         在候选列表中匹配角色
@@ -477,6 +479,7 @@ class AutoBattleAgentContext:
             img: 裁剪好的头像图片
             is_front: 识别的是否前台角色
             possible_agents: 需要识别的代理人列表
+            area_rect: 头像裁剪区域，用于 overlay 识别框坐标偏移
 
         Returns:
             匹配命中的代理人和对应的皮肤模板
@@ -498,22 +501,30 @@ class AutoBattleAgentContext:
                 else:
                     priority_list[1].append((agent, t_id))
 
-        # 按优先级进行匹配
-        for agent_template_list in priority_list:
-            for agent, template_id in agent_template_list:
-                template_name = prefix + template_id
-                mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
-                if mrl.max is None:
-                    continue
-                if mrl.max.confidence < best_confidence:
-                    continue
+        # 裁剪图匹配时设置 crop_offset，让 overlay 识别框坐标回到原图坐标系 见 crop_and_match_template_binary
+        bus = getattr(self.ctx.tm, 'overlay_debug_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            # 按优先级进行匹配
+            for agent_template_list in priority_list:
+                for agent, template_id in agent_template_list:
+                    template_name = prefix + template_id
+                    mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
+                    if mrl.max is None:
+                        continue
+                    if mrl.max.confidence < best_confidence:
+                        continue
 
-                best_agent = agent
-                best_template_id = template_id
-                best_confidence = mrl.max.confidence
+                    best_agent = agent
+                    best_template_id = template_id
+                    best_confidence = mrl.max.confidence
 
-            if best_agent is not None:
-                return best_agent, best_template_id
+                if best_agent is not None:
+                    return best_agent, best_template_id
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None, None
 
