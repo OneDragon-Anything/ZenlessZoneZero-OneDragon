@@ -5,7 +5,7 @@ from enum import Enum
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.envs.repo_config import RepoConfig
-from one_dragon.utils import os_utils
+from one_dragon.utils import i18_utils, os_utils
 
 DEFAULT_ENV_PATH = os_utils.get_path_under_work_dir('.install')
 DEFAULT_UV_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'uv')  # 默认的uv文件夹路径
@@ -145,6 +145,65 @@ class EnvConfig(YamlConfig):
         self.update('last_repository_url', new_value)
 
     @property
+    def resource_source(self) -> str:
+        """资源release下载源选择 自动模式按 上次成功源>语言推荐>其余源 的顺序尝试。"""
+        value = self.get('resource_source', RepoConfig.AUTO_RESOURCE_SOURCE_VALUE)
+        return value if isinstance(value, str) and value else RepoConfig.AUTO_RESOURCE_SOURCE_VALUE
+
+    @resource_source.setter
+    def resource_source(self, new_value: str) -> None:
+        """更新资源release下载源选择。"""
+        self.update('resource_source', new_value)
+
+    @property
+    def last_resource_source(self) -> str:
+        """最近一次资源下载成功使用的源 ID。"""
+        return self.get('last_resource_source', '')
+
+    @last_resource_source.setter
+    def last_resource_source(self, new_value: str) -> None:
+        """记录最近一次资源下载成功使用的源 ID。"""
+        self.update('last_resource_source', new_value)
+
+    def get_resource_source_order(self) -> list[str]:
+        """获取资源下载的候选源顺序 用户指定>上次成功>语言推荐>其余。"""
+        return self.repo_config.get_resource_source_candidates(
+            user_choice=self.resource_source,
+            last_success=self.last_resource_source,
+            language=i18_utils.get_default_lang(),
+        )
+
+    def mark_resource_source_success(self, source_id: str) -> None:
+        """记录本次资源下载成功使用的源。"""
+        self.last_resource_source = source_id
+
+    @property
+    def is_resource_source_auto(self) -> bool:
+        """是否由下载器自动选择资源源。"""
+        return self.resource_source == RepoConfig.AUTO_RESOURCE_SOURCE_VALUE
+
+    def mark_resource_source_failure(self, source_id: str) -> None:
+        """自动模式下使已经失效的上次成功源不再保持首选。"""
+        if (
+            self.is_resource_source_auto
+            and self.last_resource_source == source_id
+        ):
+            self.last_resource_source = ''
+
+    def get_recommended_resource_source(self) -> str | None:
+        """获取按当前语言推荐的资源下载源 ID。"""
+        return self.repo_config.get_recommended_resource_source(i18_utils.get_default_lang())
+
+    @property
+    def resource_download_no_confirm(self) -> bool:
+        """自动下载资源前是否不再弹窗确认。"""
+        return self.get('resource_download_no_confirm', False)
+
+    @resource_download_no_confirm.setter
+    def resource_download_no_confirm(self, new_value: bool) -> None:
+        self.update('resource_download_no_confirm', new_value)
+
+    @property
     def force_update(self) -> bool:
         """
         代码是否强制更新 会直接丢弃现有的改动
@@ -171,22 +230,6 @@ class EnvConfig(YamlConfig):
     @auto_update_code.setter
     def auto_update_code(self, new_value: bool) -> None:
         self.update('auto_update_code', new_value)
-
-    @property
-    def cpython_source(self) -> str:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        return self.get('cpython_source', self.repo_config.get_source_default('cpython_source'))
-
-    @cpython_source.setter
-    def cpython_source(self, new_value: str) -> None:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        self.update('cpython_source', new_value)
 
     @property
     def pip_source(self) -> str:
@@ -329,6 +372,16 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('is_debug', new_value)
+
+    @property
+    def developer_mode(self) -> bool:
+        """是否显示开发者和实验功能入口。"""
+        return self.get('developer_mode', False)
+
+    @developer_mode.setter
+    def developer_mode(self, new_value: bool) -> None:
+        """更新开发者模式可见性配置。"""
+        self.update('developer_mode', new_value)
 
     @property
     def copy_screenshot(self) -> bool:

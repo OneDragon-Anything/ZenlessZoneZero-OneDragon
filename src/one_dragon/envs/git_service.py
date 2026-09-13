@@ -1117,6 +1117,12 @@ class GitService:
             return True
         return re.fullmatch(r"'{0,1}[0-9a-f]{40}'{0,1}", message) is not None
 
+    @staticmethod
+    def _format_source_error(error: BaseException) -> str:
+        """把代码源异常转成面向用户的简短原因，避免展示过长或空信息。"""
+        text = str(error).strip() or error.__class__.__name__
+        return text if len(text) <= 120 else f'{text[:117]}...'
+
     def _rebuild_repository(
         self,
         progress_callback: Callable[[float, str], None] | None,
@@ -1207,6 +1213,7 @@ class GitService:
         success = False
         used_repository: RepositoryItem | None = None
         local_repository_damaged = False
+        source_errors: list[str] = []
 
         try:
             for repository, repository_url in self._get_repository_candidates():
@@ -1234,6 +1241,9 @@ class GitService:
                         local_repository_damaged = True
                         log.error('导入远程对象时发现本地 Git 对象缺失，停止代码源回退', exc_info=True)
                         break
+                    source_errors.append(
+                        f'{repository_name}: {self._format_source_error(error)}'
+                    )
                     log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
         finally:
             restored = True if local_repository_damaged else self._restore_origin()
@@ -1248,7 +1258,10 @@ class GitService:
             return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('本地代码更新失败')
         if not success:
             log.error('所有代码源均拉取失败')
-            return GitSyncStatus.REMOTE_UNAVAILABLE, gt('暂时无法获取更新')
+            message = gt('暂时无法获取更新')
+            if source_errors:
+                message = f'{message}：{"；".join(source_errors)}'
+            return GitSyncStatus.REMOTE_UNAVAILABLE, message
 
         if used_repository is not None:
             try:

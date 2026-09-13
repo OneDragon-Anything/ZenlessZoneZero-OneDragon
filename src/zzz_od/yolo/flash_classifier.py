@@ -1,13 +1,12 @@
 from one_dragon.utils import yolo_config_utils
-from one_dragon.yolo.yolo_utils import get_github_model_download_url
 from one_dragon.yolo.yolov8_onnx_cls import Yolov8Classifier
-from zzz_od.config.model_config import YOLO_RELEASE_TAG
 
 
 class FlashClassifier(Yolov8Classifier):
 
     def __init__(
             self,
+            model_download_url: str,
             model_name: str = 'yolov8n-640-flash-20250906',
             backup_model_name: str = 'yolov8n-640-flash-20250622',
             model_parent_dir_path: str = yolo_config_utils.get_model_category_dir('flash_classifier'),
@@ -28,7 +27,7 @@ class FlashClassifier(Yolov8Classifier):
             model_name=model_name,
             backup_model_name=backup_model_name,
             model_parent_dir_path=model_parent_dir_path,
-            model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
+            model_download_url=model_download_url,
             gh_proxy=gh_proxy,
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,
@@ -39,7 +38,13 @@ class FlashClassifier(Yolov8Classifier):
 
 def __debug():
     from one_dragon.utils import os_utils
+    from zzz_od.context.zzz_context import ZContext
+
+    ctx = ZContext()
     flash_classifier = FlashClassifier(
+        model_download_url=ctx.model_config.get_model_download_base_url(
+            'flash_classifier',
+        ),
         model_parent_dir_path=os_utils.get_path_under_work_dir('assets', 'models', 'flash_classifier')
     )
     from one_dragon.utils import debug_utils
