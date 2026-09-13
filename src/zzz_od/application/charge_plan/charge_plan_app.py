@@ -21,6 +21,7 @@ from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
+from zzz_od.operation.compendium.choose_training_goal import ChooseTrainingGoal
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
@@ -29,13 +30,14 @@ from zzz_od.operation.exchange_ether_battery import ExchangeEtherBattery
 
 
 class ChargePlanApp(ZApplication):
-    """体力计划:按计划消耗电量刷训练副本(实战模拟室/区域巡防/专业挑战室/恶名狩猎-深度追猎)及电量合成(合成电池),支持循环与电量不足时用储蓄电量/以太电池补体。各分类按电量消耗,无日/周次数限。"""
+    """按固定计划或特训目标动态推荐消耗电量，支持恢复电量与循环执行。"""
 
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
     STATUS_FIND_NEXT_PLAN: ClassVar[str] = '继续查找下一个计划'
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext) -> None:
+        """初始化体力计划配置和本次运行状态。"""
         ZApplication.__init__(
             self,
             ctx=ctx,
@@ -58,13 +60,16 @@ class ChargePlanApp(ZApplication):
         self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
+        self.current_battle_plan: ChargePlanItem | None = None
         self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
+        """清理上次运行状态，并按配置执行每日次数重置。"""
         self.temp_plan = None
         self.last_tried_plan = None
         self.double_reward_checked = False
+        self.current_battle_plan = None
         for plan in self.config.plan_list:
             plan.skipped = False
         current_dt = self.run_record.get_current_dt()
@@ -223,6 +228,7 @@ class ChargePlanApp(ZApplication):
             return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
         self.current_plan = candidate_plan
+        self.current_battle_plan = None
         return self.round_success()
 
     @node_from(from_name='查找候选计划')
@@ -268,10 +274,27 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='判断是否执行')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
+        """传送到固定副本，或为特训目标生成本次实际副本计划。"""
         # 使用已经在查找候选计划节点中设置好的 self.current_plan
         if self.current_plan.category_name == '合成电池':
+            self.current_battle_plan = self.current_plan
             return self.round_success('合成电池')
 
+        if self.current_plan.is_training_goal:
+            transport_op = TransportByCompendium(self.ctx, '训练', '特训目标')
+            transport_result = transport_op.execute()
+            if not transport_result.success:
+                return self.round_by_op_result(transport_result)
+
+            choose_op = ChooseTrainingGoal(self.ctx, self.battery_charge)
+            choose_result = choose_op.execute()
+            if not choose_result.success or choose_op.selection is None:
+                return self.round_by_op_result(choose_result)
+
+            self.current_battle_plan = choose_op.selection.to_plan(self.current_plan)
+            return self.round_success(self.current_battle_plan.category_name)
+
+        self.current_battle_plan = self.current_plan
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
@@ -281,37 +304,49 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', status='合成电池')
     @operation_node(name='合成电池')
     def exchange_ether_battery(self) -> OperationRoundResult:
-        op = ExchangeEtherBattery(self.ctx, self.current_plan)
+        """执行当前计划的以太电池合成。"""
+        op = ExchangeEtherBattery(self.ctx, self._get_battle_plan())
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
     @operation_node(name='识别副本分类')
     def check_mission_type(self) -> OperationRoundResult:
-        return self.round_success(self.current_plan.category_name)
+        """返回传送后实际进入的副本分类。"""
+        return self.round_success(self._get_battle_plan().category_name)
 
     @node_from(from_name='识别副本分类', status='实战模拟室')
     @operation_node(name='实战模拟室')
     def combat_simulation(self) -> OperationRoundResult:
-        op = CombatSimulation(self.ctx, self.current_plan)
+        """执行实战模拟室计划。"""
+        op = CombatSimulation(self.ctx, self._get_battle_plan())
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.current_plan)
+        """执行区域巡防计划。"""
+        op = AreaPatrol(self.ctx, self._get_battle_plan())
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
     @operation_node(name='专业挑战室')
     def expert_challenge(self) -> OperationRoundResult:
-        op = ExpertChallenge(self.ctx, self.current_plan)
+        """执行专业挑战室计划。"""
+        op = ExpertChallenge(self.ctx, self._get_battle_plan())
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
-        op = NotoriousHunt(self.ctx, self.current_plan, use_charge_power=True)
+        """使用深度追猎模式执行恶名狩猎计划。"""
+        op = NotoriousHunt(self.ctx, self._get_battle_plan(), use_charge_power=True)
         return self.round_by_op_result(op.execute())
+
+    def _get_battle_plan(self) -> ChargePlanItem:
+        """当前实际副本计划；节点图保证调用前已经完成传送选择。"""
+        if self.current_battle_plan is None:
+            raise RuntimeError('尚未生成实际副本计划')
+        return self.current_battle_plan
 
     @node_from(from_name='实战模拟室', success=True)
     @node_from(from_name='实战模拟室', success=False)
@@ -345,9 +380,11 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
+    @node_from(from_name='传送', success=False, status=ChooseTrainingGoal.STATUS_NO_TARGET)
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
-        is_agent_plan = self.current_plan.is_agent_plan
+        """按失败原因和跳过配置决定继续查找还是结束本轮。"""
+        is_agent_plan = self.current_plan.is_agent_plan or self.current_plan.is_training_goal
         is_blocked_by_left_times = (
             self.previous_node.status == NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES
         )

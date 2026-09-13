@@ -10,10 +10,8 @@ from pydantic import Field
 
 from zzz_od.backend.backend_context import ZzzBackendContext
 from zzz_od.backend.config_router import (
-    RouterEntry,
     _build_list_fields,
     _build_set_fields,
-    _enum_options,
     _ro_item_fields_for,
     all_entries,
     get_entry,
@@ -183,6 +181,8 @@ def make_describe_config(backend: ZzzBackendContext) -> Callable:
             # list_fields
             ro_item = _ro_item_fields_for(app_id)
             list_fields = _build_list_fields(entry, ro_item)
+            if list_fields:
+                _inject_charge_plan_category_options(ctx, app_id, list_fields[0])
 
             # category 参数:查 mission_type 合法值
             if category and list_fields:
@@ -200,6 +200,27 @@ def make_describe_config(backend: ZzzBackendContext) -> Callable:
         except Exception as e:  # noqa: BLE001
             return {'ok': False, 'error': str(e)}
     return describe_config
+
+
+def _inject_charge_plan_category_options(
+    ctx: Any,
+    app_id: str,
+    list_field: dict,
+) -> None:
+    """从快捷手册数据向体力计划 schema 注入最新分类选项。"""
+    if app_id != 'charge_plan':
+        return
+
+    options = [
+        {'label': item.label, 'value': item.value}
+        for item in ctx.compendium_service.get_charge_plan_category_list()
+    ]
+    for field in list_field.get('item_fields', []):
+        if field.get('name') != 'category_name':
+            continue
+        field['options'] = options
+        field.pop('options_source', None)
+        break
 
 
 def _inject_category_options(
