@@ -443,6 +443,7 @@ class EnterGame(ZOperation):
             '待领取',  # 需要有这个词 防止画面出现"待领取"也匹配到"领取"
             '今日到账',  # 小月卡 issue #893
             '惊喜补给',  # 免费月卡 issue #1996
+            '继续连接',  # 登录的时候网卡了一下
         ]
         ignore_list: list[str] = [
             '已领取',  # 需要有这个词 防止画面出现"已领取"也匹配到"领取"
@@ -675,7 +676,7 @@ class EnterGame(ZOperation):
 
     @node_from(from_name='点击进入游戏', status=STATUS_LOGIN_SUCCESS)
     @node_from(from_name='点击进入游戏', status=STATUS_LOADING)
-    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS)
+    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS, node_max_retry_times=9999)
     def wait_loading(self) -> OperationRoundResult:
         """
         等待加载场景结束，并处理加载后的弹窗和大世界识别。
