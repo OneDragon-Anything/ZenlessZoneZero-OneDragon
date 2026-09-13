@@ -25,6 +25,7 @@ class ScreenInfo:
             pc_rect = data_area.get('pc_rect')
             area = ScreenArea(
                 area_name=data_area.get('area_name', ''),
+                area_type=data_area.get('area_type'),
                 pc_rect=Rect(pc_rect[0], pc_rect[1], pc_rect[2], pc_rect[3]),
                 text=data_area.get('text', ''),
                 lcs_percent=(
