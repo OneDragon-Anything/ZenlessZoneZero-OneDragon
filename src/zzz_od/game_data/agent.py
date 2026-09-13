@@ -447,7 +447,7 @@ class AgentEnum(Enum):
         RareTypeEnum.S,
         AgentTypeEnum.SUPPORT,
         DmgTypeEnum.PHYSICAL,
-        ["sunna", "sunna_afternoon_tea_break"],
+        ["sunna", "sunna_afternoon_tea_break", "sunna_delusions_in_business"],
     )
 
     YESHUNGUANG = Agent(
@@ -491,13 +491,13 @@ class AgentEnum(Enum):
         ],
     )
 
-    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note'],
+    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note', 'aria_cuteness_loading'],
                  state_list=[AgentStateDef('爱芮-应援能量', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                            template_id='aria_cheer_energy',
                                            hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
                                            connect_cnt=2)])
 
-    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse'],
+    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse', 'nangongyu_heartfelt_support'],
                       state_list=[
                           AgentStateDef('南宫羽-重拍', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                         template_id='nangongyu',
