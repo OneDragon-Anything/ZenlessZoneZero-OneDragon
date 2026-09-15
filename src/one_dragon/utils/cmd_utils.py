@@ -1,4 +1,5 @@
-import os
+import ctypes
+import platform
 import subprocess
 import threading
 from collections.abc import Callable
@@ -120,7 +121,7 @@ def shutdown_sys(seconds: int):
     :param seconds: 秒
     :return:
     """
-    os.system("shutdown /s /t %d" % seconds)
+    subprocess.run(['shutdown', '/s', '/t', str(seconds)], check=False)
 
 
 def cancel_shutdown_sys():
@@ -129,7 +130,23 @@ def cancel_shutdown_sys():
     使用 shutdown /a 命令
     :return:
     """
-    os.system("shutdown /a")
+    subprocess.run(['shutdown', '/a'], check=False)
+
+
+def hibernate_sys() -> None:
+    """让系统进入休眠状态。"""
+    subprocess.run(['shutdown', '/h'], check=False)
+
+
+def sleep_sys() -> None:
+    """让系统进入睡眠状态。"""
+    system = platform.system()
+    if system == 'Windows':
+        ctypes.windll.powrprof.SetSuspendState(False, False, False)
+    elif system == 'Linux':
+        subprocess.run(['systemctl', 'suspend'], check=False)
+    else:
+        raise OSError(f'当前系统不支持睡眠: {system}')
 
 
 if __name__ == '__main__':
