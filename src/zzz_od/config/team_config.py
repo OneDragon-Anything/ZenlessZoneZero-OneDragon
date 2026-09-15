@@ -1,4 +1,5 @@
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils import str_utils
 from zzz_od.game_data.agent import Agent
 
 
@@ -6,7 +7,7 @@ class PredefinedTeamInfo:
 
     def __init__(self, idx: int, name: str, auto_battle: str, agent_id_list: list[str]):
         self.idx: int = idx  # 在编队数组里的下标
-        self.name: str = name  # 编队名称
+        self.name: str = str_utils.remove_whitespace(name)  # 编队名称
         self.agent_id_list: list[str] = list(agent_id_list)  # 代理人ID列表
         while len(self.agent_id_list) < 3:
             self.agent_id_list.append('unknown')
@@ -42,6 +43,7 @@ class TeamConfig(YamlConfig):
         """
         更新一个配队
         """
+        team_info.name = str_utils.remove_whitespace(team_info.name)
         team_list = self.team_list
         if team_info.idx >= len(self.team_list):
             return
@@ -67,6 +69,33 @@ class TeamConfig(YamlConfig):
             if team.idx == team_idx:
                 return team
         return None
+
+    def update_team_name_by_idx(self, team_idx: int, team_name: str) -> None:
+        """按游戏内列表顺序同步预备编队名称。"""
+        team = self.get_team_by_idx(team_idx)
+        if team is None:
+            return
+
+        normalized_name = str_utils.remove_whitespace(team_name)
+        if team.name == normalized_name:
+            return
+
+        team.name = normalized_name
+        self.update_team(team)
+
+    def update_team_by_idx(self, team_idx: int, team_name: str, members: list[Agent]) -> None:
+        """
+        按游戏内列表顺序同步预备编队
+        """
+        team = self.get_team_by_idx(team_idx)
+        if team is None:
+            return
+
+        team.name = team_name
+        team.agent_id_list = [member.agent_id for member in members[:3]]
+        while len(team.agent_id_list) < 3:
+            team.agent_id_list.append('unknown')
+        self.update_team(team)
 
     def update_team_members(self, team_name: str, members: list[Agent]) -> None:
         """
