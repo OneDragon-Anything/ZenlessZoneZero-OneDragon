@@ -6,12 +6,11 @@ import time
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from one_dragon.base.operation.overlay_debug_bus import (
+from one_dragon.base.debug.debug_trace_bus import (
     DecisionTraceItem,
-    PerfMetricSample,
-    TimelineItem,
+    PerfTraceItem,
+    TimelineTraceItem,
 )
-
 
 _LEVEL_COLOR = {
     "DEBUG": "#8cb4ff",
@@ -47,8 +46,8 @@ class InfoHudPanel(QWidget):
 
         self._state_items: list[tuple[str, str]] = []
         self._decision_items: list[DecisionTraceItem] = []
-        self._timeline_items: list[TimelineItem] = []
-        self._performance_items: list[PerfMetricSample] = []
+        self._timeline_items: list[TimelineTraceItem] = []
+        self._performance_items: list[PerfTraceItem] = []
 
         self._label = QLabel(self)
         self._label.setTextFormat(Qt.TextFormat.RichText)
@@ -83,11 +82,11 @@ class InfoHudPanel(QWidget):
         self._decision_items = items
         self._render()
 
-    def update_timeline(self, items: list[TimelineItem]) -> None:
+    def update_timeline(self, items: list[TimelineTraceItem]) -> None:
         self._timeline_items = items
         self._render()
 
-    def update_performance(self, items: list[PerfMetricSample]) -> None:
+    def update_performance(self, items: list[PerfTraceItem]) -> None:
         self._performance_items = items
         self._render()
 
@@ -133,7 +132,7 @@ class InfoHudPanel(QWidget):
     def _render_performance(self) -> list[str]:
         if not self._performance_items:
             return []
-        latest_by_metric: dict[str, PerfMetricSample] = {}
+        latest_by_metric: dict[str, PerfTraceItem] = {}
         for item in sorted(self._performance_items, key=lambda x: x.created):
             latest_by_metric[item.metric] = item
 
