@@ -12,7 +12,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import cv2_utils, str_utils, log_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
@@ -202,6 +202,11 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
     @operation_node(name='矩阵行动-前往入口')
     def matrix_goto_entry(self) -> OperationRoundResult:
+        # 排除因为ocr太慢导致的错误信息
+        error = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-矩阵行动-编队选择', '确认', success_wait=1)
+        if error.is_success:
+            log_utils.log('已点击意外出现的确认按钮')
+
         return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
 
     @node_from(from_name='矩阵行动-前往入口')
@@ -315,7 +320,7 @@ class LostVoidApp(ZApplication):
                 # 角色定位齐了, 可以选角色了
                 break
             # 后面一页继续找
-            self.swipe_multiple_times(agent_area, 1, 1, 'down')
+            self.swipe_multiple_times(agent_area, 1, 0.5, 'down')
             self.screenshot()
 
         # 未找齐代理人
@@ -334,10 +339,10 @@ class LostVoidApp(ZApplication):
 
         return self.round_success()
 
-    # 滑动x次
+    # 滑动x次 (滑慢点以免帧率低时可能出现的滑不到位)
     def swipe_multiple_times(self, area, swipe_num, wait, direction) -> None:
         for _ in range(swipe_num):
-            screen_utils.scroll_area(self.ctx, area, direction, 0.75, 0.25)
+            screen_utils.scroll_area(self.ctx, area, direction, 0.75, 0.25, duration=1)
             time.sleep(wait)
 
     @node_from(from_name='矩阵行动-选择预备编队')
