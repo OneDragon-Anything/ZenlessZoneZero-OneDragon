@@ -534,7 +534,9 @@ class LostVoidContext:
             elif ':' in raw_category:
                 category = raw_category.split(':', 1)[0].strip()
             else:
-                category = raw_category[:2].strip()
+                # 保留完整分类文本（如“异常·击破”“射吸式焊炬”），
+                # 由匹配侧 _is_category_match 归一化处理，避免截断丢信息
+                category = raw_category.strip()
             if len(category) == 0:
                 category = raw_category
 
@@ -717,26 +719,43 @@ class LostVoidContext:
         dedup_text = '; '.join([fmt_artifact(pos, idx) for idx, pos in enumerate(artifact_list)]) if len(artifact_list) > 0 else '无'
         log.debug(f'优先级输入候选(去重后) 共{len(artifact_list)}个: {dedup_text}')
 
-        # 合并动态优先级和静态优先级
-        priority_list_to_consider = []
+        # 六级优先级模型，按顺序匹配：
+        # 第1级 动态优先级 / 第2级 配置第一 / 第3级 配置第二 / 第4级 战斗组
+        # 第5级 其他（非优先级）补位 / 第6级 放弃组 最后补位
+        # 参数只控制放行到第几级：
+        # consider_priority_1 -> 放行第1、2级
+        # consider_priority_2 -> 放行第3、4级
+        # consider_not_in_priority -> 放行第5、6级
+        # 注意：主选组整体优先于次选组（任务目标优先），级别序只在组内生效。
+        priority_levels: list[tuple[str, list[str]]] = []
 
-        final_priority_list_1 = self.dynamic_priority_list.copy()
-        if consider_priority_1 and self.challenge_config.artifact_priority_in_battle:
-            final_priority_list_1.extend(self.challenge_config.artifact_priority_in_battle)
-        priority_list_to_consider.append(final_priority_list_1)
+        if consider_priority_1:
+            if len(self.dynamic_priority_list) > 0:
+                priority_levels.append(('第1级(动态)', self.dynamic_priority_list))
+            if len(self.challenge_config.artifact_priority) > 0:
+                priority_levels.append(('第2级(配置一)', self.challenge_config.artifact_priority))
 
-        if consider_priority_2 and self.challenge_config.artifact_priority_2:
-            priority_list_to_consider.append(self.challenge_config.artifact_priority_2)
+        if consider_priority_2:
+            if len(self.challenge_config.artifact_priority_2) > 0:
+                priority_levels.append(('第3级(配置二)', self.challenge_config.artifact_priority_2))
+            if len(self.challenge_config.artifact_priority_in_battle) > 0:
+                priority_levels.append(('第4级(战斗组)', self.challenge_config.artifact_priority_in_battle))
 
-        if len(priority_list_to_consider) == 0:  # 两个优先级都是空的时候 强制考虑非优先级的
+        # 四个优先级配置列表全部为空时 才强制考虑非优先级的
+        # 不能依据门控后的 priority_levels 判断（门控可能因轮次放行限制挡住有内容的配置）
+        if (len(self.dynamic_priority_list) == 0
+                and len(self.challenge_config.artifact_priority) == 0
+                and len(self.challenge_config.artifact_priority_2) == 0
+                and len(self.challenge_config.artifact_priority_in_battle) == 0):
             consider_not_in_priority = True
 
-        p1_text = ', '.join(final_priority_list_1) if len(final_priority_list_1) > 0 else '空'
-        p2_text = ', '.join(self.challenge_config.artifact_priority_2) if consider_priority_2 and len(self.challenge_config.artifact_priority_2) > 0 else '空'
+        level_text_list = [f'{name}={",".join(rule_list) if len(rule_list) > 0 else "空"}' for name, rule_list in priority_levels]
+        level_text = ' '.join(level_text_list) if len(level_text_list) > 0 else '无'
         abandon_text = ', '.join(self.dynamic_abandon_list) if len(self.dynamic_abandon_list) > 0 else '空'
-        log.debug(f'优先级规则 第一优先级={p1_text}')
-        log.debug(f'优先级规则 第二优先级={p2_text}')
-        log.debug(f'优先级规则 动态放弃组={abandon_text}')
+        primary_cnt = len([i for i in artifact_list if i.is_primary_name])
+        secondary_cnt = len(artifact_list) - primary_cnt
+        log.info(f'优先级决策 | 候选={len(artifact_list)}(主选={primary_cnt} 次选={secondary_cnt}) 需选={choose_num} | 放行=第1,2级:{consider_priority_1} 第3,4级:{consider_priority_2} 补位:{consider_not_in_priority} NEW:{consider_priority_new}')
+        log.debug(f'优先级规则 | {level_text} 放弃组={abandon_text}')
 
         priority_idx_list: list[int] = []  # 优先级排序的下标
         choose_reason_map: dict[int, str] = {}
@@ -771,36 +790,29 @@ class LostVoidContext:
                             continue
                         add_idx_if_absent(idx, f'{group_name}-NEW优先 命中等级={level}')
 
-            # 2) 按优先级文本匹配（坐标顺序作为同优先级稳定序）
-            for list_idx, priority_list in enumerate(priority_list_to_consider):
-                list_name = '第一优先级' if list_idx == 0 else f'第二优先级{list_idx}'
+            # 2) 按优先级级别匹配（坐标顺序作为同优先级稳定序）
+            level_hit_parts: list[str] = []
+            for level_name, priority_list in priority_levels:
+                rule_parts: list[str] = []
                 for priority_rule in priority_list:
-                    rule_category = self._extract_priority_rule_category(priority_rule)
-                    # dynamic_abandon_list 由 AgentTypeEnum.value 同源填充，rule_category 与
-                    # artifact_category 均走同一套干净取值链路，无别名或分隔符差异，因此直接
-                    # 使用 in 精确匹配即可，无需复用 _is_category_match 的归一化与子串逻辑。
-                    if (
-                        rule_category is not None
-                        and rule_category in self.dynamic_abandon_list
-                        and not self._is_specific_priority_rule(priority_rule)
-                    ):
-                        log.debug(f'规则跳过 {group_name}-{list_name} 规则="{priority_rule}" 原因=命中动态放弃组')
-                        continue
-
                     matched_idx_list: list[int] = []
                     for idx in group_idx_list:
                         if idx in priority_idx_list:
                             continue
                         if self._is_priority_rule_match(artifact_list[idx], priority_rule):
                             matched_idx_list.append(idx)
-                            add_idx_if_absent(idx, f'{group_name}-{list_name} 命中规则="{priority_rule}"')
+                            add_idx_if_absent(idx, f'{group_name}-{level_name} 命中规则="{priority_rule}"')
                     if len(matched_idx_list) > 0:
                         hit_text = ', '.join([fmt_artifact(artifact_list[idx], idx) for idx in matched_idx_list])
-                        log.debug(f'规则命中 {group_name}-{list_name} 规则="{priority_rule}" 命中={hit_text}')
+                        rule_parts.append(f'规则"{priority_rule}"命中[{hit_text}]')
                     else:
-                        log.debug(f'规则未命中 {group_name}-{list_name} 规则="{priority_rule}"')
+                        rule_parts.append(f'规则"{priority_rule}"未命中')
+                if len(rule_parts) > 0:
+                    level_hit_parts.append(f'{level_name}: ' + '; '.join(rule_parts))
+            if len(level_hit_parts) > 0:
+                log.debug(f'优先级匹配 | {group_name}组 | ' + ' || '.join(level_hit_parts))
 
-            # 3) 其余候选按坐标顺序补齐
+            # 3) 其余候选按坐标顺序补齐：先普通（第5级），再放弃组（第6级）
             if consider_not_in_priority:
                 normal_idx_list: list[int] = []
                 abandon_idx_list: list[int] = []
@@ -808,7 +820,13 @@ class LostVoidContext:
                     if idx in priority_idx_list:
                         continue
                     artifact_category = artifact_list[idx].artifact.category
-                    if artifact_category in self.dynamic_abandon_list:
+                    # 放弃组里存的是代理人类型值（如「击破」），藏品分类可能是「异常·击破」，
+                    # 需要走归一化匹配才能命中，不能用精确 in
+                    is_abandoned = any(
+                        self._is_category_match(artifact_category, abandon_category)
+                        for abandon_category in self.dynamic_abandon_list
+                    )
+                    if is_abandoned:
                         abandon_idx_list.append(idx)
                     else:
                         normal_idx_list.append(idx)
@@ -835,6 +853,13 @@ class LostVoidContext:
         log.debug(f'优先级入队顺序 下标={queue_text}')
         log.debug(f'当前符合优先级列表 {display_text}')
         log.debug(f'最终选择明细 {selected_text}')
+
+        if len(result_list) > 0:
+            log.info(f'优先级决策 | 结果 | 选中={len(result_list)} | {selected_text}')
+        elif consider_not_in_priority:
+            log.info('优先级决策 | 结果 | 未选中 | 原因=候选为空或全部被忽略')
+        else:
+            log.info('优先级决策 | 结果 | 未选中 | 原因=优先级规则未命中任何候选 且 非优先级未开启')
 
         return result_list
 
