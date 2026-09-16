@@ -13,6 +13,7 @@ class AgentTypeEnum(Enum):
     DEFENSE = '防护'
     ANOMALY = '异常'
     RUPTURE = '命破'
+    ARMORER = '锋御'
     UNKNOWN = '未知'
 
     @classmethod
@@ -446,7 +447,7 @@ class AgentEnum(Enum):
         RareTypeEnum.S,
         AgentTypeEnum.SUPPORT,
         DmgTypeEnum.PHYSICAL,
-        ["sunna", "sunna_afternoon_tea_break"],
+        ["sunna", "sunna_afternoon_tea_break", "sunna_delusions_in_business"],
     )
 
     YESHUNGUANG = Agent(
@@ -490,13 +491,13 @@ class AgentEnum(Enum):
         ],
     )
 
-    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note'],
+    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note', 'aria_cuteness_loading'],
                  state_list=[AgentStateDef('爱芮-应援能量', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                            template_id='aria_cheer_energy',
                                            hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
                                            connect_cnt=2)])
 
-    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse'],
+    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse', 'nangongyu_heartfelt_support'],
                       state_list=[
                           AgentStateDef('南宫羽-重拍', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                         template_id='nangongyu',
@@ -563,3 +564,18 @@ class AgentEnum(Enum):
             ),
         ],
     )
+
+    SIGRID = Agent('sigrid', '希格莉德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ICE,
+                   ['sigrid', 'sigrid_majestic_wavechaser'],
+                   state_list=[AgentStateDef('希格莉德-巡空枪势', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                                             template_id='sigrid_sky_patrol',
+                                             hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
+                                             connect_cnt=1)])
+
+    CLARET = Agent('claret', '克拉蕾', RareTypeEnum.S, AgentTypeEnum.ARMORER, DmgTypeEnum.ELECTRIC, ['claret'],
+                   state_list=[
+                       AgentStateDef('克拉蕾-猩红铭刻', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='claret',
+                                     lower_color=(150, 0, 0), upper_color=(255, 90, 50),
+                                     max_length=100, min_value_trigger_state=5),
+                   ])

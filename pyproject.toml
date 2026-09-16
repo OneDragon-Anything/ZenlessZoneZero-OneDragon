@@ -35,7 +35,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "ruff>=0.15.18",
     "pyuac==0.0.3",
-    "mcp>=1.0.0",
+    "mcp>=2.0.0,<3",
     "uvicorn>=0.30.0",
     "pyright>=1.1.411",
 ]

@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: claret_2_2
+template_name: 角色状态-克拉蕾-猩红铭刻-双人队后台
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 618, 95
+- 672, 103

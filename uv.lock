@@ -1446,7 +1446,7 @@ requires-dist = [
 dev = [
     { name = "colorama", specifier = "==0.4.6" },
     { name = "matplotlib", specifier = "==3.11.0" },
-    { name = "mcp", specifier = ">=1.0.0" },
+    { name = "mcp", specifier = ">=2.0.0,<3" },
     { name = "polib", specifier = "==1.2.0" },
     { name = "pre-commit", specifier = "==4.6.0" },
     { name = "pyinstaller", specifier = "==6.21.0" },

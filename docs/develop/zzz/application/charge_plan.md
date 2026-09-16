@@ -106,8 +106,10 @@
 ```
 
 **特殊处理**：
-- 自动关闭深度追猎模式（燃竭模式）
-- 进本前按40电量预估
+- 自动关掉燃竭开关：关卡详情页的开关区域**借用 `恶名狩猎` 画面的 `按钮-深度追猎-ON` / `按钮-深度追猎-确认`**
+  （`expert_challenge.yml` 自身没有这两个 area）。两个分类的关卡详情页是同一套布局
+  （`expert_challenge.yml` 与 `notorious_hunt.yml` 的剩余/需要电量矩形几乎重合可佐证），因此直接复用。
+- 进本前按40电量预估（燃竭关不掉的极端情况会先按 40 放行，进本后走「恢复电量」兜底）
 - 进入副本后点击“下一步”，如果出现恢复电量页，则返回电量不足状态
 
 #### 4.4 恶名狩猎（NotoriousHunt）
@@ -187,6 +189,27 @@
 ```
 返回大世界 → 保存通知截图 → 发送完成通知
 ```
+
+## 关卡（副本类型）列表数据来源
+
+各分类的关卡列表来自 `assets/game_data/compendium_data.yml`（按 `tab → category → mission_type` 组织），**不是代码里的枚举**。
+新增 / 下架一个关卡只改这个 yml，下面这些位置自动跟着变，不用改代码：
+
+- 设置界面的关卡下拉（`CompendiumService.get_charge_plan_mission_type_list`）
+- 后端 / MCP 写入前的合法性校验（`ChargePlanConfig.validate_item`、`NotoriousHuntConfig.validate_item`）
+- 传送时的 OCR 候选名单（`CompendiumChooseMissionType`）
+
+填数据的两条要求：
+
+1. **名称与游戏内文本逐字对齐**，包括游戏自己带的「」书名号（例如 `「提丰·重击者型」`、`「征服者」`）。
+   界面显示名与匹配名不同时用 `mission_type_name_display`；OCR 认不出真名时补 `alias_list`。
+2. **关卡名要全库唯一**。`CompendiumService.get_same_category_mission_type_list` 是按名字在**全库**找第一个命中、
+   返回它所在分类的完整列表；重名会让传送拿到别的分类的候选名单。当前允许的跨分类重名只有
+   `代理人方案培养`（每个分类的伪条目，代码靠 `is_agent_plan` 提前分支）与 `迷失之地`（作战 tab 两个分类各一条），
+   测试仓 `test/zzz_od/game_data/compendium/test_compendium_data.py` 锁这条规则。
+
+列表顺序不做功能假设：传送没匹配到目标时只会**往下**滑动重试（`CompendiumChooseMissionType.handle_scroll`），
+所以新关卡按「追加到分类列表末尾」的方式添加即可。
 
 ## 状态流转图
 

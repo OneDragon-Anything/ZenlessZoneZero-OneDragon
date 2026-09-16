@@ -128,8 +128,12 @@ class RepoConfig(YamlConfig):
     AUTO_RESOURCE_SOURCE_VALUE = 'auto'
     _SOURCE_EXCLUDED_KEYS = {'repositories', 'regions', 'resource_download'}
 
-    def __init__(self) -> None:
-        YamlConfig.__init__(self, module_name='repository')
+    def __init__(self, prefer_bundled_config: bool = False) -> None:
+        YamlConfig.__init__(
+            self,
+            module_name='repository',
+            prefer_bundled_config=prefer_bundled_config,
+        )
         repository_config = self._get_repository_config()
         primary_branch = repository_config.get('primary_branch', '')
         if not isinstance(primary_branch, str) or not primary_branch.strip():
