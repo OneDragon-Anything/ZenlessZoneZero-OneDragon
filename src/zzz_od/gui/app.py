@@ -7,6 +7,7 @@ try:
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
+    from one_dragon.utils import i18_utils
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -225,6 +226,7 @@ try:
 
         def closeEvent(self, event):
             """窗口关闭事件"""
+            i18_utils.unsubscribe_language_changed(self._on_language_changed)
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 
@@ -241,17 +243,28 @@ except Exception:
     import webbrowser
 
     stack_trace = traceback.format_exc()
-    _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
+    _init_error = f'启动一条龙失败，报错信息如下:\n{stack_trace}'
 
 
 # 初始化应用程序，并启动主窗口
 def main() -> None:
     if _init_error is not None:
         # 显示错误弹窗，询问用户是否打开排障文档
-        error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
+        if 'gt' in globals():
+            error_message = gt(
+                '启动一条龙失败,报错信息如下:\n\n{trace}\n\n是否打开排障文档查看解决方案?',
+                trace=stack_trace,
+            )
+            error_title = gt('错误')
+        else:
+            error_message = (
+                f'启动一条龙失败,报错信息如下:\n\n{stack_trace}\n\n'
+                '是否打开排障文档查看解决方案?'
+            )
+            error_title = '错误'
         # MB_ICONERROR | MB_OKCANCEL = 0x10 | 0x01 = 0x11
         # 返回值: IDOK = 1, IDCANCEL = 2
-        result = ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x11)
+        result = ctypes.windll.user32.MessageBoxW(0, error_message, error_title, 0x11)
 
         # 如果用户点击确定，则打开排障文档
         if result == 1:  # IDOK
@@ -266,6 +279,12 @@ def main() -> None:
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
     _ctx = ZContext()
+
+    # Load the saved language before creating the main window.
+    if _ctx.custom_config.ui_language == 'auto':
+        i18_utils.detect_and_set_default_language()
+    else:
+        i18_utils.update_default_lang(_ctx.custom_config.ui_language)
 
     # 设置主题
     setTheme(Theme[_ctx.custom_config.theme.upper()])

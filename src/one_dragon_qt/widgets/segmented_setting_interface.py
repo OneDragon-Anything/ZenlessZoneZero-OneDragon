@@ -63,3 +63,12 @@ class SegmentedSettingInterface(BaseInterface):
         current = self._stacked.currentWidget()
         if isinstance(current, BaseInterface):
             current.on_interface_hidden()
+
+    def retranslate_ui(self) -> None:
+        """Refresh the segmented navigation labels."""
+        BaseInterface.retranslate_ui(self)
+        for interface in self.sub_interfaces:
+            interface.retranslate_ui()
+            item = getattr(self._segment, 'items', {}).get(interface.objectName())
+            if item is not None:
+                item.setText(interface.nav_text)

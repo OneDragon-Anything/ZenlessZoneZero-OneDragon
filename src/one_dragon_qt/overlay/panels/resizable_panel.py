@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from one_dragon.utils.i18_utils import gt
+
 WM_NCHITTEST = 0x0084
 HTTRANSPARENT = -1
 
@@ -295,8 +297,8 @@ class ResizablePanel(QFrame):
 
     def _create_toolbar_button(self, text: str, tip: str, handler, width: int = 32) -> QToolButton:
         btn = QToolButton(self)
-        btn.setText(text)
-        btn.setToolTip(tip)
+        btn.setText(gt(text))
+        btn.setToolTip(gt(tip))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(width, 22)
         btn.clicked.connect(lambda _checked=False: handler())
@@ -345,11 +347,11 @@ class ResizablePanel(QFrame):
             self._status_label.setText(f"{mode_text} {dock_text} F{self._font_size} P{self._panel_opacity}")
         if hasattr(self, "_btn_mode_toggle"):
             if self._free_mode:
-                self._btn_mode_toggle.setText("自由")
-                self._btn_mode_toggle.setToolTip("切换到锁定模式")
+                self._btn_mode_toggle.setText(gt("自由"))
+                self._btn_mode_toggle.setToolTip(gt("切换到锁定模式"))
             else:
-                self._btn_mode_toggle.setText("锁定")
-                self._btn_mode_toggle.setToolTip("切换到自由模式")
+                self._btn_mode_toggle.setText(gt("锁定"))
+                self._btn_mode_toggle.setToolTip(gt("切换到自由模式"))
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         if self._edit_mode and event.modifiers() & Qt.KeyboardModifier.ControlModifier:

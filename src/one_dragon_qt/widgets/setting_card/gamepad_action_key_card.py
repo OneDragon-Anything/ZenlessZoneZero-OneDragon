@@ -35,16 +35,13 @@ class GamepadActionKeyCard(MultiPushSettingCard, AdapterInitMixin):
         parent: QWidget = None,
     ) -> None:
         self.modifier_combo = ComboBox()
-        self.modifier_combo.addItem('无', userData='')
-        for item in modifier_enum:
-            ci: ConfigItem = item.value
-            self.modifier_combo.addItem(ci.ui_text, userData=ci.value)
+        modifier_options = [ConfigItem('无', value='')]
+        modifier_options.extend(item.value for item in modifier_enum)
+        self.modifier_combo.set_items(modifier_options)
         self.modifier_combo.setCurrentIndex(0)
 
         self.button_combo = ComboBox()
-        for item in button_enum:
-            ci: ConfigItem = item.value
-            self.button_combo.addItem(ci.ui_text, userData=ci.value)
+        self.button_combo.set_items([item.value for item in button_enum])
         self.button_combo.setCurrentIndex(0)
 
         MultiPushSettingCard.__init__(

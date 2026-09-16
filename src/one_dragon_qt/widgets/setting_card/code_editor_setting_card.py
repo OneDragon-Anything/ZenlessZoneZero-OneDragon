@@ -123,7 +123,6 @@ class LineNumberArea(QWidget):
         bottom = top + int(self.editor.blockBoundingRect(block).height())
         line_height = self.editor.fontMetrics().height()
 
-        y_offset = 0
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
                 # 创建BodyLabel显示行号
@@ -489,7 +488,7 @@ class PythonCodeEditorDialog(BaseCodeEditorDialog):
 
         if script_path:
             from qfluentwidgets import PushButton
-            self.external_edit_btn = PushButton(FluentIcon.EDIT, '外部编辑')
+            self.external_edit_btn = PushButton(FluentIcon.EDIT, gt('外部编辑'))
             self.external_edit_btn.clicked.connect(self._on_external_edit)
             # 插入到最左侧，再加一个弹性空间把它推到左边
             self.buttonLayout.insertWidget(0, self.external_edit_btn)
@@ -696,7 +695,7 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, JsonEditorMixin):
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)
-        self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
+        self.editor.setPlaceholderText(gt("请输入 JSON 格式的请求体"))
         self.highlighter = JsonHighlighter(self.editor.document())
 
         # 创建按钮布局

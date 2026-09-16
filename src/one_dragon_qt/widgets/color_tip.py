@@ -5,6 +5,8 @@ from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (FlyoutViewBase, TeachingTip, TeachingTipTailPosition,
                             FluentIcon, SubtitleLabel, BodyLabel, TransparentToolButton, TransparentPushButton)
 
+from one_dragon.utils.i18_utils import gt
+
 
 class ColorInfoWidget(QWidget):
     """
@@ -32,7 +34,7 @@ class ColorInfoWidget(QWidget):
         pos = self.color_info.get('pos', (0, 0))
         rgb = self.color_info.get('rgb') or self.color_info.get('display_rgb', (0, 0, 0))
         hsv = self.color_info.get('hsv') or self.color_info.get('display_hsv', (0, 0, 0))
-        title = self.color_info.get('title', '颜色信息')
+        title = gt(self.color_info.get('title', '颜色信息'))
 
         # 标题标签
         title_label = SubtitleLabel(title)
@@ -52,7 +54,7 @@ class ColorInfoWidget(QWidget):
 
         # 坐标信息
         pos_container = QHBoxLayout()
-        pos_label_left = BodyLabel("坐标")
+        pos_label_left = BodyLabel(gt("坐标"))
         pos_str = f'({pos[0]}, {pos[1]})'
         pos_label_right = TransparentPushButton(text=pos_str)
         pos_label_right.clicked.connect(lambda: QTimer.singleShot(0, lambda: QApplication.clipboard().setText(pos_str)))
@@ -125,7 +127,7 @@ class MultiColorFlyoutView(FlyoutViewBase):
 
         # 如果没有有效的颜色信息，显示错误消息
         if layout.count() == 0:
-            error_label = BodyLabel("无有效颜色信息")
+            error_label = BodyLabel(gt("无有效颜色信息"))
             error_label.setStyleSheet("color: #d13438; padding: 20px;")
             layout.addWidget(error_label)
 

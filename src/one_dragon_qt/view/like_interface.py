@@ -1,4 +1,3 @@
-import os
 
 from PySide6.QtGui import QImage, Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -39,13 +38,13 @@ class LikeInterface(VerticalScrollInterface):
         star_opt.setFixedHeight(50)
         left_layout.addWidget(star_opt)
 
-        help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='访问GitHub指南', text=gt('前往'),
+        help_opt = HyperlinkCard(icon=FluentIcon.HELP, title=gt('访问GitHub指南'), text=gt('前往'),
                                  content=gt('没法访问GitHub可以查看帮助文档'),
                                  url='https://one-dragon.com/other/zh/visit_github.html')
         help_opt.setFixedHeight(50)
         left_layout.addWidget(help_opt)
 
-        cafe_opt = HyperlinkCard(icon=FluentIcon.CAFE, title='赞赏', text=gt('前往'),
+        cafe_opt = HyperlinkCard(icon=FluentIcon.CAFE, title=gt('赞赏'), text=gt('前往'),
                                  content=gt('如果喜欢本项目，你也可以为作者赞助一点维护费用~'),
                                  url='https://one-dragon.com/other/zh/like/like.html')
         cafe_opt.setFixedHeight(50)

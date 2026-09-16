@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor
 from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
 from enum import Enum
 from qfluentwidgets import FluentIconBase
 from qfluentwidgets import ToolTip
@@ -15,7 +14,6 @@ from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
@@ -76,11 +74,10 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             for opt in options_enum:
                 if isinstance(opt.value, ConfigItem):
                     self._opts_list.append(opt.value)
-                    self.combo_box.addItem(opt.value.ui_text, userData=opt.value.value)
         elif options_list:
             for opt_item in options_list:
                 self._opts_list.append(opt_item)
-                self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
+        self.combo_box.set_items(self._opts_list)
 
     def eventFilter(self, obj, event: QEvent) -> bool:
         """处理标题标签的鼠标事件。"""
@@ -124,15 +121,23 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
 
     def set_options_by_list(self, options: List[ConfigItem]) -> None:
         """通过 ConfigItem 列表设置下拉框选项。"""
+        self._opts_list = list(options)
+        self.combo_box.set_items(self._opts_list)
+
+    def retranslate_options(self) -> None:
+        """Refresh option labels while preserving the internal value."""
+        current_value = self.getValue()
         self.combo_box.blockSignals(True)
-        self.combo_box.clear()
-        self._opts_list.clear()
-
-        for opt_item in options:
-            self._opts_list.append(opt_item)
-            self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
-
+        for index, option in enumerate(self._opts_list):
+            self.combo_box.setItemText(index, option.ui_text)
         self.combo_box.blockSignals(False)
+        self.setValue(current_value, emit_signal=False)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and combo-box labels after a language change."""
+        super().retranslate_ui()
+        self.retranslate_options()
+        self._update_desc()
 
     def _on_index_changed(self, index: int) -> None:
         """索引变化时发射信号。"""

@@ -1,8 +1,16 @@
 from PySide6.QtGui import QIcon, Qt
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QComboBox,
+    QLabel,
+    QLineEdit,
+    QPlainTextEdit,
+    QTableWidget,
+    QWidget,
+)
 from qfluentwidgets import FluentIconBase, InfoBar, InfoBarIcon, InfoBarPosition
 
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import get_source_msgid, gt
 
 
 class BaseInterface(QWidget):
@@ -19,9 +27,66 @@ class BaseInterface(QWidget):
         :param nav_icon: 出现在导航上的图标
         """
         QWidget.__init__(self, parent=parent)
+        self.nav_text_cn: str = nav_text_cn
         self.nav_text: str = gt(nav_text_cn)
         self.nav_icon: FluentIconBase | QIcon | str = nav_icon
         self.setObjectName(object_name)
+
+    def retranslate_ui(self) -> None:
+        """Refresh the navigation label after a language change."""
+        self.nav_text = gt(self.nav_text_cn)
+        for child in self.findChildren(QWidget):
+            retranslate = getattr(child, 'retranslate_ui', None)
+            if callable(retranslate):
+                retranslate()
+            self._retranslate_widget_text(child)
+            if child.__class__.__name__ == 'SettingCardGroup':
+                title_label = getattr(child, 'titleLabel', None)
+                if title_label is not None:
+                    source = get_source_msgid(title_label.text())
+                    if source is not None:
+                        title_label.setText(gt(source))
+
+    @staticmethod
+    def _retranslate_widget_text(widget: QWidget) -> None:
+        """Translate standard Qt text properties for legacy UI widgets."""
+        if isinstance(widget, QLabel):
+            source = get_source_msgid(widget.text())
+            if source is not None:
+                widget.setText(gt(source))
+        if isinstance(widget, QAbstractButton):
+            source = get_source_msgid(widget.text())
+            if source is not None:
+                widget.setText(gt(source))
+        if isinstance(widget, QLineEdit):
+            source = get_source_msgid(widget.placeholderText())
+            if source is not None:
+                widget.setPlaceholderText(gt(source))
+        if isinstance(widget, QPlainTextEdit):
+            source = get_source_msgid(widget.placeholderText())
+            if source is not None:
+                widget.setPlaceholderText(gt(source))
+        if isinstance(widget, QComboBox):
+            for index in range(widget.count()):
+                source = get_source_msgid(widget.itemText(index))
+                if source is not None:
+                    widget.setItemText(index, gt(source))
+        if isinstance(widget, QTableWidget):
+            for index in range(widget.columnCount()):
+                header = widget.horizontalHeaderItem(index)
+                if header is not None:
+                    source = get_source_msgid(header.text())
+                    if source is not None:
+                        header.setText(gt(source))
+            for index in range(widget.rowCount()):
+                header = widget.verticalHeaderItem(index)
+                if header is not None:
+                    source = get_source_msgid(header.text())
+                    if source is not None:
+                        header.setText(gt(source))
+        source = get_source_msgid(widget.toolTip())
+        if source is not None:
+            widget.setToolTip(gt(source))
 
     def on_interface_leave(self) -> None:
         """
@@ -70,8 +135,8 @@ class BaseInterface(QWidget):
         """
         return InfoBar.new(
             icon=icon,
-            title=title,
-            content=content,
+            title=gt(title),
+            content=gt(content),
             orient=orient,
             isClosable=is_closable,
             duration=duration,

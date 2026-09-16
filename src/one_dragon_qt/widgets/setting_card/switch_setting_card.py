@@ -8,7 +8,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
@@ -35,16 +34,22 @@ class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
         )
         AdapterInitMixin.__init__(self)
 
-        # 创建按钮并设置相关属性
+        self._on_text_msgid = on_text_cn
+        self._off_text_msgid = off_text_cn
         self.btn = SwitchButton(parent=self, indicatorPos=IndicatorPosition.RIGHT)
-        self.btn._offText = gt(off_text_cn)
-        self.btn._onText = gt(on_text_cn)
-        self.btn.label.setText(self.btn._offText)
+        self.btn.setOffText(gt(off_text_cn))
+        self.btn.setOnText(gt(on_text_cn))
         self.btn.checkedChanged.connect(self._on_value_changed)
 
         # 将按钮添加到布局
         self.hBoxLayout.addWidget(self.btn, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
+
+    def retranslate_ui(self, _language: str | None = None) -> None:
+        """Refresh the card and switch labels after a language change."""
+        super().retranslate_ui()
+        self.btn.setOffText(gt(self._off_text_msgid))
+        self.btn.setOnText(gt(self._on_text_msgid))
 
     def _on_value_changed(self, value: bool):
         # 更新配置适配器中的值并发出信号

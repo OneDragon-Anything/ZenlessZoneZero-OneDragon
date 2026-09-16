@@ -47,6 +47,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.utils import os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
@@ -574,7 +575,7 @@ class NoticeCard(SimpleCardWidget):
         self.announcementsWidget, self.softwareResearchWidget, self.gameGuidesWidget = widgets
 
         types = ["announcements", "software_research", "game_guides"]
-        type_names = ["公告要闻", "软件科研", "游戏攻略"]
+        type_names = [gt("公告要闻"), gt("软件科研"), gt("游戏攻略")]
 
         for widget, post_type, name in zip(widgets, types, type_names, strict=False):
             widget.setSpacing(0)

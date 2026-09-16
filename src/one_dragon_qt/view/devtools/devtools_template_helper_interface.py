@@ -177,7 +177,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.template_shape_opt.currentIndexChanged.connect(self._on_template_shape_changed)
 
         self.shape_help_btn = ToolButton(FluentIcon.HELP)
-        self.shape_help_btn.setToolTip('点击查看形状使用说明')
+        self.shape_help_btn.setToolTip(gt('点击查看形状使用说明'))
         self.shape_help_btn.clicked.connect(self._show_template_shape_help)
 
         self.template_shape_help_opt = MultiPushSettingCard(
@@ -400,8 +400,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             TeachingTip.create(
                 target=self.template_shape_opt,
                 icon=InfoBarIcon.WARNING,
-                title='温馨提示',
-                content="请先选择或创建模板",
+                title=gt('温馨提示'),
+                content=gt("请先选择或创建模板"),
                 isClosable=True,
                 tailPosition=TeachingTipTailPosition.RIGHT,
                 duration=3000,
@@ -413,24 +413,24 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         shape = self.chosen_template.template_shape
 
         if shape == TemplateShapeEnum.RECTANGLE.value.value:
-            help_text = "矩形模板：左键拖拽选择矩形区域，或单击两个对角点"
+            help_text = gt("矩形模板：左键拖拽选择矩形区域，或单击两个对角点")
         elif shape == TemplateShapeEnum.CIRCLE.value.value:
-            help_text = "圆形模板：左键拖拽选择外接矩形，或单击圆心和边界点"
+            help_text = gt("圆形模板：左键拖拽选择外接矩形，或单击圆心和边界点")
         elif shape == TemplateShapeEnum.QUADRILATERAL.value.value:
-            help_text = "四边形模板：左键拖拽选择矩形区域，或依次单击四个顶点"
+            help_text = gt("四边形模板：左键拖拽选择矩形区域，或依次单击四个顶点")
         elif shape == TemplateShapeEnum.POLYGON.value.value:
-            help_text = "多边形模板：左键单击添加顶点，或拖拽添加矩形顶点"
+            help_text = gt("多边形模板：左键单击添加顶点，或拖拽添加矩形顶点")
         elif shape == TemplateShapeEnum.MULTI_RECT.value.value:
-            help_text = "多矩形模板：左键拖拽添加矩形区域，或单击添加点位"
+            help_text = gt("多矩形模板：左键拖拽添加矩形区域，或单击添加点位")
         else:
-            help_text = "左键单击添加点位，右键显示颜色信息"
+            help_text = gt("左键单击添加点位，右键显示颜色信息")
 
-        help_text += "\n\n快捷键：Ctrl+左键拖拽移动图片，滚轮缩放\nCtrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
+        help_text += gt("\n\n快捷键：Ctrl+左键拖拽移动图片，滚轮缩放\nCtrl+Z撤销，Ctrl+Shift+Z恢复，Del清除")
 
         TeachingTip.create(
             target=self.template_shape_opt,
             icon=InfoBarIcon.SUCCESS,
-            title='形状使用说明',
+            title=gt('形状使用说明'),
             content=help_text,
             isClosable=True,
             tailPosition=TeachingTipTailPosition.RIGHT,
@@ -882,7 +882,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         右键点击图片时，弹窗显示点击位置的 HSV 颜色
         """
         if self.chosen_template is None or self.chosen_template.screen_image is None:
-            QMessageBox.warning(self, "错误", "未选择图片")
+            QMessageBox.warning(self, gt("错误"), gt("未选择图片"))
             return
 
         # 获取 RGB 颜色值
@@ -891,11 +891,11 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         # 将 RGB 转换为 HSV
         hsv_color = cv2.cvtColor(rgb_color.reshape(1, 1, 3), cv2.COLOR_RGB2HSV)[0, 0]
 
-        message = (f"点击位置: ({x}, {y})\n"
-                   f"RGB: ({rgb_color[0]}, {rgb_color[1]}, {rgb_color[2]})\n"
-                   f"HSV: ({hsv_color[0]}, {hsv_color[1]}, {hsv_color[2]})")
+        message = (f"{gt('点击位置')}: ({x}, {y})\n"
+                   f"{gt('RGB')}: ({rgb_color[0]}, {rgb_color[1]}, {rgb_color[2]})\n"
+                   f"{gt('HSV')}: ({hsv_color[0]}, {hsv_color[1]}, {hsv_color[2]})")
 
-        QMessageBox.information(self, "像素颜色信息", message)
+        QMessageBox.information(self, gt("像素颜色信息"), message)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
