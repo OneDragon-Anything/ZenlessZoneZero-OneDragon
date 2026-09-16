@@ -16,6 +16,8 @@
               mission_name_display: "驱动盘经验"
         - mission_type_name: "代理人晋升"
           mission_list:
+            - mission_name: "锋御演练"
+              mission_name_display: "锋御"
             - mission_name: "命破演练"
               mission_name_display: "命破"
             - mission_name: "强攻演练"
@@ -30,6 +32,8 @@
               mission_name_display: "防护"
         - mission_type_name: "音擎改装"
           mission_list:
+            - mission_name: "锋御耦合试验"
+              mission_name_display: "锋御"
             - mission_name: "命破共鸣试验"
               mission_name_display: "命破"
             - mission_name: "强攻极片试验"
