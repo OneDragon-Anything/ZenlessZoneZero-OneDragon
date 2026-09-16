@@ -213,9 +213,18 @@ class DownloadQueueItemWidget(QWidget):
         """生成中列的单一状态文本行。"""
         if self.task.state == ResourceDownloadTaskState.DOWNLOADING:
             transfer = self._transfer_text()
+            if self.task.progress.phase == 'connecting':
+                if transfer:
+                    return f'{transfer} · {gt("正在连接")}'
+                return gt('正在连接')
             if transfer:
                 return transfer
             return gt('正在连接')
+        if self.task.state == ResourceDownloadTaskState.FAILED:
+            message = self.task.error_message or self.task.progress.message
+            if message:
+                return f'{gt("失败")} · {message}'
+            return gt('失败')
         return gt({
             ResourceDownloadTaskState.WAITING: '等待中',
             ResourceDownloadTaskState.EXTRACTING: '正在解压',
@@ -223,7 +232,6 @@ class DownloadQueueItemWidget(QWidget):
             ResourceDownloadTaskState.CANCELLING: '正在取消',
             ResourceDownloadTaskState.CANCELLED: '已取消',
             ResourceDownloadTaskState.SUCCEEDED: '已完成',
-            ResourceDownloadTaskState.FAILED: '失败',
         }[self.task.state])
 
     def _on_action_clicked(self) -> None:
