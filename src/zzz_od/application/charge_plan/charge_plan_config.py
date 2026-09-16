@@ -43,6 +43,7 @@ class ChargePlanItem:
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
     plan_id: str | None = None  # 计划的唯一标识符
     skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
+    battle_timeout_seconds: int = 0  # 换队时限，0为关闭
 
     def __post_init__(self) -> None:
         if self.plan_id is None:
@@ -365,6 +366,9 @@ class ChargePlanConfig(ApplicationConfig):
 
         合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
         """
+        if not 0 <= item.battle_timeout_seconds <= 600:
+            return f'battle_timeout_seconds 必须在 0..600 之间(当前: {item.battle_timeout_seconds})'
+
         categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
         if item.category_name not in categories:
             return f'category {item.category_name} 不合法(合法: {categories})'

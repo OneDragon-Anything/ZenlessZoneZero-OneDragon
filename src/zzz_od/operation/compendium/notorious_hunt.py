@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
@@ -44,8 +45,13 @@ class NotoriousHunt(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 use_charge_power: bool = False):
+    def __init__(
+        self,
+        ctx: ZContext,
+        plan: ChargePlanItem,
+        use_charge_power: bool = False,
+        switch_team_callback: Callable[[str], bool] | None = None,
+    ) -> None:
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -77,7 +83,9 @@ class NotoriousHunt(ZOperation):
 
         self.plan: ChargePlanItem = plan
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
+        self.switch_team_callback: Callable[[str], bool] | None = switch_team_callback
         self.can_run_times: int = -1
+        self._switch_team_requested: bool = False
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_notorious_hunt(self) -> OperationRoundResult:
@@ -269,6 +277,7 @@ class NotoriousHunt(ZOperation):
 
     @node_from(from_name='选择难度')
     @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
+    @node_from(from_name='切换配队')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
@@ -318,6 +327,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='重新开始-确认')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
+        self._switch_team_requested = False
         if self.plan.predefined_team_idx == -1:
             auto_battle = self.plan.auto_battle_config
         else:
@@ -357,27 +367,43 @@ class NotoriousHunt(ZOperation):
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
-    @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
+    @operation_node(name='自动战斗', mute=True, timeout_seconds=601)  # 600秒在方法内处理，让配置值600优先
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.ctx.auto_battle_context.check_battle_state(
+        in_battle = self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
         )
+
+        elapsed = 0 if self._current_node_start_time is None else time.time() - self._current_node_start_time
+        if (
+            in_battle
+            and self.use_charge_power
+            and self.plan.battle_timeout_seconds > 0
+            and elapsed >= self.plan.battle_timeout_seconds
+        ):
+            self._switch_team_requested = True
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_fail(status=Operation.STATUS_TIMEOUT)
+        if in_battle and elapsed >= 600:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_fail(status=Operation.STATUS_TIMEOUT)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗', status='普通战斗-撤退')
     @operation_node(name='战斗失败')
     def battle_fail(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-倒带')
+        switch_team_enabled = self.use_charge_power and self.plan.battle_timeout_seconds > 0
+        if not switch_team_enabled:
+            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-倒带')
 
-        if result.is_success:
-            self.ctx.auto_battle_context.last_check_end_result = None
-            return self.round_success(result.status, wait=1)
+            if result.is_success:
+                self.ctx.auto_battle_context.last_check_end_result = None
+                return self.round_success(result.status, wait=1)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
         if result.is_success:
@@ -391,6 +417,12 @@ class NotoriousHunt(ZOperation):
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-退出')
 
         if result.is_success:  # 战斗失败 返回失败到外层 中断后续挑战
+            if self.use_charge_power and self.plan.battle_timeout_seconds > 0:
+                return self.round_fail(
+                    status=charge_plan_const.STATUS_SWITCH_TEAM,
+                    data='战斗失败',
+                    wait=10,
+                )
             return self.round_fail(result.status, wait=10)
         else:
             return self.round_retry(result.status, wait=1)
@@ -410,9 +442,38 @@ class NotoriousHunt(ZOperation):
                                                    until_not_find_all=[('战斗-挑战结果-失败', '按钮-退出')],
                                                    success_wait=1, retry_wait=1)
         if result.is_success:
+            if self._switch_team_requested:
+                return self.round_fail(
+                    status=charge_plan_const.STATUS_SWITCH_TEAM,
+                    data=f'战斗超过 {self.plan.battle_timeout_seconds} 秒',
+                )
             return self.round_fail(status=NotoriousHunt.STATUS_FIGHT_TIMEOUT)
         else:
             return self.round_retry(status=result.status, wait=1)
+
+    @node_from(
+        from_name='战斗失败退出',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @node_from(
+        from_name='点击挑战结果退出',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @operation_node(name='切换配队')
+    def switch_team(self) -> OperationRoundResult:
+        """请求外层体力计划切换到下一支预备编队。
+
+        Returns:
+            换队请求的处理结果。
+        """
+        reason = self.previous_node.data or self.previous_node.status
+        if self.switch_team_callback is None:
+            return self.round_fail(status=charge_plan_const.STATUS_SWITCH_TEAM, data=reason)
+        if not self.switch_team_callback(reason):
+            return self.round_fail(status=charge_plan_const.STATUS_TEAM_EXHAUSTED, data=reason)
+        return self.round_success()
 
     @node_from(from_name='自动战斗')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
