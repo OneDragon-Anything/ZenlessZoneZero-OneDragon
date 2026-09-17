@@ -138,7 +138,7 @@ MY_AGENT = Agent(
 
 | 参数 | 说明 |
 |---|---|
-| `state_name` | 状态名，会进入自动战斗状态系统 |
+| `state_name` | 状态名，会进入自动战斗状态系统；**角色专属状态必须带「角色名-」前缀**（如 `希格莉德-巡空枪势`），自动战斗 YAML 按带前缀的名字引用，不带前缀会匹配不到 |
 | `check_way` | 检测方式 |
 | `template_id` | 对应 `assets/template/agent_state/<template_id>/` |
 | `lower_color` / `upper_color` | RGB 范围 |
@@ -257,6 +257,7 @@ config/
 
 - 角色状态模板是否被 `速切模板-全角色.yml` 引用。
 - 角色名状态是否与代码生成的 `切换角色-<agent_name>` 一致。
+- **角色专属状态的 `state_name` 是否带「角色名-」前缀**，且与 YAML 里 `states` / `interrupt_states` 的引用完全一致（前缀缺失或拼写不一致会导致该状态永远匹配不到，表现为「一直刷不出来」）。
 - 操作模板名是否与 `operation_template` 引用一致。
 - `states` 条件是否过严，导致分支永远不命中。
 - 高优先级 scene 是否抢占了角色分支。
@@ -269,7 +270,7 @@ config/
 - [ ] `template_id_list` 包含所有头像模板 ID，包括皮肤。
 - [ ] 战斗头像模板至少覆盖实际会出现的队伍头像。
 - [ ] 连携技/快速支援需要识别时，已补对应模板。
-- [ ] 独有状态的 `state_name` 能被自动战斗 YAML 引用。
+- [ ] 独有状态的 `state_name` 带「角色名-」前缀，且与自动战斗 YAML 的引用一致。
 - [ ] `AgentStateDef.template_id` 与 `assets/template/agent_state/` 目录一致。
 - [ ] 自动战斗 YAML 已接入全角色分派器和轮换模板。
 - [ ] 修改代码后只对改动文件运行 `uv run --env-file .env ruff check <file>`。

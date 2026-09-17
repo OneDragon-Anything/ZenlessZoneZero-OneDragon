@@ -1,6 +1,7 @@
 import contextlib
 import os
 import queue
+import re
 import shutil
 import stat
 import sys
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
+import psutil
 import yaml
 from packaging import version
 from pygit2 import (
@@ -31,7 +33,6 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
-from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
@@ -62,6 +63,10 @@ class GitSyncStatus(StrEnum):
     FAILED = '更新失败'
 
 
+class _LocalGitMetadataError(RuntimeError):
+    """本地 Git 元数据损坏，不能通过切换代码源修复。"""
+
+
 def _get_repository_objects_path(repo: Repository) -> Path:
     """获取仓库实际使用的 Git 对象目录，兼容 linked worktree。"""
     repo_path = Path(repo.path)
@@ -75,17 +80,78 @@ def _get_repository_objects_path(repo: Repository) -> Path:
     return repo_path / 'objects'
 
 
-def _sync_shallow_file(repo: Repository, temp_repo_dir: str) -> None:
-    """将临时仓库的浅克隆边界(shallow 文件)同步到正式仓库。
+def _get_repository_shallow_path(repo: Repository) -> Path:
+    """获取仓库级 shallow 文件路径。"""
+    return _get_repository_objects_path(repo).parent / 'shallow'
 
-    临时仓库以 depth=1 拉取时会生成 shallow 文件标记历史边界；导入正式仓库后若不同步，
-    正式仓库会误以为历史完整，后续遍历提交历史时越过边界即报 object not found。
-    """
-    source_shallow = Path(temp_repo_dir) / 'shallow'
-    if not source_shallow.is_file():
+
+def _read_shallow_snapshot(shallow_path: Path) -> bytes | None:
+    """二进制读取 shallow 快照；文件不存在表示无浅边界。"""
+    return shallow_path.read_bytes() if shallow_path.is_file() else None
+
+
+def _parse_shallow_snapshot(snapshot: bytes | None) -> list[str]:
+    """校验 shallow 快照并按原顺序返回 OID。"""
+    if not snapshot:
+        return []
+    if b'\r' in snapshot or not snapshot.endswith(b'\n'):
+        raise ValueError('shallow 文件必须使用 LF 行尾')
+
+    oids: list[str] = []
+    for raw_line in snapshot.splitlines():
+        try:
+            oid = Oid(hex=raw_line.decode('ascii'))
+        except (UnicodeDecodeError, ValueError) as error:
+            raise ValueError('shallow 文件包含无效 OID') from error
+        oids.append(str(oid))
+    return oids
+
+
+def _write_shallow_snapshot(shallow_path: Path, snapshot: bytes | None) -> None:
+    """原子写入 shallow 快照；None 表示删除文件。"""
+    if snapshot is None:
+        shallow_path.unlink(missing_ok=True)
         return
-    target_shallow = _get_repository_objects_path(repo).parent / 'shallow'
-    target_shallow.write_bytes(source_shallow.read_bytes())
+
+    temporary_path = shallow_path.with_name(
+        f'{shallow_path.name}.one-dragon-{uuid.uuid4().hex}.tmp'
+    )
+    try:
+        temporary_path.write_bytes(snapshot)
+        os.replace(temporary_path, shallow_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _merge_shallow_snapshots(
+    original_snapshot: bytes,
+    fetched_snapshot: bytes | None,
+) -> bytes:
+    """完整继承失败时只追加新边界，不删除正式仓库原边界。"""
+    merged_oids = _parse_shallow_snapshot(original_snapshot)
+    known_oids = set(merged_oids)
+    for oid in _parse_shallow_snapshot(fetched_snapshot):
+        if oid not in known_oids:
+            merged_oids.append(oid)
+            known_oids.add(oid)
+    return b''.join(f'{oid}\n'.encode('ascii') for oid in merged_oids)
+
+
+def _sync_shallow_file(
+    repo: Repository,
+    temp_repo_dir: str,
+    original_snapshot: bytes | None,
+    authoritative: bool,
+) -> None:
+    """把临时仓库的整仓 shallow 状态同步到正式仓库。"""
+    fetched_snapshot = _read_shallow_snapshot(Path(temp_repo_dir) / 'shallow')
+    if authoritative or not original_snapshot:
+        _parse_shallow_snapshot(fetched_snapshot)
+        final_snapshot = fetched_snapshot or None
+    else:
+        final_snapshot = _merge_shallow_snapshots(original_snapshot, fetched_snapshot)
+
+    _write_shallow_snapshot(_get_repository_shallow_path(repo), final_snapshot)
 
 
 def _configure_alternate_objects(temp_repo: Repository, source_objects_dir: str | None) -> bool:
@@ -148,18 +214,8 @@ def _remove_temp_repo(temp_repo_dir: str) -> None:
 
 
 def _is_process_running(process_id: int) -> bool:
-    """判断临时仓库所属进程是否仍在运行；无法确认时按仍在运行处理。"""
-    if process_id <= 0:
-        return True
-    try:
-        os.kill(process_id, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except OSError as error:
-        return not (sys.platform == 'win32' and error.winerror == 87)
+    """判断临时仓库所属进程是否仍在运行；无效 PID 按仍在运行处理。"""
+    return process_id <= 0 or psutil.pid_exists(process_id)
 
 
 def _cleanup_stale_fetch_repositories(temp_root: Path) -> None:
@@ -194,6 +250,23 @@ def _send_fetch_worker_message(
     message_callback(message)
 
 
+def _restore_temp_fetch_state(
+    temp_repo: Repository,
+    temp_repo_dir: str,
+    shallow_snapshot: bytes | None,
+    refs_to_delete: set[str],
+) -> Repository:
+    """恢复 fallback 前的临时 shallow 状态，并移除协商引用。"""
+    with contextlib.suppress(Exception):
+        temp_repo.free()
+    _write_shallow_snapshot(Path(temp_repo_dir) / 'shallow', shallow_snapshot)
+    restored_repo = Repository(temp_repo_dir)
+    for ref_name in refs_to_delete:
+        if ref_name in restored_repo.references:
+            restored_repo.references.delete(ref_name)
+    return restored_repo
+
+
 def _fetch_remote_worker(
     temp_repo_dir: str,
     source_objects_dir: str | None,
@@ -204,22 +277,58 @@ def _fetch_remote_worker(
     message_callback: Callable[[dict[str, object]], None],
     abandoned: threading.Event,
     fetch_ref: str | None = None,
+    base_ref: str | None = None,
+    base_oid: str | None = None,
+    fetch_primary_branch: bool = False,
+    shallow_snapshot: bytes | None = None,
 ) -> None:
     """在线程中执行网络 fetch，作废后只清理自己的临时仓库。"""
     temp_repo: Repository | None = None
     try:
         GitService._ensure_config_search_path()
         temp_repo = init_repository(temp_repo_dir, bare=True)
-        if fetch_ref is None:
-            fetch_ref = f'refs/heads/{branch_name}'
-        refspec = f'+{fetch_ref}:{fetch_ref}'
+        target_ref = fetch_ref or f'refs/heads/{branch_name}'
+        target_refspec = f'+{target_ref}:{target_ref}'
         actual_depth = depth
+        primary_branch_incremental = False
 
-        if depth == 0 and not _configure_alternate_objects(temp_repo, source_objects_dir):
+        alternate_ready = _configure_alternate_objects(temp_repo, source_objects_dir)
+        inherited_shallow_snapshot: bytes | None = None
+        shallow_authoritative = not shallow_snapshot
+        if shallow_snapshot:
+            _parse_shallow_snapshot(shallow_snapshot)
+            if alternate_ready:
+                inherited_shallow_snapshot = shallow_snapshot
+                _write_shallow_snapshot(
+                    Path(temp_repo_dir) / 'shallow',
+                    inherited_shallow_snapshot,
+                )
+                shallow_authoritative = True
+
+        if actual_depth == 0 and not alternate_ready:
             actual_depth = 1
             log.warning('正式仓库对象目录不可用，降级为 shallow fetch')
+        elif actual_depth == 0 and base_ref is not None and base_oid is not None:
+            try:
+                temp_repo.references.create(base_ref, Oid(hex=base_oid), force=True)
+                primary_branch_incremental = fetch_primary_branch
+            except Exception:
+                actual_depth = 1
+                with contextlib.suppress(Exception):
+                    temp_repo.references.delete(base_ref)
+                log.warning('增量基线不可用，降级为 shallow fetch', exc_info=True)
 
-        remote = temp_repo.remotes.create('origin', remote_url)
+        if alternate_ready or inherited_shallow_snapshot is not None or base_ref is not None:
+            temp_repo.free()
+            temp_repo = Repository(temp_repo_dir)
+
+        refspecs = [target_refspec]
+        if primary_branch_incremental:
+            assert base_ref is not None
+            refspecs.insert(0, f'+{base_ref}:{base_ref}')
+        temp_repo.remotes.create('origin', remote_url)
+        temp_repo.config['remote.origin.tagopt'] = '--no-tags'
+        remote = temp_repo.remotes['origin']
 
         def report_progress(progress: float, message: str) -> None:
             _send_fetch_worker_message(
@@ -236,20 +345,39 @@ def _fetch_remote_worker(
             )
             with _temporary_fetch_timeout_context():
                 remote.fetch(
-                    refspecs=[refspec],
+                    refspecs=refspecs,
                     proxy=proxy,
                     depth=actual_depth,
                     callbacks=callbacks,
                 )
             callbacks.flush_sideband_progress()
             log.info(f'worker Git fetch 已返回: branch={branch_name}, depth={actual_depth}')
-        except KeyError as error:
-            if 'object not found' not in str(error) or actual_depth != 0:
+        except Exception as error:
+            can_fallback = primary_branch_incremental or (
+                isinstance(error, KeyError)
+                and 'object not found' in str(error)
+                and actual_depth == 0
+            )
+            if not can_fallback:
                 raise
+
+            if primary_branch_incremental:
+                log.warning('基于项目主分支的增量 fetch 失败，降级为 shallow fetch', exc_info=True)
+            refs_to_delete = {target_ref}
+            if base_ref is not None:
+                refs_to_delete.add(base_ref)
+            temp_repo = _restore_temp_fetch_state(
+                temp_repo,
+                temp_repo_dir,
+                inherited_shallow_snapshot,
+                refs_to_delete,
+            )
+            remote = temp_repo.remotes['origin']
+            primary_branch_incremental = False
             callbacks = _FetchProgressRemoteCallbacks(report_progress)
             with _temporary_fetch_timeout_context():
                 remote.fetch(
-                    refspecs=[refspec],
+                    refspecs=[target_refspec],
                     proxy=proxy,
                     depth=1,
                     callbacks=callbacks,
@@ -257,10 +385,15 @@ def _fetch_remote_worker(
             callbacks.flush_sideband_progress()
             actual_depth = 1
 
-        _send_fetch_worker_message(
-            message_callback,
-            {'type': 'result', 'success': True, 'depth': actual_depth},
-        )
+        result: dict[str, object] = {
+            'type': 'result',
+            'success': True,
+            'depth': actual_depth,
+            'shallow_authoritative': shallow_authoritative,
+        }
+        if primary_branch_incremental:
+            result['primary_branch_incremental'] = True
+        _send_fetch_worker_message(message_callback, result)
     except Exception as error:
         _send_fetch_worker_message(
             message_callback,
@@ -426,12 +559,10 @@ class GitService:
 
     def __init__(
         self,
-        project_config: ProjectConfig,
         env_config: EnvConfig,
         repo_config: RepoConfig,
         repo_dir: str | None = None,
-    ):
-        self.project_config: ProjectConfig = project_config
+    ) -> None:
         self.env_config: EnvConfig = env_config
         self.repo_config: RepoConfig = repo_config
 
@@ -471,7 +602,16 @@ class GitService:
             git_dir = discover_repository(self.repo_dir)
             if not git_dir:
                 raise ValueError(f'目录 {self.repo_dir} 不是有效的 Git 仓库')
-            self._repo = Repository(git_dir)
+            try:
+                self._repo = Repository(git_dir)
+            except Exception:
+                try:
+                    _parse_shallow_snapshot(
+                        _read_shallow_snapshot(Path(git_dir) / 'shallow')
+                    )
+                except ValueError as shallow_error:
+                    raise _LocalGitMetadataError('shallow metadata corrupted') from shallow_error
+                raise
 
         return self._repo
 
@@ -584,6 +724,106 @@ class GitService:
 
         return _FetchProgressRemoteCallbacks(stage_progress_callback, REMOTE_FETCH_TIMEOUT)
 
+    def _validate_history(self, repo: Repository, start_oid: Oid) -> None:
+        """确认提交历史可遍历到完整根或合法 shallow 边界。"""
+        try:
+            for _ in repo.walk(start_oid, SortMode.TOPOLOGICAL):
+                pass
+        except KeyError as error:
+            if self._is_missing_object_error(error):
+                raise _LocalGitMetadataError('commit history has undeclared gap') from error
+            raise
+
+    def _derive_single_shallow_boundary(self, repo: Repository, start_oid: Oid) -> Oid:
+        """沿项目主分支第一父链推导唯一 shallow 边界。"""
+        current_oid = start_oid
+        child_oid: Oid | None = None
+        latest_merge_oid: Oid | None = None
+        latest_merge_child_oid: Oid | None = None
+        while True:
+            try:
+                commit = repo[current_oid]
+            except KeyError as error:
+                if self._is_missing_object_error(error):
+                    raise _LocalGitMetadataError('commit history has undeclared gap') from error
+                raise
+            if len(commit.parent_ids) > 1:
+                latest_merge_oid = current_oid
+                latest_merge_child_oid = child_oid
+            if not commit.parent_ids:
+                break
+            try:
+                parent = commit.parents[0]
+            except KeyError as error:
+                if self._is_missing_object_error(error):
+                    break
+                raise
+            child_oid = current_oid
+            current_oid = parent.id
+        if latest_merge_oid is not None:
+            if latest_merge_child_oid is not None:
+                return latest_merge_child_oid
+            return latest_merge_oid
+        return current_oid
+
+    def _repair_primary_branch_shallow(
+        self,
+        repo: Repository,
+        start_oid: Oid,
+        shallow_snapshot: bytes | None,
+        primary_branch: str,
+    ) -> tuple[Repository, bytes | None]:
+        """把主分支缺口前的单个可达提交追加为 shallow 边界。"""
+        boundary_oid = self._derive_single_shallow_boundary(repo, start_oid)
+        shallow_path = _get_repository_shallow_path(repo)
+        shallow_oids = _parse_shallow_snapshot(shallow_snapshot)
+        if str(boundary_oid) not in shallow_oids:
+            shallow_oids.append(str(boundary_oid))
+        repaired_snapshot = b''.join(
+            f'{oid}\n'.encode('ascii')
+            for oid in shallow_oids
+        )
+        _write_shallow_snapshot(shallow_path, repaired_snapshot)
+
+        self._repo = None
+        with contextlib.suppress(Exception):
+            repo.free()
+        repaired_repo = self._open_repo()
+        try:
+            self._validate_history(repaired_repo, start_oid)
+        except BaseException as error:
+            with contextlib.suppress(Exception):
+                _write_shallow_snapshot(shallow_path, shallow_snapshot)
+            self._repo = None
+            with contextlib.suppress(Exception):
+                repaired_repo.free()
+            with contextlib.suppress(Exception):
+                self._open_repo()
+            raise _LocalGitMetadataError('commit history has undeclared gap') from error
+
+        log.warning(
+            f'检测到项目主分支 {primary_branch} 存在未声明历史缺口，'
+            f'已将 {boundary_oid} 记录为 shallow 边界；如需完整历史，请执行 '
+            f'git fetch --unshallow {self.env_config.git_remote} {primary_branch}'
+        )
+        return repaired_repo, repaired_snapshot
+
+    def _get_primary_branch_oid(
+        self,
+        repo: Repository,
+        primary_branch: str,
+    ) -> Oid | None:
+        """获取可用于其他分支增量 fetch 的项目主分支 tip。"""
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{primary_branch}'
+        local_ref = f'refs/heads/{primary_branch}'
+        for ref_name in (remote_ref, local_ref):
+            if ref_name not in repo.references:
+                continue
+            primary_branch_oid = repo.references[ref_name].target
+            if primary_branch_oid is not None:
+                return primary_branch_oid
+        return None
+
     def _import_fetch_result(
         self,
         temp_repo_dir: str,
@@ -591,19 +831,50 @@ class GitService:
         stage_start: float,
         stage_end: float,
         tag_name: str | None = None,
+        import_primary_branch: bool = False,
+        original_shallow_snapshot: bytes | None = None,
+        shallow_authoritative: bool = True,
     ) -> None:
-        """将临时 bare 仓库中的目标分支或标签导入正式仓库。"""
+        """将临时仓库导入正式仓库，并同步整仓 shallow 状态。"""
         repo = self._open_repo()
+        active_repo = repo
         branch_name = self.env_config.git_branch
         remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
-        remote_url = Path(temp_repo_dir).resolve().as_uri()
+        # 直接使用本地原生路径作为 remote，不能转成 file:// URI：
+        # UNC 路径（\\server\share\...）转出的 file://server/share/... 带远程主机部分，
+        # libgit2 的本地 transport 只接受 file:/// 绝对路径或 file://localhost/，
+        # 会把整个 URI 当成文件系统路径导致 "failed to resolve path"。
+        remote_path = str(Path(temp_repo_dir).resolve())
+        remote_branch_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
         if tag_name is None:
             source_ref = f'refs/heads/{branch_name}'
-            target_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
+            target_ref = remote_branch_ref
         else:
             source_ref = f'refs/tags/{tag_name}'
             target_ref = source_ref
-        refspec = f'+{source_ref}:{target_ref}'
+        refspecs = [f'+{source_ref}:{target_ref}']
+        affected_refs = {target_ref}
+        if tag_name is not None:
+            affected_refs.add(remote_branch_ref)
+        if import_primary_branch and tag_name is None:
+            primary_branch = self.repo_config.primary_branch
+            if branch_name != primary_branch:
+                primary_source_ref = f'refs/heads/{primary_branch}'
+                primary_target_ref = (
+                    f'refs/remotes/{self.env_config.git_remote}/{primary_branch}'
+                )
+                refspecs.insert(0, f'+{primary_source_ref}:{primary_target_ref}')
+                affected_refs.add(primary_target_ref)
+
+        original_ref_targets: dict[str, Oid | None] = {}
+        for ref_name in affected_refs:
+            original_ref_targets[ref_name] = (
+                repo.references[ref_name].target
+                if ref_name in repo.references
+                else None
+            )
+        shallow_path = _get_repository_shallow_path(repo)
+
         def report_progress(progress: float, message: str) -> None:
             if progress_callback is not None:
                 progress_callback(
@@ -614,20 +885,53 @@ class GitService:
         callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
 
         try:
-            log.info(f'开始导入临时 Git 仓库: {remote_url}')
-            remote = repo.remotes.create(remote_name, remote_url)
-            remote.fetch(refspecs=[refspec], depth=0, callbacks=callbacks)
+            log.info(f'开始导入临时 Git 仓库: {remote_path}')
+            active_repo.remotes.create(remote_name, remote_path)
+            active_repo.config[f'remote.{remote_name}.tagopt'] = '--no-tags'
+            remote = active_repo.remotes[remote_name]
+            remote.fetch(refspecs=refspecs, depth=0, callbacks=callbacks)
             callbacks.flush_sideband_progress()
-            _sync_shallow_file(repo, temp_repo_dir)
+            _sync_shallow_file(
+                active_repo,
+                temp_repo_dir,
+                original_shallow_snapshot,
+                shallow_authoritative,
+            )
+            active_repo.remotes.delete(remote_name)
+            self._repo = None
+            active_repo.free()
+            active_repo = self._open_repo()
+
             if tag_name is not None:
-                tag_object = repo.revparse_single(target_ref)
+                tag_object = active_repo.revparse_single(target_ref)
                 tag_commit = tag_object.peel(Commit)
-                remote_branch_ref = f'refs/remotes/{self.env_config.git_remote}/{branch_name}'
-                repo.references.create(remote_branch_ref, tag_commit.id, force=True)
+                active_repo.references.create(remote_branch_ref, tag_commit.id, force=True)
             log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
-        finally:
+        except BaseException:
             with contextlib.suppress(Exception):
-                repo.remotes.delete(remote_name)
+                if remote_name in active_repo.remotes.names():
+                    active_repo.remotes.delete(remote_name)
+            with contextlib.suppress(Exception):
+                active_repo.free()
+            self._repo = None
+            try:
+                _write_shallow_snapshot(shallow_path, original_shallow_snapshot)
+                rollback_repo = self._open_repo()
+                if remote_name in rollback_repo.remotes.names():
+                    rollback_repo.remotes.delete(remote_name)
+                for ref_name, original_target in original_ref_targets.items():
+                    if original_target is None:
+                        if ref_name in rollback_repo.references:
+                            rollback_repo.references.delete(ref_name)
+                    else:
+                        rollback_repo.references.create(
+                            ref_name,
+                            original_target,
+                            force=True,
+                        )
+            except Exception:
+                log.error('恢复 Git 导入前状态失败', exc_info=True)
+            raise
 
     def _fetch_remote_once(
         self,
@@ -640,18 +944,55 @@ class GitService:
         """在线程中拉取单个代码源，超时后作废本次尝试。"""
         repo = self._open_repo()
         branch_name = self.env_config.git_branch
+        primary_branch = self.repo_config.primary_branch
         local_ref = f'refs/heads/{branch_name}'
-        depth = 0 if local_ref in repo.references and repo.references[local_ref].target is not None else 1
+        try:
+            shallow_snapshot = _read_shallow_snapshot(_get_repository_shallow_path(repo))
+            _parse_shallow_snapshot(shallow_snapshot)
+        except ValueError as error:
+            raise _LocalGitMetadataError('shallow metadata corrupted') from error
+        base_ref: str | None = None
+        base_oid: Oid | None = None
+        fetch_primary_branch = False
+
+        local_oid = (
+            repo.references[local_ref].target
+            if local_ref in repo.references
+            else None
+        )
+        if tag_name is not None:
+            depth = 1
+        elif local_oid is not None:
+            self._validate_history(repo, local_oid)
+            depth = 0
+            base_ref = local_ref
+            base_oid = local_oid
+        elif branch_name != primary_branch:
+            base_oid = self._get_primary_branch_oid(repo, primary_branch)
+            if base_oid is None:
+                depth = 1
+            else:
+                try:
+                    self._validate_history(repo, base_oid)
+                except _LocalGitMetadataError:
+                    repo, shallow_snapshot = self._repair_primary_branch_shallow(
+                        repo,
+                        base_oid,
+                        shallow_snapshot,
+                        primary_branch,
+                    )
+                depth = 0
+                base_ref = f'refs/heads/{primary_branch}'
+                fetch_primary_branch = True
+        else:
+            depth = 1
+
         proxy = self._get_proxy_address()
         temp_root = Path(os_utils.get_path_under_work_dir('.install', 'git_fetch_tmp'))
         temp_root.mkdir(parents=True, exist_ok=True)
         _cleanup_stale_fetch_repositories_once(temp_root)
         temp_repo_dir = tempfile.mkdtemp(prefix=f'fetch_{os.getpid()}_', dir=temp_root)
-        source_objects_dir = (
-            str(_get_repository_objects_path(repo))
-            if depth == 0
-            else None
-        )
+        source_objects_dir = str(_get_repository_objects_path(repo))
         messages: queue.Queue[dict[str, object]] = queue.Queue()
         abandoned = threading.Event()
         worker = threading.Thread(
@@ -666,6 +1007,10 @@ class GitService:
                 messages.put,
                 abandoned,
                 f'refs/tags/{tag_name}' if tag_name is not None else None,
+                base_ref,
+                str(base_oid) if base_oid is not None else None,
+                fetch_primary_branch,
+                shallow_snapshot,
             ),
             daemon=True,
             name='git-fetch-worker',
@@ -750,6 +1095,9 @@ class GitService:
                 stage_start,
                 stage_end,
                 tag_name,
+                bool(result.get('primary_branch_incremental')),
+                shallow_snapshot,
+                bool(result.get('shallow_authoritative', True)),
             )
         except BaseException:
             if worker.is_alive():
@@ -762,38 +1110,72 @@ class GitService:
     @staticmethod
     def _is_missing_object_error(error: BaseException) -> bool:
         """判断异常是否明确表示本地 Git 对象缺失。"""
-        return isinstance(error, KeyError) and 'object not found' in str(error)
+        if not isinstance(error, KeyError):
+            return False
+        message = str(error)
+        if 'object not found' in message:
+            return True
+        return re.fullmatch(r"'{0,1}[0-9a-f]{40}'{0,1}", message) is not None
 
     def _rebuild_repository(
         self,
         progress_callback: Callable[[float, str], None] | None,
         initial_tag: str | None = None,
     ) -> tuple[GitSyncStatus, str]:
-        """备份损坏的 Git 目录并重新克隆仓库。"""
+        """备份损坏的 Git 目录并重新建立浅仓库。"""
         failure_message = gt('本地代码更新失败')
+        if self._rebuilding_repository:
+            log.error('本地 Git 仓库重建期间再次检测到损坏，停止重复重建')
+            return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+        opened_repo: Repository | None = None
         try:
-            repo = self._open_repo()
-            git_dir = Path(repo.path).resolve()
-            if (git_dir / 'commondir').is_file():
-                log.error('检测到 linked worktree，暂不自动重建本地 Git 仓库')
+            discovered_git_dir = discover_repository(self.repo_dir)
+            if not discovered_git_dir:
+                log.error(f'目录 {self.repo_dir} 不是有效的 Git 仓库，无法备份')
                 return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
-            extra_remotes = [remote_name for remote_name in repo.remotes.names() if remote_name != 'origin']
-            if extra_remotes:
-                log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
-                return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+            git_dir = Path(discovered_git_dir).resolve()
             if not git_dir.is_dir():
                 log.error(f'本地 Git 目录不存在，无法备份: {git_dir}')
                 return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+            if (git_dir / 'commondir').is_file() or (git_dir / 'worktrees').is_dir():
+                log.error('检测到关联 worktree，暂不自动重建本地 Git 仓库')
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+
+            try:
+                opened_repo = Repository(str(git_dir))
+            except Exception:
+                log.warning('旧 Git 仓库无法打开，跳过 remote 检查并直接备份重建')
+            else:
+                # one-dragon-fetch-* 是导入临时仓库时创建的内部 remote，
+                # 正常用完即删；仅进程被强杀等场景可能残留空配置，不算用户额外 remote。
+                extra_remotes = sorted(
+                    name
+                    for name in opened_repo.remotes.names()
+                    if name != 'origin' and not name.startswith('one-dragon-fetch-')
+                )
+                if extra_remotes:
+                    log.error(f'检测到 origin 以外的远程仓库，暂不自动重建本地 Git 仓库: {extra_remotes}')
+                    return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
 
             timestamp = time.strftime('%Y%m%d_%H%M%S')
             backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}')
             if backup_dir.exists():
                 backup_dir = git_dir.with_name(f'{git_dir.name}.corrupted.{timestamp}.{uuid.uuid4().hex[:8]}')
 
-            log.warning(f'检测到本地 Git 对象缺失，备份旧 Git 目录: {git_dir} -> {backup_dir}')
+            log.warning(f'检测到本地 Git 仓库损坏，备份旧 Git 目录: {git_dir} -> {backup_dir}')
+            cached_repo = self._repo
             self._repo = None
-            repo.free()
+            if cached_repo is not None:
+                with contextlib.suppress(Exception):
+                    cached_repo.free()
+            if opened_repo is not None and opened_repo is not cached_repo:
+                with contextlib.suppress(Exception):
+                    opened_repo.free()
+                opened_repo = None
             git_dir.rename(backup_dir)
+
             self._rebuilding_repository = True
             try:
                 status, message = self._clone_repository(progress_callback, initial_tag)
@@ -808,6 +1190,10 @@ class GitService:
         except Exception:
             log.error('备份或重建本地 Git 仓库失败，保留现场', exc_info=True)
             return GitSyncStatus.LOCAL_UPDATE_FAILED, failure_message
+        finally:
+            if opened_repo is not None:
+                with contextlib.suppress(Exception):
+                    opened_repo.free()
 
     def _fetch_remote(
         self,
@@ -820,7 +1206,7 @@ class GitService:
         log.info(gt('拉取远程代码...'))
         success = False
         used_repository: RepositoryItem | None = None
-        has_missing_object_failure = False
+        local_repository_damaged = False
 
         try:
             for repository, repository_url in self._get_repository_candidates():
@@ -839,14 +1225,23 @@ class GitService:
                     success = True
                     used_repository = repository
                     break
+                except _LocalGitMetadataError:
+                    local_repository_damaged = True
+                    log.error('本地 Git 元数据损坏，停止代码源回退', exc_info=True)
+                    break
                 except Exception as error:
-                    has_missing_object_failure |= self._is_missing_object_error(error)
+                    if self._is_missing_object_error(error):
+                        local_repository_damaged = True
+                        log.error('导入远程对象时发现本地 Git 对象缺失，停止代码源回退', exc_info=True)
+                        break
                     log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
         finally:
-            restored = self._restore_origin()
+            restored = True if local_repository_damaged else self._restore_origin()
 
-        if not success and not self._rebuilding_repository and has_missing_object_failure:
-            log.warning('候选代码源导入时检测到本地对象缺失，开始自动备份并重建本地 Git 仓库')
+        if not success and local_repository_damaged:
+            if self._rebuilding_repository:
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('本地代码更新失败')
+            log.warning('检测到本地 Git 仓库损坏，开始自动备份并重建本地 Git 仓库')
             return self._rebuild_repository(progress_callback, tag_name)
         if not restored:
             log.error('拉取结束后无法恢复主仓库远程地址')

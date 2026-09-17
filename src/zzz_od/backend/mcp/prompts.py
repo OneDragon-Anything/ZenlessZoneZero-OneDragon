@@ -12,7 +12,7 @@
 (instructions 是 server 级全局、启动时定,不支持运行时按消费者切;且两套会膨胀违背精炼)。
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 
 
@@ -155,8 +155,8 @@ def render_prompt_guide(name: str, app_id: str | None = None) -> str:
     return f"未知指南: {name}。可用指南: {names}"
 
 
-def register_prompts(mcp: FastMCP) -> None:
-    """把绝区零一条龙常用操作 prompt 注册到 FastMCP(仅 user 模式项;dev 走 tool)。
+def register_prompts(mcp: MCPServer) -> None:
+    """把绝区零一条龙常用操作 prompt 注册到 MCPServer(仅 user 模式项;dev 走 tool)。
 
     prompts 协议上 user-controlled(给人手动选),智能体平时看不到;
     对应内容同时由 ``register_prompt_tools`` 做 tool 镜像供智能体主动取。
@@ -190,10 +190,10 @@ def register_prompts(mcp: FastMCP) -> None:
         return render_run_standalone_app_guide(app_id)
 
 
-def register_prompt_tools(mcp: FastMCP) -> None:
+def register_prompt_tools(mcp: MCPServer) -> None:
     """把 prompt 模板以普通 MCP tool 形式暴露,便于智能体发现(含 dev 模式项)。"""
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出操作指南"))
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="列出操作指南"))
     def list_mcp_usage_guides() -> list[dict[str, str]]:
         """列出 zzz_od MCP 可用操作指南,相当于帮助目录。观察类。
 
@@ -201,7 +201,7 @@ def register_prompt_tools(mcp: FastMCP) -> None:
         """
         return list_prompt_guides()
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取操作指南"))
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="读取操作指南"))
     def get_mcp_usage_guide(name: str, app_id: str | None = None) -> str:
         """读取 zzz_od MCP 操作指南,相当于某个任务的 --help。观察类。
 

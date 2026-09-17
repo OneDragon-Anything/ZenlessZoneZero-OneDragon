@@ -15,6 +15,7 @@ from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 from zzz_od.operation.transport import Transport
@@ -406,6 +407,12 @@ class IntelBoardApp(ZApplication):
                  f'累计经验: {self.run_record.total_exp}')
 
         return self.round_success(status)
+
+    @node_from(from_name='结束处理')
+    @operation_node(name='完成后返回大世界')
+    def back_afterwards(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
 
     def handle_pause(self, e=None):
         self.ctx.auto_battle_context.stop_auto_battle()

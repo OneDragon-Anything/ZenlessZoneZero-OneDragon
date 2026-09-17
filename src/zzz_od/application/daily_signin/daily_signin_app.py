@@ -49,21 +49,8 @@ class DailySignInApp(ZApplication):
             instance_idx=self.instance_idx,
             group_id=self.group_id,
         )
-        if app is None:
-            return self.round_fail(status=f'未找到应用 {sub_app_id}')
 
-        # 临时切换 current_app_id 以便子应用正常记录和运行
-        old_app_id = self.ctx.run_context.current_app_id
-        self.ctx.run_context.current_app_id = app.app_id
-
-        try:
-            result = app.execute()
-            if result.success:
-                return self.round_success()
-            else:
-                return self.round_fail(status=result.status)
-        finally:
-            self.ctx.run_context.current_app_id = old_app_id
+        return self.round_by_op_result(app.execute())
 
 
 def __debug() -> None:

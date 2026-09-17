@@ -4,7 +4,7 @@
 >
 > **通用 MCP tool 设计方法论**(tool 命名 / description 契约 / tight input·output schema / annotations / 结构化返回 / actionable error / 读写分离 / token 经济)遵循 **Anthropic 官方 `mcp-server-dev` plugin 的 [`tool-design.md`](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/mcp-server-dev/skills/build-mcp-server/references/tool-design.md)** —— 写 / 改 MCP tool 前先装它(Claude Code 安装见 [setup/ai_coding.md](../../setup/ai_coding.md))。**本文只讲本项目特化的写法与约束**,不重复通用知识。
 >
-> 适用范围:`src/zzz_od/backend/mcp/`(`app.py` / `service_app.py` / `prompts.py`)下所有 `@mcp.tool`。SDK 基线:官方 `mcp` 包内置 `FastMCP`(`from mcp.server.fastmcp import FastMCP`),非第三方 gofastmcp。
+> 适用范围:`src/zzz_od/backend/mcp/`(`app.py` / `service_app.py` / `prompts.py`)下所有 `@mcp.tool`。SDK 基线:官方 `mcp>=2,<3` 包内置 `MCPServer`(`from mcp.server import MCPServer`)。
 
 ## 1. annotations:本项目 tool 怎么分类标
 
@@ -16,7 +16,7 @@
 
 本项目分类:
 
-| 类别 | `readOnlyHint` | `destructiveHint` | 本项目 tool |
+| 类别 | `read_only_hint` | `destructive_hint` | 本项目 tool |
 |---|:---:|:---:|---|
 | 纯观察(只读,不改状态) | `True` | — | `check_game_window` / `capture_game_screen` / `analyze_screen` / `get_run_status` / `list_applications` / `list_operations` / `describe_operation` / `list_mcp_usage_guides` / `get_mcp_usage_guide` |
 | 操作游戏 / 触发运行 / 改配置(改状态非破坏) | 不标(默认非 read_only) | — | `click_game` / `key_tap` / `drag` / `input_text` / `open_game` / `run_one_dragon` / `run_standalone_app` / `run_operation` / `stop_run` / `upsert_screen_area` |
@@ -24,13 +24,13 @@
 
 **本项目特化**:`open_world_hint` / `idempotent_hint` **默认不标** —— 本项目 tool 都操作**本地游戏运行时**(属「外部世界」交互,`open_world` 保持 MCP 默认语义;`idempotent` 标了也无决策价值,click 幂等无需声明、run 不幂等)。判据:只在「客户端会因此改变确认 / 缓存策略」时才标。
 
-导入:`from mcp.types import ToolAnnotations`(**字段名 camelCase**:`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint` / `title`,与 JSON wire 一致;⚠️ snake_case 会被 pydantic 当 extra 忽略、静默失效)。工厂注册的 tool 同理:`mcp.tool(annotations=...)(make_xxx(backend))`。
+导入:`from mcp.types import ToolAnnotations`。Python 参数和属性使用 snake_case:`read_only_hint` / `destructive_hint` / `idempotent_hint` / `open_world_hint` / `title`;SDK 序列化到 MCP JSON 时自动转成 camelCase。工厂注册的 tool 同理:`mcp.tool(annotations=...)(make_xxx(backend))`。
 
 ## 2. Field 参数描述:本项目哪些参数必须加
 
 (通用「用 Pydantic `Field` 加 description / 约束 / `Literal` 枚举」见官方 mcp-builder Phase 2。这里只讲本项目选哪些参数。)
 
-**FastMCP 把函数签名转 JSON schema,但不解析 docstring 的 `Args:` 段成字段 description** —— 参数级说明只能靠 `Annotated[type, Field(description=...)]`。
+**MCPServer 把函数签名转 JSON schema,但不解析 docstring 的 `Args:` 段成字段 description** —— 参数级说明只能靠 `Annotated[type, Field(description=...)]`。
 
 本项目**必须加 Field description** 的:智能体**不靠参数名 + 类型就懂不了**的 ——
 - 布尔开关的隐式语义(`save_image` / `pc_alt` / `block` / `enter` / `use_clipboard`);
@@ -87,11 +87,12 @@ def click_game(
 改 / 加 MCP tool 后逐条对照:
 
 - [ ] docstring 三要素齐 + 首句「观察 / 操作」标注;
-- [ ] `annotations` 按第 1 节分类标了(观察 `readOnlyHint=True` / 破坏 `destructiveHint=True`,**字段名 camelCase**);
+- [ ] `annotations` 按第 1 节分类标了(观察 `read_only_hint=True` / 破坏 `destructive_hint=True`,Python 字段使用 snake_case);
 - [ ] **读写分离**:单 tool 不混观察 + 操作(通用硬要求);相似操作 tool(`click_game` / `key_tap` / `drag`)描述**互指**何时用另一个(disambiguate);
 - [ ] `title` annotation(可选):Anthropic Directory 提交时每个 tool 必须有 title;本项目不提交 Directory,按需作 UI 显示名;
 - [ ] 难懂参数加了 `Field description`;
 - [ ] 返回结构化(非裸字符串,单值 ack 除外)+ 错误兜底按第 3 节;
+- [ ] 同步 tool 可在 MCPServer 的工作线程中并行执行:不依赖固定线程;GPU session 继续经 `gpu_executor` 串行;
 - [ ] **同步 `mcp.md` 工具表**(签名 / 参数 / 返回 / tool 总数)—— 文档与实现脱节是最高频坑;
 - [ ] HTTP 对称能力是否也要补(两个适配器消费者都用 → 放 backend 共享,见 design P11);
 - [ ] 测试(`zzz-od-test/test/zzz_od/backend/`)断言对齐新返回;

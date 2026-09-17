@@ -133,27 +133,33 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.save()
 
     def reset_plans(self) -> None:
-        """根据运行次数重置运行计划，仅未被 skipped 的计划项参与判定与扣减"""
+        """
+        根据运行次数重置运行计划。
+        普通计划按整轮扣减，已跳过的代理人计划在进入下一轮时清零。
+        """
         if len(self.plan_list) == 0:
             return
 
-        eligible = [plan for plan in self.plan_list if not plan.skipped and plan.plan_times > 0]
-        if len(eligible) == 0:
-            return
-
+        eligible = [p for p in self.plan_list if not (p.skipped and p.is_agent_plan) and p.plan_times > 0]
+        skipped_agent_plans = [p for p in self.plan_list if p.skipped and p.is_agent_plan]
         modified: bool = False
-        while True:
-            all_finish: bool = True
-            for plan in eligible:
-                if plan.run_times < plan.plan_times:
-                    all_finish = False
 
-            if not all_finish:
-                break
+        if eligible:
+            while True:
+                if any(p.run_times < p.plan_times for p in eligible):
+                    break
 
-            for plan in eligible:
-                plan.run_times -= plan.plan_times
+                for plan in eligible:
+                    plan.run_times -= plan.plan_times
+                modified = True
 
+            if not modified:
+                return
+
+        for plan in skipped_agent_plans:
+            if plan.run_times == 0:
+                continue
+            plan.run_times = 0
             modified = True
 
         if modified:
@@ -195,9 +201,9 @@ class NotoriousHuntConfig(ApplicationConfig):
         return None
 
     def all_plan_finished(self) -> bool:
-        """全部计划是否均已完成（跳过 skipped 的计划）"""
+        """全部计划是否均已完成（跳过已标记跳过的代理人计划）"""
         for plan in self.plan_list:
-            if plan.skipped:
+            if plan.skipped and plan.is_agent_plan:
                 continue
             if plan.run_times < plan.plan_times:
                 return False

@@ -1,7 +1,7 @@
 """MCP 适配器：把 ``ZzzBackendContext`` 以 MCP tool 的形式对外暴露。
 
 本模块在后端 game 切片（``ZzzBackendContext``）之上架设一层传输适配：
-- ``create_mcp_server`` 创建一个 ``FastMCP`` 实例，并通过闭包将 backend 注入到
+- ``create_mcp_server`` 创建一个 ``MCPServer`` 实例，并通过闭包将 backend 注入到
   工具函数中，使工具调用最终落到 backend 的 game 切片方法上。
 - 工具返回值尽量保持「可直接读」的字符串或传输无关结构，便于上层（CLI/Agent）消费。
 
@@ -20,12 +20,20 @@ import asyncio
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Annotated
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from one_dragon.utils.log_utils import log
 from zzz_od.backend.backend_context import ZzzBackendContext, _save_screenshot
+from zzz_od.backend.mcp.config_app import (
+    make_add_config_item,
+    make_delete_config_item,
+    make_describe_config,
+    make_get_config,
+    make_list_app_configs,
+    make_set_config,
+)
 from zzz_od.backend.mcp.prompts import (
     register_prompt_tools,
     register_prompts,
@@ -39,14 +47,6 @@ from zzz_od.backend.mcp.service_app import (
     make_run_one_dragon,
     make_run_operation,
     make_run_standalone_app,
-)
-from zzz_od.backend.mcp.config_app import (
-    make_add_config_item,
-    make_delete_config_item,
-    make_describe_config,
-    make_get_config,
-    make_list_app_configs,
-    make_set_config,
 )
 from zzz_od.backend.schemas import AnalyzeScreenResult, RunStatusResult, WindowStatus
 
@@ -122,7 +122,7 @@ def make_stop_run(backend: ZzzBackendContext) -> Callable[[], dict]:
     return stop_run
 
 
-def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastMCP:
+def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> MCPServer:
     """创建 MCP 服务器并注册 game 工具与 prompt。
 
     通过闭包将 ``backend`` 注入到各工具函数中，使工具调用最终落到 backend 的
@@ -135,11 +135,11 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         name: MCP 服务器名称，默认 ``zzz_od``。
 
     Returns:
-        注册好工具的 ``FastMCP`` 实例。
+        注册好工具的 ``MCPServer`` 实例。
     """
-    mcp = FastMCP(name, instructions=render_instructions())
+    mcp = MCPServer(name, instructions=render_instructions())
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="检查游戏窗口"))
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="检查游戏窗口"))
     def check_game_window() -> WindowStatus | dict:
         """检查绝区零游戏窗口状态(只读,不改状态)。观察类。
 
@@ -159,7 +159,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         except Exception as e:  # noqa: BLE001 工具层统一兜底，避免异常透传到 MCP 框架
             return {'error': str(e)}
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="捕获游戏截图"))
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="捕获游戏截图"))
     def capture_game_screen() -> str:
         """捕获游戏画面并保存截图，返回截图绝对路径。观察类。
 
@@ -176,7 +176,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
         log.info(f"截图已保存到: {path}")
         return path
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="分析游戏画面"))
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="分析游戏画面"))
     def analyze_screen(
         screenshot: Annotated[str | None, Field(description="截图来源:None=实时截当前画面(需游戏在线);传路径=读该图(无需游戏在线);纯名字=读 .debug/images/<名字>.png")] = None,
         save_image: Annotated[bool, Field(description="仅实时模式:把截图落盘并回传 screenshot_path 供 vision 复用;离线模式忽略")] = False,
@@ -232,7 +232,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             return {'success': False, 'screen_name': screen_name, 'area_name': area_name,
                     'action': None, 'area_count': None, 'error': str(e)}
 
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True, title="删除画面区域"))  # 操作类+不可逆:删 screen_info area
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, title="删除画面区域"))  # 操作类+不可逆:删 screen_info area
     def delete_screen_area(screen_name: str, area_name: str) -> dict:
         """按 area_name 删除指定 screen 的一个 area(写 yml + reload)。操作类,不可逆。
 
@@ -248,7 +248,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
             return {'success': False, 'screen_name': screen_name, 'area_name': area_name,
                     'action': None, 'area_count': None, 'error': str(e)}
 
-    @mcp.tool(annotations=ToolAnnotations(destructiveHint=True, title="关闭游戏"))  # 操作类+破坏性:关游戏
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, title="关闭游戏"))  # 操作类+破坏性:关游戏
     def close_game() -> str:
         """关闭游戏(发关闭窗口信号,秒级)。操作类。
 
@@ -359,19 +359,19 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> FastM
     mcp.tool(annotations=ToolAnnotations(title="打开游戏"))(make_open_game(backend))
     mcp.tool(annotations=ToolAnnotations(title="运行一条龙"))(make_run_one_dragon(backend))
     mcp.tool(annotations=ToolAnnotations(title="运行独立应用"))(make_run_standalone_app(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可运行应用"))(make_list_applications(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取预备编队列表"))(make_get_predefined_teams(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="查询运行状态"))(make_get_run_status(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="列出可运行应用"))(make_list_applications(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="读取预备编队列表"))(make_get_predefined_teams(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="查询运行状态"))(make_get_run_status(backend))
     mcp.tool(annotations=ToolAnnotations(title="停止运行"))(make_stop_run(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可运行 operation"))(make_list_operations(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="查看 operation 参数"))(make_describe_operation(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="列出可运行 operation"))(make_list_operations(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="查看 operation 参数"))(make_describe_operation(backend))
     mcp.tool(annotations=ToolAnnotations(title="运行 operation"))(make_run_operation(backend))
     mcp.tool(annotations=ToolAnnotations(title="增改配置列表项"))(make_add_config_item(backend))
-    mcp.tool(annotations=ToolAnnotations(destructiveHint=True, title="删除配置列表项"))(make_delete_config_item(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="读取配置"))(make_get_config(backend))
+    mcp.tool(annotations=ToolAnnotations(destructive_hint=True, title="删除配置列表项"))(make_delete_config_item(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="读取配置"))(make_get_config(backend))
     mcp.tool(annotations=ToolAnnotations(title="修改配置字段"))(make_set_config(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="描述配置结构"))(make_describe_config(backend))
-    mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, title="列出可改配置"))(make_list_app_configs(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="描述配置结构"))(make_describe_config(backend))
+    mcp.tool(annotations=ToolAnnotations(read_only_hint=True, title="列出可改配置"))(make_list_app_configs(backend))
     register_prompts(mcp)
     register_prompt_tools(mcp)
 

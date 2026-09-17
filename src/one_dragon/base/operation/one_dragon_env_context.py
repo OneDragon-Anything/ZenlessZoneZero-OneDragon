@@ -14,18 +14,21 @@ ONE_DRAGON_CONTEXT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='one_dragon_
 
 class OneDragonEnvContext:
 
-    def __init__(self):
+    def __init__(self, prefer_bundled_config: bool = False) -> None:
         """
         存项目和环境信息的
         安装器可以使用这个减少引入依赖
         """
         self.installer_dir: str | None = None
+        self._prefer_bundled_config: bool = prefer_bundled_config
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
     @cached_property
-    def project_config(self):
-        return ProjectConfig()
+    def project_config(self) -> ProjectConfig:
+        return ProjectConfig(
+            prefer_bundled_config=self._prefer_bundled_config,
+        )
 
     @cached_property
     def env_config(self):
@@ -33,7 +36,9 @@ class OneDragonEnvContext:
 
     @cached_property
     def repo_config(self) -> RepoConfig:
-        return RepoConfig()
+        return RepoConfig(
+            prefer_bundled_config=self._prefer_bundled_config,
+        )
 
     @cached_property
     def download_service(self):
@@ -41,7 +46,7 @@ class OneDragonEnvContext:
 
     @cached_property
     def git_service(self):
-        return GitService(self.project_config, self.env_config, self.repo_config)
+        return GitService(self.env_config, self.repo_config)
 
     @cached_property
     def python_service(self):
