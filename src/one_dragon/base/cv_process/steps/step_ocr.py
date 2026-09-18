@@ -1,7 +1,11 @@
-# coding: utf-8
-from typing import Dict, Any
+from typing import Any
+
 import cv2
-from one_dragon.base.cv_process.cv_step import CvStep, CvPipelineContext
+from cv2.typing import MatLike
+
+from one_dragon.base.cv_process.cv_step import CvPipelineContext, CvStep
+from one_dragon.base.matcher.match_result import MatchResultList
+from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.utils import gpu_executor
 
 
@@ -10,7 +14,7 @@ class CvStepOcr(CvStep):
     def __init__(self):
         super().__init__('OCR识别')
 
-    def get_params(self) -> Dict[str, Any]:
+    def get_params(self) -> dict[str, Any]:
         return {
             'draw_text_box': {'type': 'bool', 'default': True, 'label': '绘制识别结果', 'tooltip': '是否在调试图像上绘制OCR识别出的文本框和内容。'},
             # 'override_settings': {'type': 'bool', 'default': False, 'label': '覆盖全局配置', 'tooltip': '[核心] 是否启用此步骤的独立OCR配置。启用后，下方所有参数才会生效。'},
@@ -45,7 +49,7 @@ class CvStepOcr(CvStep):
                  # max_text_length: int = 25,
                  # drop_score: float = 0.5,
                  # cls_thresh: float = 0.9,
-                 ):
+                 ) -> None:
         if context.ocr is None:
             context.analysis_results.append("错误: OCR 功能未初始化")
             return
@@ -67,12 +71,28 @@ class CvStepOcr(CvStep):
         #     context.analysis_results.append(f"应用OCR设置: {new_options}")
         #     context.ocr.update_options(new_options)
 
-        # 执行OCR
+        # 执行 OCR。GPU worker 不继承调用线程的 thread-local，
+        # 因此由实际执行线程负责建立并恢复 trace 裁剪作用域。
+        bus = getattr(context.ocr, "debug_trace_bus", None)
+        parent_offset = bus.crop_offset if bus is not None else (0, 0)
+        trace_offset = (
+            parent_offset[0] + context.crop_offset[0],
+            parent_offset[1] + context.crop_offset[1],
+        )
         if context.ocr.is_use_gpu():
-            f = gpu_executor.submit(context.ocr.run_ocr, image=context.display_image)
-            ocr_results = f.result()
+            future = gpu_executor.submit(
+                self._run_ocr_with_trace_offset,
+                context.ocr,
+                context.display_image,
+                trace_offset,
+            )
+            ocr_results = future.result()
         else:
-            ocr_results = context.ocr.run_ocr(context.display_image)
+            ocr_results = self._run_ocr_with_trace_offset(
+                context.ocr,
+                context.display_image,
+                trace_offset,
+            )
         context.ocr_result = ocr_results
         if not ocr_results:
             context.success = False
@@ -80,9 +100,25 @@ class CvStepOcr(CvStep):
 
         # 绘制结果
         display_with_ocr = context.display_image.copy()
-        for text, match_list in ocr_results.items():
+        for _text, match_list in ocr_results.items():
             for match in match_list:
                 context.analysis_results.append(f"  - '{match.data}' (置信度: {match.confidence:.2f}) at {match.rect}")
                 if context.debug_mode and draw_text_box:
                     cv2.rectangle(display_with_ocr, (match.rect.x1, match.rect.y1), (match.rect.x2, match.rect.y2), (255, 0, 255), 2)
         context.display_image = display_with_ocr
+
+    @staticmethod
+    def _run_ocr_with_trace_offset(
+        ocr: OcrMatcher,
+        image: MatLike,
+        trace_offset: tuple[int, int],
+    ) -> dict[str, MatchResultList]:
+        """在实际 OCR 执行线程中应用并恢复调试 trace 裁剪偏移。"""
+        bus = getattr(ocr, "debug_trace_bus", None)
+        if bus is not None:
+            bus.set_crop_offset(*trace_offset)
+        try:
+            return ocr.run_ocr(image)
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()

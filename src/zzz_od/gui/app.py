@@ -2,8 +2,13 @@ try:
     import sys
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
+    from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, Theme, setTheme
+    from qfluentwidgets import (
+        NavigationItemPosition,
+        Theme,
+        setTheme,
+    )
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils, os_utils
@@ -65,13 +70,14 @@ try:
             MainAppWindowBase.__init__(
                 self,
                 ctx=ctx,
-                win_title=f"{gt(ctx.project_config.project_name)} "
-                f"{ctx.one_dragon_config.current_active_instance.name}",
+                win_title=(
+                    f'{gt(ctx.project_config.project_name)} '
+                    f'{ctx.one_dragon_config.current_active_instance.name}'
+                ),
                 project_config=ctx.project_config,
                 app_icon="logo.ico",
                 parent=parent,
             )
-
             self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_active_event)
             self._context_event_signal: ContextEventSignal = ContextEventSignal()
             self._context_event_signal.instance_changed.connect(self._on_instance_active_signal)
@@ -121,7 +127,8 @@ try:
 
             # 主页
             from zzz_od.gui.view.home.home_interface import HomeInterface
-            self.add_sub_interface(HomeInterface(self.ctx, parent=self))
+            self.home_interface = HomeInterface(self.ctx, parent=self)
+            self.add_sub_interface(self.home_interface)
 
             # 游戏助手
             from zzz_od.gui.view.game_assistant.game_assistant_interface import (
@@ -157,15 +164,22 @@ try:
             from zzz_od.gui.view.devtools.app_devtools_interface import (
                 AppDevtoolsInterface,
             )
+            self.devtools_interface = AppDevtoolsInterface(self.ctx, parent=self)
             self.add_sub_interface(
-                AppDevtoolsInterface(self.ctx, parent=self),
+                self.devtools_interface,
                 position=NavigationItemPosition.BOTTOM,
             )
 
-            # 代码同步
-            from one_dragon_qt.view.code_interface import CodeInterface
+            # 资源管理
+            from one_dragon_qt.view.resource_management_interface import (
+                ResourceManagementInterface,
+            )
             self.add_sub_interface(
-                CodeInterface(self.ctx, parent=self),
+                ResourceManagementInterface(
+                    self.ctx,
+                    self.download_queue,
+                    parent=self,
+                ),
                 position=NavigationItemPosition.BOTTOM,
             )
 
@@ -194,6 +208,16 @@ try:
             """导航变化时的处理"""
             self._last_stack_idx = index
 
+        def _apply_developer_mode_visibility(self) -> None:
+            """刷新绝区零开发工具导航和通用高级控件。"""
+            super()._apply_developer_mode_visibility()
+            if hasattr(self, 'devtools_interface'):
+                nav_widget = self.navigationInterface.widget(
+                    self.devtools_interface.objectName()
+                )
+                if nav_widget is not None:
+                    nav_widget.setVisible(self.ctx.env_config.developer_mode)
+
         def _on_instance_active_event(self, event) -> None:
             """
             切换实例后 更新title 这是context的事件 不能更新UI
@@ -206,10 +230,9 @@ try:
             切换实例后 更新title 这是Signal 可以更新UI
             :return:
             """
-            self.setWindowTitle(
-                f"{gt(self.ctx.project_config.project_name)} "
-                f"{self.ctx.one_dragon_config.current_active_instance.name}"
-            )
+            project_name = gt(self.ctx.project_config.project_name)
+            instance_name = self.ctx.one_dragon_config.current_active_instance.name
+            self.setWindowTitle(f'{project_name} {instance_name}')
 
         def _update_version(self, versions: tuple[str, str, str]) -> None:
             """
@@ -233,18 +256,19 @@ try:
             """异步处理应用启动后需要处理的事情"""
             self._check_version_runner.start()
             self._check_first_run()
+            self.check_resource_updates(force=True)
+            self.on_welcome_dialog_closed()
 
-        def closeEvent(self, event):
+        def closeEvent(self, event: QCloseEvent) -> None:
             """窗口关闭事件"""
+            super().closeEvent(event)
+            if not event.isAccepted():
+                return
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 
             if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
                 self.overlay_manager.shutdown()
-
-            # 调用父类的关闭事件
-            super().closeEvent(event)
-
 
 except Exception:
     import ctypes

@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 from PySide6.QtCore import QRect, Qt, Signal
-from PySide6.QtGui import QColor, QImage, QPaintEvent, QPainter, QPen, QResizeEvent
+from PySide6.QtGui import QColor, QImage, QPainter, QPaintEvent, QPen, QResizeEvent
 from PySide6.QtWidgets import QWidget
 
-from one_dragon.base.operation.overlay_debug_bus import (
+from one_dragon.base.debug.debug_trace_bus import (
     DecisionTraceItem,
-    PerfMetricSample,
-    TimelineItem,
-    VisionDrawItem,
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
 )
 from one_dragon_qt.overlay.panels.info_hud_panel import InfoHudPanel
 from one_dragon_qt.overlay.utils import win32_utils
-
 
 _VISION_SOURCE_COLOR = {
     "ocr": "#ff4fa3",
@@ -42,7 +41,7 @@ class OverlayWindow(QWidget):
         self._anti_capture_enabled = True
         self._standard_width = 1920
         self._standard_height = 1080
-        self._vision_items: list[VisionDrawItem] = []
+        self._vision_items: list[VisionTraceItem] = []
         self._vision_layer_enabled = True
         self._vision_offset_x = 0
         self._vision_offset_y = 0
@@ -89,7 +88,7 @@ class OverlayWindow(QWidget):
         self._vision_scale_y = max(0.5, min(1.5, float(scale_y)))
         self.update()
 
-    def set_vision_items(self, items: Sequence[VisionDrawItem]) -> None:
+    def set_vision_items(self, items: Sequence[VisionTraceItem]) -> None:
         if not self._vision_layer_enabled:
             if self._vision_items:
                 self._vision_items = []
@@ -101,10 +100,10 @@ class OverlayWindow(QWidget):
     def set_decision_items(self, items: Sequence[DecisionTraceItem]) -> None:
         self.info_hud_panel.update_decisions(list(items))
 
-    def set_timeline_items(self, items: Sequence[TimelineItem]) -> None:
+    def set_timeline_items(self, items: Sequence[TimelineTraceItem]) -> None:
         self.info_hud_panel.update_timeline(list(items))
 
-    def set_performance_items(self, items: Sequence[PerfMetricSample]) -> None:
+    def set_performance_items(self, items: Sequence[PerfTraceItem]) -> None:
         self.info_hud_panel.update_performance(list(items))
 
     def set_performance_metric_enabled_map(self, metric_enabled: dict[str, bool] | None) -> None:
@@ -206,9 +205,7 @@ class OverlayWindow(QWidget):
             if rect is None:
                 continue
 
-            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, item.color or "#bdbdbd"))
-            if item.color:
-                base_color = QColor(item.color)
+            base_color = QColor(_VISION_SOURCE_COLOR.get(item.source, "#bdbdbd"))
             if not base_color.isValid():
                 base_color = QColor("#bdbdbd")
 
@@ -236,11 +233,11 @@ class OverlayWindow(QWidget):
             )
 
     @staticmethod
-    def _format_vision_label(item: VisionDrawItem) -> str:
+    def _format_vision_label(item: VisionTraceItem) -> str:
         label = (item.label or "").strip()
         if len(label) > 42:
             label = label[:39] + "..."
-        if item.score is None:
+        if item.score <= 0:
             return label
         return f"{label} {item.score:.2f}".strip()
 
@@ -252,7 +249,7 @@ class OverlayWindow(QWidget):
         ny2 = max(y1, y2)
         return nx1, ny1, nx2, ny2
 
-    def _map_rect(self, item: VisionDrawItem, scale_x: float, scale_y: float) -> QRect | None:
+    def _map_rect(self, item: VisionTraceItem, scale_x: float, scale_y: float) -> QRect | None:
         map_scale_x = scale_x * self._vision_scale_x
         map_scale_y = scale_y * self._vision_scale_y
         x1 = int(item.x1 * map_scale_x) + self._vision_offset_x

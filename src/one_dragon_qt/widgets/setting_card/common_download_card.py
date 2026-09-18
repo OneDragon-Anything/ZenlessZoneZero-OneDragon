@@ -1,17 +1,30 @@
-from PySide6.QtCore import Signal, QThread
+
+from collections.abc import Callable
+
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractButton
-from qfluentwidgets import SettingCard, FluentIconBase, PrimaryPushButton
-from typing import Union, Optional, List
+from qfluentwidgets import FluentIconBase, PrimaryPushButton, SettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.base.web.common_downloader import CommonDownloaderParam, CommonDownloader
+from one_dragon.base.web.common_downloader import (
+    CommonDownloader,
+    CommonDownloaderParam,
+)
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.download_queue_service import (
+    DownloadQueueService,
+    ResourceDownloadSpec,
+    ResourceDownloadTask,
+    ResourceDownloadTaskState,
+)
 from one_dragon_qt.widgets.combo_box import ComboBox
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 
 
 class DownloadRunner(QThread):
@@ -33,11 +46,16 @@ class DownloadRunner(QThread):
         :return:
         """
         try:
+            env_config = self.ctx.env_config
             result = self.downloader.download(
-                ghproxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
-                proxy_url=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
+                source_order=env_config.get_resource_source_order(),
+                ghproxy_url=env_config.gh_proxy_url if env_config.is_gh_proxy else None,
+                proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
                 skip_if_existed=False,
-                progress_signal=self.progress_signal
+                progress_signal=self.progress_signal,
+                on_source_success=env_config.mark_resource_source_success,
+                on_source_failure=env_config.mark_resource_source_failure,
+                fallback_on_slow=env_config.is_resource_source_auto,
             )
         except Exception:
             result = False
@@ -67,10 +85,10 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
     def __init__(
             self,
             ctx: OneDragonContext,
-            icon: Union[str, QIcon, FluentIconBase],
+            icon: str | QIcon | FluentIconBase,
             title: str,
             content=None,
-            extra_btn_list: List[QAbstractButton] = None,
+            extra_btn_list: list[QAbstractButton] = None,
             parent=None
     ):
 
@@ -108,10 +126,79 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         )
 
         self.ctx: OneDragonContext = ctx
-        self.downloader: Optional[CommonDownloader] = None
-        self.download_runner: Optional[DownloadRunner] = None
+        self.downloader: CommonDownloader | None = None
+        self.download_runner: DownloadRunner | None = None
+        self.download_queue: DownloadQueueService | None = None
+        self.download_spec_factory: Callable[[], ResourceDownloadSpec] | None = None
+        self._queue_task_key: str | None = None
+        self.active_value_getter: Callable[[], str] | None = None
 
-    def set_options_by_list(self, options: List[ConfigItem]) -> None:
+    def set_active_value_getter(self, getter: Callable[[], str]) -> None:
+        """设置当前正在使用的资源版本读取方法。"""
+        self.active_value_getter = getter
+
+    def use_download_queue(
+        self,
+        service: DownloadQueueService,
+        spec_factory: Callable[[], ResourceDownloadSpec],
+    ) -> None:
+        """让卡片点击后加入统一下载队列。
+
+        Args:
+            service: 下载队列服务。
+            spec_factory: 根据当前卡片选项构造资源规格的方法。
+        """
+        self.download_queue = service
+        self.download_spec_factory = spec_factory
+        self._refresh_queue_task_key()
+        service.task_added.connect(self._on_queue_task_changed)
+        service.task_updated.connect(self._on_queue_task_changed)
+        service.task_removed.connect(lambda _task_key: self.check_and_update_display())
+        self.check_and_update_display()
+
+    def _refresh_queue_task_key(self) -> None:
+        """选项变化后重新计算卡片对应的任务键。"""
+        self._queue_task_key = (
+            self.download_spec_factory().task_key
+            if self.download_spec_factory is not None
+            else None
+        )
+
+    def _get_queue_task(self) -> ResourceDownloadTask | None:
+        """返回卡片当前选项对应的队列任务。"""
+        if self.download_queue is None or self._queue_task_key is None:
+            return None
+        return self.download_queue.get_task(self._queue_task_key)
+
+    def _on_queue_task_changed(self, _task: ResourceDownloadTask) -> None:
+        """队列状态变化时刷新卡片。"""
+        self.check_and_update_display()
+
+    def _apply_queue_display_state(self) -> bool:
+        """应用队列状态，返回是否已接管按钮显示。"""
+        task = self._get_queue_task()
+        if task is None:
+            return False
+        if task.state == ResourceDownloadTaskState.WAITING:
+            self.download_btn.setText(gt('等待中'))
+            self.download_btn.setEnabled(True)
+            return True
+        if task.state in (
+            ResourceDownloadTaskState.DOWNLOADING,
+            ResourceDownloadTaskState.EXTRACTING,
+            ResourceDownloadTaskState.APPLYING,
+            ResourceDownloadTaskState.CANCELLING,
+        ):
+            self.download_btn.setText(gt('下载中'))
+            self.download_btn.setEnabled(True)
+            return True
+        if task.state == ResourceDownloadTaskState.FAILED:
+            self.download_btn.setText(gt('查看失败'))
+            self.download_btn.setEnabled(True)
+            return True
+        return False
+
+    def set_options_by_list(self, options: list[ConfigItem]) -> None:
         """
         设置选项
         :param options:
@@ -168,6 +255,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         self.last_index = index
 
         self._update_downloader_and_runner()
+        self._refresh_queue_task_key()
         self.check_and_update_display()
 
         param: CommonDownloaderParam = self._get_downloader_param(index)
@@ -200,6 +288,11 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         检查并更新显示状态
         根据下载器状态和下载任务运行状态来设置各个按钮的启用/禁用状态
         """
+        if self.download_queue is not None and self._apply_queue_display_state():
+            self.combo_box.setEnabled(True)
+            self.cancel_btn.setVisible(False)
+            return
+
         is_running = self.download_runner is not None and self.download_runner.isRunning()
         is_downloaded = self.downloader is not None and self.downloader.is_file_existed()
 
@@ -211,7 +304,13 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if is_running:
             self.download_btn.setText(gt('下载中'))
         elif is_downloaded:
-            self.download_btn.setText(gt('已下载'))
+            param = self._get_downloader_param()
+            selected_value = param.save_file_name.removesuffix('.zip')
+            is_active = (
+                self.active_value_getter is not None
+                and self.active_value_getter() == selected_value
+            )
+            self.download_btn.setText(gt('使用中') if is_active else gt('已下载'))
         else:
             self.download_btn.setText(gt('下载'))
 
@@ -223,6 +322,39 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         """
         处理下载按钮点击事件
         """
+        if self.download_queue is not None and self.download_spec_factory is not None:
+            spec = self.download_spec_factory()
+            task = self.download_queue.get_task(spec.task_key)
+            if task is not None and task.state in (
+                ResourceDownloadTaskState.WAITING,
+                ResourceDownloadTaskState.DOWNLOADING,
+                ResourceDownloadTaskState.EXTRACTING,
+                ResourceDownloadTaskState.APPLYING,
+                ResourceDownloadTaskState.CANCELLING,
+                ResourceDownloadTaskState.FAILED,
+            ):
+                window = self.window()
+                if hasattr(window, 'show_download_queue'):
+                    window.show_download_queue()
+                return
+            if task is not None and task.state == ResourceDownloadTaskState.CANCELLED:
+                self.download_queue.retry(task.task_key)
+            elif task is not None and task.state == ResourceDownloadTaskState.SUCCEEDED:
+                if task.spec.resource_type == 'launcher':
+                    window = self.window()
+                    if hasattr(window, 'show_download_queue'):
+                        window.show_download_queue()
+                    return
+                self.download_queue.remove(task.task_key)
+                self.download_queue.enqueue(spec)
+            else:
+                self.download_queue.enqueue(spec)
+            window = self.window()
+            if hasattr(window, 'show_download_queue_added_tip'):
+                window.show_download_queue_added_tip(spec.title)
+            self.check_and_update_display()
+            return
+
         if self.download_runner is None:
             log.warning('未选择资源')
             return
@@ -271,10 +403,10 @@ class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
     def __init__(
             self,
             ctx: OneDragonContext,
-            icon: Union[str, QIcon, FluentIconBase],
+            icon: str | QIcon | FluentIconBase,
             title: str,
             content=None,
-            extra_btn_list: List[QAbstractButton] = None,
+            extra_btn_list: list[QAbstractButton] = None,
             parent=None
     ):
         CommonDownloaderSettingCard.__init__(
