@@ -287,7 +287,7 @@ class ChargePlanCard(DraggableListItem):
 
 
 
-class DoubleRewardEventConfigCard(MultiLineSettingCard):
+class MultiRewardEventConfigCard(MultiLineSettingCard):
 
     changed = Signal(ChargePlanItem)
 
@@ -335,7 +335,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
 
     def init_with_plan(self, plan: ChargePlanItem) -> None:
         """
-        以双倍活动配置初始化。
+        以多倍活动配置初始化。
         """
         self.plan = plan
         self.plan.tab_name = '训练'
@@ -363,6 +363,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
             self.plan.category_name, self.plan.mission_type_name
         )
         self.mission_combo_box.set_items(config_list, self.plan.mission_name)
+        self.mission_combo_box.setVisible(self.plan.category_name == '实战模拟室')
 
     def init_predefined_team_opt(self) -> None:
         """
@@ -433,14 +434,14 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.double_reward_group = ExpandSettingCardGroup(
             icon=FluentIcon.FLAG,
-            title='双倍活动',
-            content='有活动时自动添加对应任务',
+            title='多倍活动',
+            content='开启后，自动识别双倍/三倍活动；执行数量取活动剩余数量与当前电量可承担数量的较小值',
         )
         self.content_widget.add_widget(self.double_reward_group)
 
-        # 自动识别实战模拟室双倍活动开关
+        # 自动识别实战模拟室和区域巡防的多倍活动开关
         self.double_reward_opt = SwitchSettingCard(
-            icon=FluentIcon.FLAG, title='启用双倍活动'
+            icon=FluentIcon.FLAG, title='启用多倍活动'
         )
         self.double_reward_opt.value_changed.connect(
             self.on_double_reward_changed
@@ -448,7 +449,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.double_reward_group.addHeaderWidget(
             self.double_reward_opt.btn
         )
-        self.combat_simulation_double_reward_config_card = DoubleRewardEventConfigCard(
+        self.combat_simulation_double_reward_config_card = MultiRewardEventConfigCard(
             self.ctx,
             category_name='实战模拟室',
         )
@@ -457,6 +458,16 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.double_reward_group.addSettingCard(
             self.combat_simulation_double_reward_config_card
+        )
+        self.area_patrol_double_reward_config_card = MultiRewardEventConfigCard(
+            self.ctx,
+            category_name='区域巡防',
+        )
+        self.area_patrol_double_reward_config_card.changed.connect(
+            self.set_area_patrol_double_reward_config
+        )
+        self.double_reward_group.addSettingCard(
+            self.area_patrol_double_reward_config_card
         )
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
@@ -507,6 +518,9 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.combat_simulation_double_reward_config_card.init_with_plan(
             self.config.combat_simulation_double_reward_config
         )
+        self.area_patrol_double_reward_config_card.init_with_plan(
+            self.config.area_patrol_double_reward_config
+        )
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
@@ -515,12 +529,17 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
 
         self.combat_simulation_double_reward_config_card.setEnabled(self.config.double_reward)
+        self.area_patrol_double_reward_config_card.setEnabled(self.config.double_reward)
 
     def on_double_reward_changed(self, value: bool) -> None:
         self.combat_simulation_double_reward_config_card.setEnabled(value)
+        self.area_patrol_double_reward_config_card.setEnabled(value)
 
     def set_combat_simulation_double_reward_config(self, config: ChargePlanItem) -> None:
         self.config.combat_simulation_double_reward_config = config
+
+    def set_area_patrol_double_reward_config(self, config: ChargePlanItem) -> None:
+        self.config.area_patrol_double_reward_config = config
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
