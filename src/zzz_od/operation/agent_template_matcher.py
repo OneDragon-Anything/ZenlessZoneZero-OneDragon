@@ -7,16 +7,38 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 
 
+class AgentTemplateMatchResult(MatchResult):
+    """预备编队头像模板的匹配结果。"""
+
+    def __init__(
+        self,
+        match_result: MatchResult,
+        agent: Agent,
+        template_id: str,
+    ) -> None:
+        MatchResult.__init__(
+            self,
+            match_result.confidence,
+            match_result.x,
+            match_result.y,
+            match_result.w,
+            match_result.h,
+            match_result.template_scale,
+            agent,
+        )
+        self.template_id: str = template_id
+
+
 def match_team_agent_template(
     ctx: ZContext,
     screen: MatLike,
     rect: Rect,
     agent_list_str: list[str] | None = None
-) -> list[MatchResult]:
+) -> list[AgentTemplateMatchResult]:
     part = cv2_utils.crop_image_only(screen, rect)
     source_kp, source_desc = cv2_utils.feature_detect_and_compute(part)
 
-    agent_mr_list: list[MatchResult] = []
+    agent_mr_list: list[AgentTemplateMatchResult] = []
     for agent_enum in AgentEnum:
         agent: Agent = agent_enum.value
         if agent_list_str is not None and agent.agent_id not in agent_list_str:
@@ -40,7 +62,7 @@ def match_team_agent_template(
                 continue
 
             mr.add_offset(rect.left_top)
-            agent_mr = mr
-            agent_mr.data = agent
-            agent_mr_list.append(agent_mr)
+            agent_mr_list.append(
+                AgentTemplateMatchResult(mr, agent, template_id)
+            )
     return agent_mr_list
