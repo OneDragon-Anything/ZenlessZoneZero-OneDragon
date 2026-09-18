@@ -26,12 +26,7 @@ if TYPE_CHECKING:
 
 
 class AreaType(str, Enum):
-    """画面区域类型(str Enum,序列化为 'text'/'template')。
-
-    Attributes:
-        TEXT: 文本区域(OCR 识别)。
-        TEMPLATE: 模板区域(模板匹配)。
-    """
+    """已命中的画面区域类型。"""
 
     TEXT = 'text'
     TEMPLATE = 'template'
@@ -49,7 +44,7 @@ class AreaMatchDetail:
         width: 命中宽度。
         height: 命中高度。
         text: 文本区域实际命中文本(模板区域为 None)。
-        confidence: 置信度(文本=ocr score,模板=匹配度)。
+        confidence: 置信度(文本=OCR 得分，模板=匹配度)。
     """
 
     area_name: str
@@ -95,8 +90,10 @@ def find_area_with_detail(
         crop_first: 是否先裁剪再 OCR,默认 False(全图缓存复用)。
 
     Returns:
-        命中详情;纯定位区域或未命中返 None。
+        命中详情;纯定位区域、配置不完整或未命中返 None。
     """
+    if not area.can_match:
+        return None
     if area.is_text_area:
         ocr_result_list: list[OcrMatchResult] = ctx.ocr_service.get_ocr_result_list(
             image=screen,
@@ -223,7 +220,7 @@ def find_screen_matches(
             if detail is not None:
                 hit_details.append(detail)
                 hit_names.add(area.area_name)
-        id_mark_names = {a.area_name for a in screen_info.area_list if a.id_mark}
+        id_mark_names = {a.area_name for a in screen_info.area_list if a.id_mark and a.can_match}
         is_precise = len(id_mark_names) > 0 and id_mark_names.issubset(hit_names)
         if is_precise:
             return [ScreenMatch(screen_name=name, is_precise=True, areas=hit_details)]
