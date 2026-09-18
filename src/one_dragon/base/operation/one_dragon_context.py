@@ -85,6 +85,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
+        self._btn_listener_started: bool = False
+        self._btn_listener_closed: bool = False
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -302,7 +304,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_others()
 
-            self.btn_listener.start()
+            self._start_btn_listener()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -579,12 +581,33 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         return self.model_config.ocr
 
+    def _start_btn_listener(self) -> None:
+        """
+        启动按键监听器 可以重复调用
+        已经启动或关闭流程开始后 不会再启动
+        """
+        if self._btn_listener_started or self._btn_listener_closed:
+            return
+
+        self.btn_listener.start()
+        self._btn_listener_started = True
+
+    def _stop_btn_listener(self) -> None:
+        """
+        停止按键监听器 可以重复调用
+        """
+        if self._btn_listener_closed:
+            return
+
+        self._btn_listener_closed = True
+        self.btn_listener.stop()
+
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
-        self.btn_listener.stop()
+        self._stop_btn_listener()
         if self.controller is not None:
             self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
