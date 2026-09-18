@@ -190,27 +190,6 @@
 返回大世界 → 保存通知截图 → 发送完成通知
 ```
 
-## 关卡（副本类型）列表数据来源
-
-各分类的关卡列表来自 `assets/game_data/compendium_data.yml`（按 `tab → category → mission_type` 组织），**不是代码里的枚举**。
-新增 / 下架一个关卡只改这个 yml，下面这些位置自动跟着变，不用改代码：
-
-- 设置界面的关卡下拉（`CompendiumService.get_charge_plan_mission_type_list`）
-- 后端 / MCP 写入前的合法性校验（`ChargePlanConfig.validate_item`、`NotoriousHuntConfig.validate_item`）
-- 传送时的 OCR 候选名单（`CompendiumChooseMissionType`）
-
-填数据的两条要求：
-
-1. **名称与游戏内文本逐字对齐**，包括游戏自己带的「」书名号（例如 `「提丰·重击者型」`、`「征服者」`）。
-   界面显示名与匹配名不同时用 `mission_type_name_display`；OCR 认不出真名时补 `alias_list`。
-2. **关卡名要全库唯一**。`CompendiumService.get_same_category_mission_type_list` 是按名字在**全库**找第一个命中、
-   返回它所在分类的完整列表；重名会让传送拿到别的分类的候选名单。当前允许的跨分类重名只有
-   `代理人方案培养`（每个分类的伪条目，代码靠 `is_agent_plan` 提前分支）与 `迷失之地`（作战 tab 两个分类各一条），
-   测试仓 `test/zzz_od/game_data/compendium/test_compendium_data.py` 锁这条规则。
-
-列表顺序不做功能假设：传送没匹配到目标时只会**往下**滑动重试（`CompendiumChooseMissionType.handle_scroll`），
-所以新关卡按「追加到分类列表末尾」的方式添加即可。
-
 ## 状态流转图
 
 ```mermaid
