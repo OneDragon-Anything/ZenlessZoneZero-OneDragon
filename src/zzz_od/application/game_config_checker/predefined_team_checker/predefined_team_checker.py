@@ -63,8 +63,8 @@ class PredefinedTeamChecker(ZApplication):
         self.update_team_members(self.last_screenshot)
 
         if self.scroll_times < 4:
-            drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            drag_end = drag_start + Point(0, -500)
+            drag_start = Point(960, 715)
+            drag_end = Point(960, 150)
             self.ctx.controller.drag_to(start=drag_start, end=drag_end)
             self.scroll_times += 1
             return self.round_wait('继续识别', wait=1)
