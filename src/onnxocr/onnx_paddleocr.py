@@ -33,7 +33,7 @@ def _normalize_ppocrv6_model_name(model_name: str) -> str:
 
 
 def _build_ppocrv6_defaults(kwargs: dict[str, Any]) -> dict[str, Any]:
-    """为 PP-OCRv6 模型构建默认参数。如果不是 v6 模型则返回空字典，保证 v5 兼容。"""
+    """为 PP-OCRv6 模型构建默认参数。如果不是 v6 模型则返回空字典。"""
     model_name = kwargs.pop("ocr_model_name", None)
     if not model_name:
         kwargs.pop("ocr_model_size", None)
@@ -205,14 +205,14 @@ def __debug():
 
     from one_dragon.utils import debug_utils, os_utils
 
-    models_dir = os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', 'ppocrv5')
+    models_dir = os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', 'ppocrv6')
 
     model = ONNXPaddleOcr(
                     use_angle_cls=False, use_gpu=False,
                     det_model_dir=os.path.join(models_dir, 'det.onnx'),
                     rec_model_dir=os.path.join(models_dir, 'rec.onnx'),
                     cls_model_dir=os.path.join(models_dir, 'cls.onnx'),
-                    rec_char_dict_path=os.path.join(models_dir, 'ppocrv5_dict.txt'),
+                    rec_char_dict_path=os.path.join(models_dir, 'ppocrv6_dict.txt'),
                     vis_font_path=os.path.join(models_dir, 'simfang.ttf'),
                 )
 
