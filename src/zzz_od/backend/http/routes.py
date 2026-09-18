@@ -1,7 +1,7 @@
 """HTTP 适配器：``/game/*`` 端点，把 ``ZzzBackendContext`` 暴露给 web/skill。
 
 本模块在后端 game 切片（``ZzzBackendContext``）之上架设一层 HTTP 传输适配：
-- ``register_http_routes`` 通过 FastMCP 的 ``custom_route`` 挂 7 个端点
+- ``register_http_routes`` 通过 MCPServer 的 ``custom_route`` 挂 7 个端点
   （``window``/``capture``/``analyze``/``enter``/``status``/``stop``/``close``），与 MCP ``/mcp``
   端点同进程共存。
 - 7 个处理器函数（``handle_game_*``）为模块级、可独立调用，便于直接测试，
@@ -15,7 +15,7 @@
 import asyncio
 from dataclasses import asdict
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -211,14 +211,14 @@ async def handle_game_close(backend: ZzzBackendContext, _request: Request | None
     return JSONResponse({"result": msg})
 
 
-def register_http_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
-    """把 ``/game/*`` 端点挂到 FastMCP。
+def register_http_routes(mcp: MCPServer, backend: ZzzBackendContext) -> None:
+    """把 ``/game/*`` 端点挂到 MCPServer。
 
     使用 ``custom_route``（装饰器工厂二次调用）在 Starlette 层挂载 7 个端点，
     与 MCP ``/mcp`` 同进程共存。通过闭包将 ``backend`` 注入到各 lambda 处理器。
 
     Args:
-        mcp: 目标 ``FastMCP`` 实例。
+        mcp: 目标 ``MCPServer`` 实例。
         backend: 已就绪的 ``ZzzBackendContext``，提供 game 切片能力。
     """
     register_service_routes(mcp, backend)

@@ -43,9 +43,12 @@ handlers:
       - states: "[按键可用-快速支援]"
         debug_name: "等待快速支援出现"
         operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-动作不打断", "自定义-无视闪光", "自定义-蕾米埃尔-长按强化特殊技"]
+            seconds: 0.05
+          - op_name: "按键-快速支援"
           - op_name: "清除状态"
             state_list: ["自定义-动作不打断", "自定义-无视闪光", "自定义-蕾米埃尔-长按强化特殊技"]
-          - op_name: "按键-快速支援"
 
       - states: "[蕾米埃尔-虚曜]{3,3}"
         interrupt_states: "[蕾米埃尔-虚曜]{0,0} | [按键可用-快速支援]"

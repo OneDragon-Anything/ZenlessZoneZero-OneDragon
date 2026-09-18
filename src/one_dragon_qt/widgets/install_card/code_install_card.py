@@ -3,8 +3,8 @@ from collections.abc import Callable
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
 
+from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.envs.env_config import GitBranchEnum
 from one_dragon.envs.git_service import GitSyncStatus
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -15,7 +15,7 @@ class CodeInstallCard(BaseInstallCard):
 
     def __init__(self, ctx: OneDragonEnvContext, parent=None):
 
-        self.git_branches = [opt.value for opt in GitBranchEnum]
+        self.git_branches: list[ConfigItem] = ctx.repo_config.branch_options
         self.git_branch_opt = ComboBox()
         self.git_branch_opt.set_items(self.git_branches)
         self.git_branch_opt.init_with_value(ctx.env_config.git_branch)

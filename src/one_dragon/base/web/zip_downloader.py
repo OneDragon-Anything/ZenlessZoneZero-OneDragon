@@ -1,9 +1,11 @@
 import os
 from collections.abc import Callable
+from pathlib import Path
 
 from one_dragon.base.web.common_downloader import (
     CommonDownloader,
     CommonDownloaderParam,
+    ResourceDownloadProgress,
 )
 from one_dragon.utils import file_utils
 from one_dragon.utils.log_utils import log
@@ -28,31 +30,37 @@ class ZipDownloader(CommonDownloader):
 
     def download(
             self,
-            download_by_github: bool = True,
-            download_by_gitee: bool = False,
-            download_by_mirror_chan: bool = False,
+            source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
-            progress_callback: Callable[[float, str], None] | None = None
+            progress_callback: Callable[[float, str], None] | None = None,
+            status_callback: Callable[[ResourceDownloadProgress], None] | None = None,
+            on_source_success: Callable[[str], None] | None = None,
+            on_source_failure: Callable[[str], None] | None = None,
+            fallback_on_slow: bool = False,
             ) -> bool:
         for i in range(2):
             download_result = CommonDownloader.download(
                 self,
-                download_by_github=download_by_github,
-                download_by_gitee=download_by_gitee,
-                download_by_mirror_chan=download_by_mirror_chan,
+                source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,
+                status_callback=status_callback,
+                on_source_success=on_source_success,
+                on_source_failure=on_source_failure,
+                fallback_on_slow=fallback_on_slow,
             )
 
             if not download_result:
                 return download_result
 
+            if status_callback is not None:
+                status_callback(ResourceDownloadProgress(phase='extracting', progress=1, message='正在解压'))
             unzip_result = self.unzip()
             if unzip_result:
                 break
@@ -61,7 +69,11 @@ class ZipDownloader(CommonDownloader):
                 continue
 
         # 解压有可能失败 最后再判断一次解压产物是否已经存在
-        return CommonDownloader.is_file_existed(self)
+        success = CommonDownloader.is_file_existed(self)
+        if not success:
+            archive = Path(self.param.save_file_path) / self.param.save_file_name
+            archive.unlink(missing_ok=True)
+        return success
 
     def unzip(self) -> bool:
         """

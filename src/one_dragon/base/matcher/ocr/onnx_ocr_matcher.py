@@ -7,6 +7,12 @@ from typing import Any
 
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
+)
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
@@ -19,24 +25,25 @@ from one_dragon.utils.log_utils import log
 
 DEFAULT_OCR_MODEL_NAME: str = 'ppocrv5'
 PPOCRV6_MODEL_NAME: str = 'ppocrv6'
-GITHUB_DOWNLOAD_URL: str = 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download'
-GITEE_DOWNLOAD_URL: str = 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download'
+
+# OneDragon-Env 仓库各源的 release 下载地址
+OCR_DOWNLOAD_URLS: dict[str, str] = {
+    'github': 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download',
+    'cnb': 'https://cnb.cool/OneDragon-Anything/OneDragon-Env/-/releases/download',
+    'gitee': 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download',
+}
 
 
 def get_ocr_model_dir(ocr_model_name: str) -> str:
     return os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', ocr_model_name)
 
 
-def get_ocr_download_url_github(ocr_model_name: str) -> str:
-    return get_ocr_download_url(GITHUB_DOWNLOAD_URL, ocr_model_name)
-
-
-def get_ocr_download_url_gitee(ocr_model_name: str) -> str:
-    return get_ocr_download_url(GITEE_DOWNLOAD_URL, ocr_model_name)
-
-
-def get_ocr_download_url(website: str, ocr_model_name: str) -> str:
-    return f'{website}/{ocr_model_name}/{ocr_model_name}.zip'
+def get_ocr_download_urls(ocr_model_name: str) -> dict[str, str]:
+    """获取OCR模型各源的下载地址。"""
+    return {
+        source_id: f'{website}/{ocr_model_name}/{ocr_model_name}.zip'
+        for source_id, website in OCR_DOWNLOAD_URLS.items()
+    }
 
 
 def get_ocr_model_dict_name(ocr_model_name: str) -> str | None:
@@ -144,16 +151,19 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_param: OnnxOcrParam | None =  None):
+    def __init__(
+        self,
+        ocr_param: OnnxOcrParam | None = None,
+        debug_trace_bus: DebugTraceBus | None = None,
+    ) -> None:
         if ocr_param is None:
             ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
+        self.debug_trace_bus: DebugTraceBus | None = debug_trace_bus
         param = CommonDownloaderParam(
             save_file_path=ocr_param.models_dir,
             save_file_name=f'{ocr_param.ocr_model_name}.zip',
-            github_release_download_url=get_ocr_download_url_github(ocr_param.ocr_model_name),
-            gitee_release_download_url=get_ocr_download_url_gitee(ocr_param.ocr_model_name),
-            mirror_chan_download_url='',
+            download_urls=get_ocr_download_urls(ocr_param.ocr_model_name),
             check_existed_list=get_final_file_list(ocr_param.ocr_model_name)
         )
         ZipDownloader.__init__(
@@ -164,7 +174,6 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._model = None
         self._init_lock = threading.Lock()
         self._loading: bool = False
-        self.overlay_debug_bus = None
 
     @staticmethod
     def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
@@ -199,13 +208,14 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
     def init_model(
             self,
-            download_by_github: bool = True,
-            download_by_gitee: bool = False,
-            download_by_mirror_chan: bool = False,
+            source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Callable[[float, str], None] | None = None
+            progress_callback: Callable[[float, str], None] | None = None,
+            on_source_success: Callable[[str], None] | None = None,
+            on_source_failure: Callable[[str], None] | None = None,
+            fallback_on_slow: bool = False,
             ) -> bool:
         with self._init_lock:
             log.info('正在加载OCR模型')
@@ -216,13 +226,14 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
             # 先检查模型文件和下载模型
             done: bool = self.download(
-                download_by_github=download_by_github,
-                download_by_gitee=download_by_gitee,
-                download_by_mirror_chan=download_by_mirror_chan,
+                source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
                 skip_if_existed=skip_if_existed,
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
+                on_source_success=on_source_success,
+                on_source_failure=on_source_failure,
+                fallback_on_slow=fallback_on_slow,
             )
             if not done:
                 log.error('下载OCR模型失败')
@@ -337,8 +348,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                                                                      merge_line_distance=merge_line_distance)
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision(result_map)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
+        self._emit_debug_vision(result_map)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
@@ -465,28 +476,22 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             pass  # TODO
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
-        self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
+        self._emit_debug_vision_from_ocr_results(ocr_result_list)
+        self._emit_debug_perf_and_timeline(elapsed_ms, len(ocr_result_list))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
         return ocr_result_list
 
-    def _emit_overlay_vision(
+    def _emit_debug_vision(
         self,
         result_map: dict[str, MatchResultList],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not result_map:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled or not result_map:
             return
 
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
-            return
-
-        ox, oy = bus.crop_offset
         pushed = 0
         max_items = 60
         for text, match_list in result_map.items():
@@ -499,88 +504,67 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 if len(label) > 32:
                     label = label[:29] + "..."
                 bus.add_vision(
-                    VisionDrawItem(
+                    VisionTraceItem(
                         source="ocr",
                         label=label,
-                        x1=match.x + ox,
-                        y1=match.y + oy,
-                        x2=match.x + match.w + ox,
-                        y2=match.y + match.h + oy,
+                        x1=match.x,
+                        y1=match.y,
+                        x2=match.x + match.w,
+                        y2=match.y + match.h,
                         score=match.confidence,
-                        color="#ff6ac1",
-                        ttl_seconds=1.4,
                     )
                 )
                 pushed += 1
 
-    def _emit_overlay_vision_from_ocr_results(
+    def _emit_debug_vision_from_ocr_results(
         self,
         ocr_results: list[OcrMatchResult],
     ) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None or not ocr_results:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled or not ocr_results:
             return
 
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
-        except Exception:
-            return
-
-        offset_x, offset_y = bus.crop_offset
         for result in ocr_results[:60]:
             label = str(result.data or "").strip()
             if len(label) > 32:
                 label = label[:29] + "..."
             bus.add_vision(
-                VisionDrawItem(
+                VisionTraceItem(
                     source="ocr",
                     label=label,
-                    x1=result.x + offset_x,
-                    y1=result.y + offset_y,
-                    x2=result.x + result.w + offset_x,
-                    y2=result.y + result.h + offset_y,
+                    x1=result.x,
+                    y1=result.y,
+                    x2=result.x + result.w,
+                    y2=result.y + result.h,
                     score=result.confidence,
-                    color="#ff6ac1",
-                    ttl_seconds=1.4,
                 )
             )
 
-    def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
-        bus = getattr(self, "overlay_debug_bus", None)
-        if bus is None:
+    def _emit_debug_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
+        bus = self.debug_trace_bus
+        if bus is None or not bus.enabled:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import (
-                PerfMetricSample,
-                TimelineItem,
-            )
-        except Exception:
-            return
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="ocr_ms",
                 value=float(elapsed_ms),
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"text_items": item_count},
             )
         )
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category="vision",
                 title="ocr",
                 detail=f"{item_count} items / {elapsed_ms:.1f}ms",
                 level="DEBUG",
-                ttl_seconds=15.0,
             )
         )
 
 
 def __debug():
     ocr = OnnxOcrMatcher()
-    ocr.init_model(
-        download_by_github=False,
-        download_by_gitee=True)
+    ocr.init_model(source_order=['gitee'])
 
     from one_dragon.utils import debug_utils
     img = debug_utils.get_debug_image('1')
