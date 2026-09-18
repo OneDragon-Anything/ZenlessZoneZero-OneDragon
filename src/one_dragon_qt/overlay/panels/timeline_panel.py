@@ -3,7 +3,7 @@ from __future__ import annotations
 import html
 import time
 
-from one_dragon.base.operation.overlay_debug_bus import TimelineItem
+from one_dragon.base.debug.debug_trace_bus import TimelineTraceItem
 from one_dragon_qt.overlay.panels.resizable_panel import ResizablePanel
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
 
@@ -36,7 +36,7 @@ class TimelinePanel(ResizablePanel):
         self._text_color = str(color or "").strip() or "#f2f2f2"
         self._text_widget.set_text_color(self._text_color)
 
-    def update_items(self, items: list[TimelineItem]) -> None:
+    def update_items(self, items: list[TimelineTraceItem]) -> None:
         if self._edit_mode:
             return
         rows: list[str] = []

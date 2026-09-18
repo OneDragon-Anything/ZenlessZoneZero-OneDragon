@@ -11,6 +11,7 @@ from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
@@ -25,13 +26,16 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_download_request_event import (
+    ContextDownloadRequestEvent,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
@@ -60,20 +64,22 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
+        self.debug_trace_bus: DebugTraceBus = DebugTraceBus()
+        """通用调试 trace 总线"""
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
-        self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        self.tm.overlay_debug_bus = self.overlay_debug_bus
+        self.tm: TemplateMatcher = TemplateMatcher(
+            self.template_loader, debug_trace_bus=self.debug_trace_bus
+        )
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            debug_trace_bus=self.debug_trace_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -163,7 +169,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @cached_property
     def model_config(self) -> BasicModelConfig:
-        return BasicModelConfig()
+        return BasicModelConfig(self.repo_config)
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -486,6 +492,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        ocr_model_name = self._decide_ocr_model_name()
+
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
             if hasattr(self.ocr, 'cleanup'):
@@ -493,19 +501,83 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr = OnnxOcrMatcher(
             OnnxOcrParam(
-                ocr_model_name=self.model_config.ocr,
+                ocr_model_name=ocr_model_name,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            debug_trace_bus=self.debug_trace_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
-        self.ocr.init_model(
+
+        need_download: bool = not self.ocr.is_file_existed()
+        if need_download:
+            if not self._confirm_resource_download(title='OCR识别模型', note=self.model_config.ocr):
+                log.info('已取消下载OCR模型 使用OCR时将重新下载')
+                return
+            self.dispatch_event(
+                ContextNotifyEvent.EVENT_ID,
+                ContextNotifyEvent.info('资源下载', '开始下载OCR识别模型'),
+            )
+
+        success: bool = self.ocr.init_model(
+            source_order=self.env_config.get_resource_source_order(),
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+            on_source_success=self._on_resource_source_success,
+            on_source_failure=self._on_resource_source_failure,
+            fallback_on_slow=self.env_config.is_resource_source_auto,
         )
+
+        if need_download:
+            if success:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.success('资源下载', 'OCR识别模型下载完成'),
+                )
+            else:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.error('资源下载', 'OCR识别模型下载失败 可到[设置-资源下载]更换下载源重试'),
+                )
+
+    def _confirm_resource_download(self, title: str, note: str) -> bool:
+        """自动下载资源前请求前端确认。
+
+        已设置不再询问或无前端监听时自动下载；前端等待超时视为取消。
+        :param title: 资源显示名
+        :param note: 资源说明
+        :return: 是否继续下载
+        """
+        if self.env_config.resource_download_no_confirm:
+            return True
+        if not self.has_event_listener(ContextDownloadRequestEvent.EVENT_ID):
+            # 无界面场景 按候选源顺序自动下载
+            return True
+
+        request = ContextDownloadRequestEvent(title=title, note=note)
+        self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request)
+        if not request.wait(timeout=300):
+            log.warning('资源下载确认超时，已取消本次下载')
+            return False
+        if request.confirmed and request.remember:
+            self.env_config.resource_download_no_confirm = True
+        return request.confirmed
+
+    def _on_resource_source_success(self, source_id: str) -> None:
+        """资源下载成功后记录使用的源。"""
+        self.env_config.mark_resource_source_success(source_id)
+
+    def _on_resource_source_failure(self, source_id: str) -> None:
+        """自动模式下清除已经失效的上次成功源。"""
+        self.env_config.mark_resource_source_failure(source_id)
+
+    def _decide_ocr_model_name(self) -> str:
+        """
+        决定本次初始化使用的 OCR 模型名 默认使用配置里的模型名 子类可按项目需要覆写
+        """
+        return self.model_config.ocr
 
     def after_app_shutdown(self) -> None:
         """
@@ -534,4 +606,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
-        self.overlay_debug_bus.clear()
+        self.debug_trace_bus.clear()

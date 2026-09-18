@@ -35,7 +35,6 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
-    ControlMethodEnum,
     GameKeyAction,
     GamepadActionEnum,
     GamepadTypeEnum,
@@ -184,12 +183,6 @@ class SettingGameInterface(VerticalScrollInterface):
     def _get_key_settings_group(self) -> QWidget:
         key_settings_group = SettingCardGroup(gt('按键设置'))
 
-        self.control_method_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='操控方式',
-                                                      content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
-                                                      options_enum=ControlMethodEnum)
-        self.control_method_opt.value_changed.connect(self._on_control_method_changed)
-        key_settings_group.addSettingCard(self.control_method_opt)
-
         self._keyboard_group = self._get_keyboard_group()
         self._gamepad_group = self._get_gamepad_group()
         key_settings_group.addSettingCard(self._keyboard_group)
@@ -263,8 +256,6 @@ class SettingGameInterface(VerticalScrollInterface):
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
 
-        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('control_method'))
-
         for action, card in self._key_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'key_{action.value.value}'))
 
@@ -303,17 +294,6 @@ class SettingGameInterface(VerticalScrollInterface):
             self.ctx.game_config.background_mode = False
             InfoBar.warning(
                 title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
-                parent=self, duration=5000,
-            )
-
-    def _on_control_method_changed(self, _index: int, value: str) -> None:
-        """操控方式变更时检查 vgamepad 是否可用。"""
-        if value != ControlMethodEnum.KEYBOARD.value.value and not pc_button_utils.is_vgamepad_installed():
-            self.control_method_opt.setValue(ControlMethodEnum.KEYBOARD.value.value, emit_signal=False)
-            self.ctx.game_config.control_method = ControlMethodEnum.KEYBOARD.value.value
-            InfoBar.warning(
-                title='手柄操控不可用',
                 content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
                 parent=self, duration=5000,
             )

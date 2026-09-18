@@ -100,6 +100,15 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
   - **同开关联 PR**:开主仓 PR 时同开测试仓 PR,PR 描述互相挂链接(**跨仓链接用 `OneDragon-Anything/<repo>#<N>` 或完整 URL,禁裸 `#N`** —— 裸 `#N` 会被 GitHub 识别成本仓而非目标仓);别让测试仓分支挂着改动却没开 PR(主仓合了才补测试仓 = 漏)。
   - **合并顺序:测试仓先 → 主仓后**(主仓 main 的 test-check clone 测试仓 main,测试仓先合才稳)。
 - 如果用户明确要求切换分支，先 `stash` 当前改动，再切换。
+- **commit / PR 规范**(依据 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)):
+  - **单个迭代 commit**(开发过程,会被 squash 压掉):写清这步干嘛即可,不强制格式;建议带 type 前缀(`fix:` / `docs:` / `chore:` / `wip:`)方便扫,但不要求 scope / 长度 / body。判据:不看 diff 也能知道这步干了啥(✅ `fix: Y 坐标分母` ❌ `update`)。
+  - **PR title**:`type(scope): subject`(≤50、祈使句、无句号;type ∈ `feat / fix / docs / refactor / test / chore / perf / build / ci / style`,scope = 模块;PR 号不进 subject,squash 自动追加 `(#NNNN)`)—— = squash/merge commit 标题。
+  - **PR description**(开 PR 时作者写,= commit body):写:
+    - **为什么改**(why):解决什么问题 / 目标 + 非显然的决策(为什么这么做);1-3 句,不写实现细节(how 看代码)。
+    - **改动要点**(what):多个改动**分行**(bullet,每条动宾简短,说清改了什么);可按 新增 / 变更 / 修复 / 移除 分组;只实质改动,不展开 how。
+    - **关联**:`Closes #N`(本仓 issue)/ 测试仓 PR 用 `OneDragon-Anything/zzz-od-test#N`(跨仓全名,禁裸 `#N`)。
+  - **merge 时**:commit message = PR title + description(取整段 desc)。作者按上面写好就直接 merge;不符合规范时(贡献者没按规范写、缺 why 等),合并者 merge 时编辑 commit message(网页 squash 框)按规范编写 —— why + 改动要点 + 关联。
+  - **rebase / 直推**(无 merge commit,不进 squash/merge):靠 commit 本身规范。
 - Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
 - 提交 PR 后，review comment 需要逐条回复或修正。
 

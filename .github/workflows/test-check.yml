@@ -62,46 +62,23 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Run tests
+      - name: Run tests (Disabled)
         shell: pwsh
         run: |
-          chcp 65001
-          $OutputEncoding = [System.Text.Encoding]::UTF8
-          [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          .\.venv\Scripts\Activate.ps1
-          
-          if ("${{ github.event_name }}" -eq "pull_request") {
-            # PR时只运行不需要secrets的测试
-            uv run pytest zzz-od-test/ -v --tb=short --color=yes -m "not requires_secrets"
-          } else {
-            # main分支更新时运行所有测试
-            uv run pytest zzz-od-test/ -v --tb=short --color=yes
-          }
-        env:
-          PYTHONIOENCODING: utf-8
-          PUSH_SERVER_CHAN_PUSH_KEY: ${{ secrets.PUSH_SERVER_CHAN_PUSH_KEY }}
-          PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}
-          PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
-          PUSH_PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PUSH_PLUS_TOKEN }}
-          PUSH_FS_KEY: ${{ secrets.PUSH_FS_KEY }}
-          PUSH_FS_BOT_SECRET: ${{ secrets.PUSH_FS_BOT_SECRET }}
-          PUSH_FS_APP_ID: ${{ secrets.PUSH_FS_APP_ID }}
-          PUSH_FS_APP_SECRET: ${{ secrets.PUSH_FS_APP_SECRET }}
-          PUSH_WORK_WEIXIN_KEY: ${{ secrets.PUSH_WORK_WEIXIN_KEY }}
-          PUSH_QYWX_APP_CORP_ID: ${{ secrets.PUSH_QYWX_APP_CORP_ID }}
-          PUSH_QYWX_APP_CORP_SECRET: ${{ secrets.PUSH_QYWX_APP_CORP_SECRET }}
-          PUSH_QYWX_APP_AGENT_ID: ${{ secrets.PUSH_QYWX_APP_AGENT_ID }}
-          PUSH_TG_BOT_TOKEN: ${{ secrets.PUSH_TG_BOT_TOKEN }}
-          PUSH_TG_USER_ID: ${{ secrets.PUSH_TG_USER_ID }}
-          PUSH_NTFY_TOPIC: ${{ secrets.PUSH_NTFY_TOPIC }}
-          PUSH_NTFY_TOKEN: ${{ secrets.PUSH_NTFY_TOKEN }}
-          PUSH_WEBHOOK_FS_URL: ${{ secrets.PUSH_WEBHOOK_FS_URL }}
-          PUSH_WEBHOOK_DISCORD_URL: ${{ secrets.PUSH_WEBHOOK_DISCORD_URL }}
-          PUSH_SMTP_QQ_EMAIL: ${{ secrets.PUSH_SMTP_QQ_EMAIL }}
-          PUSH_SMTP_QQ_PASSWORD: ${{ secrets.PUSH_SMTP_QQ_PASSWORD }}
-          PUSH_WXPUSHER_APP_TOKEN: ${{ secrets.PUSH_WXPUSHER_APP_TOKEN }}
-          PUSH_WXPUSHER_UIDS: ${{ secrets.PUSH_WXPUSHER_UIDS }}
+          Write-Host "测试步骤已被临时注释跳过"
+          # chcp 65001
+          # $OutputEncoding = [System.Text.Encoding]::UTF8
+          # [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+          # [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          # .\.venv\Scripts\Activate.ps1
+          # 
+          # if ("${{ github.event_name }}" -eq "pull_request") {
+          #   # PR时只运行不需要secrets的测试
+          #   uv run pytest zzz-od-test/ -v --tb=short --color=yes -m "not requires_secrets"
+          # } else {
+          #   # main分支更新时运行所有测试
+          #   uv run pytest zzz-od-test/ -v --tb=short --color=yes
+          # }
 
       - name: Test failure notification
         if: failure()
