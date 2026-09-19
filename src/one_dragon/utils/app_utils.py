@@ -8,6 +8,31 @@ from one_dragon.utils import os_utils
 
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
 
+# 启动器 exe 由 PyInstaller 打包，输出编码跟随它自己的控制台代码页，按可能性从高到低尝试
+CONSOLE_OUTPUT_ENCODINGS = ('utf-8', 'gbk', 'mbcs')
+
+
+def decode_console_output(raw: bytes) -> str:
+    """
+    解码子进程输出的字节流。
+
+    子进程的输出编码由它自己的运行环境决定，与本进程的 locale 无关。本进程处于 UTF-8 模式
+    （如设置了 PYTHONUTF8=1）时，subprocess 的 text=True 会按 UTF-8 解码启动器输出的 GBK
+    字节并抛 UnicodeDecodeError，导致读不到版本号。
+
+    Args:
+        raw: 子进程输出的原始字节。
+
+    Returns:
+        str: 解码后的文本；候选编码都失败时用 UTF-8 宽松解码兜底。
+    """
+    for encoding in CONSOLE_OUTPUT_ENCODINGS:
+        try:
+            return raw.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return raw.decode('utf-8', errors='replace')
+
 
 def start_one_dragon(restart: bool) -> None:
     """
@@ -41,11 +66,12 @@ def get_exe_version(exe_path: str) -> str:
         })
         result = subprocess.run(
             [exe_path, '--version'],
-            capture_output=True, text=True,
+            capture_output=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
             env=env,
         )
-        version_output = ANSI_ESCAPE_PATTERN.sub('', result.stdout).strip()
+        decoded_output = decode_console_output(result.stdout)
+        version_output = ANSI_ESCAPE_PATTERN.sub('', decoded_output).strip()
         return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
     except Exception:
         return ""
