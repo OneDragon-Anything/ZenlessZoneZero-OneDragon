@@ -202,7 +202,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
     @operation_node(name='矩阵行动-前往入口')
     def matrix_goto_entry(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+        # 点「下一步」后游戏要加载全部角色模型，画面切得很慢。
+        # 等待不足时下一轮截图仍是矩阵行动页，会重复点「下一步」，而该坐标在编队页上是「开始挑战」。
+        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择', retry_wait=3)
 
     @node_from(from_name='矩阵行动-前往入口')
     @operation_node(name='矩阵行动-点击预备编队')
