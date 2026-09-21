@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -12,12 +14,18 @@ from zzz_od.operation.zzz_operation import ZOperation
 class MapTransport(ZOperation):
     """在地图界面执行传送（选区域->选传送点->点击传送）"""
 
+    AREA_SEARCH_MAX_TIMES: ClassVar[int] = 2
+    """区域选择最多允许的次数，第二次仍选不中传送点时直接失败，避免无休止回退。"""
+
     def __init__(self, ctx: ZContext, area_name: str, tp_name: str) -> None:
         ZOperation.__init__(self, ctx,
                             op_name=f"{gt('地图传送')} {gt(area_name, 'game')} {gt(tp_name, 'game')}")
 
         self.area_name: str = area_name
         self.tp_name: str = tp_name
+        self.handle_init()
+
+    def handle_init(self) -> None:
         # 首次识别到主区域时确定滑动方向，后续保持不变，避免搜索方向来回切换。
         self._area_search_drag_x: int | None = None
         # 保存上一轮识别到的主区域集合，用于判断滑动后列表是否仍在变化。
@@ -25,10 +33,26 @@ class MapTransport(ZOperation):
         self._same_area_times: int = 0
         # 当前方向连续三轮没有变化后只反向一次，反向后仍无变化才结束查找。
         self._area_search_reversed: bool = False
+        # 已经开始的区域选择次数，用于限制传送点失败后回到区域选择的次数。
+        self._area_search_count: int = 0
+        # 当前是否已经在某次区域选择内，避免同一次搜索过程被重复计数。
+        self._area_search_started: bool = False
 
     @node_from(from_name='选择传送点', success=False)
     @operation_node(name='选择区域', is_start_node=True)
     def choose_area(self) -> OperationRoundResult:
+        if not self._area_search_started:
+            if self._area_search_count >= MapTransport.AREA_SEARCH_MAX_TIMES:
+                # 区域选择次数已用完，传送点仍然选不中，直接结束，不再回退重新选区域。
+                return self.round_fail('未找到目标传送点')
+            self._area_search_count += 1
+            self._area_search_started = True
+            # 重新开始一次区域选择，翻页方向和判断状态都重置，避免沿用上一次的搜索结果。
+            self._area_search_drag_x = None
+            self._last_area_idx_set = None
+            self._same_area_times = 0
+            self._area_search_reversed = False
+
         area_name_list: list[str] = []
         for area in self.ctx.map_service.area_list:
             area_name_list.append(gt(area.area_name, 'game'))
@@ -52,6 +76,8 @@ class MapTransport(ZOperation):
                 continue
             if current_idx == target_area_idx:
                 self.ctx.controller.click(ocr_result.center)
+                # 本次区域选择结束，若后续选传送点失败，需要重新走一次区域选择。
+                self._area_search_started = False
                 return self.round_success(wait=1)
             last_current_area_idx = current_idx
             current_area_idx_set.add(current_idx)
