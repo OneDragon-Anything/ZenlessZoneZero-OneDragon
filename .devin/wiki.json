@@ -288,7 +288,7 @@
         },
         {
             "title": "打包、启动器与代码同步",
-            "purpose": "文档化安装器、原始启动器、RuntimeLauncher、PyInstaller、运行时依赖 manifest、代码同步、发行目录和常见失败分支。引用 deploy/、src/zzz_od/win_exe/、docs/develop/one_dragon/runtime_launcher.md、docs/develop/README.md。",
+            "purpose": "文档化安装器、源码启动器、RuntimeLauncher、PyInstaller、运行时依赖 manifest、代码同步、发行目录和常见失败分支。引用 deploy/、src/zzz_od/win_exe/、docs/develop/one_dragon/runtime_launcher.md、docs/develop/README.md。",
             "parent": "开发、测试与发布"
         },
         {
