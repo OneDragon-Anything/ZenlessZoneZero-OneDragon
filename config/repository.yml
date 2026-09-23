@@ -4,10 +4,13 @@ repositories:
   branches:
     main:
       label: 主分支
-      desc: 选择后请点击同步最新代码
+      desc: 稳定版本，源码启动器和集成启动器均可使用；选择后请点击同步最新代码
     test:
-      label: 测试分支
-      desc: 选择后请点击同步最新代码
+      label: 源码启动器测试分支
+      desc: 仅供源码启动器测试；集成启动器用户请使用集成启动器测试分支
+    test-integrated:
+      label: 集成启动器测试分支
+      desc: 供集成启动器测试使用；选择后请点击同步最新代码
   options:
     github:
       label: GitHub

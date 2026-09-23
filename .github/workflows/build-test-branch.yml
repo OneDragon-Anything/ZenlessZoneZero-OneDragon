@@ -1,11 +1,14 @@
-# 重建 test 分支 = 最新 main + 若干 PR 的 squash 提交(强制推送)
+# 从最新 main 重建两个测试分支，并逐个加入待测 PR 的 squash 提交：
+#   1. test：源码启动器使用，包含全部待测 PR。
+#   2. test-integrated：集成启动器使用，排除修改 deploy/module_manifest.py 的 PR。
 #
 # PR 来源(二选一):
-#   1. 定时 / 不填参数:所有带 `test-branch` 标签的 open PR,按 PR 号升序
-#   2. 手动触发填 prs:按填写顺序,临时覆盖标签(不改动标签本身)
+#   1. 定时 / 不填参数:所有带 `test-branch` 标签的 open PR,按 PR 号升序。
+#   2. 手动触发填 prs:按填写顺序,临时覆盖标签(不改动标签本身)。
 #
-# 有冲突的 PR 直接跳过(打上 `test-conflict` 标签),不影响后续 PR;
-# 每次都从 origin/main 重新开始,所以 test 分支上不会残留历史垃圾。
+# 定时构建会按 module_manifest 变动同步 `test-integrated-branch` 标签；
+# 两个分支分别使用 `test-conflict` 和 `test-integrated-conflict` 标记冲突。
+# 每次都从 origin/main 重新开始，所以测试分支上不会残留历史垃圾。
 name: Build Test Branch
 
 on:
@@ -30,6 +33,8 @@ permissions:
 env:
   INCLUDE_LABEL: test-branch
   CONFLICT_LABEL: test-conflict
+  INTEGRATED_LABEL: test-integrated-branch
+  INTEGRATED_CONFLICT_LABEL: test-integrated-conflict
 
 jobs:
   build-test-branch:
