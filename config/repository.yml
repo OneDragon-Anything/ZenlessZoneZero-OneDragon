@@ -6,10 +6,10 @@ repositories:
       label: 主分支
       desc: 稳定版本，选择后请点击同步最新代码
     test:
-      label: 源码启动器测试
+      label: 测试分支（源码）
       desc: 仅限源码启动器，选择后请点击同步最新代码
     test-integrated:
-      label: 集成启动器测试
+      label: 测试分支（集成）
       desc: 仅限集成启动器，选择后请点击同步最新代码
   options:
     github:
