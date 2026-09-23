@@ -5,6 +5,7 @@
 # PR 来源(二选一):
 #   1. 定时 / 不填参数:所有带 `test-branch` 标签的 open PR,按 PR 号升序。
 #   2. 手动触发填 prs:按填写顺序,临时覆盖标签(不改动标签本身)。
+# 仅处理目标分支为 main 的 PR，其他 PR 会跳过并写入构建摘要。
 #
 # 定时构建会按 module_manifest 变动同步 `test-integrated-branch` 标签；
 # 两个分支分别使用 `test-conflict` 和 `test-integrated-conflict` 标记冲突。

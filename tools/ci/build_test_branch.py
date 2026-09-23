@@ -14,6 +14,7 @@ SQUASH_SOURCE_PATTERN = re.compile(
     r"^Squashed from PR: https://(?:redirect\.)?github\.com/[^/]+/[^/]+/pull/([0-9]+) .*",
     re.MULTILINE,
 )
+MAIN_BRANCH = "main"
 MODULE_MANIFEST_PATH = "deploy/module_manifest.py"
 
 
@@ -24,7 +25,10 @@ class PrInfo:
     title: str
     labels: set[str]
     author_login: str
+    target_branch: str
+    head_sha: str
     files: set[str]
+    files_complete: bool
 
 
 @dataclass(frozen=True)
@@ -200,8 +204,46 @@ def resolve_prs(input_prs: str, include_label: str) -> tuple[list[str], str, boo
     return prs, source, require_label
 
 
+def get_pr_files(pr: str) -> tuple[set[str], bool]:
+    """分页读取 PR 文件列表，并返回是否已确认完整。"""
+    repository = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repository:
+        return set(), False
+
+    result = run_command(
+        [
+            "gh",
+            "api",
+            "--paginate",
+            "--slurp",
+            f"repos/{repository}/pulls/{pr}/files?per_page=100",
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return set(), False
+
+    try:
+        pages = load_json(result)
+    except json.JSONDecodeError:
+        return set(), False
+    if not isinstance(pages, list):
+        return set(), False
+
+    files: set[str] = set()
+    for page in pages:
+        if not isinstance(page, list):
+            return set(), False
+        for item in page:
+            if not isinstance(item, dict) or not isinstance(item.get("filename"), str):
+                return set(), False
+            files.add(item["filename"])
+    return files, True
+
+
 def get_pr_info(pr: str) -> PrInfo | None:
-    """一次读取 PR 状态、标题、标签、发起人和变动文件。"""
+    """一次读取 PR 状态、标题、标签、发起人、目标分支和 head SHA。"""
     result = run_command(
         [
             "gh",
@@ -209,7 +251,7 @@ def get_pr_info(pr: str) -> PrInfo | None:
             "view",
             str(pr),
             "--json",
-            "state,title,labels,author,files",
+            "state,title,labels,author,baseRefName,headRefOid",
         ],
         check=False,
         capture_output=True,
@@ -222,6 +264,7 @@ def get_pr_info(pr: str) -> PrInfo | None:
     except json.JSONDecodeError:
         return None
 
+    files, files_complete = get_pr_files(pr)
     author = data.get("author") or {}
     return PrInfo(
         number=pr,
@@ -229,7 +272,10 @@ def get_pr_info(pr: str) -> PrInfo | None:
         title=normalize_line(str(data.get("title", ""))),
         labels={str(label["name"]) for label in data.get("labels", [])},
         author_login=normalize_line(str(author.get("login", ""))),
-        files={str(file["path"]) for file in data.get("files", [])},
+        target_branch=normalize_line(str(data.get("baseRefName") or "")),
+        head_sha=normalize_line(str(data.get("headRefOid") or "")),
+        files=files,
+        files_complete=files_complete,
     )
 
 
@@ -250,7 +296,9 @@ def sync_integrated_labels(
 
         eligible = (
             info.state == "OPEN"
+            and info.target_branch == MAIN_BRANCH
             and include_label in info.labels
+            and info.files_complete
             and MODULE_MANIFEST_PATH not in info.files
         )
         if eligible:
@@ -291,6 +339,15 @@ def get_short_sha(ref: str) -> str:
     return (result.stdout or "").strip()
 
 
+def get_full_sha(ref: str) -> str:
+    """读取 Git ref 的完整 SHA。"""
+    result = run_command(
+        ["git", "rev-parse", ref],
+        capture_output=True,
+    )
+    return (result.stdout or "").strip()
+
+
 def get_conflict_files() -> list[str]:
     """读取当前 index 中所有未合并文件。"""
     result = run_command(
@@ -299,6 +356,18 @@ def get_conflict_files() -> list[str]:
         capture_output=True,
     )
     return [line for line in (result.stdout or "").splitlines() if line]
+
+
+def get_staged_files() -> set[str] | None:
+    """读取当前 squash 结果中已暂存的文件。"""
+    result = run_command(
+        ["git", "diff", "--cached", "--name-only"],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        return None
+    return {line for line in (result.stdout or "").splitlines() if line}
 
 
 def get_conflict_ranges(path: str) -> str:
@@ -324,7 +393,7 @@ def get_conflict_ranges(path: str) -> str:
 def get_related_prs(path: str) -> str:
     """从此前 squash 提交中找出修改过冲突文件的 PR。"""
     result = run_command(
-        ["git", "log", "--format=%B", "origin/main..HEAD", "--", path],
+        ["git", "log", "--format=%B", f"origin/{MAIN_BRANCH}..HEAD", "--", path],
         check=False,
         capture_output=True,
     )
@@ -564,8 +633,10 @@ def rebuild_test_branch(
     excluded_paths: set[str] | None = None,
 ) -> int:
     """从 main 重建目标测试分支，并逐个 squash 指定 PR。"""
-    run_command(["git", "fetch", "origin", "main"])
-    run_command(["git", "checkout", "-B", target_branch, "origin/main"])
+    run_command(["git", "fetch", "origin", MAIN_BRANCH])
+    run_command(
+        ["git", "checkout", "-B", target_branch, f"origin/{MAIN_BRANCH}"]
+    )
     base_sha = get_short_sha("HEAD")
 
     applied: list[AppliedPr] = []
@@ -581,14 +652,26 @@ def rebuild_test_branch(
         if info.state != "OPEN":
             skipped.append(SkippedPr(pr, info.state or "查不到该 PR"))
             continue
-        if require_label and include_label not in info.labels:
-            continue
-        excluded_changes = sorted(info.files & (excluded_paths or set()))
-        if excluded_changes:
+        if info.target_branch != MAIN_BRANCH:
             skipped.append(
-                SkippedPr(pr, f"修改了排除文件: {', '.join(excluded_changes)}")
+                SkippedPr(
+                    pr,
+                    f"目标分支不是 {MAIN_BRANCH}: {info.target_branch or '未知'}",
+                )
             )
             continue
+        if require_label and include_label not in info.labels:
+            continue
+        if excluded_paths:
+            if not info.files_complete:
+                skipped.append(SkippedPr(pr, "无法确认 PR 文件列表,集成分支跳过"))
+                continue
+            excluded_changes = sorted(info.files & excluded_paths)
+            if excluded_changes:
+                skipped.append(
+                    SkippedPr(pr, f"修改了排除文件: {', '.join(excluded_changes)}")
+                )
+                continue
 
         pr_ref = f"refs/remotes/pr/{pr}"
         fetch_result = run_command(
@@ -604,7 +687,11 @@ def rebuild_test_branch(
         if fetch_result.returncode != 0:
             skipped.append(SkippedPr(pr, "拉取 PR 分支失败"))
             continue
-        head_sha = get_short_sha(pr_ref)
+        fetched_head_sha = get_full_sha(pr_ref)
+        if not info.head_sha or fetched_head_sha != info.head_sha:
+            skipped.append(SkippedPr(pr, "PR 在读取文件列表后发生更新"))
+            continue
+        head_sha = fetched_head_sha[:7]
 
         merge_result = run_command(
             ["git", "merge", "--squash", pr_ref],
@@ -614,7 +701,13 @@ def rebuild_test_branch(
             conflict_files = get_conflict_files()
             main_conflict = (
                 run_command(
-                    ["git", "merge-tree", "--write-tree", "origin/main", pr_ref],
+                    [
+                        "git",
+                        "merge-tree",
+                        "--write-tree",
+                        f"origin/{MAIN_BRANCH}",
+                        pr_ref,
+                    ],
                     check=False,
                     quiet=True,
                 ).returncode
@@ -631,6 +724,25 @@ def rebuild_test_branch(
         if run_command(["git", "diff", "--cached", "--quiet"], check=False).returncode == 0:
             skipped.append(SkippedPr(pr, "无变更(已在 main 中)"))
             continue
+
+        if excluded_paths:
+            staged_files = get_staged_files()
+            if staged_files is None:
+                run_command(["git", "reset", "--hard", "HEAD"])
+                run_command(["git", "clean", "-fd"])
+                skipped.append(SkippedPr(pr, "无法确认实际合入文件,集成分支跳过"))
+                continue
+            excluded_changes = sorted(staged_files & excluded_paths)
+            if excluded_changes:
+                run_command(["git", "reset", "--hard", "HEAD"])
+                run_command(["git", "clean", "-fd"])
+                skipped.append(
+                    SkippedPr(
+                        pr,
+                        f"实际合入时修改了排除文件: {', '.join(excluded_changes)}",
+                    )
+                )
+                continue
 
         authors = get_commit_authors(pr_ref)
         author = (
