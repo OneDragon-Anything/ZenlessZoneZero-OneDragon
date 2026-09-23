@@ -167,7 +167,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.git_branch_opt = ComboBoxSettingCard(
             icon=FluentIcon.GITHUB,
             title='代码分支',
-            content='主分支用于稳定版本，测试分支用于提前体验新功能',
+            content='测试源码/集成启动器时选择对应测试分支',
             options_list=self.ctx.repo_config.branch_options,
         )
         self.git_branch_opt.value_changed.connect(self._on_git_branch_changed)
