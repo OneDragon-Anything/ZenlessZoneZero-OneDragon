@@ -7,7 +7,7 @@
 #   2. 手动触发填 prs:按填写顺序,临时覆盖标签(不改动标签本身)。
 # 仅处理目标分支为 main 的 PR，其他 PR 会跳过并写入构建摘要。
 #
-# 定时构建会按 module_manifest 变动同步 `test-integrated-branch` 标签；
+# 集成启动器分支自动排除 module_manifest 变动；
 # 两个分支分别使用 `test-conflict` 和 `test-integrated-conflict` 标记冲突。
 # 每次都从 origin/main 重新开始，所以测试分支上不会残留历史垃圾。
 name: Build Test Branch
@@ -34,7 +34,6 @@ permissions:
 env:
   INCLUDE_LABEL: test-branch
   CONFLICT_LABEL: test-conflict
-  INTEGRATED_LABEL: test-integrated-branch
   INTEGRATED_CONFLICT_LABEL: test-integrated-conflict
 
 jobs:

@@ -128,22 +128,12 @@ def configure_git() -> None:
 def ensure_labels(
     include_label: str,
     conflict_label: str,
-    integrated_label: str,
     integrated_conflict_label: str,
 ) -> None:
-    """创建或更新两个测试分支使用的标签。"""
+    """创建或更新测试分支使用的标签。"""
     labels = [
-        (
-            include_label,
-            "0E8A16",
-            "合入 test 分支，并按兼容性同步到 test-integrated 分支",
-        ),
+        (include_label, "0E8A16", "合入 test 分支"),
         (conflict_label, "D93F0B", "合入 test 分支时冲突,需 rebase"),
-        (
-            integrated_label,
-            "1D76DB",
-            "可合入 test-integrated 分支（未修改 module_manifest）",
-        ),
         (
             integrated_conflict_label,
             "B60205",
@@ -277,57 +267,6 @@ def get_pr_info(pr: str) -> PrInfo | None:
         files=files,
         files_complete=files_complete,
     )
-
-
-def sync_integrated_labels(
-    prs: list[str],
-    include_label: str,
-    integrated_label: str,
-    integrated_conflict_label: str,
-) -> None:
-    """按 module_manifest 变动同步集成启动器分支标签。"""
-    integrated_prs = set(list_open_prs(integrated_label))
-    integrated_conflicts = set(list_open_prs(integrated_conflict_label))
-    candidates = set(prs) | integrated_prs | integrated_conflicts
-    for pr in sorted(candidates, key=int):
-        info = get_pr_info(pr)
-        if info is None:
-            continue
-
-        eligible = (
-            info.state == "OPEN"
-            and info.target_branch == MAIN_BRANCH
-            and include_label in info.labels
-            and info.files_complete
-            and MODULE_MANIFEST_PATH not in info.files
-        )
-        if eligible:
-            if pr not in integrated_prs:
-                run_command(
-                    ["gh", "pr", "edit", pr, "--add-label", integrated_label],
-                    check=False,
-                )
-            continue
-
-        if pr in integrated_prs:
-            run_command(
-                ["gh", "pr", "edit", pr, "--remove-label", integrated_label],
-                check=False,
-                quiet=True,
-            )
-        if pr in integrated_conflicts:
-            run_command(
-                [
-                    "gh",
-                    "pr",
-                    "edit",
-                    pr,
-                    "--remove-label",
-                    integrated_conflict_label,
-                ],
-                check=False,
-                quiet=True,
-            )
 
 
 def get_short_sha(ref: str) -> str:
@@ -790,10 +729,6 @@ def main() -> int:
     """执行 Build Test Branch workflow 的全部逻辑。"""
     include_label = os.environ.get("INCLUDE_LABEL", "test-branch")
     conflict_label = os.environ.get("CONFLICT_LABEL", "test-conflict")
-    integrated_label = os.environ.get(
-        "INTEGRATED_LABEL",
-        "test-integrated-branch",
-    )
     integrated_conflict_label = os.environ.get(
         "INTEGRATED_CONFLICT_LABEL",
         "test-integrated-conflict",
@@ -803,20 +738,8 @@ def main() -> int:
     summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
 
     configure_git()
-    ensure_labels(
-        include_label,
-        conflict_label,
-        integrated_label,
-        integrated_conflict_label,
-    )
+    ensure_labels(include_label, conflict_label, integrated_conflict_label)
     prs, source, require_label = resolve_prs(input_prs, include_label)
-    if require_label:
-        sync_integrated_labels(
-            prs,
-            include_label,
-            integrated_label,
-            integrated_conflict_label,
-        )
 
     test_result = rebuild_test_branch(
         prs,
