@@ -92,6 +92,11 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
 
+启动链路行为（`src/one_dragon/utils/app_utils.py` 的 `start_one_dragon`）：
+
+- 打包运行时（安装器 / 集成启动器）从**当前 exe 同目录**定位 `OneDragon-Launcher.exe`——发行包中安装器与启动器并排存放，勿单独分发安装器。
+- 启动子 exe 前会设置 `PYINSTALLER_RESET_ENVIRONMENT=1`：onefile 子进程若继承父进程的 PyInstaller 环境，bootloader 会跳过解压、复用父进程临时目录；父进程退出清理该目录后，子进程会缺运行时文件（表现为 `No module named 'PySide6.xxx'`）。
+
 ### 3.3.集成启动器（RuntimeLauncher）
 
 > 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)

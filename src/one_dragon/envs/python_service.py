@@ -211,7 +211,9 @@ class PythonService:
         """
         检查环境是否与项目同步
         :param progress_callback: 进度回调
-        :return:
+        :param groups: 额外同步的依赖组
+        :return: 是否同步；UV 尚未安装（路径为空或文件不存在）时也返回 False，
+                 交由安装流程先安装 UV
         """
         msg = gt('正在检查环境同步状态...')
         if progress_callback is not None:
