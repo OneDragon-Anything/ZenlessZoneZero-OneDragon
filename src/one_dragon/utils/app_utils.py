@@ -16,10 +16,15 @@ def start_one_dragon(restart: bool) -> None:
     :return: 是否成功
     """
     if getattr(sys, 'frozen', False):
-        launcher_path = Path(sys.executable)
+        # 打包运行时（安装器 / 集成启动器），Launcher 与当前 exe 同目录
+        launcher_path = Path(sys.executable).resolve().parent / 'OneDragon-Launcher.exe'
     else:
         launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
-    subprocess.Popen(f'cmd /c "start "" "{launcher_path}""', shell=True)
+    # 子进程不能继承当前 PyInstaller 进程的环境，否则 bootloader 会复用当前进程的
+    # 解压临时目录而不重新解压；当前进程退出清理后，子进程会缺运行时文件（如 Qt 的 pyd）
+    env = os.environ.copy()
+    env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
+    subprocess.Popen(f'cmd /c "start "" "{launcher_path}""', shell=True, env=env)
     if restart:
         sys.exit(0)
 

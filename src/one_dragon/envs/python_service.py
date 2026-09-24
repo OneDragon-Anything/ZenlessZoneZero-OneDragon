@@ -218,6 +218,11 @@ class PythonService:
             progress_callback(-1, msg)
         log.info(msg)
 
+        # UV 尚未安装时直接视为未同步，交由安装流程先装 UV，避免用空路径执行命令报错
+        uv_path = self.env_config.uv_path
+        if uv_path == '' or not os.path.exists(uv_path):
+            return False
+
         self._configure_uv_environment()
 
         command = [self.env_config.uv_path, 'sync', '--check']
