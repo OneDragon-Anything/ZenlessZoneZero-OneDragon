@@ -85,12 +85,11 @@ project_root/
     └── my_plugin/
         ├── __init__.py
         ├── my_plugin_const.py
-        ├── my_plugin_factory.py
+        ├── my_plugin_factory.py   # 只扫描插件根第一层
         ├── my_plugin.py
         └── sub/
             ├── __init__.py
-            ├── sub_feature_const.py
-            └── sub_feature_factory.py
+            └── helper.py          # 普通子模块，不扫描子目录 factory
 ```
 
 ## 应用分组
@@ -141,13 +140,15 @@ src/zzz_od/application/my_app/my_app_factory.py
 
 ### 第三方插件 (THIRD_PARTY)
 
-将 `plugins/` 目录加入 `sys.path`，模块名从 plugins 目录开始计算。
-支持嵌套子目录，中间包会自动加载或创建为命名空间包：
+将 `plugins/` 目录加入 `sys.path`，模块名从 plugins 目录开始计算。第三方插件只发现 `plugins/<插件根>/*_factory.py`；插件根内的嵌套子目录仍可作为普通 Python 子包导入，但其中的 factory 不会注册。
 
 ```
 plugins/my_plugin/my_plugin_factory.py
 → module_root: plugins/
 → 模块名: my_plugin.my_plugin_factory
+
+plugins/my_plugin/sub/helper.py
+→ 可由 my_plugin 内的代码导入，不参与 factory 发现
 ```
 
 ### 中间包加载
@@ -169,6 +170,19 @@ plugins/my_plugin/my_plugin_factory.py
 - `plugins/` 目录仅添加一次到 sys.path
 - 使用集合跟踪已添加的路径，避免重复
 
+## 插件导入边界
+
+`PluginImportService` 把 ZIP 或松散目录视为一个“来源”。来源根直接包含唯一 `*_factory.py` 和唯一 `*_const.py` 时，整个来源是一个插件；否则识别多个互不隶属的最外层合法插件根。
+
+- 每个插件根分别映射到 `plugins/<插件名>/`，来源包装目录和根外文件不安装。
+- 插件根内的深层 factory 不参与根识别，也不会被第三方运行时扫描。
+- 同一来源中大小写不敏感的重复插件目录名会在写盘前拒绝。
+- ZIP 中本次选中插件根的解压后总体积受 512 MiB 上限约束。
+- 松散目录中的符号链接不能越出所属插件根或形成复制循环；插件根第一层的 Python 文件不能是符号链接。
+- 每个插件独立使用临时目录、覆盖和失败回滚；覆盖重试按“来源路径 + 插件名”选择，不重复处理同来源中已成功的插件。
+
+旧的 `preview_plugin()`、`import_plugin()`、`preview_directory()`、`import_directory()` 保持单插件语义；插件管理界面使用一对多来源接口。
+
 ## 插件生命周期流程
 
 ```
@@ -183,7 +197,8 @@ OneDragonContext.init()
 │   │   │   └── (plugins,            THIRD_PARTY)
 │   │   │
 │   │   ├── _scan_directory()          ─── 对每个目录
-│   │   │   ├── rglob("*.py")         ─── 收集 *_factory.py / *_const.py
+│   │   │   ├── BUILTIN: rglob("*.py")
+│   │   │   ├── THIRD_PARTY: 枚举真实插件根后 glob("*.py")，跳过符号链接目录和文件
 │   │   │   ├── 冲突检测              ─── 同目录多个 factory/const → 跳过 + 记录
 │   │   │   └── _load_factory_from_file()  ─── 对每个 factory 文件
 │   │   │       ├── resolve_module_name()  ─── 计算 dotted name + module_root
