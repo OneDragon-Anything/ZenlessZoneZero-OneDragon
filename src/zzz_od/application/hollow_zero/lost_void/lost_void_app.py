@@ -12,7 +12,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, str_utils, log_utils
+from one_dragon.utils import cv2_utils, log_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
@@ -207,7 +207,10 @@ class LostVoidApp(ZApplication):
         if error.is_success:
             log_utils.log('已点击意外出现的确认按钮')
 
-        return self.round_by_goto_screen(screen_name='迷失之地-矩阵行动-编队选择')
+        return self.round_by_goto_screen(
+            screen_name='迷失之地-矩阵行动-编队选择',
+            screen_switch_debounce=3,
+        )
 
     @node_from(from_name='矩阵行动-前往入口')
     @operation_node(name='矩阵行动-点击预备编队')
