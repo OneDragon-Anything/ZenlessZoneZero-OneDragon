@@ -45,7 +45,7 @@
 2. 主仓开 PR,**描述里带上测试仓 PR 链接**(reviewer 可跳转看测试改动);主仓与测试仓用**同分支名**(CI 按分支名 clone 测试仓)。
 3. assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review(逐条回复 / 修正、清 unresolved thread、处理 CodeRabbit);**关联 PR 一起收尾、合并顺序(测试仓先)见该 skill §6**。
 
-> **想让 PR 合并前进入 `test` 分支给人试用**:为 PR 添加 `test-branch` 标签,或手动触发 [Update Test Branch](../../.github/workflows/update-test-branch.yml) 并填写 PR 列表。
+> **想让 PR 合并前进入测试分支给人试用**：为 PR 添加 `test-branch` 标签，或手动触发 [Build Test Branch](../../.github/workflows/build-test-branch.yml) 并填写 PR 列表。工作流会把全部待测 PR 合入源码启动器使用的 `test`；同时排除修改 `deploy/module_manifest.py` 的 PR，生成集成启动器使用的 `test-integrated`。
 
 ### 5. 配套产出(按需)
 

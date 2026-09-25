@@ -9,7 +9,7 @@
 设置界面的代码源下拉框包含“自动”和项目 `repository.yml` 声明的全部具体代码源。配置字段分工如下：
 
 - `repositories.primary_branch`：声明同一逻辑仓库在所有镜像代码源上共享的项目主分支；该值必须存在于 `repositories.branches`，运行环境缺失 `git_branch` 时默认使用该值。
-- `repositories.branches`：按 YAML 顺序声明代码版本下拉框的分支值、显示名称和说明；界面不再内置 `main`、`test` 等具体分支。
+- `repositories.branches`：按 YAML 顺序声明代码版本下拉框的分支值、显示名称和说明；界面不再内置具体分支。当前 `main` 供两类启动器使用，`test` 仅供源码启动器测试，`test-integrated` 供集成启动器测试。
 - `repository_url`：保存用户选择；值为 `auto` 时启用自动模式，具体 URL 时表示用户手动指定的首选源；旧配置缺失该字段时按自动模式处理。具体 URL 不再存在于 `repository.yml` 时，静默重置为 `auto`。
 - `last_repository_url`：记录最近一次成功 fetch 使用的原始仓库 URL。
 
