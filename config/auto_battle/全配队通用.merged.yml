@@ -11027,6 +11027,8 @@
           "states": "[自定义-黄光切人, 0, 1]"
         - "debug_name": "闪避反击"
           "operations":
+          - "op_name": "按键-闪避"
+            "post_delay": 0.2
           - "op_name": "按键-普通攻击"
             "post_delay": 0.25
             "repeat": 3
@@ -11059,7 +11061,7 @@
         - "debug_name": "猩红铭刻期间"
           "states": "[克拉蕾-猩红铭刻, 0, 2]"
           "sub_handlers":
-          - "debug_name": "失衡期终结技"
+          - "debug_name": "铭刻期终结技"
             "operations":
             - "op_name": "设置状态"
               "seconds_add": -2
@@ -11072,8 +11074,8 @@
               "repeat": 20
             - "op_name": "等待秒数"
               "seconds": 1
-            "states": "[自定义-失衡时间, 0, 8] & [克拉蕾-终结技可用]"
-          - "debug_name": "失衡期长按E引爆全部残痕"
+            "states": "[克拉蕾-终结技可用]"
+          - "debug_name": "长按E全爆 + 普攻三段"
             "operations":
             - "op_name": "按键-特殊攻击-松开"
             - "op_name": "等待秒数"
@@ -11085,64 +11087,6 @@
             - "op_name": "等待秒数"
               "seconds": 0.5
             - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "设置状态"
-              "state": "自定义-克拉蕾-终爆冷却"
-            - "op_name": "等待秒数"
-              "seconds": 0.8
-            "states": "[自定义-失衡时间, 0, 8] & ![自定义-克拉蕾-终爆冷却, 0, 8]"
-          - "debug_name": "铭刻收尾-终结技"
-            "operations":
-            - "op_name": "设置状态"
-              "seconds_add": -2
-              "state": "自定义-失衡时间"
-            - "op_name": "设置状态"
-              "seconds": 5
-              "state": "自定义-动作不打断"
-            - "op_name": "按键-终结技"
-              "post_delay": 0.1
-              "repeat": 20
-            - "op_name": "等待秒数"
-              "seconds": 1
-            "states": "[克拉蕾-猩红铭刻, 0, 2]{5, 30} & [克拉蕾-终结技可用]"
-          - "debug_name": "铭刻收尾-引爆残痕"
-            "operations":
-            - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "等待秒数"
-              "seconds": 0.1
-            - "op_name": "按键-特殊攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "按键-特殊攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "设置状态"
-              "state": "自定义-克拉蕾-终爆冷却"
-            - "op_name": "等待秒数"
-              "seconds": 0.8
-            "states": "[克拉蕾-猩红铭刻, 0, 2]{5, 30} & ![自定义-克拉蕾-终爆冷却, 0, 8]"
-          - "debug_name": "蓄痕兜底-长按E全爆"
-            "operations":
-            - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "等待秒数"
-              "seconds": 0.1
-            - "op_name": "按键-特殊攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "按键-特殊攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "设置状态"
-              "state": "自定义-克拉蕾-终爆冷却"
-            - "op_name": "等待秒数"
-              "seconds": 0.8
-            "states": "[克拉蕾-猩红铭刻, 0, 2] & ![自定义-克拉蕾-终爆冷却, 0, 7] & [自定义-克拉蕾-终爆冷却, 0,\
-              \ 9999]"
-          - "debug_name": "E + 长按普攻 循环"
-            "operations":
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.9
             - "op_name": "按键-普通攻击"
               "post_delay": 0.25
               "repeat": 2
@@ -11155,23 +11099,13 @@
             - "op_name": "按键-普通攻击-按下"
             - "op_name": "等待秒数"
               "seconds": 0.5
-            - "op_name": "按键-普通攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
             - "op_name": "按键-普通攻击-松开"
             "states": ""
         - "debug_name": "锐能已满，进入猩红铭刻"
           "operations":
-          - "op_name": "设置状态"
-            "seconds": 2
-            "state": "自定义-动作不打断"
           - "op_name": "按键-特殊攻击"
-            "post_delay": 1.2
-          - "op_name": "设置状态"
-            "state": "自定义-克拉蕾-变身冷却"
-          - "op_name": "设置状态"
-            "state": "自定义-克拉蕾-终爆冷却"
-          "states": "![克拉蕾-猩红铭刻, 0, 2] & [克拉蕾-特殊技可用] & ![自定义-克拉蕾-变身冷却, 0, 2]"
+            "post_delay": 1.0
+          "states": "![克拉蕾-猩红铭刻, 0, 2] & [克拉蕾-特殊技可用]"
         - "debug_name": "普攻攒锐能"
           "operations":
           - "op_name": "按键-普通攻击"
@@ -22152,6 +22086,8 @@
         "states": "[自定义-黄光切人, 0, 1]"
       - "debug_name": "闪避反击"
         "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
         - "op_name": "按键-普通攻击"
           "post_delay": 0.25
           "repeat": 3
@@ -22184,7 +22120,7 @@
       - "debug_name": "猩红铭刻期间"
         "states": "[克拉蕾-猩红铭刻, 0, 2]"
         "sub_handlers":
-        - "debug_name": "失衡期终结技"
+        - "debug_name": "铭刻期终结技"
           "operations":
           - "op_name": "设置状态"
             "seconds_add": -2
@@ -22197,8 +22133,8 @@
             "repeat": 20
           - "op_name": "等待秒数"
             "seconds": 1
-          "states": "[自定义-失衡时间, 0, 8] & [克拉蕾-终结技可用]"
-        - "debug_name": "失衡期长按E引爆全部残痕"
+          "states": "[克拉蕾-终结技可用]"
+        - "debug_name": "长按E全爆 + 普攻三段"
           "operations":
           - "op_name": "按键-特殊攻击-松开"
           - "op_name": "等待秒数"
@@ -22210,64 +22146,6 @@
           - "op_name": "等待秒数"
             "seconds": 0.5
           - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "设置状态"
-            "state": "自定义-克拉蕾-终爆冷却"
-          - "op_name": "等待秒数"
-            "seconds": 0.8
-          "states": "[自定义-失衡时间, 0, 8] & ![自定义-克拉蕾-终爆冷却, 0, 8]"
-        - "debug_name": "铭刻收尾-终结技"
-          "operations":
-          - "op_name": "设置状态"
-            "seconds_add": -2
-            "state": "自定义-失衡时间"
-          - "op_name": "设置状态"
-            "seconds": 5
-            "state": "自定义-动作不打断"
-          - "op_name": "按键-终结技"
-            "post_delay": 0.1
-            "repeat": 20
-          - "op_name": "等待秒数"
-            "seconds": 1
-          "states": "[克拉蕾-猩红铭刻, 0, 2]{5, 30} & [克拉蕾-终结技可用]"
-        - "debug_name": "铭刻收尾-引爆残痕"
-          "operations":
-          - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "设置状态"
-            "state": "自定义-克拉蕾-终爆冷却"
-          - "op_name": "等待秒数"
-            "seconds": 0.8
-          "states": "[克拉蕾-猩红铭刻, 0, 2]{5, 30} & ![自定义-克拉蕾-终爆冷却, 0, 8]"
-        - "debug_name": "蓄痕兜底-长按E全爆"
-          "operations":
-          - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "设置状态"
-            "state": "自定义-克拉蕾-终爆冷却"
-          - "op_name": "等待秒数"
-            "seconds": 0.8
-          "states": "[克拉蕾-猩红铭刻, 0, 2] & ![自定义-克拉蕾-终爆冷却, 0, 7] & [自定义-克拉蕾-终爆冷却, 0,\
-            \ 9999]"
-        - "debug_name": "E + 长按普攻 循环"
-          "operations":
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.9
           - "op_name": "按键-普通攻击"
             "post_delay": 0.25
             "repeat": 2
@@ -22280,23 +22158,13 @@
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
-          - "op_name": "按键-普通攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
           - "op_name": "按键-普通攻击-松开"
           "states": ""
       - "debug_name": "锐能已满，进入猩红铭刻"
         "operations":
-        - "op_name": "设置状态"
-          "seconds": 2
-          "state": "自定义-动作不打断"
         - "op_name": "按键-特殊攻击"
-          "post_delay": 1.2
-        - "op_name": "设置状态"
-          "state": "自定义-克拉蕾-变身冷却"
-        - "op_name": "设置状态"
-          "state": "自定义-克拉蕾-终爆冷却"
-        "states": "![克拉蕾-猩红铭刻, 0, 2] & [克拉蕾-特殊技可用] & ![自定义-克拉蕾-变身冷却, 0, 2]"
+          "post_delay": 1.0
+        "states": "![克拉蕾-猩红铭刻, 0, 2] & [克拉蕾-特殊技可用]"
       - "debug_name": "普攻攒锐能"
         "operations":
         - "op_name": "按键-普通攻击"
