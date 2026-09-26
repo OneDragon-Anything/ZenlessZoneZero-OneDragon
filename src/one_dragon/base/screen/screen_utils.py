@@ -11,6 +11,7 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -334,6 +335,61 @@ def scroll_area(
     ctx.controller.drag_to(start=start, end=end, duration=duration)
 
 
+def _match_screen_or_collect_failure(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_info: ScreenInfo,
+    near_miss_map: dict[str, list[str]] | None,
+    crop_first: bool = True,
+) -> str | None:
+    """
+    判断单个画面是否匹配；不匹配时把未命中的画面标识特征收集进 near_miss_map。
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_info: 待判断的画面
+        near_miss_map: 可选的失败特征收集表。键为画面名，值为未命中的 id_mark 区域描述
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        str | None: 匹配成功时返回画面名，否则返回 None
+    """
+    matched, failed_marks = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
+    if matched:
+        return screen_info.screen_name
+    if near_miss_map is not None and failed_marks:
+        near_miss_map[screen_info.screen_name] = failed_marks
+    return None
+
+
+def _log_screen_match_failure(ctx: OneDragonContext, near_miss_map: dict[str, list[str]]) -> None:
+    """
+    画面识别全部失败时，输出识别失败的日志，方便排查。
+
+    有接近匹配的画面（有画面标识 id_mark 但未命中）时，列出各自未命中的标识区域，
+    带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题；
+    完全没有接近匹配的画面（如候选画面没有 id_mark）时，只输出通用的识别失败日志，不静默。
+
+    日志节流：同一失败详情只在首次出现时输出（识别成功后由调用方重置），
+    避免导航等待循环每秒重复输出刷爆日志。
+    """
+    if not near_miss_map:
+        detail = '未能识别当前画面，且没有接近匹配的画面'
+    else:
+        detail_list = '；'.join(
+            f'{screen_name}({", ".join(marks)})'
+            for screen_name, marks in near_miss_map.items()
+        )
+        detail = f'未能识别当前画面，以下画面存在未命中的标识特征：{detail_list}'
+
+    screen_loader = ctx.screen_loader
+    if screen_loader.last_screen_match_failure_detail == detail:
+        return
+    screen_loader.last_screen_match_failure_detail = detail
+    log.warning(detail)
+
+
 def get_match_screen_name(
     ctx: OneDragonContext,
     screen: MatLike,
@@ -352,19 +408,34 @@ def get_match_screen_name(
     Returns:
         str | None: 画面名称
     """
+    near_miss_map: dict[str, list[str]] = {}
+    target_name: str | None = None
     if screen_name_list is not None:
         for screen_info in ctx.screen_loader.screen_info_list:
             if screen_info.screen_name not in screen_name_list:
                 continue
-            if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
-                return screen_info.screen_name
+            target_name = _match_screen_or_collect_failure(
+                ctx, screen, screen_info, near_miss_map, crop_first
+            )
+            if target_name is not None:
+                break
     elif ctx.screen_loader.current_screen_name is not None or ctx.screen_loader.last_screen_name is not None:
-        return get_match_screen_name_from_last(ctx, screen, crop_first=crop_first)
+        target_name = get_match_screen_name_from_last(
+            ctx, screen, crop_first=crop_first, near_miss_map=near_miss_map
+        )
     else:
         for screen_info in ctx.screen_loader.active_screen_info_list:
-            if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
-                return screen_info.screen_name
+            target_name = _match_screen_or_collect_failure(
+                ctx, screen, screen_info, near_miss_map, crop_first
+            )
+            if target_name is not None:
+                break
 
+    if target_name is not None:
+        # 识别成功: 重置失败日志节流状态, 便于下次识别失败时重新输出诊断
+        ctx.screen_loader.last_screen_match_failure_detail = None
+        return target_name
+    _log_screen_match_failure(ctx, near_miss_map)
     return None
 
 
@@ -372,6 +443,7 @@ def get_match_screen_name_from_last(
     ctx: OneDragonContext,
     screen: MatLike,
     crop_first: bool = True,
+    near_miss_map: dict[str, list[str]] | None = None,
 ) -> str | None:
     """
     根据游戏截图 从上次记录的画面开始 匹配一个最合适的画面
@@ -379,6 +451,7 @@ def get_match_screen_name_from_last(
         ctx: 上下文
         screen: 游戏截图
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        near_miss_map: 可选的失败特征收集表，不匹配时把未命中的 id_mark 区域写入（供上层打日志）
 
     Returns:
         str | None: 画面名称
@@ -412,12 +485,16 @@ def get_match_screen_name_from_last(
                             bfs_list.append(goto_screen)
             continue
 
-        if is_target_screen(ctx, screen, screen_name=current_screen_name, crop_first=crop_first):
-            return current_screen_name
-
         screen_info = ctx.screen_loader.get_screen(current_screen_name)
         if screen_info is None:
             continue
+
+        target_name = _match_screen_or_collect_failure(
+            ctx, screen, screen_info, near_miss_map, crop_first
+        )
+        if target_name is not None:
+            return target_name
+
         for area in screen_info.area_list:
             if area.goto_list is None or len(area.goto_list) == 0:
                 continue
@@ -429,8 +506,11 @@ def get_match_screen_name_from_last(
     for screen_info in ctx.screen_loader.active_screen_info_list:
         if screen_info.screen_name in bfs_list:
             continue
-        if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
-            return screen_info.screen_name
+        target_name = _match_screen_or_collect_failure(
+            ctx, screen, screen_info, near_miss_map, crop_first
+        )
+        if target_name is not None:
+            return target_name
 
     return None
 
@@ -461,6 +541,30 @@ def is_target_screen(
         if screen_info is None:
             return False
 
+    matched, _ = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
+    return matched
+
+
+def _is_target_screen_detail(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_info: ScreenInfo,
+    crop_first: bool = True,
+) -> tuple[bool, list[str]]:
+    """
+    判断是否目标画面，并返回首个未命中的画面标识(id_mark)区域描述，用于失败时打详细日志。
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_info: 目标画面信息
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        (是否目标画面, 首个未命中的 id_mark 区域名列表)。区域名带 color_range 时会标注"(颜色过滤)"。
+        保持与旧逻辑一致的短路：首个未命中即停止识别后续标识，避免热路径全量 OCR/模板匹配。
+    """
+    failed_marks: list[str] = []
     existed_id_mark: bool = False
     fit_id_mark: bool = True
     for screen_area in screen_info.area_list:
@@ -470,9 +574,21 @@ def is_target_screen(
 
         if find_area_in_screen(ctx, screen, screen_area, crop_first) != FindAreaResultEnum.TRUE:
             fit_id_mark = False
+            failed_marks.append(_describe_failed_id_mark(screen_area))
+            # 短路: 与旧 is_target_screen 一致, 首个未命中即停, 保证热路径识别性能
             break
 
-    return existed_id_mark and fit_id_mark
+    return existed_id_mark and fit_id_mark, failed_marks
+
+
+def _describe_failed_id_mark(screen_area: ScreenArea) -> str:
+    """
+    生成未命中的画面标识区域描述，带颜色过滤(color_range)时标注"颜色过滤"。
+    """
+    desc = screen_area.area_name
+    if screen_area.color_range:
+        desc += '(颜色过滤)'
+    return desc
 
 
 def find_by_ocr(

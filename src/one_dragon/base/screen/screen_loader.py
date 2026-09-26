@@ -56,6 +56,9 @@ class ScreenContext:
         self.last_screen_name: str | None = None  # 上一个画面名字
         self.current_screen_name: str | None = None  # 当前的画面名字
 
+        # 上次画面识别失败的诊断详情, 用于失败日志节流(同一详情只打一次, 避免导航等待循环刷日志)
+        self.last_screen_match_failure_detail: str | None = None
+
         # 屏幕作用域管理
         self._global_screen_names: set[str] = set()
         self._local_screen_names: set[str] = set()
