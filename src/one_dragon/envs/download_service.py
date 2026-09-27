@@ -1,10 +1,10 @@
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable
 
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.utils import http_utils, file_utils
+from one_dragon.utils import file_utils, http_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -17,7 +17,7 @@ class DownloadService:
         self.env_config: EnvConfig = env_config
 
     def download_env_file(self, file_name: str, save_file_path: str,
-                          progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+                          progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
         下载环境文件
         :param file_name: 要下载的文件名
@@ -29,7 +29,7 @@ class DownloadService:
         return self.download_file_from_url(download_url, save_file_path, progress_callback)
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
-                               progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+                               progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
         从指定URL下载文件
         :param download_url: 下载URL
@@ -44,10 +44,10 @@ class DownloadService:
             elif self.env_config.is_personal_proxy:
                 proxy = self.env_config.personal_proxy
 
-        return http_utils.download_file(download_url, save_file_path, proxy, None, progress_callback)
+        return http_utils.download_file(download_url, save_file_path, proxy, None, progress_callback=progress_callback)
 
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
-                                      progress_callback: Optional[Callable[[float, str], None]] = None,
+                                      progress_callback: Callable[[float, str], None] | None = None,
                                       clean_temp: bool = True, retry_count: int = 2) -> bool:
         """
         下载并解压环境文件的通用方法
