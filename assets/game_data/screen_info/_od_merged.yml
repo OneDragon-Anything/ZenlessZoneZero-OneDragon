@@ -362,6 +362,705 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: bagel_enter_confirm
+  screen_name: 贝果-入场确认
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 提示
+    pc_rect:
+    - 420
+    - 455
+    - 1500
+    - 590
+    lcs_percent: 0.9
+  - area_name: 确认
+    pc_rect:
+    - 978
+    - 593
+    - 1250
+    - 671
+    text: 确认
+    lcs_percent: 0.9
+  - area_name: 投资标题
+    pc_rect:
+    - 885
+    - 650
+    - 1035
+    - 697
+    text: 投资金额
+    lcs_percent: 1.0
+  - area_name: 投资金额
+    pc_rect:
+    - 780
+    - 700
+    - 1140
+    - 754
+    color_range:
+    - - 180
+      - 180
+      - 180
+    - - 255
+      - 255
+      - 255
+  - area_name: 零投资前往空洞
+    pc_rect:
+    - 990
+    - 950
+    - 1230
+    - 1018
+    text: 前往空洞
+    lcs_percent: 1.0
+- screen_id: bagel_exit_confirm
+  screen_name: 贝果-退出确认
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 提示
+    pc_rect:
+    - 695
+    - 525
+    - 1225
+    - 575
+    id_mark: true
+    text: 仅保留安全箱内物资
+    lcs_percent: 0.9
+  - area_name: 确认
+    pc_rect:
+    - 977
+    - 615
+    - 1250
+    - 685
+    text: 确认
+    lcs_percent: 0.9
+- screen_id: bagel_hub
+  screen_name: 贝果-研究站
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 标题
+    pc_rect:
+    - 170
+    - 20
+    - 500
+    - 85
+    id_mark: true
+    text: 迷宫诡域贝果计划
+    lcs_percent: 0.9
+  - area_name: 前往空洞
+    pc_rect:
+    - 1300
+    - 840
+    - 1620
+    - 970
+    text: 前往空洞
+    lcs_percent: 0.9
+  - area_name: 仓储枢纽
+    pc_rect:
+    - 80
+    - 730
+    - 350
+    - 830
+    text: 仓储枢纽
+    lcs_percent: 0.9
+  - area_name: 接待员名称
+    pc_rect:
+    - 680
+    - 200
+    - 1100
+    - 350
+    text: 达塔
+    lcs_percent: 1.0
+  - area_name: 对话人
+    pc_rect:
+    - 900
+    - 785
+    - 1040
+    - 845
+    text: 达塔
+    lcs_percent: 1.0
+  - area_name: 出发对话
+    pc_rect:
+    - 1400
+    - 615
+    - 1770
+    - 710
+    text: 出发出发
+    lcs_percent: 1.0
+- screen_id: bagel_hud
+  screen_name: 贝果-局内
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 喧响值
+    pc_rect:
+    - 165
+    - 189
+    - 305
+    - 241
+    id_mark: true
+    text: UPROAR
+    lcs_percent: 0.9
+  - area_name: 小地图
+    pc_rect:
+    - 1495
+    - 192
+    - 1740
+    - 414
+    lcs_percent: 0.9
+  - area_name: 计时
+    pc_rect:
+    - 1590
+    - 46
+    - 1775
+    - 110
+    lcs_percent: 0.9
+  - area_name: 定位小地图
+    pc_rect:
+    - 1533
+    - 206
+    - 1734
+    - 407
+  - area_name: 交互提示
+    pc_rect:
+    - 1285
+    - 440
+    - 1660
+    - 740
+  - area_name: 武备箱交互
+    pc_rect:
+    - 1285
+    - 440
+    - 1660
+    - 740
+    text: 武备箱
+    lcs_percent: 1.0
+  - area_name: 搜查容器标题
+    pc_rect:
+    - 1265
+    - 120
+    - 1530
+    - 180
+    text: 武备箱
+    lcs_percent: 1.0
+  - area_name: 搜查完成
+    pc_rect:
+    - 1275
+    - 212
+    - 1450
+    - 262
+    text: 搜索结果
+    lcs_percent: 1.0
+  - area_name: 搜查进行中
+    pc_rect:
+    - 1275
+    - 212
+    - 1450
+    - 262
+    text: 搜查中
+    lcs_percent: 1.0
+  - area_name: 搜查安全箱
+    pc_rect:
+    - 240
+    - 795
+    - 340
+    - 837
+    text: 安全箱
+    lcs_percent: 1.0
+  - area_name: 搜查返回
+    pc_rect:
+    - 82
+    - 13
+    - 150
+    - 90
+    template_sub_dir: menu
+    template_id: back
+  - area_name: 大地图图例
+    pc_rect:
+    - 1625
+    - 20
+    - 1710
+    - 80
+    text: 图例
+    lcs_percent: 0.9
+  - area_name: 大地图标题
+    pc_rect:
+    - 165
+    - 25
+    - 435
+    - 68
+    text: 雅努斯幻境
+    lcs_percent: 0.9
+  - area_name: 大地图返回
+    pc_rect:
+    - 82
+    - 13
+    - 150
+    - 90
+    template_sub_dir: menu
+    template_id: back
+    goto_list:
+    - 贝果-局内
+  - area_name: 电子保险箱交互
+    pc_rect:
+    - 1285
+    - 440
+    - 1660
+    - 740
+    text: 电子保险箱
+    lcs_percent: 1.0
+  - area_name: 电子保险箱标题
+    pc_rect:
+    - 1265
+    - 120
+    - 1530
+    - 180
+    text: 电子保险箱
+    lcs_percent: 1.0
+  - area_name: 大保险解锁提示
+    pc_rect:
+    - 800
+    - 135
+    - 1110
+    - 195
+    text: 精确点按
+    lcs_percent: 0.8
+  - area_name: 交互F键
+    pc_rect:
+    - 1267
+    - 430
+    - 1323
+    - 750
+    template_sub_dir: bagel
+    template_id: interact_key_f
+    template_match_threshold: 0.85
+  - area_name: 搜查携带货币
+    pc_rect:
+    - 629
+    - 468
+    - 711
+    - 501
+  - area_name: 搜查拾取增量
+    pc_rect:
+    - 576
+    - 981
+    - 696
+    - 1010
+- screen_id: bagel_map
+  screen_name: 贝果-选图
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 前往备战
+    pc_rect:
+    - 1480
+    - 920
+    - 1740
+    - 990
+    id_mark: true
+    text: 前往备战
+    lcs_percent: 0.9
+  - area_name: 雅努斯
+    pc_rect:
+    - 250
+    - 630
+    - 470
+    - 710
+    text: 雅努斯幻境
+    lcs_percent: 0.9
+  - area_name: 城郊幻境
+    pc_rect:
+    - 260
+    - 340
+    - 440
+    - 420
+    text: 城郊幻境
+    lcs_percent: 0.9
+  - area_name: 选中地图
+    pc_rect:
+    - 630
+    - 210
+    - 900
+    - 255
+    text: 雅努斯幻境
+    lcs_percent: 0.9
+  - area_name: 常规
+    pc_rect:
+    - 1130
+    - 115
+    - 1310
+    - 185
+    text: 常规
+    lcs_percent: 0.9
+  - area_name: 困难
+    pc_rect:
+    - 1330
+    - 115
+    - 1480
+    - 183
+    text: 困难
+    lcs_percent: 0.9
+  - area_name: 推荐价值
+    pc_rect:
+    - 1300
+    - 925
+    - 1450
+    - 982
+    lcs_percent: 0.9
+  - area_name: 高危
+    pc_rect:
+    - 1520
+    - 115
+    - 1680
+    - 183
+    text: 高危
+    lcs_percent: 0.9
+- screen_id: bagel_prepare
+  screen_name: 贝果-备战
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 预设组合
+    pc_rect:
+    - 1020
+    - 898
+    - 1270
+    - 970
+    id_mark: true
+    text: 预设组合
+    lcs_percent: 0.9
+  - area_name: 前往空洞
+    pc_rect:
+    - 1550
+    - 898
+    - 1820
+    - 970
+    id_mark: true
+    text: 前往空洞
+    lcs_percent: 0.9
+  - area_name: 武备价值
+    pc_rect:
+    - 1020
+    - 188
+    - 1370
+    - 228
+    lcs_percent: 0.9
+  - area_name: 装备价值
+    pc_rect:
+    - 1460
+    - 188
+    - 1808
+    - 228
+    lcs_percent: 0.9
+  - area_name: 道具价值
+    pc_rect:
+    - 1460
+    - 405
+    - 1808
+    - 452
+    lcs_percent: 0.9
+  - area_name: 背包数量
+    pc_rect:
+    - 1493
+    - 802
+    - 1618
+    - 849
+    lcs_percent: 0.9
+  - area_name: 安全箱数量
+    pc_rect:
+    - 1670
+    - 802
+    - 1790
+    - 849
+    lcs_percent: 0.9
+- screen_id: bagel_result
+  screen_name: 贝果-结算
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 失败
+    pc_rect:
+    - 850
+    - 90
+    - 1070
+    - 165
+    id_mark: true
+    text: DEFEAT
+    lcs_percent: 0.9
+  - area_name: 地图
+    pc_rect:
+    - 625
+    - 665
+    - 865
+    - 720
+    text: 高危雅努斯幻境
+    lcs_percent: 1.0
+  - area_name: 继续
+    pc_rect:
+    - 830
+    - 930
+    - 1090
+    - 1000
+    text: 继续
+    lcs_percent: 0.9
+- screen_id: bagel_warehouse
+  screen_name: 贝果-仓库
+  app_id: bagel
+  pc_alt: false
+  area_list:
+  - area_name: 放入仓库
+    pc_rect:
+    - 190
+    - 990
+    - 445
+    - 1060
+    id_mark: true
+    text: 放入仓库
+    lcs_percent: 0.9
+  - area_name: 返回研究站
+    pc_rect:
+    - 1600
+    - 991
+    - 1855
+    - 1060
+    text: 返回研究站
+    lcs_percent: 0.9
+  - area_name: 背包数量
+    pc_rect:
+    - 238
+    - 111
+    - 390
+    - 158
+    lcs_percent: 0.9
+  - area_name: 安全箱格子
+    pc_rect:
+    - 219
+    - 838
+    - 730
+    - 956
+    lcs_percent: 0.9
+  - area_name: 仓库数量
+    pc_rect:
+    - 1090
+    - 210
+    - 1280
+    - 265
+    lcs_percent: 0.9
+  - area_name: 筛选-全部
+    pc_rect:
+    - 630
+    - 390
+    - 850
+    - 455
+    text: 全部
+    lcs_percent: 0.8
+  - area_name: 筛选-战术道具
+    pc_rect:
+    - 855
+    - 390
+    - 1070
+    - 455
+    text: 战术道具
+    lcs_percent: 0.8
+  - area_name: 筛选-装备
+    pc_rect:
+    - 855
+    - 445
+    - 1070
+    - 510
+    text: 装备
+    lcs_percent: 0.8
+  - area_name: 筛选-门禁卡
+    pc_rect:
+    - 1080
+    - 445
+    - 1295
+    - 510
+    text: 门禁卡
+    lcs_percent: 0.8
+  - area_name: 筛选-Z
+    pc_rect:
+    - 880
+    - 675
+    - 1080
+    - 740
+    text: Z
+    lcs_percent: 0.8
+  - area_name: 批量出售
+    pc_rect:
+    - 1080
+    - 890
+    - 1220
+    - 950
+    text: 批量出售
+    lcs_percent: 0.8
+  - area_name: 取消出售
+    pc_rect:
+    - 1080
+    - 890
+    - 1220
+    - 950
+    text: 取消出售
+    lcs_percent: 0.8
+  - area_name: 批量选择
+    pc_rect:
+    - 1305
+    - 890
+    - 1450
+    - 950
+    text: 批量选择
+    lcs_percent: 0.8
+  - area_name: 确认出售
+    pc_rect:
+    - 1665
+    - 890
+    - 1810
+    - 950
+    text: 确认出售
+    lcs_percent: 0.8
+  - area_name: 快速选择标题
+    pc_rect:
+    - 580
+    - 220
+    - 750
+    - 285
+    text: 快速选择
+    lcs_percent: 0.8
+  - area_name: 筛选-贵重物品
+    pc_rect:
+    - 1080
+    - 390
+    - 1295
+    - 455
+    text: 贵重物品
+    lcs_percent: 0.8
+  - area_name: 筛选-战术棱镜
+    pc_rect:
+    - 630
+    - 445
+    - 860
+    - 510
+    text: 战术棱镜
+    lcs_percent: 0.75
+  - area_name: 筛选-其他
+    pc_rect:
+    - 630
+    - 505
+    - 850
+    - 570
+    text: 其他
+    lcs_percent: 0.8
+  - area_name: 筛选-C
+    pc_rect:
+    - 650
+    - 615
+    - 850
+    - 675
+    text: C
+    lcs_percent: 0.8
+  - area_name: 筛选-B
+    pc_rect:
+    - 880
+    - 615
+    - 1080
+    - 675
+    text: B
+    lcs_percent: 0.8
+  - area_name: 筛选-A
+    pc_rect:
+    - 1110
+    - 615
+    - 1310
+    - 675
+    text: A
+    lcs_percent: 0.8
+  - area_name: 筛选-S
+    pc_rect:
+    - 650
+    - 675
+    - 850
+    - 740
+    text: S
+    lcs_percent: 0.8
+  - area_name: 筛选确认
+    pc_rect:
+    - 1000
+    - 795
+    - 1235
+    - 875
+    text: 确认
+    lcs_percent: 0.8
+  - area_name: 筛选数量
+    pc_rect:
+    - 800
+    - 735
+    - 1120
+    - 795
+    lcs_percent: 0.8
+  - area_name: 出售确认标题
+    pc_rect:
+    - 820
+    - 300
+    - 1110
+    - 350
+    text: 确认出售以下道具
+    lcs_percent: 0.9
+  - area_name: 出售弹窗确认
+    pc_rect:
+    - 975
+    - 790
+    - 1250
+    - 855
+    text: 确认
+    lcs_percent: 0.9
+  - area_name: 出售获得标题
+    pc_rect:
+    - 910
+    - 395
+    - 1010
+    - 445
+    text: 获得
+    lcs_percent: 0.8
+  - area_name: 出售获得货币
+    pc_rect:
+    - 910
+    - 605
+    - 1020
+    - 645
+    text: 齿轮硬币
+    lcs_percent: 0.8
+  - area_name: 出售获得确认
+    pc_rect:
+    - 825
+    - 700
+    - 1100
+    - 765
+    text: 确认
+    lcs_percent: 0.8
+  - area_name: 撤离奖励标题
+    pc_rect:
+    - 850
+    - 385
+    - 1075
+    - 450
+    text: 撤离奖励提示
+    lcs_percent: 0.85
+  - area_name: 撤离奖励说明
+    pc_rect:
+    - 760
+    - 438
+    - 1180
+    - 495
+    text: 撤离奖励将自动转移至仓储枢纽
+    lcs_percent: 0.8
+  - area_name: 撤离奖励确认
+    pc_rect:
+    - 1040
+    - 675
+    - 1220
+    - 760
+    text: 确认
+    lcs_percent: 0.85
 - screen_id: battle
   screen_name: 战斗画面
   pc_alt: true
