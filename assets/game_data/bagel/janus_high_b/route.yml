@@ -1,0 +1,77 @@
+map_id: janus_high_b
+coordinate_unit: reference_spawn_pixel
+# 使用与出生参考图一致的像素坐标；按实际定位朝下一路点移动。
+navigation: waypoints
+registration_blur_size: 3
+player_arrow:
+  crop_radius: 20
+  hsv_lower: [14, 90, 175]
+  hsv_upper: [34, 255, 255]
+  area_range: [150, 400]
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+source:
+  video: 2026-09-21 01-07-57.flv
+  crop_xyxy: [1533, 206, 1734, 407]
+  video_time: relative_first_frame
+  spawn_frame: seq_5_0s.png
+  note: 白鸽工地地铁站复活点；首帧为进入后未移动小地图
+anchor_xy: [100, 100]
+spawn_xy: [100, 100]
+waypoints:
+  - name: 白鸽武备箱前
+    xy: [130.5, 69.4]
+    stage: box
+    role: target
+mask:
+  center_xy: [100, 100]
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 1
+references:
+  - image: reference_spawn.png
+    second: 5.0
+    to_global:
+      - [1.0, 0.0, 0.0]
+      - [0.0, 1.0, 0.0]
+  - image: reference_live_align_20260926.png
+    source_video: b-box-02/record.mp4
+    source_date: 2026-09-26
+    second: 6.5
+    to_global:
+    - - 0.995964092183201
+      - 0.0018336371585703519
+      - 1.9035993714397947
+    - - -0.0018336371585703523
+      - 0.995964092183201
+      - -0.16482653070449282
+  - image: reference_live_approach_20260926.png
+    source_video: b-box-02/record.mp4
+    source_date: 2026-09-26
+    second: 9.5
+    to_global:
+    - - 1.004356006500127
+      - 0.001682889941740832
+      - 28.251303159404625
+    - - -0.0016828899417408324
+      - 1.004356006500127
+      - -29.932979721987422
+  - image: reference_live_box_20260926.png
+    source_video: b-box-02/record.mp4
+    source_date: 2026-09-26
+    second: 11.0
+    to_global:
+    - - 1.0089687603110793
+      - -0.005797963404857843
+      - 30.175924027116093
+    - - 0.005797963404857843
+      - 1.0089687603110793
+      - -32.13211723833814
+landmarks:
+  - name: 实测武备箱交互区
+    xy: [130.5, 69.4]
+    note: 2026-09-26实测交互位置，作为默认路点来源；可编辑路线，到达仍以交互提示为准

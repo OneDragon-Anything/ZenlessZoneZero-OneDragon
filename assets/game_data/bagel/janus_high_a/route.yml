@@ -1,0 +1,90 @@
+map_id: janus_high_a
+coordinate_unit: reference_spawn_pixel
+registration_blur_size: 3
+player_arrow:
+  crop_radius: 20
+  hsv_lower: [14, 90, 175]
+  hsv_upper: [34, 255, 255]
+  area_range: [150, 400]
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+source:
+  video: round-01.mp4
+  crop_xyxy: [1533, 206, 1734, 407]
+  video_time: relative_first_frame
+anchor_xy: [100, 100]
+spawn_xy: [100, 100]
+waypoints:
+  - name: 巷口左转
+    stage: box
+    role: turn
+    xy: [110, 100]
+  - name: 轮胎旁武备箱前
+    stage: box
+    role: target
+    xy: [110, 84]
+  - name: 电子保险箱巷口转向
+    stage: safe
+    role: entry
+    xy: [186.6, 84.9]
+  - name: 电子保险箱楼角
+    stage: safe
+    role: turn
+    xy: [201.6, 109.5]
+  - name: 电子保险箱接近点
+    stage: safe
+    role: approach
+    xy: [213, 110]
+  - name: 电子保险箱前
+    stage: safe
+    role: target
+    xy: [218, 110]
+mask:
+  center_xy: [100, 100]
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 2
+references:
+  - image: reference_live_corner.png
+    source_video: bagel-app-full-20260919_030524.mp4
+    second: 327.0
+    to_global:
+      - [0.9980172601613185, 0.0015384499894929176, 16.699793649939654]
+      - [-0.0015384499894929176, 0.9980172601613186, -0.8937602095659528]
+  - image: reference_spawn.png
+    second: 39.0
+    to_global:
+      - [1.0, 0.0, 0.0]
+      - [0.0, 1.0, 0.0]
+  - image: reference_box.png
+    second: 42.75
+    to_global:
+      - [0.999765197322262, -0.0012919962787430585, 12.949431775076684]
+      - [0.0012919962787430585, 0.999765197322262, -16.755017011834376]
+  - image: reference_corner.png
+    second: 41.2
+    to_global:
+      - [1.0005009205143234, 0.000059158315022944374, 11.320859342908143]
+      - [-0.000059158315022944374, 1.0005009205143234, -0.3754042541679764]
+  - image: reference_safe.png
+    source_video: 2026-09-21 00-58-13.flv
+    second: 75.5
+    to_global:
+      - [1.0, 0.0, 116.8762702801726]
+      - [0.0, 1.0, 6.0657824207504]
+  - image: reference_safe_corridor_70.png
+    source_video: 2026-09-21 00-58-13.flv
+    second: 70.0
+    to_global:
+      - [1.0015333658795356, -0.001485280019948111, 36.954543296865936]
+      - [0.001485280019948111, 1.0015333658795356, -16.553675486692292]
+  - image: reference_safe_corridor_72.png
+    source_video: 2026-09-21 00-58-13.flv
+    second: 72.0
+    to_global:
+      - [1.0047052083135668, -0.000659491936772809, 82.20560489383453]
+      - [0.000659491936772809, 1.0047052083135668, -12.166870141136458]

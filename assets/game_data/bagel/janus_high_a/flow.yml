@@ -1,0 +1,124 @@
+version: 2
+id: janus_high_a
+name: A · 录像店
+map_id: janus_high_a
+steps:
+- id: spawn
+  action: spawn
+  name: 检查出生位置
+- id: move_box
+  action: move
+  name: 走到巷口左转
+  target: box
+  waypoints:
+  - name: 巷口左转
+    xy:
+    - 110.0
+    - 100.0
+    stage: box
+    role: turn
+    stop: true
+  navigation: {}
+- id: move_box_ed2f153a4cca565cafbd70af72a5bc02
+  action: approach
+  name: 靠近轮胎旁武备箱前
+  target: box
+  waypoints:
+  - name: 轮胎旁武备箱前
+    xy:
+    - 110.0
+    - 84.0
+    stage: box
+    role: target
+    stop: true
+  navigation: {}
+- id: open_box
+  action: interact
+  name: 打开武备箱
+  target: box
+- id: store_box
+  action: store
+  name: 武备箱装入安全箱
+  target: box
+- id: store_box_dd78c93c65fb5b409bb9feba40e39c43
+  action: close
+  name: 关闭搜查面板
+  target: box
+- id: move_safe
+  action: move
+  name: 走到电子保险箱巷口转向
+  target: safe
+  waypoints:
+  - name: 电子保险箱巷口转向
+    xy:
+    - 186.6
+    - 84.9
+    stage: safe
+    role: entry
+    stop: true
+  navigation: {}
+- id: move_safe_dd93c3156c3950aa8d95f43ac8d4829b
+  action: move
+  name: 走到电子保险箱楼角
+  target: safe
+  waypoints:
+  - name: 电子保险箱楼角
+    xy:
+    - 201.6
+    - 109.5
+    stage: safe
+    role: turn
+    stop: true
+  navigation: {}
+- id: move_safe_b0f95574a09453a194631ec5e296ddb8
+  action: move
+  name: 走到电子保险箱接近点
+  target: safe
+  waypoints:
+  - name: 电子保险箱接近点
+    xy:
+    - 213.0
+    - 110.0
+    stage: safe
+    role: approach
+    stop: true
+  navigation: {}
+- id: move_safe_ab548bd5a8235c75b1081f48c129246a
+  action: approach
+  name: 靠近电子保险箱前
+  target: safe
+  waypoints:
+  - name: 电子保险箱接近点
+    xy:
+    - 213.0
+    - 110.0
+    stage: safe
+    role: approach
+    stop: true
+  - name: 电子保险箱前
+    xy:
+    - 218.0
+    - 110.0
+    stage: safe
+    role: target
+    stop: true
+  navigation: {}
+- id: open_safe_45bbb36465895a01aae783abb6af7ea8
+  action: interact
+  name: 打开电子保险箱解锁界面
+  target: safe
+- id: open_safe
+  action: unlock
+  name: 完成电子保险箱光圈解锁
+  target: safe
+- id: store_safe
+  action: store
+  name: 电子保险箱装入安全箱
+  target: safe
+- id: store_safe_d6fa5408861a59e497e952875886ad10
+  action: close
+  name: 关闭搜查面板
+  target: safe
+- id: exit
+  action: exit
+  name: 主动退出
