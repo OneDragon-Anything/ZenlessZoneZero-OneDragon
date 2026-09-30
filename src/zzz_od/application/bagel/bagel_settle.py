@@ -20,7 +20,6 @@ class BagelSettleWarehouse(BagelOperation):
     """入仓后按开关清理；仓满且安全箱有物时保留现场。"""
 
     STATUS_DONE: str = BagelDeposit.STATUS_DONE
-    STATUS_SKIPPED_CLEAN: str = BagelDeposit.STATUS_DONE
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,

@@ -10,16 +10,13 @@ from one_dragon.base.geometry.point import Point
 if TYPE_CHECKING:
     from cv2.typing import MatLike
 
-# 武备箱结果两排、安全箱一排、可见背包两排格心，来自 2026-09-21 待入箱实拍。
+# 武备箱结果两排、安全箱一排格心，来自 2026-09-21 待入箱实拍。
 _RESULT_XS: tuple[int, ...] = (1342, 1443, 1543, 1644, 1744)
 _SAFE_XS: tuple[int, ...] = (259, 360, 461, 561, 663)
 RESULT_SLOT_CENTERS: tuple[Point, ...] = tuple(
     Point(x, y) for y in (330, 431) for x in _RESULT_XS
 )
 SAFE_SLOT_CENTERS: tuple[Point, ...] = tuple(Point(x, 899) for x in _SAFE_XS)
-BACKPACK_SLOT_CENTERS: tuple[Point, ...] = tuple(
-    Point(x, y) for y in (556, 684) for x in _SAFE_XS
-)
 _SLOT_HALF: int = 32
 # 空格灰度标准差约 4–8；有图标时通常 >40。取中间阈值，避免把轻微噪点当占用。
 _OCCUPIED_STD_MIN: float = 20.0

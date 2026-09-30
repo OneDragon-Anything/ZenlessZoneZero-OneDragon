@@ -30,14 +30,12 @@ class BagelUnlockSafe(BagelOperation):
         super().__init__(ctx, op_name='贝果-解锁电子保险箱', timeout_seconds=45)
         self.phase: str = phase
         self.hits_done: int = 0
-        self.entered: bool = False
         self.ring_armed: bool = False
 
     def handle_init(self) -> None:
         """每次运行重置解锁进度。"""
         super().handle_init()
         self.hits_done = 0
-        self.entered = False
         self.ring_armed = False
 
     def _press_timing(self) -> None:
@@ -64,7 +62,6 @@ class BagelUnlockSafe(BagelOperation):
         if self._search_ready():
             return self.round_success(self.STATUS_UNLOCKED)
         if self.round_by_find_area(self.last_screenshot, '贝果-局内', '大保险解锁提示').is_success:
-            self.entered = True
             return self.round_success(self.STATUS_READY if self.phase == 'interact' else '已在解锁界面')
         if self.phase == 'unlock':
             return self.round_fail('请先打开电子保险箱光圈解锁界面')
@@ -87,7 +84,6 @@ class BagelUnlockSafe(BagelOperation):
         if self._search_ready():
             return self.round_success(self.STATUS_UNLOCKED)
         if self.round_by_find_area(self.last_screenshot, '贝果-局内', '大保险解锁提示').is_success:
-            self.entered = True
             return self.round_success(self.STATUS_READY if self.phase == 'interact' else '已在解锁界面')
         return self.round_wait('等待大保险解锁界面', wait=0.02)
 

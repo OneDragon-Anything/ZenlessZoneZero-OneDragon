@@ -95,12 +95,6 @@ def parse_capacity_pair(text: str) -> tuple[int, int] | None:
     return used, total
 
 
-def parse_capacity(text: str) -> int | None:
-    """从“全部(235/280)”一类文字读取当前占用；识别不清返回 None。"""
-    pair = parse_capacity_pair(text)
-    return None if pair is None else pair[0]
-
-
 def parse_filter_count(text: str) -> int | None:
     """读取快速选择「符合以上条件的道具数量」。"""
     compact = text.replace(' ', '')

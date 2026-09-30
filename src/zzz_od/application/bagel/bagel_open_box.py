@@ -19,15 +19,13 @@ class BagelOpenBox(BagelOperation):
         super().__init__(ctx, op_name='贝果-打开普通武备箱', timeout_seconds=30)
         self.interact_attempts: int = 0
         self.last_interact_time: float = 0
-        self.panel_seen: bool = False
         self._prompt_without_hud: int = 0
 
     def handle_init(self) -> None:
-        """每次运行独立计数，见过搜查面板后不再补按 F。"""
+        """每次运行独立计数；是否补按 F 由当前画面和次数决定。"""
         super().handle_init()
         self.interact_attempts = 0
         self.last_interact_time = 0
-        self.panel_seen = False
         self._prompt_without_hud = 0
 
     def _press_interact(self) -> None:
@@ -42,7 +40,6 @@ class BagelOpenBox(BagelOperation):
         if self.is_bagel_result():
             return self.round_fail(self.STATUS_DEFEATED)
         if self.round_by_find_area(self.last_screenshot, '贝果-局内', '搜查容器标题').is_success:
-            self.panel_seen = True
             self._prompt_without_hud = 0
             return self.round_success()
         has_prompt = self.round_by_find_area(
@@ -74,8 +71,6 @@ class BagelOpenBox(BagelOperation):
             self.round_by_find_area(self.last_screenshot, '贝果-局内', area).is_success
             for area in ('搜查容器标题', '搜查完成', '搜查安全箱')
         ]
-        if any(states):
-            self.panel_seen = True
         if states[0] and states[2] and (states[1] or self.round_by_find_area(
             self.last_screenshot, '贝果-局内', '搜查进行中',
         ).is_success):
