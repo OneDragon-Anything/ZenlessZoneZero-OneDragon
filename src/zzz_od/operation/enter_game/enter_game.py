@@ -219,6 +219,8 @@ class EnterGame(ZOperation):
         """
         if self.ctx.game_account_config.account == '' or self.ctx.game_account_config.password == '':
             return self.round_fail('未配置账号密码')
+        if len(self.ctx.game_account_config.account) <= 3 or len(self.ctx.game_account_config.password) <= 3:
+            return self.round_fail('账号或密码太短, 请检查')
 
         self.round_by_click_area('打开游戏', '国服-账号输入区域-新')
         time.sleep(0.5)
