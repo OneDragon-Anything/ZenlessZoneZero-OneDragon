@@ -1,0 +1,227 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from one_dragon.base.operation.operation_edge import node_from
+from one_dragon.base.operation.operation_node import operation_node
+from zzz_od.application.bagel.bagel_const import RECOMMENDED_VALUE
+from zzz_od.application.bagel.bagel_operation import BagelOperation
+from zzz_od.application.bagel.bagel_screen import (
+    entry_warning,
+    read_area,
+    read_loadout,
+    zero_loadout,
+)
+from zzz_od.operation.transport import Transport
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.operation_round_result import OperationRoundResult
+    from zzz_od.context.zzz_context import ZContext
+
+
+class BagelEnter(BagelOperation):
+    """从已知安全画面进入贝果，核实高危、零携带和零投资。"""
+
+    def __init__(self, ctx: ZContext) -> None:
+        """所有画面等待有截止时间，不自动卸装或花费物资。"""
+        super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=240)
+        self.zero_checked: bool = False
+        self.confirmed_warnings: set[str] = set()
+        self.investment_confirmed: bool = False
+        self.transport_started: bool = False
+
+    def handle_init(self) -> None:
+        """重复运行时清除上一局的确认状态。"""
+        super().handle_init()
+        self.zero_checked = False
+        self.confirmed_warnings.clear()
+        self.investment_confirmed = False
+        self.transport_started = False
+
+    def _at_reception(self) -> bool:
+        """传送后用普通大世界与达塔名称确认交互位置。"""
+        return (
+            self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success
+            and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '接待员名称').is_success
+        )
+
+    def _ordinary_warehouse(self) -> str | None:
+        """普通仓库是其他应用的局部画面，按标题限定识别。"""
+        for screen_name, area_name in (
+            ('仓库-材料道具', '标题-材料道具'),
+            ('仓库-音擎仓库', '标题-音擎仓库'),
+            ('仓库-驱动仓库', '标题-驱动仓库'),
+        ):
+            area = self.ctx.screen_loader.get_area(screen_name, area_name)
+            title = read_area(self.ctx, self.last_screenshot, screen_name, area_name)
+            if area.text in title:
+                return screen_name
+        return None
+
+    @operation_node(name='打开贝果主界面', is_start_node=True, timeout_seconds=120)
+    def open_hub(self) -> OperationRoundResult:
+        """优先使用现有贝果入口；安全画面才允许传送到研究站。"""
+        if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
+            return self.round_success('已在备战')
+        if self.round_by_find_area(self.last_screenshot, '贝果-选图', '前往备战').is_success:
+            return self.round_success()
+        if (
+            self.round_by_find_area(self.last_screenshot, '贝果-研究站', '标题').is_success
+            and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '前往空洞').is_success
+        ):
+            return self.round_success()
+        at_dialog = (
+            self.round_by_find_area(self.last_screenshot, '贝果-研究站', '对话人').is_success
+            and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '出发对话').is_success
+        )
+        if self.transport_started:
+            if at_dialog:
+                result = self.round_by_find_and_click_area(
+                    self.last_screenshot, '贝果-研究站', '出发对话', retry_wait=1,
+                )
+                if result.is_success:
+                    return self.round_wait('等待贝果主界面', wait=1)
+                return result
+            if self._at_reception():
+                if self.node_clicked:
+                    return self.round_wait('等待达塔对话或贝果主界面', wait=1)
+                self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+                self.node_clicked = True
+                return self.round_wait('等待达塔对话', wait=1)
+            if self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success:
+                return self.round_fail('传送落地后未识别达塔，停止并留现场')
+            return self.round_wait('等待传送后识别达塔', wait=1)
+        current = self.check_and_update_current_screen(self.last_screenshot)
+        if current is None:
+            current = self._ordinary_warehouse()
+        # 达塔前按普通大世界处理；达塔对话也交给通用返回与传送，不从原地继续。
+        allowed = at_dialog or current == '大世界-普通' or current in {
+            '菜单', '菜单-更多功能', '快捷手册', '仓库-材料道具',
+            '仓库-驱动仓库', '仓库-音擎仓库', '地图',
+        } or (current is not None and current.startswith('快捷手册-'))
+        if not allowed:
+            return self.round_fail(f'当前画面 {current or "未知"} 不支持自动进入贝果，已留现场')
+        if current in {'仓库-材料道具', '仓库-音擎仓库', '仓库-驱动仓库'}:
+            self.ctx.screen_loader.update_current_screen_name(current)
+        result = Transport(self.ctx, '奥蒙德研究站', '迷宫诡域').execute()
+        if not result.success:
+            return self.round_by_op_result(result)
+        self.transport_started = True
+        return self.round_wait('等待研究站传送落地', wait=1)
+
+    @node_from(from_name='打开贝果主界面')
+    @operation_node(name='打开贝果选图', timeout_seconds=20)
+    def open_map(self) -> OperationRoundResult:
+        """只接受研究站主界面或选图页，不从未知备战直接进局。"""
+        if self.round_by_find_area(self.last_screenshot, '贝果-选图', '前往备战').is_success:
+            return self.round_success()
+        if not self.round_by_find_area(self.last_screenshot, '贝果-研究站', '标题').is_success:
+            return self.round_retry('请从贝果研究站主界面开始', wait=1)
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '贝果-研究站', '前往空洞',
+            until_find_all=[('贝果-选图', '前往备战')], success_wait=1, retry_wait=1,
+        )
+
+    @node_from(from_name='打开贝果主界面', status='已在备战')
+    @operation_node(name='备战返回选图', timeout_seconds=15)
+    def return_to_map(self) -> OperationRoundResult:
+        """直接从备战启动时先返回选图，不能沿用未经核对的地图和难度。"""
+        if self.round_by_find_area(self.last_screenshot, '贝果-选图', '前往备战').is_success:
+            return self.round_success()
+        if not self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
+            return self.round_retry('等待备战返回选图', wait=0.5)
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '菜单', '返回',
+            until_find_all=[('贝果-选图', '前往备战')], success_wait=1, retry_wait=0.5,
+        )
+
+    @node_from(from_name='备战返回选图')
+    @node_from(from_name='打开贝果选图')
+    @operation_node(name='选择雅努斯', timeout_seconds=15)
+    def choose_map(self) -> OperationRoundResult:
+        """点击左侧地图卡后核对右侧实际选中地图。"""
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '贝果-选图', '雅努斯',
+            until_find_all=[('贝果-选图', '选中地图')], success_wait=1, retry_wait=1,
+        )
+
+    @node_from(from_name='选择雅努斯')
+    @operation_node(name='选择高危', timeout_seconds=15)
+    def choose_difficulty(self) -> OperationRoundResult:
+        """选中后用对应推荐价值与地图名复核，不能只检测页签文字存在。"""
+        if (self.node_clicked
+                and read_area(self.ctx, self.last_screenshot, '贝果-选图', '推荐价值') == RECOMMENDED_VALUE
+                and read_area(self.ctx, self.last_screenshot, '贝果-选图', '选中地图') == '雅努斯幻境'):
+            return self.round_success()
+        result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-选图', '高危')
+        if result.is_success:
+            return self.round_wait('等待高危选择生效', wait=1)
+        return result
+
+    @node_from(from_name='选择高危')
+    @operation_node(name='打开备战', timeout_seconds=20)
+    def open_prepare(self) -> OperationRoundResult:
+        """地图和难度确认之后才打开备战。"""
+        if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
+            return self.round_success()
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '贝果-选图', '前往备战',
+            until_find_all=[('贝果-备战', '预设组合')], success_wait=1, retry_wait=1,
+        )
+
+    @node_from(from_name='打开备战')
+    @operation_node(name='核对零携带', timeout_seconds=15)
+    def verify_zero_loadout(self) -> OperationRoundResult:
+        """拒绝有装备、有道具、有背包物资或安全箱尚未清空的入场。"""
+        if not self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
+            return self.round_retry('未识别备战页', wait=1)
+        values = read_loadout(self.ctx, self.last_screenshot)
+        if not zero_loadout(values):
+            return self.round_fail('无法确认零携带，请先清空武备、装备、道具、背包和安全箱')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-备战', '前往空洞')
+        if result.is_success:
+            self.zero_checked = True
+            return self.round_success(wait=1)
+        return result
+
+    @node_from(from_name='核对零携带')
+    @operation_node(name='确认入场并等待加载', timeout_seconds=90, node_max_retry_times=3)
+    def confirm_entry(self) -> OperationRoundResult:
+        """仅处理核实零携带之后出现的三类确认，未知弹窗保留现场。"""
+        if not self.zero_checked:
+            return self.round_fail('尚未核对零携带，禁止确认入场')
+        # 开局会自动弹出局内大地图；识别后主动关闭，不空等约 30 秒自动关掉。
+        if self.round_by_find_area(self.last_screenshot, '贝果-局内', '大地图图例').is_success:
+            result = self.round_by_click_area('贝果-局内', '大地图返回')
+            if result.is_success:
+                return self.round_wait('关闭开局大地图', wait=1)
+            return self.round_retry('已识别开局大地图但未能关闭', wait=1)
+        if self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+            if not self.investment_confirmed:
+                return self.round_fail('未核对高危零投资，停止并保留现场')
+            return self.round_success('已进入雅努斯高危')
+        if self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '投资标题').is_success:
+            if read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '投资金额') != '0':
+                return self.round_fail('无法确认零投资，停止并保留现场')
+            if self.investment_confirmed:
+                return self.round_retry('零投资入场未生效', wait=1)
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-入场确认', '零投资前往空洞',
+            )
+            if result.is_success:
+                self.investment_confirmed = True
+                return self.round_wait('等待零投资入场', wait=1)
+            return result
+        text = read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '提示')
+        warning = entry_warning(text)
+        if warning is not None:
+            if warning in self.confirmed_warnings:
+                return self.round_retry('入场确认未消失', wait=1)
+            result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-入场确认', '确认')
+            if result.is_success:
+                self.confirmed_warnings.add(warning)
+                return self.round_wait(warning, wait=1)
+            return result
+        if text and self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '确认').is_success:
+            return self.round_fail('未知入场确认，停止并保留现场')
+        return self.round_wait('等待贝果加载完成', wait=1)
