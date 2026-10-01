@@ -115,7 +115,7 @@ class BagelApp(ZApplication):
     def check_spawn(self) -> OperationRoundResult:
         """支持点进入短线收集；其余正常退出重开。"""
         if not self.round_by_find_area(
-            self.last_screenshot, '贝果-局内', '喧响值',
+            self.last_screenshot, '战斗画面', '按键-普通攻击',
         ).is_success:
             self._spawn_hud_misses += 1
             if self._spawn_hud_misses < 4:

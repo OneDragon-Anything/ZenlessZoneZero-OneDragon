@@ -492,15 +492,6 @@
   app_id: bagel
   pc_alt: false
   area_list:
-  - area_name: 喧响值
-    pc_rect:
-    - 165
-    - 189
-    - 305
-    - 241
-    id_mark: true
-    text: UPROAR
-    lcs_percent: 0.9
   - area_name: 小地图
     pc_rect:
     - 1495

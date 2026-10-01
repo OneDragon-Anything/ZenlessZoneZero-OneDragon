@@ -20,10 +20,10 @@ class BagelExit(BagelOperation):
 
     @operation_node(name='打开贝果暂停菜单', is_start_node=True, timeout_seconds=15)
     def open_menu(self) -> OperationRoundResult:
-        """仅在确认贝果 HUD 后打开菜单，不能退出其他玩法。"""
+        """由调用方确认贝果流程；普通攻击按钮出现后打开菜单，再核对专用退出提示。"""
         if self.is_bagel_result():
             return self.round_success('已到贝果结算')
-        if self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+        if self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             self.ctx.controller.btn_press('esc', press_time=0.1)
             return self.round_success(wait=1)
         return self.round_retry('未识别贝果局内画面', wait=1)

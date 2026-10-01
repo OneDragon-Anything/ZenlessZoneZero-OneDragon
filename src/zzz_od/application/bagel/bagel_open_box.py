@@ -19,14 +19,12 @@ class BagelOpenBox(BagelOperation):
         super().__init__(ctx, op_name='贝果-打开普通武备箱', timeout_seconds=30)
         self.interact_attempts: int = 0
         self.last_interact_time: float = 0
-        self._prompt_without_hud: int = 0
 
     def handle_init(self) -> None:
         """每次运行独立计数；是否补按 F 由当前画面和次数决定。"""
         super().handle_init()
         self.interact_attempts = 0
         self.last_interact_time = 0
-        self._prompt_without_hud = 0
 
     def _press_interact(self) -> None:
         """记录交互时刻；补按也计入两次总上限。"""
@@ -36,29 +34,22 @@ class BagelOpenBox(BagelOperation):
 
     @operation_node(name='打开武备箱', is_start_node=True, node_max_retry_times=8)
     def open_box(self) -> OperationRoundResult:
-        """已有搜查面板时跳过交互。喧响值被记分挡住时，武备箱提示还在就再看一帧后按 F。"""
+        """已有搜查面板时跳过交互；普通攻击按钮与武备箱提示同时出现才按 F。"""
         if self.is_bagel_result():
             return self.round_fail(self.STATUS_DEFEATED)
         if self.round_by_find_area(self.last_screenshot, '贝果-局内', '搜查容器标题').is_success:
-            self._prompt_without_hud = 0
             return self.round_success()
         has_prompt = self.round_by_find_area(
             self.last_screenshot, '贝果-局内', '武备箱交互',
         ).is_success
         has_hud = self.round_by_find_area(
-            self.last_screenshot, '贝果-局内', '喧响值',
+            self.last_screenshot, '战斗画面', '按键-普通攻击',
         ).is_success
         if has_prompt and has_hud:
-            self._prompt_without_hud = 0
             self._press_interact()
             return self.round_success(wait=0.5)
         if has_prompt:
-            self._prompt_without_hud += 1
-            if self._prompt_without_hud >= 2:
-                self._press_interact()
-                return self.round_success(wait=0.5)
-            return self.round_retry('喧响值暂时对不上，再看武备箱提示', wait=0.3)
-        self._prompt_without_hud = 0
+            return self.round_retry('未识别普通攻击按钮，等待局内画面', wait=0.3)
         return self.round_retry('未发现武备箱交互提示', wait=0.3)
 
     @node_from(from_name='打开武备箱')
@@ -79,10 +70,12 @@ class BagelOpenBox(BagelOperation):
         if (
             not any(states)
             and self.last_screenshot_time - self.last_interact_time >= 2
-            and all(
-                self.round_by_find_area(self.last_screenshot, '贝果-局内', area).is_success
-                for area in ('喧响值', '武备箱交互')
-            )
+            and self.round_by_find_area(
+                self.last_screenshot, '战斗画面', '按键-普通攻击',
+            ).is_success
+            and self.round_by_find_area(
+                self.last_screenshot, '贝果-局内', '武备箱交互',
+            ).is_success
         ):
             if self.interact_attempts >= 2:
                 return self.round_fail('两次交互后仍未打开武备箱')

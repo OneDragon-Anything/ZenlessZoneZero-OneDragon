@@ -131,9 +131,11 @@ class BagelStoreSafe(BagelOperation):
                     return self.round_wait('搜查状态暂未识别，等待下一帧', wait=0.3)
             else:
                 self._panel_missing_rounds += 1
-                if all(self.round_by_find_area(
+                if self.round_by_find_area(
+                    self.last_screenshot, '战斗画面', '按键-普通攻击',
+                ).is_success and all(self.round_by_find_area(
                     self.last_screenshot, '贝果-局内', area,
-                ).is_success for area in ('喧响值', '武备箱交互', '交互F键')):
+                ).is_success for area in ('武备箱交互', '交互F键')):
                     if self._panel_missing_rounds < 2:
                         return self.round_wait('搜查面板暂未识别，再看一帧', wait=0.3)
                     return self.round_fail('搜查面板已关闭，请重新执行交互步骤')

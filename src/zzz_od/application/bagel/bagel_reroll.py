@@ -65,7 +65,7 @@ class BagelReroll(BagelOperation):
     @operation_node(name='识别支持点后停止')
     def check_spawn(self) -> OperationRoundResult:
         """只读取局内小地图；命中支持点后没有退出或移动的后续节点。"""
-        if not self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+        if not self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             return self.round_fail('未识别贝果局内画面，停止抽点')
         area = self.ctx.screen_loader.get_area('贝果-局内', '定位小地图')
         if area is None:

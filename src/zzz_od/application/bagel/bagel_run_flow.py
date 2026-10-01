@@ -19,7 +19,6 @@ from zzz_od.application.bagel.bagel_navigate import BagelNavigate
 from zzz_od.application.bagel.bagel_open_box import BagelOpenBox
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_route_vision import BagelRouteVision
-from zzz_od.application.bagel.bagel_screen import has_safe_interaction_hud
 from zzz_od.application.bagel.bagel_store import BagelStoreSafe
 from zzz_od.application.bagel.bagel_unlock_safe import BagelUnlockSafe
 
@@ -96,8 +95,9 @@ class BagelRunFlow(BagelOperation):
         self.cursor = 0
         self._precondition_waits = 0
         self.index = self.indices[0]
+        if self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击') is None:
+            raise ValueError('缺少画面区域：战斗画面/按键-普通攻击')
         for area in (
-            '喧响值',
             '定位小地图',
             '武备箱交互',
             '电子保险箱交互',
@@ -128,10 +128,10 @@ class BagelRunFlow(BagelOperation):
                 }
             )
 
-    def _has(self, area: str) -> bool:
+    def _has(self, area: str, screen_name: str = '贝果-局内') -> bool:
         """用当前帧核对既有画面区域。"""
         return self.round_by_find_area(
-            self.last_screenshot, '贝果-局内', area
+            self.last_screenshot, screen_name, area
         ).is_success
 
     def precondition(self, step: BagelStep) -> str | None:
@@ -166,12 +166,7 @@ class BagelRunFlow(BagelOperation):
             return '请先执行关闭搜查面板步骤'
         if self._has('大保险解锁提示'):
             return '请先完成电子保险箱解锁并关闭搜查面板'
-        has_hud = (
-            has_safe_interaction_hud(self.ctx, self.last_screenshot)
-            if step.action == 'interact' and step.target == 'safe'
-            else self._has('喧响值')
-        )
-        if not has_hud:
+        if not self._has('按键-普通攻击', '战斗画面'):
             return '未识别贝果局内画面'
         if step.action == 'interact':
             prompt = '武备箱交互' if step.target == 'box' else '电子保险箱交互'
@@ -213,7 +208,7 @@ class BagelRunFlow(BagelOperation):
             and not any(self._has(area) for area in (
                 '搜查容器标题', '电子保险箱标题', '大保险解锁提示',
             ))
-            and self._has('喧响值')
+            and self._has('按键-普通攻击', '战斗画面')
         )
 
     def build_operation(self, step: BagelStep) -> BagelOperation | None:

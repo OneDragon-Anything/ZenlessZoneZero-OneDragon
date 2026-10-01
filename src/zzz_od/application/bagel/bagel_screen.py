@@ -3,21 +3,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from one_dragon.base.screen import screen_utils
 from zzz_od.application.bagel.bagel_const import MAP_TITLE, RECOMMENDED_VALUE
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
 
     from zzz_od.context.zzz_context import ZContext
-
-
-def has_safe_interaction_hud(ctx: ZContext, screen: MatLike) -> bool:
-    """保险箱交互前允许 UPROAR 单字错识；调用者仍须核对交互提示。"""
-    area = ctx.screen_loader.get_area('贝果-局内', '喧响值')
-    return area is not None and bool(screen_utils.find_by_ocr(
-        ctx, screen, area.text, area=area, lcs_percent=0.8,
-    ))
 
 
 def read_area(ctx: ZContext, screen: MatLike, screen_name: str, area_name: str) -> str:

@@ -30,7 +30,7 @@ class BagelCloseSearch(BagelOperation):
         )
         if not has_title:
             if self.round_by_find_area(
-                self.last_screenshot, '贝果-局内', '喧响值'
+                self.last_screenshot, '战斗画面', '按键-普通攻击'
             ).is_success:
                 return self.round_success('已关闭搜查面板')
             return self.round_wait('等待回到局内', wait=0.3)

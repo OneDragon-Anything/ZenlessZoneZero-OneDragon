@@ -196,7 +196,7 @@ class BagelEnter(BagelOperation):
             if result.is_success:
                 return self.round_wait('关闭开局大地图', wait=1)
             return self.round_retry('已识别开局大地图但未能关闭', wait=1)
-        if self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+        if self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             if not self.investment_confirmed:
                 return self.round_fail('未核对高危零投资，停止并保留现场')
             return self.round_success('已进入雅努斯高危')

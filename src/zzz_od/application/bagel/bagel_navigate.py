@@ -174,7 +174,7 @@ class BagelNavigate(BagelOperation):
         """
         if self.is_bagel_result():
             return self.round_fail(self.STATUS_DEFEATED)
-        if not self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+        if not self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             return self.round_fail('未识别贝果局内画面')
         if self.destination != 'box' or not self.require_spawn:
             if self.vision.locate(self.minimap()) is None:
@@ -223,7 +223,7 @@ class BagelNavigate(BagelOperation):
         if has_interaction and not self.check_target_position and not self.coordinate_only:
             self._release_forward()
             return self.round_success(self.arrive_status)
-        if not self.round_by_find_area(self.last_screenshot, '贝果-局内', '喧响值').is_success:
+        if not self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             self._release_forward()
             if self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗').is_success:
                 return self.round_fail('移动中打开了暂停菜单')

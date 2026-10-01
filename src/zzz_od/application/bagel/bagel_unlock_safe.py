@@ -10,7 +10,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from zzz_od.application.bagel.bagel_const import SAFE_UNLOCK_HITS
 from zzz_od.application.bagel.bagel_operation import BagelOperation
-from zzz_od.application.bagel.bagel_screen import has_safe_interaction_hud
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -66,7 +65,9 @@ class BagelUnlockSafe(BagelOperation):
         if self.phase == 'unlock':
             return self.round_fail('请先打开电子保险箱光圈解锁界面')
         if (
-            not has_safe_interaction_hud(self.ctx, self.last_screenshot)
+            not self.round_by_find_area(
+                self.last_screenshot, '战斗画面', '按键-普通攻击',
+            ).is_success
             or not self.round_by_find_area(
                 self.last_screenshot, '贝果-局内', '电子保险箱交互',
             ).is_success
