@@ -1,114 +1,53 @@
-"""高危雅努斯局部小地图位置和角色箭头方向。"""
+"""固定底图定位、出生识别与实时角色箭头方向。"""
+
+from __future__ import annotations
 
 from math import atan2, degrees, hypot
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
-import yaml
 
-from one_dragon.utils import os_utils
-from zzz_od.application.bagel.bagel_minimap import register_minimap
+from zzz_od.application.bagel.bagel_fixed_map import load_fixed_map
+from zzz_od.application.bagel.bagel_flow import load_published_flow
+from zzz_od.application.bagel.bagel_map_locator import locate_on_map
 from zzz_od.application.bagel.bagel_route import SUPPORTED_MAP_IDS, BagelRoute
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from zzz_od.application.bagel.bagel_fixed_map import BagelFixedMap
+    from zzz_od.application.bagel.bagel_map_locator import MapLocation
 
 
 class BagelRouteVision:
-    """用已配准的局部参考帧返回第一张图上的坐标。"""
+    """出生识别、正式导航和开发试跑共用一份固定地图快照。"""
 
-    def __init__(self, map_id: str = 'janus_high_a', route_data: BagelRoute | None = None) -> None:
-        """按地图目录加载录像裁剪和已核验的局部坐标参数。"""
-        if map_id not in SUPPORTED_MAP_IDS:
-            raise ValueError(f'不支持的贝果路线: {map_id}')
+    def __init__(
+        self,
+        map_id: str = 'janus_high_a',
+        route_data: BagelRoute | None = None,
+        map_snapshot: BagelFixedMap | None = None,
+    ) -> None:
+        """独立加载或接收本次执行的地图，正式路点仅来自发布流程。"""
         self.map_id: str = map_id
-        root = Path(os_utils.get_resource_path('assets', 'game_data', 'bagel', map_id))
-        with (root / 'route.yml').open(encoding='utf-8') as stream:
-            route = yaml.safe_load(stream)
-        self.route: BagelRoute = BagelRoute.from_dict(map_id, route_data.to_dict() if route_data else route, complete=route_data is None, check_roles=route_data is None)
-        if self.route.map_id != map_id:
-            raise ValueError('导航路线与参考图地图不一致')
-        self.anchor: tuple[float, float] = tuple(route['anchor_xy'])
-        self.spawn: tuple[float, float] = tuple(route['spawn_xy'])
-        self.waypoints: list[tuple[str, tuple[float, float]]] = [
-            (item.name, item.xy) for item in self.route.waypoints
-        ]
-        self.mask_settings: dict[str, object] = route['mask']
-        self.arrow_settings: dict[str, object] = route['player_arrow']
-        self.blur_size: int = route['registration_blur_size']
-        self.references: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
-        self.min_channel_references: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
-        for item in route['references']:
-            path = root / item['image']
-            image = cv2.imdecode(np.fromfile(str(path), np.uint8), cv2.IMREAD_COLOR)
-            if image is None or image.shape != (201, 201, 3):
-                raise ValueError(f'无效贝果参考图: {path}')
-            mask = self._mask(image)
-            transform = np.asarray(item['to_global'], dtype=np.float64)
-            self.references.append((self._registration_image(image), mask, transform))
-            self.min_channel_references.append((
-                self._registration_image(image, use_min_channel=True), mask, transform,
-            ))
-
-    def _registration_image(self, crop: np.ndarray, *, use_min_channel: bool = False) -> np.ndarray:
-        """平滑缩放纹理并均衡局部对比度；可用最小颜色通道抑制透出的彩色背景。"""
-        gray = np.min(crop, axis=2) if use_min_channel else cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (self.blur_size, self.blur_size), 0)
-        return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(blurred)
-
-    def _mask(self, crop: np.ndarray) -> np.ndarray:
-        """遮住外框、中心标记以及颜色过亮的动态层。"""
-        settings = self.mask_settings
-        center = tuple(settings['center_xy'])
-        out = np.zeros(crop.shape[:2], np.uint8)
-        cv2.circle(out, center, settings['outer_radius'], 255, -1)
-        cv2.circle(out, center, settings['inner_radius'], 0, -1)
-        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-        out[(hsv[:, :, 1] > settings['maximum_saturation']) |
-            (hsv[:, :, 2] < settings['minimum_brightness'])] = 0
-        margin = int(settings.get('edge_margin', 0))
-        if margin:
-            # 描述子中心可能落在亮色道路旁的暗边，保留邻域但不扩大有效圆环。
-            out = cv2.dilate(out, np.ones((margin * 2 + 1, margin * 2 + 1), np.uint8))
-            ring = np.zeros_like(out)
-            cv2.circle(ring, center, settings['outer_radius'], 255, -1)
-            cv2.circle(ring, center, settings['inner_radius'], 0, -1)
-            out = cv2.bitwise_and(out, ring)
-        return out
+        self.map: BagelFixedMap = map_snapshot if map_snapshot is not None else load_fixed_map(map_id)
+        if self.map.map_id != map_id:
+            raise ValueError('导航路线与固定地图不一致')
+        if route_data is None:
+            points = dict.fromkeys(point for step in load_published_flow(map_id).steps for point in step.waypoints)
+            self.route: BagelRoute = BagelRoute(map_id, tuple(points))
+        else:
+            self.route = BagelRoute.from_dict(map_id, route_data.to_dict(), complete=False, check_roles=False)
+        self.anchor: tuple[float, float] = self.map.anchor
+        self.spawn: tuple[float, float] = self.map.spawn
+        self.arrow_settings: Mapping[str, object] = self.map.arrow_settings
+        self.last_location: MapLocation | None = None
 
     def locate(self, crop: np.ndarray) -> tuple[float, float] | None:
-        """独立匹配每张参考帧；证据不足或任意两张冲突时不给位置。"""
-        if crop.shape != (201, 201, 3) or crop.dtype != np.uint8:
-            return None
-        valid = self._mask(crop)
-        current = self._registration_image(crop)
-        candidates = self._match_references(current, valid, self.references)
-        if not candidates:
-            # 彩色背景仍可能淹没道路特征；仅在无匹配时换表示，不绕过参考图冲突。
-            current = self._registration_image(crop, use_min_channel=True)
-            candidates = self._match_references(current, valid, self.min_channel_references)
-        if not candidates:
-            return None
-        for index, (_, first) in enumerate(candidates):
-            for _, second in candidates[index + 1:]:
-                if hypot(first[0] - second[0], first[1] - second[1]) > 5:
-                    return None
-        return max(candidates, key=lambda item: item[0])[1]
-
-    def _match_references(
-        self,
-        current: np.ndarray,
-        valid: np.ndarray,
-        references: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
-    ) -> list[tuple[int, tuple[float, float]]]:
-        """用同一种预处理匹配所有参考图，返回通过原有几何校验的全局坐标。"""
-        candidates: list[tuple[int, tuple[float, float]]] = []
-        for image, ref_mask, transform in references:
-            match = register_minimap(current, valid, image, ref_mask, self.anchor)
-            if match is None:
-                continue
-            x, y = match.player_position
-            global_xy = transform[:, :2] @ np.asarray((x, y)) + transform[:, 2]
-            candidates.append((match.inliers, (float(global_xy[0]), float(global_xy[1]))))
-        return candidates
+        """返回原路线坐标或明确失败，并保存本帧诊断。"""
+        self.last_location = locate_on_map(self.map, crop)
+        return self.last_location.position
 
     def player_angle(self, crop: np.ndarray) -> float | None:
         """读取黄色箭头亮色尖端的方向；图像右方为零、顺时针为正。"""
@@ -163,11 +102,9 @@ class BagelSpawnMatcher:
         }
 
     def match(self, crop: np.ndarray) -> str | None:
-        """返回命中的 map_id；多条同时命中时按声明顺序取前一个。"""
-        for map_id in SUPPORTED_MAP_IDS:
-            if self.routes[map_id].is_at_spawn(crop):
-                return map_id
-        return None
+        """返回命中的 map_id；多条同时命中则拒绝。"""
+        matches = [map_id for map_id in SUPPORTED_MAP_IDS if self.routes[map_id].is_at_spawn(crop)]
+        return matches[0] if len(matches) == 1 else None
 
     def vision(self, map_id: str) -> BagelRouteVision:
         """取已加载的路线视觉。"""

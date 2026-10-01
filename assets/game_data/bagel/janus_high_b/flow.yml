@@ -1,4 +1,4 @@
-version: 2
+version: 4
 id: janus_high_b
 name: B · 白鸽工地地铁站
 map_id: janus_high_b
@@ -14,11 +14,13 @@ steps:
   - name: 白鸽武备箱前
     xy:
     - 130.5
-    - 69.4
+    - 67.5
     stage: box
     role: target
     stop: true
-  navigation: {}
+  navigation:
+    final_mode: coordinate
+    interaction_distance: 8.0
 - id: open_box
   action: interact
   name: 打开武备箱

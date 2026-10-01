@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
     from one_dragon.base.operation.operation_base import OperationResult
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
+    from zzz_od.application.bagel.bagel_fixed_map import BagelFixedMap
     from zzz_od.context.zzz_context import ZContext
 
 
@@ -63,6 +64,7 @@ class BagelRunFlow(BagelOperation):
         flow: BagelFlow,
         step_ids: tuple[str, ...] | None = None,
         on_event: Callable[[dict[str, object]], None] | None = None,
+        map_snapshot: BagelFixedMap | None = None,
     ) -> None:
         """校验完整流程和勾选清单；正式任务未传清单时执行全部。"""
         super().__init__(ctx, op_name=f'贝果流程-{flow.name}', node_max_retry_times=0)
@@ -86,6 +88,7 @@ class BagelRunFlow(BagelOperation):
         self.index: int = self.indices[0]
         self._precondition_waits: int = 0
         self.vision: BagelRouteVision | None = None
+        self._map_snapshot: BagelFixedMap | None = map_snapshot
 
     def handle_init(self) -> None:
         """每次执行从首个勾选步骤开始，提前校验画面资源。"""
@@ -109,8 +112,8 @@ class BagelRunFlow(BagelOperation):
         ):
             if self.ctx.screen_loader.get_area('贝果-局内', area) is None:
                 raise ValueError(f'缺少画面区域：{area}')
-        self.vision = BagelRouteVision(self.flow.map_id)
-        self.emit('snapshot', flow=self.flow.to_dict(), step_ids=self.step_ids)
+        self.vision = BagelRouteVision(self.flow.map_id, map_snapshot=self._map_snapshot)
+        self.emit('snapshot', flow=self.flow.to_dict(), step_ids=self.step_ids, map_version=self.vision.map.version)
 
     def emit(self, kind: str, **details: object) -> None:
         """同一事件用于界面与持久化记录。"""
@@ -135,10 +138,16 @@ class BagelRunFlow(BagelOperation):
         """返回不能执行的原因；不通过时不发送游戏输入。"""
         if self.is_bagel_result():
             return self.STATUS_DEFEATED
+        if self.container_interrupted(step):
+            return self.STATUS_INTERRUPTED
         if step.action == 'unlock':
             return (
                 None
-                if self._has('大保险解锁提示')
+                if self._has('大保险解锁提示') or (
+                    self._has('电子保险箱标题')
+                    and self._has('搜查安全箱')
+                    and (self._has('搜查进行中') or self._has('搜查完成'))
+                )
                 else '请先打开电子保险箱光圈解锁界面'
             )
         if step.action in ('store', 'close'):
@@ -197,14 +206,27 @@ class BagelRunFlow(BagelOperation):
                 return '当前不在所选出生点'
         return None
 
+    def container_interrupted(self, step: BagelStep) -> bool:
+        """只在预期容器操作中确认面板已消失且回到局内；未知画面不自动退出。"""
+        return (
+            step.action in ('store', 'close', 'unlock')
+            and not any(self._has(area) for area in (
+                '搜查容器标题', '电子保险箱标题', '大保险解锁提示',
+            ))
+            and self._has('喧响值')
+        )
+
     def build_operation(self, step: BagelStep) -> BagelOperation | None:
         """业务动作只有一个执行来源，工具不复制游戏交互。"""
         if step.action in ('move', 'approach'):
+            if self.vision is None:
+                self.vision = BagelRouteVision(self.flow.map_id, map_snapshot=self._map_snapshot)
             return BagelNavigate(
                 self.ctx,
-                destination=step.target,
+                destination='move' if step.action == 'move' else step.target,
                 map_id=self.flow.map_id,
                 route_data=step.route(self.flow.map_id),
+                map_snapshot=self.vision.map,
                 navigation=step.navigation,
                 require_spawn=False,
                 check_target_position=True,
@@ -247,6 +269,14 @@ class BagelRunFlow(BagelOperation):
         result = operation.execute() if operation is not None else None
         success = result is None or result.success
         status = result.status if result is not None else '出生位置已确认'
+        if (
+            not success
+            and status != self.STATUS_DEFEATED
+            and step.action in ('store', 'close', 'unlock')
+        ):
+            self.screenshot()
+            if self.container_interrupted(step):
+                status = self.STATUS_INTERRUPTED
         if (
             step.action in ('move', 'approach')
             and result is not None

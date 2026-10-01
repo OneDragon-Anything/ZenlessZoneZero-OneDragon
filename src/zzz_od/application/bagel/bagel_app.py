@@ -89,7 +89,7 @@ class BagelApp(ZApplication):
         try:
             self.config.validate()
             self.flow_snapshot = {map_id: load_published_flow(map_id) for map_id in SUPPORTED_MAP_IDS}
-            self._spawn_matcher()  # 入场前验证参考图资源，避免进入局内才发现文件损坏。
+            self._spawn_matcher()  # 入场前验证固定地图资源，避免进入局内才发现文件损坏。
         except (OSError, ValueError) as error:
             return self.round_fail(f'贝果配置无效：{error}')
         return self.round_success()
@@ -159,7 +159,10 @@ class BagelApp(ZApplication):
         """按出生地执行发布流程；与开发工具共用同一执行器。"""
         if self.matched_map_id not in self.flow_snapshot:
             return self.round_fail('缺少已识别出生地的发布流程')
-        return self.round_by_op_result(BagelRunFlow(self.ctx, self.flow_snapshot[self.matched_map_id]).execute())
+        return self.round_by_op_result(BagelRunFlow(
+            self.ctx, self.flow_snapshot[self.matched_map_id],
+            map_snapshot=self._spawn_matcher().vision(self.matched_map_id).map,
+        ).execute())
 
     @node_from(from_name='执行局内流程')
     @operation_node(name='结算仓库', screenshot_before_round=False)
@@ -196,13 +199,14 @@ class BagelApp(ZApplication):
         return self.round_success('继续入场')
 
     @node_from(from_name='执行局内流程', success=False, status=BagelOperation.STATUS_DEFEATED)
-    @operation_node(name='撤离失败后退出', screenshot_before_round=False)
+    @node_from(from_name='执行局内流程', success=False, status=BagelOperation.STATUS_INTERRUPTED)
+    @operation_node(name='失败局退出', screenshot_before_round=False)
     def exit_after_defeat(self) -> OperationRoundResult:
-        """死亡结算主动收尾；退出失败原样上报，不重开或丢弃待处理物资。"""
+        """撤离失败或搜查中断后收尾；退出失败原样上报，不丢弃安全箱物资。"""
         return self.round_by_op_result(BagelExit(self.ctx).execute())
 
-    @node_from(from_name='撤离失败后退出')
-    @operation_node(name='撤离失败后结算仓库', screenshot_before_round=False)
+    @node_from(from_name='失败局退出')
+    @operation_node(name='失败局结算仓库', screenshot_before_round=False)
     def settle_after_defeat(self) -> OperationRoundResult:
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
         result = BagelSettleWarehouse(
@@ -210,14 +214,14 @@ class BagelApp(ZApplication):
         ).execute()
         if result.success:
             self.defeat_rounds += 1
-            log.info('贝果失败局结算：%s；连续撤离失败 %s 局，未计成功',
+            log.info('贝果失败局结算：%s；连续失败 %s 局，未计成功',
                      result.status, self.defeat_rounds)
         return self.round_by_op_result(result)
 
-    @node_from(from_name='撤离失败后结算仓库')
+    @node_from(from_name='失败局结算仓库')
     @operation_node(name='判断连续失败次数', screenshot_before_round=False)
     def decide_defeat_rounds(self) -> OperationRoundResult:
         """失败局处理完仓库后允许重开，连续三次失败则停在仓库。"""
         if self.defeat_rounds >= 3:
-            return self.round_fail('连续 3 局撤离失败，已完成仓库结算，停止自动重开')
+            return self.round_fail('连续 3 局失败，已完成仓库结算，停止自动重开')
         return self.round_success('继续入场')

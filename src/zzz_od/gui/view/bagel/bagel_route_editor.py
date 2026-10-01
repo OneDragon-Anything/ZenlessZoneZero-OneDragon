@@ -1,11 +1,10 @@
-"""贝果独立流程开发工具：地图、动作、参数与实机试跑。"""
+"""贝果独立流程开发工具：地图、动作、参数与实机测试运行。"""
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import replace
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import (
@@ -38,6 +37,7 @@ from qfluentwidgets import (
     CheckBox,
     ComboBox,
     DoubleSpinBox,
+    FluentIcon,
     LineEdit,
     ListWidget,
     MessageBox,
@@ -47,6 +47,8 @@ from qfluentwidgets import (
     setTheme,
 )
 
+from one_dragon.envs.env_config import EnvConfig
+from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils.log_utils import log
 from zzz_od.application.bagel.bagel_flow import (
     ACTION_CATEGORIES,
@@ -54,7 +56,6 @@ from zzz_od.application.bagel.bagel_flow import (
     ACTION_RULES,
     BagelFlow,
     BagelStep,
-    NavigationOptions,
     draft_path,
     flow_from_route,
     load_published_flow,
@@ -64,12 +65,19 @@ from zzz_od.application.bagel.bagel_flow import (
 from zzz_od.application.bagel.bagel_map_model import BagelMapModel
 from zzz_od.application.bagel.bagel_route import (
     MAP_LABELS,
-    ROLE_LABELS,
     BagelRouteConfig,
     BagelWaypoint,
     resource_root,
 )
 from zzz_od.gui.view.bagel.bagel_flow_trial import FlowTrialWorker
+from zzz_od.gui.view.bagel.bagel_step_editor import (
+    MOVEMENT_MODES,
+    BagelStepDialog,
+    StepTypeInput,
+    change_action,
+    change_target,
+    move_position,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -78,6 +86,11 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QGraphicsSceneMouseEvent
 
     from zzz_od.context.zzz_context import ZContext
+
+
+def route_color(stage: str) -> QColor:
+    """普通移动使用统一蓝色，只有靠近目标才按容器区分。"""
+    return QColor({'move': '#006cba', 'box': '#a96100', 'safe': '#7851a9'}[stage])
 
 
 class RoutePointItem(QGraphicsEllipseItem):
@@ -96,16 +109,17 @@ class RoutePointItem(QGraphicsEllipseItem):
         self.changed: Callable[[int, tuple[float, float]], None] = changed
         self.selected: Callable[[int], None] = selected
         self.setPos(*point.xy)
-        self.setBrush(QColor('#a96100' if point.stage == 'box' else '#006cba'))
+        self.setBrush(route_color(point.stage))
+        self.setPen(QPen(route_color(point.stage), 0.4))
         self.setFlags(
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable
             | QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
         )
         self.setZValue(10)
         self.setToolTip(
-            f'{point.name} · {ROLE_LABELS[point.role]}\n'
-            f'距离路点 {point.arrival_radius:g} 像素以内算到达；'
-            f'走过路点后，{point.passed_radius:g} 像素以内可继续下一段。'
+            f'{point.name}\n'
+            f'距离位置 {point.arrival_radius:g} 像素以内算到达；'
+            f'走过位置后，{point.passed_radius:g} 像素以内可继续下一段。'
         )
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
@@ -122,16 +136,18 @@ class RoutePointItem(QGraphicsEllipseItem):
 
 
 class FlowMarkerItem(QGraphicsEllipseItem):
-    """点击其它移动段或交互位置时选择对应业务步骤。"""
+    """点击其它移动目的地时选择对应步骤。"""
 
     def __init__(
-        self, xy: tuple[float, float], title: str, selected: Callable[[], None]
+        self, xy: tuple[float, float], title: str, selected: Callable[[], None],
+        color: QColor,
     ) -> None:
-        """仅负责选择，路点拖动由选中移动步骤处理。"""
+        """仅负责选择，位置拖动由选中移动步骤处理。"""
         super().__init__(-1.5, -1.5, 3, 3)
         self.selected: Callable[[], None] = selected
         self.setPos(*xy)
-        self.setBrush(QColor('#9037a0'))
+        self.setBrush(color)
+        self.setPen(QPen(Qt.PenStyle.NoPen))
         self.setToolTip(title)
         self.setZValue(5)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
@@ -151,7 +167,7 @@ class RouteMapView(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(QColor('#eef1f6'))
         self.content_rect: QRectF = QRectF()
-        self.setToolTip('滚轮放大或缩小；拖动空白处移动地图；拖动路点修改路线。')
+        self.setToolTip('滚轮放大或缩小；拖动空白处移动地图；拖动位置修改路线。')
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
@@ -165,7 +181,7 @@ class RouteMapView(QGraphicsView):
         event.accept()
 
     def fit(self) -> None:
-        """适应有参考图或路点的范围，排除底图外围的透明留白。"""
+        """适应有参考图或位置的范围，排除底图外围的透明留白。"""
         rect = (
             self.content_rect if not self.content_rect.isEmpty() else self.sceneRect()
         )
@@ -217,9 +233,10 @@ class BagelRouteEditor(QDialog):
         self.worker: FlowTrialWorker | None = None
         self.trace: list[tuple[float, float] | None] = []
         self._updating: bool = False
+        self._selected_point: int = -1
         self._close_pending: bool = False
         self.edit_widgets: list[QWidget] = []
-        self.setWindowTitle(f'贝果流程开发工具 · 试跑账号 {instance_idx:02d}')
+        self.setWindowTitle(f'贝果流程开发工具 · 测试运行账号 {instance_idx:02d}')
         self.resize(1680, 960)
         self._build_ui()
         self._refresh(fit=True)
@@ -265,6 +282,18 @@ class BagelRouteEditor(QDialog):
         self.edit_widgets.append(spin)
         return spin
 
+    def _parameter_row(
+        self, title: str, check: CheckBox, spin: DoubleSpinBox,
+    ) -> None:
+        """将参数名称、默认开关和值放在同一行，隐藏时一并隐藏。"""
+        label = QWidget(self)
+        layout = QVBoxLayout(label)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.addWidget(BodyLabel(title, label))
+        layout.addWidget(check)
+        self.property_form.addRow(label, spin)
+
     def _build_ui(self) -> None:
         """地图、步骤、滚动属性三栏，记录在下方。"""
         layout = QVBoxLayout(self)
@@ -279,20 +308,26 @@ class BagelRouteEditor(QDialog):
         self._button('显示完整地图', lambda: self.view.fit(), top, False)
         self.undo_button: PushButton = self._button('撤销', self.undo, top)
         self.redo_button: PushButton = self._button('重做', self.redo, top)
-        self._button('恢复正式流程', self.restore_default, top)
+        self._button('载入正式流程', self.restore_default, top)
         self._button('导入旧账号路线', self.import_legacy, top)
         self._button('保存草稿', self.save_draft, top)
-        self._button('导出为正式流程', self.export_flow, top)
+        self._button('保存为正式流程', self.export_flow, top)
         layout.addLayout(top)
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.view: RouteMapView = RouteMapView(self)
         map_panel = QWidget(self)
         map_layout = QVBoxLayout(map_panel)
         map_layout.setContentsMargins(0, 0, 0, 0)
-        map_layout.addWidget(
-            BodyLabel('路线地图 · 滚轮缩放，拖动空白处平移，拖动圆点改路线')
-        )
+        map_layout.addWidget(BodyLabel('移动路线 · 点击选步骤，拖动当前步骤的点改位置'))
+        self.trace_check: CheckBox = CheckBox('显示实际测试运行轨迹（绿色虚线）', self)
+        self.trace_check.setChecked(True)
+        self.trace_check.setToolTip('只显示本次测试运行实际识别到的位置；定位丢失处断开。')
+        self.trace_check.toggled.connect(self._draw)
+        map_layout.addWidget(self.trace_check)
         map_layout.addWidget(self.view, 1)
+        legend = BodyLabel('蓝色：普通移动　橙色：靠近武备箱　紫色：靠近保险箱')
+        legend.setWordWrap(True)
+        map_layout.addWidget(legend)
         splitter.addWidget(map_panel)
         middle = QWidget(self)
         steps = QVBoxLayout(middle)
@@ -306,15 +341,8 @@ class BagelRouteEditor(QDialog):
         self._button('清空勾选', lambda: self.check_steps(False), row)
         self._button('只勾当前', self.check_current, row)
         steps.addLayout(row)
-        self.action_combo: ComboBox = ComboBox(self)
-        for key, title in ACTION_LABELS.items():
-            self.action_combo.addItem(
-                f'{ACTION_CATEGORIES[key]} · {title}', userData=key
-            )
-        self.action_combo.setCurrentIndex(1)
-        steps.addWidget(self.action_combo)
         row = QHBoxLayout()
-        self._button('添加步骤', self.add_step, row)
+        self._button('新增步骤', self.add_step, row)
         self._button('删除步骤', self.delete_step, row)
         steps.addLayout(row)
         row = QHBoxLayout()
@@ -327,25 +355,73 @@ class BagelRouteEditor(QDialog):
         scroll.setWidgetResizable(True)
         properties = QWidget(self)
         form = QFormLayout(properties)
+        form.setContentsMargins(16, 16, 16, 16)
+        form.setVerticalSpacing(12)
+        form.setHorizontalSpacing(12)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.property_form: QFormLayout = form
-        self.action_info: BodyLabel = BodyLabel(self)
+        self.action_info: SubtitleLabel = SubtitleLabel(self)
+        self.action_info.setWordWrap(True)
         form.addRow(self.action_info)
+        self.rules: BodyLabel = BodyLabel(self)
+        self.rules.setTextFormat(Qt.TextFormat.PlainText)
+        self.rules.setWordWrap(True)
+        self.brief: BodyLabel = BodyLabel(self)
+        self.brief.setWordWrap(True)
+        self.summary: QWidget = QWidget(self)
+        self.summary.setObjectName('stepSummary')
+        self.summary.setStyleSheet('#stepSummary { background: #edf3fa; border-radius: 6px; }')
+        summary_layout = QVBoxLayout(self.summary)
+        summary_layout.setContentsMargins(10, 10, 10, 10)
+        summary_layout.addWidget(self.brief)
+        form.addRow(self.summary)
+        self.type_input: StepTypeInput = StepTypeInput(self.map_id, self)
+        self.action_combo: ComboBox = self.type_input.action_combo
+        self.type_input.edited.connect(self.edit_action)
+        form.addRow(self.type_input)
         self.name_edit: LineEdit = LineEdit(self)
         self.name_edit.editingFinished.connect(self.edit_step)
         form.addRow('步骤名称', self.name_edit)
-        self.rules: BodyLabel = BodyLabel(self)
-        self.rules.setWordWrap(True)
-        form.addRow(self.rules)
         self.target_combo: ComboBox = ComboBox(self)
         self.target_combo.addItem('武备箱', userData='box')
         self.target_combo.addItem('电子保险箱', userData='safe')
         self.target_combo.currentIndexChanged.connect(self.edit_step)
-        form.addRow('关联容器', self.target_combo)
-        self.timeout_default: CheckBox = CheckBox('默认移动时限', self)
+        form.addRow('操作对象', self.target_combo)
+        self.target_help: BodyLabel = BodyLabel(self)
+        self.target_help.setWordWrap(True)
+        self.point_help: BodyLabel = BodyLabel(self)
+        self.point_help.setWordWrap(True)
+        self.position_heading: SubtitleLabel = SubtitleLabel('目的地 · 地图像素', self)
+        self.position_heading.setToolTip('拖动地图上的当前点，或直接输入 X / Y 坐标。')
+        form.addRow(self.position_heading)
+        self.point_name: LineEdit = LineEdit(self)
+        self.point_name.editingFinished.connect(self.edit_point)
+        form.addRow('位置名称', self.point_name)
+        self.x_input: DoubleSpinBox = self._spin(-1000, 1000)
+        self.y_input: DoubleSpinBox = self._spin(-1000, 1000)
+        self.coordinate_row: QWidget = QWidget(self)
+        coordinate_layout = QHBoxLayout(self.coordinate_row)
+        coordinate_layout.setContentsMargins(0, 0, 0, 0)
+        for title, spin in (('X', self.x_input), ('Y', self.y_input)):
+            coordinate_layout.addWidget(BodyLabel(title, self.coordinate_row))
+            coordinate_layout.addWidget(spin, 1)
+            spin.setAccessibleName(f'{title} 坐标（地图像素）')
+        form.addRow(self.coordinate_row)
+        self.navigation_heading: SubtitleLabel = SubtitleLabel('移动设置', self)
+        form.addRow(self.navigation_heading)
+        self.mode_combo: ComboBox = ComboBox(self)
+        for label, value in MOVEMENT_MODES:
+            self.mode_combo.addItem(label, userData=value)
+        self.mode_combo.currentIndexChanged.connect(self.edit_navigation)
+        form.addRow('移动方式', self.mode_combo)
+        self.parameter_help: BodyLabel = BodyLabel('取消“使用默认”即可修改。距离单位为地图像素，与窗口缩放无关。', self)
+        self.parameter_help.setWordWrap(True)
+        self.timeout_default: CheckBox = CheckBox('使用默认', self)
         self.timeout_input: DoubleSpinBox = self._spin(1, 600)
-        self.brake_default: CheckBox = CheckBox('默认提前停步', self)
+        self.brake_default: CheckBox = CheckBox('不提前松开移动键', self)
         self.brake_input: DoubleSpinBox = self._spin(0.1, 30)
-        self.interaction_default: CheckBox = CheckBox('默认交互范围', self)
+        self.interaction_default: CheckBox = CheckBox('使用默认', self)
         self.interaction_input: DoubleSpinBox = self._spin(0.1, 30)
         self.timeout_input.setSuffix(' 秒')
         self.brake_input.setSuffix(' 像素')
@@ -354,7 +430,7 @@ class BagelRouteEditor(QDialog):
             '勾选使用默认值；取消勾选后可修改。超时仍未到达，停止这一步。'
         )
         self.brake_default.setToolTip(
-            '小步前进时，离接近点还有多远就松开前进键。取消勾选可修改。'
+            '进入此距离且纵向偏差不超过 2 像素时松键；停稳后核对位置，未到达则继续短步调整。'
         )
         self.interaction_default.setToolTip(
             '离终点多近时，才通过游戏中的交互提示确认到达。取消勾选可修改。'
@@ -366,64 +442,64 @@ class BagelRouteEditor(QDialog):
         ):
             check.clicked.connect(self.edit_navigation)
             spin.editingFinished.connect(self.edit_navigation)
-            form.addRow(check, spin)
-        self.mode_combo: ComboBox = ComboBox(self)
-        for label, value in (
-            ('使用默认方式', None),
-            ('沿最后一段方向小步前进', 'short_steps'),
-            ('按地图坐标靠近目标', 'coordinate'),
-        ):
-            self.mode_combo.addItem(label, userData=value)
-        self.mode_combo.currentIndexChanged.connect(self.edit_navigation)
-        form.addRow('最后如何靠近', self.mode_combo)
+        self._parameter_row('识别交互提示的范围', self.interaction_default, self.interaction_input)
         self.effective_info: BodyLabel = BodyLabel(self)
         self.effective_info.setWordWrap(True)
-        form.addRow(self.effective_info)
-        self.point_list: ListWidget = ListWidget(self)
-        self.point_list.setMaximumHeight(180)
-        self.point_list.currentRowChanged.connect(self._select_point)
-        form.addRow(self.point_list)
-        self.point_name: LineEdit = LineEdit(self)
-        self.point_name.editingFinished.connect(self.edit_point)
-        form.addRow('路点名称', self.point_name)
-        self.x_input: DoubleSpinBox = self._spin(-1000, 1000)
-        self.y_input: DoubleSpinBox = self._spin(-1000, 1000)
         self.tolerance_input: DoubleSpinBox = self._spin(0.1, 30)
-        self.tolerance_default: CheckBox = CheckBox('默认到达范围', self)
+        self.tolerance_default: CheckBox = CheckBox('使用默认', self)
         self.tolerance_input.setSuffix(' 像素')
         self.tolerance_default.setToolTip(
-            '距离路点小于此数值就算到达。取消勾选可修改；范围越小，要求越精确。'
+            '距离位置小于此数值就算到达。取消勾选可修改；范围越小，要求越精确。'
         )
         self.stop_check: CheckBox = CheckBox('到达这点先停步，再继续', self)
         for spin in (self.x_input, self.y_input, self.tolerance_input):
             spin.editingFinished.connect(self.edit_point)
         self.tolerance_default.clicked.connect(self.edit_point)
         self.stop_check.clicked.connect(self.edit_point)
-        form.addRow('横坐标 X', self.x_input)
-        form.addRow('纵坐标 Y', self.y_input)
-        form.addRow(self.tolerance_default, self.tolerance_input)
+        self._parameter_row('到达目的地的范围', self.tolerance_default, self.tolerance_input)
+        self.passed_default: CheckBox = CheckBox('跟随到达范围', self)
+        self.passed_input: DoubleSpinBox = self._spin(0.1, 30)
+        self.passed_input.setSuffix(' 像素')
+        self.passed_default.clicked.connect(self.edit_point)
+        self.passed_input.editingFinished.connect(self.edit_point)
+        self.advanced_toggle: PushButton = PushButton(self)
+        self.advanced_toggle.setCheckable(True)
+        self.advanced_toggle.toggled.connect(self._update_disclosures)
+        form.addRow(self.advanced_toggle)
+        self._parameter_row('最长移动时间', self.timeout_default, self.timeout_input)
+        self._parameter_row('越过目的地的允许范围', self.passed_default, self.passed_input)
+        self._parameter_row('提前松开移动键距离', self.brake_default, self.brake_input)
         form.addRow(self.stop_check)
+        self.help_toggle: PushButton = PushButton('查看说明', self)
+        self.help_toggle.setCheckable(True)
+        self.help_toggle.toggled.connect(self._update_disclosures)
+        form.addRow(self.help_toggle)
+        self.help_panel: QWidget = QWidget(self)
+        help_layout = QVBoxLayout(self.help_panel)
+        help_layout.setContentsMargins(0, 0, 0, 0)
+        help_layout.setSpacing(10)
+        for label in (
+            self.rules, self.target_help, self.point_help,
+            self.parameter_help, self.effective_info,
+        ):
+            help_layout.addWidget(label)
+        form.addRow(self.help_panel)
         self.edit_widgets.extend(
             (
-                self.action_combo,
+                self.type_input,
                 self.name_edit,
                 self.target_combo,
                 self.timeout_default,
                 self.brake_default,
                 self.interaction_default,
                 self.mode_combo,
-                self.point_list,
                 self.point_name,
                 self.tolerance_default,
+                self.passed_default,
                 self.stop_check,
             )
         )
-        properties_container = QWidget(self)
-        properties_layout = QVBoxLayout(properties_container)
-        properties_layout.setContentsMargins(0, 0, 0, 0)
-        properties_layout.addWidget(properties)
-        properties_layout.addStretch(1)
-        scroll.setWidget(properties_container)
+        scroll.setWidget(properties)
         scroll.setMinimumWidth(360)
         splitter.addWidget(scroll)
         splitter.setChildrenCollapsible(False)
@@ -442,13 +518,14 @@ class BagelRouteEditor(QDialog):
             '停止', self.stop_trial, trial, False
         )
         self.stop_button.setEnabled(False)
+        self._refresh_stop_shortcut()
         layout.addLayout(trial)
         layout.addWidget(
             BodyLabel(
                 '按列表顺序执行勾选项，跳过未勾选项。每一步都会实际操作游戏；请先把游戏停在第一项需要的画面。'
             )
         )
-        self.trial_info: BodyLabel = BodyLabel('尚未试跑', self)
+        self.trial_info: BodyLabel = BodyLabel('尚未测试运行', self)
         self.trial_info.setWordWrap(True)
         layout.addWidget(self.trial_info)
         self.records: ListWidget = ListWidget(self)
@@ -457,6 +534,16 @@ class BagelRouteEditor(QDialog):
         self.status: BodyLabel = BodyLabel(self)
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
+
+    def _refresh_stop_shortcut(self) -> None:
+        """显示主程序配置的停止键，不注册独立快捷键。"""
+        key = (
+            self.ctx.key_stop_running
+            if self.ctx is not None
+            else EnvConfig(RepoConfig()).key_stop_running
+        )
+        self.stop_button.setText(f'停止 {key.upper()}')
+        self.stop_button.setToolTip('沿用一条龙主程序的停止快捷键，可在游戏中按下。')
 
     def _switch_map(self) -> None:
         """保留各地图草稿，清空旧地图轨迹。"""
@@ -491,9 +578,9 @@ class BagelRouteEditor(QDialog):
         self._update_selection()
         try:
             self.flow.validate_order()
-            message = '步骤顺序检查通过；路线能否走通，请在游戏中试跑确认'
+            message = '步骤顺序检查通过；路线能否走通，请在游戏中测试运行确认'
         except ValueError as error:
-            message = f'还不能保存或试跑：{error}'
+            message = f'还不能保存或测试运行：{error}'
         self.status.setText(
             f'{"有未保存修改" if self.flow != self.saved[self.map_id] else "草稿未修改"} · {message}'
         )
@@ -501,31 +588,27 @@ class BagelRouteEditor(QDialog):
             self.view.fit()
 
     def _select_step(self, _index: int = -1) -> None:
-        """选择动作时展示对应属性与路点。"""
+        """选择动作时展示对应属性与位置。"""
         if self._updating:
             return
         self._updating = True
         step = self.step
-        point_index = self.point_list.currentRow()
-        self.point_list.clear()
+        self._selected_point = len(step.waypoints) - 1 if step is not None else -1
         if step is not None:
             self.action_info.setText(
-                f'类型：{ACTION_CATEGORIES[step.action]} · {ACTION_LABELS[step.action]}'
+                f'第 {self.step_list.currentRow() + 1} 步 · {ACTION_LABELS[step.action]}'
             )
+            self.type_input.set_action(step.action, self.map_id)
             self.name_edit.setText(step.name)
-            self.rules.setText(ACTION_RULES[step.action])
+            if step.action not in ('move', 'approach'):
+                self.rules.setText(ACTION_RULES[step.action])
             self.target_combo.setCurrentIndex(1 if step.target == 'safe' else 0)
-            for i, point in enumerate(step.waypoints):
-                prefix = (
-                    '方向起点（不走回这里）'
-                    if step.action == 'approach' and len(step.waypoints) == 2 and i == 0
-                    else '目的地'
+            if step.action == 'interact':
+                panel = '电子保险箱的光圈解锁界面或已解锁的搜查界面' if step.target == 'safe' else '武备箱的搜查界面'
+                self.rules.setText(
+                    f'先站在出现{self.target_combo.currentText()}交互提示的位置，再按交互键。\n'
+                    f'完成条件：打开{panel}。解锁和收集由后续步骤完成。'
                 )
-                self.point_list.addItem(f'{prefix}：{point.name}')
-            self.point_list.setFixedHeight(44 if len(step.waypoints) <= 1 else 80)
-            self.point_list.setCurrentRow(
-                max(0, min(point_index, len(step.waypoints) - 1))
-            )
             nav = step.navigation
             self.timeout_default.setChecked(nav.timeout is None)
             self.brake_default.setChecked(nav.brake_distance is None)
@@ -533,48 +616,70 @@ class BagelRouteEditor(QDialog):
             self.interaction_input.setValue(nav.effective_interaction_distance)
             self.timeout_input.setValue(nav.effective_timeout(step.target))
             self.brake_input.setValue(nav.effective_brake_distance)
-            self.mode_combo.setCurrentIndex(
-                {None: 0, 'short_steps': 1, 'coordinate': 2}[nav.final_mode]
-            )
-            self.effective_info.setText(
-                f'最多移动 {nav.effective_timeout(step.target):g} 秒。最后'
-                f'{"沿路线方向小步前进" if nav.effective_final_mode(step.target) == "short_steps" else "按地图坐标靠近目标"}。\n'
-                f'进入终点周围 {nav.effective_interaction_distance:g} 像素后，通过游戏提示确认到达。\n'
-                '实线圆：到达范围。虚线圆：走过路点后，还能继续下一段的范围。'
-            )
+            mode = nav.final_mode or 'coordinate'
+            self.mode_combo.setCurrentIndex(self.mode_combo.findData(mode))
+            if step.action == 'approach':
+                mode_label = self.mode_combo.currentText()
+                self.rules.setText(
+                    f'{mode_label}，靠近{self.target_combo.currentText()}。\n'
+                    f'完成条件：距目标不超过 {nav.effective_interaction_distance:g} 地图像素，'
+                    '且出现对应交互提示。此步不按交互键。'
+                )
+                self.effective_info.setText(
+                    '地图点线圈：识别交互提示的范围。\n'
+                    '地图实线圈：到达后停下等待交互提示的范围。'
+                )
         else:
+            self.action_info.setText('当前步骤')
             self.name_edit.clear()
             self.rules.setText('选择左侧步骤查看设置，也可以在列表下方添加步骤。')
+            self.effective_info.clear()
+        self.brief.setText(self._completion_summary())
         move = step is not None and step.action in ('move', 'approach')
         approach = step is not None and step.action == 'approach'
         self.property_form.setRowVisible(
             self.target_combo, step is not None and step.target is not None
         )
+        self.property_form.labelForField(self.target_combo).setText(
+            '交互目标' if approach else '操作对象'
+        )
+        self.target_help.setText(
+            '选择需要识别的交互提示。修改交互目标保留目的地、移动方式和实际参数。'
+        )
+        self.target_combo.setToolTip(self.target_help.text() if approach else '')
         for widget in (
-            self.timeout_input,
-            self.brake_input,
+            self.position_heading,
+            self.navigation_heading,
             self.interaction_input,
             self.mode_combo,
-            self.effective_info,
-            self.point_list,
             self.point_name,
-            self.x_input,
-            self.y_input,
+            self.coordinate_row,
             self.tolerance_input,
             self.stop_check,
         ):
             self.property_form.setRowVisible(widget, move)
         self.property_form.setRowVisible(self.interaction_input, approach)
-        self.property_form.setRowVisible(self.mode_combo, approach)
-        self.property_form.setRowVisible(
-            self.brake_input,
-            move and step.action == 'move' and step.waypoints[0].role == 'approach',
-        )
+        self.type_input.setEnabled(step is not None and not self.running)
         self.property_form.setRowVisible(self.stop_check, False)
         if step is not None and step.action == 'move':
-            self.effective_info.setText(
-                f'最多移动 {step.navigation.effective_timeout(step.target):g} 秒，到达路点后停步。\n实线圆是到达范围，虚线圆是走过路点后仍可结束本步的范围。'
+            point = step.waypoints[0]
+            self.rules.setText(
+                f'走向“{point.name}”，完成后松开移动键。\n'
+                f'完成条件：进入目的地 {point.arrival_radius:g} 地图像素以内；'
+                f'或已越过目的地，且仍在 {point.passed_radius:g} 地图像素以内。'
             )
+            self.effective_info.setText(
+                '地图实线圈：到达范围。\n'
+                '地图虚线圈：越过目的地后，仍可完成本步的范围；与实线圈一样大时不重复画。'
+            )
+            if step.navigation.brake_distance is not None:
+                self.effective_info.setText(
+                    self.effective_info.text()
+                    + f'\n距目的地 {step.navigation.brake_distance:g} 地图像素以内、'
+                    '纵向偏差不超过 2 像素时提前松开移动键；等待 0.5 秒后重新定位，'
+                    '未到达则继续短步调整，满足完成条件才进入下一步。'
+                )
+        self.name_edit.setEnabled(step is not None and not self.running)
         self.target_combo.setEnabled(
             not self.running
             and step is not None
@@ -586,7 +691,6 @@ class BagelRouteEditor(QDialog):
             self.brake_default,
             self.interaction_default,
             self.mode_combo,
-            self.point_list,
         ):
             widget.setEnabled(move and not self.running)
         self.timeout_input.setEnabled(
@@ -599,14 +703,69 @@ class BagelRouteEditor(QDialog):
             move and not self.running and not self.interaction_default.isChecked()
         )
         self._updating = False
-        self._select_point(self.point_list.currentRow())
+        # 表单切换到较长说明时，保留说明框所需高度，避免被其它参数行挤掉末行。
+        self.summary.setMinimumHeight(self.summary.sizeHint().height())
+        self._select_point(self._selected_point)
         self._draw()
 
+    def _completion_summary(self) -> str:
+        """常驻区域只用一句话概括完成条件，具体参数留在说明中。"""
+        step = self.step
+        if step is None:
+            return '选择一个步骤，查看或修改设置。'
+        if step.action == 'move':
+            return '进入到达范围或在允许范围内越过目的地后结束。'
+        if step.action == 'interact':
+            return (
+                '打开电子保险箱的光圈解锁界面或已解锁的搜查界面后结束。'
+                if step.target == 'safe' else '打开武备箱的搜查界面后结束。'
+            )
+        return {
+            'spawn': '确认当前位置符合所选出生点。',
+            'approach': '出现对应交互提示后完成；到点后等待两秒，仍无提示则停止并报错。',
+            'unlock': '完成光圈解锁后结束；若已进入搜查界面，确认后直接完成。',
+            'store': '处理物品并装入安全箱，保留搜查界面。',
+            'close': '关闭搜查界面，确认回到局内后结束。',
+            'exit': '退出本局，到达仓库界面后结束。',
+        }[step.action]
+
+    def _update_disclosures(self) -> None:
+        """展开仅控制显示，不回填字段、不修改草稿或撤销记录。"""
+        step = self.step
+        move = step is not None and step.action in ('move', 'approach')
+        plain_move = move and step.action == 'move'
+        advanced = self.advanced_toggle.isChecked()
+        explicit = move and (
+            step.navigation.timeout is not None
+            or plain_move and (
+                step.navigation.brake_distance is not None
+                or step.waypoints[0].passed_tolerance is not None
+            )
+        )
+        self.advanced_toggle.setText(
+            '高级移动参数'
+            + (' · 有单独设置' if explicit else '')
+        )
+        self.advanced_toggle.setIcon(FluentIcon.ARROW_DOWN if advanced else FluentIcon.CHEVRON_RIGHT)
+        self.property_form.setRowVisible(self.advanced_toggle, move)
+        self.property_form.setRowVisible(self.timeout_input, move and advanced)
+        self.property_form.setRowVisible(self.passed_input, plain_move and advanced)
+        self.property_form.setRowVisible(self.brake_input, plain_move and advanced)
+        help_open = self.help_toggle.isChecked()
+        self.help_toggle.setText('收起说明' if help_open else '查看说明')
+        self.help_toggle.setIcon(FluentIcon.ARROW_DOWN if help_open else FluentIcon.CHEVRON_RIGHT)
+        self.property_form.setRowVisible(self.help_panel, help_open)
+        self.target_help.setVisible(move and step.action == 'approach')
+        self.point_help.setVisible(move)
+        self.parameter_help.setVisible(move)
+        self.effective_info.setVisible(move)
+
     def _select_point(self, index: int) -> None:
-        """路点选择与地图同步；不重建场景，允许鼠标继续拖动。"""
+        """位置选择与地图同步；不重建场景，允许鼠标继续拖动。"""
         if self._updating:
             return
         self._updating = True
+        self._selected_point = index
         step = self.step
         valid = step is not None and 0 <= index < len(step.waypoints)
         for widget in (
@@ -618,20 +777,37 @@ class BagelRouteEditor(QDialog):
         ):
             widget.setEnabled(valid and not self.running)
         if valid:
-            point = step.waypoints[index]
+            point = step.waypoints[-1]
+            self.position_heading.setText(
+                '目的地 · 地图像素'
+            )
+            self.point_help.setText(
+                '可拖动地图上的实心点，或直接修改 X / Y。两种移动方式都朝这个目的地移动。'
+            )
             self.point_name.setText(point.name)
             self.x_input.setValue(point.xy[0])
             self.y_input.setValue(point.xy[1])
             self.tolerance_default.setChecked(point.tolerance is None)
             self.tolerance_input.setValue(point.arrival_radius)
+            self.passed_default.setChecked(point.passed_tolerance is None)
+            self.passed_input.setValue(point.passed_radius)
             self.stop_check.setChecked(point.stop)
+        else:
+            self.point_help.clear()
+        uses_tolerance = valid
+        self.property_form.setRowVisible(self.tolerance_input, uses_tolerance)
+        self.tolerance_default.setEnabled(uses_tolerance and not self.running)
         self.tolerance_input.setEnabled(
-            valid and not self.running and not self.tolerance_default.isChecked()
+            uses_tolerance and not self.running and not self.tolerance_default.isChecked()
         )
+        plain_move = valid and step.action == 'move'
+        self.passed_default.setEnabled(plain_move and not self.running)
+        self.passed_input.setEnabled(plain_move and not self.running and not self.passed_default.isChecked())
         for item in self.view.scene().items():
             if isinstance(item, RoutePointItem):
                 item.setSelected(item.index == index)
         self._updating = False
+        self._update_disclosures()
 
     def _checked_changed(self, item: QListWidgetItem) -> None:
         """勾选只决定本次执行清单，不修改保存的流程。"""
@@ -701,38 +877,31 @@ class BagelRouteEditor(QDialog):
         steps[index] = step
         self._change(replace(self.flow, steps=tuple(steps)), index)
 
+    def edit_action(self) -> None:
+        """原位转换当前步骤，适用数据保留，撤销可以恢复完整旧步骤。"""
+        if self._updating or self.step is None or self.running:
+            return
+        action = self.action_combo.currentData()
+        if action == 'unlock' and self.map_id == 'janus_high_b':
+            self._select_step()
+            self.status.setText('白鸽地图没有电子保险箱，请选择其他步骤类型。')
+            return
+        xy = self.step.waypoints[-1].xy if self.step.waypoints else self.models[self.map_id].spawn
+        self._replace_step(change_action(self.step, action, xy))
+
     def edit_step(self) -> None:
-        """目标类型变化时加载该类型的发布路点，形成可撤销变更。"""
+        """改名称或交互目标时保留目的地和移动方式。"""
         if self._updating or self.step is None or self.running:
             return
         step = self.step
-        target = self.target_combo.currentData() if step.target is not None else None
-        points = step.waypoints
-        navigation = step.navigation
-        if step.action in ('move', 'approach') and target != step.target:
-            candidate = next(
-                (
-                    s
-                    for s in load_published_flow(self.map_id).steps
-                    if s.action == step.action and s.target == target
-                ),
-                None,
-            )
-            if candidate is None:
+        if step.target is not None and step.action != 'unlock':
+            target = self.target_combo.currentData()
+            if target == 'safe' and self.map_id == 'janus_high_b':
                 self._select_step()
-                self.status.setText('该地图没有此目标的已建档路线')
+                self.status.setText('白鸽地图没有电子保险箱，请选择武备箱。')
                 return
-            points = candidate.waypoints
-            navigation = candidate.navigation
-        self._replace_step(
-            replace(
-                step,
-                name=self.name_edit.text(),
-                target=target,
-                waypoints=points,
-                navigation=navigation,
-            )
-        )
+            step = change_target(step, target)
+        self._replace_step(replace(step, name=self.name_edit.text()))
 
     def edit_navigation(self) -> None:
         """未覆盖的参数保持为空。"""
@@ -743,131 +912,79 @@ class BagelRouteEditor(QDialog):
             or self.running
         ):
             return
-        navigation = NavigationOptions(
-            None if self.timeout_default.isChecked() else self.timeout_input.value(),
-            None if self.brake_default.isChecked() else self.brake_input.value(),
-            self.mode_combo.currentData(),
-            None
-            if self.interaction_default.isChecked()
-            else self.interaction_input.value(),
+        navigation = replace(
+            self.step.navigation,
+            final_mode=self.mode_combo.currentData(),
+            timeout=None if self.timeout_default.isChecked() else self.timeout_input.value(),
         )
-        points = self.step.waypoints
-        if self.step.action == 'approach':
-            if navigation.effective_final_mode(self.step.target) == 'coordinate':
-                points = points[-1:]
-            elif len(points) == 1:
-                previous = next(
-                    (
-                        s.waypoints[-1]
-                        for s in reversed(
-                            self.flow.steps[: self.step_list.currentRow()]
-                        )
-                        if s.waypoints
-                    ),
-                    None,
-                )
-                if previous is None or previous.xy == points[-1].xy:
-                    self._select_step()
-                    self.status.setText(
-                        '小步前进需要方向起点，请先添加一个位置不同的移动步骤。'
-                    )
-                    return
-                points = (
-                    replace(previous, stage=self.step.target, role='approach'),
-                    *points,
-                )
-        self._replace_step(replace(self.step, navigation=navigation, waypoints=points))
+        if self.step.action == 'move':
+            navigation = replace(navigation, brake_distance=(
+                None if self.brake_default.isChecked() else self.brake_input.value()
+            ))
+        else:
+            navigation = replace(
+                navigation,
+                interaction_distance=None if self.interaction_default.isChecked() else self.interaction_input.value(),
+            )
+        step = replace(self.step, navigation=navigation)
+        self._replace_step(step)
 
     def edit_point(self) -> None:
-        """提交路点属性并保留选择。"""
+        """提交位置属性并保留选择。"""
         if self._updating or self.step is None or self.running:
             return
-        index = self.point_list.currentRow()
+        index = len(self.step.waypoints) - 1
         points = list(self.step.waypoints)
         if not 0 <= index < len(points):
             return
         points[index] = replace(
             points[index],
             name=self.point_name.text(),
-            xy=(self.x_input.value(), self.y_input.value()),
             tolerance=None
             if self.tolerance_default.isChecked()
             else self.tolerance_input.value(),
             stop=self.stop_check.isChecked(),
+            passed_tolerance=(
+                self.passed_input.value()
+                if self.step.action == 'move' and not self.passed_default.isChecked()
+                else None
+            ),
         )
-        self._replace_step(replace(self.step, waypoints=tuple(points)))
-        self.point_list.setCurrentRow(index)
+        step = replace(self.step, waypoints=tuple(points))
+        self._replace_step(move_position(step, (self.x_input.value(), self.y_input.value())))
 
     def drag_point(self, index: int, xy: tuple[float, float]) -> None:
         """拖点只修改当前移动步骤。"""
         if self.running or self.step is None:
             return
-        points = list(self.step.waypoints)
-        points[index] = replace(points[index], xy=xy)
-        self._replace_step(replace(self.step, waypoints=tuple(points)))
-        self.point_list.setCurrentRow(index)
+        if index != 0 or len(self.step.waypoints) != 1:
+            return
+        step = move_position(self.step, xy)
+        self._replace_step(step)
+        self._select_point(index)
         if not self.models[self.map_id].contains(xy):
             self.status.setText(
                 '该位置没有参考像素，请实机核对；地图覆盖不保证可通行。'
             )
 
     def add_step(self) -> None:
-        """在所选步骤后新增业务动作。"""
-        action = self.action_combo.currentData()
-        target = (
-            self.step.target if self.step is not None and self.step.target else 'box'
-        )
-        if action in ('spawn', 'exit'):
-            target = None
-        elif action == 'unlock':
-            target = 'safe'
-        if target == 'safe' and self.map_id == 'janus_high_b':
-            self.status.setText('白鸽地图没有电子保险箱，请选择其他动作。')
+        """在当前步骤后打开完整的新建表单，取消不产生任何改动。"""
+        if self.running:
             return
-        points = ()
-        navigation = NavigationOptions()
-        if action in ('move', 'approach'):
-            previous = next(
-                (
-                    s.waypoints[-1].xy
-                    for s in reversed(
-                        self.flow.steps[: self.step_list.currentRow() + 1]
-                    )
-                    if s.waypoints
-                ),
-                self.models[self.map_id].spawn,
-            )
-            points = (
-                BagelWaypoint('新路点', (previous[0] + 5, previous[1]), target, 'turn'),
-            )
-        if action == 'approach':
-            candidate = next(
-                (
-                    s for s in load_published_flow(self.map_id).steps
-                    if s.action == action and s.target == target
-                ),
-                None,
-            )
-            if candidate is not None:
-                points, navigation = candidate.waypoints, candidate.navigation
-            else:
-                target_point = BagelWaypoint(
-                    '新交互目标', (previous[0] + 5, previous[1]), target, 'target',
-                )
-                points = (
-                    (BagelWaypoint('小步方向起点', previous, target, 'approach'), target_point)
-                    if navigation.effective_final_mode(target) == 'short_steps'
-                    else (target_point,)
-                )
-        step = BagelStep(
-            uuid4().hex, action, ACTION_LABELS[action], target, points, navigation
-        )
+        previous = next((
+            s.waypoints[-1].xy
+            for s in reversed(self.flow.steps[:self.step_list.currentRow() + 1])
+            if s.waypoints
+        ), self.models[self.map_id].spawn)
+        dialog = BagelStepDialog(self.map_id, previous, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted or dialog.step is None:
+            dialog.deleteLater()
+            return
         index = self.step_list.currentRow() + 1
         steps = list(self.flow.steps)
-        steps.insert(index, step)
+        steps.insert(index, dialog.step)
         self._change(replace(self.flow, steps=tuple(steps)), index)
-        if action == 'approach' and candidate is None:
-            self.status.setText('已添加靠近步骤，请在地图上调整交互目标后再试跑。')
+        dialog.deleteLater()
 
     def delete_step(self) -> None:
         """删除动作，完整前置条件在保存前校验。"""
@@ -900,7 +1017,7 @@ class BagelRouteEditor(QDialog):
             self._refresh()
 
     def restore_default(self) -> None:
-        """只恢复内存草稿，不覆盖用户保存的文件。"""
+        """将正式流程载入编辑区，不覆盖用户保存的草稿。"""
         self._change(load_published_flow(self.map_id))
 
     def import_legacy(self) -> None:
@@ -909,13 +1026,13 @@ class BagelRouteEditor(QDialog):
             config = BagelRouteConfig(self.instance_idx)
             if self.map_id in config.migrated_maps:
                 raise ValueError(
-                    '旧配置只有朝向和移动时间，无法转换成地图路点。请先恢复正式流程，再修改路线。'
+                    '旧配置只有朝向和移动时间，无法转换成地图位置。请先载入正式流程，再修改路线。'
                 )
             if self.map_id not in config.data.get('routes', {}):
                 raise ValueError('该账号没有保存此地图的旧路线')
             self._change(flow_from_route(config.route(self.map_id)))
             self.status.setText(
-                '旧路线已导入，并补上了开箱、收集和退出步骤。旧文件保持不变；请试跑确认后保存。'
+                '旧路线已导入，并补上了开箱、收集和退出步骤。旧文件保持不变；请测试运行确认后保存。'
             )
         except (OSError, ValueError) as error:
             log.error('旧路线导入失败', exc_info=True)
@@ -935,12 +1052,12 @@ class BagelRouteEditor(QDialog):
             self.status.setText(f'保存失败：{error}')
 
     def export_flow(self) -> None:
-        """导出为可审查的仓库资源，不自动提交或发布。"""
+        """保存当前地图的正式流程，不自动提交或发布。"""
         try:
             BagelFlow.from_dict(self.flow.to_dict())
             if not MessageBox(
                 '替换当前地图的正式流程？',
-                '导出后，下次运行正式任务将使用这套步骤和路线。请先在游戏中试跑确认。导出只修改本机文件，不会自动提交或发布。',
+                '保存后，下次运行正式任务将使用这套步骤和路线。请先在游戏中测试运行确认。此操作只修改本机正式流程文件。',
                 self,
             ).exec():
                 return
@@ -948,11 +1065,11 @@ class BagelRouteEditor(QDialog):
             write_flow(path, self.flow)
             self.status.setText(f'已更新正式流程，下次运行任务生效。文件：{path}')
         except (OSError, ValueError) as error:
-            log.error('导出流程资源失败', exc_info=True)
-            self.status.setText(f'导出失败：{error}')
+            log.error('保存正式流程失败', exc_info=True)
+            self.status.setText(f'保存正式流程失败：{error}')
 
     def _draw(self) -> None:
-        """展示全部移动步骤、可靠交互位置、到达范围与断线轨迹。"""
+        """绘制出生位置和移动目的地，选中时显示范围，实测轨迹保留断线。"""
         scene = self.view.scene()
         scene.clear()
         model = self.models[self.map_id]
@@ -974,9 +1091,14 @@ class BagelRouteEditor(QDialog):
             )
         else:
             bounds = scene.sceneRect()
-        for step in self.flow.steps:
-            for point in step.waypoints:
-                radius = max(point.arrival_radius, point.passed_radius)
+        for step_index, step in enumerate(self.flow.steps):
+            if step.action not in ('move', 'approach'):
+                continue
+            selected = step_index == self.step_list.currentRow()
+            for point in step.waypoints if selected else step.waypoints[-1:]:
+                radius = max(point.arrival_radius, point.passed_radius) if selected else 2
+                if selected and step.action == 'approach':
+                    radius = max(radius, step.navigation.effective_interaction_distance)
                 bounds = bounds.united(
                     QRectF(
                         point.xy[0] - radius,
@@ -986,41 +1108,79 @@ class BagelRouteEditor(QDialog):
                     )
                 )
         self.view.content_rect = bounds.adjusted(-8, -8, 8, 8)
+        spawn_selected = self.step is not None and self.step.action == 'spawn'
+        spawn_color = QColor('#176b57' if spawn_selected else '#657581')
+        spawn_index = next((i for i, step in enumerate(self.flow.steps) if step.action == 'spawn'), -1)
+        marker = FlowMarkerItem(
+            model.spawn, '出生位置',
+            lambda: self.step_list.setCurrentRow(spawn_index) if spawn_index >= 0 else None,
+            spawn_color,
+        )
+        marker.setBrush(spawn_color)
+        marker.setPen(QPen(spawn_color, 0.5))
+        marker.setToolTip('出生位置：地图固定参照，不可拖动。检查范围为 5 地图像素。')
+        marker.setData(0, 'spawn')
+        scene.addItem(marker)
+        label = scene.addSimpleText('出生位置')
+        label.setBrush(spawn_color)
+        label.setPos(model.spawn[0] + 3, model.spawn[1] + 2)
+        label.setFont(self.font())
+        label.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+        if spawn_selected:
+            circle = scene.addEllipse(
+                model.spawn[0] - 5, model.spawn[1] - 5, 10, 10, QPen(spawn_color, 0.5),
+            )
+            circle.setData(0, 'spawn_range')
+        bounds = bounds.united(QRectF(model.spawn[0] - 6, model.spawn[1] - 6, 24, 14))
+        self.view.content_rect = bounds.adjusted(-8, -8, 8, 8)
         last = model.spawn
         for step_index, step in enumerate(self.flow.steps):
-            for point_index, point in enumerate(step.waypoints):
-                color = QColor('#a96100' if point.stage == 'box' else '#006cba')
-                scene.addLine(*last, *point.xy, QPen(color, 0.7))
-                radius = point.arrival_radius
-                scene.addEllipse(
-                    point.xy[0] - radius,
-                    point.xy[1] - radius,
-                    radius * 2,
-                    radius * 2,
-                    QPen(color, 0.3),
-                )
-                if point.role != 'target' and point.passed_radius != radius:
-                    passed = point.passed_radius
-                    pen = QPen(color, 0.3, Qt.PenStyle.DashLine)
+            if step.action not in ('move', 'approach'):
+                continue
+            selected = step_index == self.step_list.currentRow()
+            destination = step.waypoints[-1]
+            color = route_color(destination.stage)
+            # 路线从出生位置依次连接各步骤的唯一目的地。
+            scene.addLine(*last, *destination.xy, QPen(color, 0.7))
+            last = destination.xy
+            if selected:
+                if step.action in ('move', 'approach'):
+                    radius = destination.arrival_radius
                     scene.addEllipse(
-                        point.xy[0] - passed,
-                        point.xy[1] - passed,
-                        passed * 2,
-                        passed * 2,
-                        pen,
+                        destination.xy[0] - radius, destination.xy[1] - radius,
+                        radius * 2, radius * 2, QPen(color, 0.3),
                     )
-                if step_index == self.step_list.currentRow():
+                    if step.action == 'move' and destination.passed_radius != radius:
+                        passed = destination.passed_radius
+                        scene.addEllipse(
+                            destination.xy[0] - passed, destination.xy[1] - passed,
+                            passed * 2, passed * 2,
+                            QPen(color, 0.3, Qt.PenStyle.DashLine),
+                        )
+                if step.action == 'approach':
+                    radius = step.navigation.effective_interaction_distance
+                    scene.addEllipse(
+                        destination.xy[0] - radius, destination.xy[1] - radius,
+                        radius * 2, radius * 2,
+                        QPen(color, 0.4, Qt.PenStyle.DotLine),
+                    )
+            for point_index, point in enumerate(step.waypoints):
+                if selected:
                     item = RoutePointItem(
                         point_index,
                         point,
                         self.drag_point,
-                        self.point_list.setCurrentRow,
+                        self._select_point,
                     )
                     item.setFlag(
                         QGraphicsItem.GraphicsItemFlag.ItemIsMovable, not self.running
                     )
                     scene.addItem(item)
-                    item.setSelected(point_index == self.point_list.currentRow())
+                    item.setSelected(point_index == self._selected_point)
+                    if step.action == 'approach':
+                        item.setToolTip(
+                            f'{point.name}：靠近后需出现对应交互提示才算完成。'
+                        )
                 else:
                     scene.addItem(
                         FlowMarkerItem(
@@ -1029,49 +1189,12 @@ class BagelRouteEditor(QDialog):
                             lambda index=step_index: self.step_list.setCurrentRow(
                                 index
                             ),
+                            color,
                         )
                     )
-                last = point.xy
-            if step.action in ('interact', 'unlock', 'store', 'close'):
-                # 仅当前面确有靠近步骤时才将交互挂在已知位置。
-                if any(s.action == 'approach' for s in self.flow.steps[:step_index]):
-                    offset = {'interact': -12, 'unlock': -5, 'store': 2, 'close': 9}[
-                        step.action
-                    ]
-                    label = scene.addSimpleText(
-                        f'{step_index + 1} {ACTION_LABELS[step.action]}'
-                    )
-                    label.setBrush(QColor('#702580'))
-                    label.setScale(0.38)
-                    label.setZValue(2)
-                    label.setPos(last[0] + 3, last[1] + offset)
-                    backdrop = scene.addRect(
-                        label.sceneBoundingRect().adjusted(-1, -0.5, 1, 0.5),
-                        QPen(Qt.PenStyle.NoPen),
-                        QColor(255, 255, 255, 230),
-                    )
-                    backdrop.setZValue(1)
-                    backdrop.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
-                    marker_xy = (
-                        last[0] + 2,
-                        last[1] + offset,
-                    )
-                    scene.addItem(
-                        FlowMarkerItem(
-                            marker_xy,
-                            step.name,
-                            lambda index=step_index: self.step_list.setCurrentRow(
-                                index
-                            ),
-                        )
-                    )
-        for name, position in model.landmarks:
-            scene.addEllipse(
-                position[0] - 1.5, position[1] - 1.5, 3, 3, QPen(QColor('#9037a0'), 0.5)
-            ).setToolTip(name)
         path = QPainterPath()
         connected = False
-        for position in self.trace:
+        for position in self.trace if self.trace_check.isChecked() else ():
             if position is None:
                 connected = False
             elif connected:
@@ -1079,12 +1202,13 @@ class BagelRouteEditor(QDialog):
             else:
                 path.moveTo(QPointF(*position))
                 connected = True
-        scene.addPath(path, QPen(QColor('#007e50'), 0.8))
+        scene.addPath(path, QPen(QColor('#007e50'), 0.8, Qt.PenStyle.DashLine))
 
     def start_trial(self) -> None:
         """按原列表顺序执行勾选项；空清单或无效流程不启动线程。"""
         if self.running:
             return
+        self._refresh_stop_shortcut()
         try:
             flow = BagelFlow.from_dict(self.flow.to_dict())
             selected = tuple(
@@ -1094,7 +1218,8 @@ class BagelRouteEditor(QDialog):
             )
             if not selected:
                 raise ValueError('请先在步骤列表左侧勾选要执行的步骤。')
-        except ValueError as error:
+            self.models[self.map_id] = BagelMapModel.load(self.map_id)
+        except (OSError, ValueError) as error:
             self.trial_info.setText(str(error))
             return
         self.trace.clear()
@@ -1105,6 +1230,7 @@ class BagelRouteEditor(QDialog):
             selected,
             self.ctx,
             self,
+            map_snapshot=self.models[self.map_id].snapshot,
         )
         self.worker.observed.connect(self._observe)
         self.worker.completed.connect(self.trial_info.setText)
@@ -1114,7 +1240,7 @@ class BagelRouteEditor(QDialog):
         self.step_list.setEnabled(False)
         self.stop_button.setEnabled(True)
         self.trial_info.setText(
-            f'准备执行勾选的 {len(selected)} 步：'
+            f'请松开鼠标，工具将自动切到游戏。准备执行勾选的 {len(selected)} 步：'
             + ' → '.join(step.name for step in flow.steps if step.id in selected)
         )
         self.worker.start()
@@ -1135,7 +1261,7 @@ class BagelRouteEditor(QDialog):
             name = (
                 self.flow.steps[index].name
                 if isinstance(index, int) and 0 <= index < len(self.flow.steps)
-                else '本次试跑'
+                else '本次测试运行'
             )
             state = {
                 'start': '准备执行',
@@ -1199,13 +1325,13 @@ class BagelRouteEditor(QDialog):
 
 
 def main() -> int:
-    """独立开发入口，首次试跑时初始化游戏控制服务。"""
+    """独立开发入口，首次测试运行时初始化游戏控制服务。"""
     parser = argparse.ArgumentParser(description='贝果流程开发工具')
     parser.add_argument(
         '--instance',
         type=int,
         default=1,
-        help='已配置账号的编号，仅用于试跑和旧路线导入',
+        help='已配置账号的编号，仅用于测试运行和旧路线导入',
     )
     args = parser.parse_args()
     app = QApplication.instance() or QApplication([])

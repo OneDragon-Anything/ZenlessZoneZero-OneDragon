@@ -1,0 +1,82 @@
+format_version: 1
+coordinate_version: 1
+map_id: janus_high_b
+origin_xy:
+- -119
+- -16
+size_wh:
+- 450
+- 373
+coordinate_unit: reference_spawn_pixel
+anchor_xy:
+- 100
+- 100
+spawn_xy:
+- 100
+- 100
+mask:
+  center_xy:
+  - 100
+  - 100
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 1
+player_arrow:
+  crop_radius: 20
+  hsv_lower:
+  - 14
+  - 90
+  - 175
+  hsv_upper:
+  - 34
+  - 255
+  - 255
+  area_range:
+  - 150
+  - 400
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+registration_blur_size: 3
+representations:
+- highpass_min_channel
+- clahe_min_channel
+feature_edge_margin: 4
+match_window_size: 201
+match_window_stride: 80
+reference_centers:
+- name: reference_spawn.png
+  xy:
+  - 100.0
+  - 100.0
+- name: reference_live_align_20260926.png
+  xy:
+  - 101.68337230561694
+  - 99.24821897175858
+- name: reference_live_approach_20260926.png
+  xy:
+  - 128.8551928035914
+  - 70.33433193385119
+- name: reference_live_box_20260926.png
+  xy:
+  - 130.49300371773822
+  - 69.34455513325557
+landmarks:
+- name: 实测武备箱交互区
+  xy:
+  - 130.5
+  - 69.4
+  note: 2026-09-26实测交互位置，作为默认路点来源；可编辑路线，到达仍以交互提示为准
+build:
+  profile: min_channel_percentile_25
+  source_manifest: map_sources.json
+  sampling_fps: 20
+  frames: 1068
+  registered_frames: 1067
+sha256:
+  map.png: 595472400d5733a72c34da5fa73c80f9e306c060edbec7b77140c8be1f35d33e
+  map_mask.png: 0532fc8525fcaa1359f93d3d525bf904289315c521b307db7015eed09ff74ed3
+  map_sources.json: 9d72094141117d828d796f4c67cd57d6cb3cc81d221d73f147d6e9cf4422a9a0

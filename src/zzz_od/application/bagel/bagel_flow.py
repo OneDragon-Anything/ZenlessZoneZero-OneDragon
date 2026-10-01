@@ -26,32 +26,32 @@ from zzz_od.application.bagel.bagel_route import (
 
 ACTION_LABELS: dict[str, str] = {
     'spawn': '检查出生位置',
-    'move': '移动到路点',
+    'move': '移动到指定位置',
     'approach': '靠近交互目标',
     'interact': '按交互键',
     'unlock': '完成光圈解锁',
     'store': '装入安全箱',
-    'close': '关闭搜查面板',
+    'close': '关闭搜查界面',
     'exit': '退出本局',
 }
 ACTION_CATEGORIES: dict[str, str] = {
-    'spawn': '检查',
+    'spawn': '检查与退出',
     'move': '移动',
     'approach': '移动',
-    'interact': '交互',
-    'unlock': '解锁',
-    'store': '收集',
-    'close': '界面',
-    'exit': '退出',
+    'interact': '箱子操作',
+    'unlock': '箱子操作',
+    'store': '箱子操作',
+    'close': '箱子操作',
+    'exit': '检查与退出',
 }
 ACTION_RULES: dict[str, str] = {
     'spawn': '只检查是否站在所选出生点，不移动角色。',
-    'move': '只走到这一个路点并停下，不等待交互提示，也不按交互键。',
+    'move': '只走到指定位置并停下，不等待交互提示，也不按交互键。',
     'approach': '只靠近目标，看到对应交互提示后停下，不按交互键。',
     'interact': '请先站到出现交互提示和 F 图标的位置。只打开武备箱面板或电子保险箱解锁界面，不执行解锁或收集。',
-    'unlock': '请先打开电子保险箱的光圈界面。只完成光圈解锁，等搜查面板出现后停止。',
-    'store': '请先打开对应容器的搜查面板。等待搜索并把合适的物品装入安全箱，完成后保留面板。',
-    'close': '只关闭搜查面板并回到局内。搜索尚未完成时会等待，不收集物品。',
+    'unlock': '在电子保险箱光圈界面完成解锁，等搜查界面出现后停止；已经进入搜查界面时，确认已解锁后直接完成，不重复按键。',
+    'store': '请先打开对应容器的搜查界面。等待搜索并把合适的物品装入安全箱，完成后保留面板。',
+    'close': '只关闭搜查界面并回到局内。搜索尚未完成时会等待，不收集物品。',
     'exit': '请先关闭菜单，回到游戏画面。退出当前关卡并回到仓库界面，不存放或出售物品。',
 }
 
@@ -81,7 +81,7 @@ class NavigationOptions:
             else NAV_CRUISE_DISTANCE
         )
 
-    def effective_timeout(self, target: str) -> float:
+    def effective_timeout(self, target: str | None) -> float:
         """返回整个移动步骤的时限。"""
         return (
             self.timeout
@@ -98,8 +98,8 @@ class NavigationOptions:
             else NAV_SAFE_BRAKE_DISTANCE
         )
 
-    def effective_final_mode(self, target: str) -> str:
-        """保险箱沿最后一段方向碎步，武备箱默认靠坐标接近。"""
+    def effective_final_mode(self, target: str | None) -> str:
+        """兼容旧文件隐式模式；新版读取时已明确正常移动或碎步接近。"""
         return self.final_mode or ('short_steps' if target == 'safe' else 'coordinate')
 
     def to_dict(self) -> dict[str, Any]:
@@ -134,7 +134,7 @@ class NavigationOptions:
             else None
         )
         mode = data.get('final_mode')
-        if mode is not None and mode not in ('short_steps', 'coordinate'):
+        if mode is not None and mode not in ('short_steps', 'coordinate', 'small_steps'):
             raise ValueError('未知末段移动方式')
         interaction = (
             _number(data['interaction_distance'], '交互采信距离', 0.1, 30)
@@ -146,7 +146,7 @@ class NavigationOptions:
 
 @dataclass(frozen=True)
 class BagelStep:
-    """每个移动步骤独立持有路点，名称不参与动作派发。"""
+    """每个移动步骤独立持有位置，名称不参与动作派发。"""
 
     id: str
     action: str
@@ -162,6 +162,11 @@ class BagelStep:
             data['target'] = self.target
         if self.action in ('move', 'approach'):
             data['waypoints'] = [point.to_dict() for point in self.waypoints]
+            if self.action == 'move' and self.target is None:
+                data['waypoints'] = [
+                    {key: value for key, value in point.items() if key not in ('stage', 'role', 'stop')}
+                    for point in data['waypoints']
+                ]
             data['navigation'] = self.navigation.to_dict()
         return data
 
@@ -187,7 +192,7 @@ class BagelFlow:
     def to_dict(self) -> dict[str, Any]:
         """草稿与正式资源共用结构。"""
         return {
-            'version': 2,
+            'version': 4,
             'id': self.id,
             'name': self.name,
             'map_id': self.map_id,
@@ -204,7 +209,7 @@ class BagelFlow:
                 cls._from_legacy(data, validate_order=validate_order),
                 validate_order=validate_order,
             )
-        if data['version'] != 2:
+        if data['version'] not in (2, 3, 4):
             raise ValueError('流程格式或版本无效')
         if set(data) - {'version', 'id', 'name', 'map_id', 'steps'}:
             raise ValueError('流程包含未知字段')
@@ -229,7 +234,10 @@ class BagelFlow:
             if not isinstance(action, str) or action not in ACTION_LABELS:
                 raise ValueError(f'未知业务动作：{action}')
             target = value.get('target')
-            if action not in ('spawn', 'exit'):
+            plain_move = action == 'move' and data['version'] >= 3
+            if plain_move and 'target' in value:
+                raise ValueError('普通移动不接受目标参数')
+            if action not in ('spawn', 'exit') and not plain_move:
                 if target not in ('box', 'safe'):
                     raise ValueError('该动作须指定容器类型')
             elif target is not None:
@@ -241,29 +249,70 @@ class BagelFlow:
             points: tuple[BagelWaypoint, ...] = ()
             navigation = NavigationOptions()
             if action in ('move', 'approach'):
+                raw_points = value.get('waypoints')
+                if plain_move:
+                    if not isinstance(raw_points, list) or len(raw_points) != 1:
+                        raise ValueError('移动到指定位置每步只能包含一个位置')
+                    if any(not isinstance(p, dict) or set(p) - {'name', 'xy', 'tolerance', 'passed_tolerance'} for p in raw_points):
+                        raise ValueError('普通移动位置只接受名称、坐标和距离范围')
+                    raw_points = [dict(p, stage='move', role='turn', stop=True) for p in raw_points]
+                elif isinstance(raw_points, list) and any(isinstance(p, dict) and 'passed_tolerance' in p for p in raw_points):
+                    raise ValueError('只有新版普通移动可以单独设置走过目的地后的允许范围')
                 points = BagelRoute.from_dict(
                     map_id,
-                    {'map_id': map_id, 'waypoints': value.get('waypoints')},
+                    {'map_id': map_id, 'waypoints': raw_points},
                     complete=False,
                     check_roles=False,
                 ).waypoints
                 navigation = NavigationOptions.from_dict(value.get('navigation', {}))
-                if any(point.stage != target for point in points):
-                    raise ValueError('移动步骤的路点与目标不一致')
+                if data['version'] < 4 and navigation.final_mode == 'small_steps':
+                    raise ValueError('朝目的地碎步需要流程版本 4')
+                move_fields = {'timeout', 'brake_distance'}
+                if data['version'] == 4:
+                    move_fields.add('final_mode')
+                if plain_move and set(value.get('navigation', {})) - move_fields:
+                    raise ValueError('普通移动不接受靠近方式或交互识别范围')
+                if any(point.stage != ('move' if plain_move else target) for point in points):
+                    raise ValueError('移动步骤的位置与目标不一致')
                 if action == 'move' and len(points) != 1:
-                    raise ValueError('移动到路点每步只能包含一个路点')
+                    raise ValueError('移动到指定位置每步只能包含一个位置')
                 if action == 'approach':
                     short = navigation.effective_final_mode(target) == 'short_steps'
-                    if len(points) != (2 if short else 1):
+                    if len(points) != (2 if short and data['version'] < 4 else 1):
                         raise ValueError(
-                            '小步靠近需要方向起点和目标两个路点；坐标靠近只需目标路点'
+                            '靠近交互目标每步只能包含一个目的地' if data['version'] == 4 else
+                            '小步前进缺少有效的前进方向或靠近位置；朝指定位置移动只需一个靠近位置'
                         )
                     if points[-1].role != 'target':
                         raise ValueError('靠近步骤必须以交互目标结束')
                 if any(not point.stop for point in points):
                     raise ValueError('独立移动步骤完成后必须停步')
+                if action == 'move' and not plain_move:
+                    point = points[0]
+                    brake = (
+                        navigation.effective_brake_distance
+                        if target == 'safe' and point.role == 'approach'
+                        and navigation.effective_final_mode(target) == 'short_steps'
+                        else None
+                    )
+                    navigation = NavigationOptions(
+                        timeout=navigation.effective_timeout(target), brake_distance=brake,
+                    )
+                    points = (replace(
+                        point, stage='move', role='turn', tolerance=point.arrival_radius,
+                        passed_tolerance=point.passed_radius,
+                    ),)
+                    target = None
+                if data['version'] == 4:
+                    if navigation.final_mode == 'short_steps':
+                        raise ValueError('新版移动不支持固定方向，请使用正常移动或碎步接近')
+                    navigation = replace(navigation, final_mode=navigation.final_mode or 'coordinate')
+                else:
+                    mode = navigation.effective_final_mode(target) if action == 'approach' else 'coordinate'
+                    navigation = replace(navigation, final_mode='small_steps' if mode == 'short_steps' else mode)
+                    points = points[-1:]
             elif 'waypoints' in value or 'navigation' in value:
-                raise ValueError('只有移动动作可以包含路点和导航参数')
+                raise ValueError('只有移动动作可以包含位置和导航参数')
             steps.append(
                 BagelStep(
                     _text(value.get('id'), '步骤标识'),
@@ -305,7 +354,7 @@ class BagelFlow:
                     raise ValueError('出生检查只能放在首步')
             elif action in ('move', 'approach', 'exit'):
                 if state != 'hud':
-                    raise ValueError('移动或退出前须收集并关闭搜查面板')
+                    raise ValueError('移动或退出前须收集并关闭搜查界面')
                 if action == 'exit' and index != len(self.steps) - 1:
                     raise ValueError('主动退出后不能继续执行局内动作')
                 arrived = step.target if action == 'approach' else None
@@ -325,7 +374,7 @@ class BagelFlow:
                 collected = True
             elif action == 'close':
                 if state != 'search' or opened != step.target or not collected:
-                    raise ValueError('关闭搜查面板前须完成对应容器的收集')
+                    raise ValueError('关闭搜查界面前须完成对应容器的收集')
                 state = 'hud'
                 opened = arrived = None
 
@@ -386,18 +435,20 @@ class BagelFlow:
                     complete=False,
                 )
                 if any(point.stage != target for point in route.waypoints):
-                    raise ValueError('移动步骤的路点与目标不一致')
+                    raise ValueError('移动步骤的位置与目标不一致')
                 points = route.waypoints
                 navigation = NavigationOptions.from_dict(value.get('navigation', {}))
+                if navigation.final_mode == 'small_steps':
+                    raise ValueError('朝目的地碎步需要流程版本 4')
                 if navigation.effective_final_mode(target) == 'short_steps':
                     if len(points) < 2:
-                        raise ValueError('沿末段碎步至少需要两个不同路点定义方向')
+                        raise ValueError('沿末段碎步至少需要两个不同位置定义方向')
                     if not points[-2].stop:
                         raise ValueError('沿末段碎步前的接近点必须停步')
                 if not points[-1].stop:
                     raise ValueError('交互目标必须停步')
             elif 'waypoints' in value or 'navigation' in value:
-                raise ValueError('只有移动动作可以包含路点和导航参数')
+                raise ValueError('只有移动动作可以包含位置和导航参数')
             steps.append(
                 BagelStep(
                     _text(value.get('id'), '步骤标识'),
@@ -436,7 +487,7 @@ class BagelFlow:
             if step.action == 'exit' and index != len(self.steps) - 1:
                 raise ValueError('主动退出后不能继续执行局内动作')
             if opened is not None and step.action != 'store':
-                raise ValueError('打开容器后须收集并关闭搜查面板')
+                raise ValueError('打开容器后须收集并关闭搜查界面')
             if step.action == 'move':
                 arrived = step.target
             elif step.action in ('open_box', 'unlock_safe'):
@@ -500,17 +551,17 @@ def split_legacy_flow(flow: BagelFlow, *, validate_order: bool = True) -> BagelF
         elif step.action == 'store':
             steps.append(step)
             steps.append(
-                BagelStep(derived_id('close'), 'close', '关闭搜查面板', step.target)
+                BagelStep(derived_id('close'), 'close', '关闭搜查界面', step.target)
             )
         else:
             steps.append(step)
     return BagelFlow.from_dict(
-        replace(flow, steps=tuple(steps)).to_dict(), validate_order=validate_order
+        dict(replace(flow, steps=tuple(steps)).to_dict(), version=2), validate_order=validate_order
     )
 
 
 def flow_from_route(route: BagelRoute) -> BagelFlow:
-    """显式导入旧路点，补齐原业务动作，保持旧文件不变。"""
+    """显式导入旧位置，补齐原业务动作，保持旧文件不变。"""
     steps = [BagelStep('spawn', 'spawn', '检查出生位置')]
     for target, title, action in (
         ('box', '武备箱', 'open_box'),

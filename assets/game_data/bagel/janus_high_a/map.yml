@@ -1,0 +1,89 @@
+format_version: 1
+coordinate_version: 1
+map_id: janus_high_a
+origin_xy:
+- -9
+- -94
+size_wh:
+- 305
+- 405
+coordinate_unit: reference_spawn_pixel
+anchor_xy:
+- 100
+- 100
+spawn_xy:
+- 100
+- 100
+mask:
+  center_xy:
+  - 100
+  - 100
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 2
+player_arrow:
+  crop_radius: 20
+  hsv_lower:
+  - 14
+  - 90
+  - 175
+  hsv_upper:
+  - 34
+  - 255
+  - 255
+  area_range:
+  - 150
+  - 400
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+registration_blur_size: 3
+representations:
+- clahe_min_channel
+- highpass_min_channel
+feature_edge_margin: 4
+match_window_size: 201
+match_window_stride: 100
+reference_centers:
+- name: reference_live_corner.png
+  xy:
+  - 116.6553646650208
+  - 98.75412080761662
+- name: reference_spawn.png
+  xy:
+  - 100.0
+  - 100.0
+- name: reference_box.png
+  xy:
+  - 112.79675187942858
+  - 83.35070234826611
+- name: reference_corner.png
+  xy:
+  - 111.37686722584277
+  - 99.66877196576208
+- name: reference_safe.png
+  xy:
+  - 216.8762702801726
+  - 106.0657824207504
+- name: reference_safe_corridor_70.png
+  xy:
+  - 136.9593518828247
+  - 83.74818910325607
+- name: reference_safe_corridor_72.png
+  xy:
+  - 182.61017653151393
+  - 88.36959988389751
+landmarks: []
+build:
+  profile: min_channel_percentile_25
+  source_manifest: map_sources.json
+  sampling_fps: 20
+  frames: 1068
+  registered_frames: 1068
+sha256:
+  map.png: 1a3e35bf64794f2f9a7e9f802724957c9858fca00f78a1f8580c8bee8a035ac8
+  map_mask.png: 82deb66bd491d90a5a6ec1e3d8f3b62cda1fe30631c030f359afdf64c1a7e285
+  map_sources.json: f78c0d68b8260fd4e01b257ff10fed43fe8065f0f2361a1fca30266752e116d3

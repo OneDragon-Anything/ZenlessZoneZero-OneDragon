@@ -1,4 +1,4 @@
-version: 2
+version: 4
 id: janus_high_a
 name: A · 录像店
 map_id: janus_high_a
@@ -9,16 +9,15 @@ steps:
 - id: move_box
   action: move
   name: 走到巷口左转
-  target: box
   waypoints:
   - name: 巷口左转
     xy:
-    - 110.0
-    - 100.0
-    stage: box
-    role: turn
-    stop: true
-  navigation: {}
+    - 110.2
+    - 99.9
+    passed_tolerance: 3.0
+  navigation:
+    timeout: 45.0
+    final_mode: coordinate
 - id: move_box_ed2f153a4cca565cafbd70af72a5bc02
   action: approach
   name: 靠近轮胎旁武备箱前
@@ -31,7 +30,8 @@ steps:
     stage: box
     role: target
     stop: true
-  navigation: {}
+  navigation:
+    final_mode: coordinate
 - id: open_box
   action: interact
   name: 打开武备箱
@@ -47,62 +47,58 @@ steps:
 - id: move_safe
   action: move
   name: 走到电子保险箱巷口转向
-  target: safe
   waypoints:
   - name: 电子保险箱巷口转向
     xy:
     - 186.6
     - 84.9
-    stage: safe
-    role: entry
-    stop: true
-  navigation: {}
+    tolerance: 12.0
+    passed_tolerance: 12.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
 - id: move_safe_dd93c3156c3950aa8d95f43ac8d4829b
   action: move
   name: 走到电子保险箱楼角
-  target: safe
   waypoints:
   - name: 电子保险箱楼角
     xy:
-    - 201.6
-    - 109.5
-    stage: safe
-    role: turn
-    stop: true
-  navigation: {}
+    - 201.5
+    - 111.0
+    tolerance: 2.0
+    passed_tolerance: 2.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
 - id: move_safe_b0f95574a09453a194631ec5e296ddb8
   action: move
   name: 走到电子保险箱接近点
-  target: safe
   waypoints:
   - name: 电子保险箱接近点
     xy:
-    - 213.0
-    - 110.0
-    stage: safe
-    role: approach
-    stop: true
-  navigation: {}
+    - 216.2
+    - 110.1
+    tolerance: 1.0
+    passed_tolerance: 2.0
+  navigation:
+    timeout: 75.0
+    brake_distance: 6.0
+    final_mode: coordinate
 - id: move_safe_ab548bd5a8235c75b1081f48c129246a
   action: approach
   name: 靠近电子保险箱前
   target: safe
   waypoints:
-  - name: 电子保险箱接近点
-    xy:
-    - 213.0
-    - 110.0
-    stage: safe
-    role: approach
-    stop: true
   - name: 电子保险箱前
     xy:
-    - 218.0
+    - 221.7
     - 110.0
     stage: safe
     role: target
     stop: true
-  navigation: {}
+  navigation:
+    final_mode: small_steps
+    interaction_distance: 6.0
 - id: open_safe_45bbb36465895a01aae783abb6af7ea8
   action: interact
   name: 打开电子保险箱解锁界面

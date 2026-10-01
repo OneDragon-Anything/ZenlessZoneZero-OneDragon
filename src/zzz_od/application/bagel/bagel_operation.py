@@ -69,6 +69,7 @@ class BagelOperation(ZOperation):
     """贝果操作失败时保存最后画面，便于核对停在哪一步。"""
 
     STATUS_DEFEATED: str = '贝果撤离失败'
+    STATUS_INTERRUPTED: str = '贝果搜查或解锁被打断'
 
     def execute(self) -> OperationResult:
         """操作返回前完成贝果本次执行的事件清理。"""

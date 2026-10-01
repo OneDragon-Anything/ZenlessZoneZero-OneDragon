@@ -2,16 +2,6 @@ map_id: janus_high_b
 coordinate_unit: reference_spawn_pixel
 # 使用与出生参考图一致的像素坐标；按实际定位朝下一路点移动。
 navigation: waypoints
-registration_blur_size: 3
-player_arrow:
-  crop_radius: 20
-  hsv_lower: [14, 90, 175]
-  hsv_upper: [34, 255, 255]
-  area_range: [150, 400]
-  maximum_center_offset: 5
-  tip_percentile: 80
-  minimum_green_spread: 50
-  minimum_tip_offset: 3
 source:
   video: 2026-09-21 01-07-57.flv
   crop_xyxy: [1533, 206, 1734, 407]
@@ -25,13 +15,6 @@ waypoints:
     xy: [130.5, 69.4]
     stage: box
     role: target
-mask:
-  center_xy: [100, 100]
-  outer_radius: 89
-  inner_radius: 23
-  maximum_saturation: 65
-  minimum_brightness: 65
-  edge_margin: 1
 references:
   - image: reference_spawn.png
     second: 5.0
