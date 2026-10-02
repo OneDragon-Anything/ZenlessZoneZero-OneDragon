@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
@@ -37,7 +38,12 @@ class CombatSimulation(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
+    def __init__(
+        self,
+        ctx: ZContext,
+        plan: ChargePlanItem,
+        switch_team_callback: Callable[[str], bool] | None = None,
+    ) -> None:
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -57,7 +63,9 @@ class CombatSimulation(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
+        self.switch_team_callback: Callable[[str], bool] | None = switch_team_callback
         self.scroll_count: int = 0  # 滑动次数计数器
+        self._switch_team_requested: bool = False
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
@@ -207,6 +215,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='进入选择数量', status=CardNumEnum.DEFAULT.value.value)
     @node_from(from_name='选择数量')
     @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
+    @node_from(from_name='切换配队')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
@@ -254,6 +263,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='判断下一次', status='战斗结果-再来一次')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
+        self._switch_team_requested = False
         if self.plan.predefined_team_idx == -1:
             auto_battle = self.plan.auto_battle_config
         else:
@@ -284,15 +294,28 @@ class CombatSimulation(ZOperation):
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
-    @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
+    @operation_node(name='自动战斗', mute=True, timeout_seconds=601)  # 600秒在方法内处理，让配置值600优先
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.ctx.auto_battle_context.check_battle_state(
+        in_battle = self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
+
+        elapsed = 0 if self._current_node_start_time is None else time.time() - self._current_node_start_time
+        if (
+            in_battle
+            and self.plan.battle_timeout_seconds > 0
+            and elapsed >= self.plan.battle_timeout_seconds
+        ):
+            self._switch_team_requested = True
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_fail(status=Operation.STATUS_TIMEOUT)
+        if in_battle and elapsed >= 600:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_fail(status=Operation.STATUS_TIMEOUT)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -320,6 +343,11 @@ class CombatSimulation(ZOperation):
         op = ExitInBattle(self.ctx, '画面-通用', '左上角-区域')
         result = self.round_by_op_result(op.execute())
         if result.is_success:
+            if self._switch_team_requested:
+                return self.round_fail(
+                    status=charge_plan_const.STATUS_SWITCH_TEAM,
+                    data=f'战斗超过 {self.plan.battle_timeout_seconds} 秒',
+                )
             return self.round_fail(status=CombatSimulation.STATUS_FIGHT_TIMEOUT)
         else:
             return self.round_retry(status=result.status, wait=1)
@@ -329,9 +357,39 @@ class CombatSimulation(ZOperation):
     def battle_fail(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
         if result.is_success:
+            if self.plan.battle_timeout_seconds > 0:
+                return self.round_fail(
+                    status=charge_plan_const.STATUS_SWITCH_TEAM,
+                    data='战斗失败',
+                    wait=5,
+                )
             return self.round_success(result.status, wait=5)
 
         return self.round_retry(result.status, wait=1)
+
+    @node_from(
+        from_name='战斗超时',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @node_from(
+        from_name='战斗失败',
+        success=False,
+        status=charge_plan_const.STATUS_SWITCH_TEAM,
+    )
+    @operation_node(name='切换配队')
+    def switch_team(self) -> OperationRoundResult:
+        """请求外层体力计划切换到下一支预备编队。
+
+        Returns:
+            换队请求的处理结果。
+        """
+        reason = self.previous_node.data or self.previous_node.status
+        if self.switch_team_callback is None:
+            return self.round_fail(status=charge_plan_const.STATUS_SWITCH_TEAM, data=reason)
+        if not self.switch_team_callback(reason):
+            return self.round_fail(status=charge_plan_const.STATUS_TEAM_EXHAUSTED, data=reason)
+        return self.round_success()
 
     def handle_pause(self):
         self.ctx.auto_battle_context.stop_auto_battle()
