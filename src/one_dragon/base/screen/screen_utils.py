@@ -293,6 +293,7 @@ def scroll_area(
     direction: str = 'down',
     start_ratio: float = 0.9,
     end_ratio: float = 0.1,
+    duration: float = 0.5
 ) -> None:
     """
     在指定区域内滚动屏幕
@@ -303,6 +304,7 @@ def scroll_area(
         direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
         start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
         end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
+        duration: 拖拽持续时间
     """
     rect = area.rect
     height = rect.height
@@ -329,7 +331,7 @@ def scroll_area(
         else:
             end = Point(end.x, min(rect.y2 - 1, end.y + 1))
 
-    ctx.controller.drag_to(start=start, end=end)
+    ctx.controller.drag_to(start=start, end=end, duration=duration)
 
 
 def get_match_screen_name(

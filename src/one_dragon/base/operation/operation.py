@@ -177,6 +177,18 @@ class Operation(OperationBase):
         self.node_clicked: bool = False
         """本节点是否已经完成了点击"""
 
+        self._goto_screen_debounce_source: str | None = None
+        """画面跳转防抖期间记录的来源画面"""
+
+        self._goto_screen_debounce_start_time: float = 0
+        """画面跳转防抖开始时间"""
+
+        self._goto_screen_loading: bool = False
+        """来源画面消失后是否正在等待下一个画面"""
+
+        self._goto_screen_loading_start_time: float = 0
+        """画面跳转加载宽限期开始时间"""
+
         self.node_retry_times: int = 0
         """当前节点的重试次数"""
 
@@ -210,6 +222,10 @@ class Operation(OperationBase):
         # 重置节点状态
         self.node_retry_times = 0
         self.node_clicked = False
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
         self._current_node_start_time = now
         self._previous_round_result = None
         self.node_status.clear()
@@ -579,6 +595,10 @@ class Operation(OperationBase):
         self.node_retry_times = 0  # 每个节点都可以重试
         self._current_node_start_time = time.time()  # 每个节点单独计算耗时
         self.node_clicked = False  # 重置节点点击
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
 
     def _on_pause(self, e=None):
         """操作暂停时触发的回调。
@@ -1381,7 +1401,8 @@ class Operation(OperationBase):
 
     def round_by_goto_screen(self, screen: np.ndarray | None = None, screen_name: str | None = None,
                              success_wait: float | None = None, success_wait_round: float | None = None,
-                             retry_wait: float | None = 1, retry_wait_round: float | None = None) -> OperationRoundResult:
+                             retry_wait: float | None = 1, retry_wait_round: float | None = None,
+                             screen_switch_debounce: float = 0) -> OperationRoundResult:
         """从当前屏幕导航到目标屏幕。
 
         Args:
@@ -1391,6 +1412,7 @@ class Operation(OperationBase):
             success_wait_round: 成功后等待时间减去当前轮执行时间。默认为None。
             retry_wait: 不成功时等待时间（秒）。默认为1。
             retry_wait_round: 不成功时等待时间减去当前轮执行时间。默认为None。
+            screen_switch_debounce: 点击切换按钮后的防抖时间（秒）。默认为0。
 
         Returns:
             OperationRoundResult: 导航结果。
@@ -1398,10 +1420,52 @@ class Operation(OperationBase):
         if screen is None:
             screen = self.last_screenshot
 
+        debounce_source = self._goto_screen_debounce_source
+        if screen_switch_debounce <= 0:
+            self._goto_screen_debounce_source = None
+            self._goto_screen_debounce_start_time = 0
+            self._goto_screen_loading = False
+            self._goto_screen_loading_start_time = 0
+        elif debounce_source is not None and not self._goto_screen_loading:
+            source_screen_visible = screen_utils.is_target_screen(
+                self.ctx,
+                screen,
+                screen_name=debounce_source,
+            )
+            now = time.time()
+            in_debounce = now - self._goto_screen_debounce_start_time < screen_switch_debounce
+            if in_debounce and source_screen_visible:
+                return self.round_wait('等待画面切换', wait=retry_wait, wait_round_time=retry_wait_round)
+            if source_screen_visible:
+                self._goto_screen_debounce_source = None
+                self._goto_screen_debounce_start_time = 0
+            else:
+                self._goto_screen_loading = True
+                self._goto_screen_loading_start_time = now
+
         current_screen_name = screen_utils.get_match_screen_name(self.ctx, screen)
         self.ctx.screen_loader.update_current_screen_name(current_screen_name)
         if current_screen_name is None:
+            if self._goto_screen_loading:
+                loading_time = time.time() - self._goto_screen_loading_start_time
+                if loading_time < screen_switch_debounce:
+                    return self.round_wait(Operation.STATUS_SCREEN_UNKNOWN, wait=retry_wait,
+                                           wait_round_time=retry_wait_round)
+                self._goto_screen_debounce_source = None
+                self._goto_screen_debounce_start_time = 0
+                self._goto_screen_loading = False
+                self._goto_screen_loading_start_time = 0
             return self.round_retry(Operation.STATUS_SCREEN_UNKNOWN, wait=retry_wait, wait_round_time=retry_wait_round)
+        if self._goto_screen_loading:
+            in_debounce = time.time() - self._goto_screen_debounce_start_time < screen_switch_debounce
+            if current_screen_name == self._goto_screen_debounce_source and in_debounce:
+                self._goto_screen_loading = False
+                self._goto_screen_loading_start_time = 0
+                return self.round_wait('等待画面切换', wait=retry_wait, wait_round_time=retry_wait_round)
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
         log.debug(f'当前识别画面 {current_screen_name}')
         if current_screen_name == screen_name:
             return self.round_success(current_screen_name, wait=success_wait, wait_round_time=success_wait_round)
@@ -1412,6 +1476,9 @@ class Operation(OperationBase):
 
         result = self.round_by_find_and_click_area(screen, current_screen_name, route.node_list[0].from_area)
         if result.is_success:
+            if screen_switch_debounce > 0:
+                self._goto_screen_debounce_source = current_screen_name
+                self._goto_screen_debounce_start_time = time.time()
             self.ctx.screen_loader.update_current_screen_name(route.node_list[0].to_screen)
             return self.round_wait(result.status, wait=retry_wait, wait_round_time=retry_wait_round)
         else:

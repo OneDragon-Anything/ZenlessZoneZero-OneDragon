@@ -110,6 +110,9 @@ class LostVoidContext:
             self.detector = LostVoidDetector(
                 model_name=self.ctx.model_config.lost_void_det,
                 backup_model_name=self.ctx.model_config.lost_void_det_backup,
+                model_download_url=self.ctx.model_config.get_model_download_base_url(
+                    'lost_void_det',
+                ),
                 gh_proxy=self.ctx.env_config.is_gh_proxy,
                 gh_proxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
