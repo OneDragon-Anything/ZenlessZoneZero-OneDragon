@@ -56,6 +56,7 @@ class BagelRunFlow(BagelOperation):
     """按列表顺序执行勾选的独立动作；未选步骤不隐式补做。"""
 
     STATUS_SEARCH_PENDING: str = '搜查状态暂未识别，等待下一帧'
+    STATUS_LOCATION_PENDING: str = '小地图暂时无法定位，等待下一帧'
 
     def __init__(
         self,
@@ -86,6 +87,7 @@ class BagelRunFlow(BagelOperation):
         self.cursor: int = 0
         self.index: int = self.indices[0]
         self._precondition_waits: int = 0
+        self._location_waits: int = 0
         self.vision: BagelRouteVision | None = None
         self._map_snapshot: BagelFixedMap | None = map_snapshot
 
@@ -94,6 +96,7 @@ class BagelRunFlow(BagelOperation):
         super().handle_init()
         self.cursor = 0
         self._precondition_waits = 0
+        self._location_waits = 0
         self.index = self.indices[0]
         if self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击') is None:
             raise ValueError('缺少画面区域：战斗画面/按键-普通攻击')
@@ -189,6 +192,9 @@ class BagelRunFlow(BagelOperation):
                 target=0,
             )
             if position is None:
+                location = self.vision.last_location
+                if location is not None and location.reason == 'insufficient_geometry':
+                    return self.STATUS_LOCATION_PENDING
                 return '当前小地图无法定位'
             if (
                 step.action == 'spawn'
@@ -249,6 +255,12 @@ class BagelRunFlow(BagelOperation):
         step = self.flow.steps[self.index]
         self.emit('start', status=f'核对前置画面：{step.name}')
         reason = self.precondition(step)
+        if reason == self.STATUS_LOCATION_PENDING:
+            self._location_waits += 1
+            if self._location_waits <= 5:
+                self.emit('waiting', status=reason)
+                return self.round_wait(reason, wait=0.3)
+            reason = '小地图持续无法定位，停止并保留现场'
         if reason == self.STATUS_SEARCH_PENDING:
             self._precondition_waits += 1
             if self._precondition_waits <= 5:
@@ -259,6 +271,7 @@ class BagelRunFlow(BagelOperation):
             self.emit('failed', status=reason, elapsed=0)
             return self.round_fail(reason)
         self._precondition_waits = 0
+        self._location_waits = 0
         started = time.monotonic()
         operation = self.build_operation(step)
         result = operation.execute() if operation is not None else None
