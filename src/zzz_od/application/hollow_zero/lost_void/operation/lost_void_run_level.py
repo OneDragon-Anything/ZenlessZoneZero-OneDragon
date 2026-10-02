@@ -349,6 +349,8 @@ class LostVoidRunLevel(ZOperation):
                                                                   icon=LostVoidDetector.CLASS_DISTANCE,
                                                                   is_distance=True)
                     return self.round_success(LostVoidDetector.CLASS_DISTANCE)
+            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
                 return self.round_retry('移动失败')
 
@@ -376,6 +378,8 @@ class LostVoidRunLevel(ZOperation):
                     interact_type = op_result.data  # 根据显示图标 返回入口类型
                     self.interact_target = LostVoidInteractTarget(name=interact_type, icon=interact_type, is_entry=True)
                     return self.round_success(LostVoidDetector.CLASS_ENTRY, wait=1)
+            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
                 return self.round_retry('移动失败')
 
@@ -544,6 +548,8 @@ class LostVoidRunLevel(ZOperation):
                     target_key = self.get_interact_target_key(current_interact_target)
                     if self.region_type != LostVoidRegionType.ENTRY and target_key in self.interacted_target_key_list:
                         log.info('当前层已交互过 %s，本次不再交互，先离开当前对象', target_key)
+                        # 反复走回已交互对象 说明卡在其附近 计入卡住次数让后续脱困策略升级
+                        self.stuck_state.stuck_times += 1
                         self.interact_target = current_interact_target
                         self.move_after_interact()
                         return self.round_fail('重复交互对象')
@@ -570,6 +576,10 @@ class LostVoidRunLevel(ZOperation):
         time.sleep(0.2)
         self.ctx.controller.move_w(press=True, press_time=0.2, release=True)
         time.sleep(1)
+
+        if self.node_retry_times >= self.node_max_retry_times:
+            # 本轮重试后节点将失败 说明反复走到目标附近都无法交互 计入卡住次数让后续脱困策略升级
+            self.stuck_state.stuck_times += 1
 
         return self.round_retry('未发现交互按键')
 
@@ -1068,6 +1078,8 @@ class LostVoidRunLevel(ZOperation):
             op = RestartInBattle(self.ctx)
             op_result = op.execute()
             if op_result.success:
+                # 重开后角色位置重置 卡住计数也重新开始 否则上一轮的累计次数会让新一轮直接放弃寻路
+                self.stuck_state = LostVoidStuckState()
                 # 重试时 按进入下一层的逻辑处理
                 return self.round_success(status='准备重试')
             else:
