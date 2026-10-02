@@ -17,6 +17,8 @@ from zzz_od.application.bagel.bagel_const import (
     NAV_CRUISE_TURN_GAP,
     NAV_CRUISE_TURN_LIMIT,
     NAV_FORWARD_PRESS,
+    NAV_INITIAL_LOCATE_MISS_LIMIT,
+    NAV_INITIAL_LOCATE_WAIT,
     NAV_LOCATE_MISS_LIMIT,
     NAV_SAFE_APPROACH_DISTANCE,
     NAV_SAFE_APPROACH_PRESS,
@@ -127,6 +129,7 @@ class BagelNavigate(BagelOperation):
         self.target_wait_started: float | None = None
         self.pickup_misses: int = 0
         self.locate_misses: int = 0
+        self.initial_locate_misses: int = 0
         self.last_position: tuple[float, float] | None = None
         self._cruise_progress: tuple[tuple[float, float], float] | None = None
         self.last_cruise_turn_at: float | None = None
@@ -147,6 +150,7 @@ class BagelNavigate(BagelOperation):
         self.target_wait_started = None
         self.pickup_misses = 0
         self.locate_misses = 0
+        self.initial_locate_misses = 0
         self.last_position = None
         self._cruise_progress = None
         self.last_cruise_turn_at = None
@@ -248,6 +252,15 @@ class BagelNavigate(BagelOperation):
         if position is None:
             if self.target_wait_started is not None:
                 return self._wait_for_interaction()
+            if self.last_position is None and self.vision.last_location is not None:
+                self._release_forward()
+                if self.vision.last_location.reason == 'insufficient_geometry':
+                    self.initial_locate_misses += 1
+                    if self.initial_locate_misses <= NAV_INITIAL_LOCATE_MISS_LIMIT:
+                        return self.round_wait(
+                            '起步小地图暂时无法定位，等待下一帧', wait=NAV_INITIAL_LOCATE_WAIT,
+                        )
+                return self.round_fail('小地图定位失败，停止移动')
             if not small_steps and not self._destination_braked and self.target_wait_started is None and self._ignoring_pickup() and self.heading_aligned and self.pickup_misses < 8:
                 self.pickup_misses += 1
                 self.ctx.controller.start_moving_forward()
@@ -260,6 +273,7 @@ class BagelNavigate(BagelOperation):
             return self.round_fail('小地图定位失败，停止移动')
         self.pickup_misses = 0
         self.locate_misses = 0
+        self.initial_locate_misses = 0
         self.last_position = position
         final_xy = self.active_waypoints[-1][1]
         if (not self.coordinate_only and has_interaction and self.check_target_position

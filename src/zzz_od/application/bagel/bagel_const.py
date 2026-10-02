@@ -27,6 +27,9 @@ NAV_STOP_TURN_CAP: float = 90
 NAV_FORWARD_PRESS: float = 0.2
 NAV_ALIGN_PRESS: float = 0.08
 NAV_SAFE_APPROACH_PRESS: float = 0.08
+# 首次导航位置尚未取得时，只对几何证据不足松键等待。
+NAV_INITIAL_LOCATE_MISS_LIMIT: int = 5
+NAV_INITIAL_LOCATE_WAIT: float = 0.3
 # 已经定位成功后，允许连续几帧对不上再停。单帧遮挡不再结束本段。
 NAV_LOCATE_MISS_LIMIT: int = 3
 
