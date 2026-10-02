@@ -135,3 +135,13 @@ uv run --env-file .env python -m zzz_od.gui.view.bagel.bagel_route_editor --inst
 启动快照或执行过程中的记录写入失败会中止本次执行。执行结束后，若仅最后一条结束记录写入失败，界面保留原执行结果，并追加“结束记录写入失败，请查看日志”的提示；此时记录不完整，不能作为完整验收依据。
 
 制图重建方法与定位测试范围见[固定地图说明](bagel_fixed_map.md)。
+
+## 测试
+
+界面回归位于 `zzz-od-test/test/zzz_od/gui/view/bagel/`，按被测模块分为 `bagel_route_editor/`（流程编辑器）、`bagel_step_editor/`（步骤对话框）和 `bagel_flow_trial/`（试跑线程），各文件聚焦一个主要被测方法。交互测试保留真实鼠标、对话框及撤销保存路径；业务执行器测试仍在应用对应目录。
+
+业务和界面测试共用文件隔离 fixture：配置、草稿、运行记录与失败截图写入临时目录，发布流程和识别资源只读主仓。单独验证界面时运行：
+
+```powershell
+uv run --env-file .env pytest zzz-od-test/test/zzz_od/gui/view/bagel/ -q
+```

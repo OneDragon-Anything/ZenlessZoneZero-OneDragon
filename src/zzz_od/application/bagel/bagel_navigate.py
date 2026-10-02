@@ -127,7 +127,6 @@ class BagelNavigate(BagelOperation):
         self.pending_turn: tuple[float, float] | None = None
         self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(ctx.controller)
         self.target_wait_started: float | None = None
-        self.pickup_misses: int = 0
         self.locate_misses: int = 0
         self.initial_locate_misses: int = 0
         self.last_position: tuple[float, float] | None = None
@@ -148,7 +147,6 @@ class BagelNavigate(BagelOperation):
         self.waypoint_index = len(self.active_waypoints) - 1 if self.final_approach else 0
         self.steps = 0
         self.target_wait_started = None
-        self.pickup_misses = 0
         self.locate_misses = 0
         self.initial_locate_misses = 0
         self.last_position = None
@@ -261,17 +259,12 @@ class BagelNavigate(BagelOperation):
                             '起步小地图暂时无法定位，等待下一帧', wait=NAV_INITIAL_LOCATE_WAIT,
                         )
                 return self.round_fail('小地图定位失败，停止移动')
-            if not small_steps and not self._destination_braked and self.target_wait_started is None and self._ignoring_pickup() and self.heading_aligned and self.pickup_misses < 8:
-                self.pickup_misses += 1
-                self.ctx.controller.start_moving_forward()
-                return self.round_wait('忽略路上可拾取物')
             if self.last_position is not None and self.locate_misses < NAV_LOCATE_MISS_LIMIT:
                 self.locate_misses += 1
                 self._release_forward()
                 return self.round_wait('小地图暂时对不上，再看一帧', wait=0.15)
             self._release_forward()
             return self.round_fail('小地图定位失败，停止移动')
-        self.pickup_misses = 0
         self.locate_misses = 0
         self.initial_locate_misses = 0
         self.last_position = position
