@@ -127,6 +127,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_tap(self, key: str) -> None:
         """按键（tap）。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.tap(key)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
@@ -134,6 +147,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_press(self, key: str, press_time: float | None = None) -> None:
         """按住键。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.press(key, press_time)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
