@@ -101,7 +101,7 @@ class BagelReroll(BagelOperation):
 
 def main() -> int:
     """独立运行抽点任务；沿用框架停止键并在结束时释放控制器。"""
-    parser = argparse.ArgumentParser(description='贝果高危雅努斯：非 A 重开，抽到 A 原地停止')
+    parser = argparse.ArgumentParser(description='贝果高危雅努斯：非支持出生点重开，抽到支持出生点（A 或 B）后原地停止')
     parser.add_argument('--start', choices=('entry', 'warehouse', 'spawn'), default='entry',
                         help='入口、已处理物资的结算仓库，或未移动且无待保留物资的出生点')
     parser.add_argument('--max-attempts', type=int, default=0, help='最多检查几次出生点；0 表示不限')
@@ -116,7 +116,7 @@ def main() -> int:
         ctx.init()
         if not ctx.ready_for_application or not ctx.run_context.start_running():
             return 1
-        log.info('抽到 A 后原地停止；手动停止键：%s，也可在终端按 Ctrl+C', ctx.key_stop_running)
+        log.info('抽到支持出生点（A 或 B）后原地停止；手动停止键：%s，也可在终端按 Ctrl+C', ctx.key_stop_running)
         result = BagelReroll(ctx, start=args.start, max_attempts=args.max_attempts).execute()
         log.info('抽点任务结束：%s', result.status)
         return 0 if result.success else 1

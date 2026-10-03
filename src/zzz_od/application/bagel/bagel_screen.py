@@ -56,13 +56,18 @@ def read_loadout(ctx: ZContext, screen: MatLike) -> dict[str, str]:
         if region is None:
             raise ValueError(f'缺少贝果画面区域：贝果-备战/{area}')
         matches = ctx.ocr_service.get_ocr_result_list(screen, rect=region.pc_rect, crop_first=False)
-        value = _plain_value([match.data for match in matches], label)
+        texts = [match.data for match in matches]
+        value = _plain_value(texts, label)
         if not value:
             cropped = ctx.ocr_service.get_ocr_result_list(
                 screen, rect=region.pc_rect, crop_first=True,
             )
             crop_texts = [match.data for match in cropped]
             value = _plain_value(crop_texts, None) or _glued_value(crop_texts)
+            texts.extend(crop_texts)
+        # 金币图标可能被识别为 0；裁剪漏字也不能抹掉整屏已读到的非零证据。
+        if value == '0' and any(re.search(r'[1-9]', text) for text in texts):
+            value = ''
         values[area] = value
     for area in ('背包数量', '安全箱数量'):
         values[area] = read_area(ctx, screen, '贝果-备战', area)
