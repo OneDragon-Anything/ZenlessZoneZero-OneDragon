@@ -5,6 +5,7 @@
             "name": "主程序",
             "type": "debugpy",
             "request": "launch",
+            "python": "${command:python.interpreterPath}",
             "program": ".\\src\\zzz_od\\gui\\app.py",
             "console": "integratedTerminal",
             "env": {
@@ -15,6 +16,7 @@
             "name": "当前文件",
             "type": "debugpy",
             "request": "launch",
+            "python": "${command:python.interpreterPath}",
             "program": "${file}",
             "console": "integratedTerminal",
             "env": {
@@ -25,6 +27,7 @@
             "name": "安装器",
             "type": "debugpy",
             "request": "launch",
+            "python": "${command:python.interpreterPath}",
             "program": ".\\src\\zzz_od\\gui\\zzz_installer.py",
             "console": "integratedTerminal",
             "env": {
@@ -35,6 +38,7 @@
             "name": "开发工具",
             "type": "debugpy",
             "request": "launch",
+            "python": "${command:python.interpreterPath}",
             "program": ".\\src\\one_dragon_qt\\app\\devtools\\devtools_app.py",
             "console": "integratedTerminal",
             "env": {
