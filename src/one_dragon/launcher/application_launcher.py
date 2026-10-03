@@ -84,6 +84,8 @@ class ApplicationLauncher(LauncherBase):
                 AfterDoneRequest(
                     close_game=args.close_game,
                     shutdown_seconds=args.shutdown,
+                    hibernate=args.hibernate,
+                    sleep=args.sleep,
                 ),
             )
         finally:
