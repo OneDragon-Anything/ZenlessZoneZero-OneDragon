@@ -187,12 +187,12 @@ def _zip_single_file(file_path: Path, zip_path: Path) -> None:
 
 _MODEL_CONFIGS: list[dict[str, str]] = [
     {
-        "label": "ppocrv5",
+        "label": "ppocrv6",
         "repo": "OneDragon-Anything/OneDragon-Env",
-        "pattern": r"ppocrv5\.zip$",
+        "pattern": r"ppocrv6\.zip$",
         "dest_folder": "onnx_ocr",
-        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ppocrv5/ppocrv5.zip",
-        "fallback_name": "ppocrv5",
+        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ppocrv6/ppocrv6.zip",
+        "fallback_name": "ppocrv6",
     },
     {
         "label": "flash",

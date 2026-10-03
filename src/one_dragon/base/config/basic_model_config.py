@@ -4,7 +4,6 @@ from pathlib import Path
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import (
-    DEFAULT_OCR_MODEL_NAME,
     PPOCRV6_MODEL_NAME,
     get_final_file_list,
     get_ocr_download_urls,
@@ -34,7 +33,10 @@ class BasicModelConfig(YamlConfig):
 
     @property
     def ocr(self) -> str:
-        return self.get('ocr', DEFAULT_OCR_MODEL_NAME)
+        current = self.get('ocr', PPOCRV6_MODEL_NAME)
+        if current != PPOCRV6_MODEL_NAME:
+            self.ocr = PPOCRV6_MODEL_NAME
+        return PPOCRV6_MODEL_NAME
 
     @ocr.setter
     def ocr(self, new_value: str) -> None:
@@ -167,7 +169,7 @@ class BasicModelConfig(YamlConfig):
 
 
 def get_ocr_opts() -> list[ConfigItem]:
-    models_list = [DEFAULT_OCR_MODEL_NAME, PPOCRV6_MODEL_NAME]
+    models_list = [PPOCRV6_MODEL_NAME]
     config_list: list[ConfigItem] = []
     for model in models_list:
         model_dir = get_ocr_model_dir(model)
