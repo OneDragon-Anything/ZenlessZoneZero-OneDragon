@@ -107,12 +107,16 @@ class ControllerBase:
         """
         pass
 
-    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5):
+    def drag_to(
+        self, end: Point, start: Point | None = None,
+        duration: float = 0.5, press_time: float = 0,
+    ) -> None:
         """
         按住拖拽
         :param end: 拖拽目的点
         :param start: 拖拽开始点
         :param duration: 拖拽持续时间
+        :param press_time: 按下鼠标后、开始移动前的额外等待秒数
         :return:
         """
         pass

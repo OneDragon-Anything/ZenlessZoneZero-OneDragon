@@ -1,0 +1,50 @@
+screen_id: bagel_enter_confirm
+screen_name: 贝果-入场确认
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 提示
+  pc_rect:
+  - 420
+  - 455
+  - 1500
+  - 590
+  lcs_percent: 0.9
+
+- area_name: 确认
+  pc_rect:
+  - 978
+  - 593
+  - 1250
+  - 671
+  text: 确认
+  lcs_percent: 0.9
+- area_name: 投资标题
+  pc_rect:
+  - 885
+  - 650
+  - 1035
+  - 697
+  text: 投资金额
+  lcs_percent: 1.0
+- area_name: 投资金额
+  pc_rect:
+  - 780
+  - 700
+  - 1140
+  - 754
+  color_range:
+  - - 180
+    - 180
+    - 180
+  - - 255
+    - 255
+    - 255
+- area_name: 零投资前往空洞
+  pc_rect:
+  - 990
+  - 950
+  - 1230
+  - 1018
+  text: 前往空洞
+  lcs_percent: 1.0

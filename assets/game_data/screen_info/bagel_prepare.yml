@@ -1,0 +1,58 @@
+screen_id: bagel_prepare
+screen_name: 贝果-备战
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 预设组合
+  pc_rect:
+  - 1020
+  - 898
+  - 1270
+  - 970
+  id_mark: true
+  text: 预设组合
+  lcs_percent: 0.9
+- area_name: 前往空洞
+  pc_rect:
+  - 1550
+  - 898
+  - 1820
+  - 970
+  id_mark: true
+  text: 前往空洞
+  lcs_percent: 0.9
+- area_name: 武备价值
+  pc_rect:
+  - 1020
+  - 188
+  - 1370
+  - 228
+  lcs_percent: 0.9
+- area_name: 装备价值
+  pc_rect:
+  - 1460
+  - 188
+  - 1808
+  - 228
+  lcs_percent: 0.9
+- area_name: 道具价值
+  pc_rect:
+  - 1460
+  - 405
+  - 1808
+  - 452
+  lcs_percent: 0.9
+- area_name: 背包数量
+  pc_rect:
+  - 1493
+  - 802
+  - 1618
+  - 849
+  lcs_percent: 0.9
+- area_name: 安全箱数量
+  pc_rect:
+  - 1670
+  - 802
+  - 1790
+  - 849
+  lcs_percent: 0.9
