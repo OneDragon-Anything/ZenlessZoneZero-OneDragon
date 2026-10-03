@@ -6,7 +6,6 @@ from one_dragon_qt.view.setting.setting_push_interface import SettingPushInterfa
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.setting.setting_game_interface import SettingGameInterface
-from zzz_od.gui.view.setting.setting_overlay_interface import SettingOverlayInterface
 
 
 class AppSettingInterface(PivotNavigatorInterface):
@@ -22,7 +21,6 @@ class AppSettingInterface(PivotNavigatorInterface):
         :return:
         """
         self.add_sub_interface(SettingGameInterface(ctx=self.ctx))
-        self.add_sub_interface(SettingOverlayInterface(ctx=self.ctx))
         self.add_sub_interface(SettingEnvInterface(ctx=self.ctx))
         self.add_sub_interface(SettingPushInterface(ctx=self.ctx))
         self.add_sub_interface(SettingCustomInterface(ctx=self.ctx))

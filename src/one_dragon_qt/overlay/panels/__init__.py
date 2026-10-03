@@ -1,2 +1,0 @@
-"""Overlay panel widgets."""
-
