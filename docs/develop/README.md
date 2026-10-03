@@ -84,9 +84,9 @@ uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/install
 uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 ```
 
-### 3.2.启动器（原始）
+### 3.2.源码启动器
 
-使用 spec 打包。`project.yml` 和 `repository.yml` 会随启动器写入 `resources/config`；原始启动器创建环境上下文时显式开启包内配置优先，其他入口仍读取仓库配置。
+使用 spec 打包。`project.yml` 和 `repository.yml` 会随启动器写入 `resources/config`；源码启动器创建环境上下文时显式开启包内配置优先，其他入口仍读取仓库配置。
 
 ```shell
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"

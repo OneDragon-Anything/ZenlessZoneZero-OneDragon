@@ -67,7 +67,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         launcher_title = (
             gt('集成启动器')
             if self._launcher_type == 'runtime'
-            else gt('原始启动器')
+            else gt('源码启动器')
         )
         ZipDownloaderSettingCard.__init__(
             self,

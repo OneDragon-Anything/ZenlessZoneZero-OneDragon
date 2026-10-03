@@ -12,7 +12,7 @@ from one_dragon.utils.log_utils import log
 
 LauncherType = Literal['launcher', 'runtime']
 
-# 原始启动器
+# 源码启动器
 LAUNCHER_EXE = 'OneDragon-Launcher.exe'
 LAUNCHER_BACKUP = 'OneDragon-Launcher.bak.exe'
 LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
@@ -109,7 +109,7 @@ class UpdateService:
         """检测当前正在运行的启动器类型。
 
         集成启动器运行时当前进程是 OneDragon-RuntimeLauncher.exe；
-        源码运行和原始启动器 exe 运行都属于原始启动器。
+        源码运行和源码启动器 exe 运行都属于源码启动器。
         """
         if not getattr(sys, 'frozen', False):
             return 'launcher'
