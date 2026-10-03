@@ -10,6 +10,8 @@ from one_dragon.base.config.notify_config import NotifyDetailMode
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.base.operation.operation_edge import OperationEdge
+from one_dragon.base.operation.operation_node import OperationNode
 from one_dragon.base.operation.operation_notify import send_application_notify
 
 if TYPE_CHECKING:
@@ -34,6 +36,8 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
+                 op_before: Operation | None = None,
+                 op_after: Operation | None = None,
                  ) -> None:
         Operation.__init__(
             self,
@@ -44,6 +48,15 @@ class Application(Operation):
             op_callback=op_callback,
             need_check_game_win=need_check_game_win,
             op_to_enter_game=op_to_enter_game,
+        )
+
+        self._before_node: OperationNode | None = (
+            OperationNode('前置操作', op=op_before, screenshot_before_round=False)
+            if op_before is not None else None
+        )
+        self._after_node: OperationNode | None = (
+            OperationNode('后置操作', op=op_after, screenshot_before_round=False)
+            if op_after is not None else None
         )
 
         # 应用唯一标识
@@ -58,6 +71,34 @@ class Application(Operation):
                     app_id=self.app_id,
                     instance_idx=ctx.current_instance_idx,
                 )
+
+    def _analyse_node_annotations(self) -> tuple[OperationNode, list[OperationNode], list[OperationEdge]]:
+        """将前置、后置操作加入应用节点图。"""
+        start_node, node_list, edge_list = Operation._analyse_node_annotations(self)
+
+        if self._before_node is not None:
+            if start_node is None:
+                node_to_names = {edge.node_to.cn for edge in edge_list}
+                start_nodes = [node for node in node_list if node.cn not in node_to_names]
+                if len(start_nodes) == 1:
+                    start_node = start_nodes[0]
+            if start_node is not None:
+                node_list.append(self._before_node)
+                edge_list.append(OperationEdge(self._before_node, start_node))
+                start_node = self._before_node
+
+        if self._after_node is not None:
+            nodes_with_success_fallback = {
+                edge.node_from.cn
+                for edge in edge_list
+                if edge.success and edge.ignore_status
+            }
+            for node in node_list:
+                if node.cn not in nodes_with_success_fallback:
+                    edge_list.append(OperationEdge(node, self._after_node))
+            node_list.append(self._after_node)
+
+        return start_node, node_list, edge_list
 
     def handle_init(self) -> None:
         """
