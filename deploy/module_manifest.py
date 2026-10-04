@@ -98,6 +98,7 @@ if not getattr(sys, 'frozen', False):
     from enum import Enum, IntEnum, StrEnum
     from functools import cached_property, lru_cache, partial, wraps
     from io import BytesIO
+    from itertools import count
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
     from math import atan2, degrees, hypot, isfinite
