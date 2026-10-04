@@ -13,6 +13,7 @@ from zzz_od.application.bagel.bagel_screen import (
     read_area,
     warehouse_sale_state,
 )
+from zzz_od.application.bagel.bagel_slots import inspect_safe_slots
 from zzz_od.application.bagel.bagel_transfer import (
     BagelTransferOperation,
     carried_slot_state,
@@ -99,12 +100,12 @@ class BagelStoreCarried(BagelTransferOperation):
             return self.read_again('未识别仓库主画面')
         backpack_info = read_carried_backpack(self.ctx, self.last_screenshot)
         warehouse = parse_capacity_pair(read_area(self.ctx, self.last_screenshot, '贝果-仓库', '仓库数量'))
-        safe_states = [carried_slot_state(self.last_screenshot, center) for center in WAREHOUSE_SAFE_CENTERS]
-        if backpack_info is None or warehouse is None or None in safe_states:
+        safe = inspect_safe_slots(self.last_screenshot, WAREHOUSE_SAFE_CENTERS)
+        if backpack_info is None or warehouse is None or safe is None:
             self._stable_image = None
             return self.read_again('无法完整识别背包、安全箱或仓库数量')
         backpack, header_bottom = backpack_info
-        safe_count = sum(state is True for state in safe_states)
+        safe_count = len(safe.occupied)
         self.observation = f'背包 {backpack[0]}/{backpack[1]}，安全箱 {safe_count} 格，仓库 {warehouse[0]}/{warehouse[1]}'
         counts = (backpack[0], safe_count, warehouse[0], backpack[1], warehouse[1])
         # 数量可能被误读为零，仍须核验可见格子，不能仅凭读数判定空包。
@@ -120,7 +121,7 @@ class BagelStoreCarried(BagelTransferOperation):
             self._stable_image = None
             return self.read_again('背包格子与占用数不符')
         # 图标会持续闪动；核对数量、行位置与每格占用，滚动或重排后重新等待。
-        signature = (*counts, tuple(center.tuple() for center in centers), *states, *safe_states)
+        signature = (*counts, tuple(center.tuple() for center in centers), *states, safe)
         if not self.stable_slots((), signature):
             if self.pending:
                 return self.wait_transfer('等待转存后格子稳定')

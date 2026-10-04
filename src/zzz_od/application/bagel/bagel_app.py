@@ -19,7 +19,7 @@ from zzz_od.application.bagel.bagel_route import SUPPORTED_MAP_IDS
 from zzz_od.application.bagel.bagel_route_vision import BagelSpawnMatcher
 from zzz_od.application.bagel.bagel_run_flow import BagelRunFlow
 from zzz_od.application.bagel.bagel_settle import BagelSettleWarehouse
-from zzz_od.application.bagel.bagel_slots import SAFE_SLOT_CENTERS, occupied_indices
+from zzz_od.application.bagel.bagel_slots import safe_occupied_indices
 from zzz_od.application.zzz_application import ZApplication
 
 if TYPE_CHECKING:
@@ -109,8 +109,12 @@ class BagelApp(ZApplication):
         if not allow_clear_loadout and all(
             self.round_by_find_area(self.last_screenshot, '贝果-仓库', name).is_success
             for name in ('放入仓库', '返回研究站')
-        ) and occupied_indices(self.last_screenshot, SAFE_SLOT_CENTERS):
-            return self.round_fail('结算仓库安全箱仍有物资，先核对去向，禁止开始新局')
+        ):
+            occupied = safe_occupied_indices(self.last_screenshot)
+            if occupied is None:
+                return self.round_fail('结算仓库安全箱格子状态不明，禁止开始新局')
+            if occupied:
+                return self.round_fail('结算仓库安全箱仍有物资，先核对去向，禁止开始新局')
         self._spawn_hud_misses = 0
         log.info('贝果收集：准备第 %s 次入场', self.attempts + 1)
         return self.round_by_op_result(

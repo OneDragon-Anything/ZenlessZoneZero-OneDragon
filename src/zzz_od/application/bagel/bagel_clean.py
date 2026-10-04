@@ -17,7 +17,7 @@ from zzz_od.application.bagel.bagel_screen import (
     parse_filter_count,
     read_area,
 )
-from zzz_od.application.bagel.bagel_slots import SAFE_SLOT_CENTERS, occupied_indices
+from zzz_od.application.bagel.bagel_slots import safe_occupied_indices
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -70,7 +70,7 @@ class BagelCleanWarehouse(BagelOperation):
 
     def _safe_clear(self) -> bool:
         """仅在仓库主界面核对安全箱；出售弹窗会遮挡格子。"""
-        return self._warehouse_idle() and not occupied_indices(self.last_screenshot, SAFE_SLOT_CENTERS)
+        return self._warehouse_idle() and safe_occupied_indices(self.last_screenshot) == ()
 
     def _warehouse_count(self) -> int | None:
         """读取仓库占用；文字不清晰时不能验证腾位。"""

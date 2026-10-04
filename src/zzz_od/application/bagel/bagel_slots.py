@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.utils import cv2_utils, os_utils
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
@@ -21,6 +25,70 @@ _SLOT_HALF: int = 32
 # 空格灰度标准差约 4–8；有图标时通常 >40。取中间阈值，避免把轻微噪点当占用。
 _OCCUPIED_STD_MIN: float = 20.0
 _APPEARANCE_MEAN_DIFF_MIN: float = 12.0
+_LOCK_MATCH_MIN: float = 0.9
+
+
+@dataclass(frozen=True)
+class SafeSlotIndices:
+    """安全箱按原显示位置编号的占用格、空格和锁定格。"""
+
+    occupied: tuple[int, ...]
+    empty: tuple[int, ...]
+    locked: tuple[int, ...]
+
+
+@lru_cache(maxsize=1)
+def _safe_lock_template() -> MatLike | None:
+    """读取原生截图裁出的锁图标；测试工作目录不含资源时回退到源码仓。"""
+    relative = Path('assets/template/bagel/safe_slot_locked/raw.png')
+    for root in (Path(os_utils.get_work_dir()), Path(__file__).resolve().parents[4]):
+        path = root / relative
+        if path.is_file():
+            image = cv2_utils.read_image(str(path))
+            if image is not None:
+                return cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    return None
+
+
+def inspect_safe_slots(
+    screen: MatLike, centers: tuple[Point, ...] = SAFE_SLOT_CENTERS,
+) -> SafeSlotIndices | None:
+    """先排除锁格再数物品；不完整、遮挡或布局不明返回 None，禁止据此操作。"""
+    template = _safe_lock_template()
+    if screen is None or screen.shape != (1080, 1920, 3) or template is None or len(centers) != 5:
+        return None
+    occupied: list[int] = []
+    empty: list[int] = []
+    locked: list[int] = []
+    for index, center in enumerate(centers):
+        search = slot_crop(screen, center, half=48)
+        crop = slot_crop(screen, center)
+        if search is None or search.shape != (96, 96, 3) or crop is None or crop.shape != (64, 64, 3):
+            return None
+        gray = cv2.cvtColor(search, cv2.COLOR_RGB2GRAY)
+        score = float(cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED).max())
+        if score >= _LOCK_MATCH_MIN:
+            locked.append(index)
+            continue
+        gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
+        deviation = float(np.std(gray))
+        if deviation >= _OCCUPIED_STD_MIN:
+            occupied.append(index)
+        elif 1 <= deviation <= 9 and 12 <= float(np.mean(gray)) <= 35:
+            # 已归档空槽有暗色纹理；锁图标、纯黑遮挡和高亮过渡不能按空槽处理。
+            empty.append(index)
+        else:
+            return None
+    capacity = len(occupied) + len(empty)
+    if capacity < 2 or locked != list(range(capacity, len(centers))):
+        return None
+    return SafeSlotIndices(tuple(occupied), tuple(empty), tuple(locked))
+
+
+def safe_occupied_indices(screen: MatLike) -> tuple[int, ...] | None:
+    """仓库安全箱计数共用入口；未知与空箱必须区分。"""
+    slots = inspect_safe_slots(screen)
+    return None if slots is None else slots.occupied
 
 
 def slot_crop(screen: MatLike, center: Point, half: int = _SLOT_HALF) -> MatLike | None:

@@ -17,7 +17,7 @@ from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_slots import (
     RESULT_SLOT_CENTERS,
     SAFE_SLOT_CENTERS,
-    empty_indices,
+    inspect_safe_slots,
     slot_crop,
     slot_occupied,
     swap_visually_ok,
@@ -151,12 +151,17 @@ class BagelStoreSafe(BagelOperation):
         if not results:
             if not self._search_complete():
                 return self.round_wait('等待新的搜查结果', wait=0.3)
+            if inspect_safe_slots(screen) is None:
+                return self.round_fail('安全箱格子状态不明，停止并保留现场')
             status = self.STATUS_DONE if self.moved or self.acted else self.STATUS_EMPTY
             return self.round_success(status, data={'moved': self.moved})
+        safe = inspect_safe_slots(screen)
+        if safe is None:
+            return self.round_fail('安全箱格子状态不明，停止并保留现场')
         choice = choose_store_action(
             results,
-            inspect_occupied(screen, SAFE_SLOT_CENTERS),
-            empty_indices(screen, SAFE_SLOT_CENTERS),
+            [mark for mark in inspect_occupied(screen, SAFE_SLOT_CENTERS) if mark.index in safe.occupied],
+            safe.empty,
         )
         if choice is None:
             if not self._search_complete():
@@ -218,6 +223,11 @@ class BagelStoreSafe(BagelOperation):
             self._clear_pending()
             return self.round_fail('入箱后丢失搜查面板')
         self._status_missing_rounds = 0
+        safe = inspect_safe_slots(self.last_screenshot)
+        destination_index = SAFE_SLOT_CENTERS.index(destination)
+        if safe is None or destination_index in safe.locked:
+            self._clear_pending()
+            return self.round_fail('入箱后安全箱格子状态不明或目标已锁定，停止并保留现场')
         if self._drag_visually_ok(kind, before, source, destination):
             self._clear_pending()
             self._drag_repeated = False

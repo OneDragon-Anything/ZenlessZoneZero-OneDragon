@@ -9,7 +9,7 @@ from zzz_od.application.bagel import bagel_screen
 from zzz_od.application.bagel.bagel_clean import FILTER_TICKS, BagelCleanWarehouse
 from zzz_od.application.bagel.bagel_deposit import BagelDeposit
 from zzz_od.application.bagel.bagel_operation import BagelOperation
-from zzz_od.application.bagel.bagel_slots import SAFE_SLOT_CENTERS, occupied_indices
+from zzz_od.application.bagel.bagel_slots import safe_occupied_indices
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -61,7 +61,10 @@ class BagelSettleWarehouse(BagelOperation):
             self.last_screenshot, '贝果-仓库', area,
         ).is_success for area in ('放入仓库', '返回研究站')):
             return self.round_retry('等待结算后仓库画面', wait=0.5)
-        if occupied_indices(self.last_screenshot, SAFE_SLOT_CENTERS):
+        occupied = safe_occupied_indices(self.last_screenshot)
+        if occupied is None:
+            return self.round_fail('结算后安全箱格子状态不明，停止并保留现场')
+        if occupied:
             return self.round_fail('结算后安全箱仍有物资，停止并保留现场')
         pair = bagel_screen.parse_capacity_pair(bagel_screen.read_area(
             self.ctx, self.last_screenshot, '贝果-仓库', '仓库数量',

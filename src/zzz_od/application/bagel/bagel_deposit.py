@@ -7,10 +7,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils.log_utils import log
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_screen import parse_capacity_pair, read_area
-from zzz_od.application.bagel.bagel_slots import (
-    SAFE_SLOT_CENTERS,
-    occupied_indices,
-)
+from zzz_od.application.bagel.bagel_slots import safe_occupied_indices
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -45,9 +42,10 @@ class BagelDeposit(BagelOperation):
             for area in ('放入仓库', '返回研究站')
         )
 
-    def _safe_count(self) -> int:
-        """统计安全箱可见占用格数。"""
-        return len(occupied_indices(self.last_screenshot, SAFE_SLOT_CENTERS))
+    def _safe_count(self) -> int | None:
+        """统计已开放格内的物品；未知不能当空箱。"""
+        occupied = safe_occupied_indices(self.last_screenshot)
+        return None if occupied is None else len(occupied)
 
     def _warehouse_pair(self) -> tuple[int, int] | None:
         """读取右侧全部占用与容量。"""
@@ -64,7 +62,10 @@ class BagelDeposit(BagelOperation):
         """空箱直接成功结束；有物则记录基线后点击放入仓库。"""
         if not self._warehouse_ready():
             return self.round_retry('未到结算仓库', wait=1)
-        self.safe_before = self._safe_count()
+        safe_count = self._safe_count()
+        if safe_count is None:
+            return self.round_fail('安全箱格子状态不明，停止并保留现场')
+        self.safe_before = safe_count
         self.warehouse_before = self._warehouse_count()
         if self.warehouse_before is None:
             return self.round_fail('无法读取仓库数量，停止并保留现场')
@@ -87,6 +88,8 @@ class BagelDeposit(BagelOperation):
             self._full_waits = 0
             return self.round_wait('等待入仓后的仓库画面', wait=0.5)
         safe_after = self._safe_count()
+        if safe_after is None:
+            return self.round_fail('入仓后安全箱格子状态不明，停止并保留现场')
         if safe_after > 0:
             pair = self._warehouse_pair()
             if safe_after < self.safe_before:
