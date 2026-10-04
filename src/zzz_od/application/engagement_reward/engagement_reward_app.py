@@ -17,6 +17,7 @@ class EngagementRewardApp(ZApplication):
 
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
     STATUS_CLAIM_SUCCESS: ClassVar[str] = '日常奖励领取成功'
+    STATUS_REWARD_VERIFIED: ClassVar[str] = '日常最高档奖励已领取'
 
     def __init__(self, ctx: ZContext):
         """
@@ -56,7 +57,7 @@ class EngagementRewardApp(ZApplication):
         if result.is_success:
             result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭', success_wait=1, retry_wait=1)
             if result.is_success:
-                return self.round_success('日常奖励已领取或活跃度未满')
+                return self.round_success('奖励预览已关闭，领取状态待核实')
 
         return self.round_fail('未找到确认按钮或奖励预览')
 
@@ -65,7 +66,8 @@ class EngagementRewardApp(ZApplication):
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '快捷手册', '活跃度奖励-4')
-        return self.round_success('活跃度已满') if result.is_success else self.round_fail('活跃度未满')
+        # completed 模板是最高档奖励的绿色勾号，不依赖本轮是否弹出领奖确认。
+        return self.round_success(self.STATUS_REWARD_VERIFIED) if result.is_success else self.round_fail('未识别到最高档奖励已领取')
 
     @node_from(from_name='识别活跃度')
     @node_from(from_name='识别活跃度', success=False)
