@@ -21,6 +21,8 @@ RESULT_SLOT_CENTERS: tuple[Point, ...] = tuple(
     Point(x, y) for y in (330, 431) for x in _RESULT_XS
 )
 SAFE_SLOT_CENTERS: tuple[Point, ...] = tuple(Point(x, 899) for x in _SAFE_XS)
+# 仓库安全箱的位置与局内不同，启动转存、结算及空箱核验共用这一组。
+WAREHOUSE_SAFE_CENTERS: tuple[Point, ...] = tuple(Point(x, 897) for x in (267, 371, 475, 579, 683))
 _SLOT_HALF: int = 32
 # 空格灰度标准差约 4–8；有图标时通常 >40。取中间阈值，避免把轻微噪点当占用。
 _OCCUPIED_STD_MIN: float = 20.0
@@ -53,7 +55,7 @@ def _safe_lock_template() -> MatLike | None:
 def inspect_safe_slots(
     screen: MatLike, centers: tuple[Point, ...] = SAFE_SLOT_CENTERS,
 ) -> SafeSlotIndices | None:
-    """先排除锁格再数物品；不完整、遮挡或布局不明返回 None，禁止据此操作。"""
+    """识别截图控制器已缩放到 1080p 的图像；默认格心仅适用于局内。"""
     template = _safe_lock_template()
     if screen is None or screen.shape != (1080, 1920, 3) or template is None or len(centers) != 5:
         return None
@@ -87,7 +89,7 @@ def inspect_safe_slots(
 
 def safe_occupied_indices(screen: MatLike) -> tuple[int, ...] | None:
     """仓库安全箱计数共用入口；未知与空箱必须区分。"""
-    slots = inspect_safe_slots(screen)
+    slots = inspect_safe_slots(screen, WAREHOUSE_SAFE_CENTERS)
     return None if slots is None else slots.occupied
 
 

@@ -13,7 +13,10 @@ from zzz_od.application.bagel.bagel_screen import (
     read_area,
     warehouse_sale_state,
 )
-from zzz_od.application.bagel.bagel_slots import inspect_safe_slots
+from zzz_od.application.bagel.bagel_slots import (
+    WAREHOUSE_SAFE_CENTERS,
+    inspect_safe_slots,
+)
 from zzz_od.application.bagel.bagel_transfer import (
     BagelTransferOperation,
     carried_slot_state,
@@ -28,7 +31,6 @@ if TYPE_CHECKING:
 
 # 1080p 仓库布局来自清空战备录像；行位置由边框重新定位，兼容滚动后的偏移。
 _BACKPACK_XS: tuple[int, ...] = (267, 371, 475, 579, 683, 787)
-WAREHOUSE_SAFE_CENTERS: tuple[Point, ...] = tuple(Point(x, 897) for x in _BACKPACK_XS[:5])
 
 
 def read_carried_backpack(ctx: ZContext, screen: MatLike) -> tuple[tuple[int, int], int] | None:
