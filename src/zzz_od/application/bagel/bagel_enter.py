@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation_edge import node_from
@@ -40,6 +41,7 @@ class BagelEnter(BagelOperation):
         self.zero_checked: bool = False
         self.confirmed_warnings: set[str] = set()
         self.investment_confirmed: bool = False
+        self.investment_retries: int = 0
         self.transport_started: bool = False
 
     def handle_init(self) -> None:
@@ -48,6 +50,7 @@ class BagelEnter(BagelOperation):
         self.zero_checked = False
         self.confirmed_warnings.clear()
         self.investment_confirmed = False
+        self.investment_retries = 0
         self.transport_started = False
         self.clear_attempted = False
         self.loadout_misses = 0
@@ -283,10 +286,23 @@ class BagelEnter(BagelOperation):
                 return self.round_fail('未核对高危零投资，停止并保留现场')
             return self.round_success('已进入雅努斯高危')
         if self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '投资标题').is_success:
-            if read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '投资金额') != '0':
-                return self.round_fail('无法确认零投资，停止并保留现场')
             if self.investment_confirmed:
                 return self.round_retry('零投资入场未生效', wait=1)
+            amount = read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '投资金额')
+            if amount != '0':
+                # WAIT 会重置框架重试次数，单独限次以防 MIN 无效时反复点击。
+                if self.investment_retries >= 3:
+                    return self.round_fail('无法确认零投资，停止并保留现场')
+                self.investment_retries += 1
+                valid_amount = re.fullmatch(r'[0-9]+(?:\.[0-9]+)?[KM]|[0-9]+', amount) is not None
+                if not valid_amount or float(amount.rstrip('KM')) <= 0:
+                    return self.round_retry('投资金额识别不明，重新核对', wait=1)
+                result = self.round_by_find_and_click_area(
+                    self.last_screenshot, '贝果-入场确认', '投资最小值', retry_wait=1,
+                )
+                if result.is_success:
+                    return self.round_wait('已点击 MIN，等待重新核对投资金额', wait=1)
+                return result
             result = self.round_by_find_and_click_area(
                 self.last_screenshot, '贝果-入场确认', '零投资前往空洞',
             )

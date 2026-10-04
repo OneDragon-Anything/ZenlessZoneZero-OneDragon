@@ -10,7 +10,6 @@ area_list:
   - 1500
   - 590
   lcs_percent: 0.9
-
 - area_name: 确认
   pc_rect:
   - 978
@@ -47,4 +46,12 @@ area_list:
   - 1230
   - 1018
   text: 前往空洞
+  lcs_percent: 1.0
+- area_name: 投资最小值
+  pc_rect:
+  - 420
+  - 775
+  - 550
+  - 905
+  text: MIN
   lcs_percent: 1.0

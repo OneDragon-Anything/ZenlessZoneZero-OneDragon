@@ -411,6 +411,14 @@
     - 1018
     text: 前往空洞
     lcs_percent: 1.0
+  - area_name: 投资最小值
+    pc_rect:
+    - 420
+    - 775
+    - 550
+    - 905
+    text: MIN
+    lcs_percent: 1.0
 - screen_id: bagel_exit_confirm
   screen_name: 贝果-退出确认
   app_id: bagel
