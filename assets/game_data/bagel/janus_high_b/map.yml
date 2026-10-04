@@ -48,35 +48,25 @@ feature_edge_margin: 4
 match_window_size: 201
 match_window_stride: 80
 reference_centers:
-- name: reference_spawn.png
+- name: spawn
   xy:
   - 100.0
   - 100.0
-- name: reference_live_align_20260926.png
+- name: live_align
   xy:
   - 101.68337230561694
   - 99.24821897175858
-- name: reference_live_approach_20260926.png
+- name: live_approach
   xy:
   - 128.8551928035914
   - 70.33433193385119
-- name: reference_live_box_20260926.png
+- name: live_box
   xy:
   - 130.49300371773822
   - 69.34455513325557
 landmarks:
-- name: 实测武备箱交互区
+- name: 武备箱交互区
   xy:
   - 130.5
   - 69.4
-  note: 2026-09-26实测交互位置，作为默认路点来源；可编辑路线，到达仍以交互提示为准
-build:
-  profile: min_channel_percentile_25
-  source_manifest: map_sources.json
-  sampling_fps: 20
-  frames: 1068
-  registered_frames: 1067
-sha256:
-  map.png: 595472400d5733a72c34da5fa73c80f9e306c060edbec7b77140c8be1f35d33e
-  map_mask.png: 0532fc8525fcaa1359f93d3d525bf904289315c521b307db7015eed09ff74ed3
-  map_sources.json: 9d72094141117d828d796f4c67cd57d6cb3cc81d221d73f147d6e9cf4422a9a0
+  note: 交互区域参考位置；正式执行以流程目的地及现场交互提示为准

@@ -237,7 +237,7 @@ class BagelNavigate(BagelOperation):
             self.on_observation({
                 'time': self.last_screenshot_time, 'position': position,
                 'angle': self.vision.player_angle(crop), 'target': self.waypoint_index,
-                'map_version': self.vision.map.version,
+                'map_snapshot_id': self.vision.map.snapshot_id,
                 'location_reason': self.vision.last_location.reason if self.vision.last_location else None,
                 'location_ms': self.vision.last_location.elapsed_ms if self.vision.last_location else None,
                 'location_inliers': self.vision.last_location.inliers if self.vision.last_location else None,

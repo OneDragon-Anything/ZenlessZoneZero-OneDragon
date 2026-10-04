@@ -116,7 +116,7 @@ class BagelRunFlow(BagelOperation):
             if self.ctx.screen_loader.get_area('贝果-局内', area) is None:
                 raise ValueError(f'缺少画面区域：{area}')
         self.vision = BagelRouteVision(self.flow.map_id, map_snapshot=self._map_snapshot)
-        self.emit('snapshot', flow=self.flow.to_dict(), step_ids=self.step_ids, map_version=self.vision.map.version)
+        self.emit('snapshot', flow=self.flow.to_dict(), step_ids=self.step_ids, map_snapshot_id=self.vision.map.snapshot_id)
 
     def emit(self, kind: str, **details: object) -> None:
         """同一事件用于界面与持久化记录。"""

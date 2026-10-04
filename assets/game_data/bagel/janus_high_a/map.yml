@@ -48,42 +48,32 @@ feature_edge_margin: 4
 match_window_size: 201
 match_window_stride: 100
 reference_centers:
-- name: reference_live_corner.png
+- name: live_corner
   xy:
   - 116.6553646650208
   - 98.75412080761662
-- name: reference_spawn.png
+- name: spawn
   xy:
   - 100.0
   - 100.0
-- name: reference_box.png
+- name: box
   xy:
   - 112.79675187942858
   - 83.35070234826611
-- name: reference_corner.png
+- name: corner
   xy:
   - 111.37686722584277
   - 99.66877196576208
-- name: reference_safe.png
+- name: safe
   xy:
   - 216.8762702801726
   - 106.0657824207504
-- name: reference_safe_corridor_70.png
+- name: safe_corridor_70
   xy:
   - 136.9593518828247
   - 83.74818910325607
-- name: reference_safe_corridor_72.png
+- name: safe_corridor_72
   xy:
   - 182.61017653151393
   - 88.36959988389751
 landmarks: []
-build:
-  profile: min_channel_percentile_25
-  source_manifest: map_sources.json
-  sampling_fps: 20
-  frames: 1068
-  registered_frames: 1068
-sha256:
-  map.png: 1a3e35bf64794f2f9a7e9f802724957c9858fca00f78a1f8580c8bee8a035ac8
-  map_mask.png: 82deb66bd491d90a5a6ec1e3d8f3b62cda1fe30631c030f359afdf64c1a7e285
-  map_sources.json: f78c0d68b8260fd4e01b257ff10fed43fe8065f0f2361a1fca30266752e116d3

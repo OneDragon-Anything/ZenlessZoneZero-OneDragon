@@ -57,7 +57,6 @@ from zzz_od.application.bagel.bagel_flow import (
     BagelFlow,
     BagelStep,
     draft_path,
-    flow_from_route,
     load_published_flow,
     read_flow,
     write_flow,
@@ -65,7 +64,6 @@ from zzz_od.application.bagel.bagel_flow import (
 from zzz_od.application.bagel.bagel_map_model import BagelMapModel
 from zzz_od.application.bagel.bagel_route import (
     MAP_LABELS,
-    BagelRouteConfig,
     BagelWaypoint,
     resource_root,
 )
@@ -309,7 +307,6 @@ class BagelRouteEditor(QDialog):
         self.undo_button: PushButton = self._button('撤销', self.undo, top)
         self.redo_button: PushButton = self._button('重做', self.redo, top)
         self._button('载入正式流程', self.restore_default, top)
-        self._button('导入旧账号路线', self.import_legacy, top)
         self._button('保存草稿', self.save_draft, top)
         self._button('保存为正式流程', self.export_flow, top)
         layout.addLayout(top)
@@ -1019,24 +1016,6 @@ class BagelRouteEditor(QDialog):
     def restore_default(self) -> None:
         """将正式流程载入编辑区，不覆盖用户保存的草稿。"""
         self._change(load_published_flow(self.map_id))
-
-    def import_legacy(self) -> None:
-        """旧账号文件只读；不能推导真实坐标的旧朝向配置拒绝导入。"""
-        try:
-            config = BagelRouteConfig(self.instance_idx)
-            if self.map_id in config.migrated_maps:
-                raise ValueError(
-                    '旧配置只有朝向和移动时间，无法转换成地图位置。请先载入正式流程，再修改路线。'
-                )
-            if self.map_id not in config.data.get('routes', {}):
-                raise ValueError('该账号没有保存此地图的旧路线')
-            self._change(flow_from_route(config.route(self.map_id)))
-            self.status.setText(
-                '旧路线已导入，并补上了开箱、收集和退出步骤。旧文件保持不变；请测试运行确认后保存。'
-            )
-        except (OSError, ValueError) as error:
-            log.error('旧路线导入失败', exc_info=True)
-            self.status.setText(f'导入失败：{error}')
 
     def save_draft(self) -> None:
         """只保存开发草稿并回读。"""

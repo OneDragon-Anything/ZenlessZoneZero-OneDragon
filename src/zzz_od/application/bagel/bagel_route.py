@@ -7,11 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
-from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.utils import os_utils
-from one_dragon.utils.log_utils import log
 
 SUPPORTED_MAP_IDS: tuple[str, ...] = ('janus_high_a', 'janus_high_b')
 MAP_LABELS: dict[str, str] = {
@@ -97,7 +93,7 @@ class BagelRoute:
         return tuple(point for point in self.waypoints if point.stage == stage)
 
     def to_dict(self) -> dict[str, Any]:
-        """仅保存可编辑字段，参考图与配准参数由内置资源提供。"""
+        """生成当前导航路点的数据。"""
         return {
             'map_id': self.map_id, 'waypoints': [p.to_dict() for p in self.waypoints],
         }
@@ -153,47 +149,3 @@ class BagelRoute:
         if any(math.dist(a.xy, b.xy) < 0.1 for a, b in zip(points, points[1:], strict=False)):
             raise ValueError('相邻路点不能重合')
         return route
-
-
-def load_default_route(map_id: str) -> BagelRoute:
-    """读取内置路线，使用同一校验保证资产和用户数据一致。"""
-    data = yaml.safe_load((resource_root(map_id) / 'route.yml').read_text(encoding='utf-8'))
-    return BagelRoute.from_dict(map_id, data)
-
-
-class BagelRouteConfig(YamlConfig):
-    """旧账号路线的兼容读写；仅显式导入使用，不参与正式运行。"""
-
-    def __init__(self, instance_idx: int) -> None:
-        """加载覆盖文件，损坏时拒绝运行，不能静默改走默认路线。"""
-        super().__init__('bagel_routes', instance_idx=instance_idx)
-        self.migrated_maps: set[str] = set()
-        if self.file_path and Path(self.file_path).exists():
-            try:
-                self.data = yaml.safe_load(Path(self.file_path).read_text(encoding='utf-8'))
-            except yaml.YAMLError as error:
-                raise ValueError('旧账号路线 YAML 无效') from error
-        if not isinstance(self.data, dict) or self.data.get('version', 1) not in (1, 2):
-            raise ValueError('用户路线配置格式或版本无效')
-        overrides = self.data.get('routes', {})
-        if not isinstance(overrides, dict) or any(key not in SUPPORTED_MAP_IDS for key in overrides):
-            raise ValueError('用户路线包含未知地图')
-        for key, value in overrides.items():
-            if (
-                self.data.get('version', 1) == 1 and key == 'janus_high_b'
-                and isinstance(value, dict) and value.get('map_id') == key
-                and value.get('waypoints') == []
-            ):
-                # 旧朝向和时长无法推导真实坐标；仅接受合法旧格式并明确提示替换。
-                _number(value.get('walk_heading'), '旧版朝向', 0, 359.9)
-                _number(value.get('cruise_seconds', 2.4), '旧版持续前进秒数', 0, 5)
-                overrides[key] = load_default_route(key).to_dict()
-                self.migrated_maps.add(key)
-                log.warning('B 旧版朝向配置已转换为默认地图路点；请在路线编辑器核对并应用，原文件尚未改写')
-                continue
-            BagelRoute.from_dict(key, value)
-
-    def route(self, map_id: str) -> BagelRoute:
-        """返回旧账号保存项，供开发工具显式导入。"""
-        value = self.data.get('routes', {}).get(map_id)
-        return load_default_route(map_id) if value is None else BagelRoute.from_dict(map_id, value)

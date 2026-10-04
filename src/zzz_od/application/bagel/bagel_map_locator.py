@@ -26,7 +26,7 @@ class MapLocation:
     """每帧定位诊断；失败不携带可供导航继续移动的坐标。"""
 
     position: tuple[float, float] | None
-    map_version: str
+    map_snapshot_id: int
     reason: str
     representation: str
     inliers: int
@@ -77,5 +77,5 @@ def locate_on_map(snapshot: BagelFixedMap, crop: np.ndarray) -> MapLocation:
                 reason = 'outside_coverage'
                 break
             position = tuple(chosen.player_position[i] + snapshot.origin[i] for i in range(2))
-            return MapLocation(position, snapshot.version, 'matched', representation, chosen.inliers, chosen.median_residual_px, (perf_counter() - started) * 1000)
-    return MapLocation(None, snapshot.version, reason, representation, 0, None, (perf_counter() - started) * 1000)
+            return MapLocation(position, snapshot.snapshot_id, 'matched', representation, chosen.inliers, chosen.median_residual_px, (perf_counter() - started) * 1000)
+    return MapLocation(None, snapshot.snapshot_id, reason, representation, 0, None, (perf_counter() - started) * 1000)

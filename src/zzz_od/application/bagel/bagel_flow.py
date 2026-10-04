@@ -560,34 +560,6 @@ def split_legacy_flow(flow: BagelFlow, *, validate_order: bool = True) -> BagelF
     )
 
 
-def flow_from_route(route: BagelRoute) -> BagelFlow:
-    """显式导入旧位置，补齐原业务动作，保持旧文件不变。"""
-    steps = [BagelStep('spawn', 'spawn', '检查出生位置')]
-    for target, title, action in (
-        ('box', '武备箱', 'open_box'),
-        ('safe', '电子保险箱', 'unlock_safe'),
-    ):
-        points = route.points_for(target)
-        if not points:
-            continue
-        steps.extend(
-            (
-                BagelStep(f'move_{target}', 'move', f'移动到{title}', target, points),
-                BagelStep(f'open_{target}', action, f'打开{title}'),
-                BagelStep(f'store_{target}', 'store', f'{title}装入安全箱', target),
-            )
-        )
-    steps.append(BagelStep('exit', 'exit', '主动退出'))
-    return BagelFlow.from_dict(
-        dict(
-            BagelFlow(
-                route.map_id, MAP_LABELS[route.map_id], route.map_id, tuple(steps)
-            ).to_dict(),
-            version=1,
-        )
-    )
-
-
 def read_flow(path: Path) -> BagelFlow:
     """损坏文件直接报错，不能静默回退。"""
     try:

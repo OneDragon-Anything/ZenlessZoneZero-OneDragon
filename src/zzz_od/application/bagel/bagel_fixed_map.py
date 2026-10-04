@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from functools import lru_cache
+from itertools import count
 from math import isfinite
 from types import MappingProxyType
 from typing import TYPE_CHECKING
@@ -52,6 +52,9 @@ def _freeze_settings(value: object) -> Mapping[str, object]:
     return MappingProxyType({key: tuple(item) if isinstance(item, list) else item for key, item in value.items()})
 
 
+_SNAPSHOT_IDS = count(1)
+
+
 @dataclass(frozen=True)
 class MapFeatureBank:
     """整图特征与覆盖全图的重叠分区，分区只选特征，不重新提取。"""
@@ -63,10 +66,10 @@ class MapFeatureBank:
 
 @dataclass(frozen=True)
 class BagelFixedMap:
-    """一次执行共用的地图资源和特征，版本由内容摘要标识。"""
+    """一次执行共用的地图资源和特征，编号仅在当前进程内标识快照。"""
 
     map_id: str
-    version: str
+    snapshot_id: int
     image: np.ndarray
     mask: np.ndarray
     position_mask: np.ndarray
@@ -107,12 +110,6 @@ def _load_snapshot(map_id: str, metadata: bytes, image_data: bytes, mask_data: b
         raise ValueError('未知固定地图格式版本')
     if type(data.get('coordinate_version')) is not int or data['coordinate_version'] != 1 or data.get('coordinate_unit') != 'reference_spawn_pixel':
         raise ValueError('未知固定地图坐标版本或单位')
-    hashes = data.get('sha256')
-    if not isinstance(hashes, dict) or any(
-        hashlib.sha256(payload).hexdigest() != hashes.get(name)
-        for name, payload in (('map.png', image_data), ('map_mask.png', mask_data))
-    ):
-        raise ValueError('地图资源摘要不一致，可能尚未完成整组更新')
     size = _pair(data.get('size_wh'), '尺寸')
     origin = _pair(data.get('origin_xy'), '原点')
     if any(int(v) != v for v in (*size, *origin)) or min(size) <= 0 or max(size) > 4096:
@@ -169,7 +166,7 @@ def _load_snapshot(map_id: str, metadata: bytes, image_data: bytes, mask_data: b
     for array in (image, mask, position_mask):
         array.setflags(write=False)
     return BagelFixedMap(
-        map_id, hashlib.sha256(metadata + image_data + mask_data).hexdigest(),
+        map_id, next(_SNAPSHOT_IDS),
         image, mask, position_mask, (int(origin[0]), int(origin[1])), anchor, spawn,
         settings, arrows, blur_size, tuple(banks),
         _named_points(data.get('reference_centers', [])), _named_points(data.get('landmarks', [])),
