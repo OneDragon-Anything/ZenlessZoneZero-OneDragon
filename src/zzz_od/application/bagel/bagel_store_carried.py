@@ -107,8 +107,9 @@ class BagelStoreCarried(BagelTransferOperation):
         safe_count = sum(state is True for state in safe_states)
         self.observation = f'背包 {backpack[0]}/{backpack[1]}，安全箱 {safe_count} 格，仓库 {warehouse[0]}/{warehouse[1]}'
         counts = (backpack[0], safe_count, warehouse[0], backpack[1], warehouse[1])
-        centers = backpack_centers(self.last_screenshot, header_bottom) if backpack[0] else ()
-        if backpack[0] and not centers:
+        # 数量可能被误读为零，仍须核验可见格子，不能仅凭读数判定空包。
+        centers = backpack_centers(self.last_screenshot, header_bottom)
+        if not centers:
             self._stable_image = None
             return self.read_again('无法定位背包完整格子行')
         states = [carried_slot_state(self.last_screenshot, center) for center in centers]
