@@ -2853,15 +2853,13 @@
           "states": "[自定义-终结技被强制释放, 0, 1]"
         - "operations":
           - "op_name": "设置状态"
-            "seconds": 1
+            "seconds": 1.5
             "state": "自定义-动作不打断"
-          - "op_name": "按键-移动-左-按下"
-          - "op_name": "按键-闪避"
-            "post_delay": 0.2
-          - "op_name": "按键-移动-左-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
+          - "op_name": "等待秒数"
+            "seconds": 0.5
           "states": "[自定义-黄光切人, 0, 1]"
         - "operations":
           - "op_name": "设置状态"
@@ -2950,11 +2948,10 @@
         - "operations":
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
-            "repeat": 8
-          - "op_name": "按键-普通攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-普通攻击-松开"
+            "repeat": 50
+          - "op_name": "设置状态"
+            "state_list":
+            - "自定义-合轴时间"
           "states": ""
       - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-可琳]"
         "states": "[前台-可琳]"
@@ -14075,15 +14072,13 @@
         "states": "[自定义-终结技被强制释放, 0, 1]"
       - "operations":
         - "op_name": "设置状态"
-          "seconds": 1
+          "seconds": 1.5
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左-按下"
-        - "op_name": "按键-闪避"
-          "post_delay": 0.2
-        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.5
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
         - "op_name": "设置状态"
@@ -14172,11 +14167,10 @@
       - "operations":
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 8
-        - "op_name": "按键-普通攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-普通攻击-松开"
+          "repeat": 50
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-合轴时间"
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-可琳]"
       "states": "[前台-可琳]"
