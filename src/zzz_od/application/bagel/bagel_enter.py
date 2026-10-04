@@ -4,13 +4,22 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from zzz_od.application.bagel.bagel_clear_loadout import BagelClearLoadout
 from zzz_od.application.bagel.bagel_const import RECOMMENDED_VALUE
 from zzz_od.application.bagel.bagel_operation import BagelOperation
+from zzz_od.application.bagel.bagel_return import BagelReturn
 from zzz_od.application.bagel.bagel_screen import (
+    complete_loadout,
     entry_warning,
+    parse_capacity_pair,
     read_area,
     read_loadout,
+    warehouse_sale_state,
     zero_loadout,
+)
+from zzz_od.application.bagel.bagel_store_carried import (
+    BagelStoreCarried,
+    read_carried_backpack,
 )
 from zzz_od.operation.transport import Transport
 
@@ -22,9 +31,12 @@ if TYPE_CHECKING:
 class BagelEnter(BagelOperation):
     """从已知安全画面进入贝果，核实高危、零携带和零投资。"""
 
-    def __init__(self, ctx: ZContext) -> None:
-        """所有画面等待有截止时间，不自动卸装或花费物资。"""
-        super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=240)
+    def __init__(self, ctx: ZContext, *, allow_clear_loadout: bool = False) -> None:
+        """仅应用首次入场显式允许清空；独立工具默认只核对零携带。"""
+        super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=660 if allow_clear_loadout else 240)
+        self.allow_clear_loadout: bool = allow_clear_loadout
+        self.clear_attempted: bool = False
+        self.loadout_misses: int = 0
         self.zero_checked: bool = False
         self.confirmed_warnings: set[str] = set()
         self.investment_confirmed: bool = False
@@ -37,6 +49,8 @@ class BagelEnter(BagelOperation):
         self.confirmed_warnings.clear()
         self.investment_confirmed = False
         self.transport_started = False
+        self.clear_attempted = False
+        self.loadout_misses = 0
 
     def _at_reception(self) -> bool:
         """传送后用普通大世界与达塔名称确认交互位置。"""
@@ -58,7 +72,55 @@ class BagelEnter(BagelOperation):
                 return screen_name
         return None
 
-    @operation_node(name='打开贝果主界面', is_start_node=True, timeout_seconds=120)
+    @operation_node(name='处理启动仓库', is_start_node=True)
+    def handle_starting_warehouse(self) -> OperationRoundResult:
+        """首次启动恢复仓库遗留物，包括上次清空途中停下的备战仓库。"""
+        sale_state = warehouse_sale_state(self.ctx, self.last_screenshot)
+        if sale_state is not None:
+            return self.round_fail(f'检测到仓库出售状态（{sale_state}），停止并保留现场')
+        if not self.round_by_find_area(self.last_screenshot, '贝果-仓库', '放入仓库').is_success:
+            return self.round_success()
+        if not self.allow_clear_loadout:
+            return self.round_fail('本次入场不允许清空仓库遗留物资')
+        if (read_carried_backpack(self.ctx, self.last_screenshot) is None
+                or parse_capacity_pair(read_area(self.ctx, self.last_screenshot, '贝果-仓库', '仓库数量')) is None):
+            return self.round_retry('无法核对启动仓库数量', wait=0.5)
+        settlement = self.round_by_find_area(self.last_screenshot, '贝果-仓库', '返回研究站').is_success
+        stored = BagelStoreCarried(self.ctx).execute()
+        self.screenshot()
+        if not stored.success:
+            return self.round_by_op_result(stored)
+        if not settlement:
+            return self.round_success('启动仓库返回')
+        result = BagelReturn(self.ctx).execute()
+        self.screenshot()
+        return self.round_by_op_result(result)
+
+    @node_from(from_name='处理启动仓库', status='启动仓库返回')
+    @operation_node(name='返回启动仓库上一页', timeout_seconds=20)
+    def leave_starting_warehouse(self) -> OperationRoundResult:
+        """已转存的非结算仓库回上一页，重新识别后再执行选图核验。"""
+        sale_state = warehouse_sale_state(self.ctx, self.last_screenshot)
+        if sale_state is not None:
+            return self.round_fail(f'检测到仓库出售状态（{sale_state}），停止并保留现场')
+        if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
+            return self.round_success()
+        if all(self.round_by_find_area(self.last_screenshot, '贝果-研究站', name).is_success
+               for name in ('标题', '前往空洞')):
+            return self.round_success()
+        if self.node_clicked:
+            return self.round_retry('等待仓库返回备战或研究站入口', wait=0.5)
+        if not self.round_by_find_area(self.last_screenshot, '贝果-仓库', '放入仓库').is_success:
+            return self.round_retry('未识别可返回的启动仓库', wait=0.5)
+        result = self.round_by_click_area('菜单', '返回')
+        if result.is_success:
+            self.node_clicked = True
+            return self.round_wait('已点击启动仓库返回', wait=0.5)
+        return result
+
+    @node_from(from_name='处理启动仓库')
+    @node_from(from_name='返回启动仓库上一页')
+    @operation_node(name='打开贝果主界面', timeout_seconds=120)
     def open_hub(self) -> OperationRoundResult:
         """优先使用现有贝果入口；安全画面才允许传送到研究站。"""
         if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
@@ -170,19 +232,39 @@ class BagelEnter(BagelOperation):
         )
 
     @node_from(from_name='打开备战')
+    @node_from(from_name='清空启动战备')
     @operation_node(name='核对零携带', timeout_seconds=15)
     def verify_zero_loadout(self) -> OperationRoundResult:
-        """拒绝有装备、有道具、有背包物资或安全箱尚未清空的入场。"""
+        """未知先重读；首次非零转入清空，其余入场继续拒绝残留。"""
         if not self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
             return self.round_retry('未识别备战页', wait=1)
         values = read_loadout(self.ctx, self.last_screenshot)
+        if not complete_loadout(values):
+            self.loadout_misses += 1
+            if self.loadout_misses < 5:
+                return self.round_wait(f'五项携带识别不完整，重新核对 {values}', wait=0.5)
+            return self.round_fail(f'无法完整识别五项携带，停止并保留现场 {values}')
+        self.loadout_misses = 0
         if not zero_loadout(values):
+            if self.allow_clear_loadout and not self.clear_attempted:
+                return self.round_success('需要清空启动战备')
             return self.round_fail('无法确认零携带，请先清空武备、装备、道具、背包和安全箱')
         result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-备战', '前往空洞')
         if result.is_success:
             self.zero_checked = True
             return self.round_success(wait=1)
         return result
+
+    @node_from(from_name='核对零携带', status='需要清空启动战备')
+    @operation_node(name='清空启动战备', screenshot_before_round=False)
+    def clear_starting_loadout(self) -> OperationRoundResult:
+        """清空成功后重新截图核对五项，不能直接设置已核验或跳过投资。"""
+        if not self.allow_clear_loadout or self.clear_attempted:
+            return self.round_fail('本次入场不允许再次清空战备')
+        self.clear_attempted = True
+        result = BagelClearLoadout(self.ctx).execute()
+        self.screenshot()
+        return self.round_by_op_result(result)
 
     @node_from(from_name='核对零携带')
     @operation_node(name='确认入场并等待加载', timeout_seconds=90, node_max_retry_times=3)

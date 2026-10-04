@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.screen import screen_utils
+from one_dragon.utils import cal_utils
 from zzz_od.application.bagel.bagel_const import MAP_TITLE, RECOMMENDED_VALUE
 
 if TYPE_CHECKING:
@@ -22,8 +25,19 @@ def read_area(ctx: ZContext, screen: MatLike, screen_name: str, area_name: str) 
     return ''.join(match.data for match in sorted(matches, key=lambda match: (match.y, match.x)))
 
 
+def warehouse_sale_state(ctx: ZContext, screen: MatLike) -> str | None:
+    """识别仓库出售底栏和出售相关弹窗，供启动清空拒绝继续操作。"""
+    for name in ('取消出售', '快速选择标题', '出售确认标题'):
+        if screen_utils.find_area(ctx, screen, '贝果-仓库', name) == screen_utils.FindAreaResultEnum.TRUE:
+            return name
+    if all(screen_utils.find_area(ctx, screen, '贝果-仓库', name) == screen_utils.FindAreaResultEnum.TRUE
+           for name in ('出售获得标题', '出售获得货币')):
+        return '出售获得货币'
+    return None
+
+
 def _plain_value(texts: list[str], label: str | None) -> str:
-    """标题条里恰好一个纯数字才采用。整屏路径还要求标题文字在同一区域。"""
+    """标题条里恰好一个纯数字才采用。面板识别还要求标题文字在同一区域。"""
     if label is not None and label not in texts:
         return ''
     numbers = [text for text in texts if re.fullmatch(r'[0-9]+', text)]
@@ -47,25 +61,39 @@ def _glued_value(texts: list[str]) -> str:
 
 
 def read_loadout(ctx: ZContext, screen: MatLike) -> dict[str, str]:
-    """读取三个价值。整屏认不到标题旁的小数字时，再裁标题条。"""
+    """先识别备战右侧面板，小数字漏识别时再单独裁完整标题条。"""
     values: dict[str, str] = {}
-    for area, label in (
+    labels = (
         ('武备价值', '代理人武备'), ('装备价值', '装备'), ('道具价值', '道具'),
-    ):
+    )
+    regions: list[Rect] = []
+    for area, _ in labels:
         region = ctx.screen_loader.get_area('贝果-备战', area)
         if region is None:
             raise ValueError(f'缺少贝果画面区域：贝果-备战/{area}')
-        matches = ctx.ocr_service.get_ocr_result_list(screen, rect=region.pc_rect, crop_first=False)
+        regions.append(region.pc_rect)
+    # 保留完整标题与价值的上下文，但不识别无关的左侧仓储库存列表。
+    bounds = Rect(max(0, min(rect.x1 for rect in regions) - 20), 0, screen.shape[1], screen.shape[0])
+    all_matches = ctx.ocr_service.get_ocr_result_list(screen, rect=bounds, crop_first=True)
+    for (area, label), rect in zip(labels, regions, strict=True):
+        matches = [match for match in all_matches
+                   if cal_utils.cal_overlap_percent(match.rect, rect, base=match.rect) > 0.7]
         texts = [match.data for match in matches]
         value = _plain_value(texts, label)
         if not value:
             cropped = ctx.ocr_service.get_ocr_result_list(
-                screen, rect=region.pc_rect, crop_first=True,
+                screen, rect=rect, crop_first=True,
             )
             crop_texts = [match.data for match in cropped]
             value = _plain_value(crop_texts, None) or _glued_value(crop_texts)
             texts.extend(crop_texts)
-        # 金币图标可能被识别为 0；裁剪漏字也不能抹掉整屏已读到的非零证据。
+        if not value:
+            # 裁图有时把标题和金额粘成一段；仅在仍无法解析时回退到整屏识别。
+            full = ctx.ocr_service.get_ocr_result_list(screen, rect=rect, crop_first=False)
+            full_texts = [match.data for match in full]
+            value = _plain_value(full_texts, label)
+            texts.extend(full_texts)
+        # 金币图标可能被识别为 0；单条裁剪漏字不能抹掉合并区域已读到的非零证据。
         if value == '0' and any(re.search(r'[1-9]', text) for text in texts):
             value = ''
         values[area] = value
@@ -108,6 +136,20 @@ def zero_loadout(values: dict[str, str]) -> bool:
     return all(values.get(name, '').strip() == '0' for name in ('武备价值', '装备价值', '道具价值')) and all(
         empty_capacity(values.get(name, '')) for name in ('背包数量', '安全箱数量')
     )
+
+
+def complete_loadout(values: dict[str, str]) -> bool:
+    """五项全部合法才允许清空；识别缺失、冲突或非法容量不能算非零。"""
+    for name in ('武备价值', '装备价值', '道具价值'):
+        if re.fullmatch(r'[0-9]+', values.get(name, '').strip()) is None:
+            return False
+    for name in ('背包数量', '安全箱数量'):
+        text = values.get(name, '').replace(' ', '')
+        if re.fullmatch(r'[0-9]+/[1-9][0-9]*', text) is None:
+            return False
+        if parse_capacity_pair(text) is None:
+            return False
+    return True
 
 
 def entry_warning(text: str) -> str | None:

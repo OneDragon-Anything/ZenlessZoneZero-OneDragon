@@ -57,6 +57,7 @@ class BagelApp(ZApplication):
         self.defeat_rounds: int = 0
         self._spawn_hud_misses: int = 0
         self.flow_snapshot: dict[str, BagelFlow] = {}
+        self.initial_clear_pending: bool = True
 
     def execute(self) -> OperationResult:
         """正式应用返回前完成本次运行的事件收尾。"""
@@ -74,6 +75,7 @@ class BagelApp(ZApplication):
         self._spawn_hud_misses = 0
         self.spawn_matcher = None
         self.flow_snapshot = {}
+        self.initial_clear_pending = True
 
     def _spawn_matcher(self) -> BagelSpawnMatcher:
         """延迟加载出生匹配，避免无资源环境构造失败。"""
@@ -101,14 +103,19 @@ class BagelApp(ZApplication):
     def enter(self) -> OperationRoundResult:
         """非支持出生点可继续重开，不受尝试次数限制。"""
         self.screenshot()
-        if all(
+        allow_clear_loadout = self.initial_clear_pending
+        # 资格在调用入场前消耗，不能等出生识别增加 attempts 才关闭。
+        self.initial_clear_pending = False
+        if not allow_clear_loadout and all(
             self.round_by_find_area(self.last_screenshot, '贝果-仓库', name).is_success
             for name in ('放入仓库', '返回研究站')
         ) and occupied_indices(self.last_screenshot, SAFE_SLOT_CENTERS):
             return self.round_fail('结算仓库安全箱仍有物资，先核对去向，禁止开始新局')
         self._spawn_hud_misses = 0
         log.info('贝果收集：准备第 %s 次入场', self.attempts + 1)
-        return self.round_by_op_result(BagelEnter(self.ctx).execute(), wait=1)
+        return self.round_by_op_result(
+            BagelEnter(self.ctx, allow_clear_loadout=allow_clear_loadout).execute(), wait=1,
+        )
 
     @node_from(from_name='零携带入场')
     @operation_node(name='识别出生点', timeout_seconds=10)
