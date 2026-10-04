@@ -207,7 +207,7 @@ class BagelNavigate(BagelOperation):
             self._release_forward()
             return self.round_fail(self.STATUS_DEFEATED)
         if self.last_input_frame is not None and self.last_screenshot_time <= self.last_input_frame:
-            return self.round_retry('等待动作后的新截图', wait=0.15)
+            return self.round_wait('等待动作后的新截图', wait=0.15)
         if self._safe_brake_until is not None:
             self._release_forward()
             if self.last_screenshot_time < self._safe_brake_until:
@@ -229,7 +229,7 @@ class BagelNavigate(BagelOperation):
             self._release_forward()
             if self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗').is_success:
                 return self.round_fail('移动中打开了暂停菜单')
-            return self.round_retry('移动后暂未识别局内 HUD', wait=0.25)
+            return self.round_wait('移动后暂未识别局内 HUD', wait=0.25)
         crop = self.minimap()
         position = self.vision.locate(crop)
         log.debug('贝果导航定位 map=%s stage=%s point=%s xy=%s', self.map_id, self.destination, self.waypoint_index, position)

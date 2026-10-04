@@ -70,6 +70,8 @@ class BagelEnter(BagelOperation):
             ('仓库-驱动仓库', '标题-驱动仓库'),
         ):
             area = self.ctx.screen_loader.get_area(screen_name, area_name)
+            if area is None:
+                continue
             title = read_area(self.ctx, self.last_screenshot, screen_name, area_name)
             if area.text in title:
                 return screen_name
