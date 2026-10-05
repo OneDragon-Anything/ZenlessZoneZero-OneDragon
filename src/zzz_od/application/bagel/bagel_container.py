@@ -100,8 +100,11 @@ class BagelContainerOperation(BagelOperation):
             self.recovery = ContainerRecovery(lambda: self.operation_usage_time)
         self._missing_since = None
 
-    def interact_container(self, sent_status: str | None = None) -> OperationRoundResult:
-        """识别面板、限次补按；提示持续消失时返回移动请求。"""
+    def interact_container(
+        self, sent_status: str | None = None,
+        observation_wait: float = 0.25, wait_after_interact: float = 0.25,
+    ) -> OperationRoundResult:
+        """识别面板、限次补按；保险箱连续解锁可缩短观察等待。"""
         if self.is_bagel_result():
             return self.round_fail(self.STATUS_DEFEATED)
         state = container_state(self, self.target)
@@ -114,19 +117,19 @@ class BagelContainerOperation(BagelOperation):
             return self.round_recoverable_fail(reason)
         if state in ('panel', 'unknown'):
             self._missing_since = None
-            return self.round_wait('等待容器面板或局内画面确认', wait=0.25)
+            return self.round_wait('等待容器面板或局内画面确认', wait=observation_wait)
         if self.recovery.last_input_frame is not None and self.last_screenshot_time <= self.recovery.last_input_frame:
-            return self.round_wait('等待交互后的新截图', wait=0.15)
+            return self.round_wait('等待交互后的新截图', wait=min(0.15, observation_wait))
         now = self.recovery.clock()
         if self.recovery.last_interact_at is not None and now - self.recovery.last_interact_at < 2:
-            return self.round_wait('等待开箱交互结果', wait=0.25)
+            return self.round_wait('等待开箱交互结果', wait=observation_wait)
         if self.recovery.interactions >= self.recovery.INTERACT_LIMIT:
             return self.round_recoverable_fail('容器开箱交互已达3次上限')
         if state == 'missing':
             if self._missing_since is None:
                 self._missing_since = now
             if now - self._missing_since < 0.5:
-                return self.round_wait('等待目标交互提示恢复', wait=0.25)
+                return self.round_wait('等待目标交互提示恢复', wait=observation_wait)
             return self.round_recoverable_fail(ContainerRecovery.STATUS_REAPPROACH)
         self._missing_since = None
         # 识别耗时也计入预算，在实际输入前再次检查。
@@ -140,4 +143,4 @@ class BagelContainerOperation(BagelOperation):
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
         self.recovery.last_interact_at = self.recovery.clock()
         self.recovery.last_input_frame = max(time.time(), self.last_screenshot_time)
-        return self.round_success(sent_status, wait=0.25)
+        return self.round_success(sent_status, wait=wait_after_interact)

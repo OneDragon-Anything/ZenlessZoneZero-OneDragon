@@ -239,6 +239,7 @@ class BagelApp(ZApplication):
         result = BagelRunFlow(
             self.ctx, self.flow_snapshot[self.matched_map_id],
             map_snapshot=self._spawn_matcher().vision(self.matched_map_id).map,
+            continuous_safe_unlock=True,
         )
         outcome = result.execute()
         if result.last_screenshot is not None:

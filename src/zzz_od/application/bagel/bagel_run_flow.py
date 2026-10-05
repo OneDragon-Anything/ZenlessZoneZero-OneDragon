@@ -57,7 +57,7 @@ def release_flow_inputs(ctx: ZContext) -> None:
 
 
 class BagelRunFlow(BagelOperation):
-    """按列表顺序执行勾选的独立动作；未选步骤不隐式补做。"""
+    """按列表执行勾选动作；正式任务可连续打开和解锁保险箱。"""
 
     STATUS_SEARCH_PENDING: str = '搜查状态暂未识别，等待下一帧'
     STATUS_LOCATION_PENDING: str = '小地图暂时无法定位，等待下一帧'
@@ -69,8 +69,9 @@ class BagelRunFlow(BagelOperation):
         step_ids: tuple[str, ...] | None = None,
         on_event: Callable[[dict[str, object]], None] | None = None,
         map_snapshot: BagelFixedMap | None = None,
+        continuous_safe_unlock: bool = False,
     ) -> None:
-        """校验完整流程和勾选清单；正式任务未传清单时执行全部。"""
+        """校验勾选清单；正式任务可连续执行相邻的保险箱交互与解锁。"""
         super().__init__(ctx, op_name=f'贝果流程-{flow.name}', node_max_retry_times=0)
         self.flow: BagelFlow = BagelFlow.from_dict(flow.to_dict())
         known = {step.id for step in self.flow.steps}
@@ -98,6 +99,8 @@ class BagelRunFlow(BagelOperation):
         self._container_step_id: str | None = None
         self._approach_step: BagelStep | None = None
         self._reapproach_pending: bool = False
+        self.continuous_safe_unlock: bool = continuous_safe_unlock
+        self._step_started_at: float = 0
 
     def handle_init(self) -> None:
         """每次执行从首个勾选步骤开始，提前校验画面资源。"""
@@ -110,6 +113,7 @@ class BagelRunFlow(BagelOperation):
         self._container_step_id = None
         self._approach_step = None
         self._reapproach_pending = False
+        self._step_started_at = 0
         if self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击') is None:
             raise ValueError('缺少画面区域：战斗画面/按键-普通攻击')
         for area in (
@@ -245,6 +249,33 @@ class BagelRunFlow(BagelOperation):
             self._approach_step = None
         return self._container_recovery
 
+    def _can_continue_safe_unlock(self, step: BagelStep) -> bool:
+        """仅连续执行相邻且均选中的保险箱交互与解锁，不补未选步骤。"""
+        if (
+            not self.continuous_safe_unlock
+            or step.action != 'interact' or step.target != 'safe'
+            or step != self.flow.steps[self.index]
+            or self.cursor + 1 >= len(self.indices)
+        ):
+            return False
+        next_index = self.indices[self.cursor + 1]
+        next_step = self.flow.steps[next_index]
+        return (
+            next_index == self.index + 1
+            and next_step.action == 'unlock' and next_step.target == 'safe'
+        )
+
+    def _start_unlock_step(self) -> None:
+        """解锁界面出现即推进事件和失败归属，子操作继续使用当前截图。"""
+        self.emit(
+            'done', status=BagelUnlockSafe.STATUS_READY,
+            elapsed=time.monotonic() - self._step_started_at,
+        )
+        self.cursor += 1
+        self.index = self.indices[self.cursor]
+        self._step_started_at = time.monotonic()
+        self.emit('start', status=f'连续执行：{self.flow.steps[self.index].name}')
+
     def build_operation(self, step: BagelStep) -> BagelOperation | None:
         """业务动作只有一个执行来源，工具不复制游戏交互。"""
         if step.action in ('move', 'approach'):
@@ -266,10 +297,13 @@ class BagelRunFlow(BagelOperation):
                 recovering=self._reapproach_pending,
             )
         if step.action == 'interact':
-            return (
-                BagelOpenBox(self.ctx, recovery=self._recovery_for(step))
-                if step.target == 'box'
-                else BagelUnlockSafe(self.ctx, phase='interact', recovery=self._recovery_for(step))
+            if step.target == 'box':
+                return BagelOpenBox(self.ctx, recovery=self._recovery_for(step))
+            continuous = self._can_continue_safe_unlock(step)
+            return BagelUnlockSafe(
+                self.ctx, phase='full' if continuous else 'interact',
+                recovery=self._recovery_for(step),
+                on_unlock_ready=self._start_unlock_step if continuous else None,
             )
         if step.action == 'unlock':
             return BagelUnlockSafe(self.ctx, phase='unlock')
@@ -314,9 +348,13 @@ class BagelRunFlow(BagelOperation):
         self._precondition_waits = 0
         self._location_waits = 0
         started = time.monotonic()
+        self._step_started_at = started
         recovering = self._reapproach_pending
         operation = self.build_operation(active_step)
         result = operation.execute() if operation is not None else None
+        # 连续操作确认界面后已进入解锁步骤，成功事件和失败处理按新阶段执行。
+        step = self.flow.steps[self.index]
+        started = self._step_started_at
         if operation is not None and operation.last_screenshot is not None:
             self.last_screenshot = operation.last_screenshot
             self.last_screenshot_time = operation.last_screenshot_time
