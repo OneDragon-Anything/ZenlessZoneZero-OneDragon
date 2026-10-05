@@ -190,7 +190,7 @@ PcControllerBase
 ├── btn_release                  → 释放前 _ensure_gamepad_mode()（防御性）
 ├── _send_activate()             → 发送 WM_ACTIVATE 激活消息
 └── 模式切换
-    ├── enable_background_mode()   → PostMessage 点击 + Xbox 手柄
+    ├── enable_background_mode()   → PostMessage 点击 + Xbox/DS4 手柄
     └── enable_foreground_mode()   → pyautogui 点击 + 键盘
 ```
 ### ZPcController.init_before_context_run — 配置刷新
@@ -248,7 +248,7 @@ move_mouse_relative(dx, dy)
 |---------|---------|---------|
 | 菜单点击 | WM_ACTIVATE + PostMessage | pyautogui |
 | 锁鼠标场景 (pc_alt) | vgamepad 手柄按键 | pynput ALT + pyautogui |
-| 战斗按键 | vgamepad Xbox 手柄 | keyboard (pynput) |
+| 战斗按键 | vgamepad Xbox/DS4 手柄 | keyboard (pynput) |
 | 移动控制 | vgamepad 左摇杆 | keyboard WASD |
 | 文本输入 | 不支持 | keyboard.type() |
 | 截图 | 不受影响（已有后台截图） | 同 |
@@ -265,7 +265,7 @@ move_mouse_relative(dx, dy)
 - `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
 - `_background_drag(start, end, duration)` — 后台 SetCursorPos + PostMessage 拖拽
 - `_send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口
-- `enable_background_mode()` — 开启后台模式（PostMessage + Xbox）
+- `enable_background_mode()` — 开启后台模式（PostMessage + Xbox/DS4）
 - `enable_foreground_mode()` — 开启前台模式（pyautogui + 键盘）
 
 **`PcButtonController` 基类：**
@@ -279,7 +279,7 @@ move_mouse_relative(dx, dy)
 
 **`GameConfig` 核心方法：**
 - `get_action_keys(control_method) -> dict[str, str]` — 返回 `{action_name: key_value}`
-  - `control_method`: `'keyboard'` / `'xbox'` / `'ds4'`（默认读 `config.control_method`）
+  - `control_method`: `'keyboard'` / `'xbox'` / `'ds4'`
   - 前缀推导：`'key' if control_method == 'keyboard' else f'{control_method}_key'`
   - 例如 `get_action_keys('keyboard')` → `{'dodge': 'shift', 'interact': 'f', ...}`
 - `get_gamepad_action_keys(gamepad_type) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`

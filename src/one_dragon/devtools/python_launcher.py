@@ -276,7 +276,7 @@ def execute_python_script(
         full_command = " ".join(powershell_command)
         # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
         subprocess.Popen(
-            ["powershell", "-Command", full_command],
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", full_command],
             creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0
         )
         print_message("等待主界面弹出...", "INFO")
@@ -331,7 +331,7 @@ def run_python(app_path, no_windows: bool = True, args: list[str] | None = None,
         print_message(f"OneDragon 启动器 {__version__}", "INFO")
         cwd = verify_working_directory()
         from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-        ctx = OneDragonEnvContext()
+        ctx = OneDragonEnvContext(prefer_bundled_config=True)
         configure_environment(ctx, cwd)
         fetch_latest_code(ctx)
         sync_dependencies(ctx)

@@ -30,5 +30,6 @@ handlers:
         - state_template: "连携模板-支援"
         - state_template: "连携模板-异常"
         - state_template: "连携模板-强攻"
+        - state_template: "连携模板-锋御"
         - state_template: "连携模板-后置角色"
         - state_template: "连携模板-跳过"

@@ -3,6 +3,19 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  high_level_summary_instructions: |
+    生成 PR 改动总结时遵循 Keep a Changelog 分类(业界 changelog 标准):
+    1. 用中文。
+    2. 按改动类型分组(只用实际涉及的,没有的跳过):
+       - 新增(Added):新功能
+       - 变更(Changed):现有功能改动
+       - 弃用(Deprecated):即将移除
+       - 移除(Removed):移除的功能
+       - 修复(Fixed):bug 修复
+       - 安全(Security):安全修复
+    3. 每条用动宾结构,一句话说清「改了什么」(what),不写「为什么」(why 由作者在 PR description 写)。
+    4. 只总结实质改动,跳过纯格式 / 琐碎,保持简洁。
   auto_review:
     enabled: true
   tools:

@@ -182,6 +182,9 @@ class AutoBattleDodgeContext:
         use_gpu = self.ctx.model_config.flash_classifier_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
+                model_download_url=self.ctx.model_config.get_model_download_base_url(
+                    'flash_classifier',
+                ),
                 model_name=self.ctx.model_config.flash_classifier,
                 backup_model_name=self.ctx.model_config.flash_classifier_backup,
                 model_parent_dir_path=yolo_config_utils.get_model_category_dir('flash_classifier'),
