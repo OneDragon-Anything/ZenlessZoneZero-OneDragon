@@ -84,7 +84,7 @@
 2. `template_id` 非空：`template`。
 3. 其它情况：`none`。
 
-旧名称 `click` 和 `ocr` 仅在读取时分别兼容为 `none` 和 `text`，保存时统一写新名称。
+旧名称 `click` 和 `ocr` 仅在读取时分别兼容为 `none` 和 `text`，保存时统一写新名称。其它无法识别的 `area_type` 不中断加载，记录告警后降级为 `none`。
 
 没有固定文本的旧区域无法仅靠数据判断它是动态 OCR 范围还是普通裁剪范围。确实需要动态 OCR 参数的区域，应在配置中显式写 `area_type: text`。
 

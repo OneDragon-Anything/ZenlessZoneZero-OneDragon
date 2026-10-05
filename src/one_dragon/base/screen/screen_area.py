@@ -4,6 +4,7 @@ import numpy as np
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.utils.log_utils import log
 
 
 class ScreenAreaType(StrEnum):
@@ -47,13 +48,20 @@ class ScreenArea:
         self._area_type: ScreenAreaType = self._init_area_type(area_type)
 
     def _init_area_type(self, area_type: ScreenAreaType | str | None) -> ScreenAreaType:
-        """初始化区域类型，兼容旧名称并推断旧配置。"""
+        """初始化区域类型，兼容旧名称并推断旧配置。
+
+        非法值不中断加载，告警后降级为 none。
+        """
         if area_type is not None:
             if area_type == 'click':
                 return ScreenAreaType.NONE
             if area_type == 'ocr':
                 return ScreenAreaType.TEXT
-            return ScreenAreaType(area_type)
+            try:
+                return ScreenAreaType(area_type)
+            except ValueError:
+                log.warning('未知区域类型 %s，已降级为 none', area_type)
+                return ScreenAreaType.NONE
         if self.text:
             return ScreenAreaType.TEXT
         if self.template_id:
