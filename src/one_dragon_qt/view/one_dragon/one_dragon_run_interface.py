@@ -188,6 +188,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
                 shutdown_seconds=(
                     60 if after_done == AfterDoneOpEnum.SHUTDOWN.value.value else None
                 ),
+                hibernate=after_done == AfterDoneOpEnum.HIBERNATE.value.value,
+                sleep=after_done == AfterDoneOpEnum.SLEEP.value.value,
             ),
         )
 
