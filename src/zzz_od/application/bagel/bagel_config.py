@@ -35,6 +35,18 @@ class BagelConfig(ApplicationConfig):
         self.update('max_success_rounds', value)
 
     @property
+    def max_failure_retries(self) -> int:
+        """本次任务因失败最多额外入场多少次；成功不清零。"""
+        return self.get('max_failure_retries', 5)
+
+    @max_failure_retries.setter
+    def max_failure_retries(self, value: int) -> None:
+        """保存累计失败重试上限，0 表示失败后只结算。"""
+        if type(value) is not int or not 0 <= value <= 100:
+            raise ValueError('max_failure_retries 必须是 0 至 100 的整数')
+        self.update('max_failure_retries', value)
+
+    @property
     def auto_clean_warehouse(self) -> bool:
         """入仓后是否用快速选择卖掉 C–S 的贵重物品、战术棱镜和其他。"""
         return self.get('auto_clean_warehouse', True)
@@ -113,6 +125,9 @@ class BagelConfig(ApplicationConfig):
         value = self.max_success_rounds
         if type(value) is not int or not 0 <= value <= 1000:
             raise ValueError('max_success_rounds 必须是 0 至 1000 的整数')
+        retries = self.max_failure_retries
+        if type(retries) is not int or not 0 <= retries <= 100:
+            raise ValueError('max_failure_retries 必须是 0 至 100 的整数')
         if type(self.auto_clean_warehouse) is not bool:
             raise ValueError('auto_clean_warehouse 必须是布尔值')
         if self.clean_mode not in (CLEAN_MODE_DEFAULT, CLEAN_MODE_CUSTOM):

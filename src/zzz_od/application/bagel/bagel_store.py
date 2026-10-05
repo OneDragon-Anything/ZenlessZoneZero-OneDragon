@@ -138,10 +138,10 @@ class BagelStoreSafe(BagelOperation):
                 ).is_success for area in ('武备箱交互', '交互F键')):
                     if self._panel_missing_rounds < 2:
                         return self.round_wait('搜查面板暂未识别，再看一帧', wait=0.3)
-                    return self.round_fail('搜查面板已关闭，请重新执行交互步骤')
+                    return self.round_recoverable_fail('搜查面板已关闭，请重新执行交互步骤')
                 if self._panel_missing_rounds < 6:
                     return self.round_wait('搜查面板暂未识别，再看一帧', wait=0.3)
-            return self.round_fail('未识别搜查结果面板')
+            return self.round_recoverable_fail('未识别搜查结果面板')
         self._status_missing_rounds = 0
         self._panel_missing_rounds = 0
         screen = self.last_screenshot
@@ -221,7 +221,7 @@ class BagelStoreSafe(BagelOperation):
                 if self._status_missing_rounds < 6:
                     return self.round_wait('入箱后搜查状态暂未识别，保留对照等待下一帧', wait=0.3)
             self._clear_pending()
-            return self.round_fail('入箱后丢失搜查面板')
+            return self.round_recoverable_fail('入箱后丢失搜查面板')
         self._status_missing_rounds = 0
         safe = inspect_safe_slots(self.last_screenshot)
         destination_index = SAFE_SLOT_CENTERS.index(destination)

@@ -22,6 +22,7 @@ from zzz_od.application.bagel.bagel_store_carried import (
     BagelStoreCarried,
     read_carried_backpack,
 )
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
 
 if TYPE_CHECKING:
@@ -32,10 +33,15 @@ if TYPE_CHECKING:
 class BagelEnter(BagelOperation):
     """从已知安全画面进入贝果，核实高危、零携带和零投资。"""
 
-    def __init__(self, ctx: ZContext, *, allow_clear_loadout: bool = False) -> None:
+    def __init__(
+        self, ctx: ZContext, *, allow_clear_loadout: bool = False,
+        allow_world_recovery: bool = False,
+    ) -> None:
         """仅应用首次入场显式允许清空；独立工具默认只核对零携带。"""
         super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=660 if allow_clear_loadout else 240)
         self.allow_clear_loadout: bool = allow_clear_loadout
+        self.allow_world_recovery: bool = allow_world_recovery
+        self.world_recovery_attempted: bool = False
         self.clear_attempted: bool = False
         self.loadout_misses: int = 0
         self.zero_checked: bool = False
@@ -47,6 +53,7 @@ class BagelEnter(BagelOperation):
     def handle_init(self) -> None:
         """重复运行时清除上一局的确认状态。"""
         super().handle_init()
+        self.world_recovery_attempted = False
         self.zero_checked = False
         self.confirmed_warnings.clear()
         self.investment_confirmed = False
@@ -167,6 +174,18 @@ class BagelEnter(BagelOperation):
             '仓库-驱动仓库', '仓库-音擎仓库', '地图',
         } or (current is not None and current.startswith('快捷手册-'))
         if not allowed:
+            if (
+                self.allow_world_recovery and not self.world_recovery_attempted
+                and current is None
+                and not self._has('按键-普通攻击', '战斗画面')
+            ):
+                self.world_recovery_attempted = True
+                operation = BackToNormalWorld(self.ctx)
+                operation.timeout_seconds = min(30, max(0, self.timeout_seconds - self.operation_usage_time))
+                result = operation.execute()
+                if not result.success:
+                    return self.round_by_op_result(result)
+                return self.round_wait('已返回大世界，重新检查贝果入场', wait=0.5)
             return self.round_fail(f'当前画面 {current or "未知"} 不支持自动进入贝果，已留现场')
         if current in {'仓库-材料道具', '仓库-音擎仓库', '仓库-驱动仓库'}:
             self.ctx.screen_loader.update_current_screen_name(current)
@@ -277,6 +296,9 @@ class BagelEnter(BagelOperation):
         """仅处理核实零携带之后出现的三类确认，未知弹窗保留现场。"""
         if not self.zero_checked:
             return self.round_fail('尚未核对零携带，禁止确认入场')
+        if self.investment_confirmed and self.is_bagel_result():
+            # 入场加载期间已经死亡也属于本局，让正式任务的出生检查进入失败结算。
+            return self.round_success('已进入雅努斯高危')
         # 开局会自动弹出局内大地图；识别后主动关闭，不空等约 30 秒自动关掉。
         if self.round_by_find_area(self.last_screenshot, '贝果-局内', '大地图图例').is_success:
             result = self.round_by_click_area('贝果-局内', '大地图返回')

@@ -21,8 +21,17 @@ class BagelExit(BagelOperation):
     @operation_node(name='打开贝果暂停菜单', is_start_node=True, timeout_seconds=15)
     def open_menu(self) -> OperationRoundResult:
         """由调用方确认贝果流程；普通攻击按钮出现后打开菜单，再核对专用退出提示。"""
+        if all(self._has(area, '贝果-仓库') for area in ('放入仓库', '返回研究站')):
+            return self.round_success('已到结算仓库')
+        if self._has('提示', '贝果-退出确认'):
+            return self.round_success('已到退出确认')
+        if self._has('按钮-退出战斗', '战斗-菜单'):
+            return self.round_success('已到暂停菜单')
         if self.is_bagel_result():
             return self.round_success('已到贝果结算')
+        if any(self._has(area) for area in ('搜查容器标题', '电子保险箱标题', '大保险解锁提示')):
+            self.ctx.controller.btn_press('esc', press_time=0.1)
+            return self.round_wait('关闭局内面板后重新检查退出画面', wait=0.5)
         if self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             self.ctx.controller.btn_press('esc', press_time=0.1)
             return self.round_success(wait=1)
@@ -39,6 +48,7 @@ class BagelExit(BagelOperation):
             until_find_all=[('贝果-退出确认', '提示')], success_wait=1, retry_wait=1,
         )
 
+    @node_from(from_name='打开贝果暂停菜单', status='已到退出确认')
     @node_from(from_name='点击贝果退出')
     @operation_node(name='确认贝果退出', timeout_seconds=15)
     def confirm_exit(self) -> OperationRoundResult:
@@ -70,6 +80,7 @@ class BagelExit(BagelOperation):
             return self.round_success('结算已继续')
         return self.round_wait('等待贝果结算', wait=1)
 
+    @node_from(from_name='打开贝果暂停菜单', status='已到结算仓库')
     @node_from(from_name='等待贝果结算')
     @operation_node(name='等待结算仓库', timeout_seconds=30)
     def wait_warehouse(self) -> OperationRoundResult:

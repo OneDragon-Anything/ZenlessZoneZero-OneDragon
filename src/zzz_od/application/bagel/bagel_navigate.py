@@ -29,7 +29,10 @@ from zzz_od.application.bagel.bagel_const import (
 )
 from zzz_od.application.bagel.bagel_container import ContainerRecovery, container_state
 from zzz_od.application.bagel.bagel_flow import NavigationOptions, load_published_flow
-from zzz_od.application.bagel.bagel_operation import BagelOperation
+from zzz_od.application.bagel.bagel_operation import (
+    BagelOperation,
+    BagelRecoverableFailure,
+)
 from zzz_od.application.bagel.bagel_route import BagelRoute
 from zzz_od.application.bagel.bagel_route_vision import BagelRouteVision
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
@@ -197,12 +200,13 @@ class BagelNavigate(BagelOperation):
                 self._release_forward()
                 self.recovery.start()
                 reason = self.recovery.error()
-                return self.round_fail(reason) if reason else self.round_wait('等待容器面板确认', wait=0.25)
+                return self.round_recoverable_fail(reason) if reason else self.round_wait('等待容器面板确认', wait=0.25)
         if not self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
-            return self.round_fail('未识别贝果局内画面')
+            return self.round_recoverable_fail('未识别贝果局内画面')
         if self.destination != 'box' or not self.require_spawn:
             if self.vision.locate(self.minimap()) is None:
-                return self.round_retry('起点小地图暂时无法定位', wait=0.15)
+                reason = '起点小地图暂时无法定位'
+                return self.round_retry(reason, data=BagelRecoverableFailure(reason), wait=0.15)
             return self.round_success('开始移动')
         position = self.vision.locate(self.minimap())
         if position is None:
@@ -236,7 +240,7 @@ class BagelNavigate(BagelOperation):
             reason = self.recovery.error()
             if reason:
                 self._release_forward()
-                return self.round_fail(reason)
+                return self.round_recoverable_fail(reason)
             if state == 'panel':
                 self._release_forward()
                 self.recovery.start()
@@ -268,7 +272,7 @@ class BagelNavigate(BagelOperation):
         if not self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
             self._release_forward()
             if self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗').is_success:
-                return self.round_fail('移动中打开了暂停菜单')
+                return self.round_recoverable_fail('移动中打开了暂停菜单')
             return self.round_wait('移动后暂未识别局内 HUD', wait=0.25)
         crop = self.minimap()
         position = self.vision.locate(crop)
@@ -292,7 +296,7 @@ class BagelNavigate(BagelOperation):
             if not self.coordinate_only and self.vision.last_location is not None and self.vision.last_location.reason in (
                 'ambiguous_position', 'outside_coverage', 'invalid_crop',
             ):
-                return self.round_fail(f'小地图定位失败：{self.vision.last_location.reason}')
+                return self.round_recoverable_fail(f'小地图定位失败：{self.vision.last_location.reason}')
             if self.last_position is None and self.vision.last_location is not None:
                 self._release_forward()
                 if self.vision.last_location.reason == 'insufficient_geometry':
@@ -301,13 +305,13 @@ class BagelNavigate(BagelOperation):
                         return self.round_wait(
                             '起步小地图暂时无法定位，等待下一帧', wait=NAV_INITIAL_LOCATE_WAIT,
                         )
-                return self.round_fail('小地图定位失败，停止移动')
+                return self.round_recoverable_fail('小地图定位失败，停止移动')
             if self.last_position is not None and self.locate_misses < NAV_LOCATE_MISS_LIMIT:
                 self.locate_misses += 1
                 self._release_forward()
                 return self.round_wait('小地图暂时对不上，再看一帧', wait=0.15)
             self._release_forward()
-            return self.round_fail('小地图定位失败，停止移动')
+            return self.round_recoverable_fail('小地图定位失败，停止移动')
         self.locate_misses = 0
         self.initial_locate_misses = 0
         self.last_position = position
@@ -316,7 +320,7 @@ class BagelNavigate(BagelOperation):
         if not self.coordinate_only and has_interaction:
             self._release_forward()
             if final_distance > self.navigation.effective_interaction_distance:
-                return self.round_fail('容器交互提示与当前目标位置不符')
+                return self.round_recoverable_fail('容器交互提示与当前目标位置不符')
             return self.round_success(self.arrive_status)
         if not self.coordinate_only and self.waypoint_index == len(self.active_waypoints) - 1:
             if final_distance <= self.navigation.effective_interaction_distance:
@@ -325,7 +329,7 @@ class BagelNavigate(BagelOperation):
                 self._release_forward()
                 reason = self.recovery.request_approach()
                 if reason:
-                    return self.round_fail(reason)
+                    return self.round_recoverable_fail(reason)
                 self.recovering = True
                 small_steps = True
                 self._settled = False
@@ -338,7 +342,7 @@ class BagelNavigate(BagelOperation):
                 self._cruise_progress = (position, self.last_screenshot_time)
             elif self.last_screenshot_time - started >= 3:
                 self._release_forward()
-                return self.round_fail('持续前进但位置未变化，停止移动')
+                return self.round_recoverable_fail('持续前进但位置未变化，停止移动')
         name, target = self.active_waypoints[self.waypoint_index]
         distance = hypot(target[0] - position[0], target[1] - position[1])
         point = self.vision.route.points_for(self.destination)[self.waypoint_index]
@@ -398,11 +402,11 @@ class BagelNavigate(BagelOperation):
         reason = self.recovery.error() if not self.coordinate_only else None
         if reason:
             self._release_forward()
-            return self.round_fail(reason)
+            return self.round_recoverable_fail(reason)
         angle = self.vision.player_angle(crop)
         if angle is None:
             self._release_forward()
-            return self.round_fail('无法识别角色箭头，停止移动')
+            return self.round_recoverable_fail('无法识别角色箭头，停止移动')
         target_angle = degrees(atan2(position[1] - target[1], target[0] - position[0])) % 360
         if not small_steps and not self._destination_braked and (safe_corner or distance > NAV_CRUISE_DISTANCE):
             return self._cruise_toward(angle, target_angle, name)
@@ -415,7 +419,7 @@ class BagelNavigate(BagelOperation):
         reason = self.recovery.error() if not self.coordinate_only else None
         if reason:
             self._release_forward()
-            return self.round_fail(reason)
+            return self.round_recoverable_fail(reason)
         press_time = NAV_SAFE_APPROACH_PRESS if small_steps else self.forward_press
         self._release_forward()
         self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
@@ -429,7 +433,7 @@ class BagelNavigate(BagelOperation):
         if self.last_screenshot_time - self.target_wait_started < 2:
             return self.round_wait('目标前停步等待交互提示', wait=0.25)
         name = self.active_waypoints[self.waypoint_index][0]
-        return self.round_fail(f'已到{name}但未发现{self.interact_area}')
+        return self.round_recoverable_fail(f'已到{name}但未发现{self.interact_area}')
 
     def _cruise_toward(
         self, image_angle: float, target_angle: float, name: str,
@@ -560,11 +564,11 @@ class BagelNavigate(BagelOperation):
         """计次输入达到上限时松键停止。按住观察不走这里。"""
         if not self.coordinate_only and self.recovery.error():
             self._release_forward()
-            return self.round_fail(self.recovery.error())
+            return self.round_recoverable_fail(self.recovery.error())
         if self.steps < self._action_limit():
             return None
         self._release_forward()
-        return self.round_fail('导航达到动作上限')
+        return self.round_recoverable_fail('导航达到动作上限')
 
     def _release_forward(self) -> None:
         """松开前进键。重复调用是安全的。"""

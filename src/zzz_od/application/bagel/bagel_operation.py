@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from dataclasses import dataclass
 from threading import RLock
 from typing import TYPE_CHECKING
 
+from one_dragon.base.operation.operation import Operation
 from one_dragon.utils.log_utils import log
 from zzz_od.application.bagel.bagel_screen import expected_map, read_area
 from zzz_od.operation.zzz_operation import ZOperation
@@ -12,8 +14,25 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from one_dragon.base.operation.context_event_bus import ContextEventItem
-    from one_dragon.base.operation.operation import Operation
     from one_dragon.base.operation.operation_base import OperationResult
+    from one_dragon.base.operation.operation_round_result import OperationRoundResult
+
+
+def is_bagel_result(operation: Operation) -> bool:
+    """用失败标志和高危雅努斯标题共同核对结算，供应用与操作复用。"""
+    return (
+        operation.round_by_find_area(operation.last_screenshot, '贝果-结算', '失败').is_success
+        and expected_map(read_area(operation.ctx, operation.last_screenshot, '贝果-结算', '地图'))
+    )
+
+
+def execute_bagel_round(operation: Operation) -> OperationRoundResult:
+    """贝果程序异常直接停止，避免框架重试把错误改写为业务超时。"""
+    try:
+        return Operation._execute_one_round(operation)
+    except Exception as error:
+        log.error('贝果节点执行异常，停止并保留现场', exc_info=True)
+        return operation.round_fail('异常', data=f'{type(error).__name__}：{error}')
 
 
 class _BagelRunEvents:
@@ -65,12 +84,29 @@ def bagel_run_events(operation: Operation) -> Iterator[None]:
             operation._on_pause, operation._on_resume = events.on_pause, events.on_resume
 
 
+@dataclass(frozen=True)
+class BagelRecoverableFailure:
+    """明确可结算重开的业务失败；框架异常不会产生此标记。"""
+
+    reason: str
+
+
 class BagelOperation(ZOperation):
     """贝果操作失败时保存最后画面，便于核对停在哪一步。"""
 
     STATUS_DEFEATED: str = '贝果撤离失败'
     STATUS_INTERRUPTED: str = '贝果搜查或解锁被打断'
+    STATUS_CLEANUP_FAILED: str = '贝果收尾失败'
+    STATUS_ROUND_FAILED: str = '贝果局内流程失败'
     STATUS_CONTAINER_FAILED: str = '贝果容器靠近或开箱恢复失败'
+
+    def _execute_one_round(self) -> OperationRoundResult:
+        """程序异常不在局内继续重试输入。"""
+        return execute_bagel_round(self)
+
+    def round_recoverable_fail(self, reason: str) -> OperationRoundResult:
+        """保留原始状态，并供正式应用区分业务失败与程序错误。"""
+        return self.round_fail(reason, data=BagelRecoverableFailure(reason))
 
     def _has(self, area: str, screen_name: str = '贝果-局内') -> bool:
         """只使用当前截图核对指定画面区域。"""
@@ -83,10 +119,7 @@ class BagelOperation(ZOperation):
 
     def is_bagel_result(self) -> bool:
         """同时确认 DEFEAT 与高危雅努斯，不能仅凭单角色零血量退出。"""
-        return (
-            self.round_by_find_area(self.last_screenshot, '贝果-结算', '失败').is_success
-            and expected_map(read_area(self.ctx, self.last_screenshot, '贝果-结算', '地图'))
-        )
+        return is_bagel_result(self)
 
     def after_operation_done(self, result: OperationResult) -> None:
         """保存失败现场；截图写入异常不能阻止框架释放事件监听。"""

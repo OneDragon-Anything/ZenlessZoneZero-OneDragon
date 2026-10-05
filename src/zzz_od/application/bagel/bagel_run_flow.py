@@ -18,7 +18,10 @@ from zzz_od.application.bagel.bagel_exit import BagelExit
 from zzz_od.application.bagel.bagel_flow import BagelFlow, BagelStep
 from zzz_od.application.bagel.bagel_navigate import BagelNavigate
 from zzz_od.application.bagel.bagel_open_box import BagelOpenBox
-from zzz_od.application.bagel.bagel_operation import BagelOperation
+from zzz_od.application.bagel.bagel_operation import (
+    BagelOperation,
+    BagelRecoverableFailure,
+)
 from zzz_od.application.bagel.bagel_route_vision import BagelRouteVision
 from zzz_od.application.bagel.bagel_store import BagelStoreSafe
 from zzz_od.application.bagel.bagel_unlock_safe import BagelUnlockSafe
@@ -307,7 +310,7 @@ class BagelRunFlow(BagelOperation):
             self.emit('failed', status=reason, elapsed=0)
             if step.action in ('approach', 'interact') and self._container_recovery is not None:
                 return self.round_fail(self.STATUS_CONTAINER_FAILED, data=reason)
-            return self.round_fail(reason)
+            return self.round_recoverable_fail(reason)
         self._precondition_waits = 0
         self._location_waits = 0
         started = time.monotonic()
@@ -319,6 +322,18 @@ class BagelRunFlow(BagelOperation):
             self.last_screenshot_time = operation.last_screenshot_time
         success = result is None or result.success
         status = result.status if result is not None else '出生位置已确认'
+        recoverable = result is not None and (
+            isinstance(result.data, BagelRecoverableFailure) or status == self.STATUS_TIMEOUT
+        )
+        # 框架错误必须原样返回，不能根据新画面改写成受击或容器失败。
+        if not success and (
+            status in ('人工结束', '初始化失败', '异常')
+            or (status is not None and status.startswith('区域未配置'))
+        ):
+            self.emit('failed', status=status, elapsed=time.monotonic() - started)
+            return self.round_by_op_result(result)
+        if not success and step.action == 'exit':
+            return self.round_fail(self.STATUS_CLEANUP_FAILED, data=f'{status}：{result.data}')
         if not success and status == ContainerRecovery.STATUS_REAPPROACH:
             reason = (
                 self._container_recovery.request_approach()
@@ -330,6 +345,7 @@ class BagelRunFlow(BagelOperation):
                 self.emit('waiting', status=ContainerRecovery.STATUS_REAPPROACH)
                 return self.round_wait(ContainerRecovery.STATUS_REAPPROACH, wait=0.1)
             status = reason
+            recoverable = True
         if recovering:
             self._reapproach_pending = False
             if success and status in (BagelNavigate.STATUS_ARRIVED_BOX, BagelNavigate.STATUS_ARRIVED_SAFE):
@@ -337,6 +353,7 @@ class BagelRunFlow(BagelOperation):
         if (
             not success
             and status != self.STATUS_DEFEATED
+            and recoverable
             and step.action in ('store', 'close', 'unlock')
         ):
             self.screenshot()
@@ -357,15 +374,20 @@ class BagelRunFlow(BagelOperation):
             )
         ):
             success = False
+            recoverable = recoverable or result.success
         self.emit(
             'done' if success else 'failed',
             status=status,
             elapsed=time.monotonic() - started,
         )
         if not success:
-            if step.action in ('approach', 'interact') and status != self.STATUS_DEFEATED:
+            if step.action in ('approach', 'interact') and status != self.STATUS_DEFEATED and recoverable:
                 return self.round_fail(self.STATUS_CONTAINER_FAILED, data=status)
-            return self.round_fail(status)
+            if status == self.STATUS_INTERRUPTED:
+                return self.round_fail(status, data=result.status if result is not None else None)
+            if recoverable:
+                return self.round_recoverable_fail(status or '局内步骤失败')
+            return self.round_by_op_result(result) if result is not None else self.round_fail(status)
         if step.action == 'approach':
             self._approach_step = step
         elif step.action != 'interact':

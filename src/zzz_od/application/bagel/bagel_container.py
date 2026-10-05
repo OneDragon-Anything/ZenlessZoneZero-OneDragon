@@ -111,7 +111,7 @@ class BagelContainerOperation(BagelOperation):
         self.recovery.start()
         reason = self.recovery.error()
         if reason:
-            return self.round_fail(reason)
+            return self.round_recoverable_fail(reason)
         if state in ('panel', 'unknown'):
             self._missing_since = None
             return self.round_wait('等待容器面板或局内画面确认', wait=0.25)
@@ -121,18 +121,18 @@ class BagelContainerOperation(BagelOperation):
         if self.recovery.last_interact_at is not None and now - self.recovery.last_interact_at < 2:
             return self.round_wait('等待开箱交互结果', wait=0.25)
         if self.recovery.interactions >= self.recovery.INTERACT_LIMIT:
-            return self.round_fail('容器开箱交互已达3次上限')
+            return self.round_recoverable_fail('容器开箱交互已达3次上限')
         if state == 'missing':
             if self._missing_since is None:
                 self._missing_since = now
             if now - self._missing_since < 0.5:
                 return self.round_wait('等待目标交互提示恢复', wait=0.25)
-            return self.round_fail(ContainerRecovery.STATUS_REAPPROACH)
+            return self.round_recoverable_fail(ContainerRecovery.STATUS_REAPPROACH)
         self._missing_since = None
         # 识别耗时也计入预算，在实际输入前再次检查。
         reason = self.recovery.error()
         if reason:
-            return self.round_fail(reason)
+            return self.round_recoverable_fail(reason)
         # 输入前占用次数；控制器在发送后抛错也不能额外获得一次 F。
         self.recovery.interactions += 1
         self.recovery.last_interact_at = self.recovery.clock()

@@ -102,7 +102,7 @@ class BagelUnlockSafe(BagelContainerOperation):
                 return self.round_fail(self.STATUS_DEFEATED)
             if self._search_ready():
                 return self.round_success(self.STATUS_UNLOCKED)
-            return self.round_fail('解锁界面消失，无法点按')
+            return self.round_recoverable_fail('解锁界面消失，无法点按')
         if self.hits_done >= SAFE_UNLOCK_HITS:
             return self.round_success('点按完成')
         ring = unlock_ring(self.last_screenshot)

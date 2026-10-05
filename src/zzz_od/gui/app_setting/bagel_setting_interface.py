@@ -60,6 +60,12 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
             minimum=0, maximum=1000,
         )
         layout.addWidget(self.success_rounds_card)
+        self.failure_retries_card: SpinBoxSettingCard = SpinBoxSettingCard(
+            icon='', title='整体重试次数',
+            content='失败后最多额外重开多少局；成功不清零，填 0 不重开。',
+            minimum=0, maximum=100,
+        )
+        layout.addWidget(self.failure_retries_card)
         self.auto_clean_switch: SwitchSettingCard = SwitchSettingCard(
             icon='',
             title='清理仓库',
@@ -115,6 +121,7 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.clean_mode_card.init_with_adapter(get_prop_adapter(self.config, 'clean_mode'))
         self.clean_types_card.init_with_adapter(get_prop_adapter(self.config, 'clean_types'))
         self.clean_qualities_card.init_with_adapter(get_prop_adapter(self.config, 'clean_qualities'))
+        self.failure_retries_card.init_with_adapter(get_prop_adapter(self.config, 'max_failure_retries'))
         self.success_rounds_card.init_with_adapter(get_prop_adapter(self.config, 'max_success_rounds'))
         self.auto_clean_switch._on_adapter_value_applied = self._clean_value_loaded
         self.clean_mode_card._on_adapter_value_applied = self._clean_value_loaded
