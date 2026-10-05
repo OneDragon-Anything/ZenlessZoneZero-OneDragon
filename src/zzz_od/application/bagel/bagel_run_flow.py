@@ -13,6 +13,7 @@ from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils import cv2_utils
 from zzz_od.application.bagel.bagel_close_search import BagelCloseSearch
+from zzz_od.application.bagel.bagel_container import ContainerRecovery, container_state
 from zzz_od.application.bagel.bagel_exit import BagelExit
 from zzz_od.application.bagel.bagel_flow import BagelFlow, BagelStep
 from zzz_od.application.bagel.bagel_navigate import BagelNavigate
@@ -90,6 +91,10 @@ class BagelRunFlow(BagelOperation):
         self._location_waits: int = 0
         self.vision: BagelRouteVision | None = None
         self._map_snapshot: BagelFixedMap | None = map_snapshot
+        self._container_recovery: ContainerRecovery | None = None
+        self._container_step_id: str | None = None
+        self._approach_step: BagelStep | None = None
+        self._reapproach_pending: bool = False
 
     def handle_init(self) -> None:
         """每次执行从首个勾选步骤开始，提前校验画面资源。"""
@@ -98,6 +103,10 @@ class BagelRunFlow(BagelOperation):
         self._precondition_waits = 0
         self._location_waits = 0
         self.index = self.indices[0]
+        self._container_recovery = None
+        self._container_step_id = None
+        self._approach_step = None
+        self._reapproach_pending = False
         if self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击') is None:
             raise ValueError('缺少画面区域：战斗画面/按键-普通攻击')
         for area in (
@@ -131,12 +140,6 @@ class BagelRunFlow(BagelOperation):
                 }
             )
 
-    def _has(self, area: str, screen_name: str = '贝果-局内') -> bool:
-        """用当前帧核对既有画面区域。"""
-        return self.round_by_find_area(
-            self.last_screenshot, screen_name, area
-        ).is_success
-
     def precondition(self, step: BagelStep) -> str | None:
         """返回不能执行的原因；不通过时不发送游戏输入。"""
         if self.is_bagel_result():
@@ -165,6 +168,8 @@ class BagelRunFlow(BagelOperation):
                 )
                 else self.STATUS_SEARCH_PENDING
             )
+        if step.action in ('approach', 'interact') and container_state(self, step.target) == 'ready':
+            return None
         if self._has('搜查容器标题') or self._has('电子保险箱标题'):
             return '请先执行关闭搜查面板步骤'
         if self._has('大保险解锁提示'):
@@ -175,7 +180,12 @@ class BagelRunFlow(BagelOperation):
             prompt = '武备箱交互' if step.target == 'box' else '电子保险箱交互'
             return (
                 None
-                if self._has(prompt) and self._has('交互F键')
+                if (self._has(prompt) and self._has('交互F键')) or (
+                    self._container_step_id == self._container_owner_id(step)
+                    and (self._approach_step is not None or (
+                        self._container_recovery is not None and self._container_recovery.interactions > 0
+                    ))
+                )
                 else f'未发现{prompt}及F图标'
             )
         if step.action in ('spawn', 'move', 'approach'):
@@ -217,6 +227,21 @@ class BagelRunFlow(BagelOperation):
             and self._has('按键-普通攻击', '战斗画面')
         )
 
+    def _container_owner_id(self, step: BagelStep) -> str:
+        """用靠近步骤区分容器；已校验流程中的交互紧接对应靠近。"""
+        if step.action == 'approach':
+            return step.id
+        return self.flow.steps[self.flow.steps.index(step) - 1].id
+
+    def _recovery_for(self, step: BagelStep) -> ContainerRecovery:
+        """同一靠近和交互共用预算；另一容器从独立预算开始。"""
+        owner_id = self._container_owner_id(step)
+        if self._container_recovery is None or self._container_step_id != owner_id:
+            self._container_recovery = ContainerRecovery(lambda: self.operation_usage_time)
+            self._container_step_id = owner_id
+            self._approach_step = None
+        return self._container_recovery
+
     def build_operation(self, step: BagelStep) -> BagelOperation | None:
         """业务动作只有一个执行来源，工具不复制游戏交互。"""
         if step.action in ('move', 'approach'):
@@ -234,12 +259,14 @@ class BagelRunFlow(BagelOperation):
                 coordinate_only=step.action == 'move',
                 final_approach=step.action == 'approach',
                 on_observation=lambda data: self.emit('observation', **data),
+                recovery=self._recovery_for(step) if step.action == 'approach' else None,
+                recovering=self._reapproach_pending,
             )
         if step.action == 'interact':
             return (
-                BagelOpenBox(self.ctx)
+                BagelOpenBox(self.ctx, recovery=self._recovery_for(step))
                 if step.target == 'box'
-                else BagelUnlockSafe(self.ctx, phase='interact')
+                else BagelUnlockSafe(self.ctx, phase='interact', recovery=self._recovery_for(step))
             )
         if step.action == 'unlock':
             return BagelUnlockSafe(self.ctx, phase='unlock')
@@ -254,7 +281,16 @@ class BagelRunFlow(BagelOperation):
         """只推进到下一项勾选动作，执行前检查当下画面。"""
         step = self.flow.steps[self.index]
         self.emit('start', status=f'核对前置画面：{step.name}')
-        reason = self.precondition(step)
+        if self._container_recovery is not None and step.action in ('approach', 'interact'):
+            reason = self._recovery_for(step).error()
+            if reason and container_state(self, step.target) != 'ready':
+                self.emit('failed', status=reason, elapsed=0)
+                return self.round_fail(self.STATUS_CONTAINER_FAILED, data=reason)
+        active_step = step
+        if self._reapproach_pending:
+            assert self._approach_step is not None
+            active_step = self._approach_step
+        reason = self.precondition(active_step)
         if reason == self.STATUS_LOCATION_PENDING:
             self._location_waits += 1
             if self._location_waits <= 5:
@@ -269,14 +305,35 @@ class BagelRunFlow(BagelOperation):
             reason = '搜查状态持续未识别，停止并保留现场'
         if reason:
             self.emit('failed', status=reason, elapsed=0)
+            if step.action in ('approach', 'interact') and self._container_recovery is not None:
+                return self.round_fail(self.STATUS_CONTAINER_FAILED, data=reason)
             return self.round_fail(reason)
         self._precondition_waits = 0
         self._location_waits = 0
         started = time.monotonic()
-        operation = self.build_operation(step)
+        recovering = self._reapproach_pending
+        operation = self.build_operation(active_step)
         result = operation.execute() if operation is not None else None
+        if operation is not None and operation.last_screenshot is not None:
+            self.last_screenshot = operation.last_screenshot
+            self.last_screenshot_time = operation.last_screenshot_time
         success = result is None or result.success
         status = result.status if result is not None else '出生位置已确认'
+        if not success and status == ContainerRecovery.STATUS_REAPPROACH:
+            reason = (
+                self._container_recovery.request_approach()
+                if self._approach_step is not None and self._container_recovery is not None
+                else '未选中并完成本容器靠近步骤，禁止隐式移动'
+            )
+            if reason is None:
+                self._reapproach_pending = True
+                self.emit('waiting', status=ContainerRecovery.STATUS_REAPPROACH)
+                return self.round_wait(ContainerRecovery.STATUS_REAPPROACH, wait=0.1)
+            status = reason
+        if recovering:
+            self._reapproach_pending = False
+            if success and status in (BagelNavigate.STATUS_ARRIVED_BOX, BagelNavigate.STATUS_ARRIVED_SAFE):
+                return self.round_wait('重新靠近完成，继续当前交互步骤', wait=0.1)
         if (
             not success
             and status != self.STATUS_DEFEATED
@@ -306,7 +363,15 @@ class BagelRunFlow(BagelOperation):
             elapsed=time.monotonic() - started,
         )
         if not success:
+            if step.action in ('approach', 'interact') and status != self.STATUS_DEFEATED:
+                return self.round_fail(self.STATUS_CONTAINER_FAILED, data=status)
             return self.round_fail(status)
+        if step.action == 'approach':
+            self._approach_step = step
+        elif step.action != 'interact':
+            self._container_recovery = None
+            self._container_step_id = None
+            self._approach_step = None
         if self.cursor == len(self.indices) - 1:
             return self.round_success('勾选步骤执行完成')
         self.cursor += 1

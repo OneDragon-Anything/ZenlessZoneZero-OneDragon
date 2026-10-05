@@ -209,11 +209,14 @@ class BagelApp(ZApplication):
             return self.round_fail('连续 3 局安全箱为空，未计成功，停止自动重开')
         return self.round_success('继续入场')
 
+    @node_from(from_name='执行局内流程', success=False, status=BagelOperation.STATUS_CONTAINER_FAILED)
     @node_from(from_name='执行局内流程', success=False, status=BagelOperation.STATUS_DEFEATED)
     @node_from(from_name='执行局内流程', success=False, status=BagelOperation.STATUS_INTERRUPTED)
     @operation_node(name='失败局退出', screenshot_before_round=False)
     def exit_after_defeat(self) -> OperationRoundResult:
-        """撤离失败或搜查中断后收尾；退出失败原样上报，不丢弃安全箱物资。"""
+        """撤离失败、容器恢复失败或搜查中断后收尾。"""
+        if self._previous_round_result is not None and self._previous_round_result.data:
+            log.error(f'贝果本局失败原因：{self._previous_round_result.data}')
         return self.round_by_op_result(BagelExit(self.ctx).execute())
 
     @node_from(from_name='失败局退出')

@@ -70,6 +70,11 @@ class BagelOperation(ZOperation):
 
     STATUS_DEFEATED: str = '贝果撤离失败'
     STATUS_INTERRUPTED: str = '贝果搜查或解锁被打断'
+    STATUS_CONTAINER_FAILED: str = '贝果容器靠近或开箱恢复失败'
+
+    def _has(self, area: str, screen_name: str = '贝果-局内') -> bool:
+        """只使用当前截图核对指定画面区域。"""
+        return self.round_by_find_area(self.last_screenshot, screen_name, area).is_success
 
     def execute(self) -> OperationResult:
         """操作返回前完成贝果本次执行的事件清理。"""
@@ -88,7 +93,7 @@ class BagelOperation(ZOperation):
         try:
             if not result.success and self.last_screenshot is not None:
                 path = self.save_screenshot()
-                log.error('贝果操作停止：%s；现场截图：%s', result.status, path)
+                log.error(f'贝果操作停止：{result.status}；原因：{result.data}；现场截图：{path}')
         except Exception:
             log.error('保存贝果失败截图时发生异常', exc_info=True)
         finally:
