@@ -12,9 +12,9 @@ steps:
   waypoints:
   - name: 巷口左转
     xy:
-    - 110.2
-    - 99.9
-    passed_tolerance: 3.0
+    - 111.0
+    - 100.0
+    passed_tolerance: 4.0
   navigation:
     timeout: 45.0
     final_mode: coordinate
@@ -50,10 +50,10 @@ steps:
   waypoints:
   - name: 电子保险箱巷口转向
     xy:
-    - 186.6
-    - 84.9
-    tolerance: 12.0
-    passed_tolerance: 12.0
+    - 188.5
+    - 84.5
+    tolerance: 4.0
+    passed_tolerance: 5.0
   navigation:
     timeout: 75.0
     final_mode: coordinate
@@ -63,10 +63,9 @@ steps:
   waypoints:
   - name: 电子保险箱楼角
     xy:
-    - 198.3
-    - 109.9
-    tolerance: 2.0
-    passed_tolerance: 2.0
+    - 201.9
+    - 108.7
+    tolerance: 4.0
   navigation:
     timeout: 75.0
     final_mode: coordinate
@@ -76,7 +75,7 @@ steps:
   waypoints:
   - name: 电子保险箱接近点
     xy:
-    - 211.9
+    - 212.1
     - 109.9
     tolerance: 1.0
     passed_tolerance: 2.0
