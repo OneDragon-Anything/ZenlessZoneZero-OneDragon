@@ -23,6 +23,9 @@ class HollowZeroMapService:
         use_gpu = self.ctx.model_config.hollow_zero_event_gpu
         if self.event_model is None or self.event_model.gpu != use_gpu:
             self.event_model = HollowEventDetector(
+                model_download_url=self.ctx.model_config.get_model_download_base_url(
+                    'hollow_zero_event',
+                ),
                 model_name=self.ctx.model_config.hollow_zero_event,
                 backup_model_name=self.ctx.model_config.hollow_zero_event_backup,
                 gh_proxy=self.ctx.env_config.is_gh_proxy,
@@ -32,7 +35,11 @@ class HollowZeroMapService:
                 debug_trace_bus=self.ctx.debug_trace_bus,
             )
 
-    def cal_current_map_by_screen(self, screen: MatLike, screenshot_time: float) -> HollowZeroMap | None:
+    def cal_current_map_by_screen(
+        self,
+        screen: MatLike,
+        screenshot_time: float,
+    ) -> HollowZeroMap | None:
         """
         根据当前的游戏画面 计算对应的空洞地图
         :param screen: 游戏画面
@@ -49,7 +56,11 @@ class HollowZeroMapService:
 
         return hollow_map_utils.construct_map_from_yolo_result(self.ctx, result, self.data_service.name_2_entry)
 
-    def cal_map_by_screen(self, screen: MatLike, screenshot_time: float) -> HollowZeroMap | None:
+    def cal_map_by_screen(
+        self,
+        screen: MatLike,
+        screenshot_time: float,
+    ) -> HollowZeroMap | None:
         """
         根据游戏画面 计算空洞地图
         会与过去一段时间识别到的地图进行合并

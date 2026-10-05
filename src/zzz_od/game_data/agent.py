@@ -463,7 +463,7 @@ class AgentEnum(Enum):
                 AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                 template_id="yeshunguang_mingxinjing",
                 hsv_color=(113, 75, 255),
-                hsv_color_diff=(10, 50, 50),
+                hsv_color_diff=(10, 75, 50),
                 max_length=120,
             ),
             AgentStateDef(
