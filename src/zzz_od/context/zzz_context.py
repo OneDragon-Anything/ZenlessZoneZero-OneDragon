@@ -107,12 +107,16 @@ class ZContext(OneDragonContext):
 
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
-        if self.game_account_config.use_custom_win_title \
-                and self.game_account_config.custom_win_title.strip() != '':
+        if (
+            self.game_account_config.use_custom_win_title
+            and self.game_account_config.custom_win_title.strip() != ''
+        ):
             return self.game_account_config.custom_win_title
         from one_dragon.base.config.game_account_config import GameRegionEnum
-        is_cn_region = self.game_account_config.game_region == GameRegionEnum.CN.value.value \
-                or self.game_account_config.game_region == GameRegionEnum.CNB.value.value
+        is_cn_region = (
+            self.game_account_config.game_region == GameRegionEnum.CN.value.value
+            or self.game_account_config.game_region == GameRegionEnum.CNB.value.value
+        )
         base_title = '绝区零' if is_cn_region else 'ZenlessZoneZero'
 
         if self.game_account_config.is_cloud_game:

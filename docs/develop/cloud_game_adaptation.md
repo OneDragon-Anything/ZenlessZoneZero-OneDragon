@@ -82,7 +82,11 @@ graph LR
 - `is_cloud_game` 根据 `client_type == "cloud"` 判断当前实例是否为云游戏。
 - `local_game_path` 保存本地游戏路径，`cloud_game_path` 保存云游戏客户端路径。
 - `game_path` 是兼容入口：云游戏模式下返回或写入 `cloud_game_path`，否则返回或写入 `local_game_path`。
-- `prefer_bangbang_points` 作为账号实例级配置，决定云排队时是否优先选择邦邦点快速队列。
+
+### 游戏配置 (`game_config.py`)
+
+- `prefer_bangbang_points` 决定云排队时是否优先选择邦邦点快速队列，保存在 `game.yml`。
+- 旧版本写在 `game_account.yml` 的同名键，会在加载游戏配置时迁入 `game.yml`，并删除旧键。
 
 ### 上下文扩展 (`zzz_context.py`)
 
@@ -97,20 +101,18 @@ graph LR
 
 ### 通用窗口检查 (`operation.py`)
 
-`Operation._add_check_game_node()` 会在业务起始节点前增加 `检测游戏窗口` 和 `打开并进入游戏`。`Operation.check_game_window()` 底层只判断 `ctx.controller.is_game_window_ready`，窗口不存在时返回失败，并进入 `OpenAndEnterGame`。
+`Operation._add_check_game_node()` 会在业务起始节点前增加 `检测游戏窗口` 和 `打开并进入游戏`。`Operation.check_game_window()` 判断 `ctx.controller.is_game_window_ready`。窗口就绪后调用 `check_game_initialized()`；窗口不存在时返回失败，并进入 `OpenAndEnterGame`。
 
-### 绝区零窗口检查 (`zzz_operation.py` / `zzz_application.py`)
+### 绝区零窗口检查 (`zzz_operation_mixin.py`)
 
-`ZOperation.check_game_window()` 和 `ZApplication.check_game_window()` 在基础窗口判断之上增加云游戏未进入状态识别：
+`ZOperation` 和 `ZApplication` 都不重写 `check_game_window`。云游戏是否已经进入游戏，由两边共同继承的 `ZOperationMixin.check_game_initialized()` 判断：
 
-- controller 为空或窗口不存在时，返回 `未打开游戏窗口`。
-- 非云游戏沿用普通窗口已就绪逻辑，直接进入 `check_game_initialized()`。
-- 云游戏窗口存在时，会截图识别云游戏外壳和进入前状态，包括“切换窗口”“开始游戏”“排队中”“邦邦点快速队列”“普通队列”“点击进入游戏”等。
-- 如果识别到这些进入前画面，则返回未就绪，让基础 `Operation` 流程进入 `OpenAndEnterGame` 处理排队和进入游戏。
-- `ZApplication` 覆写该检查后，邮件、咖啡等应用在起始节点前也会先处理云游戏排队和进入游戏流程。
-- 不再在 `check_game_initialized()` 中直接执行排队操作，避免每个业务操作重复阻塞运行 `CloudGameQueue`。
+- 非云游戏直接成功。
+- 云游戏会截图识别外壳和进入前状态，包括“切换窗口”“开始游戏”“排队中”“邦邦点快速队列”“普通队列”“点击进入游戏”等。
+- 识别到这些进入前画面则返回失败，基础流程进入 `OpenAndEnterGame` 处理排队和进入游戏。邮件、咖啡等应用也走同一条检查。
+- 不在这个检查里执行排队，避免每个业务操作都跑一遍 `CloudGameQueue`。
 
-`ZOperation` 和 `ZApplication` 当前各自维护一份 `CLOUD_GAME_NOT_ENTERED_AREA_LIST`，需要新增云游戏进入前画面时同步更新两处。
+进入前画面集中在 mixin 的 `CLOUD_GAME_NOT_ENTERED_AREA_LIST`。新增画面时只改这一处。
 
 ### 打开并进入游戏 (`open_and_enter_game.py`)
 
@@ -147,19 +149,20 @@ graph LR
 
 ## 4. 界面调整
 
-账号实例配置位于 `src/one_dragon_qt/view/setting/setting_instance_interface.py`，当前账户设置中保留云游戏相关选项：
+账号实例配置位于 `src/one_dragon_qt/view/setting/setting_instance_interface.py`，账户设置中保留云游戏客户端和路径：
 
 - `游戏客户端`：绑定 `client_type`，可选本地游戏或云游戏。
-- `邦邦点快速队列`：绑定 `prefer_bangbang_points`。
 - `游戏路径`：显示和写入 `game_account_config.game_path`，因此会随 `client_type` 自动指向本地或云游戏路径。
 
 切换 `游戏客户端` 后，界面会刷新当前显示的路径，并调用 `ctx.on_switch_instance()` 更新 controller 的窗口标题。选择路径时仍只选择 `.exe`，云游戏模式下该路径会写入 `cloud_game_path`。
+
+邦邦点开关在游戏设置 `src/zzz_od/gui/view/setting/setting_game_interface.py`。「云游戏」分组放在「游戏基础」下面，`邦邦点快速队列` 绑定 `game_config.prefer_bangbang_points`。
 
 ## 5. 屏幕识别数据
 
 云游戏识别数据位于 `assets/game_data/screen_info/cloud_game.yml`。
 
-该文件定义了云游戏排队界面中的关键区域，如“开始游戏”“排队中”“切换窗口”“点击空白区域关闭”“邦邦点快速队列”“普通队列”“排队人数”“预计等待时间”等，供 `CloudGameQueue`、`ZOperation.check_game_window()` 和 `ZApplication.check_game_window()` 使用。
+该文件定义了云游戏排队界面中的关键区域，如“开始游戏”“排队中”“切换窗口”“点击空白区域关闭”“邦邦点快速队列”“普通队列”“排队人数”“预计等待时间”等，供 `CloudGameQueue` 和 `ZOperationMixin.check_game_initialized()` 使用。
 
 `点击进入游戏` 仍来自打开游戏相关 screen info，即代码中使用的 `("打开游戏", "点击进入游戏")`。
 

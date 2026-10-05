@@ -183,7 +183,7 @@ class CloudGameQueue(ZOperation):
         )
         result_exit = self.round_by_find_area(screen, "云游戏", "国服PC云-排队中")
         if result_bang.is_success:
-            if self.ctx.game_account_config.prefer_bangbang_points:
+            if self.ctx.game_config.prefer_bangbang_points:
                 result = self.round_by_find_and_click_area(
                     screen, "云游戏", "国服PC云-邦邦点快速队列"
                 )
