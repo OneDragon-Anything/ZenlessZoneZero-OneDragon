@@ -164,6 +164,9 @@ handlers:
                           - op_name: "清除状态"
                             state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
+                  # 洛克茜是速切击破，切人条件与门槛都写在「洛克茜-合轴决策」里。
+                  - state_template: "洛克茜-合轴决策"
+
               - states: "![前台-卢西娅]"
                 sub_handlers:
                   - states: "[卢西娅-特殊技可用]"
