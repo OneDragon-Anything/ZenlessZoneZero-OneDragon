@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import os
 import queue
 import re
@@ -34,13 +35,15 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, runtime_source
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 REMOTE_FETCH_INITIAL_TIMEOUT = 10.0
 REMOTE_FETCH_IDLE_TIMEOUT = 30.0
 REMOTE_FETCH_TIMEOUT = 120.0
+
+WorkingDirectorySnapshot = tuple[tuple[str, int, str, int, str], ...]
 
 
 _FETCH_TIMEOUT_SETTING_NAMES = ('server_connect_timeout', 'server_timeout')
@@ -854,8 +857,6 @@ class GitService:
             target_ref = source_ref
         refspecs = [f'+{source_ref}:{target_ref}']
         affected_refs = {target_ref}
-        if tag_name is not None:
-            affected_refs.add(remote_branch_ref)
         if import_primary_branch and tag_name is None:
             primary_branch = self.repo_config.primary_branch
             if branch_name != primary_branch:
@@ -902,11 +903,7 @@ class GitService:
             active_repo.free()
             active_repo = self._open_repo()
 
-            if tag_name is not None:
-                tag_object = active_repo.revparse_single(target_ref)
-                tag_commit = tag_object.peel(Commit)
-                active_repo.references.create(remote_branch_ref, tag_commit.id, force=True)
-            log.info(f'临时 Git 仓库导入完成: branch={branch_name}')
+            log.info(f'临时 Git 仓库导入完成: branch={branch_name}, tag={tag_name}')
         except BaseException:
             with contextlib.suppress(Exception):
                 if remote_name in active_repo.remotes.names():
@@ -1394,7 +1391,7 @@ class GitService:
 
         本地清单从 .runtime/module_manifest.py 读取（打包时写入），
         远程清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
-        仅在 frozen 环境（PyInstaller 打包后）下执行检查。
+        仅在正常模式的 frozen 环境（PyInstaller 打包后）下执行检查。
 
         Args:
             target_oid: 目标提交 OID
@@ -1402,7 +1399,7 @@ class GitService:
         Returns:
             (是否兼容, 提示消息)
         """
-        if not getattr(sys, 'frozen', False):
+        if runtime_source.is_recovery_mode() or not getattr(sys, 'frozen', False):
             return True, ''
 
         # 读取本地 manifest（打包进 .runtime/ 的文件）
@@ -1479,7 +1476,10 @@ class GitService:
             log.warning('检查模块清单时出错，跳过检查', exc_info=True)
             return True, ''
 
-    def _checkout_branch(self) -> tuple[GitSyncStatus, bool, str]:
+    def _checkout_branch(
+        self,
+        force: bool = True,
+    ) -> tuple[GitSyncStatus, bool, str]:
         """切换到目标分支，并返回是否发生了分支切换。"""
         try:
             repo = self._open_repo()
@@ -1514,7 +1514,10 @@ class GitService:
                 return GitSyncStatus.LOCAL_UPDATE_FAILED, False, message
 
         try:
-            repo.checkout(local_ref, strategy=CheckoutStrategy.FORCE)
+            repo.checkout(
+                local_ref,
+                strategy=CheckoutStrategy.FORCE if force else CheckoutStrategy.SAFE,
+            )
             repo.set_head(local_ref)
             log.info(f'成功切换到分支 {branch_name}')
             return GitSyncStatus.SUCCESS, branch_changed, ''
@@ -1578,6 +1581,7 @@ class GitService:
         self,
         progress_callback: Callable[[float, str], None] | None = None,
         initial_tag: str | None = None,
+        before_checkout: Callable[[], bool | None] | None = None,
     ) -> tuple[GitSyncStatus, str]:
         """初始化本地仓库并同步远程目标分支。"""
         if progress_callback:
@@ -1606,20 +1610,44 @@ class GitService:
             compatible, message = self._check_remote_manifest_compatible()
             if not compatible:
                 return GitSyncStatus.RUNTIME_INCOMPATIBLE, message
+        else:
+            # 首次按 tag 建仓时没有远程分支引用，先从 tag 创建本地目标分支。
+            repo = self._open_repo(refresh=True)
+            tag_ref = f'refs/tags/{initial_tag}'
+            local_ref = f'refs/heads/{self.env_config.git_branch}'
+            try:
+                tag_commit = repo.revparse_single(tag_ref).peel(Commit)
+                if local_ref not in repo.references:
+                    repo.create_branch(self.env_config.git_branch, tag_commit)
+            except Exception:
+                message = gt('切换到目标版本失败')
+                log.error(f'从初始 tag 创建本地分支失败: {initial_tag}', exc_info=True)
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, message
+
+        checkout_force = True
+        if before_checkout is not None:
+            decision = before_checkout()
+            if decision is None:
+                return GitSyncStatus.LOCAL_CHANGES, gt('已取消覆盖本地改动')
+            checkout_force = decision
 
         if progress_callback:
             progress_callback(4 / 6, gt('切换到目标分支'))
 
-        checkout_status, _, message = self._checkout_branch()
+        if before_checkout is None:
+            checkout_status, _, message = self._checkout_branch()
+        else:
+            checkout_status, _, message = self._checkout_branch(force=checkout_force)
         if checkout_status is not GitSyncStatus.SUCCESS:
             return checkout_status, message
 
-        if progress_callback:
-            progress_callback(5 / 6, gt('同步本地代码'))
+        if initial_tag is None:
+            if progress_callback:
+                progress_callback(5 / 6, gt('同步本地代码'))
 
-        sync_status, message = self._sync_with_remote(force=True)
-        if sync_status not in (GitSyncStatus.SUCCESS, GitSyncStatus.UP_TO_DATE):
-            return sync_status, message
+            sync_status, message = self._sync_with_remote(force=checkout_force)
+            if sync_status not in (GitSyncStatus.SUCCESS, GitSyncStatus.UP_TO_DATE):
+                return sync_status, message
 
         if progress_callback:
             progress_callback(6 / 6, gt('克隆仓库成功'))
@@ -1681,6 +1709,52 @@ class GitService:
     def check_repo_exists(self) -> bool:
         """检查本地仓库是否存在。"""
         return discover_repository(self.repo_dir) is not None
+
+    def get_uncommitted_changes_snapshot(
+        self,
+    ) -> WorkingDirectorySnapshot | None:
+        """返回可比较的未提交改动快照；无法检查时返回 None。"""
+        if not self.check_repo_exists():
+            return ()
+        try:
+            repo = self._open_repo()
+            work_dir = Path(repo.workdir or self.repo_dir)
+            snapshot: list[tuple[str, int, str, int, str]] = []
+            for relative_path, status in repo.status().items():
+                try:
+                    index_oid = str(repo.index[relative_path].id)
+                except KeyError:
+                    index_oid = ''
+
+                file_path = work_dir / relative_path
+                file_mode = file_path.lstat().st_mode if file_path.exists() else 0
+                if file_path.is_symlink():
+                    content_digest = hashlib.sha256(
+                        os.readlink(file_path).encode('utf-8')
+                    ).hexdigest()
+                elif file_path.is_file():
+                    with file_path.open('rb') as file:
+                        content_digest = hashlib.file_digest(
+                            file,
+                            'sha256',
+                        ).hexdigest()
+                elif file_path.is_dir():
+                    content_digest = 'directory'
+                else:
+                    content_digest = 'missing'
+                snapshot.append(
+                    (
+                        relative_path,
+                        int(status),
+                        index_oid,
+                        file_mode,
+                        content_digest,
+                    )
+                )
+            return tuple(sorted(snapshot))
+        except Exception:
+            log.error('检查工作区状态失败', exc_info=True)
+            return None
 
     def is_initial_checkout_pending(self) -> bool:
         """检查目标本地分支是否尚未建立。"""
@@ -1835,60 +1909,142 @@ class GitService:
         logs = self.fetch_page_commit(0, 1)
         return logs[0].commit_id if logs else None
 
-    def get_latest_tag(self) -> tuple[str, str]:
-        """获取最新tag，未找到时返回空字符串
+    @staticmethod
+    def _sort_version_tags(heads: object) -> list[str]:
+        """从远程引用中提取有效版本标签并按新到旧排序。"""
+        tags: dict[str, version.Version] = {}
+        for head in heads:
+            name = getattr(head, 'name', '')
+            if not name.startswith('refs/tags/'):
+                continue
+            tag = name.removeprefix('refs/tags/')
+            with contextlib.suppress(version.InvalidVersion):
+                tags[tag] = version.parse(tag)
+        return [tag for tag, _ in sorted(tags.items(), key=lambda item: item[1], reverse=True)]
 
-        Returns:
-            (最新稳定版, 最新测试版)
-        """
-        # 如果不存在本地仓库，返回空
-        if not self.check_repo_exists():
-            return '', ''
+    def _list_remote_tag_heads(self, repository_url: str) -> object:
+        """在临时裸仓库中查询远程标签，不改写正式代码仓库。"""
+        temp_repo_dir = tempfile.mkdtemp(prefix=f'tags_{os.getpid()}_')
+        temp_repo: Repository | None = None
+        try:
+            temp_repo = init_repository(temp_repo_dir, bare=True)
+            remote = temp_repo.remotes.create('origin', repository_url)
+            callbacks = self._create_fetch_callbacks(None, 0.0, 1.0)
+            with self._temporary_fetch_timeout():
+                return remote.list_heads(
+                    callbacks=callbacks,
+                    proxy=self._get_proxy_address(),
+                )
+        finally:
+            if temp_repo is not None:
+                with contextlib.suppress(Exception):
+                    temp_repo.free()
+            _remove_temp_repo(temp_repo_dir)
 
+    def get_version_tags_list(self) -> list[str]:
+        """返回远程有效版本标签，按版本从新到旧排列。"""
+        has_local_repository = self.check_repo_exists()
         heads = None
+        restored = True
         try:
             for repository, repository_url in self._get_repository_candidates():
                 repository_name = self._get_repository_item(repository).ui_text
                 try:
-                    remote = self._ensure_remote(repository_url)
-                    callbacks = self._create_fetch_callbacks(None, 0.0, 1.0)
-                    with self._temporary_fetch_timeout():
-                        heads = remote.list_heads(callbacks=callbacks, proxy=self._get_proxy_address())
+                    if has_local_repository:
+                        remote = self._ensure_remote(repository_url)
+                        callbacks = self._create_fetch_callbacks(None, 0.0, 1.0)
+                        with self._temporary_fetch_timeout():
+                            heads = remote.list_heads(
+                                callbacks=callbacks,
+                                proxy=self._get_proxy_address(),
+                            )
+                    else:
+                        heads = self._list_remote_tag_heads(repository_url)
                     log.info(f'标签查询使用代码源: {repository_name}')
                     break
                 except Exception:
                     log.warning(f'代码源 {repository_name} 获取标签失败，尝试下一个代码源', exc_info=True)
         finally:
-            restored = self._restore_origin()
+            if has_local_repository:
+                restored = self._restore_origin()
 
         if heads is None or not restored:
             log.error('获取最新标签失败')
+            return []
+        return self._sort_version_tags(heads)
+
+    def fetch_tag_code(
+        self,
+        tag_name: str,
+        progress_callback: Callable[[float, str], None] | None = None,
+        force: bool = False,
+        before_checkout: Callable[[], bool | None] | None = None,
+    ) -> tuple[GitSyncStatus, str]:
+        """拉取并检出指定版本标签。检出前回调返回是否强制检出，None 表示取消。"""
+        try:
+            if not tag_name:
+                return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('未选择代码版本')
+            if self.check_repo_exists():
+                validate_status, message = self._validate_working_directory()
+                if (
+                    validate_status is not GitSyncStatus.SUCCESS
+                    and not force
+                    and before_checkout is None
+                ):
+                    return validate_status, message
+                fetch_status, message = self._fetch_remote(
+                    progress_callback,
+                    0.0,
+                    0.7,
+                    tag_name,
+                )
+                if fetch_status is not GitSyncStatus.SUCCESS:
+                    return fetch_status, message
+                repo = self._open_repo(refresh=True)
+            else:
+                status, message = self._clone_repository(
+                    progress_callback,
+                    tag_name,
+                    before_checkout=before_checkout,
+                )
+                if status is not GitSyncStatus.SUCCESS:
+                    return status, message
+                repo = self._open_repo(refresh=True)
+
+            tag_ref = f'refs/tags/{tag_name}'
+            if tag_ref not in repo.references:
+                return GitSyncStatus.REMOTE_UNAVAILABLE, gt('指定代码版本不存在')
+            tag_commit = repo.revparse_single(tag_ref).peel(Commit)
+            if before_checkout is not None:
+                checkout_force = before_checkout()
+                if checkout_force is None:
+                    return GitSyncStatus.LOCAL_CHANGES, gt('已取消覆盖本地改动')
+                force = checkout_force
+            if progress_callback:
+                progress_callback(0.8, gt('切换到指定代码版本'))
+            repo.checkout_tree(
+                tag_commit,
+                strategy=CheckoutStrategy.FORCE if force else CheckoutStrategy.SAFE,
+            )
+            repo.set_head(tag_ref)
+            if progress_callback:
+                progress_callback(1.0, gt('代码更新完成'))
+            return GitSyncStatus.SUCCESS, gt('更新完成')
+        except Exception:
+            log.error(f'检出指定代码版本失败: {tag_name}', exc_info=True)
+            return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('更新没有完成')
+
+    def get_latest_tag(self) -> tuple[str, str]:
+        """返回最新稳定版和最新测试版；未找到时返回空字符串。"""
+        if not self.check_repo_exists():
             return '', ''
-
-        # 提取标签名称并解析为 Version 对象
-        tags: dict[str, version.Version] = {}
-        for h in heads:
-            if h.name.startswith("refs/tags/"):
-                tag = h.name[len("refs/tags/"):]
-                # 验证是否为有效版本
-                with contextlib.suppress(version.InvalidVersion):
-                    parsed = version.parse(tag)
-                    tags[tag] = parsed
-
-        # 按 Version 对象排序
-        versions = sorted(tags.items(), key=lambda x: x[1], reverse=True)
-
-        # 找出最新的稳定版和测试版
         latest_stable = ''
         latest_beta = ''
-
-        for tag, ver in versions:
-            if ver.is_prerelease:
+        for tag in self.get_version_tags_list():
+            if version.parse(tag).is_prerelease:
                 if not latest_beta:
                     latest_beta = tag
             else:
-                if not latest_stable:
-                    latest_stable = tag
-                    break
-
+                latest_stable = tag
+                break
         return latest_stable, latest_beta

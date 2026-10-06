@@ -1,15 +1,17 @@
-import gc
-import importlib
 import shutil
 import sys
-import time
-from importlib import metadata
 from pathlib import Path
 from typing import Literal
 
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH, EnvConfig
 from one_dragon.envs.git_service import GitService
+from one_dragon.envs.launcher_asset_probe import probe_launcher_asset_urls
+from one_dragon.envs.launcher_update_transaction import (
+    RUNTIME_DIR,
+    RUNTIME_LAUNCHER_EXE,
+    LauncherUpdateTransaction,
+)
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
@@ -18,15 +20,10 @@ LauncherType = Literal['launcher', 'runtime']
 
 # 原始启动器
 LAUNCHER_EXE = 'OneDragon-Launcher.exe'
-LAUNCHER_BACKUP = 'OneDragon-Launcher.bak.exe'
 LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
 
 # 集成启动器
-RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
-RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
 RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
-RUNTIME_DIR = '.runtime'
-RUNTIME_DIR_BACKUP = '.runtime.bak'
 
 
 class UpdateService:
@@ -41,18 +38,14 @@ class UpdateService:
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
         self.git_service: GitService = git_service
+        self._launcher_transaction = LauncherUpdateTransaction()
         # 版本信息缓存：检查线程查询后填入，UI 构造下载项只读缓存，避免主线程网络请求
         self._launcher_version_cache: dict[str, tuple[str, str, str]] = {}
 
     @staticmethod
     def get_launcher_exe_name(launcher_type: LauncherType) -> str:
         """获取启动器类型对应的 exe 文件名。"""
-        return RUNTIME_LAUNCHER_EXE if launcher_type == 'runtime' else LAUNCHER_EXE
-
-    @staticmethod
-    def _get_launcher_backup_name(launcher_type: LauncherType) -> str:
-        """获取启动器类型对应的备份文件名。"""
-        return RUNTIME_LAUNCHER_BACKUP if launcher_type == 'runtime' else LAUNCHER_BACKUP
+        return LauncherUpdateTransaction.get_exe_name(launcher_type)
 
     @staticmethod
     def _get_launcher_zip_suffix(launcher_type: LauncherType) -> str:
@@ -142,11 +135,41 @@ class UpdateService:
         )
         return launcher_path.exists()
 
+    def get_launcher_asset_urls(
+        self,
+        launcher_type: LauncherType,
+        target_version: str,
+    ) -> dict[str, str]:
+        """获取指定版本的启动器附件地址，不接受 latest。"""
+        if not target_version or target_version == 'latest':
+            raise ValueError('恢复模式必须使用具体启动器版本')
+        zip_file_name = (
+            f'{self.project_config.project_name}-{self._get_launcher_zip_suffix(launcher_type)}'
+        )
+        urls = self.env_config.repo_config.get_resource_asset_urls(
+            'main',
+            target_version,
+            zip_file_name,
+        )
+        if not urls:
+            raise RuntimeError('没有配置启动器下载源')
+        return urls
+
+    def check_launcher_asset(
+        self,
+        launcher_type: LauncherType,
+        target_version: str,
+    ) -> dict[str, str]:
+        """确认指定版本的附件存在，并返回可用下载地址。"""
+        urls = self.get_launcher_asset_urls(launcher_type, target_version)
+        return probe_launcher_asset_urls(urls, self.env_config)
+
     def get_launcher_download_param(
         self,
         launcher_type: LauncherType,
         target_version: str = 'latest',
         staging: bool = False,
+        download_urls: dict[str, str] | None = None,
     ) -> CommonDownloaderParam:
         """构造启动器更新包的下载参数。"""
         zip_file_name = (
@@ -161,11 +184,12 @@ class UpdateService:
         exe_path = str(target_dir / self.get_launcher_exe_name(launcher_type))
 
         tag = '' if target_version == 'latest' else target_version
-        download_urls = self.env_config.repo_config.get_resource_asset_urls(
-            'main',
-            tag,
-            zip_file_name,
-        )
+        if download_urls is None:
+            download_urls = self.env_config.repo_config.get_resource_asset_urls(
+                'main',
+                tag,
+                zip_file_name,
+            )
         if not download_urls:
             base = 'latest/download' if tag == '' else f'download/{tag}'
             download_urls = {
@@ -191,19 +215,29 @@ class UpdateService:
         safe_version = target_version.replace('/', '_').replace('\\', '_')
         return Path(DEFAULT_ENV_PATH) / 'launcher_update' / launcher_type / safe_version
 
+    def validate_staged_launcher(self, launcher_type: LauncherType, staging_dir: Path) -> None:
+        """检查暂存启动器的最小运行目录结构。"""
+        staged_exe = staging_dir / self.get_launcher_exe_name(launcher_type)
+        if not staged_exe.is_file() or staged_exe.stat().st_size == 0:
+            raise RuntimeError('启动器更新包校验失败')
+        if launcher_type != 'runtime':
+            return
+        staged_runtime = staging_dir / RUNTIME_DIR
+        builtin_root = staged_runtime / 'builtin_src'
+        if not staged_runtime.is_dir() or not (builtin_root / 'src').is_dir():
+            raise RuntimeError('启动器运行环境缺少内置源码')
+        if not (builtin_root / 'manifest.json').is_file():
+            raise RuntimeError('启动器运行环境缺少内置清单')
+
     def apply_staged_launcher_update(
         self,
         launcher_type: LauncherType,
         staging_dir: Path,
     ) -> None:
         """校验临时目录后再备份并替换启动器，失败时自动回滚。"""
+        self.validate_staged_launcher(launcher_type, staging_dir)
         staged_exe = staging_dir / self.get_launcher_exe_name(launcher_type)
-        if not staged_exe.is_file() or staged_exe.stat().st_size == 0:
-            raise RuntimeError('启动器更新包校验失败')
         staged_runtime = staging_dir / RUNTIME_DIR
-        if launcher_type == 'runtime' and not staged_runtime.is_dir():
-            raise RuntimeError('启动器运行环境缺失')
-
         work_dir = Path(os_utils.get_work_dir())
         backup_prepared = False
         try:
@@ -212,168 +246,22 @@ class UpdateService:
             staged_exe.replace(work_dir / staged_exe.name)
             if launcher_type == 'runtime':
                 staged_runtime.rename(work_dir / RUNTIME_DIR)
+            self._launcher_transaction.mark_cleanup(launcher_type)
             self.finish_launcher_update(launcher_type, True)
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:
             if backup_prepared:
-                self.finish_launcher_update(launcher_type, False)
+                self._launcher_transaction.rollback_if_needed(launcher_type)
             raise
 
     def restore_interrupted_launcher_update(self) -> None:
-        """启动时回滚中断的更新，或清理上次成功更新保留的备份。"""
-        work_dir = Path(os_utils.get_work_dir())
-        for launcher_type in ('launcher', 'runtime'):
-            exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
-            backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
-            current_valid = exe_path.is_file() and exe_path.stat().st_size > 0
-            has_backup = backup_path.exists()
-            if launcher_type == 'runtime':
-                current_valid = current_valid and (work_dir / RUNTIME_DIR).is_dir()
-                has_backup = has_backup or (work_dir / RUNTIME_DIR_BACKUP).exists()
-            if has_backup and not current_valid:
-                self._swap_launcher_backup(launcher_type, backup=False)
-            elif has_backup:
-                self._cleanup_launcher_backup(launcher_type)
+        """启动时只处理有事务标记的备份，未知旧 bak 保留不动。"""
+        self._launcher_transaction.restore_interrupted()
 
     def prepare_launcher_update(self, launcher_type: LauncherType) -> None:
-        """备份现有启动器并清理旧版本遗留文件。"""
-        self._swap_launcher_backup(launcher_type, backup=True)
-        self._delete_legacy_launcher_files()
+        """为本次替换建立事务标记，再备份启动器。"""
+        self._launcher_transaction.prepare(launcher_type)
 
     def finish_launcher_update(self, launcher_type: LauncherType, success: bool) -> None:
         """更新成功时安排清理备份，失败时回滚原启动器。"""
-        if not success:
-            self._swap_launcher_backup(launcher_type, backup=False)
-            return
-        if launcher_type == 'runtime':
-            # 当前进程可能仍占用已改名的 exe 和 .runtime 备份 Windows 无法立即删除
-            # 保留到下次启动 由 restore_interrupted_launcher_update 确认新版本有效后清理
-            log.info('集成启动器更新完成 备份将在下次启动时清理')
-            return
-        self._cleanup_launcher_backup(launcher_type)
-
-    def _swap_launcher_backup(self, launcher_type: LauncherType, backup: bool) -> None:
-        """备份或回滚启动器文件。"""
-        work_dir = Path(os_utils.get_work_dir())
-        exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
-        backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
-        runtime_path = work_dir / RUNTIME_DIR
-        runtime_backup_path = work_dir / RUNTIME_DIR_BACKUP
-
-        if backup:
-            # 先清理旧备份 再移动当前文件 避免失败时把旧备份误当成本次回滚源
-            try:
-                if backup_path.exists():
-                    backup_path.unlink()
-                if launcher_type == 'runtime' and runtime_backup_path.exists():
-                    shutil.rmtree(runtime_backup_path)
-            except Exception:
-                log.error('清理旧启动器备份失败', exc_info=True)
-                raise
-
-            exe_backed_up = False
-            try:
-                if exe_path.exists():
-                    exe_path.replace(backup_path)
-                    exe_backed_up = True
-                    log.info(f'备份文件: {exe_path.name} -> {backup_path.name}')
-                if launcher_type == 'runtime' and runtime_path.exists():
-                    self._rename_runtime_dir(runtime_path, runtime_backup_path)
-                    log.info(f'备份目录: {runtime_path.name} -> {runtime_backup_path.name}')
-            except Exception:
-                log.error('备份启动器失败', exc_info=True)
-                if exe_backed_up and backup_path.exists():
-                    try:
-                        backup_path.replace(exe_path)
-                    except Exception:
-                        log.error('恢复已备份的启动器文件失败', exc_info=True)
-                raise
-            return
-
-        if backup_path.exists():
-            try:
-                backup_path.replace(exe_path)
-                log.info(f'回滚文件: {backup_path.name} -> {exe_path.name}')
-            except Exception:
-                log.error(f'回滚文件失败 {backup_path.name}', exc_info=True)
-
-        if launcher_type == 'runtime' and runtime_backup_path.exists():
-            try:
-                if runtime_path.exists():
-                    shutil.rmtree(runtime_path)
-                self._rename_runtime_dir(runtime_backup_path, runtime_path)
-                log.info(f'回滚目录: {runtime_backup_path.name} -> {runtime_path.name}')
-            except Exception:
-                log.error(f'回滚目录失败 {runtime_backup_path.name}', exc_info=True)
-
-    @staticmethod
-    def _release_runtime_dir_handles() -> None:
-        """释放进程内可能挡住 .runtime 目录改名的文件句柄。
-
-        importlib.metadata 扫描 sys.path 时会把 base_library.zip 用 zipfile 打开，
-        并把 zipfile.Path 挂在被 lru_cache 缓存的 FastPath 上，句柄不再释放。
-        Windows 下会让 .runtime 目录改名报 WinError 5。
-        清掉该缓存并回收引用后，句柄才会真正关闭。
-        """
-        metadata.FastPath.__new__.cache_clear()
-        importlib.invalidate_caches()
-        gc.collect()
-
-    def _rename_runtime_dir(self, src: Path, dst: Path) -> None:
-        """重命名 .runtime 相关目录；失败时释放进程内句柄后重试。"""
-        last_error: OSError | None = None
-        for attempt in range(3):
-            try:
-                src.rename(dst)
-                return
-            except OSError as error:
-                last_error = error
-                if attempt == 0:
-                    log.warning(
-                        f'重命名目录失败，释放文件句柄后重试: {src.name} -> {dst.name} {error}'
-                    )
-                self._release_runtime_dir_handles()
-                time.sleep(0.3)
-        if last_error is not None:
-            raise last_error
-
-    def _cleanup_launcher_backup(self, launcher_type: LauncherType) -> None:
-        """删除启动器备份文件和集成启动器的运行时备份目录。"""
-        work_dir = Path(os_utils.get_work_dir())
-
-        backup_name = self._get_launcher_backup_name(launcher_type)
-        backup_path = work_dir / backup_name
-        if backup_path.exists():
-            try:
-                backup_path.unlink()
-                log.info(f'删除备份文件: {backup_name}')
-            except Exception as e:
-                log.error(f'删除备份文件失败 {backup_name}: {e}')
-
-        if launcher_type == 'runtime':
-            runtime_backup_path = work_dir / RUNTIME_DIR_BACKUP
-            if runtime_backup_path.exists():
-                try:
-                    shutil.rmtree(runtime_backup_path)
-                    log.info(f'删除备份目录: {RUNTIME_DIR_BACKUP}')
-                except Exception as e:
-                    log.error(f'删除备份目录失败 {RUNTIME_DIR_BACKUP}: {e}')
-
-    @staticmethod
-    def _delete_legacy_launcher_files() -> None:
-        """删除旧版本遗留的启动器文件。"""
-        work_dir = Path(os_utils.get_work_dir())
-        legacy_files = [
-            'OneDragon Installer.exe',
-            'OneDragon Launcher.exe',
-            'OneDragon Scheduler.exe',
-        ]
-
-        for legacy_file in legacy_files:
-            legacy_path = work_dir / legacy_file
-            if legacy_path.exists():
-                try:
-                    legacy_path.unlink()
-                    log.info(f'删除旧版本遗留文件: {legacy_file}')
-                except Exception as e:
-                    log.error(f'删除旧版本遗留文件失败 {legacy_file}: {e}')
+        self._launcher_transaction.finish(launcher_type, success)

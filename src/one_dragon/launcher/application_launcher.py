@@ -1,4 +1,5 @@
 import sys
+from collections.abc import Callable
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -13,9 +14,10 @@ from one_dragon.utils.log_utils import log
 class ApplicationLauncher(LauncherBase):
     """一条龙应用启动器基类"""
 
-    def __init__(self):
+    def __init__(self, on_ready: Callable[[], None] | None = None) -> None:
         LauncherBase.__init__(self, "一条龙 应用启动器")
         self.ctx: OneDragonContext | None = None
+        self._on_ready: Callable[[], None] | None = on_ready
 
     @staticmethod
     def parse_comma_separated_values(value: str, convert_func=None) -> list:
@@ -56,9 +58,14 @@ class ApplicationLauncher(LauncherBase):
             return False
 
     def init_context(self) -> None:
-        """初始化上下文"""
+        """初始化上下文；集成启动器等待 ready 后再继续。"""
         self.ctx = self.create_context()
-        self.ctx.init_async()
+        if self._on_ready is None:
+            self.ctx.init_async()
+            return
+
+        self.ctx.init(raise_on_error=True)
+        self._on_ready()
 
     def process_arguments(self, args) -> None:
         """处理命令行参数"""

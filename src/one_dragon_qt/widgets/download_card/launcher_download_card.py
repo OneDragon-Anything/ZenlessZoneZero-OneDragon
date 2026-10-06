@@ -51,13 +51,24 @@ class LauncherVersionChecker(QThread):
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
 
-    def __init__(self, ctx: OneDragonEnvContext) -> None:
+    def __init__(
+        self,
+        ctx: OneDragonEnvContext,
+        launcher_type: LauncherType | None = None,
+        check_version: bool = True,
+        recovery_version: str | None = None,
+    ) -> None:
         self.ctx: OneDragonEnvContext = ctx
-        # 只处理当前正在运行的启动器类型 另一种类型不提供下载入口
-        self._launcher_type: LauncherType = (
+        self._check_version: bool = check_version
+        self.recovery_version: str | None = recovery_version
+        # 正常界面处理当前运行的启动器，恢复界面固定处理集成启动器。
+        self._launcher_type: LauncherType = launcher_type or (
             ctx.update_service.detect_running_launcher_type() or 'launcher'
         )
-        self.version_checker = LauncherVersionChecker(ctx.update_service, self._launcher_type)
+        self.version_checker = LauncherVersionChecker(
+            ctx.update_service,
+            self._launcher_type,
+        )
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.target_version = "latest"
         self.current_version: str | None = None
@@ -89,10 +100,27 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.target_version,
         )
 
+    def start_version_check(self) -> None:
+        """启动一次版本检查，不改变卡片的下载显示模式。"""
+        if not self.version_checker.isRunning():
+            self.version_checker.start()
+
+    def _get_queue_task(self) -> ResourceDownloadTask | None:
+        """卡片目标为 latest 时也显示同一启动器的具体版本任务。"""
+        if self.download_queue is not None:
+            task = self.download_queue.get_active_launcher_task(
+                f'launcher_{self._launcher_type}'
+            )
+            if task is not None:
+                return task
+        return super()._get_queue_task()
+
     def _on_queue_task_changed(self, task: ResourceDownloadTask) -> None:
         """启动器更新成功后重新读取已安装版本。"""
         if (
-            task.task_key == self._queue_task_key
+            self._check_version
+            and task.spec.resource_type == 'launcher'
+            and task.spec.resource_id == f'launcher_{self._launcher_type}'
             and task.state == ResourceDownloadTaskState.SUCCEEDED
         ):
             self.current_version = None
@@ -165,10 +193,10 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 button_enabled=True
             )
         else:
-            # 未安装：可下载
+            # 无法获取当前版本：允许用户主动重装最新版
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
-                message=f"{gt('未安装')} {gt('目标版本')}: {self.target_version}",
+                message=gt('无法获取版本 可重装最新版'),
                 button_text=gt('下载'),
                 button_enabled=True
             )
@@ -196,6 +224,24 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setText(gt('下载中'))
             self.download_btn.setDisabled(True)
             self.combo_box.setDisabled(True)
+            return
+
+        if not self._check_version:
+            self.target_version = 'latest'
+            self._refresh_queue_task_key()
+            self._update_downloader_and_runner()
+            task = self._get_queue_task()
+            downloaded = task is not None and task.state == ResourceDownloadTaskState.SUCCEEDED
+            self._update_ui_state(
+                icon=FluentIcon.INFO,
+                message=(
+                    gt('已下载')
+                    if downloaded
+                    else f"{gt('当前版本')}: {self.recovery_version or gt('未知')}"
+                ),
+                button_text=gt('重新安装'),
+                button_enabled=True,
+            )
             return
 
         # 启用下拉框
@@ -268,7 +314,11 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_download_finish(self, success: bool, message: str) -> None:
         """下载完成后重新检查版本。"""
-        if success and not self.version_checker.isRunning():
+        if (
+            success
+            and self._check_version
+            and not self.version_checker.isRunning()
+        ):
             self.version_checker.start()
 
         ZipDownloaderSettingCard._on_download_finish(self, success, message)

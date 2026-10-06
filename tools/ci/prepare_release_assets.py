@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import argparse
 import json
 import os
@@ -9,6 +11,16 @@ import time
 import urllib.request
 import zipfile
 from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_SRC_ROOT = _REPO_ROOT / 'src'
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
+
+from one_dragon.launcher.runtime_launcher_bootstrap.profile import (
+    RuntimeLauncherProfile,
+)
+from zzz_od.win_exe.runtime_launcher_profile import ZRuntimeLauncherProfile
 
 
 def _log(msg: str) -> None:
@@ -161,6 +173,42 @@ def _write_dir_contents(
 
         arcname = f"{prefix}/{relative_path}" if prefix else relative_path
         zf.write(path, arcname)
+
+
+def _validate_runtime_launcher_dir(
+    runtime_launcher_dir: Path,
+    release_version: str,
+    profile: RuntimeLauncherProfile | None = None,
+) -> None:
+    """确认三种集成启动器发行包需要的两棵源码树都已准备。"""
+    if profile is None:
+        profile = ZRuntimeLauncherProfile()
+    builtin_root = runtime_launcher_dir / '.runtime' / 'builtin_src'
+    manifest_path = builtin_root / 'manifest.json'
+    required_paths = [
+        runtime_launcher_dir / 'OneDragon-RuntimeLauncher.exe',
+        manifest_path,
+        *(
+            runtime_launcher_dir / 'src' / relative_path
+            for relative_path in profile.required_external_files
+        ),
+        *(
+            builtin_root / 'src' / relative_path
+            for relative_path in profile.required_builtin_files
+        ),
+    ]
+    missing = [str(path) for path in required_paths if not path.exists()]
+    if missing:
+        raise SystemExit(
+            f'RuntimeLauncher build is incomplete: {", ".join(missing)}'
+        )
+
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    if manifest.get('release_version') != release_version:
+        raise SystemExit(
+            'RuntimeLauncher builtin source version mismatch: '
+            f'{manifest.get("release_version")} != {release_version}'
+        )
 
 
 def _zip_runtime_with_models(runtime_launcher_dir: Path, model_dir: Path, zip_path: Path) -> None:
@@ -324,6 +372,7 @@ def main() -> int:
         raise SystemExit(f"Missing {runtime_launcher_dir}")
     if not runtime_launcher_exe.exists():
         raise SystemExit(f"Missing {runtime_launcher_exe}")
+    _validate_runtime_launcher_dir(runtime_launcher_dir, release_version)
 
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
     shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")

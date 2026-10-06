@@ -1,5 +1,8 @@
 try:
+    import contextlib
     import sys
+    import traceback
+    from collections.abc import Callable
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
     from PySide6.QtGui import QCloseEvent
@@ -24,17 +27,24 @@ try:
 
 
     class CtxInitRunner(QThread):
-        finished = Signal()
+        succeeded = Signal()
+        failed = Signal(str)
 
-        def __init__(self, ctx: ZContext, window: MainAppWindowBase, parent=None):
+        def __init__(self, ctx: ZContext, parent=None) -> None:
             super().__init__(parent)
-            self.ctx = ctx
-            self._window = window
+            self.ctx: ZContext = ctx
+            self.error_info: str | None = None
+            self.initialized: bool = False
 
-        def run(self):
-            self.ctx.init()
-            self._window.on_ctx_ready()
-            self.finished.emit()
+        def run(self) -> None:
+            try:
+                self.ctx.init(raise_on_error=True)
+            except Exception:
+                self.error_info = traceback.format_exc()
+                self.failed.emit(self.error_info)
+                return
+            self.initialized = True
+            self.succeeded.emit()
 
 
     class CheckVersionRunner(QThread):
@@ -62,6 +72,7 @@ try:
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
+            self.close_requested: bool = False
 
             # 记录应用启动时间
             import time
@@ -264,6 +275,7 @@ try:
             super().closeEvent(event)
             if not event.isAccepted():
                 return
+            self.close_requested = True
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 
@@ -280,19 +292,28 @@ except Exception:
 
 
 # 初始化应用程序，并启动主窗口
-def main() -> None:
+def main(on_ready: Callable[[], None] | None = None) -> int:
+    """启动 GUI，并在完整上下文初始化成功后报告 ready。"""
     if _init_error is not None:
-        # 显示错误弹窗，询问用户是否打开排障文档
-        error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
-        # MB_ICONERROR | MB_OKCANCEL = 0x10 | 0x01 = 0x11
-        # 返回值: IDOK = 1, IDCANCEL = 2
-        result = ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x11)
+        if on_ready is not None:
+            raise RuntimeError(_init_error)
 
-        # 如果用户点击确定，则打开排障文档
-        if result == 1:  # IDOK
-            webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
-
-        sys.exit(1)
+        error_message = (
+            f'启动一条龙失败,报错信息如下:\n{stack_trace}'
+            '\n\n是否打开排障文档查看解决方案?'
+        )
+        result = ctypes.windll.user32.MessageBoxW(
+            0,
+            error_message,
+            '错误',
+            0x11,
+        )
+        if result == 1:
+            webbrowser.open(
+                'https://docs.qq.com/doc/p/'
+                '7add96a4600d363b75d2df83bb2635a7c6a969b5'
+            )
+        return 1
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
@@ -300,28 +321,64 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
-    _ctx = ZContext()
+    ctx = ZContext()
+    setTheme(Theme[ctx.custom_config.theme.upper()])
 
-    # 设置主题
-    setTheme(Theme[_ctx.custom_config.theme.upper()])
+    window = AppWindow(ctx)
+    window.show()
+    window.activateWindow()
 
-    # 创建并显示主窗口
-    w = AppWindow(_ctx)
+    startup_errors: list[str] = []
+    startup_ready = False
 
-    w.show()
-    w.activateWindow()
+    def handle_ready() -> None:
+        nonlocal startup_ready
+        try:
+            window.on_ctx_ready()
+            if on_ready is not None:
+                on_ready()
+            startup_ready = True
+        except Exception:
+            startup_errors.append(traceback.format_exc())
+            app.exit(1)
 
-    # 加载配置
-    init_runner = CtxInitRunner(_ctx, w)
+    def handle_failure(error_info: str) -> None:
+        startup_errors.append(error_info)
+        app.exit(1)
+
+    init_runner = CtxInitRunner(ctx)
+    init_runner.succeeded.connect(handle_ready)
+    init_runner.failed.connect(handle_failure)
     init_runner.start()
 
-    # 启动应用程序事件循环
     quit_code = app.exec()
+    if init_runner.isRunning():
+        init_runner.wait()
 
-    _ctx.after_app_shutdown()
+    if window.close_requested and quit_code == 0:
+        with contextlib.suppress(Exception):
+            ctx.after_app_shutdown()
+        return 0
 
-    sys.exit(quit_code)
+    if init_runner.error_info is not None and not startup_errors:
+        startup_errors.append(init_runner.error_info)
+    if not startup_ready and not startup_errors:
+        startup_errors.append('GUI 在 ready 前非正常退出')
+
+    try:
+        ctx.after_app_shutdown()
+    except Exception:
+        if not startup_ready:
+            startup_errors.append(traceback.format_exc())
+        else:
+            raise
+
+    if startup_errors:
+        raise RuntimeError(
+            'GUI 在 ready 前初始化失败:\n' + '\n'.join(startup_errors)
+        )
+    return quit_code
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    raise SystemExit(main())

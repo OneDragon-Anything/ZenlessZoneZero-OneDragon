@@ -72,6 +72,8 @@ class DownloadQueueItemWidget(QWidget):
         QWidget.__init__(self, parent)
         self.service: DownloadQueueService = service
         self.task: ResourceDownloadTask = task
+        self.interaction_locked: bool = False
+        self.allowed_task_key: str | None = None
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred,
@@ -188,9 +190,24 @@ class DownloadQueueItemWidget(QWidget):
         }[task.state]
         self.action_button.setIcon(action_icon)
         self.action_button.setToolTip(gt(action_tooltip))
-        self.action_button.setEnabled(
-            task.state != ResourceDownloadTaskState.CANCELLING
-        )
+        action_enabled = task.state != ResourceDownloadTaskState.CANCELLING
+        if self.interaction_locked:
+            action_enabled = (
+                task.task_key == self.allowed_task_key
+                and task.state in (
+                    ResourceDownloadTaskState.WAITING,
+                    ResourceDownloadTaskState.DOWNLOADING,
+                    ResourceDownloadTaskState.EXTRACTING,
+                    ResourceDownloadTaskState.APPLYING,
+                )
+            )
+        self.action_button.setEnabled(action_enabled)
+
+    def set_interaction_locked(self, locked: bool, allowed_task_key: str | None = None) -> None:
+        """限制队列行只允许取消当前恢复任务。"""
+        self.interaction_locked = locked
+        self.allowed_task_key = allowed_task_key
+        self.refresh(self.task)
 
     def _transfer_text(self) -> str:
         """生成传输信息文本。"""
@@ -262,6 +279,7 @@ class DownloadQueueDialog(MessageBoxBase):
         self.service: DownloadQueueService = service
         self.item_widgets: dict[str, DownloadQueueItemWidget] = {}
         self._task_states: dict[str, ResourceDownloadTaskState] = {}
+        self._recovery_task_key: str | None = None
 
         self.buttonGroup.hide()
         self.viewLayout.setSpacing(8)
@@ -343,6 +361,12 @@ class DownloadQueueDialog(MessageBoxBase):
         self.service.queue_updated.connect(self.refresh_summary)
         self.refresh_all()
 
+    def set_recovery_lock(self, task_key: str | None) -> None:
+        """恢复重装期间只允许操作对应任务的取消按钮。"""
+        self._recovery_task_key = task_key
+        for widget in self.item_widgets.values():
+            widget.set_interaction_locked(task_key is not None, task_key)
+
     def show_queue(self) -> None:
         """显示并置顶下载队列。"""
         self.refresh_all()
@@ -402,6 +426,10 @@ class DownloadQueueDialog(MessageBoxBase):
         if task.task_key in self.item_widgets:
             return
         widget = DownloadQueueItemWidget(self.service, task, self.scroll_content)
+        widget.set_interaction_locked(
+            self._recovery_task_key is not None,
+            self._recovery_task_key,
+        )
         self.items_layout.insertWidget(self.items_layout.count() - 1, widget)
         self.item_widgets[task.task_key] = widget
         self._task_states[task.task_key] = task.state

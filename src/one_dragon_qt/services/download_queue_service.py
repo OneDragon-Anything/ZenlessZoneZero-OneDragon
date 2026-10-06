@@ -166,6 +166,10 @@ class DownloadQueueService(QObject):
         Returns:
             新建或已有的任务。
         """
+        if spec.resource_type == 'launcher':
+            active = self.get_active_launcher_task(spec.resource_id)
+            if active is not None:
+                return active
         existing = self.get_task(spec.task_key)
         if existing is not None:
             return existing
@@ -184,6 +188,24 @@ class DownloadQueueService(QObject):
     def get_task(self, task_key: str) -> ResourceDownloadTask | None:
         """按去重键查找任务。"""
         return next((task for task in self.tasks if task.task_key == task_key), None)
+
+    def get_active_launcher_task(self, resource_id: str) -> ResourceDownloadTask | None:
+        """返回同一启动器正在排队或执行的任务，不受目标版本写法影响。"""
+        return next(
+            (
+                task for task in self.tasks
+                if task.spec.resource_type == 'launcher'
+                and task.spec.resource_id == resource_id
+                and task.state in (
+                    ResourceDownloadTaskState.WAITING,
+                    ResourceDownloadTaskState.DOWNLOADING,
+                    ResourceDownloadTaskState.EXTRACTING,
+                    ResourceDownloadTaskState.APPLYING,
+                    ResourceDownloadTaskState.CANCELLING,
+                )
+            ),
+            None,
+        )
 
     def cancel(self, task_key: str) -> None:
         """取消运行任务或移除等待任务。"""

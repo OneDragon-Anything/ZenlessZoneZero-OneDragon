@@ -105,10 +105,11 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 集成启动器将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
 
 - **PyInstaller 目录模式**：`contents_directory='.runtime'`，运行时文件放在 `.runtime/` 子目录
-- **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
-- **源码加载**：借助 `hook_path_inject.py` 运行时钩子，将 `<exe_dir>/src` 注入 `sys.path`，其余模块从 `src/` 目录加载
-- **自动更新**：首次运行时自动克隆代码仓库；后续运行时根据 `auto_update_code` 配置自动拉取最新代码
-- **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部依赖清单，更新代码后如新增依赖不在清单中，提示用户更新启动器
+- **冻结启动内核**：通用层定义启动流程和 profile 抽象基类，绝区零冻结入口注入项目子类；正常与恢复业务入口通过字符串动态导入
+- **两棵完整源码**：正常模式只使用安装目录 `src/`；ready 前失败时，新进程只使用 `.runtime/builtin_src/src/` 进入恢复模式
+- **恢复边界**：恢复模式只提供下载设置、版本选择和一键重装，不初始化自动化上下文；下载进度直接显示在恢复窗口内
+- **自动更新**：外部源码仍可通过 Git 更新；恢复重装由不依赖 Qt 的恢复服务按固定 tag 编排下载、校验、代码检出和最终替换
+- **两类清单**：`module_manifest.py` 检查第三方依赖兼容性，`builtin_src/manifest.json` 校验内置源码版本和 SHA-256
 
 #### 打包命令
 
@@ -120,8 +121,13 @@ uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
 
 | 文件 | 说明 |
 |------|------|
-| `deploy/OneDragon-RuntimeLauncher.spec` | PyInstaller 打包配置 |
-| `deploy/hook_path_inject.py` | 运行时钩子，注入 `src/` 到 `sys.path` |
-| `deploy/generate_module_manifest.py` | 生成外部依赖清单 |
+| `deploy/OneDragon-RuntimeLauncher.spec` | 只冻结启动内核和第三方依赖的 PyInstaller 配置 |
+| `src/one_dragon/launcher/runtime_launcher_bootstrap/launcher.py` | 通用冻结启动内核与进程级回退 |
+| `src/one_dragon/launcher/runtime_launcher_bootstrap/profile.py` | 项目 profile 抽象基类 |
+| `src/zzz_od/win_exe/runtime_launcher_profile.py` | 绝区零项目入口、显示名称和必要源码文件 |
+| `src/zzz_od/win_exe/runtime_launcher_bootstrap.py` | 绝区零冻结入口 |
+| `deploy/generate_builtin_source.py` | 生成完整内置源码和 SHA-256 清单 |
+| `deploy/generate_module_manifest.py` | 生成第三方依赖清单 |
 | `deploy/module_manifest.py` | 自动生成的依赖清单（打包时生成） |
-| `src/zzz_od/win_exe/runtime_launcher.py` | 集成启动器入口 |
+| `src/zzz_od/win_exe/runtime_launcher.py` | 正常业务动态入口 |
+| `src/zzz_od/win_exe/recovery_app.py` | 只提供资源下载的恢复入口 |
