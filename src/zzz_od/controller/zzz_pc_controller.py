@@ -10,6 +10,9 @@ from one_dragon.utils import cv2_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.config.game_config import GameConfig
 from zzz_od.const import game_const
+from zzz_od.operation.enter_game.cloud_game_window_selector import (
+    CloudGameWindowSelector,
+)
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
@@ -20,14 +23,17 @@ class ZPcController(PcControllerBase):
             game_config: GameConfig,
             screenshot_method: str,
             standard_width: int = 1920,
-            standard_height: int = 1080
-    ):
+            standard_height: int = 1080,
+            is_cloud_game: bool = False,
+    ) -> None:
         PcControllerBase.__init__(self,
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
                                   standard_height=standard_height)
 
         self.game_config: GameConfig = game_config
+        self.is_cloud_game: bool = is_cloud_game
+        self._cloud_window_selector: CloudGameWindowSelector | None = None
         self.action_keys = self.game_config.get_action_keys('keyboard')
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
 
@@ -57,9 +63,30 @@ class ZPcController(PcControllerBase):
             log.error('关闭游戏失败 PID=%d，尝试关闭窗口', pid.value, exc_info=True)
             PcControllerBase.close_game(self)
 
-    def sync_game_config(self, game_config: GameConfig) -> None:
+    def _ensure_game_window(self) -> bool:
+        """云游戏保留有效句柄，失效后通过截图选择可渲染窗口。"""
+        if not self.is_cloud_game:
+            return super()._ensure_game_window()
+        if self.game_win.is_cached_win_valid:
+            return True
+        if self._cloud_window_selector is None:
+            self._cloud_window_selector = CloudGameWindowSelector(self)
+        selected_hwnd = self._cloud_window_selector.select_window()
+        if selected_hwnd is None:
+            self.game_win._clear_cached_window()
+            return False
+        self.set_window_hwnd(selected_hwnd)
+        return self.game_win.is_cached_win_valid
+
+    def sync_game_config(
+        self, game_config: GameConfig, is_cloud_game: bool | None = None,
+    ) -> None:
         """切换实例后同步控制器持有的账号级配置"""
         self.game_config = game_config
+        if is_cloud_game is not None and self.is_cloud_game != is_cloud_game:
+            self.is_cloud_game = is_cloud_game
+            self._cloud_window_selector = None
+            self.game_win._clear_cached_window()
 
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)

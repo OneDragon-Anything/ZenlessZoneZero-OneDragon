@@ -28,22 +28,31 @@ class PcGameWindow:
         self._hWnd = None
 
     def init_win(self) -> None:
-        """
-        初始化窗口
-        :return:
-        """
+        """保留有效且标题匹配的缓存窗口，否则重新枚举。"""
         if self.win_title is None:
+            self._clear_cached_window()
+            return
+        if self.is_cached_win_valid:
             return
 
+        self._clear_cached_window()
         windows = pyautogui.getWindowsWithTitle(self.win_title)
         if len(windows) > 0:
             for win in windows:
                 if win.title == self.win_title:
                     self._win = win
                     self._hWnd = win._hWnd
-        else:
-            self._win = None
-            self._hWnd = None
+
+    @property
+    def is_cached_win_valid(self) -> bool:
+        """检查已缓存句柄和实际窗口标题，不触发枚举。"""
+        return (
+            self._win is not None
+            and self._hWnd is not None
+            and self.win_title is not None
+            and ctypes.windll.user32.IsWindow(self._hWnd) != 0
+            and self._win.title == self.win_title
+        )
 
     def update_win_title(self, new_title: str) -> None:
         """

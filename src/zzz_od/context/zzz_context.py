@@ -138,7 +138,9 @@ class ZContext(OneDragonContext):
 
         new_win_title = self._get_win_title()
         controller.set_window_title(new_win_title)
-        controller.sync_game_config(self.game_config)
+        controller.sync_game_config(
+            self.game_config, is_cloud_game=self.game_account_config.is_cloud_game,
+        )
 
     def init_controller(self) -> None:
         win_title = self._get_win_title()
@@ -151,7 +153,8 @@ class ZContext(OneDragonContext):
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
                 standard_width=self.project_config.screen_standard_width,
-                standard_height=self.project_config.screen_standard_height
+                standard_height=self.project_config.screen_standard_height,
+                is_cloud_game=self.game_account_config.is_cloud_game,
             )
             self.controller.set_window_title(win_title)
 
