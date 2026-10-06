@@ -93,9 +93,9 @@ def _parse_color_range(text: str) -> list[list[int]] | None:
 
 
 AREA_TYPE_LABEL_MAP: dict[ScreenAreaType, str] = {
-    ScreenAreaType.NONE: '无内置识别',
-    ScreenAreaType.TEXT: '文本',
-    ScreenAreaType.TEMPLATE: '模板',
+    ScreenAreaType.NONE: '仅区域',
+    ScreenAreaType.TEXT: '文本 OCR',
+    ScreenAreaType.TEMPLATE: '模板匹配',
 }
 AREA_TYPE_ITEMS: list[ConfigItem] = [
     ConfigItem(label, area_type)
@@ -172,6 +172,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.last_screen_dir: str | None = None  # 上一次选择的图片路径
         self.area_param_rows: dict[str, QWidget] = {}
         self.area_param_inputs: dict[str, LineEdit] = {}
+        self.template_param_inputs: dict[str, EditableComboBox] = {}
+        self._template_catalog: dict[str, list[str]] | None = None
         self._updating_area_param: bool = False
 
         self._whole_update = ScreenInfoWorker()
@@ -294,6 +296,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         control_layout.addWidget(self.popup_table_btn)
 
         self._popup_win: QDialog | None = None
+        self._embedded_column_widths: list[int] | None = None
 
         scroll_area.setWidget(control_widget)
         return scroll_area
@@ -345,31 +348,41 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         layout.setContentsMargins(12, 0, 12, 12)
         layout.setSpacing(6)
 
-        title_label = BodyLabel(text=gt('区域参数'))
-        layout.addWidget(title_label)
-
         param_meta_list = [
             ('text', '目标文本'),
             ('lcs_percent', '文本阈值'),
             ('color_range', 'OCR颜色范围'),
+            ('template_match_threshold', '模板阈值'),
+        ]
+        template_meta_list = [
             ('template_sub_dir', '模板目录'),
             ('template_id', '模板ID'),
-            ('template_match_threshold', '模板阈值'),
         ]
 
         for attr_name, label_text in param_meta_list:
-            row = Row(spacing=8, margins=Margins(0, 0, 0, 0))
-            label = BodyLabel(text=gt(label_text))
-            label.setFixedWidth(88)
-            editor = LineEdit()
+            self._add_param_row(layout, attr_name, label_text, LineEdit())
+        for attr_name, label_text in template_meta_list:
+            editor = EditableComboBox()
             editor.editingFinished.connect(lambda attr=attr_name: self._on_area_param_changed(attr))
-            row.add_widget(label)
-            row.add_widget(editor, stretch=1)
-            layout.addWidget(row)
-            self.area_param_rows[attr_name] = row
-            self.area_param_inputs[attr_name] = editor
+            if attr_name == 'template_sub_dir':
+                editor.currentTextChanged.connect(self._on_template_sub_dir_changed)
+            self._add_param_row(layout, attr_name, label_text, editor)
+            self.template_param_inputs[attr_name] = editor
 
         return widget
+
+    def _add_param_row(self, layout: QVBoxLayout, attr_name: str, label_text: str, editor: QWidget) -> None:
+        """添加一行区域参数编辑控件。"""
+        row = Row(spacing=8, margins=Margins(0, 0, 0, 0))
+        label = BodyLabel(text=gt(label_text))
+        label.setFixedWidth(88)
+        if isinstance(editor, LineEdit):
+            editor.editingFinished.connect(lambda attr=attr_name: self._on_area_param_changed(attr))
+            self.area_param_inputs[attr_name] = editor
+        row.add_widget(label)
+        row.add_widget(editor, stretch=1)
+        layout.addWidget(row)
+        self.area_param_rows[attr_name] = row
 
     def _sync_table_width(self) -> None:
         """同步表格宽度为所有列宽之和。"""
@@ -394,9 +407,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._popup_win.setWindowFlags(
             self._popup_win.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint
         )
-        self._popup_win.setMinimumSize(1200, 600)
+        self._popup_win.setMinimumSize(800, 600)
         self._popup_win.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self._popup_win.destroyed.connect(self._on_popup_closed)
+        self._expand_table_columns_for_popup()
 
         popup_layout = QVBoxLayout(self._popup_win)
         popup_layout.setContentsMargins(4, 4, 4, 4)
@@ -425,7 +439,36 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._control_layout.insertWidget(btn_idx, self.table_widget, stretch=1)
         self.table_widget.show()
         self.popup_table_btn.show()
+        self._restore_embedded_column_widths()
         self._popup_win = None
+
+    def _expand_table_columns_for_popup(self) -> None:
+        """弹出时按内容撑开列宽，并记住内嵌时的列宽。"""
+        header = self.area_table.horizontalHeader()
+        self._embedded_column_widths = [
+            self.area_table.columnWidth(idx)
+            for idx in range(self.area_table.columnCount())
+        ]
+        header.sectionResized.disconnect(self._on_table_column_resized)
+        self.area_table.resizeColumnsToContents()
+        for idx in range(self.area_table.columnCount()):
+            header_width = header.sectionSizeHint(idx)
+            self.area_table.setColumnWidth(idx, max(self.area_table.columnWidth(idx), header_width))
+        header.sectionResized.connect(self._on_table_column_resized)
+        self._sync_table_width()
+
+    def _restore_embedded_column_widths(self) -> None:
+        """关闭弹出窗口后恢复内嵌时的列宽。"""
+        if self._embedded_column_widths is None:
+            return
+
+        header = self.area_table.horizontalHeader()
+        header.sectionResized.disconnect(self._on_table_column_resized)
+        for idx, width in enumerate(self._embedded_column_widths):
+            self.area_table.setColumnWidth(idx, width)
+        header.sectionResized.connect(self._on_table_column_resized)
+        self._embedded_column_widths = None
+        self._sync_table_width()
 
     def _update_existed_yml_options(self) -> None:
         """更新已有的yml选项。"""
@@ -528,6 +571,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                     continue
                 if col.attr_name == 'area_type':
                     area_type_combo = ComboBox()
+                    area_type_combo.setFixedHeight(28)
                     area_type_combo.set_items(AREA_TYPE_ITEMS, area_item.area_type)
                     area_type_combo.currentIndexChanged.connect(self._on_area_type_changed)
                     self.area_table.setCellWidget(idx, col_idx, area_type_combo)
@@ -802,6 +846,52 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._add_history_record(table_change)
         self._update_area_param_display()
 
+    def _load_template_catalog(self) -> dict[str, list[str]]:
+        """扫描模板目录，结果在本次界面生命周期内复用。"""
+        if self._template_catalog is not None:
+            return self._template_catalog
+
+        catalog: dict[str, list[str]] = {}
+        root_dir = get_template_root_dir_path()
+        if os.path.isdir(root_dir):
+            for sub_dir in os.listdir(root_dir):
+                sub_dir_path = os.path.join(root_dir, sub_dir)
+                if not os.path.isdir(sub_dir_path):
+                    continue
+                template_ids = [
+                    name for name in os.listdir(sub_dir_path)
+                    if os.path.isdir(os.path.join(sub_dir_path, name))
+                ]
+                catalog[sub_dir] = sorted(template_ids)
+        self._template_catalog = catalog
+        return catalog
+
+    @staticmethod
+    def _template_options(values: list[str], current_value: str) -> list[ConfigItem]:
+        """生成模板选项，并保留配置中已有但不在磁盘上的值。"""
+        options = list(values)
+        if current_value and current_value not in options:
+            options.append(current_value)
+        return [ConfigItem(value, value) for value in options]
+
+    def _on_template_sub_dir_changed(self, _text: str) -> None:
+        """模板目录变化后，只刷新该目录下的模板 ID。"""
+        if self._updating_area_param:
+            return
+        area_item = self._get_selected_area()
+        if area_item is None or not area_item.is_template_area:
+            return
+
+        sub_dir = self.template_param_inputs['template_sub_dir'].currentText().strip()
+        template_id = '' if area_item.template_id is None else str(area_item.template_id)
+        template_ids = self._load_template_catalog().get(sub_dir, [])
+        self._updating_area_param = True
+        self.template_param_inputs['template_id'].set_items(
+            self._template_options(template_ids, template_id),
+            template_id,
+        )
+        self._updating_area_param = False
+
     def _update_area_param_display(self) -> None:
         """根据选中区域类型更新参数编辑区。"""
         if not self.area_param_inputs:
@@ -818,8 +908,21 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         }
 
         self._updating_area_param = True
+        catalog = self._load_template_catalog() if area_item is not None and area_item.is_template_area else {}
+        sub_dir = '' if area_item is None or area_item.template_sub_dir is None else str(area_item.template_sub_dir)
+        template_id = '' if area_item is None or area_item.template_id is None else str(area_item.template_id)
         for attr_name, row in self.area_param_rows.items():
             row.setVisible(visible_map.get(attr_name, False))
+            if attr_name in self.template_param_inputs:
+                editor = self.template_param_inputs[attr_name]
+                if area_item is None:
+                    editor.setText('')
+                    continue
+                current_value = sub_dir if attr_name == 'template_sub_dir' else template_id
+                options = sorted(catalog) if attr_name == 'template_sub_dir' else catalog.get(sub_dir, [])
+                editor.set_items(self._template_options(options, current_value), current_value)
+                continue
+
             editor = self.area_param_inputs[attr_name]
             if area_item is None:
                 editor.setText('')
@@ -841,8 +944,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if area_item is None:
             return
 
-        editor = self.area_param_inputs[attr_name]
-        text = editor.text().strip()
+        editor = self.template_param_inputs.get(attr_name)
+        if editor is not None:
+            text = editor.currentText().strip()
+        else:
+            editor = self.area_param_inputs.get(attr_name)
+            if editor is None:
+                return
+            text = editor.text().strip()
         parser = self._get_attr_parser(attr_name)
         old_value = getattr(area_item, attr_name)
 
