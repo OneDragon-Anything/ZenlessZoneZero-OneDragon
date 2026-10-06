@@ -392,7 +392,7 @@
     lcs_percent: 1.0
   - area_name: 投资金额
     pc_rect:
-    - 780
+    - 960
     - 700
     - 1140
     - 754
