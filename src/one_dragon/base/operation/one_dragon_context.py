@@ -85,7 +85,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self._btn_listener_lock = threading.Lock()
+        self._btn_listener_lock: threading.Lock = threading.Lock()
         self._btn_listener_started: bool = False
         self._btn_listener_closed: bool = False
 
