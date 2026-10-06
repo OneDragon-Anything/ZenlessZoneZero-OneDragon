@@ -1,13 +1,10 @@
 import time
 from typing import ClassVar
 
-from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.base.operation.operation_base import OperationBase
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.cloud_game_window_selector import (
-    CloudGameWindowSelector,
-)
+from zzz_od.controller.zzz_pc_controller import ZPcController
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
 
 
@@ -27,7 +24,7 @@ class ZOperationMixin:
     _ctx: ZContext
     _op_to_enter_game: OperationBase | None
     CLOUD_WINDOW_CHECK_TIMEOUT_SECONDS: ClassVar[float] = 10
-    _cloud_window_selector: CloudGameWindowSelector | None = None
+    _cloud_window_check_controller: ZPcController | None = None
     _cloud_window_check_started_at: float | None = None
     _cloud_window_check_execution: float | None = None
 
@@ -55,28 +52,20 @@ class ZOperationMixin:
             return self.round_success()
 
         controller = self.ctx.controller
-        selected_hwnd: int | None = None
-        if isinstance(controller, PcControllerBase):
-            if (
-                self._cloud_window_selector is None
-                or self._cloud_window_selector.controller is not controller
-            ):
-                self._cloud_window_selector = CloudGameWindowSelector(controller)
+        if isinstance(controller, ZPcController):
+            if self._cloud_window_check_controller is not controller:
+                self._cloud_window_check_controller = controller
                 self._cloud_window_check_started_at = None
             if self._cloud_window_check_execution != self.operation_start_time:
                 self._cloud_window_check_execution = self.operation_start_time
                 self._cloud_window_check_started_at = None
-            selected_hwnd = self._cloud_window_selector.select_window()
-            if selected_hwnd is None:
-                return self._cloud_window_check_failure()
-            controller.set_window_hwnd(selected_hwnd)
-
-        screen = self.screenshot()
-        if isinstance(controller, PcControllerBase) and selected_hwnd is not None:
-            probe = CloudGameWindowSelector.evaluate_screenshot(selected_hwnd, screen)
-            if not probe.is_valid:
+            self.last_screenshot_time, screen = controller.cloud_game_screenshot()
+            self.last_screenshot = screen
+            if screen is None:
                 return self._cloud_window_check_failure()
             self._cloud_window_check_started_at = None
+        else:
+            screen = self.screenshot()
         for screen_name, area_name in self.CLOUD_GAME_NOT_ENTERED_AREA_LIST:
             result = self.round_by_find_area(screen, screen_name, area_name)
             if result.is_success:

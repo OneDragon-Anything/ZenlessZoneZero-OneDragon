@@ -12,9 +12,7 @@ from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.cloud_game_window_selector import (
-    CloudGameWindowSelector,
-)
+from zzz_od.controller.zzz_pc_controller import ZPcController
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -34,8 +32,6 @@ class CloudGameQueue(ZOperation):
         ZOperation.__init__(
             self, ctx, op_name=gt("云游戏排队"), need_check_game_win=False
         )
-        self._window_selector: CloudGameWindowSelector | None = None
-        self._window_selector_controller: PcControllerBase | None = None
         self._window_probe_failure_since: float | None = None
 
     def handle_init(self) -> None:
@@ -43,29 +39,20 @@ class CloudGameQueue(ZOperation):
         self._window_probe_failure_since = None
 
     def screenshot(self) -> MatLike | None:
-        """为云游戏 PC controller 选择正确 HWND 后统一截图。
+        """通过 controller 复用已选云游戏窗口并获取有效截图。
 
         Returns:
             controller 获取到的截图；没有有效云游戏窗口或截图失败时返回 None。
         """
         controller = self.ctx.controller
-        if not isinstance(controller, PcControllerBase):
+        if not isinstance(controller, ZPcController):
             self._window_probe_failure_since = None
             return super().screenshot()
 
-        selector = self._get_window_selector(controller)
-        selected_hwnd = selector.select_window()
-        if selected_hwnd is None:
-            self.last_screenshot_time = time.time()
-            self.last_screenshot = None
-            return None
-
-        controller.set_window_hwnd(selected_hwnd)
-        screenshot = super().screenshot()
+        self.last_screenshot_time, screenshot = controller.cloud_game_screenshot()
+        self.last_screenshot = screenshot
         if screenshot is not None:
             self._window_probe_failure_since = None
-        else:
-            log.warning('已选中云游戏窗口但常规截图失败 HWND=%s', selected_hwnd)
         return screenshot
 
     def _execute_one_round(self) -> OperationRoundResult:
@@ -93,26 +80,6 @@ class CloudGameQueue(ZOperation):
             return super()._execute_one_round()
         finally:
             self._current_node = current_node
-
-    def _get_window_selector(
-        self,
-        controller: PcControllerBase,
-    ) -> CloudGameWindowSelector:
-        """获取与当前 controller 绑定的窗口选择器。
-
-        Args:
-            controller: 当前上下文中的 PC controller。
-
-        Returns:
-            可复用的云游戏窗口选择器。
-        """
-        if (
-            self._window_selector is None
-            or self._window_selector_controller is not controller
-        ):
-            self._window_selector = CloudGameWindowSelector(controller)
-            self._window_selector_controller = controller
-        return self._window_selector
 
     def _window_probe_failure_result(self) -> OperationRoundResult:
         """根据连续截图失败时长返回等待或明确失败。

@@ -182,6 +182,17 @@ class CloudGameWindowSelector:
         return self.evaluate_screenshot(hwnd, screenshot)
 
     @classmethod
+    def is_screenshot_valid(cls, screenshot: MatLike | None) -> bool:
+        """只检查非黑像素比例，不计算对比度和评分。"""
+        if screenshot is None or screenshot.size == 0:
+            return False
+        gray = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+        non_black_count = cv2.countNonZero(
+            cv2.compare(gray, cls.NON_BLACK_GRAY_THRESHOLD, cv2.CMP_GT),
+        )
+        return non_black_count >= gray.size * cls.MIN_NON_BLACK_RATIO
+
+    @classmethod
     def evaluate_screenshot(
         cls, hwnd: int, screenshot: MatLike | None,
     ) -> CloudGameWindowProbeResult:
