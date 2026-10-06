@@ -189,7 +189,6 @@ class PhosTitleBar(SplitTitleBar):
         # 首页模式下需要添加阴影的控件列表
         self._home_shadow_targets: list[QWidget] = [
             self.titleLabel,
-            self.launchTagLabel,
             self.launcherVersionButton,
             self.codeVersionButton,
             self.downloadQueueButton,
