@@ -86,7 +86,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self.btn_listener.start()
+        self._btn_listener_lock = threading.Lock()
+        self._btn_listener_started: bool = False
+        self._btn_listener_closed: bool = False
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -292,8 +294,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_for_application()
 
-            self.ready_for_application = True
-
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
 
             self.push_service.init_push_channels()
@@ -303,6 +303,14 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+
+            with self._btn_listener_lock:
+                if self._btn_listener_closed:
+                    return
+                if not self._btn_listener_started:
+                    self.btn_listener.start()
+                    self._btn_listener_started = True
+                self.ready_for_application = True
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -582,7 +590,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
-        self.btn_listener.stop()
+        with self._btn_listener_lock:
+            self._btn_listener_closed = True
+            self.ready_for_application = False
+            self.btn_listener.stop()
         if self.controller is not None:
             self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
