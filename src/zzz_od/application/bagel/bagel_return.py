@@ -20,14 +20,12 @@ class BagelReturn(BagelOperation):
         super().__init__(ctx, op_name='贝果-返回研究站入口', timeout_seconds=60)
         self.reward_confirmed: bool = False
         self.world_recovery_attempted: bool = False
-        self.station_misses: int = 0
 
     def handle_init(self) -> None:
         """重跑时允许处理本次返回的奖励提示。"""
         super().handle_init()
         self.reward_confirmed = False
         self.world_recovery_attempted = False
-        self.station_misses = 0
 
     def recover_world(self) -> OperationRoundResult:
         """页面挡住返回时复用通用操作，每次返回仅尝试一次。"""
@@ -41,6 +39,14 @@ class BagelReturn(BagelOperation):
             return self.round_by_op_result(result)
         return self.round_success('已返回大世界')
 
+    @node_from(from_name='打开贝果入口', success=False, status=BagelOperation.STATUS_TIMEOUT)
+    @node_from(from_name='等待研究站加载', success=False, status=BagelOperation.STATUS_TIMEOUT)
+    @operation_node(name='研究站加载超时恢复', screenshot_before_round=False)
+    def recover_station_loading(self) -> OperationRoundResult:
+        """返回加载或入口切换等满节点时限后，才尝试有限的通用恢复。"""
+        return self.recover_world()
+
+    @node_from(from_name='研究站加载超时恢复', status='已返回大世界')
     @node_from(from_name='等待研究站加载', status='已返回大世界')
     @node_from(from_name='打开贝果入口', status='已返回大世界')
     @operation_node(name='通用返回完成', screenshot_before_round=False)
@@ -60,7 +66,7 @@ class BagelReturn(BagelOperation):
     @node_from(from_name='返回研究站')
     @operation_node(name='等待研究站加载', timeout_seconds=25)
     def wait_station(self) -> OperationRoundResult:
-        """先确认本次撤离奖励，再等 HUD 与落地动画后按 F。"""
+        """先确认本次撤离奖励；加载持续等待，明确页面阻挡才提前恢复。"""
         if (self.round_by_find_area(self.last_screenshot, '贝果-研究站', '标题').is_success
                 and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '前往空洞').is_success):
             return self.round_success('已到贝果入口')
@@ -78,8 +84,7 @@ class BagelReturn(BagelOperation):
                 return self.round_wait('等待撤离奖励提示关闭', wait=0.5)
             return result
         if not self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success:
-            self.station_misses += 1
-            if self.station_misses >= 3:
+            if self.round_by_find_area(self.last_screenshot, '画面-通用', '返回').is_success:
                 return self.recover_world()
             return self.round_wait('等待返回研究站加载', wait=0.5)
         return self.round_success(wait=1)
@@ -103,8 +108,10 @@ class BagelReturn(BagelOperation):
             if (self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success
                     and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '接待员名称').is_success):
                 self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            elif not self._has('快捷手册', '大世界-普通'):
+            elif self.round_by_find_area(self.last_screenshot, '画面-通用', '返回').is_success:
                 return self.recover_world()
+            else:
+                return self.round_wait('等待达塔对话或贝果入口', wait=0.5)
             return self.round_retry('等待达塔对话', wait=1)
         result = self.round_by_find_and_click_area(
             self.last_screenshot, '贝果-研究站', '出发对话',
