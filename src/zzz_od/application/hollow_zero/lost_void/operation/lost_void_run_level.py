@@ -443,7 +443,8 @@ class LostVoidRunLevel(ZOperation):
         recognized_agent_text_list: list[str] = []
 
         protected_abandon_category_set: set[str] = set()
-        protected_rule_list = self.ctx.lost_void.challenge_config.artifact_priority_in_battle.copy()
+        protected_rule_list = self.ctx.lost_void.challenge_config.artifact_priority.copy()
+        protected_rule_list.extend(self.ctx.lost_void.challenge_config.artifact_priority_in_battle)
         protected_rule_list.extend(self.ctx.lost_void.challenge_config.artifact_priority_2)
         for rule in protected_rule_list:
             if not self.ctx.lost_void._is_specific_priority_rule(rule):
