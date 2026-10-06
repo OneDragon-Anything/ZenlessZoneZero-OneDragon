@@ -179,12 +179,19 @@ class CloudGameWindowSelector:
             包含有效像素比例、对比度、得分与有效性的探测结果。
         """
         screenshot = self._capture_window(hwnd)
+        return self.evaluate_screenshot(hwnd, screenshot)
+
+    @classmethod
+    def evaluate_screenshot(
+        cls, hwnd: int, screenshot: MatLike | None,
+    ) -> CloudGameWindowProbeResult:
+        """按候选探测规则评估截图，空图和黑图视为无效。"""
         if screenshot is None or screenshot.size == 0:
             return CloudGameWindowProbeResult(hwnd, 0, 0, 0, False)
 
         gray = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
         non_black_ratio = float(
-            np.count_nonzero(gray > self.NON_BLACK_GRAY_THRESHOLD) / gray.size
+            np.count_nonzero(gray > cls.NON_BLACK_GRAY_THRESHOLD) / gray.size
         )
         contrast = float(np.std(gray))
         score = non_black_ratio + contrast / 255.0
@@ -193,7 +200,7 @@ class CloudGameWindowSelector:
             non_black_ratio=non_black_ratio,
             contrast=contrast,
             score=score,
-            is_valid=non_black_ratio >= self.MIN_NON_BLACK_RATIO,
+            is_valid=non_black_ratio >= cls.MIN_NON_BLACK_RATIO,
         )
 
     def _capture_window(self, hwnd: int) -> MatLike | None:

@@ -108,7 +108,9 @@ graph LR
 `ZOperation` 和 `ZApplication` 都不重写 `check_game_window`。云游戏是否已经进入游戏，由两边共同继承的 `ZOperationMixin.check_game_initialized()` 判断：
 
 - 非云游戏直接成功。
-- 云游戏会截图识别外壳和进入前状态，包括“切换窗口”“开始游戏”“排队中”“邦邦点快速队列”“普通队列”“点击进入游戏”等。
+- PC 云游戏先用 `CloudGameWindowSelector` 按排队模块的规则选窗，通过 `set_window_hwnd()` 写回 controller，再获取常规截图。最终截图也按相同非黑像素比例规则检查，避免单候选黑图或探测成功后常规截图失败被当成已经进入游戏。
+- 没有有效候选、截图失败、空图或黑图时，每秒等待并重新检查。连续失败达到 10 秒返回“未找到有效云游戏窗口”，沿框架失败边转入 `OpenAndEnterGame` 恢复流程；不会直接进入业务节点。画面恢复、新一次执行或 controller 更换时清空失败计时。窗口选择器按当前操作缓存，controller 更换时重建。
+- 有效截图继续识别外壳和进入前状态，包括“切换窗口”“开始游戏”“排队中”“邦邦点快速队列”“普通队列”“点击进入游戏”等。没有命中这些区域时沿用原来的成功判断；非 PC controller 保持原有识别流程。
 - 识别到这些进入前画面则返回失败，基础流程进入 `OpenAndEnterGame` 处理排队和进入游戏。邮件、咖啡等应用也走同一条检查。
 - 不在这个检查里执行排队，避免每个业务操作都跑一遍 `CloudGameQueue`。
 
@@ -168,7 +170,15 @@ graph LR
 
 ## 6. 当前限制与维护点
 
+### 手动检查同名窗口截图
+
+在主仓根目录运行 `uv run --env-file .env python zzz-od-test/test/manual_print_cloud_zzz_hwnd.py`。脚本等待 3 秒后，枚举所有标题完全匹配的窗口，打印各窗口的 HWND 和客户区位置，并分别使用 PrintWindow、BitBlt、PIL 保存截图。MSS 已移除，不再使用。
+
+默认标题为 `云·绝区零`，其他标题可修改脚本中的 `WINDOW_TITLE`。脚本先调用正式云游戏窗口选择器，输出候选的非黑像素比例、对比度、评分、有效性和最终选中的 HWND；无有效候选时明确输出未选择。只有一个候选时，正式规则直接选择该窗口，脚本额外打印探测评分供检查，不改变选择结果。评分基于独立 PrintWindow 探测，与后续保存的各截图方式分开执行，画面变化时可能不同。脚本使用独立 controller，不改变正在运行的应用所用窗口，也不判断是否已进入游戏。
+
+图片保存到测试仓的 `test/window_captures/`，文件名包含 HWND 和截图方式，该目录不提交到 Git。BitBlt 和 PIL 截取桌面上的窗口区域，窗口被遮挡时可能截到遮挡内容；比较同名窗口自身的渲染画面时，以 PrintWindow 图片为主。
+
 - 云游戏只处理已登录客户端，不实现账号密码输入、验证码或云游戏账号切换。
 - 目前云游戏识别区域名称以 `国服PC云-*` 为主，新增其他区服或不同客户端界面时，需要补充 `assets/game_data/screen_info/cloud_game.yml` 和窗口未进入状态列表。
-- `ZOperation` 与 `ZApplication` 的云游戏未进入状态列表存在重复，新增状态时需要同步维护，避免普通操作和应用级操作行为不一致。
+- `ZOperation` 与 `ZApplication` 共用 mixin 的云游戏初始化检查和未进入状态列表，新增状态时统一维护该列表。
 - `temp_close_cloud_zzz.py` 是临时验证脚本，不属于主流程；正式关闭入口以 `ZPcController.close_game()` 为准。
