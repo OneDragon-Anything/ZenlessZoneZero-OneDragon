@@ -61,7 +61,7 @@ config/
 - 通过 `last_run_result` 固化最近一次已经确定的运行终态，保证重复停止和并发收口复用首次结果，不重复派发 STOP 事件或覆盖结束原因。
 - `last_application_result` 保存应用 `execute()` 返回的 `OperationResult`，用于读取应用自身的成功状态和状态文本；它与 `ApplicationRunResult` 分别表示应用执行结果和运行生命周期结果。
 - GUI 的 `after_done` 配置和 CLI 的收尾参数只在一条龙入口使用：CLI 在 `run_application()` 返回后执行 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 并执行 finalizer。
-- 一条龙 GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；通用 `ApplicationRunContext.run_application()` 只负责运行应用并返回 `ApplicationRunResult`，不负责关闭游戏或关机。
+- 一条龙 GUI 使用 `after_done` 配置表达是否执行运行后动作：无操作、关闭游戏、关机、休眠或睡眠；通用 `ApplicationRunContext.run_application()` 只负责运行应用并返回 `ApplicationRunResult`，不负责关闭游戏、关机、休眠或睡眠。
 
 通用 GUI 的 `AppRunner` 只保存本次异步调用返回的 `ApplicationRunResult`。一条龙界面在线程 `finished` 后读取当前 `after_done`，再决定是否调用一条龙专属 finalizer；普通应用和 `run_app_by_item()` 不执行结束后动作。
 
