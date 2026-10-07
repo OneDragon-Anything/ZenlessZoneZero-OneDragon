@@ -9,7 +9,7 @@
 设置界面的代码源下拉框包含“自动”和项目 `repository.yml` 声明的全部具体代码源。配置字段分工如下：
 
 - `repositories.primary_branch`：声明同一逻辑仓库在所有镜像代码源上共享的项目主分支；该值必须存在于 `repositories.branches`，运行环境缺失 `git_branch` 时默认使用该值。
-- `repositories.branches`：按 YAML 顺序声明代码版本下拉框的分支值、显示名称和说明；界面不再内置具体分支。当前 `main` 供两类启动器使用，`test` 仅供源码启动器测试，`test-integrated` 供集成启动器测试。
+- `repositories.branches`：按 YAML 顺序声明用户选择的逻辑分支、显示名称和说明；`integrated_branch` 可为该逻辑分支声明集成启动器实际同步的物理分支。界面只显示逻辑分支。
 - `repository_url`：保存用户选择；值为 `auto` 时启用自动模式，具体 URL 时表示用户手动指定的首选源；旧配置缺失该字段时按自动模式处理。具体 URL 不再存在于 `repository.yml` 时，静默重置为 `auto`。
 - `last_repository_url`：记录最近一次成功 fetch 使用的原始仓库 URL。
 
@@ -21,6 +21,8 @@
 ```
 
 候选源失败或超时后仍继续回退。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
+
+`git_branch` 始终保存用户选择的逻辑分支。同步前，GitService 根据当前启动器解析物理分支：源码启动器的 `test` 仍同步 `test`，集成启动器的 `test` 同步 `test-integrated`；`main` 和未在 `repositories.branches` 中声明的自定义分支保持原值。fetch、远程引用、模块清单检查、checkout 和状态比较统一使用该物理分支，界面仍显示逻辑分支。
 
 ## fetch 线程隔离与作废式超时
 
@@ -100,12 +102,12 @@ shallow 始终使用二进制和 LF 行尾。Windows 文本写入会把 LF 转�
 fetch worker 完成后，主进程导入的是远程跟踪引用，目标形态为：
 
 ```text
-refs/remotes/<git_remote>/<git_branch>
+refs/remotes/<git_remote>/<physical_branch>
 ```
 
 导入过程不会自动创建或切换本地分支，也不会改变 `HEAD`。本地分支和工作区由后续 `_checkout_branch()` 负责：
 
-1. 若 `refs/heads/<git_branch>` 不存在，则从远程跟踪引用创建本地分支；
+1. 若 `refs/heads/<physical_branch>` 不存在，则从远程跟踪引用创建本地分支；
 2. 强制 checkout 该本地分支；
 3. 将 `HEAD` 设置为该本地分支；
 4. 再执行工作区与远程分支同步。
@@ -124,9 +126,9 @@ checkout 目标本地分支
 同步工作区
 ```
 
-模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
+模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<physical_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
 
-首次初始化仓库时，集成启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<git_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
+首次初始化仓库时，集成启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<physical_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
 
 如果所有代码源都无法取得内置 tag，不退化为最新分支，以免首次 checkout 到不兼容代码。只有 `_fetch_remote()` 返回 `REMOTE_UNAVAILABLE` 时，首次初始化才转换为 `BUILTIN_TAG_UNAVAILABLE`；本地对象重建、远程地址恢复或仓库应用失败继续返回 `LOCAL_UPDATE_FAILED`，不能伪装成 tag 不可用。纯远程失败时保留新建的 `.git` 和安装包内置源码；目标本地分支仍不存在，所以下次启动仍按同一内置 tag 重试。即使导入 tag 时确认本地对象缺失并触发仓库重建，重建流程也继续使用该 tag，不改拉配置分支。非正式版本（`v0.0.0`、`dev+...`、`pr...`）不指定 tag，仍使用分支 fetch 和模块清单检查。
 
@@ -148,7 +150,7 @@ checkout 目标本地分支
 因此，排查日志时要区分以下状态：
 
 - `远程代码拉取成功`：只表示候选源 fetch 和临时仓库导入成功；
-- `成功切换到分支 <git_branch>`：才表示本地分支和 `HEAD` 已完成 checkout；
+- `成功切换到分支 <physical_branch>`：才表示本地分支和 `HEAD` 已完成 checkout；
 - `RUNTIME_INCOMPATIBLE`：表示流程在 checkout 前被模块清单检查拦截；
 - `LOCAL_UPDATE_FAILED`：表示本地更新步骤没有完整完成，调用方不得假定磁盘代码可安全加载。
 
