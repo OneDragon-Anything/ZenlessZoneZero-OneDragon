@@ -24,8 +24,15 @@ SAFE_SLOT_CENTERS: tuple[Point, ...] = tuple(Point(x, 899) for x in _SAFE_XS)
 # 仓库安全箱的位置与局内不同，启动转存、结算及空箱核验共用这一组。
 WAREHOUSE_SAFE_CENTERS: tuple[Point, ...] = tuple(Point(x, 897) for x in (267, 371, 475, 579, 683))
 _SLOT_HALF: int = 32
-# 空格灰度标准差约 4–8；有图标时通常 >40。取中间阈值，避免把轻微噪点当占用。
-_OCCUPIED_STD_MIN: float = 20.0
+# 格子判占用/空槽用「通道归一化后的图案差异度」，不用原始灰度。
+# 归一化把每个像素除以三通道之和再放大到灰度量纲，光照强度被约掉，只剩图案自身的
+# 相对差异。差异度用「三通道两两差的平均」，不固定通道顺序，传 RGB 或 BGR 结果一致。
+# 实测：受击泛红时空槽的原始灰度标准差会从 8 抬到 21，正好卡在原始判据 9–20 的缝里，
+# 导致整局被误判为状态不明；换归一化差异度后空槽约 4、占用 42–111，分得很开。
+_SLOT_BRIGHTNESS_SCALE: float = 765.0
+# 过渡动画期的中间值（约 12–42）落在空槽一侧，按未知处理并停止，不当成占用。
+_OCCUPIED_DEVIATION_MIN: float = 20.0
+_EMPTY_DEVIATION_MAX: float = 12.0
 _APPEARANCE_MEAN_DIFF_MIN: float = 12.0
 _LOCK_MATCH_MIN: float = 0.9
 
@@ -72,12 +79,11 @@ def inspect_safe_slots(
         if score >= _LOCK_MATCH_MIN:
             locked.append(index)
             continue
-        gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
-        deviation = float(np.std(gray))
-        if deviation >= _OCCUPIED_STD_MIN:
+        deviation = slot_texture(crop)
+        if deviation >= _OCCUPIED_DEVIATION_MIN:
             occupied.append(index)
-        elif 1 <= deviation <= 9 and 12 <= float(np.mean(gray)) <= 35:
-            # 已归档空槽有暗色纹理；锁图标、纯黑遮挡和高亮过渡不能按空槽处理。
+        elif deviation <= _EMPTY_DEVIATION_MAX:
+            # 已归档空槽有暗色纹理；锁图标、纯黑遮挡和高亮过渡落在两档之间，按未知处理。
             empty.append(index)
         else:
             return None
@@ -110,19 +116,39 @@ def slot_crop(screen: MatLike, center: Point, half: int = _SLOT_HALF) -> MatLike
     return screen[y1:y2, x1:x2]
 
 
-def slot_occupied(screen: MatLike, center: Point, half: int = _SLOT_HALF) -> bool:
-    """用局部灰度方差判断格子是否有图标；空格接近纯色低方差。
+def slot_texture(crop: MatLike) -> float:
+    """返回格子的图案差异度：光照强度被约掉后，图案自身的纹理多少。
+
+    每个像素先除以三通道之和再放大回灰度量纲，约掉光照强度；再对「三通道两两差的
+    平均」求标准差，不固定通道顺序，调用方传 RGB 或 BGR 结果一致。受击泛红和废弃区
+    光照变化只改亮度不改图案，因此不影响这个值。
 
     Args:
-        screen: 框架截图，RGB 或 BGR 均可，只取亮度方差。
+        crop: 格子裁剪图像，RGB 或 BGR 均可。
+    """
+    if crop is None or crop.ndim != 3 or crop.size == 0:
+        return 0.0
+    values = crop.astype(np.float32)
+    total = values.sum(axis=2, keepdims=True)
+    total[total < 1e-6] = 1e-6
+    ordered = np.sort(values / total, axis=2)
+    spread = (ordered[:, :, 2] - ordered[:, :, 0]) * _SLOT_BRIGHTNESS_SCALE
+    return float(np.std(spread))
+
+
+def slot_occupied(screen: MatLike, center: Point, half: int = _SLOT_HALF) -> bool:
+    """用归一化后的图案差异度判断格子是否有图标；空格接近纯色低差异。
+
+    Args:
+        screen: 框架截图，RGB 或 BGR 均可。
         center: 格子中心（1080p 游戏坐标）。
         half: 裁剪半边长。
     """
     crop = slot_crop(screen, center, half)
     if crop is None:
         return False
-    gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY) if crop.ndim == 3 else crop
-    return float(np.std(gray)) >= _OCCUPIED_STD_MIN
+    deviation = slot_texture(crop)
+    return deviation >= _OCCUPIED_DEVIATION_MIN
 
 
 def occupied_indices(screen: MatLike, centers: tuple[Point, ...]) -> list[int]:
