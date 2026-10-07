@@ -30,6 +30,10 @@
         - "agent_name": "浮波柚叶"
           "op_name": "按键-切换角色"
         "states": "![前台-浮波柚叶] & [浮波柚叶-能量]{0, 120}"
+      - "operations":
+        - "agent_name": "洛克茜"
+          "op_name": "按键-切换角色"
+        "states": "![前台-洛克茜] & [洛克茜-能量]{90, 120}"
       - "states": "![自定义-血量扣减, 0, 8]"
         "sub_handlers":
         - "operations":
@@ -9215,6 +9219,111 @@
           "post_delay": 0.25
           "repeat": 8
         "states": ""
+    - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-洛克茜]"
+      "states": "[前台-洛克茜]"
+      "sub_handlers":
+      - "debug_name": "支援攻击-午夜守则"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击-松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 8
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[闪避识别-黄光, 0, 0.5] & ![自定义-动作不打断]"
+      - "debug_name": "闪避反击-礼尚往来"
+        "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.25
+          "repeat": 3
+        "states": "[自定义-红光闪避, 0, 1]"
+      - "debug_name": "连携攻击-葬风巨锤"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 0.5]"
+      - "debug_name": "强制释放终结技"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -2
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-终结技被强制释放, 0, 1]"
+      - "debug_name": "失衡期-终结技(+1风能)"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -2
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-失衡时间, 0, 8] & [洛克茜-终结技可用]"
+      - "debug_name": "长按E-攒满3点风能"
+        "operations":
+        - "op_name": "按键-特殊攻击-松开"
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "按键-特殊攻击-松开"
+        - "op_name": "等待秒数"
+          "seconds": 1.5
+        "states": "[洛克茜-能量]{90, 120}"
+      - "debug_name": "能量不足-申请切走并攒能量"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-合轴时间"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.25
+          "repeat": 8
+        "states": "[洛克茜-能量]{0, 89}"
+    - "debug_name": "后台能量够-申请合轴切入"
+      "interrupt_states": "![后台-洛克茜]"
+      "operations":
+      - "op_name": "设置状态"
+        "seconds": 1
+        "state": "自定义-合轴时间"
+      "states": "[后台-洛克茜] & [洛克茜-能量]{90, 120}"
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-希希芙]"
       "states": "[前台-希希芙]"
       "sub_handlers":
