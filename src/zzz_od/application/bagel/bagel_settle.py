@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class BagelSettleWarehouse(BagelOperation):
-    """入仓后按开关清理；仓满且安全箱有物时保留现场。"""
+    """入仓后按开关和频率清理；仓满且安全箱有物时先腾位再结束。"""
 
     STATUS_DONE: str = BagelDeposit.STATUS_DONE
     # 空箱本局零收获。独立终态：不进入出售，也不做仓满核验，直接结束。
@@ -25,33 +25,60 @@ class BagelSettleWarehouse(BagelOperation):
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,
+        clean_interval: int = 1,
     ) -> None:
-        """auto_clean 为假时只入仓，仓满直接失败。"""
+        """`clean_interval` 是多少个成功入仓局出售一次，最小 1（每局都卖）。
+
+        只统计真正装进仓库的局，空箱局不计入；仓满那一局无论如何都会卖，用于腾位。
+        """
         super().__init__(ctx, op_name='贝果-结算仓库', timeout_seconds=180)
         self.auto_clean: bool = auto_clean
         self.filter_areas: tuple[str, ...] = filter_areas
+        self.clean_interval: int = max(1, clean_interval)
         self.deposit_status: str = BagelDeposit.STATUS_EMPTY
+        self.forced_clean: bool = False
+        self._rounds_since_clean: int = 0
+
+    def should_clean(self) -> bool:
+        """按成功局数判断本局是否该出售；到点后计数归零，形成固定间隔。"""
+        self._rounds_since_clean += 1
+        if self._rounds_since_clean < self.clean_interval:
+            return False
+        self._rounds_since_clean = 0
+        return True
 
     @operation_node(name='首次入仓', is_start_node=True, screenshot_before_round=False)
     def deposit_first(self) -> OperationRoundResult:
-        """先尝试入仓；满了且仍有物资则停止；空箱不做任何出售操作。"""
+        """先尝试入仓；空箱不做任何出售；仓满仍有物资时必须先腾位再继续。"""
         result = BagelDeposit(self.ctx).execute()
         if not result.success:
             return self.round_by_op_result(result)
-        if result.status == BagelDeposit.STATUS_FULL:
-            return self.round_fail('仓库已满且安全箱仍有物资，禁止批量出售，停止并保留现场')
         self.deposit_status = result.status
         if result.status == BagelDeposit.STATUS_EMPTY:
             # 本局零收获。空箱不该去点仓库的批量出售：没有东西可卖，白跑一趟，
             # 万一筛选点错反而会卖掉仓库里的存货。
             return self.round_success(self.STATUS_SKIPPED_EMPTY)
+        if result.status == BagelDeposit.STATUS_FULL:
+            # 仓库放不下了。安全箱里还有物资腾不出去，下一局拿到的会溢出丢失，
+            # 因此这一局无视清理开关，先卖掉腾位再结束。
+            self.forced_clean = True
+            result = BagelCleanWarehouse(self.ctx, self.filter_areas).execute()
+            if not result.success:
+                return self.round_by_op_result(result)
+            log.info('贝果仓库已满，强制清理腾位：%s', result.status)
+            self._rounds_since_clean = 0
+            self.deposit_status = BagelDeposit.STATUS_DONE
+            return self.round_success('仓库已满，清理腾位完成')
         return self.round_success('已入仓')
 
     @node_from(from_name='首次入仓', status='已入仓')
+    @node_from(from_name='首次入仓', status='仓库已满，清理腾位完成')
     @operation_node(name='入仓后清理', screenshot_before_round=False)
     def clean_after_deposit(self) -> OperationRoundResult:
-        """开关关闭则跳过出售。"""
-        if not self.auto_clean:
+        """按频率决定是否出售；仓满那一局已在入仓节点清理过。"""
+        if self.forced_clean:
+            return self.round_success(self.deposit_status)
+        if not self.auto_clean or not self.should_clean():
             return self.round_success(self.deposit_status)
         result = BagelCleanWarehouse(self.ctx, self.filter_areas).execute()
         if not result.success:

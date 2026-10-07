@@ -92,17 +92,18 @@ class BagelDeposit(BagelOperation):
             return self.round_fail('入仓后安全箱格子状态不明，停止并保留现场')
         if safe_after > 0:
             pair = self._warehouse_pair()
-            if safe_after < self.safe_before:
-                return self.round_fail(
-                    f'仅部分入仓，安全箱 {self.safe_before} -> {safe_after} 格，'
-                    '停止并保留现场核对物资去向',
-                )
+            # 仓满要先判：格数不够时部分入仓是预期行为，不是物资去向不明。
             if pair is not None and pair[0] >= pair[1]:
                 self._full_waits += 1
                 if self._full_waits >= 6:
                     log.info('贝果入仓：仓库 %s/%s 且安全箱仍占用，记为已满', pair[0], pair[1])
                     return self.round_success(self.STATUS_FULL, data={'safe_count': safe_after})
                 return self.round_wait('仓库已满，等待确认', wait=0.5)
+            if safe_after < self.safe_before:
+                return self.round_fail(
+                    f'仅部分入仓，安全箱 {self.safe_before} -> {safe_after} 格，'
+                    '停止并保留现场核对物资去向',
+                )
             self._full_waits = 0
             # 第一次点击可能没让游戏入仓。格子还在就再点，不要只重数。
             clicked = self.round_by_find_and_click_area(

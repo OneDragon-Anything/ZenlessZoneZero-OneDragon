@@ -73,6 +73,12 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.auto_clean_switch.value_changed.connect(self._refresh_clean_options)
         layout.addWidget(self.auto_clean_switch)
+        self.clean_interval_card: SpinBoxSettingCard = SpinBoxSettingCard(
+            icon='', title='出售频率',
+            content='多少个成功入仓局出售一次，填 1 表示每局都卖。仓库已满时不受此限制，照样出售腾位。',
+            minimum=1, maximum=999,
+        )
+        layout.addWidget(self.clean_interval_card)
         self.clean_mode_card: ComboBoxSettingCard = ComboBoxSettingCard(
             icon='', title='出售方案',
             content='默认出售贵重物品、战术棱镜和其他物品的 C–S 品质',
@@ -95,6 +101,7 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         """仅开启清理时显示方案，自定义时显示两组筛选。"""
         enabled = self.auto_clean_switch.btn.isChecked()
         self.clean_mode_card.setVisible(enabled)
+        self.clean_interval_card.setVisible(enabled)
         visible = enabled and self.clean_mode_card.getValue() == CLEAN_MODE_CUSTOM
         self.clean_types_card.setVisible(visible)
         self.clean_qualities_card.setVisible(visible)
@@ -123,5 +130,6 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.clean_qualities_card.init_with_adapter(get_prop_adapter(self.config, 'clean_qualities'))
         self.failure_retries_card.init_with_adapter(get_prop_adapter(self.config, 'max_failure_retries'))
         self.success_rounds_card.init_with_adapter(get_prop_adapter(self.config, 'max_success_rounds'))
+        self.clean_interval_card.init_with_adapter(get_prop_adapter(self.config, 'clean_interval'))
         self.auto_clean_switch._on_adapter_value_applied = self._clean_value_loaded
         self.clean_mode_card._on_adapter_value_applied = self._clean_value_loaded
