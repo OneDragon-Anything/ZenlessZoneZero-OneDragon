@@ -259,6 +259,7 @@ class BagelApp(ZApplication):
         """只有安全箱有物且确实入仓才计成功；空箱局仍要返回入口。"""
         result = BagelSettleWarehouse(
             self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
+            self.config.sell_interval,
         ).execute()
         if result.success:
             if result.status == BagelDeposit.STATUS_DONE:
@@ -325,6 +326,7 @@ class BagelApp(ZApplication):
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
         result = BagelSettleWarehouse(
             self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
+            self.config.sell_interval,
         ).execute()
         if result.success:
             self.defeat_rounds += 1

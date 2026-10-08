@@ -23,12 +23,26 @@ class BagelSettleWarehouse(BagelOperation):
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,
+        sell_interval: int = 1,
     ) -> None:
-        """auto_clean 为假时只入仓，仓满直接失败。"""
+        """auto_clean 为假时只入仓，仓满直接失败。
+
+        `sell_interval` 是多少个成功入仓局出售一次，最小 1（每局都卖）。
+        """
         super().__init__(ctx, op_name='贝果-结算仓库', timeout_seconds=180)
         self.auto_clean: bool = auto_clean
         self.filter_areas: tuple[str, ...] = filter_areas
+        self.sell_interval: int = max(1, sell_interval)
         self.deposit_status: str = BagelDeposit.STATUS_EMPTY
+        self._rounds_since_sell: int = 0
+
+    def should_sell(self) -> bool:
+        """按成功局数判断本局是否该出售；到点后计数归零，形成固定间隔。"""
+        self._rounds_since_sell += 1
+        if self._rounds_since_sell < self.sell_interval:
+            return False
+        self._rounds_since_sell = 0
+        return True
 
     @operation_node(name='首次入仓', is_start_node=True, screenshot_before_round=False)
     def deposit_first(self) -> OperationRoundResult:
@@ -45,7 +59,7 @@ class BagelSettleWarehouse(BagelOperation):
     @operation_node(name='入仓后清理', screenshot_before_round=False)
     def clean_after_deposit(self) -> OperationRoundResult:
         """开关关闭则跳过出售。"""
-        if not self.auto_clean:
+        if not self.auto_clean or not self.should_sell():
             return self.round_success(self.deposit_status)
         result = BagelCleanWarehouse(self.ctx, self.filter_areas).execute()
         if not result.success:

@@ -59,6 +59,18 @@ class BagelConfig(ApplicationConfig):
         self.update('auto_clean_warehouse', value)
 
     @property
+    def sell_interval(self) -> int:
+        """多少个成功入仓局出售一次；1 表示每局都卖。"""
+        return self.get('sell_interval', 1)
+
+    @sell_interval.setter
+    def sell_interval(self, value: int) -> None:
+        """保存出售间隔，至少 1 局。"""
+        if type(value) is not int or value < 1 or value > 999:
+            raise ValueError('sell_interval 必须是 1 至 999 的整数')
+        self.update('sell_interval', value)
+
+    @property
     def clean_mode(self) -> str:
         """default 用固定类型和品质；custom 用下面两项勾选。"""
         return self._text_mode('clean_mode', CLEAN_MODE_DEFAULT)
