@@ -46,6 +46,9 @@ class BagelStoreSafe(BagelOperation):
 
     STATUS_EMPTY: str = '无可入箱物品'
     STATUS_DONE: str = '已装入安全箱'
+    # 拖拽后画面无变化时的重拖上限。搜索出高价值物品时游戏会先播一段加载动画，
+    # 画面更新滞后于点击，一次重试不够；上限之后停止并保留现场。
+    DRAG_REPEAT_LIMIT: int = 3
 
     def __init__(self, ctx: ZContext) -> None:
         """只收集当前容器，不关闭面板，也不补做交互。"""
@@ -57,7 +60,7 @@ class BagelStoreSafe(BagelOperation):
         self._pending_destination: Point | None = None
         self._pending_kind: str | None = None
         self._swap_seen: set[int] = set()
-        self._drag_repeated: bool = False
+        self._drag_repeated: int = 0
         self._left_grid_waited: bool = False
         self._search_frame: MatLike | None = None
         self._panel_guard: SearchPanelGuard = SearchPanelGuard()
@@ -74,7 +77,7 @@ class BagelStoreSafe(BagelOperation):
         self._pending_destination = None
         self._pending_kind = None
         self._swap_seen = set()
-        self._drag_repeated = False
+        self._drag_repeated = 0
         self._left_grid_waited = False
         self._search_frame = None
         self._panel_guard.reset()
@@ -202,7 +205,7 @@ class BagelStoreSafe(BagelOperation):
         self._pending_source = source
         self._pending_destination = destination
         self._pending_kind = choice.kind
-        self._drag_repeated = False
+        self._drag_repeated = 0
         self._left_grid_waited = False
         log.info(
             '贝果入箱：%s %s 结果格 %s -> %s格 %s',
@@ -245,7 +248,7 @@ class BagelStoreSafe(BagelOperation):
             return self.round_fail('入箱后安全箱格子状态不明或目标已锁定，停止并保留现场')
         if self._drag_visually_ok(kind, before, source, destination):
             self._clear_pending()
-            self._drag_repeated = False
+            self._drag_repeated = 0
             self._left_grid_waited = False
             if kind == ACTION_FILL:
                 self.moved += 1
@@ -254,6 +257,38 @@ class BagelStoreSafe(BagelOperation):
         after = self.last_screenshot
         source_now = slot_occupied(after, source)
         dest_now = slot_occupied(after, destination)
+        if (
+            kind == ACTION_FILL
+            and source_now
+            and not dest_now
+            and not slot_occupied(before, destination)
+        ):
+            # 源格还在、目标格仍空，且拖前目标格确实是空的：这次拖拽确实没生效。
+            # 物品加载慢时画面滞后于点击，多给几次机会而不是一次就放弃。
+            # 重试期间目标格保持不变，避免把物品拖到计划外位置。
+            if self._drag_repeated < self.DRAG_REPEAT_LIMIT:
+                self._drag_repeated += 1
+                self._pending_before = after.copy()
+                self._drag_item(source, destination)
+                return self.round_wait(
+                    f'入箱画面无变化，第 {self._drag_repeated} 次重拖', wait=0.7,
+                )
+            self._clear_pending()
+            return self.round_fail(
+                f'连续 {self.DRAG_REPEAT_LIMIT} 次拖拽后画面仍无变化，'
+                '源格物品未入箱，停止并保留现场',
+            )
+        if kind == ACTION_FILL and not slot_occupied(before, destination):
+            # 目标格拖前是空的，现在有物品，物品确实入箱了。
+            # 源格是否还有内容都可能不准（搜查面板正在关闭时前后画面差异大），
+            # 以目标格为准判定成功，不重拖——重拖会拖走已经入箱的物品。
+            # 这条必须排在重拖分支之前。
+            self._clear_pending()
+            self._drag_repeated = 0
+            self._left_grid_waited = False
+            self.moved += 1
+            self.acted = True
+            return self.round_success('继续装入', wait=0.2)
         if (
             kind == ACTION_FILL
             and slot_occupied(before, source)
@@ -265,11 +300,6 @@ class BagelStoreSafe(BagelOperation):
                 return self.round_wait('离开了搜索格，再看一帧', wait=0.4)
             self._clear_pending()
             return self.round_fail('离开了搜索格但没进安全箱，停止并保留现场')
-        if source_now and not self._drag_repeated:
-            self._drag_repeated = True
-            self._pending_before = after.copy()
-            self._drag_item(source, destination)
-            return self.round_wait('入箱画面无变化，再拖一次', wait=0.7)
         self._clear_pending()
         return self.round_fail('入箱画面无变化，停止并保留现场')
 
