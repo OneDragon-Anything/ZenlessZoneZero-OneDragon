@@ -134,6 +134,29 @@ class BagelEnter(BagelOperation):
     @node_from(from_name='处理启动仓库')
     @node_from(from_name='返回启动仓库上一页')
     @operation_node(name='打开贝果主界面', timeout_seconds=120)
+    def _recover_bagel_leftover(self) -> bool:
+        """点掉贝果自己的结算页或退出确认页，返回是否发送了输入。
+
+        上一次运行可能停在局内结算或退出确认：这两种画面能识别，但不在允许进入的
+        画面范围内，直接判定会永久停机。这里先点掉它们，让流程重新走入口判定。
+        只处理带明确文字按钮的贝果画面，不碰其他应用和局内画面。
+        """
+        if self.round_by_find_area(self.last_screenshot, '贝果-结算', '继续').is_success:
+            self.ctx.screen_loader.update_current_screen_name('贝果-结算')
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-结算', '继续',
+                until_not_find_all=[('贝果-结算', '继续')], success_wait=1, retry_wait=1,
+            )
+            return result.is_success
+        if self.round_by_find_area(self.last_screenshot, '贝果-退出确认', '提示').is_success:
+            self.ctx.screen_loader.update_current_screen_name('贝果-退出确认')
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-退出确认', '确认',
+                until_not_find_all=[('贝果-退出确认', '提示')], success_wait=1, retry_wait=1,
+            )
+            return result.is_success
+        return False
+
     def open_hub(self) -> OperationRoundResult:
         """优先使用现有贝果入口；安全画面才允许传送到研究站。"""
         if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
@@ -166,6 +189,9 @@ class BagelEnter(BagelOperation):
             if self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success:
                 return self.round_fail('传送落地后未识别达塔，停止并留现场')
             return self.round_wait('等待传送后识别达塔', wait=1)
+        # 停在贝果自己的结算页或退出确认页时先点掉，避免直接停机留下现场。
+        if self._recover_bagel_leftover():
+            return self.round_wait('已处理贝果残留画面，重新检查入口', wait=1)
         current = self.check_and_update_current_screen(self.last_screenshot)
         if current is None:
             current = self._ordinary_warehouse()
