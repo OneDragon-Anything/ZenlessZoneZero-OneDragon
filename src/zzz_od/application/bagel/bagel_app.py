@@ -264,7 +264,7 @@ class BagelApp(ZApplication):
             if result.status == BagelDeposit.STATUS_DONE:
                 self.success_rounds += 1
                 self.empty_rounds = 0
-            elif result.status == BagelDeposit.STATUS_EMPTY:
+            elif result.status in (BagelDeposit.STATUS_EMPTY, BagelSettleWarehouse.STATUS_SKIPPED_EMPTY):
                 self.empty_rounds += 1
             log.info('贝果单局结算：%s；已入仓 %s 局，连续空箱 %s 局',
                      result.status, self.success_rounds, self.empty_rounds)
