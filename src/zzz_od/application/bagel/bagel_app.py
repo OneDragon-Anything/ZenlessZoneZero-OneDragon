@@ -8,7 +8,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.application.bagel import bagel_const
+from zzz_od.application.bagel import bagel_const, bagel_usage
 from zzz_od.application.bagel.bagel_deposit import BagelDeposit
 from zzz_od.application.bagel.bagel_enter import BagelEnter
 from zzz_od.application.bagel.bagel_exit import BagelExit
@@ -68,6 +68,7 @@ class BagelApp(ZApplication):
         self._spawn_hud_misses: int = 0
         self.flow_snapshot: dict[str, BagelFlow] = {}
         self.initial_clear_pending: bool = True
+        self.last_return_status: str | None = None
 
     def execute(self) -> OperationResult:
         """正式应用返回前完成本次运行的事件收尾。"""
@@ -95,11 +96,18 @@ class BagelApp(ZApplication):
             if not result.success and self.last_screenshot is not None:
                 self.screenshot()
                 path = self.save_screenshot()
-                log.error('贝果任务停止：%s；原因：%s；现场截图：%s',
-                          result.status, result.data, path)
+                log.error('贝果任务停止：%s；原因：%s', result.status, result.data)
+                bagel_usage.log_screenshot(path)
+            elif not result.success:
+                log.warning('没有可保存的现场截图。请查看相关日志。')
         except Exception:
             log.error('保存贝果任务停止截图时发生异常', exc_info=True)
+            log.warning('本次未确认保存现场截图。请查看相关日志。')
         finally:
+            if not result.success:
+                log.error('停止原因：%s；详情：%s', result.status, result.data)
+                log.info(bagel_usage.stop_guidance(result.status))
+                bagel_usage.log_feedback()
             super().after_operation_done(result)
 
     def _execute_one_round(self) -> OperationRoundResult:
@@ -127,6 +135,7 @@ class BagelApp(ZApplication):
         self.spawn_matcher = None
         self.flow_snapshot = {}
         self.initial_clear_pending = True
+        self.last_return_status = None
 
     def _spawn_matcher(self) -> BagelSpawnMatcher:
         """延迟加载出生匹配，避免无资源环境构造失败。"""
@@ -145,6 +154,7 @@ class BagelApp(ZApplication):
             self._spawn_matcher()  # 入场前验证固定地图资源，避免进入局内才发现文件损坏。
         except (OSError, ValueError) as error:
             return self.round_fail(f'贝果配置无效：{error}')
+        bagel_usage.log_start(self.config)
         return self.round_success()
 
     @node_from(from_name='检查贝果运行条件')
@@ -210,6 +220,8 @@ class BagelApp(ZApplication):
             log.info('第 %s 次抽到白鸽工地地铁站复活点，开始收集', self.attempts)
             return self.round_success(self.STATUS_B)
         log.info('第 %s 次非支持出生点，退出重开', self.attempts)
+        log.info('当前出生点不支持收集，正在退出重开。本次不计成功，不清理仓库，也不消耗整体重试次数。出生点重选没有次数上限。')
+        log.info('抽到录像店或白鸽工地地铁站出生点后，程序开始收集。如需结束任务，请使用程序的停止操作。')
         return self.round_success(self.STATUS_SKIP)
 
     @node_from(from_name='识别出生点', status=STATUS_SKIP)
@@ -240,6 +252,7 @@ class BagelApp(ZApplication):
             self.ctx, self.flow_snapshot[self.matched_map_id],
             map_snapshot=self._spawn_matcher().vision(self.matched_map_id).map,
             continuous_safe_unlock=True,
+            on_location_wait=lambda: log.info(bagel_usage.LOCATION_WAIT_HINT),
         )
         outcome = result.execute()
         if result.last_screenshot is not None:
@@ -274,13 +287,20 @@ class BagelApp(ZApplication):
     @operation_node(name='成功局返回入口', screenshot_before_round=False)
     def return_after_success(self) -> OperationRoundResult:
         """最后一局也回到研究站入口。"""
-        return self.round_by_op_result(BagelReturn(self.ctx).execute())
+        result = BagelReturn(self.ctx).execute()
+        self.last_return_status = result.status if result.success else None
+        return self.round_by_op_result(result)
 
     @node_from(from_name='成功局返回入口')
     @operation_node(name='判断成功局数', screenshot_before_round=False)
     def decide_success_rounds(self) -> OperationRoundResult:
         """只有正常入仓的局数计入上限。"""
         if self.config.max_success_rounds > 0 and self.success_rounds >= self.config.max_success_rounds:
+            location = {'已返回贝果入口': '贝果入口', '已返回大世界': '大世界'}.get(self.last_return_status)
+            if location is not None:
+                log.info('已达到成功次数上限。已成功入仓 %s 局。程序已完成结算检查，并返回%s。本次任务已结束。', self.success_rounds, location)
+            else:
+                log.info('已达到成功次数上限。已成功入仓 %s 局。返回结果：%s。本次任务已结束。', self.success_rounds, self.last_return_status or '位置未确认')
             return self.round_success(f'已成功入仓 {self.success_rounds} 局')
         if self.empty_rounds >= 3:
             return self.round_fail('连续 3 局安全箱为空，未计成功，停止自动重开')
@@ -306,8 +326,9 @@ class BagelApp(ZApplication):
         path = self.save_screenshot()
         self.failure_history.append({'reason': self.failure_reason, 'screenshot': path,
                                      'used': self.failure_retries_used})
-        log.error('贝果本局失败：%s；整体重试已用 %s/%s；现场：%s',
-                  self.failure_reason, self.failure_retries_used, self.config.max_failure_retries, path)
+        log.error('本局失败：%s。程序正在退出并处理仓库结算。本局不计成功。整体重试次数已用 %s/%s。',
+                  self.failure_reason, self.failure_retries_used, self.config.max_failure_retries)
+        bagel_usage.log_screenshot(path)
         return self._finish_failed_round(BagelExit(self.ctx).execute(), '退出')
 
     def _finish_failed_round(self, result: OperationResult, phase: str) -> OperationRoundResult:
@@ -323,6 +344,10 @@ class BagelApp(ZApplication):
     @operation_node(name='失败局结算仓库', screenshot_before_round=False)
     def settle_after_defeat(self) -> OperationRoundResult:
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
+        if self.config.auto_clean_warehouse:
+            log.info('失败局入仓后仍按出售方案清理仓库。出售范围包含已有库存。')
+        else:
+            log.info('清理仓库已关闭。失败局只入仓，不出售物品。')
         result = BagelSettleWarehouse(
             self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
         ).execute()
