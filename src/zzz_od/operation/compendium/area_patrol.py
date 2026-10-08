@@ -16,6 +16,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
@@ -156,7 +157,7 @@ class AreaPatrol(ZOperation):
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
-        return result
+        return apply_battle_loading_wait(self, result)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='向前移动准备战斗')

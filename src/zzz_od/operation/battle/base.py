@@ -13,6 +13,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -92,7 +93,7 @@ class BattleOpBase(ZOperation):
             result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
             if result.is_success:
                 return self.round_success()
-        return self.round_retry(result.status, wait=1)
+        return apply_battle_loading_wait(self, self.round_retry(result.status, wait=1))
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='战前移动')

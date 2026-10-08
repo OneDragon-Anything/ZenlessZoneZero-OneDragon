@@ -1,5 +1,5 @@
 import time
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
 from cv2.typing import MatLike
 
@@ -11,9 +11,12 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
-from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import (
+    WitheredDomainRunRecord,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -63,7 +66,7 @@ class HollowBattle(ZOperation):
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
-        return result
+        return apply_battle_loading_wait(self, result)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='识别特殊移动')

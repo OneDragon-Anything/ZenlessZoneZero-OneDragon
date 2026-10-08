@@ -25,6 +25,7 @@ from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
     NotoriousHuntRunRecord,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
@@ -341,7 +342,7 @@ class NotoriousHunt(ZOperation):
         if result.is_success:
             return self.round_success(self.plan.mission_type_name)
 
-        return self.round_retry(result.status, wait=1)
+        return apply_battle_loading_wait(self, self.round_retry(result.status, wait=1))
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='战斗前移动')
