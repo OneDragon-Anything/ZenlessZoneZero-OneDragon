@@ -14,6 +14,7 @@ from zzz_od.application.bagel.bagel_item_vision import (
     inspect_occupied,
 )
 from zzz_od.application.bagel.bagel_operation import BagelOperation
+from zzz_od.application.bagel.bagel_search_panel import SearchPanelGuard
 from zzz_od.application.bagel.bagel_slots import (
     RESULT_SLOT_CENTERS,
     SAFE_SLOT_CENTERS,
@@ -59,8 +60,9 @@ class BagelStoreSafe(BagelOperation):
         self._drag_repeated: bool = False
         self._left_grid_waited: bool = False
         self._search_frame: MatLike | None = None
-        self._status_missing_rounds: int = 0
-        self._panel_missing_rounds: int = 0
+        self._panel_guard: SearchPanelGuard = SearchPanelGuard()
+        self._panel_wait_rounds: int = 0
+        self._safe_unknown_rounds: int = 0
 
     def handle_init(self) -> None:
         """每次执行清空已装入计数与待核对拖拽。"""
@@ -75,8 +77,43 @@ class BagelStoreSafe(BagelOperation):
         self._drag_repeated = False
         self._left_grid_waited = False
         self._search_frame = None
-        self._status_missing_rounds = 0
-        self._panel_missing_rounds = 0
+        self._panel_guard.reset()
+        self._panel_wait_rounds = 0
+        self._safe_unknown_rounds = 0
+
+    def _check_search_panel(self) -> OperationRoundResult | None:
+        """搜查和拖后回读共用门槛；中断优先，未知画面有界等待。"""
+        if self.is_bagel_result():
+            self._clear_pending()
+            return self.round_fail(self.STATUS_DEFEATED)
+        if not self._search_ready():
+            self._panel_guard.reset()
+            if (not self._has_search_title()
+                    and not self.round_by_find_area(
+                        self.last_screenshot, '贝果-局内', '大保险解锁提示',
+                    ).is_success
+                    and self.round_by_find_area(
+                        self.last_screenshot, '战斗画面', '按键-普通攻击',
+                    ).is_success):
+                self._clear_pending()
+                return self.round_fail(self.STATUS_INTERRUPTED)
+        elif self._panel_guard.observe(self.last_screenshot, self.last_screenshot_time):
+            self._panel_wait_rounds = 0
+            return None
+        self._search_frame = None
+        self._panel_wait_rounds += 1
+        if self._panel_wait_rounds < 6:
+            return self.round_wait('等待搜查面板到位并稳定', wait=0.3)
+        self._clear_pending()
+        return self.round_fail('搜查面板状态持续不明，停止并保留现场')
+
+    def _wait_for_safe_slots(self) -> OperationRoundResult:
+        """未知格最多额外复查三帧；等待期间保留拖拽基线，不发送输入。"""
+        self._safe_unknown_rounds += 1
+        if self._safe_unknown_rounds <= 3:
+            return self.round_wait('安全箱格子暂不明确，等待下一帧', wait=0.3)
+        self._clear_pending()
+        return self.round_fail('安全箱格子状态不明，停止并保留现场')
 
     def _search_ready(self) -> bool:
         """搜查面板与安全箱同时可见才允许拖拽；武备箱与电子保险箱标题均可。"""
@@ -121,29 +158,9 @@ class BagelStoreSafe(BagelOperation):
     @operation_node(name='逐件装入安全箱', is_start_node=True)
     def store_next(self) -> OperationRoundResult:
         """每次只拖一件并回读；装不下的留在搜索结果中。"""
-        if self.is_bagel_result():
-            return self.round_fail(self.STATUS_DEFEATED)
-        if not self._search_ready():
-            has_title = self._has_search_title()
-            if has_title:
-                self._status_missing_rounds += 1
-                if self._status_missing_rounds < 6:
-                    return self.round_wait('搜查状态暂未识别，等待下一帧', wait=0.3)
-            else:
-                self._panel_missing_rounds += 1
-                if self.round_by_find_area(
-                    self.last_screenshot, '战斗画面', '按键-普通攻击',
-                ).is_success and all(self.round_by_find_area(
-                    self.last_screenshot, '贝果-局内', area,
-                ).is_success for area in ('武备箱交互', '交互F键')):
-                    if self._panel_missing_rounds < 2:
-                        return self.round_wait('搜查面板暂未识别，再看一帧', wait=0.3)
-                    return self.round_recoverable_fail('搜查面板已关闭，请重新执行交互步骤')
-                if self._panel_missing_rounds < 6:
-                    return self.round_wait('搜查面板暂未识别，再看一帧', wait=0.3)
-            return self.round_recoverable_fail('未识别搜查结果面板')
-        self._status_missing_rounds = 0
-        self._panel_missing_rounds = 0
+        panel_result = self._check_search_panel()
+        if panel_result is not None:
+            return panel_result
         screen = self.last_screenshot
         results = inspect_occupied(screen, RESULT_SLOT_CENTERS)
         if not self._search_complete():
@@ -152,12 +169,14 @@ class BagelStoreSafe(BagelOperation):
             if not self._search_complete():
                 return self.round_wait('等待新的搜查结果', wait=0.3)
             if inspect_safe_slots(screen) is None:
-                return self.round_fail('安全箱格子状态不明，停止并保留现场')
+                return self._wait_for_safe_slots()
+            self._safe_unknown_rounds = 0
             status = self.STATUS_DONE if self.moved or self.acted else self.STATUS_EMPTY
             return self.round_success(status, data={'moved': self.moved})
         safe = inspect_safe_slots(screen)
         if safe is None:
-            return self.round_fail('安全箱格子状态不明，停止并保留现场')
+            return self._wait_for_safe_slots()
+        self._safe_unknown_rounds = 0
         choice = choose_store_action(
             results,
             [mark for mark in inspect_occupied(screen, SAFE_SLOT_CENTERS) if mark.index in safe.occupied],
@@ -207,25 +226,21 @@ class BagelStoreSafe(BagelOperation):
     @operation_node(name='核对入箱变化')
     def confirm_transfer(self) -> OperationRoundResult:
         """按填空或对换核对画面变化。源格还在就再拖一次；离开搜索格却没进安全箱则另说。"""
-        if self.is_bagel_result():
-            return self.round_fail(self.STATUS_DEFEATED)
+        panel_result = self._check_search_panel()
+        if panel_result is not None:
+            return panel_result
         before = self._pending_before
         source = self._pending_source
         destination = self._pending_destination
         kind = self._pending_kind
         if before is None or source is None or destination is None or kind is None:
             return self.round_fail('缺少入箱前后对照数据')
-        if not self._search_ready():
-            if self._has_search_title():
-                self._status_missing_rounds += 1
-                if self._status_missing_rounds < 6:
-                    return self.round_wait('入箱后搜查状态暂未识别，保留对照等待下一帧', wait=0.3)
-            self._clear_pending()
-            return self.round_recoverable_fail('入箱后丢失搜查面板')
-        self._status_missing_rounds = 0
         safe = inspect_safe_slots(self.last_screenshot)
         destination_index = SAFE_SLOT_CENTERS.index(destination)
-        if safe is None or destination_index in safe.locked:
+        if safe is None:
+            return self._wait_for_safe_slots()
+        self._safe_unknown_rounds = 0
+        if destination_index in safe.locked:
             self._clear_pending()
             return self.round_fail('入箱后安全箱格子状态不明或目标已锁定，停止并保留现场')
         if self._drag_visually_ok(kind, before, source, destination):
@@ -260,6 +275,7 @@ class BagelStoreSafe(BagelOperation):
 
     def _drag_item(self, source: Point, destination: Point) -> None:
         """先按住再移动，给游戏时间抓起物品，避免拖成结果列表滚动。"""
+        self._panel_guard.reset()
         self.ctx.controller.drag_to(
             end=destination, start=source, duration=0.8, press_time=0.1,
         )
