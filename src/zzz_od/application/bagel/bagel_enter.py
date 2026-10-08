@@ -7,6 +7,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from zzz_od.application.bagel.bagel_clear_loadout import BagelClearLoadout
 from zzz_od.application.bagel.bagel_const import RECOMMENDED_VALUE
+from zzz_od.application.bagel.bagel_investment import read_investment
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_return import BagelReturn
 from zzz_od.application.bagel.bagel_screen import (
@@ -312,7 +313,7 @@ class BagelEnter(BagelOperation):
         if self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '投资标题').is_success:
             if self.investment_confirmed:
                 return self.round_retry('零投资入场未生效', wait=1)
-            amount = read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '投资金额')
+            amount = read_investment(self.ctx, self.last_screenshot)
             if amount != '0':
                 # WAIT 会重置框架重试次数，单独限次以防 MIN 无效时反复点击。
                 if self.investment_retries >= 3:
