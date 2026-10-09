@@ -73,6 +73,7 @@ class BagelNavigate(BagelOperation):
         map_snapshot: BagelFixedMap | None = None,
         recovery: ContainerRecovery | None = None,
         recovering: bool = False,
+        on_location_wait: Callable[[], None] | None = None,
     ) -> None:
         """普通移动使用独立坐标；只有靠近容器才需要目标类型。"""
         if destination not in ('box', 'safe', 'move'):
@@ -146,6 +147,7 @@ class BagelNavigate(BagelOperation):
         self._owns_recovery: bool = recovery is None
         self.recovery: ContainerRecovery = recovery or ContainerRecovery(lambda: self.operation_usage_time)
         self.recovering: bool = recovering
+        self.on_location_wait: Callable[[], None] | None = on_location_wait
         self._settle_until: float | None = None
         self._settled: bool = False
 
@@ -302,6 +304,8 @@ class BagelNavigate(BagelOperation):
                 if self.vision.last_location.reason == 'insufficient_geometry':
                     self.initial_locate_misses += 1
                     if self.initial_locate_misses <= NAV_INITIAL_LOCATE_MISS_LIMIT:
+                        if self.on_location_wait is not None:
+                            self.on_location_wait()
                         return self.round_wait(
                             '起步小地图暂时无法定位，等待下一帧', wait=NAV_INITIAL_LOCATE_WAIT,
                         )
@@ -309,6 +313,8 @@ class BagelNavigate(BagelOperation):
             if self.last_position is not None and self.locate_misses < NAV_LOCATE_MISS_LIMIT:
                 self.locate_misses += 1
                 self._release_forward()
+                if self.on_location_wait is not None:
+                    self.on_location_wait()
                 return self.round_wait('小地图暂时对不上，再看一帧', wait=0.15)
             self._release_forward()
             return self.round_recoverable_fail('小地图定位失败，停止移动')
