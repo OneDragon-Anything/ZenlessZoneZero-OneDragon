@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation import Operation
 from one_dragon.utils.log_utils import log
-from zzz_od.application.bagel.bagel_screen import expected_map, read_area
 from zzz_od.operation.zzz_operation import ZOperation
 
 if TYPE_CHECKING:
@@ -19,11 +18,8 @@ if TYPE_CHECKING:
 
 
 def is_bagel_result(operation: Operation) -> bool:
-    """用失败标志和高危雅努斯标题共同核对结算，供应用与操作复用。"""
-    return (
-        operation.round_by_find_area(operation.last_screenshot, '贝果-结算', '失败').is_success
-        and expected_map(read_area(operation.ctx, operation.last_screenshot, '贝果-结算', '地图'))
-    )
+    """用 DEFEAT 识别失败结算，供应用与操作复用。"""
+    return operation.round_by_find_area(operation.last_screenshot, '贝果-结算', '失败').is_success
 
 
 def execute_bagel_round(operation: Operation) -> OperationRoundResult:
@@ -118,7 +114,7 @@ class BagelOperation(ZOperation):
             return super().execute()
 
     def is_bagel_result(self) -> bool:
-        """同时确认 DEFEAT 与高危雅努斯，不能仅凭单角色零血量退出。"""
+        """识别 DEFEAT，不以地图名称或单角色零血量判断失败结算。"""
         return is_bagel_result(self)
 
     def after_operation_done(self, result: OperationResult) -> None:

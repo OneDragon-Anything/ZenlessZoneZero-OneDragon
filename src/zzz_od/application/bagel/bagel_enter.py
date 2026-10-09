@@ -16,7 +16,6 @@ from zzz_od.application.bagel.bagel_return import BagelReturn
 from zzz_od.application.bagel.bagel_screen import (
     complete_loadout,
     entry_warning,
-    expected_map,
     parse_capacity_pair,
     read_area,
     read_loadout,
@@ -47,8 +46,6 @@ class BagelEnter(BagelOperation):
         super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=660 if allow_clear_loadout else 240)
         self.recovery_auto_clean: bool = recovery_auto_clean
         self.recovery_filter_areas: tuple[str, ...] = recovery_filter_areas
-        self._recovery_map_requested: bool = False
-        self._recovery_map_checked: bool = False
         self.allow_clear_loadout: bool = allow_clear_loadout
         self.allow_world_recovery: bool = allow_world_recovery
         self.world_recovery_attempted: bool = False
@@ -67,8 +64,6 @@ class BagelEnter(BagelOperation):
     def handle_init(self) -> None:
         """重复运行时清除上一局的确认状态。"""
         super().handle_init()
-        self._recovery_map_requested = False
-        self._recovery_map_checked = False
         self.world_recovery_attempted = False
         self.zero_checked = False
         self.confirmed_warnings.clear()
@@ -112,39 +107,25 @@ class BagelEnter(BagelOperation):
 
     @operation_node(name='恢复启动贝果局', is_start_node=True, timeout_seconds=150)
     def recover_start(self) -> OperationRoundResult:
-        """只在首次入场恢复明确的贝果遗留局，退出之前先核对地图身份。"""
+        """只在首次入场恢复遗留局，按当前画面正常退出。"""
         if not self.allow_clear_loadout:
             return self.round_success()
         if self.is_bagel_result() or self._has('提示', '贝果-退出确认'):
             return self._exit_starting_game()
-        if self._has('失败', '贝果-结算'):
-            return self.round_fail('当前结算不是高危雅努斯，停止并保留现场')
         if self._has('大地图图例'):
-            title = read_area(self.ctx, self.last_screenshot, '贝果-局内', '大地图标题')
-            if not expected_map(title):
-                return self.round_fail(f'启动大地图不是高危雅努斯（{title}），停止并保留现场')
-            self._recovery_map_checked = True
             result = self.round_by_click_area('贝果-局内', '大地图返回')
             if not result.is_success:
                 return result
-            return self.round_wait('已核对高危雅努斯，等待关闭大地图', wait=0.5)
-        if self._recovery_map_checked:
-            if self._has('按键-普通攻击', '战斗画面'):
-                return self._exit_starting_game()
-            return self.round_retry('等待恢复局内画面', wait=0.5)
-        if self._recovery_map_requested:
-            return self.round_retry('未能核对启动局内大地图，停止前再看一帧', wait=0.5)
+            return self.round_wait('等待关闭大地图后恢复局内画面', wait=0.5)
         if self._has('搜查安全箱') and any(self._has(name) for name in ('搜查容器标题', '电子保险箱标题')):
             self.ctx.controller.btn_press('esc', press_time=0.1)
-            return self.round_retry('关闭贝果搜查面板，等待核对地图', wait=0.5)
+            return self.round_retry('关闭贝果搜查面板，等待恢复局内画面', wait=0.5)
         if self._has('按键-普通攻击', '战斗画面'):
             timer = read_area(self.ctx, self.last_screenshot, '贝果-局内', '计时')
-            # 七段数字截图中冒号可被 OCR 读成 1；此读数仅用于打开地图查询。
+            # 七段数字截图中冒号可被 OCR 读成 1；与普通攻击共同识别局内画面。
             if re.fullmatch(r'\d{1,2}[:：1]\d{2}(?:[.:：]\d{1,2})?', timer.replace(' ', '')) is None:
                 return self.round_fail(f'当前战斗画面不能确认为贝果（计时：{timer}），停止并保留现场')
-            self.ctx.controller.btn_press('m', press_time=0.1)
-            self._recovery_map_requested = True
-            return self.round_wait('打开局内大地图核对贝果身份', wait=0.5)
+            return self._exit_starting_game()
         return self.round_success()
 
     def _exit_starting_game(self) -> OperationRoundResult:
