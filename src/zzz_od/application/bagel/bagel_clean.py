@@ -50,6 +50,8 @@ class BagelCleanWarehouse(BagelOperation):
         self._filter_count: int | None = None
         self._safe_was_clear: bool = False
         self._warehouse_before: int | None = None
+        self._pending_filter: str | None = None
+        self._filter_clicked_at: float = 0
 
     def handle_init(self) -> None:
         """每次执行清空勾选进度。"""
@@ -57,6 +59,8 @@ class BagelCleanWarehouse(BagelOperation):
         self._filter_count = None
         self._safe_was_clear = False
         self._warehouse_before = None
+        self._pending_filter = None
+        self._filter_clicked_at = 0
 
     def _has_area(self, area_name: str) -> bool:
         """当前帧是否命中仓库指定文字区。"""
@@ -150,6 +154,14 @@ class BagelCleanWarehouse(BagelOperation):
         if not self._in_filter():
             return self.round_fail('快速选择已关闭，停止并保留现场')
         states = self._filter_states()
+        if self._pending_filter is not None:
+            name = self._pending_filter
+            if states is not None and states[name] == (name in self.filter_areas):
+                self._pending_filter = None
+            elif self.operation_usage_time - self._filter_clicked_at >= 3:
+                return self.round_fail(f'{name}点击后未能核对目标状态，停止并保留现场')
+            else:
+                return self.round_wait('等待筛选状态更新', wait=0.25)
         if states is None:
             return self.round_retry('筛选状态不清晰', wait=0.5)
         for name, selected in states.items():
@@ -157,11 +169,12 @@ class BagelCleanWarehouse(BagelOperation):
                 continue
             result = self.round_by_find_and_click_area(
                 self.last_screenshot, '贝果-仓库', name,
-                success_wait=0.5, retry_wait=0.5,
+                pre_delay=0.15, retry_wait=0.5,
             )
             if result.is_success:
-                # 留在本节点等待下一帧核对；点击无效时不会推进到出售。
-                return self.round_wait('等待筛选状态更新', wait=0.5)
+                self._pending_filter = name
+                self._filter_clicked_at = self.operation_usage_time
+                return self.round_wait('等待筛选状态更新', wait=0.25)
             return result
         return self.round_success('勾选完成')
 
@@ -251,9 +264,11 @@ class BagelCleanWarehouse(BagelOperation):
                 )
             return self.round_success(self.STATUS_DONE)
         if self._has_area('出售获得标题') and self._has_area('出售获得货币'):
+            if self.node_clicked:
+                return self.round_wait('等待关闭出售获得提示', wait=0.5)
             result = self.round_by_find_and_click_area(
                 self.last_screenshot, '贝果-仓库', '出售获得确认',
-                success_wait=0.8, retry_wait=0.5,
+                pre_delay=0.15, retry_wait=0.5,
             )
             if result.is_success:
                 return self.round_wait('等待关闭出售获得提示', wait=0.5)
