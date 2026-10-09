@@ -40,7 +40,10 @@ class BagelCleanWarehouse(BagelOperation):
     STATUS_SKIPPED: str = '没有可出售物品'
     STATUS_DONE: str = '已批量出售'
 
-    def __init__(self, ctx: ZContext, filter_areas: tuple[str, ...] = FILTER_TICKS) -> None:
+    def __init__(
+        self, ctx: ZContext, filter_areas: tuple[str, ...] = FILTER_TICKS,
+        *, allow_safe_items: bool = False,
+    ) -> None:
         """入仓后调用；不点整理，不点自动转化货币。"""
         super().__init__(ctx, op_name='贝果-仓库清理', timeout_seconds=90)
         all_areas = (*FILTER_EXCLUDED, *FILTER_TICKS)
@@ -49,6 +52,8 @@ class BagelCleanWarehouse(BagelOperation):
         self.filter_areas: frozenset[str] = frozenset(filter_areas)
         self._filter_count: int | None = None
         self._safe_was_clear: bool = False
+        self.allow_safe_items: bool = allow_safe_items
+        self._safe_before: tuple[int, ...] | None = None
         self._warehouse_before: int | None = None
         self._pending_filter: str | None = None
         self._filter_clicked_at: float = 0
@@ -58,6 +63,7 @@ class BagelCleanWarehouse(BagelOperation):
         super().handle_init()
         self._filter_count = None
         self._safe_was_clear = False
+        self._safe_before = None
         self._warehouse_before = None
         self._pending_filter = None
         self._filter_clicked_at = 0
@@ -115,13 +121,16 @@ class BagelCleanWarehouse(BagelOperation):
     def open_sell(self) -> OperationRoundResult:
         """进入出售态；已在弹窗或出售底栏则跳过。"""
         if self._warehouse_idle():
-            if not self._safe_clear():
+            self._safe_before = safe_occupied_indices(self.last_screenshot)
+            if self._safe_before is None:
+                return self.round_fail('安全箱格子状态不明，不能批量出售，停止并保留现场')
+            if self._safe_before and not self.allow_safe_items:
                 return self.round_fail('安全箱仍有物资，不能批量出售，停止并保留现场')
-            self._safe_was_clear = True
+            self._safe_was_clear = not self._safe_before
             self._warehouse_before = self._warehouse_count()
             if self._warehouse_before is None:
                 return self.round_fail('出售前无法读取仓库占用，停止并保留现场')
-        elif not self._safe_was_clear:
+        elif not self._safe_was_clear and not (self.allow_safe_items and self._safe_before is not None):
             return self.round_fail('出售前未确认安全箱清空，停止并保留现场')
         if self._in_filter():
             return self.round_success('已到快速选择')
@@ -237,7 +246,7 @@ class BagelCleanWarehouse(BagelOperation):
         """只确认本次已核对筛选、有件数的出售预览。"""
         if self._filter_count is None or self._filter_count <= 0:
             return self.round_fail('缺少已核对的待出售件数')
-        if not self._safe_was_clear:
+        if not self._safe_was_clear and not (self.allow_safe_items and self._safe_before is not None):
             return self.round_fail('出售前未确认安全箱清空，停止并保留现场')
         if self._warehouse_before is None:
             return self.round_fail('出售前未记录仓库占用，停止并保留现场')
@@ -253,12 +262,23 @@ class BagelCleanWarehouse(BagelOperation):
     def wait_idle_after_sell(self) -> OperationRoundResult:
         """关闭出售获得硬币提示，再核对回到仓库主界面。"""
         if self._warehouse_idle():
-            if not self._safe_clear():
+            safe_after = safe_occupied_indices(self.last_screenshot)
+            if safe_after is None:
+                return self.round_fail('出售后安全箱状态不明，停止并保留现场')
+            if not self.allow_safe_items and safe_after:
                 return self.round_fail('出售后安全箱出现物资，停止并保留现场')
+            if self.allow_safe_items and (
+                self._safe_before is None or not set(safe_after).issubset(self._safe_before)
+            ):
+                return self.round_fail('出售后安全箱出现新增占用，停止并保留现场')
             warehouse_after = self._warehouse_count()
             if warehouse_after is None or self._warehouse_before is None:
                 return self.round_fail('出售后无法核对仓库占用，停止并保留现场')
-            if warehouse_after >= self._warehouse_before:
+            safe_reduced = (self.allow_safe_items and self._safe_before is not None
+                            and len(safe_after) < len(self._safe_before))
+            if warehouse_after > self._warehouse_before or (
+                warehouse_after == self._warehouse_before and not safe_reduced
+            ):
                 return self.round_fail(
                     f'出售后仓库未腾位（{self._warehouse_before} -> {warehouse_after}），停止并保留现场',
                 )

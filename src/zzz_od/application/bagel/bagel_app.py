@@ -59,6 +59,7 @@ class BagelApp(ZApplication):
         self.matched_map_id: str | None = None
         self.attempts: int = 0
         self.success_rounds: int = 0
+        self.rounds_since_sell: int = 0
         self.empty_rounds: int = 0
         self.defeat_rounds: int = 0
         self.failure_retries_used: int = 0
@@ -124,6 +125,7 @@ class BagelApp(ZApplication):
         super().handle_init()
         self.attempts = 0
         self.success_rounds = 0
+        self.rounds_since_sell = 0
         self.empty_rounds = 0
         self.defeat_rounds = 0
         self.failure_retries_used = 0
@@ -186,6 +188,8 @@ class BagelApp(ZApplication):
         log.info('贝果收集：准备第 %s 次入场', self.attempts + 1)
         result = BagelEnter(
             self.ctx, allow_clear_loadout=allow_clear_loadout, allow_world_recovery=True,
+            recovery_auto_clean=self.config.auto_clean_warehouse,
+            recovery_filter_areas=self.config.clean_filter_areas(),
         ).execute()
         if retrying_failure and not result.success:
             return self._finish_failed_round(result, '额外入场')
@@ -270,9 +274,9 @@ class BagelApp(ZApplication):
     @operation_node(name='结算仓库', screenshot_before_round=False)
     def settle(self) -> OperationRoundResult:
         """只有安全箱有物且确实入仓才计成功；空箱局仍要返回入口。"""
-        result = BagelSettleWarehouse(
-            self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
-        ).execute()
+        finishing = (self.config.max_success_rounds > 0
+                     and self.success_rounds + 1 >= self.config.max_success_rounds)
+        result = self._settle_warehouse(finishing=finishing)
         if result.success:
             if result.status == BagelDeposit.STATUS_DONE:
                 self.success_rounds += 1
@@ -282,6 +286,22 @@ class BagelApp(ZApplication):
             log.info('贝果单局结算：%s；已入仓 %s 局，连续空箱 %s 局',
                      result.status, self.success_rounds, self.empty_rounds)
         return self.round_by_op_result(result)
+
+    def _settle_warehouse(self, finishing: bool = False) -> OperationResult:
+        """应用持有本任务出售计数，结算成功后再更新；失败局也复用。"""
+        due = self.rounds_since_sell + 1 >= self.config.sell_interval
+        log.info('贝果出售计划：累计入仓 %s/%s；正常结束补卖=%s',
+                 self.rounds_since_sell, self.config.sell_interval, finishing)
+        result = BagelSettleWarehouse(
+            self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
+            sell_due=due or finishing,
+        ).execute()
+        if result.success:
+            if isinstance(result.data, dict) and result.data.get('sale_completed'):
+                self.rounds_since_sell = 0
+            elif result.status == BagelDeposit.STATUS_DONE:
+                self.rounds_since_sell += 1
+        return result
 
     @node_from(from_name='结算仓库')
     @operation_node(name='成功局返回入口', screenshot_before_round=False)
@@ -345,12 +365,10 @@ class BagelApp(ZApplication):
     def settle_after_defeat(self) -> OperationRoundResult:
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
         if self.config.auto_clean_warehouse:
-            log.info('失败局有物入仓后按出售方案清理，范围包含已有库存；空箱跳过出售，仍核对仓库容量。')
+            log.info('失败局有物入仓计入出售间隔，不补卖；满仓或残留允许提前出售并重试一次入仓。')
         else:
             log.info('清理仓库已关闭。失败局只入仓，不出售物品。')
-        result = BagelSettleWarehouse(
-            self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
-        ).execute()
+        result = self._settle_warehouse()
         if result.success:
             self.defeat_rounds += 1
             log.info('贝果失败局结算：%s；累计失败 %s 局，未计成功',
