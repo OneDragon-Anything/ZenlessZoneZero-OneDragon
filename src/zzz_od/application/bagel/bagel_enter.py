@@ -50,6 +50,10 @@ class BagelEnter(BagelOperation):
         self.investment_confirmed: bool = False
         self.investment_retries: int = 0
         self.transport_started: bool = False
+        self._pending_warning: str | None = None
+        self._warning_started_at: float = 0
+        self._warning_reclicked: bool = False
+        self._resume_check: bool = False
 
     def handle_init(self) -> None:
         """重复运行时清除上一局的确认状态。"""
@@ -62,6 +66,16 @@ class BagelEnter(BagelOperation):
         self.transport_started = False
         self.clear_attempted = False
         self.loadout_misses = 0
+        self._pending_warning = None
+        self._warning_started_at = 0
+        self._warning_reclicked = False
+        self._resume_check = False
+
+    def handle_pause(self) -> None:
+        """暂停后撤销入场资格，不能信任用户可能已改变的携带与选择。"""
+        super().handle_pause()
+        self._resume_check = True
+        self.zero_checked = False
 
     def _at_reception(self) -> bool:
         """传送后用普通大世界与达塔名称确认交互位置。"""
@@ -210,6 +224,8 @@ class BagelEnter(BagelOperation):
         )
 
     @node_from(from_name='打开贝果主界面', status='已在备战')
+    @node_from(from_name='核对零携带', status='重新核对选图')
+    @node_from(from_name='打开备战', status='重新核对选图')
     @operation_node(name='备战返回选图', timeout_seconds=15)
     def return_to_map(self) -> OperationRoundResult:
         """直接从备战启动时先返回选图，不能沿用未经核对的地图和难度。"""
@@ -226,23 +242,36 @@ class BagelEnter(BagelOperation):
     @node_from(from_name='打开贝果选图')
     @operation_node(name='选择雅努斯', timeout_seconds=15)
     def choose_map(self) -> OperationRoundResult:
-        """点击左侧地图卡后核对右侧实际选中地图。"""
-        return self.round_by_find_and_click_area(
+        """每局读取实际选中地图；已正确则免点击，读数不明不操作。"""
+        selected = read_area(self.ctx, self.last_screenshot, '贝果-选图', '选中地图')
+        if selected == '雅努斯幻境':
+            return self.round_success('已核对雅努斯')
+        if self.node_clicked or selected != '城郊幻境':
+            return self.round_wait('等待核对选中地图', wait=0.25)
+        result = self.round_by_find_and_click_area(
             self.last_screenshot, '贝果-选图', '雅努斯',
-            until_find_all=[('贝果-选图', '选中地图')], success_wait=1, retry_wait=1,
+            pre_delay=0.15, retry_wait=0.25,
         )
+        if result.is_success:
+            return self.round_wait('等待雅努斯选择生效', wait=0.25)
+        return result
 
     @node_from(from_name='选择雅努斯')
     @operation_node(name='选择高危', timeout_seconds=15)
     def choose_difficulty(self) -> OperationRoundResult:
         """选中后用对应推荐价值与地图名复核，不能只检测页签文字存在。"""
-        if (self.node_clicked
-                and read_area(self.ctx, self.last_screenshot, '贝果-选图', '推荐价值') == RECOMMENDED_VALUE
-                and read_area(self.ctx, self.last_screenshot, '贝果-选图', '选中地图') == '雅努斯幻境'):
+        selected = read_area(self.ctx, self.last_screenshot, '贝果-选图', '选中地图')
+        value = read_area(self.ctx, self.last_screenshot, '贝果-选图', '推荐价值')
+        if selected == '雅努斯幻境' and value == RECOMMENDED_VALUE:
+            self._resume_check = False
             return self.round_success()
-        result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-选图', '高危')
+        if self.node_clicked or selected != '雅努斯幻境' or not value.isdecimal():
+            return self.round_wait('等待核对雅努斯难度', wait=0.25)
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot, '贝果-选图', '高危', pre_delay=0.15, retry_wait=0.25,
+        )
         if result.is_success:
-            return self.round_wait('等待高危选择生效', wait=1)
+            return self.round_wait('等待高危选择生效', wait=0.25)
         return result
 
     @node_from(from_name='选择高危')
@@ -251,6 +280,13 @@ class BagelEnter(BagelOperation):
         """地图和难度确认之后才打开备战。"""
         if self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
             return self.round_success()
+        selected = read_area(self.ctx, self.last_screenshot, '贝果-选图', '选中地图')
+        value = read_area(self.ctx, self.last_screenshot, '贝果-选图', '推荐价值')
+        if (self._resume_check or selected == '城郊幻境'
+                or (selected == '雅努斯幻境' and value.isdecimal() and value != RECOMMENDED_VALUE)):
+            return self.round_success('重新核对选图')
+        if selected != '雅努斯幻境' or value != RECOMMENDED_VALUE:
+            return self.round_wait('等待重新核对地图和难度', wait=0.25)
         return self.round_by_find_and_click_area(
             self.last_screenshot, '贝果-选图', '前往备战',
             until_find_all=[('贝果-备战', '预设组合')], success_wait=1, retry_wait=1,
@@ -261,6 +297,8 @@ class BagelEnter(BagelOperation):
     @operation_node(name='核对零携带', timeout_seconds=15)
     def verify_zero_loadout(self) -> OperationRoundResult:
         """未知先重读；首次非零转入清空，其余入场继续拒绝残留。"""
+        if self._resume_check:
+            return self.round_success('重新核对选图')
         if not self.round_by_find_area(self.last_screenshot, '贝果-备战', '预设组合').is_success:
             return self.round_retry('未识别备战页', wait=1)
         values = read_loadout(self.ctx, self.last_screenshot)
@@ -295,6 +333,8 @@ class BagelEnter(BagelOperation):
     @operation_node(name='确认入场并等待加载', timeout_seconds=90, node_max_retry_times=3)
     def confirm_entry(self) -> OperationRoundResult:
         """仅处理核实零携带之后出现的三类确认，未知弹窗保留现场。"""
+        if self._resume_check:
+            return self.round_fail('入场暂停后需重新核对选图与携带，请从入口重新运行')
         if not self.zero_checked:
             return self.round_fail('尚未核对零携带，禁止确认入场')
         if self.investment_confirmed and self.is_bagel_result():
@@ -311,6 +351,7 @@ class BagelEnter(BagelOperation):
                 return self.round_fail('未核对高危零投资，停止并保留现场')
             return self.round_success('已进入雅努斯高危')
         if self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '投资标题').is_success:
+            self._pending_warning = None
             if self.investment_confirmed:
                 return self.round_retry('零投资入场未生效', wait=1)
             amount = read_investment(self.ctx, self.last_screenshot)
@@ -338,13 +379,32 @@ class BagelEnter(BagelOperation):
         text = read_area(self.ctx, self.last_screenshot, '贝果-入场确认', '提示')
         warning = entry_warning(text)
         if warning is not None:
-            if warning in self.confirmed_warnings:
-                return self.round_retry('入场确认未消失', wait=1)
-            result = self.round_by_find_and_click_area(self.last_screenshot, '贝果-入场确认', '确认')
+            if warning == self._pending_warning:
+                elapsed = self.operation_usage_time - self._warning_started_at
+                if elapsed >= 6:
+                    return self.round_fail('入场确认持续未消失，停止并保留现场')
+                if elapsed < 3 or self._warning_reclicked:
+                    return self.round_wait('等待入场确认切换', wait=0.25)
+            elif warning in self.confirmed_warnings:
+                return self.round_fail('已处理的入场提示再次出现，停止并保留现场')
+            result = self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-入场确认', '确认',
+                pre_delay=0.15, retry_wait=0.25,
+            )
             if result.is_success:
+                if warning == self._pending_warning:
+                    self._warning_reclicked = True
+                else:
+                    self._pending_warning = warning
+                    self._warning_started_at = self.operation_usage_time
+                    self._warning_reclicked = False
                 self.confirmed_warnings.add(warning)
-                return self.round_wait(warning, wait=1)
+                return self.round_wait(warning, wait=0.25)
             return result
         if text and self.round_by_find_area(self.last_screenshot, '贝果-入场确认', '确认').is_success:
             return self.round_fail('未知入场确认，停止并保留现场')
+        if self._pending_warning is not None:
+            if self.operation_usage_time - self._warning_started_at >= 6:
+                return self.round_fail('入场提示切换后未识别下一画面，停止并保留现场')
+            return self.round_wait('等待入场提示切换', wait=0.25)
         return self.round_wait('等待贝果加载完成', wait=1)
