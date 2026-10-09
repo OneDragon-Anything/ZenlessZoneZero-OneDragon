@@ -275,14 +275,12 @@ class BagelStoreSafe(BagelOperation):
                 )
             self._clear_pending()
             return self.round_fail(
-                f'连续 {self.DRAG_REPEAT_LIMIT} 次拖拽后画面仍无变化，'
+                f'首次拖拽和 {self.DRAG_REPEAT_LIMIT} 次重拖后画面仍无变化，'
                 '源格物品未入箱，停止并保留现场',
             )
-        if kind == ACTION_FILL and not slot_occupied(before, destination):
-            # 目标格拖前是空的，现在有物品，物品确实入箱了。
-            # 源格是否还有内容都可能不准（搜查面板正在关闭时前后画面差异大），
-            # 以目标格为准判定成功，不重拖——重拖会拖走已经入箱的物品。
-            # 这条必须排在重拖分支之前。
+        if kind == ACTION_FILL and dest_now and not slot_occupied(before, destination):
+            # 面板已通过稳定检查，目标格由空变有即可确认填空成功。
+            # 源格可能误识别为占用，不能因此对已占用的目标再次拖拽。
             self._clear_pending()
             self._drag_repeated = 0
             self._left_grid_waited = False
@@ -300,6 +298,11 @@ class BagelStoreSafe(BagelOperation):
                 return self.round_wait('离开了搜索格，再看一帧', wait=0.4)
             self._clear_pending()
             return self.round_fail('离开了搜索格但没进安全箱，停止并保留现场')
+        if kind == ACTION_SWAP and source_now and self._drag_repeated < 1:
+            self._drag_repeated += 1
+            self._pending_before = after.copy()
+            self._drag_item(source, destination)
+            return self.round_wait('对换画面未确认，再拖一次', wait=0.7)
         self._clear_pending()
         return self.round_fail('入箱画面无变化，停止并保留现场')
 
