@@ -10,8 +10,10 @@ from zzz_od.application.bagel.bagel_clean import FILTER_TICKS, BagelCleanWarehou
 from zzz_od.application.bagel.bagel_deposit import BagelDeposit
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_slots import safe_occupied_indices
+from zzz_od.application.bagel.bagel_store_carried import BagelStoreCarried
 
 if TYPE_CHECKING:
+    from one_dragon.base.operation.operation_base import OperationResult
     from one_dragon.base.operation.operation_round_result import OperationRoundResult
     from zzz_od.context.zzz_context import ZContext
 
@@ -23,10 +25,11 @@ class BagelSettleWarehouse(BagelOperation):
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,
-        *, sell_due: bool = True,
+        *, sell_due: bool = True, starting: bool = False,
     ) -> None:
         """应用决定本次是否到期；满仓或残留允许提前出售一次。"""
         super().__init__(ctx, op_name='贝果-结算仓库', timeout_seconds=180)
+        self.starting: bool = starting
         self.auto_clean: bool = auto_clean
         self.filter_areas: tuple[str, ...] = filter_areas
         self.sell_due: bool = sell_due
@@ -41,10 +44,24 @@ class BagelSettleWarehouse(BagelOperation):
         self.sale_completed = False
         self.retry_deposit = False
 
+    def _deposit(self, retry: bool = False) -> OperationResult:
+        """启动核对全部携带物，正常结算核对安全箱；共用出售和重试次数限制。"""
+        if self.starting:
+            result = BagelStoreCarried(self.ctx, return_on_remaining=True, click_when_empty=retry).execute()
+            if result.success and result.status != BagelDeposit.STATUS_FULL:
+                result.status = BagelDeposit.STATUS_DONE if result.data.get('moved', 0) else BagelDeposit.STATUS_EMPTY
+            return result
+        return BagelDeposit(self.ctx, return_on_remaining=True, click_when_empty=retry).execute()
+
+    def _warehouse_ready(self) -> bool:
+        """启动可在备战仓库；正式结算必须在退出后的仓库。"""
+        names = ('放入仓库', '批量出售' if self.starting else '返回研究站')
+        return all(self.round_by_find_area(self.last_screenshot, '贝果-仓库', name).is_success for name in names)
+
     @operation_node(name='首次入仓', is_start_node=True, screenshot_before_round=False)
     def deposit_first(self) -> OperationRoundResult:
         """先尝试一次入仓；明确的残留交给出售后一次重试。"""
-        result = BagelDeposit(self.ctx, return_on_remaining=True).execute()
+        result = self._deposit()
         if not result.success:
             return self.round_by_op_result(result)
         if result.status == BagelDeposit.STATUS_FULL:
@@ -63,8 +80,7 @@ class BagelSettleWarehouse(BagelOperation):
             return self.round_success(self.deposit_status)
         if not self.auto_clean:
             return self.round_success(self.deposit_status)
-        if not all(self.round_by_find_area(self.last_screenshot, '贝果-仓库', name).is_success
-                   for name in ('放入仓库', '返回研究站')):
+        if not self._warehouse_ready():
             return self.round_retry('等待入仓后的仓库画面', wait=0.5)
         occupied = safe_occupied_indices(self.last_screenshot)
         pair = bagel_screen.parse_capacity_pair(bagel_screen.read_area(
@@ -95,9 +111,7 @@ class BagelSettleWarehouse(BagelOperation):
         if not self.retry_deposit:
             return self.round_success(self.deposit_status)
         log.info('贝果结算：出售后重试一次入仓')
-        result = BagelDeposit(
-            self.ctx, return_on_remaining=True, click_when_empty=True,
-        ).execute()
+        result = self._deposit(retry=True)
         if not result.success:
             return self.round_by_op_result(result)
         if result.status == BagelDeposit.STATUS_FULL:
@@ -109,9 +123,7 @@ class BagelSettleWarehouse(BagelOperation):
     @operation_node(name='核对结算后仓库', timeout_seconds=10)
     def verify_warehouse_capacity(self) -> OperationRoundResult:
         """用处理结束后的新画面确认安全箱为空且仓库未满，再允许返回并开新局。"""
-        if not all(self.round_by_find_area(
-            self.last_screenshot, '贝果-仓库', area,
-        ).is_success for area in ('放入仓库', '返回研究站')):
+        if not self._warehouse_ready():
             return self.round_retry('等待结算后仓库画面', wait=0.5)
         occupied = safe_occupied_indices(self.last_screenshot)
         if occupied is None:
