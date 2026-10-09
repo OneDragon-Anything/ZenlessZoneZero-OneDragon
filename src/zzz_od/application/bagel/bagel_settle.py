@@ -17,11 +17,9 @@ if TYPE_CHECKING:
 
 
 class BagelSettleWarehouse(BagelOperation):
-    """入仓后按开关清理；仓满且安全箱有物时保留现场。"""
+    """有物入仓后按开关清理；空箱跳过出售，所有结算都核对安全箱和容量。"""
 
     STATUS_DONE: str = BagelDeposit.STATUS_DONE
-    # 空箱本局零收获。独立终态：不进入出售，也不做仓满核验，直接结束。
-    STATUS_SKIPPED_EMPTY: str = '空箱局，未做任何出售'
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,
@@ -34,23 +32,22 @@ class BagelSettleWarehouse(BagelOperation):
 
     @operation_node(name='首次入仓', is_start_node=True, screenshot_before_round=False)
     def deposit_first(self) -> OperationRoundResult:
-        """先尝试入仓；满了且仍有物资则停止；空箱不做任何出售操作。"""
+        """先尝试入仓；满了且仍有物资则停止，空箱仍进入结算链。"""
         result = BagelDeposit(self.ctx).execute()
         if not result.success:
             return self.round_by_op_result(result)
         if result.status == BagelDeposit.STATUS_FULL:
             return self.round_fail('仓库已满且安全箱仍有物资，禁止批量出售，停止并保留现场')
         self.deposit_status = result.status
-        if result.status == BagelDeposit.STATUS_EMPTY:
-            # 本局零收获。空箱不该去点仓库的批量出售：没有东西可卖，白跑一趟，
-            # 万一筛选点错反而会卖掉仓库里的存货。
-            return self.round_success(self.STATUS_SKIPPED_EMPTY)
         return self.round_success('已入仓')
 
     @node_from(from_name='首次入仓', status='已入仓')
     @operation_node(name='入仓后清理', screenshot_before_round=False)
     def clean_after_deposit(self) -> OperationRoundResult:
-        """开关关闭则跳过出售。"""
+        """空箱或清理关闭时只跳过出售，继续执行末尾核验。"""
+        if self.deposit_status == BagelDeposit.STATUS_EMPTY:
+            log.info('贝果空箱结算：跳过出售，继续核对安全箱和仓库容量')
+            return self.round_success(self.deposit_status)
         if not self.auto_clean:
             return self.round_success(self.deposit_status)
         result = BagelCleanWarehouse(self.ctx, self.filter_areas).execute()
@@ -79,4 +76,5 @@ class BagelSettleWarehouse(BagelOperation):
             return self.round_retry('结算后无法核对仓库容量，停止前再看一帧', wait=0.5)
         if pair[0] >= pair[1]:
             return self.round_fail(f'结算后仓库已满（{pair[0]}/{pair[1]}），停止并保留现场')
+        log.info('贝果结算核验：安全箱已空，仓库 %s/%s，允许结束结算', pair[0], pair[1])
         return self.round_success(self.deposit_status)

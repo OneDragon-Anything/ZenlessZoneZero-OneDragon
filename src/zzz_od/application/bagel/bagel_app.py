@@ -277,7 +277,7 @@ class BagelApp(ZApplication):
             if result.status == BagelDeposit.STATUS_DONE:
                 self.success_rounds += 1
                 self.empty_rounds = 0
-            elif result.status in (BagelDeposit.STATUS_EMPTY, BagelSettleWarehouse.STATUS_SKIPPED_EMPTY):
+            elif result.status == BagelDeposit.STATUS_EMPTY:
                 self.empty_rounds += 1
             log.info('贝果单局结算：%s；已入仓 %s 局，连续空箱 %s 局',
                      result.status, self.success_rounds, self.empty_rounds)
@@ -345,7 +345,7 @@ class BagelApp(ZApplication):
     def settle_after_defeat(self) -> OperationRoundResult:
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
         if self.config.auto_clean_warehouse:
-            log.info('失败局入仓后仍按出售方案清理仓库。出售范围包含已有库存。')
+            log.info('失败局有物入仓后按出售方案清理，范围包含已有库存；空箱跳过出售，仍核对仓库容量。')
         else:
             log.info('清理仓库已关闭。失败局只入仓，不出售物品。')
         result = BagelSettleWarehouse(

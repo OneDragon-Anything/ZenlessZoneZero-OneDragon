@@ -15,11 +15,11 @@ GUIDE_URL: str = 'https://github.com/Cora093/ZenlessZoneZero-OneDragon/blob/bage
 ROLE_HINT: str = '请尽量不要使用有特殊移动方式的角色（如星见雅、叶瞬光等）。这类移动可能影响导航与定位的稳定性。'
 LOADOUT_TITLE: str = '首次入场会卸下背包物品身上装备'
 LOADOUT_HINT: str = '首次入场前，程序会将背包和安全箱内的物品放入仓库，再卸下已装备物品。'
-CLEAN_HINT: str = '清理仓库时，程序会按出售方案自动出售物品。出售范围包含已有库存。'
+CLEAN_HINT: str = '有物入仓后，程序会按出售方案自动出售物品，范围包含已有库存。空箱结算不出售，仍检查仓库容量。'
 NO_CLEAN_HINT: str = '程序只将物品放入仓库，不出售物品。首次入场仍会清空携带物。结算后仓库仍满时，任务会停止。'
 SUCCESS_HINT: str = '成功入仓并完成结算后计数。失败局和空箱局不计成功。填 0 不限次数，异常时仍可能停止。'
 RETRY_HINT: str = '局内失败后最多额外重开的次数。成功或暂停恢复后不清零。填 0 时只结算，不重开。'
-CLEAN_SWITCH_HINT: str = '开启后，程序在入仓后按方案出售物品。关闭后，不自动出售清理仓库。'
+CLEAN_SWITCH_HINT: str = '开启后，有物入仓才按方案出售物品。空箱结算不出售，仍检查仓库容量。关闭后，不自动出售清理仓库。'
 DEFAULT_SALE_HINT: str = '默认出售贵重物品、战术棱镜和其他物品中的 C/B/A/S 品质。默认不出售 Z 品质、装备、战术道具和门禁卡。'
 CUSTOM_SALE_HINT: str = '请至少选择一种类型和一种品质。物品同时符合两项条件时，程序才会出售。选择 Z 品质或装备等类型后，相应物品也可能被出售。'
 INCOMPLETE_SALE_HINT: str = '类型或品质未选择，任务无法启动。请至少选择一种类型和一种品质。'
@@ -37,6 +37,7 @@ def log_start(config: BagelConfig) -> None:
         log.info('清理仓库已开启。出售范围：%s。类型和品质须同时符合。已有库存也会出售。', names)
     else:
         log.info('清理仓库已关闭。程序只入仓，不出售物品。')
+    log.info('空箱结算跳过出售，仍核对安全箱和仓库容量；仓库满时停止。')
     log.info('%s随后核对零携带和零投资。', LOADOUT_HINT)
 
 
