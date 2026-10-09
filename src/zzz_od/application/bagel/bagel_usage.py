@@ -15,11 +15,12 @@ GUIDE_URL: str = 'https://github.com/Cora093/ZenlessZoneZero-OneDragon/blob/bage
 ROLE_HINT: str = '请尽量不要使用有特殊移动方式的角色（如星见雅、叶瞬光等）。这类移动可能影响导航与定位的稳定性。'
 LOADOUT_TITLE: str = '首次入场会卸下背包物品身上装备'
 LOADOUT_HINT: str = '首次入场前，程序会将背包和安全箱内的物品放入仓库，再卸下已装备物品。'
-CLEAN_HINT: str = '有物入仓后，程序会按出售方案自动出售物品，范围包含已有库存。空箱结算不出售，仍检查仓库容量。'
+CLEAN_HINT: str = '有物入仓按间隔出售，正常结束时补卖。范围包含已有库存；满仓或残留可提前出售一次，安全箱中符合筛选的物品也会出售。空箱不卖。'
 NO_CLEAN_HINT: str = '程序只将物品放入仓库，不出售物品。首次入场仍会清空携带物。结算后仓库仍满时，任务会停止。'
 SUCCESS_HINT: str = '成功入仓并完成结算后计数。失败局和空箱局不计成功。填 0 不限次数，异常时仍可能停止。'
 RETRY_HINT: str = '局内失败后最多额外重开的次数。成功或暂停恢复后不清零。填 0 时只结算，不重开。'
-CLEAN_SWITCH_HINT: str = '开启后，有物入仓才按方案出售物品。空箱结算不出售，仍检查仓库容量。关闭后，不自动出售清理仓库。'
+CLEAN_SWITCH_HINT: str = '开启后，有物入仓按间隔出售；满仓或残留可提前出售并重试入仓一次。空箱不卖。关闭后不出售。'
+SELL_INTERVAL_HINT: str = '按本任务非空入仓次数累计，失败局带回物资也计入。正常达到成功上限时补卖；满仓或残留可提前卖一次。'
 DEFAULT_SALE_HINT: str = '默认出售贵重物品、战术棱镜和其他物品中的 C/B/A/S 品质。默认不出售 Z 品质、装备、战术道具和门禁卡。'
 CUSTOM_SALE_HINT: str = '请至少选择一种类型和一种品质。物品同时符合两项条件时，程序才会出售。选择 Z 品质或装备等类型后，相应物品也可能被出售。'
 INCOMPLETE_SALE_HINT: str = '类型或品质未选择，任务无法启动。请至少选择一种类型和一种品质。'
@@ -33,6 +34,8 @@ def log_start(config: BagelConfig) -> None:
     limit = str(config.max_success_rounds) if config.max_success_rounds else '不限'
     log.info('即将进入雅努斯高危。成功次数上限：%s。整体重试次数上限：%s。', limit, config.max_failure_retries)
     if config.auto_clean_warehouse:
+        log.info('出售间隔：%s 次非空入仓；正常达到成功上限时补卖。计数不跨任务。', config.sell_interval)
+        log.info('满仓或入仓后残留时，提前出售一次，再入仓一次；仍残留或满仓则停止。安全箱物品也在筛选范围内。')
         names = '、'.join(name.removeprefix('筛选-') for name in config.clean_filter_areas())
         log.info('清理仓库已开启。出售范围：%s。类型和品质须同时符合。已有库存也会出售。', names)
     else:
@@ -44,6 +47,8 @@ def log_start(config: BagelConfig) -> None:
 def stop_guidance(status: str | None) -> str:
     """依据已返回的原因补充处理建议，不改变成功与失败判定。"""
     reason = status or ''
+    if '视为爆仓' in reason or '自动清理关闭' in reason:
+        return '安全箱尚未清空，程序已停止。本局不计成功；请核对安全箱和仓库中的物品，再人工腾出空位。'
     if '仅部分入仓' in reason and '安全箱' in reason:
         return ('部分物品已入仓，安全箱尚未清空。程序已停止重复点击「放入仓库」。'
                 '本局不计成功，也不会继续清理仓库或开始下一局。'

@@ -174,8 +174,8 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.auto_clean_switch.value_changed.connect(self._refresh_clean_options)
         layout.addWidget(self.auto_clean_switch)
         self.sell_interval_card: SpinBoxSettingCard = SpinBoxSettingCard(
-            icon='', title='出售频率',
-            content='多少个成功入仓局出售一次，填 1 表示每局都卖。仓库已满时不受此限制，照样出售腾位。',
+            icon='', title='出售间隔',
+            content=bagel_usage.SELL_INTERVAL_HINT,
             minimum=1, maximum=999,
         )
         layout.addWidget(self.sell_interval_card)
@@ -200,10 +200,11 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.clean_types_card.value_changed.connect(self._refresh_clean_options)
         self.clean_qualities_card.value_changed.connect(self._refresh_clean_options)
         for card in (self.success_rounds_card, self.failure_retries_card,
-                     self.auto_clean_switch, self.clean_mode_card):
+                     self.auto_clean_switch, self.sell_interval_card, self.clean_mode_card):
             _wrap_card(card)
         self.success_rounds_card.spin_box.setFixedWidth(140)
         self.failure_retries_card.spin_box.setFixedWidth(140)
+        self.sell_interval_card.spin_box.setFixedWidth(140)
         self.clean_mode_card.combo_box.setFixedWidth(140)
         self._refresh_clean_options()
         layout.addStretch(1)
