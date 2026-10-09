@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, HyperlinkButton, SimpleCardWidget, StrongBodyLabel
+from PySide6.QtCore import QEvent, QRect, Qt
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qfluentwidgets import (
+    BodyLabel,
+    CaptionLabel,
+    SimpleCardWidget,
+    StrongBodyLabel,
+    SubtitleLabel,
+)
 
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
@@ -42,28 +48,41 @@ class _BagelMultiSelectionCard(MultiSelectionComboBoxSettingCard):
 
 
 class _WrappedHintLabel(QLabel):
-    """根据当前宽度保留完整文案所需高度。"""
+    """按当前字体和宽度计算文本高度，支持卡片随换行增高或收回。"""
 
     def __init__(self, text: str, parent: QWidget) -> None:
-        """沿用设置卡片的文本样式和自动换行。"""
+        """沿用 Fluent 说明样式，不固定说明区域的宽度。"""
         super().__init__(text, parent)
         self.setObjectName('contentLabel')
         self.setWordWrap(True)
-        self.setMaximumWidth(500)
+
+    def _update_height(self) -> None:
+        """直接测量文本，避免 heightForWidth 被旧的最小高度限制。"""
+        height = self.fontMetrics().boundingRect(
+            QRect(0, 0, max(1, self.width()), 10000),
+            Qt.TextFlag.TextWordWrap, self.text(),
+        ).height()
+        self.setMinimumHeight(height)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        """宽度改变后通知布局，避免滚动容器压缩多行文本。"""
+        """窗口宽度变化后重新测量。"""
         super().resizeEvent(event)
-        self.setMinimumHeight(self.heightForWidth(self.width()))
+        self._update_height()
+
+    def changeEvent(self, event: QEvent) -> None:
+        """Fluent 样式或字体加载后重新测量。"""
+        super().changeEvent(event)
+        if event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange):
+            self._update_height()
 
     def setText(self, text: str) -> None:
-        """出售方案切换时按新文案重新计算高度。"""
+        """切换出售方案后重新测量，允许高度缩小。"""
         super().setText(text)
-        self.setMinimumHeight(self.heightForWidth(self.width()))
+        self._update_height()
 
 
 def _wrap_card(card: SettingCardBase) -> None:
-    """仅调整贝果设置卡片的换行和高度，不改通用组件。"""
+    """仅调整贝果卡片，保留文本与控件间距并支持多行说明。"""
     previous = card.contentLabel
     card.contentLabel = _WrappedHintLabel(previous.text(), card)
     card.vBoxLayout.replaceWidget(previous, card.contentLabel)
@@ -72,11 +91,13 @@ def _wrap_card(card: SettingCardBase) -> None:
     card.setMaximumHeight(16777215)
     card.setMinimumHeight(76)
     card.contentLabel.setWordWrap(True)
+    card.contentLabel.setMaximumWidth(16777215)
     card.contentLabel.setMinimumWidth(0)
     card.contentLabel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-    card.hBoxLayout.setContentsMargins(16, 12, 16, 12)
+    card.hBoxLayout.setContentsMargins(4, 14, 4, 14)
     card.hBoxLayout.setStretch(1, 1)
     card.hBoxLayout.setStretch(3, 0)
+    card.vBoxLayout.setSpacing(4)
     card.vBoxLayout.setAlignment(card.contentLabel, Qt.AlignmentFlag(0))
     card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
@@ -101,31 +122,39 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        self.usage_card: SimpleCardWidget = SimpleCardWidget(widget)
-        tips = QVBoxLayout(self.usage_card)
-        tips.setContentsMargins(16, 16, 16, 16)
-        tips.setSpacing(8)
+        layout.addWidget(SubtitleLabel('贝果计划', widget))
+        account_hint = CaptionLabel(bagel_usage.ACCOUNT_HINT, widget)
+        account_hint.setWordWrap(True)
+        layout.addWidget(account_hint)
+        self.usage_card: QWidget = QWidget(widget)
+        tips = QHBoxLayout(self.usage_card)
+        tips.setContentsMargins(0, 0, 0, 0)
+        tips.setSpacing(12)
+        self.hint_cards: list[SimpleCardWidget] = []
         for title, content in (
             ('角色选择', bagel_usage.ROLE_HINT),
             (bagel_usage.LOADOUT_TITLE, bagel_usage.LOADOUT_HINT),
+            ('已有库存也会出售', bagel_usage.CLEAN_HINT),
         ):
-            tips.addWidget(StrongBodyLabel(title, self.usage_card))
-            label = BodyLabel(content, self.usage_card)
+            card = SimpleCardWidget(self.usage_card)
+            column = QVBoxLayout(card)
+            column.setContentsMargins(16, 16, 16, 16)
+            column.setSpacing(8)
+            heading = StrongBodyLabel(title, card)
+            heading.setWordWrap(True)
+            column.addWidget(heading)
+            label = BodyLabel(content, card)
             label.setWordWrap(True)
-            tips.addWidget(label)
-        self.sale_title: StrongBodyLabel = StrongBodyLabel('已有库存也会出售', self.usage_card)
-        self.sale_hint: BodyLabel = BodyLabel(bagel_usage.CLEAN_HINT, self.usage_card)
-        self.sale_hint.setWordWrap(True)
-        tips.addWidget(self.sale_title)
-        tips.addWidget(self.sale_hint)
-        self.guide_link: HyperlinkButton = HyperlinkButton(
-            bagel_usage.GUIDE_URL, '使用说明与问题反馈', self.usage_card,
-        )
-        tips.addWidget(self.guide_link)
+            column.addWidget(label)
+            column.addStretch(1)
+            tips.addWidget(card, 1)
+            self.hint_cards.append(card)
+        self.sale_card: SimpleCardWidget = card
+        self.sale_title: StrongBodyLabel = heading
+        self.sale_hint: BodyLabel = label
         layout.addWidget(self.usage_card)
-        account_hint = BodyLabel(bagel_usage.ACCOUNT_HINT, widget)
-        account_hint.setWordWrap(True)
-        layout.addWidget(account_hint)
+        self.settings_heading: SubtitleLabel = SubtitleLabel('运行与结算设置', widget)
+        layout.addWidget(self.settings_heading)
         self.success_rounds_card: SpinBoxSettingCard = SpinBoxSettingCard(
             icon='', title='成功次数', content=bagel_usage.SUCCESS_HINT,
             minimum=0, maximum=1000,
@@ -167,6 +196,9 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         for card in (self.success_rounds_card, self.failure_retries_card,
                      self.auto_clean_switch, self.clean_mode_card):
             _wrap_card(card)
+        self.success_rounds_card.spin_box.setFixedWidth(140)
+        self.failure_retries_card.spin_box.setFixedWidth(140)
+        self.clean_mode_card.combo_box.setFixedWidth(140)
         self._refresh_clean_options()
         layout.addStretch(1)
         return widget

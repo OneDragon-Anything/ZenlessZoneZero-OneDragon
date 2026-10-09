@@ -91,4 +91,4 @@ def log_feedback() -> None:
         log.info('当前日志：%s', '、'.join(sorted(paths)))
     else:
         log.info('日志默认在程序运行目录的 .log/；如已配置其他路径，请以该路径为准。')
-    log.info('使用说明与问题反馈：%s', GUIDE_URL)
+    log.info('使用说明：%s', GUIDE_URL)
