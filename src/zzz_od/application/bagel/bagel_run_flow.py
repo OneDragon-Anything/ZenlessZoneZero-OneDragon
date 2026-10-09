@@ -70,6 +70,7 @@ class BagelRunFlow(BagelOperation):
         on_event: Callable[[dict[str, object]], None] | None = None,
         map_snapshot: BagelFixedMap | None = None,
         continuous_safe_unlock: bool = False,
+        on_location_wait: Callable[[], None] | None = None,
     ) -> None:
         """校验勾选清单；正式任务可连续执行相邻的保险箱交互与解锁。"""
         super().__init__(ctx, op_name=f'贝果流程-{flow.name}', node_max_retry_times=0)
@@ -100,6 +101,7 @@ class BagelRunFlow(BagelOperation):
         self._approach_step: BagelStep | None = None
         self._reapproach_pending: bool = False
         self.continuous_safe_unlock: bool = continuous_safe_unlock
+        self.on_location_wait: Callable[[], None] | None = on_location_wait
         self._step_started_at: float = 0
 
     def handle_init(self) -> None:
@@ -295,6 +297,7 @@ class BagelRunFlow(BagelOperation):
                 on_observation=lambda data: self.emit('observation', **data),
                 recovery=self._recovery_for(step) if step.action == 'approach' else None,
                 recovering=self._reapproach_pending,
+                on_location_wait=self.on_location_wait,
             )
         if step.action == 'interact':
             if step.target == 'box':
@@ -331,6 +334,8 @@ class BagelRunFlow(BagelOperation):
         if reason == self.STATUS_LOCATION_PENDING:
             self._location_waits += 1
             if self._location_waits <= 5:
+                if self.on_location_wait is not None:
+                    self.on_location_wait()
                 self.emit('waiting', status=reason)
                 return self.round_wait(reason, wait=0.3)
             reason = '小地图持续无法定位，停止并保留现场'
