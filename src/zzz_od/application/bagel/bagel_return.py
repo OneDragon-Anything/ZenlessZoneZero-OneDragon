@@ -27,6 +27,15 @@ class BagelReturn(BagelOperation):
         self.reward_confirmed = False
         self.world_recovery_attempted = False
 
+    def _can_interact(self) -> bool:
+        """头顶名称不足以确认交互范围，还需核对当前画面的交互按钮。"""
+        return all(self.round_by_find_area(self.last_screenshot, screen, area).is_success
+                   for screen, area in (
+                       ('大世界-普通', '快捷手册'),
+                       ('贝果-研究站', '接待员名称'),
+                       ('战斗画面', '按键-交互'),
+                   ))
+
     def recover_world(self) -> OperationRoundResult:
         """页面挡住返回时复用通用操作，每次返回仅尝试一次。"""
         if self.world_recovery_attempted:
@@ -39,6 +48,7 @@ class BagelReturn(BagelOperation):
             return self.round_by_op_result(result)
         return self.round_success('已返回大世界')
 
+    @node_from(from_name='加载后直接交互', success=False, status=BagelOperation.STATUS_TIMEOUT)
     @node_from(from_name='打开贝果入口', success=False, status=BagelOperation.STATUS_TIMEOUT)
     @node_from(from_name='等待研究站加载', success=False, status=BagelOperation.STATUS_TIMEOUT)
     @operation_node(name='研究站加载超时恢复', screenshot_before_round=False)
@@ -66,7 +76,7 @@ class BagelReturn(BagelOperation):
     @node_from(from_name='返回研究站')
     @operation_node(name='等待研究站加载', timeout_seconds=25)
     def wait_station(self) -> OperationRoundResult:
-        """先确认本次撤离奖励；加载持续等待，明确页面阻挡才提前恢复。"""
+        """先确认本次撤离奖励；入口渐显和页面阻挡均等节点超时后恢复。"""
         if (self.round_by_find_area(self.last_screenshot, '贝果-研究站', '标题').is_success
                 and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '前往空洞').is_success):
             return self.round_success('已到贝果入口')
@@ -84,15 +94,15 @@ class BagelReturn(BagelOperation):
                 return self.round_wait('等待撤离奖励提示关闭', wait=0.5)
             return result
         if not self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success:
-            if self.round_by_find_area(self.last_screenshot, '画面-通用', '返回').is_success:
-                return self.recover_world()
             return self.round_wait('等待返回研究站加载', wait=0.5)
         return self.round_success(wait=1)
 
     @node_from(from_name='等待研究站加载')
-    @operation_node(name='加载后直接交互')
+    @operation_node(name='加载后直接交互', timeout_seconds=10)
     def interact_after_loading(self) -> OperationRoundResult:
-        """已知落点在达塔交互范围内，直接按 F，不再识别名字位置。"""
+        """只在大世界、达塔目标和可交互按钮同时出现时按 F。"""
+        if not self._can_interact():
+            return self.round_wait('等待达塔目标和可交互按钮', wait=0.5)
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
         return self.round_success(wait=1)
 
@@ -105,11 +115,8 @@ class BagelReturn(BagelOperation):
                 and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '前往空洞').is_success):
             return self.round_success('已返回贝果入口')
         if not self.round_by_find_area(self.last_screenshot, '贝果-研究站', '对话人').is_success:
-            if (self.round_by_find_area(self.last_screenshot, '大世界-普通', '快捷手册').is_success
-                    and self.round_by_find_area(self.last_screenshot, '贝果-研究站', '接待员名称').is_success):
+            if self._can_interact():
                 self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            elif self.round_by_find_area(self.last_screenshot, '画面-通用', '返回').is_success:
-                return self.recover_world()
             else:
                 return self.round_wait('等待达塔对话或贝果入口', wait=0.5)
             return self.round_retry('等待达塔对话', wait=1)
