@@ -5,6 +5,10 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 
+HDD_BATTLE_LOADING_TIMEOUT_DEFAULT: int = 180
+HDD_BATTLE_LOADING_TIMEOUT_MIN: int = 60
+HDD_BATTLE_LOADING_TIMEOUT_MAX: int = 600
+
 
 class GamepadTypeEnum(Enum):
 
@@ -177,6 +181,29 @@ class GameConfig(BasicGameConfig):
         BasicGameConfig.__init__(self, instance_idx)
         # TODO 迁移旧配置 2026-9 删除
         self._migrate_legacy_gamepad_keys()
+
+    @property
+    def hdd_mode(self) -> bool:
+        """是否为机械硬盘单独延长战斗加载等待。"""
+        return self.get('hdd_mode', False) is True
+
+    @hdd_mode.setter
+    def hdd_mode(self, new_value: bool) -> None:
+        """保存当前实例的机械硬盘模式。"""
+        self.update('hdd_mode', new_value)
+
+    @property
+    def hdd_battle_loading_timeout(self) -> int:
+        """机械硬盘战斗加载等待上限，单位为秒。"""
+        value = self.get('hdd_battle_loading_timeout', HDD_BATTLE_LOADING_TIMEOUT_DEFAULT)
+        if type(value) is not int:
+            return HDD_BATTLE_LOADING_TIMEOUT_DEFAULT
+        return max(HDD_BATTLE_LOADING_TIMEOUT_MIN, min(HDD_BATTLE_LOADING_TIMEOUT_MAX, value))
+
+    @hdd_battle_loading_timeout.setter
+    def hdd_battle_loading_timeout(self, new_value: int) -> None:
+        """保存当前实例的战斗加载等待上限。"""
+        self.update('hdd_battle_loading_timeout', new_value)
 
     def _migrate_legacy_gamepad_keys(self) -> None:
         """初始化时一次性迁移所有旧数字格式的手柄按键配置。"""

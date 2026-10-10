@@ -16,6 +16,7 @@ from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunR
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 from zzz_od.operation.transport import Transport
@@ -289,7 +290,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        return self.round_retry(result.status, wait=1)
+        return apply_battle_loading_wait(self, self.round_retry(result.status, wait=1))
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='战斗前移动')
