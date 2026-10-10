@@ -32,11 +32,12 @@ class AreaPatrol(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem, is_temp_plan: bool = False):
         """
         使用快捷手册传送后
         用这个进行挑战
         :param ctx:
+        :param is_temp_plan: 是否为多倍活动的临时计划
         """
         ZOperation.__init__(
             self, ctx,
@@ -49,6 +50,7 @@ class AreaPatrol(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
+        self.is_temp_plan: bool = is_temp_plan
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
@@ -182,7 +184,11 @@ class AreaPatrol(ZOperation):
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        self.config.add_plan_run_times(self.plan)
+        # 多倍活动计划不在正式列表中，只累加本次临时计划的执行次数
+        if self.is_temp_plan:
+            self.plan.run_times += 1
+        else:
+            self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
     @node_from(from_name='战斗结束')
