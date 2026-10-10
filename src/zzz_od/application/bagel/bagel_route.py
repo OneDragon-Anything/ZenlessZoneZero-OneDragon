@@ -44,6 +44,7 @@ class BagelWaypoint:
     tolerance: float | None = None
     stop: bool = True
     passed_tolerance: float | None = None
+    heading: float | None = None
 
     @property
     def arrival_radius(self) -> float:
@@ -79,6 +80,8 @@ class BagelWaypoint:
             data['tolerance'] = self.tolerance
         if self.passed_tolerance is not None:
             data['passed_tolerance'] = self.passed_tolerance
+        if self.heading is not None:
+            data['heading'] = self.heading
         return data
 
 
@@ -109,7 +112,7 @@ class BagelRoute:
             raise ValueError('路点必须是至多 100 项的列表')
         points: list[BagelWaypoint] = []
         for value in values:
-            if not isinstance(value, dict) or set(value) - {'name', 'xy', 'stage', 'role', 'tolerance', 'stop', 'passed_tolerance'}:
+            if not isinstance(value, dict) or set(value) - {'name', 'xy', 'stage', 'role', 'tolerance', 'stop', 'passed_tolerance', 'heading'}:
                 raise ValueError('路点格式或字段无效')
             name, xy = value.get('name'), value.get('xy')
             stage, role = value.get('stage'), value.get('role')
@@ -131,7 +134,16 @@ class BagelRoute:
             stop = value.get('stop', True)
             if not isinstance(stop, bool):
                 raise ValueError('停步要求必须是布尔值')
-            point = BagelWaypoint(name.strip(), tuple(_number(v, '坐标', -1000, 1000) for v in xy), stage, role, tolerance, stop, passed)
+            heading = value.get('heading')
+            if heading is not None:
+                heading = _number(heading, '到达朝向', -180, 180)
+                if stage != 'move':
+                    raise ValueError('只有普通移动可以指定到达朝向')
+            point = BagelWaypoint(
+                name.strip(),
+                tuple(_number(v, '坐标', -1000, 1000) for v in xy),
+                stage, role, tolerance, stop, passed, heading,
+            )
             points.append(point)
         route = cls(map_id, tuple(points))
         box, safe, mech = (

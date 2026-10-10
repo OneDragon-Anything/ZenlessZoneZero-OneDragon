@@ -19,6 +19,7 @@ from zzz_od.application.bagel.bagel_const import (
     NAV_CRUISE_TURN_GAP,
     NAV_CRUISE_TURN_LIMIT,
     NAV_FORWARD_PRESS,
+    NAV_HOOK_STEP_WAIT,
     NAV_INITIAL_LOCATE_MISS_LIMIT,
     NAV_INITIAL_LOCATE_WAIT,
     NAV_LOCATE_MISS_LIMIT,
@@ -26,15 +27,26 @@ from zzz_od.application.bagel.bagel_const import (
     NAV_SAFE_APPROACH_PRESS,
     NAV_SAFE_BRAKE_WAIT,
     NAV_STOP_TURN_CAP,
+    NAV_TELEPORT_AWAY_LIMIT,
+    NAV_TELEPORT_BACK_LIMIT,
     NAV_TURN_DEADBAND,
 )
 from zzz_od.application.bagel.bagel_container import ContainerRecovery, container_state
-from zzz_od.application.bagel.bagel_flow import NavigationOptions, load_published_flow
+from zzz_od.application.bagel.bagel_flow import (
+    ArriveHook,
+    ArriveHookStep,
+    NavigationOptions,
+    load_published_flow,
+)
 from zzz_od.application.bagel.bagel_operation import (
     BagelOperation,
     BagelRecoverableFailure,
 )
-from zzz_od.application.bagel.bagel_route import BagelRoute
+from zzz_od.application.bagel.bagel_route import (
+    MAP_LABELS,
+    BagelRoute,
+    BagelWaypoint,
+)
 from zzz_od.application.bagel.bagel_route_vision import BagelRouteVision
 from zzz_od.operation.turning.turn_compensation import AngleTurnCompensator
 
@@ -49,17 +61,13 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 Destination = Literal['box', 'safe', 'mech', 'move']
+
 # 操作名里要显示的容器称呼，避免三元表达式到处重复。
+# move 是「移动到指定路点」，不称呼容器；操作名单独处理，不从这里取值。
 DESTINATION_LABELS: dict[str, str] = {
     'box': '武备箱',
     'safe': '电子保险箱',
     'mech': '机械保险箱',
-}
-# 操作名里的出生点称呼，按底图取值。
-MAP_LABELS: dict[str, str] = {
-    'janus_high_a': '录像店复活点',
-    'janus_high_b': '白鸽工地地铁站复活点',
-    'janus_high_c': '单廊双容器复活点',
 }
 
 
@@ -95,10 +103,11 @@ class BagelNavigate(BagelOperation):
         map_snapshot: BagelFixedMap | None = None,
         recovery: ContainerRecovery | None = None,
         recovering: bool = False,
+        arrive_hook: ArriveHook | None = None,
     ) -> None:
         """普通移动使用独立坐标；只有靠近容器才需要目标类型。"""
         if destination not in ('box', 'safe', 'mech', 'move'):
-            raise ValueError('导航目标只能是 move 或某种容器')
+            raise ValueError('导航目标只能是 move、box、safe 或 mech')
         if destination == 'move' and (route_data is None or not coordinate_only):
             raise ValueError('普通移动必须提供独立路点并按坐标完成')
         route_label = MAP_LABELS.get(map_id, map_id)
@@ -140,9 +149,10 @@ class BagelNavigate(BagelOperation):
         if not self.vision.route.points_for(destination):
             raise ValueError(f'{map_id} 暂不支持该导航路段：{destination}')
         self.active_waypoints: list[tuple[str, tuple[float, float]]] = self._select_waypoints()
-        self.interact_area: str = CONTAINER_PROMPT_AREAS.get(
-            destination) or CONTAINER_PROMPT_AREAS['safe']
+        self.interact_area: str = CONTAINER_PROMPT_AREAS.get(destination) or CONTAINER_PROMPT_AREAS['safe']
         self.forward_press: float = NAV_FORWARD_PRESS
+        # 每种容器有自己的到达状态名：流程执行器按这个名字把「靠近」和
+        # 「开箱」对上，写错会让一个箱子的靠近结果被下一个步骤当成另一个箱子。
         self.arrive_status: str = self.ARRIVED_STATUS.get(destination, '')
         self.waypoint_index: int = 0
         self.steps: int = 0
@@ -150,6 +160,22 @@ class BagelNavigate(BagelOperation):
         self.last_input_frame: float | None = None
         self.pending_turn: tuple[float, float] | None = None
         self.turn_compensator: AngleTurnCompensator = AngleTurnCompensator(ctx.controller)
+        # 连续横移次数。横移只在跨拐角时有效，反复横移说明卡住了。
+        # 上一帧的朝向偏差，用于识别跨 ±180 度边界的读数跳变。
+        self._last_angle_diff: float | None = None
+        # 到达动作配置；None 表示本步骤没有配置 hook。
+        self.arrive_hook: ArriveHook | None = arrive_hook
+        # hook 状态：是否已启动、待执行的段队列、当前段序号与剩余秒数。
+        self._hook_started: bool = False
+        self._hook_queue: tuple[ArriveHookStep, ...] = ()
+        self._hook_index: int = 0
+        self._hook_left: float = 0.0
+        self._held_move_keys: tuple[str, ...] = ()
+        # 到达后对齐朝向（heading）的独占状态。
+        self._arriving: bool = False
+        self._arrive_point: BagelWaypoint | None = None
+        # 上上帧定位，用于识别「跳远又跳回」的定位震荡。
+        self._prev_position: tuple[float, float] | None = None
         self.target_wait_started: float | None = None
         self.locate_misses: int = 0
         self.initial_locate_misses: int = 0
@@ -247,8 +273,19 @@ class BagelNavigate(BagelOperation):
     def move_to_target(self) -> OperationRoundResult:
         """两种方式均朝目的地调整；靠近步骤到点后只等待交互提示。"""
         if self.is_bagel_result():
+            self._release_move_keys()
             self._release_forward()
             return self.round_fail(self.STATUS_DEFEATED)
+        if self._hook_left > 0:
+            # 到达动作独占执行：位移会离开到达半径，若被巡航逻辑接管，
+            # 实机会出现「位移推出→停车转向转圈→漂回→继续位移」的循环，
+            # 且步骤被提前结束时按住的键没人松开。独占期间只计时。
+            return self._continue_arrive_hook()
+        if self._arriving:
+            # 到达后对齐朝向同样独占：主流程的对齐目标是路点方向，
+            # 与 heading 是两个不同的目标，轮替执行会把朝向来回掰、
+            # 并让角色在到达半径边界振荡，停滞检测也会被污染。
+            return self._finish_arrival()
         if not self.coordinate_only:
             state = container_state(self, self.destination)
             if state == 'ready':
@@ -331,6 +368,24 @@ class BagelNavigate(BagelOperation):
             return self.round_recoverable_fail('小地图定位失败，停止移动')
         self.locate_misses = 0
         self.initial_locate_misses = 0
+        # 定位往返跳变守卫：换代理人等瞬间，小地图匹配会在两个位置间震荡。
+        # 判据是「与上上帧几乎重合、与上一帧却相距很远」—— 正常跑动不可能
+        # 在一轮内折返，只有定位震荡才会呈现这种 A→B→A 的模式。
+        # 跳变帧不参与导航决策也不更新位置缓存，等匹配稳定后再继续。
+        if (
+            self._prev_position is not None
+            and self.last_position is not None
+            and hypot(
+                position[0] - self._prev_position[0],
+                position[1] - self._prev_position[1],
+            ) < NAV_TELEPORT_BACK_LIMIT
+            and hypot(
+                position[0] - self.last_position[0],
+                position[1] - self.last_position[1],
+            ) > NAV_TELEPORT_AWAY_LIMIT
+        ):
+            return self.round_wait('定位往返跳变，等待匹配稳定', wait=0.15)
+        self._prev_position = self.last_position
         self.last_position = position
         final_xy = self.active_waypoints[-1][1]
         final_distance = hypot(position[0] - final_xy[0], position[1] - final_xy[1])
@@ -401,6 +456,18 @@ class BagelNavigate(BagelOperation):
                 self.pending_turn = None
             if self.coordinate_only:
                 self._release_forward()
+                hooked = self._run_arrive_hook()
+                if hooked is not None:
+                    return hooked
+                if point.heading is not None and not self._arriving:
+                    self._arriving = True
+                    self._arrive_point = point
+                aligned = self._face_arrival_heading(crop, point)
+                if aligned is not None:
+                    return aligned
+                self._arriving = False
+                self._arrive_point = None
+                self._release_move_keys()
                 return self.round_success(self.STATUS_WAYPOINT)
             self.waypoint_index += 1
             return self.round_wait('已越过中间节点，准备下一段', wait=0.1)
@@ -409,10 +476,21 @@ class BagelNavigate(BagelOperation):
             if point.stop or not intermediate:
                 self._release_forward()
             if self.coordinate_only:
+                hooked = self._run_arrive_hook()
+                if hooked is not None:
+                    return hooked
+                if point.heading is not None and not self._arriving:
+                    self._arriving = True
+                    self._arrive_point = point
+                aligned = self._face_arrival_heading(crop, point)
+                if aligned is not None:
+                    return aligned
+                self._release_move_keys()
                 return self.round_success(self.STATUS_WAYPOINT)
             if self.waypoint_index + 1 == len(self.active_waypoints):
                 self.target_wait_started = self.last_screenshot_time
                 return self._wait_for_interaction()
+            self._release_move_keys()
             self.waypoint_index += 1
             return self.round_wait('已到中间节点，准备下一段', wait=0.1)
         self.target_wait_started = None
@@ -425,7 +503,14 @@ class BagelNavigate(BagelOperation):
             self._release_forward()
             return self.round_recoverable_fail('无法识别角色箭头，停止移动')
         target_angle = degrees(atan2(position[1] - target[1], target[0] - position[0])) % 360
-        if not small_steps and not self._destination_braked and (safe_corner or distance > NAV_CRUISE_DISTANCE):
+        # 配置了到达动作的步骤全程保持巡航：接近段停车对齐会被敌人追上，
+        # 到达判定成立后立即执行 hook，用位移代替停顿。
+        keep_cruising = (
+            not small_steps
+            and not self._destination_braked
+            and (safe_corner or distance > NAV_CRUISE_DISTANCE or self.arrive_hook is not None)
+        )
+        if keep_cruising:
             return self._cruise_toward(angle, target_angle, name)
         limited = self._fail_if_action_limit()
         if limited is not None:
@@ -442,6 +527,34 @@ class BagelNavigate(BagelOperation):
         self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
         self._record_input()
         return self.round_wait(f'前往{name}', wait=0.15)
+
+    def _face_arrival_heading(
+        self, crop: MatLike, point: BagelWaypoint,
+    ) -> OperationRoundResult | None:
+        """到达后转到路点指定的朝向，对齐后才返回。
+
+        换出生点跑图时，终点要恢复成该点本来的开场镜头朝向，否则紧接着的
+        固定流程会从一个没验证过的方向起步。
+
+        转向期间保持前进键按下 —— 停步调镜头会被敌人追上。到达朝向与下一步
+        大致同向，边走边转几乎不会偏离终点；对齐后才交还控制权。
+        """
+        if point.heading is None:
+            return None
+        image_angle = self.vision.player_angle(crop)
+        if image_angle is None:
+            return self.round_recoverable_fail('到达后无法识别角色箭头，停止移动')
+        controller_angle, angle_diff = self._observe_heading(image_angle, point.heading)
+        if abs(angle_diff) <= NAV_TURN_DEADBAND:
+            self._release_forward()
+            return None
+        self.ctx.controller.start_moving_forward()
+        effective = self.turn_compensator.turn(angle_diff, max_abs_angle_diff=NAV_STOP_TURN_CAP)
+        self.pending_turn = (controller_angle, effective)
+        # 转向指令已下发且镜头已转，不需要再短按 W 对齐箭头。
+        self.heading_aligned = True
+        self._record_input()
+        return self.round_wait(f'到达后行进转向 {angle_diff:.1f} 度', wait=0.15)
 
     def _wait_for_interaction(self) -> OperationRoundResult:
         """到点后只等待两秒，定位轻微漂移也不会重新起步。"""
@@ -505,6 +618,86 @@ class BagelNavigate(BagelOperation):
             self._cruise_progress = (self.last_position, self.last_screenshot_time)
         self.ctx.controller.start_moving_forward()
         return self.round_wait(f'前往{name}')
+    def _finish_arrival(self) -> OperationRoundResult:
+        """到达后的朝向对齐独占轮次；对齐到死区内即完成本步骤。"""
+        point = self._arrive_point
+        if point is None:
+            self._arriving = False
+            self._release_move_keys()
+            return self.round_success(self.STATUS_WAYPOINT)
+        aligned = self._face_arrival_heading(self.minimap(), point)
+        if aligned is not None:
+            return aligned
+        self._arriving = False
+        self._arrive_point = None
+        self._release_move_keys()
+        return self.round_success(self.STATUS_WAYPOINT)
+
+    def _run_arrive_hook(self) -> OperationRoundResult | None:
+        """到达步骤终点后执行配置的位移动作；未配置或已执行完返回 None。
+
+        hook 由流程配置显式声明（如 W+D 按住两秒），方向固定、不看朝向：
+        用于贴着拐角内侧过弯或脱离追击的敌人。位移会改变角色位置，
+        下一步骤的巡航自然基于新坐标。
+        """
+        hook = self.arrive_hook
+        if hook is None or self._hook_started:
+            # 未配置，或本步骤的到达动作已经执行过：跳过。
+            return None
+        self._hook_started = True
+        self._hook_queue = hook.actions
+        self._hook_index = 0
+        first = self._hook_queue[0]
+        self._hook_left = first.seconds
+        self._hold_move_keys(first.keys)
+        self._record_input()
+        label = "+".join(key[-1].upper() for key in first.keys)
+        return self.round_wait(
+            f"到达后按住 {label} {first.seconds:g} 秒", wait=NAV_HOOK_STEP_WAIT,
+        )
+
+    def _continue_arrive_hook(self) -> OperationRoundResult:
+        """到达动作的后续轮次：段内计时，段间自动衔接，全部完成即达成路点。"""
+        self._hook_left -= NAV_HOOK_STEP_WAIT
+        self._record_input()
+        if self._hook_left > 0:
+            return self.round_wait(
+                f"到达后位移 剩 {self._hook_left:.1f} 秒", wait=NAV_HOOK_STEP_WAIT,
+            )
+        self._release_move_keys()
+        self._hook_index += 1
+        if self._hook_index < len(self._hook_queue):
+            nxt = self._hook_queue[self._hook_index]
+            self._hook_left = nxt.seconds
+            self._hold_move_keys(nxt.keys)
+            self._record_input()
+            label = "+".join(key[-1].upper() for key in nxt.keys)
+            return self.round_wait(
+                f"到达后按住 {label} {nxt.seconds:g} 秒", wait=NAV_HOOK_STEP_WAIT,
+            )
+        self.heading_aligned = False
+        # hook 执行完毕即视为本步骤的路点已达成：hook 的位移本就会把
+        # 角色带离路点（如拐进通道），若回到主流程重新判定到达，
+        # distance 永远无法再满足 tolerance，只会绕路撞墙。
+        return self.round_success(self.STATUS_WAYPOINT)
+
+    def _hold_move_keys(self, keys: tuple[str, ...]) -> None:
+        """按住移动键并保持，直到显式松开。
+
+        控制器没有「保持」接口，但 `btn_press` 不带时长就只记下按住状态。
+        重复调用是幂等的，所以每轮补一次即可，靠 `_release_move_keys` 收尾。
+        """
+        for key in keys:
+            getattr(self.ctx.controller, key)(press=True)
+        self._held_move_keys = keys
+
+    def _release_move_keys(self) -> None:
+        """松开 `_hold_move_keys` 按住的全部键。"""
+        if not self._held_move_keys:
+            return
+        for key in reversed(self._held_move_keys):
+            getattr(self.ctx.controller, key)(release=True)
+        self._held_move_keys = ()
 
     def _align_to_heading(
         self, image_angle: float, target_angle: float,
@@ -566,7 +759,7 @@ class BagelNavigate(BagelOperation):
             self.last_screenshot, '贝果-局内', '交互F键',
         ).is_success:
             return False
-        for area_name in ('武备箱交互', '电子保险箱交互'):
+        for area_name in CONTAINER_PROMPT_AREAS.values():
             if self.round_by_find_area(
                 self.last_screenshot, '贝果-局内', area_name,
             ).is_success:
@@ -606,6 +799,7 @@ class BagelNavigate(BagelOperation):
 
     def handle_pause(self) -> None:
         """暂停时释放前进键，恢复后重新校准。"""
+        self._release_move_keys()
         self._release_forward()
         self._settle_until = None
         self._settled = False
@@ -615,6 +809,7 @@ class BagelNavigate(BagelOperation):
 
     def after_operation_done(self, result: OperationResult) -> None:
         """所有退出路径释放前进键并保留失败截图。"""
+        self._release_move_keys()
         self.ctx.controller.stop_moving_forward()
         self._invalidate_heading()
         super().after_operation_done(result)

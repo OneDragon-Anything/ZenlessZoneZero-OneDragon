@@ -35,27 +35,37 @@ _FILTER_UNSELECTED_MAX: float = 0.08
 
 
 class BagelCleanWarehouse(BagelOperation):
-    """用仓库快速选择卖掉贵重物品、战术棱镜、其他的 C–S，只留 Z。"""
+    """用仓库快速选择卖掉贵重物品、战术棱镜、其他的 C–S，只留 Z。
+
+    常规模式要求安全箱为空才允许进入批量出售。仓满时安全箱必然有物（那正是放不进去
+    的部分），此时用 `force_make_room=True` 强制腾位：安全箱占用格作为基线记录下来，
+    出售后要求它一字不差，而不是要求清空。快速选择只作用于右侧仓库格，安全箱不在
+    出售范围内，所以仓满是唯一能腾位的场景。
+    """
 
     STATUS_SKIPPED: str = '没有可出售物品'
     STATUS_DONE: str = '已批量出售'
 
-    def __init__(self, ctx: ZContext, filter_areas: tuple[str, ...] = FILTER_TICKS) -> None:
+    def __init__(
+        self, ctx: ZContext, filter_areas: tuple[str, ...] = FILTER_TICKS,
+        force_make_room: bool = False,
+    ) -> None:
         """入仓后调用；不点整理，不点自动转化货币。"""
         super().__init__(ctx, op_name='贝果-仓库清理', timeout_seconds=90)
         all_areas = (*FILTER_EXCLUDED, *FILTER_TICKS)
         if len(set(filter_areas)) != len(filter_areas) or any(name not in all_areas or name == '筛选-全部' for name in filter_areas):
             raise ValueError('清理筛选包含重复或未知区域')
         self.filter_areas: frozenset[str] = frozenset(filter_areas)
+        self.force_make_room: bool = force_make_room
         self._filter_count: int | None = None
-        self._safe_was_clear: bool = False
+        self._safe_baseline: tuple[int, ...] | None = None
         self._warehouse_before: int | None = None
 
     def handle_init(self) -> None:
         """每次执行清空勾选进度。"""
         super().handle_init()
         self._filter_count = None
-        self._safe_was_clear = False
+        self._safe_baseline = None
         self._warehouse_before = None
 
     def _has_area(self, area_name: str) -> bool:
@@ -68,9 +78,24 @@ class BagelCleanWarehouse(BagelOperation):
         """仓库主界面；研究站打开仓库时没有结算页的返回研究站按钮。"""
         return all(self._has_area(name) for name in ('放入仓库', '批量出售'))
 
-    def _safe_clear(self) -> bool:
-        """仅在仓库主界面核对安全箱；出售弹窗会遮挡格子。"""
-        return self._warehouse_idle() and safe_occupied_indices(self.last_screenshot) == ()
+    def _safe_occupied(self) -> tuple[int, ...] | None:
+        """仅在仓库主界面读安全箱占用；出售弹窗会遮挡格子。非主界面返回 None。"""
+        if not self._warehouse_idle():
+            return None
+        return safe_occupied_indices(self.last_screenshot)
+
+    def _check_safe_before_sell(self) -> tuple[int, ...] | None:
+        """出售前记录安全箱基线；不允许出售时返回 None。
+
+        常规模式要求空箱；仓满强制腾位时安全箱必然有物，那正是入仓放不进去的部分，
+        如实记下占用格作为基线，出售后用来核对「一件都没动」。
+        """
+        occupied = self._safe_occupied()
+        if occupied is None:
+            return None
+        if occupied and not self.force_make_room:
+            return None
+        return occupied
 
     def _warehouse_count(self) -> int | None:
         """读取仓库占用；文字不清晰时不能验证腾位。"""
@@ -111,14 +136,17 @@ class BagelCleanWarehouse(BagelOperation):
     def open_sell(self) -> OperationRoundResult:
         """进入出售态；已在弹窗或出售底栏则跳过。"""
         if self._warehouse_idle():
-            if not self._safe_clear():
+            baseline = self._check_safe_before_sell()
+            if baseline is None:
+                if safe_occupied_indices(self.last_screenshot) is None:
+                    return self.round_fail('安全箱格子状态不明，不能批量出售，停止并保留现场')
                 return self.round_fail('安全箱仍有物资，不能批量出售，停止并保留现场')
-            self._safe_was_clear = True
+            self._safe_baseline = baseline
             self._warehouse_before = self._warehouse_count()
             if self._warehouse_before is None:
                 return self.round_fail('出售前无法读取仓库占用，停止并保留现场')
-        elif not self._safe_was_clear:
-            return self.round_fail('出售前未确认安全箱清空，停止并保留现场')
+        elif self._safe_baseline is None:
+            return self.round_fail('出售前未确认安全箱状态，停止并保留现场')
         if self._in_filter():
             return self.round_success('已到快速选择')
         if self._in_sell_mode():
@@ -224,8 +252,8 @@ class BagelCleanWarehouse(BagelOperation):
         """只确认本次已核对筛选、有件数的出售预览。"""
         if self._filter_count is None or self._filter_count <= 0:
             return self.round_fail('缺少已核对的待出售件数')
-        if not self._safe_was_clear:
-            return self.round_fail('出售前未确认安全箱清空，停止并保留现场')
+        if self._safe_baseline is None:
+            return self.round_fail('出售前未确认安全箱状态，停止并保留现场')
         if self._warehouse_before is None:
             return self.round_fail('出售前未记录仓库占用，停止并保留现场')
         if not self._has_area('出售确认标题'):
@@ -240,8 +268,15 @@ class BagelCleanWarehouse(BagelOperation):
     def wait_idle_after_sell(self) -> OperationRoundResult:
         """关闭出售获得硬币提示，再核对回到仓库主界面。"""
         if self._warehouse_idle():
-            if not self._safe_clear():
-                return self.round_fail('出售后安全箱出现物资，停止并保留现场')
+            # 安全箱不在出售范围内，出售后必须与出售前基线一字不差：
+            # 常规模式基线是空箱，强制腾位模式基线是入仓前那几格。
+            after_safe = self._safe_occupied()
+            if after_safe is None:
+                return self.round_fail('出售后安全箱格子状态不明，停止并保留现场')
+            if after_safe != self._safe_baseline:
+                return self.round_fail(
+                    f'出售后安全箱与出售前不一致（{self._safe_baseline} -> {after_safe}），停止并保留现场',
+                )
             warehouse_after = self._warehouse_count()
             if warehouse_after is None or self._warehouse_before is None:
                 return self.round_fail('出售后无法核对仓库占用，停止并保留现场')

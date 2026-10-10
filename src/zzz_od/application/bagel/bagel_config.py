@@ -71,6 +71,18 @@ class BagelConfig(ApplicationConfig):
         self.update('clean_interval', value)
 
     @property
+    def start_in_place(self) -> bool:
+        """开启后站在支持出生点附近即可直接开始该路线，省掉重新入场。"""
+        return self.get('start_in_place', False)
+
+    @start_in_place.setter
+    def start_in_place(self, value: bool) -> None:
+        """保存原地开始开关。"""
+        if type(value) is not bool:
+            raise ValueError('start_in_place 必须是布尔值')
+        self.update('start_in_place', value)
+
+    @property
     def clean_mode(self) -> str:
         """default 用固定类型和品质；custom 用下面两项勾选。"""
         return self._text_mode('clean_mode', CLEAN_MODE_DEFAULT)

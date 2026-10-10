@@ -27,8 +27,7 @@ NAV_STOP_TURN_CAP: float = 90
 NAV_FORWARD_PRESS: float = 0.2
 NAV_ALIGN_PRESS: float = 0.08
 NAV_SAFE_APPROACH_PRESS: float = 0.08
-# 连续两帧定位小地图的平均灰度差小于此值即认为这一帧已停止重绘。入场过渡态每帧都在
-# 刷新（有效像素从 2282 一路涨到 4800+，实测帧间差 17.7~31.3），稳定后差值趋近 0
+
 # （实测 0.22~0.93）。
 SPAWN_STABLE_MAX_DIFF: float = 1.0
 # 需要连续多少帧都低于门槛才判定画面已收敛。加载卡顿时入场过渡期可能恰好停一两帧
@@ -39,6 +38,13 @@ NAV_INITIAL_LOCATE_MISS_LIMIT: int = 5
 NAV_INITIAL_LOCATE_WAIT: float = 0.3
 
 # 寻路模式的输入次数上限。栅格距离按实测跑速 9.9 格/秒、每轮约前进 0.5 秒折算，
+# 到达动作（arrive_hook）的轮次间隔；按键按住不松，间隔只决定计时粒度。
+NAV_HOOK_STEP_WAIT: float = 0.2
+# 定位往返跳变守卫：相邻帧定位先跳远（>4格）又跳回原位（<2格），说明小地图
+# 匹配在两个位置间震荡（如换代理人瞬间），此时的定位不可用于导航决策。
+NAV_TELEPORT_BACK_LIMIT: float = 2.0
+NAV_TELEPORT_AWAY_LIMIT: float = 4.0
+
 # 再留出转向与脱困余量；C 点到武备箱 294 步是当前最长的一段。
 
 # 连续定位失败的容忍轮数，超过说明小地图已经跟不上角色的移动。

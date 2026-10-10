@@ -149,6 +149,56 @@ class NavigationOptions:
 
 
 @dataclass(frozen=True)
+class ArriveHookStep:
+    """到达后执行的一段按键。"""
+
+    keys: tuple[str, ...]
+    seconds: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """序列化为可写回的字典。"""
+        return {'keys': list(self.keys), 'seconds': self.seconds}
+
+
+@dataclass(frozen=True)
+class ArriveHook:
+    """到达路点后按顺序执行的按键段。"""
+
+    actions: tuple[ArriveHookStep, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """序列化为可写回的字典。"""
+        return {'actions': [action.to_dict() for action in self.actions]}
+
+    @classmethod
+    def from_dict(cls, value: object) -> ArriveHook:
+        """读取到达动作，键必须是可按键名且时长为正数。"""
+        if not isinstance(value, dict) or set(value) - {'actions'}:
+            raise ValueError('到达动作格式或字段无效')
+        raw = value.get('actions')
+        if not isinstance(raw, list) or not raw:
+            raise ValueError('到达动作至少要有一段')
+        actions = []
+        for item in raw:
+            actions.append(cls._parse_step(item))
+        return cls(tuple(actions))
+
+    @staticmethod
+    def _parse_step(value: dict[str, Any]) -> ArriveHookStep:
+        """解析一段按键，时长上限 5 秒避免卡住整条路线。"""
+        if not isinstance(value, dict) or set(value) - {'keys', 'seconds'}:
+            raise ValueError('到达动作段格式或字段无效')
+        keys = value.get('keys')
+        if not isinstance(keys, list) or not keys or not all(
+            isinstance(k, str) and k for k in keys
+        ):
+            raise ValueError('到达动作必须给出至少一个按键名')
+        return ArriveHookStep(
+            tuple(keys), _number(value.get('seconds'), '到达动作时长', 0.1, 5.0),
+        )
+
+
+@dataclass(frozen=True)
 class BagelStep:
     """每个移动步骤独立持有位置，名称不参与动作派发。"""
 
@@ -158,6 +208,7 @@ class BagelStep:
     target: str | None = None
     waypoints: tuple[BagelWaypoint, ...] = ()
     navigation: NavigationOptions = NavigationOptions()
+    arrive_hook: ArriveHook | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """序列化业务步骤。"""
@@ -172,6 +223,8 @@ class BagelStep:
                     for point in data['waypoints']
                 ]
             data['navigation'] = self.navigation.to_dict()
+            if self.arrive_hook is not None:
+                data['arrive_hook'] = self.arrive_hook.to_dict()
         return data
 
     def route(self, map_id: str) -> BagelRoute:
@@ -232,6 +285,7 @@ class BagelFlow:
                 'target',
                 'waypoints',
                 'navigation',
+                'arrive_hook',
             }:
                 raise ValueError('步骤格式或字段无效')
             action = value.get('action')
@@ -315,8 +369,13 @@ class BagelFlow:
                     mode = navigation.effective_final_mode(target) if action == 'approach' else 'coordinate'
                     navigation = replace(navigation, final_mode='small_steps' if mode == 'short_steps' else mode)
                     points = points[-1:]
-            elif 'waypoints' in value or 'navigation' in value:
+            elif 'waypoints' in value or 'navigation' in value or 'arrive_hook' in value:
                 raise ValueError('只有移动动作可以包含位置和导航参数')
+            hook = (
+                ArriveHook.from_dict(value['arrive_hook'])
+                if 'arrive_hook' in value
+                else None
+            )
             steps.append(
                 BagelStep(
                     _text(value.get('id'), '步骤标识'),
@@ -325,6 +384,7 @@ class BagelFlow:
                     target,
                     points,
                     navigation,
+                    hook,
                 )
             )
         if len({step.id for step in steps}) != len(steps):
@@ -408,6 +468,7 @@ class BagelFlow:
                 'target',
                 'waypoints',
                 'navigation',
+                'arrive_hook',
             }:
                 raise ValueError('步骤格式或字段无效')
             action = value.get('action')
@@ -451,8 +512,13 @@ class BagelFlow:
                         raise ValueError('沿末段碎步前的接近点必须停步')
                 if not points[-1].stop:
                     raise ValueError('交互目标必须停步')
-            elif 'waypoints' in value or 'navigation' in value:
+            elif 'waypoints' in value or 'navigation' in value or 'arrive_hook' in value:
                 raise ValueError('只有移动动作可以包含位置和导航参数')
+            hook = (
+                ArriveHook.from_dict(value['arrive_hook'])
+                if 'arrive_hook' in value
+                else None
+            )
             steps.append(
                 BagelStep(
                     _text(value.get('id'), '步骤标识'),
@@ -461,6 +527,7 @@ class BagelFlow:
                     target,
                     points,
                     navigation,
+                    hook,
                 )
             )
         if len({step.id for step in steps}) != len(steps):

@@ -316,6 +316,7 @@ class BagelRunFlow(BagelOperation):
                 coordinate_only=step.action == 'move',
                 final_approach=step.action == 'approach',
                 on_observation=lambda data: self.emit('observation', **data),
+                arrive_hook=step.arrive_hook,
                 recovery=self._recovery_for(step) if step.action == 'approach' else None,
                 recovering=self._reapproach_pending,
             )
