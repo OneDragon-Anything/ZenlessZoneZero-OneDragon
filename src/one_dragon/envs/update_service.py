@@ -1,24 +1,24 @@
 import shutil
-import sys
 from pathlib import Path
-from typing import Literal
 
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH, EnvConfig
 from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.launcher.launcher_type import (
+    LAUNCHER_EXE,
+    RUNTIME_LAUNCHER_EXE,
+    LauncherType,
+    detect_running_launcher_type,
+)
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
 
-LauncherType = Literal['launcher', 'runtime']
-
-# 原始启动器
-LAUNCHER_EXE = 'OneDragon-Launcher.exe'
+# 源码启动器
 LAUNCHER_BACKUP = 'OneDragon-Launcher.bak.exe'
 LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
 
 # 集成启动器
-RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
 RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
 RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
 RUNTIME_DIR = '.runtime'
@@ -106,19 +106,8 @@ class UpdateService:
 
     @staticmethod
     def detect_running_launcher_type() -> LauncherType | None:
-        """检测当前正在运行的启动器类型。
-
-        集成启动器运行时当前进程是 OneDragon-RuntimeLauncher.exe；
-        源码运行和原始启动器 exe 运行都属于原始启动器。
-        """
-        if not getattr(sys, 'frozen', False):
-            return 'launcher'
-        exe_name = Path(sys.executable).name
-        if exe_name == RUNTIME_LAUNCHER_EXE:
-            return 'runtime'
-        if exe_name == LAUNCHER_EXE:
-            return 'launcher'
-        return None
+        """检测当前正在运行的启动器类型。"""
+        return detect_running_launcher_type()
 
     @staticmethod
     def detect_installed_launcher_type() -> LauncherType | None:
