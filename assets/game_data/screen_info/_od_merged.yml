@@ -1937,7 +1937,7 @@
     - 1636
     - 220
     text: 训练
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -1952,7 +1952,7 @@
     - 1636
     - 220
     text: 目标
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -1967,7 +1967,7 @@
     - 1636
     - 220
     text: 日常
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -1982,7 +1982,7 @@
     - 1636
     - 220
     text: 作战
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -1991,7 +1991,7 @@
       - 160
       - 0
     - - 255
-      - 210
+      - 255
       - 60
     goto_list:
     - 快捷手册-作战
@@ -2003,7 +2003,7 @@
     - 1636
     - 220
     text: 战术
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2038,7 +2038,7 @@
     - 1636
     - 220
     text: 训练
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2053,7 +2053,7 @@
     - 1636
     - 220
     text: 目标
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2068,7 +2068,7 @@
     - 1636
     - 220
     text: 日常
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2077,7 +2077,7 @@
       - 160
       - 0
     - - 255
-      - 210
+      - 255
       - 60
     goto_list:
     - 快捷手册-日常
@@ -2089,7 +2089,7 @@
     - 1636
     - 220
     text: 作战
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2104,7 +2104,7 @@
     - 1636
     - 220
     text: 战术
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2139,7 +2139,7 @@
     - 1636
     - 220
     text: 训练
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2154,7 +2154,7 @@
     - 1636
     - 220
     text: 目标
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2163,7 +2163,7 @@
       - 160
       - 0
     - - 255
-      - 210
+      - 255
       - 60
     goto_list:
     - 快捷手册-目标
@@ -2175,7 +2175,7 @@
     - 1636
     - 220
     text: 日常
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2190,7 +2190,7 @@
     - 1636
     - 220
     text: 作战
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2205,7 +2205,7 @@
     - 1636
     - 220
     text: 战术
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2240,7 +2240,7 @@
     - 1636
     - 220
     text: 训练
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2255,7 +2255,7 @@
     - 1636
     - 220
     text: 目标
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2270,7 +2270,7 @@
     - 1636
     - 220
     text: 日常
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2285,7 +2285,7 @@
     - 1636
     - 220
     text: 作战
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2300,7 +2300,7 @@
     - 1636
     - 220
     text: 战术
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2309,7 +2309,7 @@
       - 160
       - 0
     - - 255
-      - 210
+      - 255
       - 60
     goto_list:
     - 快捷手册-战术
@@ -2341,7 +2341,7 @@
     - 1636
     - 220
     text: 训练
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2350,7 +2350,7 @@
       - 160
       - 0
     - - 255
-      - 210
+      - 255
       - 60
     goto_list:
     - 快捷手册-训练
@@ -2362,7 +2362,7 @@
     - 1636
     - 220
     text: 目标
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2377,7 +2377,7 @@
     - 1636
     - 220
     text: 日常
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2392,7 +2392,7 @@
     - 1636
     - 220
     text: 作战
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -2407,7 +2407,7 @@
     - 1636
     - 220
     text: 战术
-    lcs_percent: 0.5
+    lcs_percent: 1.0
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
