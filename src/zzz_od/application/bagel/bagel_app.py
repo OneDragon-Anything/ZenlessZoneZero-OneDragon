@@ -72,6 +72,9 @@ class BagelApp(ZApplication):
         self.failure_retry_pending: bool = False
         self.failure_reason: str | None = None
         self.failure_history: list[dict[str, object]] = []
+        # 距上次出售已累计的成功入仓局数。必须放在计划这一层：
+        # 每局都会新建结算操作，计数留在结算操作里等于每局归零。
+        self.rounds_since_clean: int = 0
         self._spawn_hud_misses: int = 0
         self.flow_snapshot: dict[str, BagelFlow] = {}
         self.initial_clear_pending: bool = True
@@ -129,6 +132,7 @@ class BagelApp(ZApplication):
         self.failure_retry_pending = False
         self.failure_reason = None
         self.failure_history = []
+        self.rounds_since_clean = 0
         self.matched_map_id = None
         self._spawn_hud_misses = 0
         self.spawn_matcher = None
@@ -265,10 +269,12 @@ class BagelApp(ZApplication):
     @operation_node(name='结算仓库', screenshot_before_round=False)
     def settle(self) -> OperationRoundResult:
         """只有安全箱有物且确实入仓才计成功；空箱局仍要返回入口。"""
-        result = BagelSettleWarehouse(
+        operation = BagelSettleWarehouse(
             self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
-            self.config.clean_interval,
-        ).execute()
+            self.config.clean_interval, self.rounds_since_clean,
+        )
+        result = operation.execute()
+        self.rounds_since_clean = operation.rounds_since_clean
         if result.success:
             if result.status == BagelDeposit.STATUS_DONE:
                 self.success_rounds += 1
@@ -332,10 +338,12 @@ class BagelApp(ZApplication):
     @operation_node(name='失败局结算仓库', screenshot_before_round=False)
     def settle_after_defeat(self) -> OperationRoundResult:
         """失败局同样入仓清理；清理失败则保留其错误，不改口成撤离失败。"""
-        result = BagelSettleWarehouse(
+        operation = BagelSettleWarehouse(
             self.ctx, self.config.auto_clean_warehouse, self.config.clean_filter_areas(),
-            self.config.clean_interval,
-        ).execute()
+            self.config.clean_interval, self.rounds_since_clean,
+        )
+        result = operation.execute()
+        self.rounds_since_clean = operation.rounds_since_clean
         if result.success:
             self.defeat_rounds += 1
             log.info('贝果失败局结算：%s；累计失败 %s 局，未计成功',

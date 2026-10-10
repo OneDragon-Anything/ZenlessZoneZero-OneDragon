@@ -25,11 +25,15 @@ class BagelSettleWarehouse(BagelOperation):
 
     def __init__(
         self, ctx: ZContext, auto_clean: bool, filter_areas: tuple[str, ...] = FILTER_TICKS,
-        clean_interval: int = 1,
+        clean_interval: int = 1, rounds_since_clean: int = 0,
     ) -> None:
         """`clean_interval` 是多少个成功入仓局出售一次，最小 1（每局都卖）。
 
         只统计真正装进仓库的局，空箱局不计入；仓满那一局无论如何都会卖，用于腾位。
+
+        `rounds_since_clean` 是上一局留下的计数，由调用方（贝果计划）跨局保存后传进来。
+        计数不能留在本对象上：每局都会新建一个 `BagelSettleWarehouse`，留在实例里等于每局归零，
+        `clean_interval` 大于 1 时永远数不到阈值，一次都不会卖。
         """
         super().__init__(ctx, op_name='贝果-结算仓库', timeout_seconds=180)
         self.auto_clean: bool = auto_clean
@@ -37,14 +41,16 @@ class BagelSettleWarehouse(BagelOperation):
         self.clean_interval: int = max(1, clean_interval)
         self.deposit_status: str = BagelDeposit.STATUS_EMPTY
         self.forced_clean: bool = False
-        self._rounds_since_clean: int = 0
+        self.rounds_since_clean: int = max(0, rounds_since_clean)
 
     def should_clean(self) -> bool:
         """按成功局数判断本局是否该出售；到点后计数归零，形成固定间隔。"""
-        self._rounds_since_clean += 1
-        if self._rounds_since_clean < self.clean_interval:
+        self.rounds_since_clean += 1
+        if self.rounds_since_clean < self.clean_interval:
+            log.info('贝果出售间隔未到：累计 %s/%s 局，本局不出售',
+                     self.rounds_since_clean, self.clean_interval)
             return False
-        self._rounds_since_clean = 0
+        self.rounds_since_clean = 0
         return True
 
     @operation_node(name='首次入仓', is_start_node=True, screenshot_before_round=False)
@@ -66,7 +72,7 @@ class BagelSettleWarehouse(BagelOperation):
             if not result.success:
                 return self.round_by_op_result(result)
             log.info('贝果仓库已满，强制清理腾位：%s', result.status)
-            self._rounds_since_clean = 0
+            self.rounds_since_clean = 0
             self.deposit_status = BagelDeposit.STATUS_DONE
             return self.round_success('仓库已满，清理腾位完成')
         return self.round_success('已入仓')
