@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from zzz_od.application.bagel.bagel_const import CONTAINER_TITLE_AREAS
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 
 if TYPE_CHECKING:
@@ -29,7 +30,7 @@ class BagelExit(BagelOperation):
             return self.round_success('已到暂停菜单')
         if self.is_bagel_result():
             return self.round_success('已到贝果结算')
-        if any(self._has(area) for area in ('搜查容器标题', '电子保险箱标题', '大保险解锁提示')):
+        if any(self._has(area) for area in (*CONTAINER_TITLE_AREAS.values(), '大保险解锁提示')):
             self.ctx.controller.btn_press('esc', press_time=0.1)
             return self.round_wait('关闭局内面板后重新检查退出画面', wait=0.5)
         if self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:

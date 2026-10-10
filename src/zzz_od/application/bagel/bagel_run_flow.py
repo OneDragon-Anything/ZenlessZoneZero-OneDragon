@@ -13,11 +13,18 @@ from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils import cv2_utils
 from zzz_od.application.bagel.bagel_close_search import BagelCloseSearch
+from zzz_od.application.bagel.bagel_const import (
+    CONTAINER_PROMPT_AREAS,
+    CONTAINER_TITLE_AREAS,
+)
 from zzz_od.application.bagel.bagel_container import ContainerRecovery, container_state
 from zzz_od.application.bagel.bagel_exit import BagelExit
 from zzz_od.application.bagel.bagel_flow import BagelFlow, BagelStep
 from zzz_od.application.bagel.bagel_navigate import BagelNavigate
-from zzz_od.application.bagel.bagel_open_box import BagelOpenBox
+from zzz_od.application.bagel.bagel_open_box import (
+    DIRECT_OPEN_TARGETS,
+    BagelOpenBox,
+)
 from zzz_od.application.bagel.bagel_operation import (
     BagelOperation,
     BagelRecoverableFailure,
@@ -118,11 +125,9 @@ class BagelRunFlow(BagelOperation):
             raise ValueError('缺少画面区域：战斗画面/按键-普通攻击')
         for area in (
             '定位小地图',
-            '武备箱交互',
-            '电子保险箱交互',
+            *CONTAINER_PROMPT_AREAS.values(),
             '交互F键',
-            '搜查容器标题',
-            '电子保险箱标题',
+            *CONTAINER_TITLE_AREAS.values(),
             '搜查安全箱',
             '搜查进行中',
             '搜查完成',
@@ -164,7 +169,9 @@ class BagelRunFlow(BagelOperation):
                 else '请先打开电子保险箱光圈解锁界面'
             )
         if step.action in ('store', 'close'):
-            title = '搜查容器标题' if step.target == 'box' else '电子保险箱标题'
+            title = CONTAINER_TITLE_AREAS.get(step.target)
+            if title is None:
+                return f'未知容器目标：{step.target}'
             if not self._has(title):
                 return '未识别对应容器搜查面板'
             return (
@@ -184,7 +191,9 @@ class BagelRunFlow(BagelOperation):
         if not self._has('按键-普通攻击', '战斗画面'):
             return '未识别贝果局内画面'
         if step.action == 'interact':
-            prompt = '武备箱交互' if step.target == 'box' else '电子保险箱交互'
+            prompt = CONTAINER_PROMPT_AREAS.get(step.target)
+            if prompt is None:
+                return f'未知容器目标：{step.target}'
             return (
                 None
                 if (self._has(prompt) and self._has('交互F键')) or (
@@ -223,6 +232,20 @@ class BagelRunFlow(BagelOperation):
             ):
                 return '当前不在所选出生点'
         return None
+
+    @staticmethod
+    def _arrived_status(target: str | None) -> str:
+        """该容器类型的「靠近完成」状态名。
+
+        必须与 BagelNavigate.arrive_status 一致，否则靠近步骤的成功会被
+        当成不匹配 —— 表现是下一步开箱时找不到对应提示。
+        """
+        return BagelNavigate.ARRIVED_STATUS.get(target or '', '')
+
+    @staticmethod
+    def _arrived_statuses() -> tuple[str, ...]:
+        """全部容器的「靠近完成」状态名，重新靠近成功时都要认。"""
+        return tuple(BagelNavigate.ARRIVED_STATUS.values())
 
     def container_interrupted(self, step: BagelStep) -> bool:
         """只在预期容器操作中确认面板已消失且回到局内；未知画面不自动退出。"""
@@ -297,8 +320,12 @@ class BagelRunFlow(BagelOperation):
                 recovering=self._reapproach_pending,
             )
         if step.action == 'interact':
-            if step.target == 'box':
-                return BagelOpenBox(self.ctx, recovery=self._recovery_for(step))
+            # 只有电子保险箱要先点开光圈解锁界面；武备箱和机械保险箱
+            # 都是一次交互直接开箱，走同一个操作类。
+            if step.target in DIRECT_OPEN_TARGETS:
+                return BagelOpenBox(
+                    self.ctx, recovery=self._recovery_for(step), target=step.target,
+                )
             continuous = self._can_continue_safe_unlock(step)
             return BagelUnlockSafe(
                 self.ctx, phase='full' if continuous else 'interact',
@@ -386,7 +413,7 @@ class BagelRunFlow(BagelOperation):
             recoverable = True
         if recovering:
             self._reapproach_pending = False
-            if success and status in (BagelNavigate.STATUS_ARRIVED_BOX, BagelNavigate.STATUS_ARRIVED_SAFE):
+            if success and status in self._arrived_statuses():
                 return self.round_wait('重新靠近完成，继续当前交互步骤', wait=0.1)
         if (
             not success
@@ -400,15 +427,10 @@ class BagelRunFlow(BagelOperation):
         if (
             step.action in ('move', 'approach')
             and result is not None
-            and result.status
-            not in (
+            and result.status not in (
                 BagelNavigate.STATUS_WAYPOINT
                 if step.action == 'move'
-                else (
-                    BagelNavigate.STATUS_ARRIVED_BOX
-                    if step.target == 'box'
-                    else BagelNavigate.STATUS_ARRIVED_SAFE
-                ),
+                else self._arrived_status(step.target)
             )
         ):
             success = False

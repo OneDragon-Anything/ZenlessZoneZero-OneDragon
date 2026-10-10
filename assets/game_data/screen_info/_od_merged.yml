@@ -616,6 +616,22 @@
     - 180
     text: 电子保险箱
     lcs_percent: 1.0
+  - area_name: 机械保险箱交互
+    pc_rect:
+    - 1285
+    - 440
+    - 1660
+    - 740
+    text: 机械保险箱
+    lcs_percent: 1.0
+  - area_name: 机械保险箱标题
+    pc_rect:
+    - 1265
+    - 120
+    - 1530
+    - 180
+    text: 机械保险箱
+    lcs_percent: 1.0
   - area_name: 大保险解锁提示
     pc_rect:
     - 800

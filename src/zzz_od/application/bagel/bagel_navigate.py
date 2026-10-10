@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import replace
 from math import atan2, degrees, hypot
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import cv2
 
@@ -12,6 +12,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils import cal_utils, cv2_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.bagel.bagel_const import (
+    CONTAINER_PROMPT_AREAS,
     NAV_ALIGN_PRESS,
     NAV_CRUISE_DISTANCE,
     NAV_CRUISE_TURN_CAP,
@@ -47,7 +48,19 @@ if TYPE_CHECKING:
     from zzz_od.application.bagel.bagel_fixed_map import BagelFixedMap
     from zzz_od.context.zzz_context import ZContext
 
-Destination = Literal['box', 'safe', 'move']
+Destination = Literal['box', 'safe', 'mech', 'move']
+# 操作名里要显示的容器称呼，避免三元表达式到处重复。
+DESTINATION_LABELS: dict[str, str] = {
+    'box': '武备箱',
+    'safe': '电子保险箱',
+    'mech': '机械保险箱',
+}
+# 操作名里的出生点称呼，按底图取值。
+MAP_LABELS: dict[str, str] = {
+    'janus_high_a': '录像店复活点',
+    'janus_high_b': '白鸽工地地铁站复活点',
+    'janus_high_c': '单廊双容器复活点',
+}
 
 
 class BagelNavigate(BagelOperation):
@@ -57,6 +70,15 @@ class BagelNavigate(BagelOperation):
     STATUS_WAYPOINT: str = '已到路点'
     STATUS_ARRIVED_BOX: str = '已到武备箱'
     STATUS_ARRIVED_SAFE: str = '已到电子保险箱'
+    STATUS_ARRIVED_MECH: str = '已到机械保险箱'
+    # 容器类型 → 到达状态名。流程执行器按这个名字把「靠近」和「开箱」对上，
+    # 定义在这里一份，run_flow 侧引用本字典，避免两边各写一遍对不上。
+    # 普通移动（move）不在表内：它按坐标到达，走的是 STATUS_WAYPOINT。
+    ARRIVED_STATUS: ClassVar[dict[str, str]] = {
+        'box': STATUS_ARRIVED_BOX,
+        'safe': STATUS_ARRIVED_SAFE,
+        'mech': STATUS_ARRIVED_MECH,
+    }
 
     def __init__(
         self,
@@ -75,18 +97,14 @@ class BagelNavigate(BagelOperation):
         recovering: bool = False,
     ) -> None:
         """普通移动使用独立坐标；只有靠近容器才需要目标类型。"""
-        if destination not in ('box', 'safe', 'move'):
-            raise ValueError('导航目标只能是 move、box 或 safe')
+        if destination not in ('box', 'safe', 'mech', 'move'):
+            raise ValueError('导航目标只能是 move 或某种容器')
         if destination == 'move' and (route_data is None or not coordinate_only):
             raise ValueError('普通移动必须提供独立路点并按坐标完成')
-        route_label = '录像店复活点' if map_id == 'janus_high_a' else '白鸽工地地铁站复活点'
-        name = (
-            f'贝果-{route_label}前往武备箱'
-            if destination == 'box'
-            else '贝果-前往电子保险箱'
+        route_label = MAP_LABELS.get(map_id, map_id)
+        name = '贝果-移动到路点' if destination == 'move' else (
+            f'贝果-{route_label}前往{DESTINATION_LABELS[destination]}'
         )
-        if destination == 'move':
-            name = '贝果-移动到路点'
         default_step = None
         if route_data is None:
             points = []
@@ -122,11 +140,10 @@ class BagelNavigate(BagelOperation):
         if not self.vision.route.points_for(destination):
             raise ValueError(f'{map_id} 暂不支持该导航路段：{destination}')
         self.active_waypoints: list[tuple[str, tuple[float, float]]] = self._select_waypoints()
-        self.interact_area: str = '武备箱交互' if destination == 'box' else '电子保险箱交互'
+        self.interact_area: str = CONTAINER_PROMPT_AREAS.get(
+            destination) or CONTAINER_PROMPT_AREAS['safe']
         self.forward_press: float = NAV_FORWARD_PRESS
-        self.arrive_status: str = (
-            self.STATUS_ARRIVED_BOX if destination == 'box' else self.STATUS_ARRIVED_SAFE
-        )
+        self.arrive_status: str = self.ARRIVED_STATUS.get(destination, '')
         self.waypoint_index: int = 0
         self.steps: int = 0
         self.heading_aligned: bool = False

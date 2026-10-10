@@ -42,6 +42,13 @@ class BagelApp(ZApplication):
     STATUS_SKIP: str = '非支持出生点，退出重开'
     STATUS_A: str = '录像店复活点，开始收集'
     STATUS_B: str = '白鸽工地地铁站复活点，开始收集'
+    STATUS_C: str = '单廊双容器复活点，开始收集'
+    # 底图标识 -> (状态名, 出生点名称)。原地开始与正常入场共用这一张表。
+    SPAWN_STATUS: dict[str, tuple[str, str]] = {
+        'janus_high_a': (STATUS_A, '录像店复活点'),
+        'janus_high_b': (STATUS_B, '白鸽工地地铁站复活点'),
+        'janus_high_c': (STATUS_C, '单廊双容器复活点'),
+    }
 
     def __init__(
         self, ctx: ZContext, config: BagelConfig, record: BagelRunRecord,
@@ -204,12 +211,11 @@ class BagelApp(ZApplication):
         self.attempts += 1
         map_id = self._spawn_matcher().match(crop)
         self.matched_map_id = map_id
-        if map_id == 'janus_high_a':
-            log.info('第 %s 次抽到录像店复活点，开始收集', self.attempts)
-            return self.round_success(self.STATUS_A)
-        if map_id == 'janus_high_b':
-            log.info('第 %s 次抽到白鸽工地地铁站复活点，开始收集', self.attempts)
-            return self.round_success(self.STATUS_B)
+        # 出生点名称与状态名同源，新增支持点只需在此登记一次。
+        spawn_status = self.SPAWN_STATUS.get(map_id)
+        if spawn_status is not None:
+            log.info('第 %s 次抽到%s，开始收集', self.attempts, spawn_status[1])
+            return self.round_success(spawn_status[0])
         log.info('第 %s 次非支持出生点，退出重开', self.attempts)
         return self.round_success(self.STATUS_SKIP)
 
@@ -232,6 +238,7 @@ class BagelApp(ZApplication):
 
     @node_from(from_name='识别出生点', status=STATUS_A)
     @node_from(from_name='识别出生点', status=STATUS_B)
+    @node_from(from_name='识别出生点', status=STATUS_C)
     @operation_node(name='执行局内流程', screenshot_before_round=False)
     def run_flow(self) -> OperationRoundResult:
         """按出生地执行发布流程；与开发工具共用同一执行器。"""

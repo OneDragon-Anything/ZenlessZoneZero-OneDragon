@@ -24,6 +24,10 @@ from zzz_od.application.bagel.bagel_route import (
     resource_root,
 )
 
+# 三种可作为流程目标的容器类型。mech 是机械保险箱：没有光圈解锁，
+# 需要长按交互键开箱，其余流程与武备箱一致。
+CONTAINER_TARGETS: tuple[str, ...] = ('box', 'safe', 'mech')
+
 ACTION_LABELS: dict[str, str] = {
     'spawn': '检查出生位置',
     'move': '移动到指定位置',
@@ -238,7 +242,7 @@ class BagelFlow:
             if plain_move and 'target' in value:
                 raise ValueError('普通移动不接受目标参数')
             if action not in ('spawn', 'exit') and not plain_move:
-                if target not in ('box', 'safe'):
+                if target not in CONTAINER_TARGETS:
                     raise ValueError('该动作须指定容器类型')
             elif target is not None:
                 raise ValueError('该动作不接受目标参数')

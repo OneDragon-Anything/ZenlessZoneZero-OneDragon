@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation_node import operation_node
+from zzz_od.application.bagel.bagel_const import CONTAINER_TITLE_AREAS
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 
 if TYPE_CHECKING:
@@ -26,7 +27,7 @@ class BagelCloseSearch(BagelOperation):
             return self.round_fail(self.STATUS_DEFEATED)
         has_title = any(
             self.round_by_find_area(self.last_screenshot, '贝果-局内', area).is_success
-            for area in ('搜查容器标题', '电子保险箱标题')
+            for area in CONTAINER_TITLE_AREAS.values()
         )
         if not has_title:
             if self.round_by_find_area(
