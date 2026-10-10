@@ -1,0 +1,161 @@
+version: 4
+id: janus_high_c
+name: C · 转场到A
+map_id: janus_high_c
+steps:
+- id: spawn
+  action: spawn
+  name: 检查出生位置
+- id: move_c1
+  action: move
+  name: 南下到长廊口
+  waypoints:
+  - name: 长廊口
+    xy:
+    - 100.4
+    - 75.1
+    tolerance: 4.0
+  navigation:
+    timeout: 45.0
+    final_mode: coordinate
+- id: approach_mech
+  action: approach
+  name: 靠近机械保险箱前
+  target: mech
+  waypoints:
+  - name: 机械保险箱前
+    xy:
+    - -21.9
+    - 20.8
+    stage: mech
+    role: target
+    stop: true
+  navigation:
+    final_mode: coordinate
+- id: open_mech
+  action: interact
+  name: 长按打开机械保险箱
+  target: mech
+- id: store_mech
+  action: store
+  name: 机械保险箱装入安全箱
+  target: mech
+- id: close_mech
+  action: close
+  name: 关闭机械保险箱搜查面板
+  target: mech
+- id: move_c3
+  action: move
+  name: 回到长廊
+  waypoints:
+  - name: 回到长廊
+    xy:
+    - 0
+    - 30
+    tolerance: 2.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
+- id: move_c4
+  action: move
+  name: 西行到西南转角
+  waypoints:
+  - name: 西南转角
+    xy:
+    - -51.5
+    - 30
+    tolerance: 2.5
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
+  arrive_hook:
+    actions:
+    - keys: [move_d]
+      seconds: 0.2
+    - keys: [move_w,move_d]
+      seconds: 1.0
+    - keys: [move_w]
+      seconds: 0.8
+- id: move_a1
+  action: move
+  name: 走到武备箱拐角
+  waypoints:
+  - name: 武备箱拐角
+    xy:
+    - -50
+    - -30
+    tolerance: 3.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
+- id: move_a2
+  action: move
+  name: 走到电子保险箱巷口转向
+  waypoints:
+  - name: 电子保险箱巷口转向
+    xy:
+    - 10.0
+    - -30.3
+    tolerance: 4.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
+- id: move_a3
+  action: move
+  name: 走到电子保险箱楼角
+  waypoints:
+  - name: 电子保险箱楼角
+    xy:
+    - 23.4
+    - -6.1
+    tolerance: 4.0
+  navigation:
+    timeout: 75.0
+    final_mode: coordinate
+- id: move_a4
+  action: move
+  name: 走到电子保险箱接近点
+  waypoints:
+  - name: 电子保险箱接近点
+    xy:
+    - 33.6
+    - -9.1
+    tolerance: 1.0
+  navigation:
+    timeout: 75.0
+    brake_distance: 6.0
+    final_mode: coordinate
+- id: approach_safe
+  action: approach
+  name: 靠近电子保险箱前
+  target: safe
+  waypoints:
+  - name: 电子保险箱前
+    xy:
+    - 43.5
+    - -9.1
+    stage: safe
+    role: target
+    stop: true
+  navigation:
+    final_mode: small_steps
+    interaction_distance: 8.5
+- id: open_safe
+  action: interact
+  name: 打开电子保险箱解锁界面
+  target: safe
+- id: unlock_safe
+  action: unlock
+  name: 完成电子保险箱光圈解锁
+  target: safe
+- id: store_safe
+  action: store
+  name: 电子保险箱装入安全箱
+  target: safe
+- id: close_safe
+  action: close
+  name: 关闭搜查面板
+  target: safe
+- id: exit
+  action: exit
+  name: 主动退出

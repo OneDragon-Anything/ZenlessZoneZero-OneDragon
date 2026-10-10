@@ -1,0 +1,112 @@
+format_version: 1
+coordinate_version: 1
+map_id: janus_high_c
+origin_xy:
+- -165
+- -140
+size_wh:
+- 370
+- 348
+coordinate_unit: reference_spawn_pixel
+anchor_xy:
+- 100
+- 100
+spawn_xy:
+- 100
+- 100
+mask:
+  center_xy:
+  - 100
+  - 100
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 2
+player_arrow:
+  crop_radius: 20
+  hsv_lower:
+  - 14
+  - 90
+  - 175
+  hsv_upper:
+  - 34
+  - 255
+  - 255
+  area_range:
+  - 150
+  - 400
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+registration_blur_size: 3
+representations:
+- clahe_min_channel
+- highpass_min_channel
+feature_edge_margin: 4
+match_window_size: 201
+match_window_stride: 100
+reference_centers:
+- name: spawn
+  xy:
+  - 100.0
+  - 100.0
+- name: box
+  xy:
+  - -68.5
+  - -30.8
+- name: safe
+  xy:
+  - 43.5
+  - -9.1
+- name: mech
+  xy:
+  - -21.9
+  - 20.8
+- name: a_spawn
+  xy:
+  - -78.5
+  - -14.8
+- name: alley
+  xy:
+  - -67.5
+  - -14.8
+- name: safe_corner
+  xy:
+  - 23.4
+  - -9.1
+- name: safe_approach
+  xy:
+  - 33.6
+  - -9.1
+landmarks:
+- name: 武备箱交互区
+  xy:
+  - -68.5
+  - -30.8
+  note: 由 A 底图武备箱坐标按固定平移换算；玩家在此按 F 会看到武备箱交互提示
+- name: 电子保险箱交互区
+  xy:
+  - 43.5
+  - -9.1
+  note: 由 A 底图电子保险箱坐标按固定平移换算
+- name: 转场终点
+  xy:
+  - -67.5
+  - -14.8
+  note: C 出生点到此后接管 A 的固定收集流程，此处即 A 路线的巷口左转
+- name: A出生点在C坐标系
+  xy:
+  - -78.5
+  - -14.8
+  note: A 出生点 (100,100) 按 δ=(-178.47,-114.78) 换算所得；仅供换算参考，不作为路点
+build:
+  profile: min_channel_percentile_25
+  sources:
+  - 12-56-58.mp4（108+146 帧）
+  - 13-15-28.mp4（108 帧）
+  note: 用 bagel_build_lenient.py 逐段建图后按路线坐标叠加。两段 origin 仅差 (2,-1)，重叠区 621 采样点像素差 100%
+    <15 ⇒ 坐标系一致。
+  scale_correction: 融合重建后整体偏小，实况/底图 SIFT 拟合尺度中位 0.9751（n=31/31 全部<1.0）。按 1.0256 放大并同步平移
+    origin，使尺度回到 1.0017，生产门槛 0.98~1.02 通过率 100%。
