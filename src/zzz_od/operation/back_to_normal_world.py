@@ -3,7 +3,7 @@ from cv2.typing import MatLike
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
@@ -68,11 +68,17 @@ class BackToNormalWorld(ZOperation):
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
 
-        # 大部分画面都有街区或勘域可以直接返回，“区域”通过 0.5 LCS 匹配“街区”的“区”或“勘域”的“域”
-        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-区域')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
-
+        # 核对完整入口词，避免把“迷宫诡域”的单个“域”当作返回入口。
+        area = self.ctx.screen_loader.get_area('画面-通用', '左上角-区域')
+        if area is not None:
+            labels = {gt(word, 'game') for word in ('街区', '勘域', '区域')}
+            matches = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot, rect=area.rect,
+            )
+            for match in matches:
+                if str_utils.remove_whitespace(match.data) in labels:
+                    if self.ctx.controller.click(match.center, pc_alt=area.pc_alt):
+                        return self.round_retry('左上角-区域', wait=1)
 
         # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')

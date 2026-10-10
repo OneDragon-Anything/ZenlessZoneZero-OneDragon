@@ -74,21 +74,21 @@ if not getattr(sys, 'frozen', False):
     from PIL import Image, ImageDraw, ImageFont
     from PySide6 import QtCore
     from PySide6.QtCore import QEasingCurve, QEvent, QEventLoop, QMimeData, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QSize, QThread, QTimer, QUrl, Qt, Signal
-    from PySide6.QtGui import QBrush, QCloseEvent, QColor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QIntValidator, QKeyEvent, QKeySequence, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
+    from PySide6.QtGui import QBrush, QCloseEvent, QColor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QIntValidator, QKeyEvent, QKeySequence, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPalette, QPen, QPixmap, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
     from PySide6.QtMultimedia import QMediaPlayer
     from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
-    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
+    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFormLayout, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsEllipseItem, QGraphicsItem, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsSceneMouseEvent, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QSplitter, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
-    from contextlib import suppress
+    from contextlib import contextmanager, suppress
     from copy import deepcopy
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
     from cv2.typing import MatLike
-    from dataclasses import dataclass, field, fields
+    from dataclasses import dataclass, field, fields, replace
     from datetime import datetime, timedelta
     from email.header import Header
     from email.mime.image import MIMEImage
@@ -98,8 +98,10 @@ if not getattr(sys, 'frozen', False):
     from enum import Enum, IntEnum, StrEnum
     from functools import cached_property, lru_cache, partial, wraps
     from io import BytesIO
+    from itertools import count
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
+    from math import atan2, degrees, hypot, isfinite
     from packaging import version
     from pathlib import Path
     from pyautogui import screenshot
@@ -126,8 +128,10 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from threading import Event, Lock
-    from types import ModuleType
+    from threading import Event, Lock, RLock
+    from time import perf_counter
+    from types import MappingProxyType, ModuleType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urlparse
+    from uuid import NAMESPACE_URL, uuid4, uuid5
     from yaml import CSafeLoader, SafeLoader

@@ -1,0 +1,72 @@
+format_version: 1
+coordinate_version: 1
+map_id: janus_high_b
+origin_xy:
+- -119
+- -16
+size_wh:
+- 450
+- 373
+coordinate_unit: reference_spawn_pixel
+anchor_xy:
+- 100
+- 100
+spawn_xy:
+- 100
+- 100
+mask:
+  center_xy:
+  - 100
+  - 100
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 1
+player_arrow:
+  crop_radius: 20
+  hsv_lower:
+  - 14
+  - 90
+  - 175
+  hsv_upper:
+  - 34
+  - 255
+  - 255
+  area_range:
+  - 150
+  - 400
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+registration_blur_size: 3
+representations:
+- highpass_min_channel
+- clahe_min_channel
+feature_edge_margin: 4
+match_window_size: 201
+match_window_stride: 80
+reference_centers:
+- name: spawn
+  xy:
+  - 100.0
+  - 100.0
+- name: live_align
+  xy:
+  - 101.68337230561694
+  - 99.24821897175858
+- name: live_approach
+  xy:
+  - 128.8551928035914
+  - 70.33433193385119
+- name: live_box
+  xy:
+  - 130.49300371773822
+  - 69.34455513325557
+landmarks:
+- name: 武备箱交互区
+  xy:
+  - 130.5
+  - 69.4
+  note: 交互区域参考位置；正式执行以流程目的地及现场交互提示为准
