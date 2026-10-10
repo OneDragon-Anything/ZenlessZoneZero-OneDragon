@@ -85,6 +85,7 @@ class BagelFixedMap:
 
     def supports_position(self, position: tuple[float, float]) -> bool:
         """拒绝观测范围外的锚点，容许观测范围内的箭头及图标空洞。"""
+        # position 是底图像素坐标（未加 origin），position_mask 是像素数组。
         x, y = (round(v) for v in position)
         return 0 <= y < self.position_mask.shape[0] and 0 <= x < self.position_mask.shape[1] and bool(self.position_mask[y, x])
 

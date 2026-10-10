@@ -73,6 +73,12 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.auto_clean_switch.value_changed.connect(self._refresh_clean_options)
         layout.addWidget(self.auto_clean_switch)
+        self.start_in_place_switch: SwitchSettingCard = SwitchSettingCard(
+            icon='',
+            title='原地开始',
+            content='开启后站在已支持的出生点附近即可直接进入该路线，不必重新入场',
+        )
+        layout.addWidget(self.start_in_place_switch)
         self.clean_interval_card: SpinBoxSettingCard = SpinBoxSettingCard(
             icon='', title='出售频率',
             content='多少个成功入仓局出售一次，填 1 表示每局都卖。仓库已满时不受此限制，照样出售腾位。',
@@ -131,5 +137,8 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.failure_retries_card.init_with_adapter(get_prop_adapter(self.config, 'max_failure_retries'))
         self.success_rounds_card.init_with_adapter(get_prop_adapter(self.config, 'max_success_rounds'))
         self.clean_interval_card.init_with_adapter(get_prop_adapter(self.config, 'clean_interval'))
+        self.start_in_place_switch.init_with_adapter(
+            get_prop_adapter(self.config, 'start_in_place'),
+        )
         self.auto_clean_switch._on_adapter_value_applied = self._clean_value_loaded
         self.clean_mode_card._on_adapter_value_applied = self._clean_value_loaded
