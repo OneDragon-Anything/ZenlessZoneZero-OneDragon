@@ -284,7 +284,7 @@ class BagelNavigate(BagelOperation):
         if self._arriving:
             # 到达后对齐朝向同样独占：主流程的对齐目标是路点方向，
             # 与 heading 是两个不同的目标，轮替执行会把朝向来回掰、
-            # 并让角色在到达半径边界振荡，停滞检测也会被污染。
+            # 并让角色在到达半径边界振荡。
             return self._finish_arrival()
         if not self.coordinate_only:
             state = container_state(self, self.destination)
