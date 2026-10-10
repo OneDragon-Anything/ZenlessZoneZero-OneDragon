@@ -18,6 +18,10 @@ steps:
   navigation:
     timeout: 45.0
     final_mode: coordinate
+  arrive_hook:
+    actions:
+    - keys: [move_a]
+      seconds: 0.6
 - id: move_box_ed2f153a4cca565cafbd70af72a5bc02
   action: approach
   name: 靠近轮胎旁武备箱前
