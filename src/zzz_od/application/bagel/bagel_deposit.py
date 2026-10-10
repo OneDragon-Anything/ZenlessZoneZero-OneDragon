@@ -21,12 +21,16 @@ class BagelDeposit(BagelOperation):
     STATUS_DONE: str = '已入仓并清空安全箱'
     STATUS_FULL: str = '仓库已满'
 
-    def __init__(self, ctx: ZContext) -> None:
+    def __init__(
+        self, ctx: ZContext, *, return_on_remaining: bool = False, click_when_empty: bool = False,
+    ) -> None:
         """退出到仓库后调用；不能只凭点击成功记账。"""
         super().__init__(ctx, op_name='贝果-放入仓库', timeout_seconds=45)
         self.safe_before: int = 0
         self.warehouse_before: int | None = None
         self._full_waits: int = 0
+        self.return_on_remaining: bool = return_on_remaining
+        self.click_when_empty: bool = click_when_empty
 
     def handle_init(self) -> None:
         """清空入仓前基线。"""
@@ -69,7 +73,7 @@ class BagelDeposit(BagelOperation):
         self.warehouse_before = self._warehouse_count()
         if self.warehouse_before is None:
             return self.round_fail('无法读取仓库数量，停止并保留现场')
-        if self.safe_before == 0:
+        if self.safe_before == 0 and not self.click_when_empty:
             return self.round_success(self.STATUS_EMPTY, data={'moved': 0})
         log.info(
             '贝果入仓：安全箱 %s 格，仓库基线 %s',
@@ -92,6 +96,13 @@ class BagelDeposit(BagelOperation):
             return self.round_fail('入仓后安全箱格子状态不明，停止并保留现场')
         if safe_after > 0:
             pair = self._warehouse_pair()
+            if self.return_on_remaining:
+                if pair is None:
+                    return self.round_fail('入仓后无法核对仓库容量，停止并保留现场')
+                self._full_waits += 1
+                if self._full_waits < 2:
+                    return self.round_wait('入仓后有残留，再看一帧', wait=0.5)
+                return self.round_success(self.STATUS_FULL, data={'safe_count': safe_after})
             if safe_after < self.safe_before:
                 return self.round_fail(
                     f'仅部分入仓，安全箱 {self.safe_before} -> {safe_after} 格，'
@@ -123,11 +134,14 @@ class BagelDeposit(BagelOperation):
             return self.round_fail(
                 f'仓库占用异常（{self.warehouse_before} -> {warehouse_after}），不能记为入仓成功',
             )
+        if self.safe_before == 0:
+            return self.round_success(self.STATUS_EMPTY, data={'moved': 0})
         if self.warehouse_before == warehouse_after:
             pair = self._warehouse_pair()
             if pair is None:
                 return self.round_fail('入仓后无法核对仓库容量，停止并保留现场')
-            if pair[0] >= pair[1]:
+            # 正式结算允许满仓合并堆叠；独立入仓工具保留原保护。
+            if pair[0] >= pair[1] and not self.return_on_remaining:
                 return self.round_fail('满仓后安全箱清空但仓库占用未变，不能证明物资已入仓')
         log.info(
             '贝果入仓确认：安全箱已空，仓库 %s -> %s',

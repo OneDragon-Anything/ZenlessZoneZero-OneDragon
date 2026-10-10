@@ -80,9 +80,13 @@ def backpack_centers(screen: MatLike, header_bottom: int = 158) -> tuple[Point, 
 class BagelStoreCarried(BagelTransferOperation):
     """通过仓库左下批量按钮转存携带物，两个容器清空后仍停在仓库。"""
 
-    def __init__(self, ctx: ZContext) -> None:
+    def __init__(
+        self, ctx: ZContext, *, return_on_remaining: bool = False, click_when_empty: bool = False,
+    ) -> None:
         """同时支持备战仓库与结算仓库，只点一次放入仓库。"""
         super().__init__(ctx, op_name='贝果-批量转存携带物')
+        self.return_on_remaining: bool = return_on_remaining
+        self.click_when_empty: bool = click_when_empty
         self.before_counts: tuple[int, int, int, int, int] | None = None
 
     def handle_init(self) -> None:
@@ -131,9 +135,9 @@ class BagelStoreCarried(BagelTransferOperation):
         if self.pending:
             self.read_misses = 0
             return self.confirm_transfer(counts)
-        if backpack[0] == 0 and safe_count == 0:
+        if backpack[0] == 0 and safe_count == 0 and not self.click_when_empty:
             return self.round_success('携带物已全部转存', data={'moved': self.moved, 'warehouse': warehouse})
-        if warehouse[0] >= warehouse[1]:
+        if warehouse[0] >= warehouse[1] and not self.return_on_remaining:
             return self.transfer_fail(f'仓库已满 {warehouse[0]}/{warehouse[1]}')
         if not self.ctx.run_context.is_context_running:
             return self.round_wait('等待恢复后重新核对仓库', wait=0.5)
@@ -160,6 +164,9 @@ class BagelStoreCarried(BagelTransferOperation):
             self.moved += before[0] + before[1]
             self.pending = False
             return self.round_success('携带物已全部转存', data={'moved': self.moved, 'warehouse': (counts[2], counts[4])})
+        if self.return_on_remaining and counts[0] <= before[0] and counts[1] <= before[1]:
+            self.pending = False
+            return self.round_success('仓库已满', data={'safe_count': counts[1], 'backpack_count': counts[0]})
         if counts[0] <= before[0] and counts[1] <= before[1] and counts[:2] != before[:2]:
             self.moved += before[0] + before[1] - counts[0] - counts[1]
             return self.transfer_fail(f'仅部分入仓 {before[:2]} -> {counts[:2]}，停止核对剩余物资')

@@ -5,8 +5,11 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.utils.log_utils import log
+from zzz_od.application.bagel.bagel_clean import FILTER_TICKS
 from zzz_od.application.bagel.bagel_clear_loadout import BagelClearLoadout
 from zzz_od.application.bagel.bagel_const import RECOMMENDED_VALUE
+from zzz_od.application.bagel.bagel_exit import BagelExit
 from zzz_od.application.bagel.bagel_investment import read_investment
 from zzz_od.application.bagel.bagel_operation import BagelOperation
 from zzz_od.application.bagel.bagel_return import BagelReturn
@@ -19,8 +22,8 @@ from zzz_od.application.bagel.bagel_screen import (
     warehouse_sale_state,
     zero_loadout,
 )
+from zzz_od.application.bagel.bagel_settle import BagelSettleWarehouse
 from zzz_od.application.bagel.bagel_store_carried import (
-    BagelStoreCarried,
     read_carried_backpack,
 )
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -37,9 +40,12 @@ class BagelEnter(BagelOperation):
     def __init__(
         self, ctx: ZContext, *, allow_clear_loadout: bool = False,
         allow_world_recovery: bool = False,
+        recovery_auto_clean: bool = False, recovery_filter_areas: tuple[str, ...] = FILTER_TICKS,
     ) -> None:
         """仅应用首次入场显式允许清空；独立工具默认只核对零携带。"""
         super().__init__(ctx, op_name='贝果-零携带入场', timeout_seconds=660 if allow_clear_loadout else 240)
+        self.recovery_auto_clean: bool = recovery_auto_clean
+        self.recovery_filter_areas: tuple[str, ...] = recovery_filter_areas
         self.allow_clear_loadout: bool = allow_clear_loadout
         self.allow_world_recovery: bool = allow_world_recovery
         self.world_recovery_attempted: bool = False
@@ -99,7 +105,41 @@ class BagelEnter(BagelOperation):
                 return screen_name
         return None
 
-    @operation_node(name='处理启动仓库', is_start_node=True)
+    @operation_node(name='恢复启动贝果局', is_start_node=True, timeout_seconds=150)
+    def recover_start(self) -> OperationRoundResult:
+        """只在首次入场恢复遗留局，按当前画面正常退出。"""
+        if not self.allow_clear_loadout:
+            return self.round_success()
+        if self.is_bagel_result() or self._has('提示', '贝果-退出确认'):
+            return self._exit_starting_game()
+        if self._has('大地图图例'):
+            result = self.round_by_click_area('贝果-局内', '大地图返回')
+            if not result.is_success:
+                return result
+            return self.round_wait('等待关闭大地图后恢复局内画面', wait=0.5)
+        if self._has('搜查安全箱') and any(self._has(name) for name in ('搜查容器标题', '电子保险箱标题')):
+            self.ctx.controller.btn_press('esc', press_time=0.1)
+            return self.round_retry('关闭贝果搜查面板，等待恢复局内画面', wait=0.5)
+        if self._has('按键-普通攻击', '战斗画面'):
+            timer = read_area(self.ctx, self.last_screenshot, '贝果-局内', '计时')
+            # 七段数字截图中冒号可被 OCR 读成 1；与普通攻击共同识别局内画面。
+            if re.fullmatch(r'\d{1,2}[:：1]\d{2}(?:[.:：]\d{1,2})?', timer.replace(' ', '')) is None:
+                return self.round_fail(f'当前战斗画面不能确认为贝果（计时：{timer}），停止并保留现场')
+            return self._exit_starting_game()
+        return self.round_success()
+
+    def _exit_starting_game(self) -> OperationRoundResult:
+        """复用正常退出，子操作结束后的新截图交给下一节点处理仓库。"""
+        log.info('贝果启动恢复：正常退出遗留局，仅保留安全箱，不续原路线')
+        result = BagelExit(self.ctx).execute()
+        self.screenshot()
+        if not result.success:
+            return self.round_by_op_result(result)
+        log.info('贝果启动恢复：已到结算仓库，转存不计成功、出售间隔或失败重试')
+        return self.round_success()
+
+    @node_from(from_name='恢复启动贝果局')
+    @operation_node(name='处理启动仓库')
     def handle_starting_warehouse(self) -> OperationRoundResult:
         """首次启动恢复仓库遗留物，包括上次清空途中停下的备战仓库。"""
         sale_state = warehouse_sale_state(self.ctx, self.last_screenshot)
@@ -113,7 +153,10 @@ class BagelEnter(BagelOperation):
                 or parse_capacity_pair(read_area(self.ctx, self.last_screenshot, '贝果-仓库', '仓库数量')) is None):
             return self.round_retry('无法核对启动仓库数量', wait=0.5)
         settlement = self.round_by_find_area(self.last_screenshot, '贝果-仓库', '返回研究站').is_success
-        stored = BagelStoreCarried(self.ctx).execute()
+        stored = BagelSettleWarehouse(
+            self.ctx, self.recovery_auto_clean, self.recovery_filter_areas,
+            sell_due=False, starting=True,
+        ).execute()
         self.screenshot()
         if not stored.success:
             return self.round_by_op_result(stored)

@@ -173,6 +173,12 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         )
         self.auto_clean_switch.value_changed.connect(self._refresh_clean_options)
         layout.addWidget(self.auto_clean_switch)
+        self.sell_interval_card: SpinBoxSettingCard = SpinBoxSettingCard(
+            icon='', title='出售间隔',
+            content=bagel_usage.SELL_INTERVAL_HINT,
+            minimum=1, maximum=999,
+        )
+        layout.addWidget(self.sell_interval_card)
         self.clean_mode_card: ComboBoxSettingCard = ComboBoxSettingCard(
             icon='', title='出售方案',
             content=bagel_usage.DEFAULT_SALE_HINT,
@@ -194,10 +200,11 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.clean_types_card.value_changed.connect(self._refresh_clean_options)
         self.clean_qualities_card.value_changed.connect(self._refresh_clean_options)
         for card in (self.success_rounds_card, self.failure_retries_card,
-                     self.auto_clean_switch, self.clean_mode_card):
+                     self.auto_clean_switch, self.sell_interval_card, self.clean_mode_card):
             _wrap_card(card)
         self.success_rounds_card.spin_box.setFixedWidth(140)
         self.failure_retries_card.spin_box.setFixedWidth(140)
+        self.sell_interval_card.spin_box.setFixedWidth(140)
         self.clean_mode_card.combo_box.setFixedWidth(140)
         self._refresh_clean_options()
         layout.addStretch(1)
@@ -207,6 +214,7 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         """仅开启清理时显示方案，自定义时显示两组筛选。"""
         enabled = self.auto_clean_switch.btn.isChecked()
         self.clean_mode_card.setVisible(enabled)
+        self.sell_interval_card.setVisible(enabled)
         visible = enabled and self.clean_mode_card.getValue() == CLEAN_MODE_CUSTOM
         self.clean_types_card.setVisible(visible)
         self.clean_qualities_card.setVisible(visible)
@@ -244,6 +252,7 @@ class BagelSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.clean_qualities_card.init_with_adapter(get_prop_adapter(self.config, 'clean_qualities'))
         self.failure_retries_card.init_with_adapter(get_prop_adapter(self.config, 'max_failure_retries'))
         self.success_rounds_card.init_with_adapter(get_prop_adapter(self.config, 'max_success_rounds'))
+        self.sell_interval_card.init_with_adapter(get_prop_adapter(self.config, 'sell_interval'))
         self.auto_clean_switch._on_adapter_value_applied = self._clean_value_loaded
         self.clean_mode_card._on_adapter_value_applied = self._clean_value_loaded
         self.clean_types_card._on_adapter_value_applied = self._clean_value_loaded
