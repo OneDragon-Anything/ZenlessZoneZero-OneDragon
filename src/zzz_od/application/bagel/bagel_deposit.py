@@ -140,7 +140,8 @@ class BagelDeposit(BagelOperation):
             pair = self._warehouse_pair()
             if pair is None:
                 return self.round_fail('入仓后无法核对仓库容量，停止并保留现场')
-            if pair[0] >= pair[1]:
+            # 正式结算允许满仓合并堆叠；独立入仓工具保留原保护。
+            if pair[0] >= pair[1] and not self.return_on_remaining:
                 return self.round_fail('满仓后安全箱清空但仓库占用未变，不能证明物资已入仓')
         log.info(
             '贝果入仓确认：安全箱已空，仓库 %s -> %s',

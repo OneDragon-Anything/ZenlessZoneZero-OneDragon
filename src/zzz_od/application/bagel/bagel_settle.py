@@ -122,7 +122,7 @@ class BagelSettleWarehouse(BagelOperation):
     @node_from(from_name='出售后重试入仓')
     @operation_node(name='核对结算后仓库', timeout_seconds=10)
     def verify_warehouse_capacity(self) -> OperationRoundResult:
-        """用处理结束后的新画面确认安全箱为空且仓库未满，再允许返回并开新局。"""
+        """用新画面确认安全箱为空且容量可读；仓库已满不阻止返回和开新局。"""
         if not self._warehouse_ready():
             return self.round_retry('等待结算后仓库画面', wait=0.5)
         occupied = safe_occupied_indices(self.last_screenshot)
@@ -135,7 +135,5 @@ class BagelSettleWarehouse(BagelOperation):
         ))
         if pair is None:
             return self.round_retry('结算后无法核对仓库容量，停止前再看一帧', wait=0.5)
-        if pair[0] >= pair[1]:
-            return self.round_fail(f'结算后仓库已满（{pair[0]}/{pair[1]}），停止并保留现场')
         log.info('贝果结算核验：安全箱已空，仓库 %s/%s，允许结束结算', pair[0], pair[1])
         return self.round_success(self.deposit_status, data={'sale_completed': self.sale_completed})
