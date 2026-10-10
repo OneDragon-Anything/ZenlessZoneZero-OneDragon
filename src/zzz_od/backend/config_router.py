@@ -132,7 +132,7 @@ def _build_list_fields(
 def _validate_hint_for(app_id: str) -> str:
     """各 config 的校验提示。"""
     hints = {
-        'charge_plan': 'category/mission_type/mission_name 必须在 compendium 合法;card_num 仅实战模拟室',
+        'charge_plan': 'category/mission_type/mission_name 必须在 compendium 合法;card_num 仅实战模拟室;battle_timeout_seconds 范围 0..600',
         'notorious_hunt': 'mission_type 必须在 compendium(恶名狩猎域)合法',
         'standalone_app': 'app_id 必须已注册(is_app_registered)',
         '_group': 'app_id 必须已注册;add 不支持(app 由注册注入)',
@@ -301,6 +301,16 @@ def _build_routes() -> dict[str, RouterEntry]:
                 {'name': 'run_times', 'type': 'int', 'required': False, 'default': 0, 'note': '运行次数(可手工修正,如手工跑了一次后调整)'},
                 {'name': 'auto_battle_config', 'type': 'str', 'required': False, 'default': '全配队通用'},
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
+                {
+                    'name': 'battle_timeout_seconds',
+                    'type': 'int',
+                    'required': False,
+                    'default': 0,
+                    'note': (
+                        '换队时限，0 为关闭，范围 0..600 秒；'
+                        'S级预设：实战模拟室/区域巡防 120，专业挑战室 180，恶名狩猎 300'
+                    ),
+                },
                 {'name': 'card_num', 'type': 'enum', 'required': False, 'enum_cls': CardNumEnum, 'applicability': '仅实战模拟室'},
                 {'name': 'level', 'type': 'str', 'required': False, 'default': '默认等级'},
             ],
