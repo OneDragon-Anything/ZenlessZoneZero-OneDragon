@@ -1,38 +1,144 @@
 import ctypes
+import subprocess
 import time
+from ctypes import wintypes
+from typing import ClassVar
 
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import cv2_utils
+from one_dragon.utils.log_utils import log
 from zzz_od.config.game_config import GameConfig
 from zzz_od.const import game_const
+from zzz_od.operation.enter_game.cloud_game_window_selector import (
+    CloudGameWindowSelector,
+)
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
 class ZPcController(PcControllerBase):
+
+    CLOUD_WINDOW_REPROBE_INTERVAL: ClassVar[float] = 1
 
     def __init__(
             self,
             game_config: GameConfig,
             screenshot_method: str,
             standard_width: int = 1920,
-            standard_height: int = 1080
-    ):
+            standard_height: int = 1080,
+            is_cloud_game: bool = False,
+    ) -> None:
         PcControllerBase.__init__(self,
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
                                   standard_height=standard_height)
 
         self.game_config: GameConfig = game_config
+        self.is_cloud_game: bool = is_cloud_game
+        self._cloud_window_selector: CloudGameWindowSelector | None = None
+        self._cloud_invalid_screen_since: float | None = None
+        self._cloud_window_last_probe_at: float | None = None
         self.action_keys = self.game_config.get_action_keys('keyboard')
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
 
         self.is_moving: bool = False  # 是否正在移动
 
-    def sync_game_config(self, game_config: GameConfig) -> None:
+    def close_game(self) -> None:
+        """通过窗口句柄找到进程并关闭游戏。"""
+        hwnd = self.game_win.get_hwnd()
+        if hwnd is None:
+            return
+
+        pid = wintypes.DWORD()
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value == 0:
+            PcControllerBase.close_game(self)
+            return
+
+        try:
+            subprocess.run(
+                ['taskkill', '/F', '/PID', str(pid.value)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            log.info('关闭游戏成功 PID=%d', pid.value)
+        except Exception:
+            log.error('关闭游戏失败 PID=%d，尝试关闭窗口', pid.value, exc_info=True)
+            PcControllerBase.close_game(self)
+
+    def _ensure_game_window(self) -> bool:
+        """云游戏保留有效句柄，失效后通过截图选择可渲染窗口。"""
+        if not self.is_cloud_game:
+            return super()._ensure_game_window()
+        if self.game_win.is_cached_win_valid:
+            return True
+        return self._select_cloud_game_window()
+
+    def _select_cloud_game_window(self) -> bool:
+        """统一重选云游戏窗口，相邻探测至少间隔 1 秒。"""
+        now = time.monotonic()
+        if (
+            self._cloud_window_last_probe_at is not None
+            and now - self._cloud_window_last_probe_at < self.CLOUD_WINDOW_REPROBE_INTERVAL
+        ):
+            return False
+        self._cloud_window_last_probe_at = now
+        if self._cloud_window_selector is None:
+            self._cloud_window_selector = CloudGameWindowSelector(self)
+        selected_hwnd = self._cloud_window_selector.select_window()
+        if selected_hwnd is None:
+            self.game_win._clear_cached_window()
+            return False
+        self.set_window_hwnd(selected_hwnd)
+        return self.game_win.is_cached_win_valid
+
+    def set_window_title(self, new_title: str) -> None:
+        """标题变化后清空原窗口的画面失败和探测间隔记录。"""
+        if self.game_win.win_title != new_title:
+            self._cloud_invalid_screen_since = None
+            self._cloud_window_last_probe_at = None
+            self._cloud_window_selector = None
+        super().set_window_title(new_title)
+
+    def set_window_hwnd(self, hwnd: int) -> None:
+        """句柄变化后清空原窗口的持续无效画面记录。"""
+        if self.game_win._hWnd != hwnd:
+            self._cloud_invalid_screen_since = None
+        super().set_window_hwnd(hwnd)
+
+    def cloud_game_screenshot(self) -> tuple[float, MatLike | None]:
+        """复用云游戏窗口截图，持续无效至少 1 秒后才重新选窗。"""
+        if not self.is_game_window_ready:
+            return time.time(), None
+        screenshot_time, screen = self.screenshot()
+        if CloudGameWindowSelector.is_screenshot_valid(screen):
+            self._cloud_invalid_screen_since = None
+            return screenshot_time, screen
+
+        now = time.monotonic()
+        if self._cloud_invalid_screen_since is None:
+            self._cloud_invalid_screen_since = now
+        elif now - self._cloud_invalid_screen_since >= self.CLOUD_WINDOW_REPROBE_INTERVAL:
+            if self._select_cloud_game_window():
+                screenshot_time, screen = self.screenshot()
+                if CloudGameWindowSelector.is_screenshot_valid(screen):
+                    self._cloud_invalid_screen_since = None
+                    return screenshot_time, screen
+        return screenshot_time, None
+
+    def sync_game_config(
+        self, game_config: GameConfig, is_cloud_game: bool | None = None,
+    ) -> None:
         """切换实例后同步控制器持有的账号级配置"""
         self.game_config = game_config
+        if is_cloud_game is not None and self.is_cloud_game != is_cloud_game:
+            self.is_cloud_game = is_cloud_game
+            self._cloud_window_selector = None
+            self._cloud_invalid_screen_since = None
+            self._cloud_window_last_probe_at = None
+            self.game_win._clear_cached_window()
 
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
