@@ -10,7 +10,7 @@
 
 `CloudGameQueue` 位于 `src/zzz_od/operation/enter_game/cloud_game_queue.py`，继承 `ZOperation`，构造时设置 `need_check_game_win=False`，只作为 `OpenAndEnterGame` 的内部操作调用。
 
-`画面识别` 节点会先识别 `国服PC云-切换窗口`，用它确认当前是云游戏外壳画面；识别失败时按未知画面重试。确认云游戏外壳后，依次处理：
+`画面识别` 会先查找 `国服PC云-切换窗口`。只有这次查找失败（区域未配置）时，才立刻按未知画面重试。没找到这块区域不会停住，找到了也不作为后面识别的前提，接着按顺序处理：
 
 - `国服PC云-点击空白区域关闭`：关闭领取每天免费 15 分钟时长等遮挡提示。
 - `国服PC云-排队中`：已经在排队时直接进入等待队列节点。
@@ -22,42 +22,47 @@
 ```mermaid
 graph LR
     A[开始] --> B(画面识别);
-    B --> H[未知画面 重试];
+    B -- "切换窗口区域未配置，或没有可处理按钮" --> H[未知画面 重试];
     H --> B;
-    B --> G["国服PC云-点击空白区域关闭
-    领取每天免费15分钟时长"];
+    B -- "国服PC云-点击空白区域关闭" --> G[点击空白区域关闭];
     G --> B;
-    B -- "国服PC云-开始游戏
-    点击“开始游戏”" --> C{国服PC云-插队或排队
-    根据账号配置判断是否优先使用邦邦点快速队列};
-    B -- "国服PC云-排队中
-    识别到已经在排队中" --> D[国服PC云-排队];
+    B -- "国服PC云-开始游戏" --> C{国服PC云-插队或排队};
+    B -- "国服PC云-排队中" --> D[国服PC云-排队];
     B -- "点击进入游戏" --> E[结束];
 
-    C --> I[未知画面 重试];
-    I --> C;
-    C -- "点击使用邦邦点插队" --> D;
-    C -- "点击普通队列" --> D;
-    C -- "邦邦点为0 不需要选择 识别到已经在排队中" --> D;
+    C -- "未知画面 重试" --> C;
+    C -- "点击进入游戏" --> E;
+    C -- "prefer_bangbang_points 为真，点击邦邦点快速队列" --> D;
+    C -- "prefer_bangbang_points 为假，点击普通队列" --> D;
+    C -- "没有邦邦点区域，但已识别到排队中" --> D;
 
-    D -- "等待排队" --> F(国服PC云-排队中转);
-    D -- "排队结束 识别到“点击进入游戏”" --> E;
-    F -- "排队中转" --> D;
+    D -- "未结束，等待 5 秒后再查" --> D;
+    D -- "点击进入游戏" --> E;
 ```
 
 ### 插队与普通队列
 
-`cn_pc_cloud_start_or_queue()` 负责处理点击“开始游戏”后的队列选择：
+`cn_pc_cloud_start_or_queue()` 负责处理点击“开始游戏”后的队列选择。`prefer_bangbang_points` 来自 `game.yml`，代码不读取邦邦点余额：
 
+- 先识别 `打开游戏 / 点击进入游戏`。已经能进入游戏时，直接结束 `CloudGameQueue`。
 - 识别到 `国服PC云-邦邦点快速队列` 且 `prefer_bangbang_points=True` 时，点击邦邦点快速队列。
 - 识别到 `国服PC云-邦邦点快速队列` 且 `prefer_bangbang_points=False` 时，点击普通队列。
-- 没有邦邦点选择但已识别到 `国服PC云-排队中` 时，直接进入排队等待。
+- 没有 `国服PC云-邦邦点快速队列`，但已识别到 `国服PC云-排队中` 时，直接进入排队等待。
 
-`cn_pc_cloud_queue()` 会 OCR `国服PC云-排队人数` 和 `国服PC云-预计等待时间`，只用于日志输出；真正的结束条件是识别到 `打开游戏 / 点击进入游戏`。
+这个节点遇到未知画面最多重试 10 次。`画面识别` 的未知画面最多重试 60 次。
+
+`cn_pc_cloud_queue()` 会 OCR `国服PC云-排队人数` 和 `国服PC云-预计等待时间`，只用于日志输出。结束条件同样是识别到 `打开游戏 / 点击进入游戏`。没结束时返回 `round_wait(status="等待排队", wait=5)`。框架遇到等待会留在 `国服PC云-排队`，5 秒后再查。源码声明了 `国服PC云-排队中转`，从本节点状态“等待排队”连到它的边只在成功时才会走；当前返回的是等待，所以进不去。中转节点自己也只返回等待，它回到排队节点的边同样要成功才会走。
 
 ### 同名窗口的 HWND 精准选择
 
-云游戏客户端可能同时暴露多个标题相同的窗口，其中部分窗口通过截图接口只能得到黑图。窗口选择器统一由 `ZPcController` 持有，初始化检查和排队截图共用 controller 的云游戏截图入口。首次使用、句柄失效或标题变化时选择窗口，正常截图沿用有效句柄，不因新建应用或子操作重新探测候选。
+云游戏客户端可能同时暴露多个标题相同的窗口，其中部分窗口通过截图接口只能得到黑图。窗口选择器由 `ZPcController` 持有。初始化检查和排队截图都调用 `ZPcController.cloud_game_screenshot()`。新建应用或子操作不会各自再建选择器。
+
+`cloud_game_screenshot()` 平时用已缓存句柄做常规截图，只计算非黑像素比例，不枚举候选，不算对比度，也不评分。下面两种情况才调用 `CloudGameWindowSelector.select_window()`：
+
+- 缓存句柄无效。窗口初始化、激活和就绪检查都进 `_ensure_game_window()`。第一次探测会立刻执行；之后受 1 秒探测间隔限制。
+- 常规截图持续无效至少 1 秒。第一次无效只记录时间并让上层等待，避免加载时的短黑屏立刻重选。
+
+选择器缓存已确认的 HWND。这套复用只在再次进入 `select_window()` 时发生：该 HWND 仍在标题完全一致的候选里，正式 controller 的缓存句柄没有被换掉，并且固定 `PrintWindow` 探测仍然有效，就直接复用。句柄消失、被替换，或这次探测无效时，重新给全部候选评分。
 
 窗口选择规则如下：
 
@@ -65,19 +70,21 @@ graph LR
 - 只有一个候选时直接使用该 HWND，不执行黑屏评分。
 - 有多个候选时，使用临时窗口对象和独立模式 `PrintWindow` 逐个截图。该探测方式固定，不受用户配置的常规截图方式影响，也不会在探测过程中修改正式 controller。
 - 探测图像按 RGB 转灰度。灰度大于 `8` 的像素占比达到 `1%` 才算有效；以灰度标准差作为对比度，候选得分为“有效像素比例 + 对比度 / 255”，最终选择得分最高的有效候选。
-- 所有候选均无效时不向 controller 注入 HWND，并在日志中记录每个候选的 HWND、有效像素比例、对比度和得分。
+- 所有候选均无效时不调用 `set_window_hwnd()`。`ZPcController._select_cloud_game_window()` 会清空已有窗口缓存，并在日志中记录每个候选的 HWND、有效像素比例、对比度和得分。
 
-选择器会缓存已经确认的 HWND。后续截图时，如果该 HWND 仍在候选列表中、正式 controller 没有被其他逻辑替换句柄，并且固定 `PrintWindow` 探测仍有效，就直接复用；句柄消失、被替换或探测画面变黑时，重新评分全部候选。最终选中的句柄统一通过 `PcControllerBase.set_window_hwnd()` 注入。
+选中的句柄通过 `ZPcController.set_window_hwnd()` 写入 `PcGameWindow`。
 
-`PcGameWindow.init_win()` 保留仍存在且实际标题与配置标题一致的缓存窗口，不因正常初始化或激活重新覆盖业务层选中的 HWND。句柄失效、实际标题不匹配或配置标题变化后才重新查找；重新查找前清空旧缓存，避免只有部分标题匹配时留下旧句柄。显式 `refresh_win()` 仍表示强制清空并重新枚举。
+`PcGameWindow.init_win()` 保留仍存在且实际标题与配置标题一致的缓存窗口，不因正常初始化或激活重新覆盖业务层选中的 HWND。句柄失效、实际标题不匹配或配置标题变化后才重新查找；重新查找前清空旧缓存，避免只有部分标题匹配时留下旧句柄。`refresh_win()` 会先清空缓存，再调用 `init_win()` 按标题重新枚举，取第一个标题完全一致的窗口。悬浮层 `OverlayManager._get_game_rect()` 第一次拿不到可用窗口矩形时会调用它，因此可能换掉云游戏选择器已经写入的句柄。
 
-controller 的窗口初始化、激活和就绪检查共用 `_ensure_game_window()`。`ZPcController` 在 PC 云游戏模式下，缓存无效时调用云游戏选择器重新选择；没有有效候选时返回未就绪，不回退到普通标题枚举，也不激活无效窗口。暂停恢复及前台配置同步因此不会覆盖已选窗口。`ZContext` 创建 controller 和切换实例时同步客户端类型；类型变化时清空旧句柄和选择器，即使自定义标题相同也重新选择。本地游戏继续使用通用标题枚举规则。
+`ZPcController` 在 PC 云游戏模式下，缓存有效就直接返回；缓存无效时只走云游戏选择器。没有有效候选时返回未就绪。这条就绪检查不回退到普通标题枚举，也不会去激活这次失败的结果。前台 `sync_game_config()` 和 `ZApplication.handle_resume()` 都会调用 `active_window()`。缓存仍然有效时只激活已选窗口，不更换句柄。
 
-正常初始化检查和排队截图只对已有截图计算非黑像素比例，不额外截图、不计算对比度和评分。首次无效画面返回等待，持续无效至少 1 秒后才重新探测候选，以免游戏加载时短暂黑屏触发选窗。探测尝试至少间隔 1 秒，避免同一 controller 被多个入口连续调用时重复探测。新标题、客户端类型或句柄变化后重置旧画面的失败记录。重选后重新验证常规截图，仍然无效则继续原有等待和 10 秒超时流程；不修改普通业务截图入口。
+`ZContext` 创建 controller 时传入 `is_cloud_game`。切换实例时 `on_switch_instance()` 调用 `sync_game_config()`。客户端类型变化会清空旧句柄、选择器和失效计时，自定义标题相同也要重选。前台模式在同一次同步里调用 `active_window()`，因此会马上重选；后台模式不在这里激活，等到下一次就绪检查再选。本地游戏走基类 `_ensure_game_window()`，缓存无效时按标题枚举。缓存有效时，本地游戏同样复用句柄。
 
-没有候选、多个候选全部黑屏，或常规截图无效时，`CloudGameQueue` 每秒等待有效画面，是否重选由 controller 按上述规则决定。连续失败从首次失败开始计时，达到 `10` 秒后以“未找到有效云游戏窗口”明确失败；任意一次有效截图都会清空计时。
+相邻两次探测至少间隔 1 秒。窗口标题或客户端类型变化会清掉选择器、失效画面记录和探测间隔；只是句柄变化时，只清掉失效画面记录。重选成功后用常规截图再验一次，仍然无效就继续上层的等待。`CloudGameQueue` 不经过外层窗口检查：截图为空时从第一次失败计时，满 10 秒返回“未找到有效云游戏窗口”。初始化检查只有在窗口已经就绪、随后截图无效时才开始这 10 秒；窗口未就绪由外层当轮失败，不计这 10 秒。任意一次有效截图清空自己的计时。普通业务截图仍走 `controller.screenshot()`，不经过 `cloud_game_screenshot()`。
 
-职责边界保持不变：通用框架只维护和使用 controller 中的窗口缓存，不承担云游戏候选枚举、黑屏判定或评分选择；这些规则全部属于云游戏业务层。本地游戏流程、窗口标题生成、截图框架、配置 YAML 和画面区域数据均不受影响。
+没有候选、多个候选全部无效，或常规截图无效时，`CloudGameQueue` 每秒等待。是否重选由 controller 按上面的规则决定。
+
+通用框架只维护窗口缓存：有效则复用，失效或调用 `refresh_win()` 时按标题重新查找。候选枚举、黑屏判定和评分在 `ZPcController` 与 `CloudGameWindowSelector`。`init_win()` 的缓存保留对本地游戏同样生效；只有一个同名窗口时，结果和每次都枚举到这个窗口相同。
 
 ## 2. 配置与上下文
 
@@ -87,12 +94,13 @@ controller 的窗口初始化、激活和就绪检查共用 `_ensure_game_window
 - `client_type` 用于区分本地游戏和云游戏，默认是本地游戏。
 - `is_cloud_game` 根据 `client_type == "cloud"` 判断当前实例是否为云游戏。
 - `local_game_path` 保存本地游戏路径，`cloud_game_path` 保存云游戏客户端路径。
-- `game_path` 是兼容入口：云游戏模式下返回或写入 `cloud_game_path`，否则返回或写入 `local_game_path`。
+- `game_path` 是兼容入口：云游戏模式下返回或写入 `cloud_game_path`，否则返回或写入 `local_game_path`。这个属性读写的是这两个新键。
+- 加载账号配置时，如果旧键 `game_path` 有值且 `local_game_path` 为空，会把旧值拷进 `local_game_path`。旧键留在 YAML 里。`local_game_path` 已经有值时不覆盖。
 
 ### 游戏配置 (`game_config.py`)
 
-- `prefer_bangbang_points` 决定云排队时是否优先选择邦邦点快速队列，保存在 `game.yml`。
-- 旧版本写在 `game_account.yml` 的同名键，会在加载游戏配置时迁入 `game.yml`，并删除旧键。
+- `prefer_bangbang_points` 决定云排队时是否优先选择邦邦点快速队列，保存在 `game.yml`，默认 `False`。
+- 旧版本写在 `game_account.yml` 的同名键。加载游戏配置时，只有 `game.yml` 里还没有这个键、且账号配置里仍有旧键，才会迁入 `game.yml` 并删除旧键。`game.yml` 已有该键时保留现有值。
 
 ### 上下文扩展 (`zzz_context.py`)
 
@@ -100,14 +108,14 @@ controller 的窗口初始化、激活和就绪检查共用 `_ensure_game_window
 - 自定义窗口标题优先级最高。
 - 国服和 B 服云游戏默认识别 `云·绝区零`，其他区服云游戏默认识别 `ZenlessZoneZero · Cloud`。
 - 非云游戏国服和 B 服默认识别 `绝区零`，其他区服默认识别 `ZenlessZoneZero`。
-- `reload_instance_config()` 清理实例级缓存后调用 `on_switch_instance()`，让 `client_type` 或路径等实例配置变化后同步刷新 controller 窗口标题。
-- `init_controller()` 创建 `ZPcController` 时传入 `_get_win_title()` 结果，并在创建后再次 `set_window_title()`，避免云游戏标题被普通本地标题覆盖。
+- `reload_instance_config()` 清理实例级缓存后调用 `on_switch_instance()`。后者按 `_get_win_title()` 设置窗口标题，并用 `sync_game_config()` 同步游戏配置和 `is_cloud_game`。只改游戏路径、且窗口标题不变时，不换句柄。窗口标题变化或客户端类型变化会清空句柄；类型变化后的重选规则见上一节。
+- `init_controller()` 创建 `ZPcController` 时传入 `game_config`、截图方式、分辨率和 `is_cloud_game`。构造函数不接收窗口标题。创建完成后调用一次 `set_window_title(_get_win_title())`。
 
 ## 3. 对现有流程的适配
 
 ### 通用窗口检查 (`operation.py`)
 
-`Operation._add_check_game_node()` 会在业务起始节点前增加 `检测游戏窗口` 和 `打开并进入游戏`。`Operation.check_game_window()` 判断 `ctx.controller.is_game_window_ready`。窗口就绪后调用 `check_game_initialized()`；窗口不存在时返回失败，并进入 `OpenAndEnterGame`。
+`Operation._add_check_game_node()` 会在业务起始节点前增加 `检测游戏窗口` 和 `打开并进入游戏`。`Operation.check_game_window()` 判断 `ctx.controller.is_game_window_ready`。窗口就绪后调用 `check_game_initialized()`；未就绪时当轮返回失败，并进入 `OpenAndEnterGame`。云游戏没有有效候选，或多个候选全部无效，也是未就绪，不会在这里等 10 秒。
 
 ### 绝区零窗口检查 (`zzz_operation_mixin.py`)
 
@@ -115,45 +123,51 @@ controller 的窗口初始化、激活和就绪检查共用 `_ensure_game_window
 
 - 非云游戏直接成功。
 - PC 云游戏通过 controller 的云游戏截图入口复用选窗结果并获取常规截图，使用轻量非黑像素比例检查避免黑图误判；有效句柄和画面不会触发候选探测。
-- 没有有效候选、截图失败、空图或黑图时，每秒等待并重新检查。连续失败达到 10 秒返回“未找到有效云游戏窗口”，沿框架失败边转入 `OpenAndEnterGame` 恢复流程；不会直接进入业务节点。画面恢复、新一次执行或 controller 更换时清空操作的失败计时。窗口选择器和持续无效画面记录由 controller 统一维护，不再按操作创建选择器。
-- 有效截图继续识别外壳和进入前状态，包括“切换窗口”“开始游戏”“排队中”“邦邦点快速队列”“普通队列”“点击进入游戏”等。没有命中这些区域时沿用原来的成功判断；非 PC controller 保持原有识别流程。
+- 这一步只在窗口已经就绪后执行。截图失败、空图或黑图时，每秒等待并重新检查。连续失败达到 10 秒返回“未找到有效云游戏窗口”，沿框架失败边转入 `OpenAndEnterGame`；不会直接进入业务节点。同一次检查里，截图无效满 1 秒后重选仍失败，这一轮仍走这段计时。重选失败会清空缓存，下一轮外层看到未就绪会立刻失败，不再继续等满 10 秒。画面恢复、新一次执行或 controller 更换时清空操作的失败计时。窗口选择器和持续无效画面记录由 controller 统一维护，不再按操作创建选择器。
+- 有效截图继续识别这些进入前区域：`国服PC云-点击空白区域关闭`、`国服PC云-排队中`、`国服PC云-开始游戏`、`国服PC云-邦邦点快速队列`、`国服PC云-普通队列`、`国服PC云-切换窗口`，以及 `打开游戏 / 点击进入游戏`。都没有命中时返回成功。
+- controller 不是 `ZPcController` 时，不做 `cloud_game_screenshot()`，也不做这段 10 秒截图等待，改用普通 `screenshot()`，然后仍扫描同一份列表。
 - 识别到这些进入前画面则返回失败，基础流程进入 `OpenAndEnterGame` 处理排队和进入游戏。邮件、咖啡等应用也走同一条检查。
 - 不在这个检查里执行排队，避免每个业务操作都跑一遍 `CloudGameQueue`。
 
 进入前画面集中在 mixin 的 `CLOUD_GAME_NOT_ENTERED_AREA_LIST`。新增画面时只改这一处。
 
+初始化检查和排队的门槛不同。`check_game_initialized()` 命中列表中任意一块就失败。`CloudGameQueue` 的 `画面识别` 不要求先看到 `国服PC云-切换窗口`：这块区域未配置时按未知画面重试，没找到则继续识别后面的按钮。识别到 `点击进入游戏` 时，没有对应出边，排队会直接成功结束。
+
 ### 打开并进入游戏 (`open_and_enter_game.py`)
 
-`OpenAndEnterGame` 的流程为：
+`OpenAndEnterGame` 有三个节点：
 
-1. `打开游戏`：云游戏模式下先 `init_game_win()` 检查云游戏窗口是否已经打开，已打开则跳过启动，避免二次启动客户端；否则执行 `DisableAutoHDR` 和 `OpenGame`。
-2. `等待游戏打开`：轮询初始化窗口，窗口就绪后激活窗口，并执行 `EnableAutoHDR`。
-3. `云游戏排队`：仅云游戏模式执行 `CloudGameQueue`；非云游戏直接通过。
-4. `进入游戏`：执行 `EnterGame`，识别并点击“点击进入游戏”，然后处理进入大世界前的弹窗。
+1. `打开游戏`：云游戏先 `init_game_win()`。窗口已就绪就直接成功，不启动客户端。未就绪才执行 `OpenGame`。本地客户端不检查窗口，直接执行 `OpenGame`。
+2. `云游戏排队`：仅云游戏执行 `CloudGameQueue`；非云游戏直接成功。
+3. `进入游戏`：执行 `EnterGame`。
+
+云窗口已经打开时，不会跑 `OpenGame`，因此也不会禁用或恢复 HDR，也不会在这一步激活窗口。
 
 ### 启动游戏 (`open_game.py`)
 
-`OpenGame` 仍通过 `ctx.game_account_config.game_path` 获取启动路径。由于 `game_path` 已按 `client_type` 分流，云游戏模式下会启动 `cloud_game_path`，本地游戏模式下会启动 `local_game_path`。
+`OpenGame` 有两个节点。云游戏模式下，`OpenAndEnterGame` 只在窗口尚未就绪时调用它。本地客户端每次都会调用：
+
+1. `打开游戏`：先执行 `DisableAutoHDR`，再用 `ctx.game_account_config.game_path` 启动 exe。`game_path` 按 `client_type` 分流，云游戏启动 `cloud_game_path`，本地游戏启动 `local_game_path`。
+2. `等待游戏打开`：最多重试 60 次。每秒调用 `init_game_win()`，窗口就绪后 `active_window()`，再执行 `EnableAutoHDR`。
 
 ### 进入游戏操作 (`enter_game.py`)
 
-云游戏只支持已登录的单实例场景。检测到云游戏时，进入游戏操作会跳过账号密码输入和强制切号逻辑：
+云游戏按已登录客户端处理。`EnterGame.__init__()` 在 `is_cloud_game` 时把 `force_login` 设为 `False`，把 `already_login` 设为 `True`。`handle_init()` 每次执行会按当前 `is_cloud_game` 重设 `already_login`，不改 `force_login`。
 
-- `force_login = False`
-- `already_login = True`
+这两个值只跳过 `点击进入游戏` 节点中的强制切号，条件是 `force_login and not already_login`。`check_login_related()` 不看客户端类型，国服账号密码、登录其他账号等区域仍会识别；云游戏外壳上通常没有这些区域。
 
-因此云游戏流程只负责从云游戏外壳排队并点击“进入游戏”，不负责在云游戏客户端内登录或切换米哈游账号。
+排队在前面的 `CloudGameQueue`。`EnterGame` 负责识别并点击“点击进入游戏”，再处理进入大世界前的弹窗。这里没有单独的云游戏账号密码、验证码或切号流程。
 
 ### 关闭游戏 (`zzz_pc_controller.py`)
 
 `ZPcController.close_game()` 覆写了基础 controller 的关闭逻辑：
 
-- 先通过当前游戏窗口句柄获取进程 PID。
-- 获取 PID 失败时，回退到 `PcControllerBase.close_game()` 的窗口关闭逻辑。
-- 获取 PID 成功时，执行 `taskkill /F /PID <pid>` 强制结束对应进程。
-- `taskkill` 失败时，再回退到基础窗口关闭逻辑。
+- 调用 `game_win.get_hwnd()`。缓存为空时，这个方法会 `init_win()`，按窗口标题枚举，不走云游戏选择器。
+- 句柄为 `None` 时直接返回，不调用 `PcControllerBase.close_game()`。
+- 用句柄查询 PID。PID 为 0 时回退到 `PcControllerBase.close_game()`。
+- PID 有效时执行 `taskkill /F /PID <pid>`。命令失败再回退到基础窗口关闭。
 
-这个实现对云游戏更稳：云游戏窗口关闭按钮不一定等价于客户端进程完全退出，而多实例切换、运行结束关闭游戏等入口最终都会走 controller 的 `close_game()`。
+云游戏用结束进程来关，窗口关闭按钮不一定会退出客户端进程。多实例切换、运行结束关闭游戏等入口调用的是 controller 的 `close_game()`。
 
 ## 4. 界面调整
 
@@ -184,7 +198,7 @@ controller 的窗口初始化、激活和就绪检查共用 `_ensure_game_window
 
 图片保存到测试仓的 `test/window_captures/`，文件名包含 HWND 和截图方式，该目录不提交到 Git。BitBlt 和 PIL 截取桌面上的窗口区域，窗口被遮挡时可能截到遮挡内容；比较同名窗口自身的渲染画面时，以 PrintWindow 图片为主。
 
-- 云游戏只处理已登录客户端，不实现账号密码输入、验证码或云游戏账号切换。
+- 云游戏按已登录的单个客户端使用。强制切号由 `force_login=False` 和 `already_login=True` 跳过。没有单独的云游戏登录、验证码或切号流程；`EnterGame.check_login_related()` 仍会识别本地登录区域。
 - 目前云游戏识别区域名称以 `国服PC云-*` 为主，新增其他区服或不同客户端界面时，需要补充 `assets/game_data/screen_info/cloud_game.yml` 和窗口未进入状态列表。
 - `ZOperation` 与 `ZApplication` 共用 mixin 的云游戏初始化检查和未进入状态列表，新增状态时统一维护该列表。
-- `temp_close_cloud_zzz.py` 是临时验证脚本，不属于主流程；正式关闭入口以 `ZPcController.close_game()` 为准。
+- 正式关闭入口是 `ZPcController.close_game()`。缓存为空时它会按标题找窗口；找到进程后用 `taskkill` 结束。
