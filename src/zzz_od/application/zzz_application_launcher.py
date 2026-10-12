@@ -23,7 +23,10 @@ def main(
     if args is not None:
         sys.argv = [sys.argv[0], *args]
     launcher = ZApplicationLauncher(on_ready=on_ready)
-    launcher.run()
+    try:
+        launcher.run()
+    except SystemExit as error:
+        return error.code if isinstance(error.code, int) else 1
     return 0
 
 

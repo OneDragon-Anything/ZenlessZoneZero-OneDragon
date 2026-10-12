@@ -247,10 +247,16 @@ class UpdateService:
             if launcher_type == 'runtime':
                 staged_runtime.rename(work_dir / RUNTIME_DIR)
             self._launcher_transaction.mark_cleanup(launcher_type)
-            self.finish_launcher_update(launcher_type, True)
+            try:
+                self.finish_launcher_update(launcher_type, True)
+            except Exception:
+                log.error("启动器更新已完成，但备份清理失败", exc_info=True)
+                raise
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:
-            if backup_prepared:
+            if backup_prepared and (
+                self._launcher_transaction._read_marker_state(launcher_type) != "cleanup"
+            ):
                 self._launcher_transaction.rollback_if_needed(launcher_type)
             raise
 
