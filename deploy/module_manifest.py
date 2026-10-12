@@ -131,5 +131,5 @@ if not getattr(sys, 'frozen', False):
     from threading import Event, Lock
     from types import ModuleType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
-    from urllib.parse import urlencode, urlparse
+    from urllib.parse import urlencode, urlparse, urlsplit
     from yaml import CSafeLoader, SafeLoader

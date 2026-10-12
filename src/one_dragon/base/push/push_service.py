@@ -5,6 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from cv2.typing import MatLike
 
@@ -332,14 +333,74 @@ class PushService:
         )
         future.add_done_callback(thread_utils.handle_future_result)
 
+    def get_proxy_problem(self) -> str | None:
+        """
+        检查推送代理配置是否完整
+
+        Returns:
+            str | None: 配置不完整时返回可展示给用户的原因，配置可用时返回 None
+        """
+        if self.push_config.proxy != PushProxy.PERSONAL.value.value:
+            return None
+        if not self.ctx.env_config.is_personal_proxy:
+            return '通知设置里选择了个人代理，但脚本环境的代理类型不是个人代理'
+
+        raw = self.ctx.env_config.personal_proxy
+        if raw is None:
+            # 配置里写了键但没填值时读出来是 None，按空地址处理
+            return '通知设置里选择了个人代理，但个人代理地址是空的'
+        if not isinstance(raw, str):
+            # YAML 不加引号时数字/布尔会读成非字符串类型
+            return '个人代理地址无法识别，请填写形如 http://127.0.0.1:7890 的地址'
+        if raw.strip() == '':
+            return '通知设置里选择了个人代理，但个人代理地址是空的'
+
+        return self._check_proxy_address(raw)
+
+    @staticmethod
+    def _check_proxy_address(proxy: str | None) -> str | None:
+        """
+        检查个人代理地址的格式
+
+        Args:
+            proxy: 个人代理地址
+
+        Returns:
+            str | None: 地址不可用时返回可展示给用户的原因，可用时返回 None
+        """
+        address = (proxy or '').strip()
+        if '://' not in address:
+            # 与脚本环境里的 Git 代理保持一致：没写协议头时按 http 处理
+            address = f'http://{address}'
+
+        try:
+            parsed = urlsplit(address)
+            port = parsed.port
+        except ValueError:
+            return '个人代理地址的端口无法识别，请填写形如 http://127.0.0.1:7890 的地址'
+
+        if parsed.scheme not in ('http', 'https'):
+            # requests 只支持 http/https 代理（socks 还要额外装依赖），其他协议填了也发不出去
+            return '个人代理地址的协议只支持 http:// 或 https://，请填写形如 http://127.0.0.1:7890 的地址'
+
+        if parsed.hostname is None:
+            return '个人代理地址缺少主机名，请填写形如 http://127.0.0.1:7890 的地址'
+        if port is None:
+            return '个人代理地址缺少端口，请填写形如 http://127.0.0.1:7890 的地址'
+        return None
+
     def get_proxy(self) -> str | None:
         """
         Returns:
             获取配置使用的代理地址
         """
-        config = self.push_config
-        if (config.proxy == PushProxy.PERSONAL.value.value
-            and self.ctx.env_config.is_personal_proxy):
+        problem = self.get_proxy_problem()
+        if problem is not None:
+            # 提示用户配置断层，避免推送静默直连失败
+            log.warning(f'{problem}，本次推送将不使用代理')
+            return None
+
+        if self.push_config.proxy == PushProxy.PERSONAL.value.value:
             return self.ctx.env_config.personal_proxy
 
         return None
