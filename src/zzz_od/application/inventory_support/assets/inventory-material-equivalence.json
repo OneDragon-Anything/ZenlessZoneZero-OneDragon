@@ -1,0 +1,543 @@
+{
+  "schema": "inventory-material-equivalence/v1",
+  "scope": "same-family quality conversion only; virtual allocation never executes synthesis",
+  "games": {
+    "zzz": [
+      {
+        "id": "attack-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-attack-seal",
+            "name": "初阶强攻认证章"
+          },
+          {
+            "id": "advanced-attack-seal",
+            "name": "高阶强攻认证章"
+          },
+          {
+            "id": "pioneer-certification-seal",
+            "name": "先行者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; identities: config/cultivation-required-materials.json"
+      },
+      {
+        "id": "physical-skill",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-physical-chip",
+            "name": "基础物理芯片"
+          },
+          {
+            "id": "advanced-physical-chip",
+            "name": "进阶物理芯片"
+          },
+          {
+            "id": "specialized-physical-chip",
+            "name": "特化物理芯片"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; identities: config/cultivation-required-materials.json"
+      },
+      {
+        "id": "freeze-skill",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-freeze-chip",
+            "name": "基础冰结芯片"
+          },
+          {
+            "id": "advanced-freeze-chip",
+            "name": "进阶冰结芯片"
+          },
+          {
+            "id": "specialized-freeze-chip",
+            "name": "特化冰结芯片"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; identities: config/cultivation-required-materials.json"
+      },
+      {
+        "id": "stun-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-stun-seal",
+            "name": "初阶击破认证章"
+          },
+          {
+            "id": "advanced-stun-seal",
+            "name": "高阶击破认证章"
+          },
+          {
+            "id": "buster-certification-seal",
+            "name": "破阵者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "anomaly-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-anomaly-seal",
+            "name": "初阶异常认证章"
+          },
+          {
+            "id": "advanced-anomaly-seal",
+            "name": "高阶异常认证章"
+          },
+          {
+            "id": "controller-certification-seal",
+            "name": "掌控者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "support-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-support-seal",
+            "name": "初阶支援认证章"
+          },
+          {
+            "id": "advanced-support-seal",
+            "name": "高阶支援认证章"
+          },
+          {
+            "id": "ruler-certification-seal",
+            "name": "统御者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "defense-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-defense-seal",
+            "name": "初阶防护认证章"
+          },
+          {
+            "id": "advanced-defense-seal",
+            "name": "高阶防护认证章"
+          },
+          {
+            "id": "defender-certification-seal",
+            "name": "捍卫者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "rupture-certification",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-rupture-seal",
+            "name": "初阶命破认证章"
+          },
+          {
+            "id": "advanced-rupture-seal",
+            "name": "高阶命破认证章"
+          },
+          {
+            "id": "arbiter-certification-seal",
+            "name": "裁决者认证章"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "burn-skill",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-burn-chip",
+            "name": "基础引燃芯片"
+          },
+          {
+            "id": "advanced-burn-chip",
+            "name": "进阶引燃芯片"
+          },
+          {
+            "id": "specialized-burn-chip",
+            "name": "特化引燃芯片"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "shock-skill",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-shock-chip",
+            "name": "基础电击芯片"
+          },
+          {
+            "id": "advanced-shock-chip",
+            "name": "进阶电击芯片"
+          },
+          {
+            "id": "specialized-shock-chip",
+            "name": "特化电击芯片"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "ether-skill",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "basic-ether-chip",
+            "name": "基础以太芯片"
+          },
+          {
+            "id": "advanced-ether-chip",
+            "name": "进阶以太芯片"
+          },
+          {
+            "id": "specialized-ether-chip",
+            "name": "特化以太芯片"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "attack-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "attack-component",
+            "name": "强攻组件"
+          },
+          {
+            "id": "reinforced-attack-component",
+            "name": "增强型强攻组件"
+          },
+          {
+            "id": "specialized-attack-component",
+            "name": "特化型强攻组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "stun-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "stun-component",
+            "name": "击破组件"
+          },
+          {
+            "id": "reinforced-stun-component",
+            "name": "增强型击破组件"
+          },
+          {
+            "id": "specialized-stun-component",
+            "name": "特化型击破组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "anomaly-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "anomaly-component",
+            "name": "异常组件"
+          },
+          {
+            "id": "reinforced-anomaly-component",
+            "name": "增强型异常组件"
+          },
+          {
+            "id": "specialized-anomaly-component",
+            "name": "特化型异常组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "support-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "support-component",
+            "name": "支援组件"
+          },
+          {
+            "id": "reinforced-support-component",
+            "name": "增强型支援组件"
+          },
+          {
+            "id": "specialized-support-component",
+            "name": "特化型支援组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "defense-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "defense-component",
+            "name": "防护组件"
+          },
+          {
+            "id": "reinforced-defense-component",
+            "name": "增强型防护组件"
+          },
+          {
+            "id": "specialized-defense-component",
+            "name": "特化型防护组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "rupture-wengine-promotion",
+        "mode": "bidirectional",
+        "members": [
+          {
+            "id": "rupture-component",
+            "name": "命破组件"
+          },
+          {
+            "id": "reinforced-rupture-component",
+            "name": "增强型命破组件"
+          },
+          {
+            "id": "specialized-rupture-component",
+            "name": "特化型命破组件"
+          }
+        ],
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://gamewith.jp/zenless/456485 ; https://wiki.biligame.com/zzz/沙盒1 ; same-family recipes only"
+      },
+      {
+        "id": "agent-experience",
+        "mode": "experience",
+        "members": [
+          {
+            "id": "trainee-investigator-log",
+            "name": "见习调查员记录"
+          },
+          {
+            "id": "official-investigator-log",
+            "name": "正式调查员记录"
+          },
+          {
+            "id": "senior-investigator-log",
+            "name": "资深调查员记录"
+          }
+        ],
+        "ratios": [
+          100,
+          600,
+          3000
+        ],
+        "source": "https://wiki.biligame.com/zzz/音擎蓄电池 ; https://zzz.honeyhunterworld.com/301002-item/?lang=CN ; https://genshin-builds.com/cn/zenless/items/trainee_investigator_log ; reviewed exact EXP descriptions"
+      },
+      {
+        "id": "wengine-experience",
+        "mode": "experience",
+        "members": [
+          {
+            "id": "w-engine-battery",
+            "name": "音擎蓄电池"
+          },
+          {
+            "id": "w-engine-power-supply",
+            "name": "变频音擎电源"
+          },
+          {
+            "id": "w-engine-energy-module",
+            "name": "音擎能源模块"
+          }
+        ],
+        "ratios": [
+          100,
+          600,
+          3000
+        ],
+        "source": "https://wiki.biligame.com/zzz/音擎蓄电池 ; https://zzz.honeyhunterworld.com/301002-item/?lang=CN ; https://genshin-builds.com/cn/zenless/items/trainee_investigator_log ; reviewed exact EXP descriptions"
+      },
+      {
+        "id": "wind-skill",
+        "members": [
+          {
+            "id": "basic-wind-chip",
+            "name": "基础风蚀芯片"
+          },
+          {
+            "id": "advanced-wind-chip",
+            "name": "进阶风蚀芯片"
+          },
+          {
+            "id": "specialized-wind-chip",
+            "name": "特化风蚀芯片"
+          }
+        ],
+        "mode": "bidirectional",
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://zzz.gg/zh-hans/items ; same-family only, no synthesis executed"
+      },
+      {
+        "id": "lumen-skill",
+        "members": [
+          {
+            "id": "basic-lumen-chip",
+            "name": "基础流明芯片"
+          },
+          {
+            "id": "advanced-lumen-chip",
+            "name": "进阶流明芯片"
+          },
+          {
+            "id": "specialized-lumen-chip",
+            "name": "特化流明芯片"
+          }
+        ],
+        "mode": "bidirectional",
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://zzz.gg/zh-hans/items ; same-family only, no synthesis executed"
+      },
+      {
+        "id": "edge-certification",
+        "members": [
+          {
+            "id": "basic-edge-seal",
+            "name": "初阶锋御认证章"
+          },
+          {
+            "id": "advanced-edge-seal",
+            "name": "高阶锋御认证章"
+          },
+          {
+            "id": "edge-certification-seal",
+            "name": "执锋者认证章"
+          }
+        ],
+        "mode": "bidirectional",
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://zzz.gg/zh-hans/items ; same-family only, no synthesis executed"
+      },
+      {
+        "id": "edge-wengine-promotion",
+        "members": [
+          {
+            "id": "edge-component",
+            "name": "锋御组件"
+          },
+          {
+            "id": "reinforced-edge-component",
+            "name": "增强型锋御组件"
+          },
+          {
+            "id": "specialized-edge-component",
+            "name": "特化型锋御组件"
+          }
+        ],
+        "mode": "bidirectional",
+        "ratios": [
+          3,
+          3
+        ],
+        "source": "https://zzz.gg/zh-hans/items ; same-family only, no synthesis executed"
+      }
+    ]
+  },
+  "pending": [
+    "WuWa remaining quality identities/current3.7.14 automatic reads and synthesis direction pending.",
+    "Currencies and weekly/core drops never mix with ordinary families. ZZZ wind/lumen and future native families need independent destination review."
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "schema": "native-inventory-navigation/v1",
+  "game": "zzz",
+  "ready": true,
+  "candidate_only": true,
+  "native_evidence": "Union of unchanged native-calibrated routes: audits/2026-10-10/inventory/zzz-runtime-185152-028963/candidate/config/zzz-inventory-navigation.json and audits/2026-10-11/inventory/zzz-denny-navigation-candidate-0903.json. Same executable/resource fingerprints. Candidate-only selected sequential seven-item acceptance, not evidence that the combined run has passed.",
+  "game_exe_sha256": "bd809b00609e029f114f8213fc248b5fd2d7466a3251e5ab8beaa2ca15387faf",
+  "resource_fingerprints": {
+    "ZenlessZoneZero_Data/Persistent/base_version_hash": "65eb96c5909aa946cef0f05baf131655210d1423b15c5874b453dd4213cbc81a",
+    "ZenlessZoneZero_Data/Persistent/op_version": "5cef4de6441d0553355eec8cebac5ea7ff5cdfb61711f72e005cfc000dc8cb38",
+    "ZenlessZoneZero_Data/Persistent/data_version_persist": "b046c748f617139393103a78613736b5701c2c66d5e007668b0fb53ef29da0ab",
+    "ZenlessZoneZero_Data/Persistent/res_version_persist": "ed201cb1e5e5126409a4ad91c11e6362668c5f7fdadf9a364a4bdaeb2413bfe8",
+    "ZenlessZoneZero_Data/Persistent/silence_version_persist": "2087b538fc25648062f516db2d328d8352c5dc259b1f6994ce75ad0eb5178014"
+  },
+  "tabs": {
+    "材料道具": {
+      "grid_roi": [
+        95,
+        210,
+        1220,
+        680
+      ],
+      "tab_roi": [
+        1610,
+        140,
+        65,
+        65
+      ],
+      "cells": [
+        [
+          166,
+          280
+        ],
+        [
+          302,
+          280
+        ],
+        [
+          436,
+          280
+        ],
+        [
+          572,
+          280
+        ],
+        [
+          706,
+          280
+        ],
+        [
+          841,
+          280
+        ],
+        [
+          976,
+          280
+        ],
+        [
+          1111,
+          280
+        ],
+        [
+          1246,
+          280
+        ],
+        [
+          166,
+          450
+        ],
+        [
+          302,
+          450
+        ],
+        [
+          436,
+          450
+        ],
+        [
+          572,
+          450
+        ],
+        [
+          706,
+          450
+        ],
+        [
+          841,
+          450
+        ],
+        [
+          976,
+          450
+        ],
+        [
+          1111,
+          450
+        ],
+        [
+          1246,
+          450
+        ],
+        [
+          166,
+          625
+        ],
+        [
+          302,
+          625
+        ],
+        [
+          436,
+          625
+        ],
+        [
+          572,
+          625
+        ],
+        [
+          706,
+          625
+        ],
+        [
+          841,
+          625
+        ],
+        [
+          976,
+          625
+        ],
+        [
+          1111,
+          625
+        ],
+        [
+          1246,
+          625
+        ],
+        [
+          166,
+          800
+        ],
+        [
+          302,
+          800
+        ],
+        [
+          436,
+          800
+        ],
+        [
+          572,
+          800
+        ],
+        [
+          706,
+          800
+        ],
+        [
+          841,
+          800
+        ],
+        [
+          976,
+          800
+        ],
+        [
+          1111,
+          800
+        ],
+        [
+          1246,
+          800
+        ]
+      ],
+      "selection_policy": "interior_rows_with_endpoint_edges",
+      "scroll_notches": 1,
+      "max_pages": 10,
+      "max_reset_pages": 10,
+      "max_clicks": 240,
+      "scroll_mode": "native_grid_wheel",
+      "scrollbar": {
+        "roi": [
+          1350,
+          215,
+          30,
+          675
+        ],
+        "columns": [
+          14,
+          17
+        ],
+        "min_channel": 100,
+        "min_span": 260,
+        "max_span": 310,
+        "top_max_offset": 25
+      }
+    },
+    "丁尼": {
+      "strategy": "readonly_currency_popup",
+      "base_page_anchor": {
+        "text": "材料道具",
+        "roi": [
+          70,
+          120,
+          115,
+          36
+        ]
+      },
+      "base_tab_roi": [
+        1610,
+        140,
+        65,
+        65
+      ],
+      "open_roi": [
+        1435,
+        32,
+        110,
+        34
+      ]
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "native-bag-calibration/v1",
+  "game": "zzz",
+  "ready": true,
+  "candidate_only": true,
+  "reason": "Native LOW material detail candidate; two-frame OCR evidence required per selection; production disabled.",
+  "game_version": "OSPRODWin3.2.0_R19437730_S19159270_D19437730",
+  "game_exe_sha256": "bd809b00609e029f114f8213fc248b5fd2d7466a3251e5ab8beaa2ca15387faf",
+  "resource_fingerprints": {
+    "ZenlessZoneZero_Data/Persistent/base_version_hash": "65eb96c5909aa946cef0f05baf131655210d1423b15c5874b453dd4213cbc81a",
+    "ZenlessZoneZero_Data/Persistent/op_version": "5cef4de6441d0553355eec8cebac5ea7ff5cdfb61711f72e005cfc000dc8cb38",
+    "ZenlessZoneZero_Data/Persistent/data_version_persist": "b046c748f617139393103a78613736b5701c2c66d5e007668b0fb53ef29da0ab",
+    "ZenlessZoneZero_Data/Persistent/res_version_persist": "ed201cb1e5e5126409a4ad91c11e6362668c5f7fdadf9a364a4bdaeb2413bfe8",
+    "ZenlessZoneZero_Data/Persistent/silence_version_persist": "2087b538fc25648062f516db2d328d8352c5dc259b1f6994ce75ad0eb5178014"
+  },
+  "scope": "selected_materials_only",
+  "native_evidence": "audits/2026-10-10/inventory/zzz-121504-518961/report.json: two fresh native LOW detail OCR frames; crop hashes and stored OCR independently replay-verified; owned PID36796 created2026-10-10T12:02:44.2993510-04:00. Selected detail only, automatic traversal still pending.",
+  "page_anchor": {
+    "text": "材料道具",
+    "roi": [
+      70,
+      120,
+      115,
+      36
+    ]
+  },
+  "materials": [
+    {
+      "id": "ferocious-grip",
+      "name": "腥风之握",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    }
+  ],
+  "navigation_rois": {
+    "grid": [
+      95,
+      210,
+      1220,
+      680
+    ],
+    "scrollbar": [
+      1350,
+      215,
+      30,
+      675
+    ]
+  }
+}

@@ -1,0 +1,804 @@
+{
+  "schema": "cultivation-required-materials/v1",
+  "complete_catalog": false,
+  "purpose": "Required exact-quality identities, not native calibration and never a farming plan.",
+  "sources": {
+    "zzz-native-selected": "audits/2026-10-12/inventory/zzz-popup-native-repeat-acceptance.json",
+    "zzz-official-ye-shunguang": "https://baike.mihoyo.com/zzz/wiki/content/1687/detail?mhy_presentation_style=fullscreen",
+    "zzz-official-sigrid": "https://baike.mihoyo.com/zzz/wiki/content/2079/detail?mhy_bg_style=dark&mhy_presentation_style=fullscreen",
+    "zzz-ordinary-family-catalog": "https://wiki.biligame.com/zzz/沙盒1 ; native destinations: assets/game_data/compendium_data.yml ; identity/route inference only, not live per-item acceptance",
+    "zzz-named-family-expansion": "https://zzz.gg/zh-hans/items ; https://gamevika.com/zh-tw/zzz/wiki/weekly-boss-farming ; https://wiki.biligame.com/zzz/高维数据：深蚀回路 ; https://www.gghubs.com/ko/blog/zenless-zone-zero-shiyu-defense-3-2-guide ; https://wiki.biligame.com/zzz/刻命残蜕 ; https://wiki.biligame.com/zzz/吮髓之棘 ; native compendium names/scoped3.2 additions; inherited bag-layout trial, NOT per-item live acceptance"
+  },
+  "materials": [
+    {
+      "game": "zzz",
+      "id": "basic-attack-seal",
+      "name": "初阶强攻认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-physical-chip",
+      "name": "基础物理芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "denny",
+      "name": "丁尼",
+      "category": "currency",
+      "quality": "not_applicable",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "ferocious-grip",
+      "name": "腥风之握",
+      "category": "weekly_boss",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "senior-investigator-log",
+      "name": "资深调查员记录",
+      "category": "character_exp",
+      "quality": "senior",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "support-component",
+      "name": "支援组件",
+      "category": "weapon_promotion",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "w-engine-energy-module",
+      "name": "音擎能源模块",
+      "category": "weapon_exp",
+      "quality": "module",
+      "source": "zzz-native-selected"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-attack-seal",
+      "name": "高阶强攻认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "pioneer-certification-seal",
+      "name": "先行者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-physical-chip",
+      "name": "进阶物理芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-physical-chip",
+      "name": "特化物理芯片",
+      "category": "skill",
+      "quality": "specialized",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-freeze-chip",
+      "name": "基础冰结芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-official-sigrid"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-freeze-chip",
+      "name": "进阶冰结芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-official-sigrid"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-freeze-chip",
+      "name": "特化冰结芯片",
+      "category": "skill",
+      "quality": "specialized",
+      "source": "zzz-official-sigrid"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-caustic-thorn",
+      "name": "高维数据：淬刺蚀芯",
+      "category": "core_skill_expert",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-dream-corroded-iron",
+      "name": "高维数据：蚀梦残铁",
+      "category": "core_skill_expert",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-official-sigrid"
+    },
+    {
+      "game": "zzz",
+      "id": "turbid-patterned-crystal",
+      "name": "浊纹晶质",
+      "category": "weekly_boss",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "foul-red-crystal-spike",
+      "name": "秽红晶刺",
+      "category": "weekly_boss",
+      "quality": "named_variant_not_rarity_calibration",
+      "source": "zzz-official-sigrid"
+    },
+    {
+      "game": "zzz",
+      "id": "hamster-cage-pass",
+      "name": "「仓鼠笼」访问器",
+      "category": "skill",
+      "quality": "limited_supply",
+      "source": "zzz-official-ye-shunguang"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-stun-seal",
+      "name": "初阶击破认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-stun-seal",
+      "name": "高阶击破认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "buster-certification-seal",
+      "name": "破阵者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-anomaly-seal",
+      "name": "初阶异常认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-anomaly-seal",
+      "name": "高阶异常认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "controller-certification-seal",
+      "name": "掌控者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-support-seal",
+      "name": "初阶支援认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-support-seal",
+      "name": "高阶支援认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "ruler-certification-seal",
+      "name": "统御者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-defense-seal",
+      "name": "初阶防护认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-defense-seal",
+      "name": "高阶防护认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "defender-certification-seal",
+      "name": "捍卫者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-rupture-seal",
+      "name": "初阶命破认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-rupture-seal",
+      "name": "高阶命破认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "arbiter-certification-seal",
+      "name": "裁决者认证章",
+      "category": "character_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-burn-chip",
+      "name": "基础引燃芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-burn-chip",
+      "name": "进阶引燃芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-burn-chip",
+      "name": "特化引燃芯片",
+      "category": "skill",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-shock-chip",
+      "name": "基础电击芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-shock-chip",
+      "name": "进阶电击芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-shock-chip",
+      "name": "特化电击芯片",
+      "category": "skill",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-ether-chip",
+      "name": "基础以太芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-ether-chip",
+      "name": "进阶以太芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-ether-chip",
+      "name": "特化以太芯片",
+      "category": "skill",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "attack-component",
+      "name": "强攻组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-attack-component",
+      "name": "增强型强攻组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-attack-component",
+      "name": "特化型强攻组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "stun-component",
+      "name": "击破组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-stun-component",
+      "name": "增强型击破组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-stun-component",
+      "name": "特化型击破组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "anomaly-component",
+      "name": "异常组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-anomaly-component",
+      "name": "增强型异常组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-anomaly-component",
+      "name": "特化型异常组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-support-component",
+      "name": "增强型支援组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-support-component",
+      "name": "特化型支援组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "defense-component",
+      "name": "防护组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-defense-component",
+      "name": "增强型防护组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-defense-component",
+      "name": "特化型防护组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "rupture-component",
+      "name": "命破组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-rupture-component",
+      "name": "增强型命破组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-rupture-component",
+      "name": "特化型命破组件",
+      "category": "weapon_promotion",
+      "quality": "specialized",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "trainee-investigator-log",
+      "name": "见习调查员记录",
+      "category": "character_exp",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "official-investigator-log",
+      "name": "正式调查员记录",
+      "category": "character_exp",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "w-engine-battery",
+      "name": "音擎蓄电池",
+      "category": "weapon_exp",
+      "quality": "basic",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "w-engine-power-supply",
+      "name": "变频音擎电源",
+      "category": "weapon_exp",
+      "quality": "advanced",
+      "source": "zzz-ordinary-family-catalog"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-wind-chip",
+      "name": "基础风蚀芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-wind-chip",
+      "name": "进阶风蚀芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-wind-chip",
+      "name": "特化风蚀芯片",
+      "category": "skill",
+      "quality": "premium",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-lumen-chip",
+      "name": "基础流明芯片",
+      "category": "skill",
+      "quality": "basic",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-lumen-chip",
+      "name": "进阶流明芯片",
+      "category": "skill",
+      "quality": "advanced",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-lumen-chip",
+      "name": "特化流明芯片",
+      "category": "skill",
+      "quality": "premium",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-death-notice",
+      "name": "高维数据：凶刑讣告",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-crimson-awe",
+      "name": "高维数据：殷红震慑",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-pursuing-phantom",
+      "name": "高维数据：追袭骸影",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-steel-malice",
+      "name": "高维数据：钢铁恶意",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-destructive-advance",
+      "name": "高维数据：毁荡突进",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-falling-fist",
+      "name": "高维数据：拳坠如陨",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-stealth-phantom",
+      "name": "高维数据：潜袭魅影",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-thunderous-scales",
+      "name": "高维数据：游鳞雷动",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-life-cutting",
+      "name": "高维数据：索命切割",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-corrupted-elytra",
+      "name": "高维数据：鞘翅秽种",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-venomous-edge",
+      "name": "高维数据：诡运毒锋",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-deep-corrosion-circuit",
+      "name": "高维数据：深蚀回路",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "living-drive",
+      "name": "活态驱动",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "finale-dance-shoes",
+      "name": "终幕舞鞋",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "scarlet-engine",
+      "name": "猩红引擎",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "fanatic-sculpture",
+      "name": "狂信之塑",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "refined-exuvia",
+      "name": "塑炼遗蜕",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-bloodstained-feather",
+      "name": "高维数据：喋血秽羽",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "marrow-thorn",
+      "name": "吮髓之棘",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "fate-exuvia",
+      "name": "刻命残蜕",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "basic-edge-seal",
+      "name": "初阶锋御认证章",
+      "category": "character_promotion",
+      "quality": "basic",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "advanced-edge-seal",
+      "name": "高阶锋御认证章",
+      "category": "character_promotion",
+      "quality": "advanced",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "edge-certification-seal",
+      "name": "执锋者认证章",
+      "category": "character_promotion",
+      "quality": "premium",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "edge-component",
+      "name": "锋御组件",
+      "category": "weapon_promotion",
+      "quality": "basic",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "reinforced-edge-component",
+      "name": "增强型锋御组件",
+      "category": "weapon_promotion",
+      "quality": "advanced",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "specialized-edge-component",
+      "name": "特化型锋御组件",
+      "category": "weapon_promotion",
+      "quality": "premium",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "higher-dimensional-data-simulated-core",
+      "name": "高维数据：拟造核心",
+      "category": "core_skill_expert",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    },
+    {
+      "game": "zzz",
+      "id": "counterfeit-core",
+      "name": "赝造离核",
+      "category": "weekly_boss",
+      "quality": "named",
+      "source": "zzz-named-family-expansion"
+    }
+  ],
+  "remaining_categories": [
+    "wuwa promotion and weapon/skill families",
+    "zzz other EXP/promotion/skill/weapon qualities and families",
+    "both games weekly/core skill drops"
+  ],
+  "production_ready": false
+}
