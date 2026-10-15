@@ -73,7 +73,7 @@ class UpdateService:
 
     def is_launcher_update_available(self) -> bool:
         """检查当前启动器通道是否存在可用更新。"""
-        launcher_type = self.detect_running_launcher_type() or 'launcher'
+        launcher_type = detect_running_launcher_type() or 'launcher'
         current_version, latest_stable, latest_beta = (
             self.get_launcher_version_info(launcher_type)
         )
@@ -103,11 +103,6 @@ class UpdateService:
         if current_version and '-beta' in current_version:
             return latest_beta or latest_stable or current_version
         return latest_stable or current_version
-
-    @staticmethod
-    def detect_running_launcher_type() -> LauncherType | None:
-        """检测当前正在运行的启动器类型。"""
-        return detect_running_launcher_type()
 
     @staticmethod
     def detect_installed_launcher_type() -> LauncherType | None:
