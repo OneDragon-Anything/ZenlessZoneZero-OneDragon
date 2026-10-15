@@ -13,6 +13,7 @@ if not getattr(sys, 'frozen', False):
     import cv2
     import datetime
     import difflib
+    import gc
     import gettext
     import glob
     import hashlib
@@ -97,6 +98,7 @@ if not getattr(sys, 'frozen', False):
     from email.utils import formataddr
     from enum import Enum, IntEnum, StrEnum
     from functools import cached_property, lru_cache, partial, wraps
+    from importlib import metadata
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
