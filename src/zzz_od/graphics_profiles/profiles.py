@@ -211,6 +211,17 @@ def apply(
     idle: Callable[[], None] = ensure_idle,
 ) -> dict[str, Any]:
     """备份、修改并读回图像设置；外部修改时不覆盖。"""
+    with native_lock(path.with_name(path.name + '.graphics.lock')):
+        return _apply_locked(values, path, backup_dir, idle)
+
+
+def _apply_locked(
+    values: dict[str, int],
+    path: Path,
+    backup_dir: Path | None,
+    idle: Callable[[], None],
+) -> dict[str, Any]:
+    """持有协作锁执行写入；游戏和不遵守锁的外部程序仍须保持关闭。"""
     idle()
     before_raw = path.read_bytes()
     before = reader.decode_document(before_raw)
