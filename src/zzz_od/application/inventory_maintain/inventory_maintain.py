@@ -277,7 +277,9 @@ class StockStore:
             raise ValueError('库存保持配置或账号身份无效')
         return data
 
-    def update(self, key: Any, value: Any) -> Any:
+    def update(
+        self, key: Any, value: Any, *, expected_pending: dict | None = None
+    ) -> Any:
         if key not in ('targets', 'pending', 'history'):
             raise ValueError('不可修改库存身份字段')
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,6 +288,12 @@ class StockStore:
         stage = self.path.with_name(self.path.name + '.' + uuid.uuid4().hex + '.tmp')
         try:
             data = self.read()
+            if key == 'pending':
+                current = data['pending']
+                if value and current:
+                    raise RuntimeError('已有未核实扣电事务，拒绝覆盖')
+                if not value and current and current != expected_pending:
+                    raise RuntimeError('扣电事务身份不符，拒绝清除')
             data[key] = deepcopy(value)
             payload = json.dumps(
                 data, ensure_ascii=False, indent=2, allow_nan=False
@@ -303,6 +311,25 @@ class StockStore:
             stage.unlink(missing_ok=True)
             os.close(descriptor)
             lock.unlink()
+
+
+def pending_journal(store: StockStore) -> Any:
+    """同一文件锁内占用空事务并只清除本次事务。"""
+    owned = {}
+
+    def journal(record: dict) -> None:
+        nonlocal owned
+        if record:
+            current = dict(record, transaction_id=uuid.uuid4().hex)
+            store.update('pending', current)
+            owned = current
+        else:
+            if not owned:
+                raise RuntimeError('未持有扣电事务，不可清除')
+            store.update('pending', {}, expected_pending=owned)
+            owned = {}
+
+    return journal
 
 
 class EphemeralChargePlan:
@@ -1040,7 +1067,7 @@ def run_maintain(op: Any) -> Any:
             inspect=inspect,
             read_stamina=lambda: read_natural(op, guard),
             farm_once=lambda row, route: farm_once(op, store, route, guard),
-            journal=lambda record: store.update('pending', record),
+            journal=pending_journal(store),
             pending=saved['pending'],
             guard=guard,
             conversion_families=conversion_families,

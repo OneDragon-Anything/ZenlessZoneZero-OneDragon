@@ -1,5 +1,7 @@
 """包内导入与独立运行数据；不依赖开发者电脑路径。"""
 
+import os
+import uuid
 from importlib import import_module
 from pathlib import Path
 from typing import Any
@@ -28,17 +30,35 @@ MODULES = frozenset(
 def inventory_root() -> Any:
     root = Path(__file__).resolve().parents[4] / 'config' / 'inventory_extension'
     target = root / 'config'
-    target.mkdir(parents=True, exist_ok=True)
-    for source in (Path(__file__).parent / 'assets').glob('*.json'):
-        destination = target / source.name
-        if not destination.exists():
-            with destination.open('xb') as stream:
-                stream.write(source.read_bytes())
+    sync_assets(Path(__file__).parent / 'assets', target)
     return root
+
+
+def sync_assets(source_dir: Path, target: Path) -> None:
+    """仅同步随包识别资源；用户目标与事务记录不在此目录。"""
+    target.mkdir(parents=True, exist_ok=True)
+    for source in source_dir.glob('*.json'):
+        destination = target / source.name
+        data = source.read_bytes()
+        if destination.exists() and destination.read_bytes() == data:
+            continue
+        stage = destination.with_name(
+            destination.name + '.' + uuid.uuid4().hex + '.tmp'
+        )
+        try:
+            with stage.open('xb') as stream:
+                stream.write(data)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(stage, destination)
+        finally:
+            stage.unlink(missing_ok=True)
 
 
 def import_support(path: Any) -> Any:
     module = Path(path).stem.replace('-', '_')
+    if module in ('inventory_wuwa_destination', 'inventory_wuwa_families'):
+        raise ValueError('绝区零库存不加载鸣潮材料适配')
     if module not in MODULES:
         raise ValueError('未知的库存模块')
     aliases = {

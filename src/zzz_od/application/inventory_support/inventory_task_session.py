@@ -183,6 +183,7 @@ def inspect_session(
     clock: Any = time.monotonic,
     deadline_at: Any = None,
     batch_scan: Any = None,
+    selected_material_ids: list[str] | None = None,
 ) -> Any:
     """Read-only inspection transaction for future native assistant adapters.
 
@@ -323,7 +324,18 @@ def inspect_session(
             remaining = min(90, int(deadline - clock()))
             if remaining < 1:
                 raise TimeoutError('No remaining capture budget')
-            page = collector(game, identity, path, remaining)
+            if selected_material_ids is not None:
+                if len(selected_material_ids) != len(pages):
+                    raise ValueError('已选材料与识别页面不匹配')
+                page = collector(
+                    game,
+                    identity,
+                    path,
+                    remaining,
+                    selected_ids=[selected_material_ids[index]],
+                )
+            else:
+                page = collector(game, identity, path, remaining)
             guard()
             if (
                 not same_identity(identity, page.get('game_identity'))

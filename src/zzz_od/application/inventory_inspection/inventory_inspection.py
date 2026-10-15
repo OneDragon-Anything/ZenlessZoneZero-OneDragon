@@ -324,15 +324,19 @@ def _run(
             audit_folder=folder,
             budget_seconds=plan['budget_seconds'],
             deadline_at=deadline,
-            collector=lambda game, identity, path, seconds: collect_native_page(
-                port,
-                game,
-                identity,
-                path,
-                seconds,
-                probe=bridge.probe,
-                folder=folder / datetime.now().strftime('capture-%H%M%S-%f'),
-                guard=guard,
+            selected_material_ids=[item_id for _, item_id in selections],
+            collector=lambda game, identity, path, seconds, *, selected_ids: (
+                collect_native_page(
+                    port,
+                    game,
+                    identity,
+                    path,
+                    seconds,
+                    probe=bridge.probe,
+                    folder=folder / datetime.now().strftime('capture-%H%M%S-%f'),
+                    guard=guard,
+                    selected_ids=selected_ids,
+                )
             ),
             batch_scan=batch_scan
             if plan.get('scan_mode') in ('single_pass', 'grouped')
