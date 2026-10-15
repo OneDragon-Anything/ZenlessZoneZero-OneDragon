@@ -1002,6 +1002,7 @@ def farm_once(op: Any, store: Any, route: Any, guard: Any) -> Any:
         or op.ctx.auto_battle_context.last_check_end_result != '普通战斗-完成'
     ):
         raise RuntimeError('未核实单场战斗胜利，保留待核实记录，不重刷')
+    return {'state': 'claimed', 'cost': route['cost'], 'claims': plan.run_times}
 
 
 def run_maintain(op: Any) -> Any:
