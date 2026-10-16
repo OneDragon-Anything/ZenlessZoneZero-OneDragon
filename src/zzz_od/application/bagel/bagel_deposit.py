@@ -99,10 +99,23 @@ class BagelDeposit(BagelOperation):
             if self.return_on_remaining:
                 if pair is None:
                     return self.round_fail('入仓后无法核对仓库容量，停止并保留现场')
-                self._full_waits += 1
-                if self._full_waits < 2:
-                    return self.round_wait('入仓后有残留，再看一帧', wait=0.5)
-                return self.round_success(self.STATUS_FULL, data={'safe_count': safe_after})
+                # 只有仓库确实满仓才提前结束；丢点击或响应慢时补点，不要误判满仓
+                if pair[0] >= pair[1]:
+                    return self.round_success(
+                        self.STATUS_FULL,
+                        data={'safe_count': safe_after, 'warehouse': pair},
+                    )
+                clicked = self.round_by_find_and_click_area(
+                    self.last_screenshot, '贝果-仓库', '放入仓库',
+                    success_wait=0.8, retry_wait=0.8,
+                )
+                if not clicked.is_success:
+                    return clicked
+                return self.round_retry(
+                    f'安全箱仍有 {safe_after} 格占用且仓库未满（{pair[0]}/{pair[1]}），'
+                    '补点放入仓库后继续等待',
+                    wait=0.2,
+                )
             if safe_after < self.safe_before:
                 return self.round_fail(
                     f'仅部分入仓，安全箱 {self.safe_before} -> {safe_after} 格，'

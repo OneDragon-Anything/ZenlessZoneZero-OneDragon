@@ -164,9 +164,11 @@ class BagelStoreCarried(BagelTransferOperation):
             self.moved += before[0] + before[1]
             self.pending = False
             return self.round_success('携带物已全部转存', data={'moved': self.moved, 'warehouse': (counts[2], counts[4])})
-        if self.return_on_remaining and counts[0] <= before[0] and counts[1] <= before[1]:
+        if self.return_on_remaining and counts[0] <= before[0] and counts[1] <= before[1] and counts[2] >= counts[4]:
+            # 只有仓库确实满仓才提前结束；丢点击或响应慢时继续用等待预算，不要误判满仓
+            self.moved += before[0] + before[1] - counts[0] - counts[1]
             self.pending = False
-            return self.round_success('仓库已满', data={'safe_count': counts[1], 'backpack_count': counts[0]})
+            return self.round_success('仓库已满', data={'moved': self.moved, 'safe_count': counts[1], 'backpack_count': counts[0]})
         if counts[0] <= before[0] and counts[1] <= before[1] and counts[:2] != before[:2]:
             self.moved += before[0] + before[1] - counts[0] - counts[1]
             return self.transfer_fail(f'仅部分入仓 {before[:2]} -> {counts[:2]}，停止核对剩余物资')
