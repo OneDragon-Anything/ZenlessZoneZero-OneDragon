@@ -1,6 +1,8 @@
 # AUTO-GENERATED — DO NOT EDIT
 import sys
 if not getattr(sys, 'frozen', False):
+    import PySide6.QtGui
+    import PySide6.QtWidgets
     import argparse
     import ast
     import atexit
@@ -83,15 +85,15 @@ if not getattr(sys, 'frozen', False):
     from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
-    from contextlib import suppress
+    from contextlib import contextmanager, suppress
     from copy import deepcopy
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
     from cv2.typing import MatLike
-    from dataclasses import dataclass, field, fields
+    from dataclasses import dataclass, field, fields, replace
     from datetime import datetime, timedelta
     from email.header import Header
     from email.mime.image import MIMEImage
@@ -102,8 +104,10 @@ if not getattr(sys, 'frozen', False):
     from functools import cached_property, lru_cache, partial, wraps
     from importlib import metadata
     from io import BytesIO
+    from itertools import count
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
+    from math import atan2, degrees, hypot, isfinite
     from packaging import version
     from pathlib import Path
     from pyautogui import screenshot
@@ -130,8 +134,10 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from threading import Event, Lock
-    from types import ModuleType
+    from threading import Event, Lock, RLock
+    from time import perf_counter
+    from types import MappingProxyType, ModuleType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urlparse
+    from uuid import NAMESPACE_URL, uuid4, uuid5
     from yaml import CSafeLoader, SafeLoader

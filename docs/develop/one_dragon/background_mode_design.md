@@ -258,7 +258,7 @@ move_mouse_relative(dx, dy)
 **`PcControllerBase` 核心方法：**
 - `background_mode: bool` — 全局后台模式标志
 - `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
-- `drag_to(start, end, duration)` — 统一拖拽入口，根据模式分发
+- `drag_to(end, start=None, duration=0.5)` — 统一拖拽入口，根据模式分发
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
 - `_foreground_drag(start, end, duration)` — 前台 pyautogui 拖拽
 - `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
@@ -285,6 +285,14 @@ move_mouse_relative(dx, dy)
 - `get_gamepad_action_keys(gamepad_type) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
   - `gamepad_type`: `'xbox'` / `'ds4'`（默认读 `config.background_gamepad_type`）
   - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
+
+#### 拖拽按下等待
+
+`drag_to` 使用固定等待，不接收 `press_time` 参数。前台鼠标左键按下后等待 0.3 秒，移动到终点后再等待 0.2 秒松开；移动时间为 `max(duration - 0.3 - 0.2, 0.1)`，与式舆防卫战自动配队的拖拽规则一致。
+
+后台保持按下后等待 0.02 秒，移动时间为 `max(duration - 0.2, 0.1)`，终点等待 0.2 秒。后台按下等待不计入 `duration`。上述时间不包含切换输入模式、发送消息和鼠标操作本身的开销；移动阶段至少 0.1 秒，因此较小的 `duration` 不能保证同样短的总耗时。
+
+贝果物资拖拽的按下等待时间和结果核验规则，见[贝果应用说明](../zzz/application/bagel.md#拖拽时序)。
 
 ## 前置条件
 

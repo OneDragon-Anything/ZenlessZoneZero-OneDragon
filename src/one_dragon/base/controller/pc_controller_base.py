@@ -445,15 +445,12 @@ class PcControllerBase(ControllerBase):
 
     def _background_drag(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """后台拖拽：用 SetCursorPos 移动光标，配合 PostMessage WM_LBUTTONDOWN/UP。
-        消除拖动后的惯性。
+        消除拖动后的惯性，按下后等待 0.02 秒。
 
         Args:
             start: 拖拽起点（游戏坐标）
             end: 拖拽终点（游戏坐标）
             duration: 拖拽持续时间
-
-        Returns:
-            是否成功
         """
         if not self._ensure_mouse_mode():
             log.error('无法切到键鼠模式，后台拖拽失败')
@@ -582,13 +579,13 @@ def get_mouse_sensitivity():
     return speed.value
 
 
-def drag_mouse(start: Point, end: Point, duration: float = 0.5):
+def drag_mouse(start: Point, end: Point, duration: float = 0.5) -> None:
     """按住鼠标左键进行画面拖动 (消除拖动后的惯性)。
 
     Args:
         start: 原位置
         end: 拖动位置
-        duration: 拖动鼠标到目标位置，持续秒数
+        duration: 包含拖动前后停顿的时间预算，移动阶段至少 0.1 秒
     """
 
     # 移动到起点并按下

@@ -107,7 +107,7 @@ class ControllerBase:
         """
         pass
 
-    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5):
+    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5) -> None:
         """
         按住拖拽
         :param end: 拖拽目的点
