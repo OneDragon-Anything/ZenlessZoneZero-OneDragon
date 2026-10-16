@@ -494,7 +494,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        ocr_model_name = self._decide_ocr_model_name()
+        ocr_model_name = self.model_config.ocr
 
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
@@ -574,12 +574,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def _on_resource_source_failure(self, source_id: str) -> None:
         """自动模式下清除已经失效的上次成功源。"""
         self.env_config.mark_resource_source_failure(source_id)
-
-    def _decide_ocr_model_name(self) -> str:
-        """
-        决定本次初始化使用的 OCR 模型名 默认使用配置里的模型名 子类可按项目需要覆写
-        """
-        return self.model_config.ocr
 
     def _start_btn_listener(self) -> None:
         """
