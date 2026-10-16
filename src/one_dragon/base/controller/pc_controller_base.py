@@ -496,10 +496,11 @@ class PcControllerBase(ControllerBase):
             self._set_cursor_to(hwnd, sx, sy)
             time.sleep(0.01)
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
-            time.sleep(max(0.02, press_time or 0))
+            press_wait = max(0.02, press_time or 0)
+            time.sleep(press_wait)
 
-            # 减去 SLEEP_BEFORE_DRAG_END 之后的间隔
-            duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
+            # 减去按下等待和松开前停顿之后的移动时长，使 duration 覆盖整个拖拽过程
+            duration_drag = max(duration - press_wait - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
             # 分步移动到终点
             steps = max(int(duration_drag / 0.02), 5)
             for i in range(1, steps + 1):
@@ -597,11 +598,13 @@ def drag_mouse(
 ) -> None:
     """按住鼠标左键进行画面拖动 (消除拖动后的惯性)。
 
+    duration 覆盖整个拖拽过程：按下等待 + 分步移动 + 松开前停顿。
+
     Args:
         start: 原位置
         end: 拖动位置
-        duration: 拖动鼠标到目标位置，持续秒数
-        press_time: 按下鼠标后、开始移动前的等待秒数，不计入 duration；不传入时使用
+        duration: 整个拖拽过程的持续秒数
+        press_time: 按下鼠标后、开始移动前的等待秒数，计入 duration；不传入时使用
             PcControllerBase.SLEEP_BEFORE_DRAG_START
     """
 
@@ -614,8 +617,8 @@ def drag_mouse(
     if press_time > 0:
         time.sleep(press_time)
 
-    # 减去拖动前后停顿之后的移动时长
-    duration_drag = max(duration - PcControllerBase.SLEEP_BEFORE_DRAG_START - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
+    # 减去按下等待和松开前停顿之后的移动时长，使 duration 覆盖整个拖拽过程
+    duration_drag = max(duration - press_time - PcControllerBase.SLEEP_BEFORE_DRAG_END, PcControllerBase.DRAG_MIN_DURATION)
     # 分步移动到终点
     steps = max(int(duration_drag / 0.02), 5)
     for i in range(1, steps + 1):
