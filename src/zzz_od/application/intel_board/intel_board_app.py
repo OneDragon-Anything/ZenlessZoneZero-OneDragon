@@ -281,6 +281,7 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
+        """等待战斗画面或交互入口，机械盘模式按配置延长加载额度。"""
         # 11. 等待战斗画面加载完成
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:

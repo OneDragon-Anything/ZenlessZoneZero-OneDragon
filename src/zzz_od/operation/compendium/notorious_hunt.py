@@ -334,6 +334,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60, is_start_node=False)
     def wait_battle_screen(self) -> OperationRoundResult:
+        """等待周本战斗或交互入口，成功状态保持原副本类型。"""
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:
             return self.round_success(self.plan.mission_type_name)

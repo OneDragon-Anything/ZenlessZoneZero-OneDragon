@@ -86,6 +86,7 @@ class LifeOnLineApp(ZApplication):
     @node_from(from_name='进入副本')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
+        """沿用半秒轮询识别战斗画面，并应用当前实例的加载等待额度。"""
         self.chosen_team = True
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击',
                                        retry_wait=0.5)

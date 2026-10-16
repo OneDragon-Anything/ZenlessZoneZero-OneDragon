@@ -135,6 +135,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
+        """等待专业挑战室战斗画面，额度耗尽时继续原失败路由。"""
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
         return apply_battle_loading_wait(self, result)
 
