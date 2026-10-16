@@ -1,0 +1,258 @@
+screen_id: bagel_warehouse
+screen_name: 贝果-仓库
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 放入仓库
+  pc_rect:
+  - 190
+  - 990
+  - 445
+  - 1060
+  id_mark: true
+  text: 放入仓库
+  lcs_percent: 0.9
+- area_name: 返回研究站
+  pc_rect:
+  - 1600
+  - 991
+  - 1855
+  - 1060
+  text: 返回研究站
+  lcs_percent: 0.9
+- area_name: 背包数量
+  pc_rect:
+  - 238
+  - 111
+  - 390
+  - 158
+  lcs_percent: 0.9
+- area_name: 安全箱格子
+  pc_rect:
+  - 219
+  - 838
+  - 730
+  - 956
+  lcs_percent: 0.9
+- area_name: 仓库数量
+  pc_rect:
+  - 1090
+  - 210
+  - 1280
+  - 265
+  lcs_percent: 0.9
+- area_name: 筛选-全部
+  pc_rect:
+  - 630
+  - 390
+  - 850
+  - 455
+  text: 全部
+  lcs_percent: 0.8
+- area_name: 筛选-战术道具
+  pc_rect:
+  - 855
+  - 390
+  - 1070
+  - 455
+  text: 战术道具
+  lcs_percent: 0.8
+- area_name: 筛选-装备
+  pc_rect:
+  - 855
+  - 445
+  - 1070
+  - 510
+  text: 装备
+  lcs_percent: 0.8
+- area_name: 筛选-门禁卡
+  pc_rect:
+  - 1080
+  - 445
+  - 1295
+  - 510
+  text: 门禁卡
+  lcs_percent: 0.8
+- area_name: 筛选-Z
+  pc_rect:
+  - 880
+  - 675
+  - 1080
+  - 740
+  text: Z
+  lcs_percent: 0.8
+- area_name: 批量出售
+  pc_rect:
+  - 1080
+  - 890
+  - 1220
+  - 950
+  text: 批量出售
+  lcs_percent: 0.8
+- area_name: 取消出售
+  pc_rect:
+  - 1080
+  - 890
+  - 1220
+  - 950
+  text: 取消出售
+  lcs_percent: 0.8
+- area_name: 批量选择
+  pc_rect:
+  - 1305
+  - 890
+  - 1450
+  - 950
+  text: 批量选择
+  lcs_percent: 0.8
+- area_name: 确认出售
+  pc_rect:
+  - 1665
+  - 890
+  - 1810
+  - 950
+  text: 确认出售
+  lcs_percent: 0.8
+- area_name: 快速选择标题
+  pc_rect:
+  - 580
+  - 220
+  - 750
+  - 285
+  text: 快速选择
+  lcs_percent: 0.8
+- area_name: 筛选-贵重物品
+  pc_rect:
+  - 1080
+  - 390
+  - 1295
+  - 455
+  text: 贵重物品
+  lcs_percent: 0.8
+- area_name: 筛选-战术棱镜
+  pc_rect:
+  - 630
+  - 445
+  - 860
+  - 510
+  text: 战术棱镜
+  lcs_percent: 0.75
+- area_name: 筛选-其他
+  pc_rect:
+  - 630
+  - 505
+  - 850
+  - 570
+  text: 其他
+  lcs_percent: 0.8
+- area_name: 筛选-C
+  pc_rect:
+  - 650
+  - 615
+  - 850
+  - 675
+  text: C
+  lcs_percent: 0.8
+- area_name: 筛选-B
+  pc_rect:
+  - 880
+  - 615
+  - 1080
+  - 675
+  text: B
+  lcs_percent: 0.8
+- area_name: 筛选-A
+  pc_rect:
+  - 1110
+  - 615
+  - 1310
+  - 675
+  text: A
+  lcs_percent: 0.8
+- area_name: 筛选-S
+  pc_rect:
+  - 650
+  - 675
+  - 850
+  - 740
+  text: S
+  lcs_percent: 0.8
+- area_name: 筛选确认
+  pc_rect:
+  - 1000
+  - 795
+  - 1235
+  - 875
+  text: 确认
+  lcs_percent: 0.8
+- area_name: 筛选数量
+  pc_rect:
+  - 800
+  - 735
+  - 1120
+  - 795
+  lcs_percent: 0.8
+- area_name: 出售确认标题
+  pc_rect:
+  - 820
+  - 300
+  - 1110
+  - 350
+  text: 确认出售以下道具
+  lcs_percent: 0.9
+- area_name: 出售弹窗确认
+  pc_rect:
+  - 975
+  - 790
+  - 1250
+  - 855
+  text: 确认
+  lcs_percent: 0.9
+- area_name: 出售获得标题
+  pc_rect:
+  - 910
+  - 395
+  - 1010
+  - 445
+  text: 获得
+  lcs_percent: 0.8
+- area_name: 出售获得货币
+  pc_rect:
+  - 910
+  - 605
+  - 1020
+  - 645
+  text: 齿轮硬币
+  lcs_percent: 0.8
+- area_name: 出售获得确认
+  pc_rect:
+  - 825
+  - 700
+  - 1100
+  - 765
+  text: 确认
+  lcs_percent: 0.8
+- area_name: 撤离奖励标题
+  pc_rect:
+  - 850
+  - 385
+  - 1075
+  - 450
+  text: 撤离奖励提示
+  lcs_percent: 0.85
+- area_name: 撤离奖励说明
+  pc_rect:
+  - 760
+  - 438
+  - 1180
+  - 495
+  text: 撤离奖励将自动转移至仓储枢纽
+  lcs_percent: 0.8
+- area_name: 撤离奖励确认
+  pc_rect:
+  - 1040
+  - 675
+  - 1220
+  - 760
+  text: 确认
+  lcs_percent: 0.85

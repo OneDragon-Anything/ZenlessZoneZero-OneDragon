@@ -1,0 +1,69 @@
+screen_id: bagel_map
+screen_name: 贝果-选图
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 前往备战
+  pc_rect:
+  - 1480
+  - 920
+  - 1740
+  - 990
+  id_mark: true
+  text: 前往备战
+  lcs_percent: 0.9
+- area_name: 雅努斯
+  pc_rect:
+  - 250
+  - 630
+  - 470
+  - 710
+  text: 雅努斯幻境
+  lcs_percent: 0.9
+- area_name: 城郊幻境
+  pc_rect:
+  - 260
+  - 340
+  - 440
+  - 420
+  text: 城郊幻境
+  lcs_percent: 0.9
+- area_name: 选中地图
+  pc_rect:
+  - 630
+  - 210
+  - 900
+  - 255
+  text: 雅努斯幻境
+  lcs_percent: 0.9
+- area_name: 常规
+  pc_rect:
+  - 1130
+  - 115
+  - 1310
+  - 185
+  text: 常规
+  lcs_percent: 0.9
+- area_name: 困难
+  pc_rect:
+  - 1330
+  - 115
+  - 1480
+  - 183
+  text: 困难
+  lcs_percent: 0.9
+- area_name: 推荐价值
+  pc_rect:
+  - 1300
+  - 925
+  - 1450
+  - 982
+  lcs_percent: 0.9
+- area_name: 高危
+  pc_rect:
+  - 1520
+  - 115
+  - 1680
+  - 183
+  text: 高危
+  lcs_percent: 0.9
