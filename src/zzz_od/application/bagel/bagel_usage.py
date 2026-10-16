@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from zzz_od.application.bagel.bagel_config import BagelConfig
 
 
-GUIDE_URL: str = 'https://github.com/Cora093/ZenlessZoneZero-OneDragon/blob/bagel/docs/develop/zzz/application/bagel_usage.md'
+GUIDE_URL: str = 'https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/docs/develop/zzz/application/bagel_usage.md'
 ROLE_HINT: str = '请尽量不要使用有特殊移动方式的角色（如星见雅、叶瞬光等）。这类移动可能影响导航与定位的稳定性。'
 LOADOUT_TITLE: str = '首次入场会卸下背包物品身上装备'
 LOADOUT_HINT: str = '首次入场前，程序会将背包和安全箱内的物品放入仓库，再卸下已装备物品。从贝果局内启动会先正常退出，仅保留安全箱。'

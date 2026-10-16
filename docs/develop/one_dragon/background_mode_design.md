@@ -258,9 +258,9 @@ move_mouse_relative(dx, dy)
 **`PcControllerBase` 核心方法：**
 - `background_mode: bool` — 全局后台模式标志
 - `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
-- `drag_to(end, start=None, duration=0.5, press_time=0)` — 统一拖拽入口，根据模式分发
+- `drag_to(end, start=None, duration=0.5, press_time=None)` — 统一拖拽入口，根据模式分发；`duration` 覆盖整个拖拽过程
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
-- `_foreground_drag(start, end, duration, press_time=0)` — 前台 pyautogui 拖拽
+- `_foreground_drag(start, end, duration, press_time=None)` — 前台 pyautogui 拖拽
 - `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
 - `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
 - `_background_drag(start, end, duration, press_time=0)` — 后台 SetCursorPos + PostMessage 拖拽
@@ -288,9 +288,9 @@ move_mouse_relative(dx, dy)
 
 #### 拖拽按下等待
 
-`drag_to` 的可选参数 `press_time` 表示鼠标左键按下后、开始移动前的等待秒数。等待独立于 `duration`，不缩短移动过程及终点停顿。
+`drag_to` 的可选参数 `press_time` 表示鼠标左键按下后、开始移动前的等待秒数。该等待计入 `duration`：`duration` 覆盖按下等待、分步移动和松开前停顿的整个过程，因此扣除实际等待后的移动阶段不会因参数化而变快或变慢。
 
-默认值为 0：前台按下后立即移动，后台等待至少 0.02 秒。显式传入正值时，前台等待该时长，后台等待该时长与 0.02 秒中的较大值。
+未显式传入时（`None`），前台沿用 `PcControllerBase.SLEEP_BEFORE_DRAG_START`（0.3 秒）的稳定按压，后台等待至少 0.02 秒。显式传入正值时，前台等待该时长，后台等待该时长与 0.02 秒中的较大值。
 
 贝果物资拖拽的按下等待时间和结果核验规则，见[贝果应用说明](../zzz/application/bagel.md#拖拽时序)。
 
