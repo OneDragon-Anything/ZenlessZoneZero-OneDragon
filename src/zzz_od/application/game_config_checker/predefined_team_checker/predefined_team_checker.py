@@ -2,11 +2,9 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
-from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cal_utils, str_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.game_config_checker.predefined_team_checker import (
     predefined_team_checker_const,
@@ -14,9 +12,9 @@ from zzz_od.application.game_config_checker.predefined_team_checker import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
-from zzz_od.operation.agent_template_matcher import match_team_agent_template
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.goto.goto_menu import GotoMenu
+from zzz_od.operation.predefined_team_recognizer import recognize_predefined_team
 
 
 class TeamWrapper:
@@ -29,6 +27,9 @@ class TeamWrapper:
 class PredefinedTeamChecker(ZApplication):
 
     """预备编队角色识别:校准工具,识别预备编队的实际角色(切换队伍前核对)。非玩法。"""
+
+    TEAM_SLOT_COUNT: int = 6
+    TEAM_SCROLL_STEP: int = 4
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -63,69 +64,67 @@ class PredefinedTeamChecker(ZApplication):
         self.update_team_members(self.last_screenshot)
 
         if self.scroll_times < 4:
-            drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            drag_end = drag_start + Point(0, -500)
+            drag_start = Point(960, 715)
+            drag_end = Point(960, 150)
             self.ctx.controller.drag_to(start=drag_start, end=drag_end)
             self.scroll_times += 1
             return self.round_wait('继续识别', wait=1)
         else:
             return self.round_success()
 
+    def _get_team_slot_rect(self, card_idx: int) -> Rect | None:
+        area = self.ctx.screen_loader.get_area('编队选择', f'编队槽位{card_idx}')
+        return None if area is None else area.rect
+
     def update_team_members(self, screen: MatLike) -> None:
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        team_list = self.ctx.team_config.team_list
+        page_start_idx = self.scroll_times * self.TEAM_SCROLL_STEP
 
-        target_team_name_list: list[str] = []
-        mr_list: list[MatchResult] = []
-        for ocr_result, mrl in ocr_result_map.items():
-            target_team_name_list.append(ocr_result)
-            mr_list.append(mrl.max)
-
-        # 获取配置中的所有队伍名称，用于匹配
-        config_team_names = [team.name for team in self.ctx.team_config.team_list]
-
-        # 遍历OCR识别到的队伍名称，而不是配置中的队伍名称
-        for i, ocr_team_name in enumerate(target_team_name_list):
-            # 用OCR识别到的队伍名称去配置中查找匹配
-            config_idx = str_utils.find_best_match_by_difflib(ocr_team_name, config_team_names)
-            if config_idx is None or config_idx < 0:
+        for card_idx in range(self.TEAM_SLOT_COUNT):
+            team_idx = page_start_idx + card_idx
+            if team_idx >= len(team_list):
                 continue
 
-            # 找到匹配的配置队伍
-            matched_team = self.ctx.team_config.team_list[config_idx]
-            team_name = matched_team.name
-
-            name_lt = mr_list[i].left_top
-            avatar_rect = Rect(
-                name_lt.x - 10, name_lt.y,
-                name_lt.x + 800, name_lt.y + 250
+            team_slot_rect = self._get_team_slot_rect(card_idx)
+            if team_slot_rect is None:
+                continue
+            recognition = recognize_predefined_team(
+                self.ctx,
+                screen,
+                ocr_result_map,
+                team_slot_rect,
             )
-
-            agent_mr_list: list[MatchResult] = match_team_agent_template(self.ctx, screen, avatar_rect, None)
-
+            team_name = recognition.team_name
+            agent_mr_list = recognition.agent_match_result_list
             if len(agent_mr_list) == 0:
                 continue
 
-            # agent_mr_list 按横坐标排序
-            agent_mr_list.sort(key=lambda x: x.left_top.x)
-            filter_agent_mr_list = []
+            for raw_mr in agent_mr_list:
+                log.debug(
+                    '预备编队角色原始匹配:序号:%d 角色:%s 模板:%s 置信度:%.3f 坐标:%d,%d,%d,%d',
+                    team_idx + 1,
+                    raw_mr.data.agent_name,
+                    raw_mr.template_id,
+                    raw_mr.confidence,
+                    raw_mr.left_top.x,
+                    raw_mr.left_top.y,
+                    raw_mr.right_bottom.x,
+                    raw_mr.right_bottom.y,
+                )
 
-            # 有时候同一个位置可能识别到多个角色 进行相似度判断过滤 issue #1487
-            for curr_mr in agent_mr_list:
-                if len(filter_agent_mr_list) == 0:
-                    filter_agent_mr_list.append(curr_mr)
-                    continue
-
-                prev_mr = filter_agent_mr_list[-1]
-                if cal_utils.cal_overlap_percent(curr_mr.rect, prev_mr.rect) < 0.7:
-                    filter_agent_mr_list.append(curr_mr)
-                    continue
-
-                if curr_mr.confidence > prev_mr.confidence:
-                    filter_agent_mr_list[-1] = curr_mr
-
-            log.info(f'编队名称: {team_name} 识别代理人: {[i.data.agent_name for i in filter_agent_mr_list]}')
-
-            self.ctx.team_config.update_team_members(team_name, [i.data for i in filter_agent_mr_list])
+            agent_list = [mr.data for mr in agent_mr_list]
+            log.info(
+                '编队序号:%d 当前名称:%s 识别代理人:%s',
+                team_idx + 1,
+                team_name if team_name is not None else '<未识别>',
+                [agent.agent_name for agent in agent_list],
+            )
+            self.ctx.team_config.update_team_by_idx(
+                team_idx,
+                team_name,
+                agent_list,
+            )
 
     @node_from(from_name='识别编队角色')
     @operation_node(name='成功后返回')
