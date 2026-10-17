@@ -42,6 +42,9 @@ def get_exe_version(exe_path: str) -> str:
         result = subprocess.run(
             [exe_path, '--version'],
             capture_output=True, text=True,
+            # 启动器输出可能是 GBK 编码（如中文系统），而当前进程可能处于 PYTHONUTF8 模式
+            # 用 errors='replace' 防止解码失败导致版本读取为空；版本号是纯 ASCII，不受影响
+            encoding='utf-8', errors='replace',
             creationflags=subprocess.CREATE_NO_WINDOW,
             env=env,
         )
