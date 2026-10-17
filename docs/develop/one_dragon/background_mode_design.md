@@ -182,9 +182,9 @@ PcControllerBase
 │   ├── _gamepad_click()         → 后台 + gamepad_key 时手柄按键替代
 │   ├── _background_click()      → 后台 SetCursorPos + PostMessage 点击
 │   └── _foreground_click()      → 前台 pyautogui + ALT 点击
-├── drag_to()                    → 分发到下列私有方法
-│   ├── _background_drag()       → 后台 SetCursorPos + PostMessage 拖拽
-│   └── _foreground_drag()       → 前台 pyautogui 拖拽
+├── drag_to()                    → 普通拖拽
+├── drag_to_cancellable()        → 可取消拖拽
+│   └── _drag_to()               → 登记本次拖拽，再按前后台模式分发
 ├── btn_controller               → keyboard_controller / xbox_controller
 ├── btn_tap / btn_press          → 按键前 _ensure_gamepad_mode()
 ├── btn_release                  → 释放前 _ensure_gamepad_mode()（防御性）
@@ -258,12 +258,14 @@ move_mouse_relative(dx, dy)
 **`PcControllerBase` 核心方法：**
 - `background_mode: bool` — 全局后台模式标志
 - `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
-- `drag_to(start, end, duration)` — 统一拖拽入口，根据模式分发
+- `drag_to(end, start=None, duration=0.5)` — 普通拖拽，按前后台模式分发，不响应取消
+- `drag_to_cancellable(end, start=None, duration=0.5)` — 可取消拖拽，使用相同的正常执行时序
+- `cancel_drag()` — 取消当前可取消拖拽，普通拖拽不受影响
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
-- `_foreground_drag(start, end, duration)` — 前台 pyautogui 拖拽
+- `_foreground_drag(start, end, duration, session)` — 前台 pyautogui 拖拽；有取消状态时使用独立实现
 - `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
 - `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
-- `_background_drag(start, end, duration)` — 后台 SetCursorPos + PostMessage 拖拽
+- `_background_drag(start, end, duration, session)` — 后台 SetCursorPos + PostMessage 拖拽
 - `_send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口
 - `enable_background_mode()` — 开启后台模式（PostMessage + Xbox/DS4）
 - `enable_foreground_mode()` — 开启前台模式（pyautogui + 键盘）
@@ -285,6 +287,20 @@ move_mouse_relative(dx, dy)
 - `get_gamepad_action_keys(gamepad_type) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
   - `gamepad_type`: `'xbox'` / `'ds4'`（默认读 `config.background_gamepad_type`）
   - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
+
+#### 拖拽按下等待
+
+`drag_to` 和 `drag_to_cancellable` 使用相同的固定等待，不接收 `press_time` 参数。前台鼠标左键按下后等待 0.3 秒，移动到终点后再等待 0.2 秒松开；移动时间为 `max(duration - 0.3 - 0.2, 0.1)`，与式舆防卫战自动配队的拖拽规则一致。默认 `duration=0.5` 时，移动阶段为 0.1 秒，三段合计 0.6 秒；这不是无按下等待的旧时序。
+
+后台保持按下后等待 0.02 秒，移动时间为 `max(duration - 0.2, 0.1)`，终点等待 0.2 秒。后台按下等待不计入 `duration`。上述时间不包含切换输入模式、发送消息和鼠标操作本身的开销；移动阶段至少 0.1 秒，因此较小的 `duration` 不能保证同样短的总耗时。
+
+同一控制器不接受重叠拖拽。普通前台拖拽沿用 `drag_mouse`；可取消前台拖拽使用独立实现，共用等待常量和时长计算规则，不修改普通拖拽循环。
+
+每次 `drag_to_cancellable` 使用独立取消状态。`cancel_drag()` 中断当前可取消拖拽的等待，阻止后续按下和移动，并尝试释放鼠标左键。正常完成或异常结束时，可取消拖拽也尝试释放左键。释放调用成功后清除回调，避免重复调用。
+
+可取消拖拽的输入和释放使用同一把锁。代码不在持锁期间等待拖拽线程结束。取消不影响普通拖拽，也不禁止调用者随后发起新拖拽；调用者仍须检查运行状态，恢复后重新核对画面。
+
+贝果物资拖拽的按下等待时间和结果核验规则，见[贝果应用说明](../zzz/application/bagel.md#拖拽时序)。
 
 ## 前置条件
 

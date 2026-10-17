@@ -1,0 +1,54 @@
+screen_id: bagel_hub
+screen_name: 贝果-研究站
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 标题
+  pc_rect:
+  - 170
+  - 20
+  - 500
+  - 85
+  id_mark: true
+  text: 迷宫诡域贝果计划
+  lcs_percent: 0.9
+- area_name: 前往空洞
+  pc_rect:
+  - 1300
+  - 840
+  - 1620
+  - 970
+  text: 前往空洞
+  lcs_percent: 0.9
+- area_name: 仓储枢纽
+  pc_rect:
+  - 80
+  - 730
+  - 350
+  - 830
+  text: 仓储枢纽
+  lcs_percent: 0.9
+- area_name: 接待员名称
+  pc_rect:
+  - 680
+  - 200
+  - 1100
+  - 350
+  text: 达塔
+  lcs_percent: 1.0
+- area_name: 对话人
+  pc_rect:
+  - 900
+  - 785
+  - 1040
+  - 845
+  text: 达塔
+  lcs_percent: 1.0
+- area_name: 出发对话
+  pc_rect:
+  - 1400
+  - 615
+  - 1770
+  - 710
+  text: 出发出发
+  lcs_percent: 1.0

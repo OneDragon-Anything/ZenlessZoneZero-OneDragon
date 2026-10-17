@@ -1,0 +1,79 @@
+format_version: 1
+coordinate_version: 1
+map_id: janus_high_a
+origin_xy:
+- -9
+- -94
+size_wh:
+- 305
+- 405
+coordinate_unit: reference_spawn_pixel
+anchor_xy:
+- 100
+- 100
+spawn_xy:
+- 100
+- 100
+mask:
+  center_xy:
+  - 100
+  - 100
+  outer_radius: 89
+  inner_radius: 23
+  maximum_saturation: 65
+  minimum_brightness: 65
+  edge_margin: 2
+player_arrow:
+  crop_radius: 20
+  hsv_lower:
+  - 14
+  - 90
+  - 175
+  hsv_upper:
+  - 34
+  - 255
+  - 255
+  area_range:
+  - 150
+  - 400
+  maximum_center_offset: 5
+  tip_percentile: 80
+  minimum_green_spread: 50
+  minimum_tip_offset: 3
+registration_blur_size: 3
+representations:
+- clahe_min_channel
+- highpass_min_channel
+feature_edge_margin: 4
+match_window_size: 201
+match_window_stride: 100
+reference_centers:
+- name: live_corner
+  xy:
+  - 116.6553646650208
+  - 98.75412080761662
+- name: spawn
+  xy:
+  - 100.0
+  - 100.0
+- name: box
+  xy:
+  - 112.79675187942858
+  - 83.35070234826611
+- name: corner
+  xy:
+  - 111.37686722584277
+  - 99.66877196576208
+- name: safe
+  xy:
+  - 216.8762702801726
+  - 106.0657824207504
+- name: safe_corridor_70
+  xy:
+  - 136.9593518828247
+  - 83.74818910325607
+- name: safe_corridor_72
+  xy:
+  - 182.61017653151393
+  - 88.36959988389751
+landmarks: []

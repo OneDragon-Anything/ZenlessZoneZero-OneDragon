@@ -94,7 +94,9 @@ LauncherBase          → 基础参数解析、run() 入口
 ### 生成时机
 
 - **打包时**：spec 文件通过 `importlib` 动态加载 `generate_module_manifest.py`，在 Analysis 阶段生成 `module_manifest.py`
-- **CI 自动构建**：`build-running-resources.yml` 工作流每次推送到 main 或者 pr 更新时运行 `generate_module_manifest.py`，如果清单有变化则自动提交
+- **CI 构建检查**：在 main 推送或 PR 更新时，工作流重新生成模块清单、翻译和自动战斗产物。同仓 PR 和 main 可自动提交产物；fork PR 只检查，产物与提交内容不一致时失败，不会自动回写。
+- **清单同步**：源码增加外部导入后，运行 `uv run --no-sync --env-file .env python deploy/generate_module_manifest.py`，核对并提交清单。
+- **完整产物检查**：按[构建工作流](../../../.github/workflows/build-running-resources.yml)的 `Build files` 步骤依次生成全部产物，核对并提交差异。再次生成应无新增差异；仅重跑 CI 不能修复未提交的产物。
 
 ## 代码同步流程
 

@@ -1,0 +1,8 @@
+sub_dir: bagel
+template_id: safe_slot_locked
+template_name: 安全箱锁定格
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 639, 858
+- 687, 914
