@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "ready": false,
+  "reference_only": true,
+  "reason": "Reference values only. Require user hardware/version validation before enabling.",
+  "profiles": {
+    "high": {
+      "values": {
+        "3": 3,
+        "110": 2,
+        "9": 2,
+        "12": 2,
+        "10": 2,
+        "15": 3,
+        "13": 3,
+        "108": 2,
+        "99": 1,
+        "109": 1,
+        "106": 1,
+        "13162": 2,
+        "16": 3,
+        "12155": 2,
+        "16184": 4,
+        "14": 1
+      },
+      "summary": {
+        "resolution": "3840x2160 preserved",
+        "fps_limit": "unlimited",
+        "render_scale": 1.2,
+        "anti_aliasing": "SMAA",
+        "anisotropic": "16x",
+        "quality": "all native visible quality controls highest",
+        "vsync": "on, preserved",
+        "dlss_dlaa_raytracing": "not exposed by current native launch mode"
+      }
+    },
+    "low": {
+      "values": {
+        "3": 3,
+        "110": 0,
+        "9": 0,
+        "12": 0,
+        "10": 0,
+        "15": 1,
+        "13": 1,
+        "108": 0,
+        "99": 0,
+        "109": 0,
+        "106": 0,
+        "13162": 0,
+        "16": 1,
+        "12155": 0,
+        "16184": 0,
+        "14": 0
+      },
+      "summary": {
+        "resolution": "3840x2160 preserved",
+        "fps_limit": 30,
+        "render_scale": 0.8,
+        "anti_aliasing": "off",
+        "anisotropic": "1x",
+        "quality": "lowest native quality, bloom/motion blur/distortion/high precision animation off",
+        "crowd": "lowest",
+        "vsync": "on, preserved"
+      }
+    }
+  }
+}
