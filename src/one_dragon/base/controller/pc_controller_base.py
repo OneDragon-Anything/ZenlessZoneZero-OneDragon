@@ -1,6 +1,7 @@
 import contextlib
 import ctypes
 import time
+from collections.abc import Callable
 from functools import lru_cache
 
 import pyautogui
@@ -11,6 +12,7 @@ from cv2.typing import MatLike
 from pynput import keyboard
 
 from one_dragon.base.controller.controller_base import ControllerBase
+from one_dragon.base.controller.owned_foreground_click import owned_foreground_click
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.ds4_button_controller import (
     Ds4ButtonController,
@@ -125,6 +127,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_tap(self, key: str) -> None:
         """按键（tap）。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.tap(key)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
@@ -132,6 +147,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_press(self, key: str, press_time: float | None = None) -> None:
         """按住键。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.press(key, press_time)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
@@ -321,13 +349,24 @@ class PcControllerBase(ControllerBase):
         else:
             click_pos = get_current_mouse_pos()
 
-        if pc_alt:
-            self.keyboard_controller.keyboard.press(keyboard.Key.alt)
-            time.sleep(0.2)
-        win_click(click_pos, press_time=press_time)
-        if pc_alt:
-            self.keyboard_controller.keyboard.release(keyboard.Key.alt)
-        return True
+        with owned_foreground_click(
+            self.game_win.get_hwnd(),
+            (int(click_pos.x), int(click_pos.y)),
+            self.game_win.active,
+        ) as can_press:
+            if not can_press():
+                log.error('游戏窗口未取得点击点归属，取消前台点击')
+                return False
+            try:
+                if pc_alt:
+                    self.keyboard_controller.keyboard.press(keyboard.Key.alt)
+                    time.sleep(0.2)
+                return win_click(
+                    click_pos, press_time=press_time, before_press=can_press
+                )
+            finally:
+                if pc_alt:
+                    self.keyboard_controller.keyboard.release(keyboard.Key.alt)
 
     def _gamepad_click(self, gamepad_key: str | None) -> bool:
         """后台模式下使用手柄按键替代点击。
@@ -541,22 +580,37 @@ class PcControllerBase(ControllerBase):
         return Point(self.standard_width // 2, self.standard_height // 2)
 
 
-def win_click(pos: Point = None, press_time: float = 0.1, primary: bool = True):
+def win_click(
+    pos: Point | None = None,
+    press_time: float = 0.1,
+    primary: bool = True,
+    before_press: Callable[[], bool] | None = None,
+) -> bool:
     """点击鼠标。
 
     Args:
         pos: 屏幕坐标
         press_time: 按住时间
         primary: 是否点击鼠标主要按键（通常是左键）
+        before_press: 移动鼠标后、按下前执行的目标归属检查。
+
+    Returns:
+        成功发送点击返回 True，归属检查失败返回 False。
     """
     btn = pyautogui.PRIMARY if primary else pyautogui.SECONDARY
     if pos is None:
         pos = get_current_mouse_pos()
 
     pyautogui.moveTo(pos.x, pos.y)
-    pyautogui.mouseDown(button=btn)
-    time.sleep(max(0.001, press_time))
-    pyautogui.mouseUp(button=btn)
+    if before_press is not None and not before_press():
+        log.error('鼠标移动后游戏窗口丢失点击点归属，取消前台点击')
+        return False
+    try:
+        pyautogui.mouseDown(button=btn)
+        time.sleep(max(0.001, press_time))
+    finally:
+        pyautogui.mouseUp(button=btn)
+    return True
 
 
 def win_scroll(clicks: int, pos: Point = None):
