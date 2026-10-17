@@ -21,11 +21,12 @@ class RepositoryItem:
 
 @dataclass(frozen=True)
 class RepositoryBranch:
-    """YAML 中的一项代码分支。"""
+    """YAML 中的一项逻辑代码分支。"""
 
     branch_name: str
     label: str
     desc: str
+    integrated_branch: str | None
 
     @property
     def config_item(self) -> ConfigItem:
@@ -198,15 +199,23 @@ class RepoConfig(YamlConfig):
                 raise ValueError('代码分支配置必须是分支名到对象的映射')
             label = raw_branch.get('label', '')
             desc = raw_branch.get('desc', '')
+            integrated_branch = raw_branch.get('integrated_branch')
             if not isinstance(label, str) or not label:
                 raise ValueError(f'代码分支 {branch_name} 必须配置 label')
             if not isinstance(desc, str):
                 raise ValueError(f'代码分支 {branch_name} 的 desc 必须是字符串')
+            if integrated_branch is not None and (
+                not isinstance(integrated_branch, str) or not integrated_branch
+            ):
+                raise ValueError(
+                    f'代码分支 {branch_name} 的 integrated_branch 必须是非空字符串'
+                )
             branches.append(
                 RepositoryBranch(
                     branch_name=branch_name,
                     label=label,
                     desc=desc,
+                    integrated_branch=integrated_branch,
                 )
             )
         return tuple(branches)
@@ -466,8 +475,17 @@ class RepoConfig(YamlConfig):
 
     @property
     def branch_options(self) -> list[ConfigItem]:
-        """获取供代码版本下拉框使用的分支选项。"""
+        """获取供代码版本下拉框使用的逻辑分支选项。"""
         return [branch.config_item for branch in self.branches]
+
+    def resolve_branch(self, branch_name: str, integrated_launcher: bool) -> str:
+        """按启动器类型解析实际同步的物理分支。"""
+        if not integrated_launcher:
+            return branch_name
+        for branch in self.branches:
+            if branch.branch_name == branch_name and branch.integrated_branch is not None:
+                return branch.integrated_branch
+        return branch_name
 
     @property
     def repository_options(self) -> list[ConfigItem]:

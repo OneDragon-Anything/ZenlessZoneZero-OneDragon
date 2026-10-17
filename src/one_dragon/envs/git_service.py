@@ -34,6 +34,7 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
+from one_dragon.launcher.launcher_type import detect_running_launcher_type
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -838,7 +839,7 @@ class GitService:
         """将临时仓库导入正式仓库，并同步整仓 shallow 状态。"""
         repo = self._open_repo()
         active_repo = repo
-        branch_name = self.env_config.git_branch
+        branch_name = self.get_target_branch()
         remote_name = f'one-dragon-fetch-{uuid.uuid4().hex}'
         # 直接使用本地原生路径作为 remote，不能转成 file:// URI：
         # UNC 路径（\\server\share\...）转出的 file://server/share/... 带远程主机部分，
@@ -943,7 +944,7 @@ class GitService:
     ) -> None:
         """在线程中拉取单个代码源，超时后作废本次尝试。"""
         repo = self._open_repo()
-        branch_name = self.env_config.git_branch
+        branch_name = self.get_target_branch()
         primary_branch = self.repo_config.primary_branch
         local_ref = f'refs/heads/{branch_name}'
         try:
@@ -1320,7 +1321,7 @@ class GitService:
             return local_oid, None, msg
 
         # 检查远程分支是否存在
-        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_branch_name = f'{self.env_config.git_remote}/{self.get_target_branch()}'
         remote_ref = f'refs/remotes/{remote_branch_name}'
         if remote_ref not in repo.references:
             msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
@@ -1468,7 +1469,7 @@ class GitService:
         Returns:
             (是否兼容, 提示消息)
         """
-        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.get_target_branch()}'
         try:
             repo = self._open_repo()
             if remote_ref not in repo.references:
@@ -1489,7 +1490,7 @@ class GitService:
             return GitSyncStatus.LOCAL_UPDATE_FAILED, False, message
 
         remote_name = self.env_config.git_remote
-        branch_name = self.env_config.git_branch
+        branch_name = self.get_target_branch()
         remote_branch_name = f'{remote_name}/{branch_name}'
         local_ref = f'refs/heads/{branch_name}'
         remote_ref = f'refs/remotes/{remote_branch_name}'
@@ -1678,6 +1679,13 @@ class GitService:
 
     # ================== 公共 API ==================
 
+    def get_target_branch(self) -> str:
+        """获取当前启动器实际同步的物理分支。"""
+        return self.repo_config.resolve_branch(
+            self.env_config.git_branch,
+            integrated_launcher=detect_running_launcher_type() == 'runtime',
+        )
+
     def check_repo_exists(self) -> bool:
         """检查本地仓库是否存在。"""
         return discover_repository(self.repo_dir) is not None
@@ -1687,7 +1695,7 @@ class GitService:
         if not self.check_repo_exists():
             return True
 
-        local_ref = f'refs/heads/{self.env_config.git_branch}'
+        local_ref = f'refs/heads/{self.get_target_branch()}'
         try:
             return local_ref not in self._open_repo().references
         except Exception:
