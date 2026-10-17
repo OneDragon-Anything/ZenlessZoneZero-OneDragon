@@ -60,6 +60,9 @@ class PluginInfo:
     # 插件目录信息
     plugin_dir: Path | None = None
 
+    # 键鼠脚本目录名（相对 plugin_dir；空 = 插件不附带键鼠脚本）
+    key_sim_dir: str = ''
+
     # 工厂信息
     factory_module: str = ''
     const_module: str = ''
