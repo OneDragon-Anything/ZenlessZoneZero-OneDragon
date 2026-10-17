@@ -16,6 +16,7 @@ from one_dragon.base.push.push_channel_config import (
 from one_dragon.base.push.push_config import PushProxy
 from one_dragon.base.push.push_email_services import PushEmailServices
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.code_editor_setting_card import (
@@ -80,7 +81,7 @@ class SettingPushInterface(VerticalScrollInterface):
             title='代理设置',
             options_enum=PushProxy,
         )
-        self.proxy_opt.value_changed.connect(self._set_proxy_input_visibility)
+        self.proxy_opt.value_changed.connect(self._on_proxy_option_changed)
         content_widget.add_widget(self.proxy_opt)
 
         self.proxy_input_opt = TextSettingCard(
@@ -88,6 +89,12 @@ class SettingPushInterface(VerticalScrollInterface):
             title='个人代理地址',
         )
         content_widget.add_widget(self.proxy_input_opt)
+
+        # 地址改完后立刻复查提示，避免旧提示一直挂着
+        self.proxy_input_opt.value_changed.connect(self._on_proxy_address_changed)
+
+        # 常驻的代理警告条（打开页面时若代理配置不完整则显示）
+        self._proxy_warning_bar: InfoBar | None = None
 
         self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
@@ -233,6 +240,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _send_test_message(self):
         """发送测试消息到当前选择的通知方式"""
+        self._check_proxy_problem()
         selected_method = self.notification_method_opt.getValue()
         test_method = str(selected_method)
         if test_method == "WEBHOOK":
@@ -261,6 +269,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
+        self._check_proxy_problem()
         try:
             self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
             ok, msg = self.ctx.push_service.push(
@@ -332,8 +341,22 @@ class SettingPushInterface(VerticalScrollInterface):
                 card.setVisible(is_selected)
 
     def _set_proxy_input_visibility(self):
-        """设置代理输入框的可见性"""
-        self.proxy_input_opt.setVisible(self.proxy_opt.getValue() == PushProxy.PERSONAL.value.value)
+        """设置代理输入框的可见性
+
+        这里读配置而不是读下拉框的当前值：下拉框的值由适配器用 QTimer 异步写入，
+        页面刚打开（以及事件循环繁忙时）读到的还是旧值，会导致「个人代理地址」不显示。
+        """
+        is_personal_proxy = self.ctx.push_service.push_config.proxy == PushProxy.PERSONAL.value.value
+        self.proxy_input_opt.setVisible(is_personal_proxy)
+
+    def _on_proxy_option_changed(self) -> None:
+        """代理设置变化时同步地址输入框的可见性与提示"""
+        self._set_proxy_input_visibility()
+        self._check_proxy_problem(persistent=True)
+
+    def _on_proxy_address_changed(self, _: str) -> None:
+        """代理地址变化时重新检查提示（信号带的是地址文本，这里用不到）"""
+        self._check_proxy_problem(persistent=True)
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -358,6 +381,9 @@ class SettingPushInterface(VerticalScrollInterface):
         # 初始更新界面状态
         self._update_notification_ui()
         self._set_proxy_input_visibility()
+
+        # 打开页面时若代理配置不完整，常驻提示，避免用户看不到问题在哪
+        self._check_proxy_problem(persistent=True)
 
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
@@ -438,3 +464,62 @@ class SettingPushInterface(VerticalScrollInterface):
             duration=5000,
             parent=self
         )
+
+    def _show_warning_message(self, message: str, duration: int = 5000) -> InfoBar:
+        """显示警告消息提示
+
+        Args:
+            message: 提示内容
+            duration: 显示时长（毫秒），小于 0 表示不自动关闭
+
+        Returns:
+            InfoBar: 提示条对象
+        """
+        return InfoBar.warning(
+            title='警告',
+            content=message,
+            orient=InfoBarPosition.TOP,
+            isClosable=True,
+            duration=duration,
+            parent=self
+        )
+
+    def _close_proxy_warning(self) -> None:
+        """关闭常驻的代理警告条
+
+        警告条关闭后会被 Qt 销毁，所以先把引用清空再关，并容忍对象已被销毁的情况。
+        """
+        bar = self._proxy_warning_bar
+        self._proxy_warning_bar = None
+        if bar is None:
+            return
+
+        try:
+            bar.close()
+        except RuntimeError:
+            # 用户已经点掉过这条提示，对象被 Qt 回收了，不需要再关一次
+            pass
+
+    def _check_proxy_problem(self, persistent: bool = False) -> None:
+        """代理配置不完整时在界面上提示，避免推送静默直连失败
+
+        Args:
+            persistent: 是否常驻显示（打开页面时为 True，测试发送时为 False）
+        """
+        problem = self.ctx.push_service.get_proxy_problem()
+        try:
+            if problem is None:
+                self._close_proxy_warning()
+                return
+
+            message = f'{problem}，本次推送不会使用代理发送'
+            if persistent:
+                # 先撤掉旧的那条再挂新的，避免同时出现两条常驻提示
+                self._close_proxy_warning()
+                self._proxy_warning_bar = self._show_warning_message(message, duration=-1)
+            else:
+                # 测试时的短提示，不影响常驻提示
+                self._show_warning_message(message)
+        except RuntimeError:
+            # 提示只是附加信息，出错也不能影响调用方（例如测试推送）继续执行
+            log.error('展示代理配置提示失败', exc_info=True)

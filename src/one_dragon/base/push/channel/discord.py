@@ -132,7 +132,7 @@ class Discord(PushChannel):
                 data = json.dumps(message_payload, ensure_ascii=False)
                 headers["Content-Type"] = "application/json"
 
-            response = requests.post(message_url, headers=headers, data=data, files=files, timeout=30)
+            response = requests.post(message_url, headers=headers, data=data, files=files, proxies=proxies, timeout=30)
             response.raise_for_status()
 
             return True, "推送成功"
