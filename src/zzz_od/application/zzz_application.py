@@ -5,11 +5,10 @@ from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
+from zzz_od.operation.zzz_operation_mixin import ZOperationMixin
 
 
-class ZApplication(Application):
-
+class ZApplication(ZOperationMixin, Application):
     def __init__(self, ctx: ZContext, app_id: str,
                  node_max_retry_times: int = 1,
                  op_name: str | None = None,
@@ -18,10 +17,7 @@ class ZApplication(Application):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
-                 ):
-        self.ctx: ZContext = ctx
-        if op_to_enter_game is None:
-            op_to_enter_game = OpenAndEnterGame(ctx)
+                 ) -> None:
         Application.__init__(
             self,
             ctx=ctx,
