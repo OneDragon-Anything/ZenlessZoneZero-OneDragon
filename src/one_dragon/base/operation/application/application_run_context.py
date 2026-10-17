@@ -184,6 +184,15 @@ class ApplicationRunContext:
         """
         return app_id in self._application_factory_map
 
+    @property
+    def standalone_app_ids(self) -> list[str]:
+        """列出默认任务和显式允许独立运行的应用，不修改日常组。"""
+        ids = list(dict.fromkeys(self.default_group_apps))
+        for app_id, factory in self._application_factory_map.items():
+            if getattr(factory, 'standalone_selectable', False) is True and app_id not in ids:
+                ids.append(app_id)
+        return ids
+
     def is_app_need_notify(self, app_id: str) -> bool:
         """
         检查应用是否需要通知。
