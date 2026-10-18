@@ -1,3 +1,4 @@
+import locale
 import os
 import re
 import subprocess
@@ -41,11 +42,16 @@ def get_exe_version(exe_path: str) -> str:
         })
         result = subprocess.run(
             [exe_path, '--version'],
-            capture_output=True, text=True,
+            capture_output=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
             env=env,
         )
-        version_output = ANSI_ESCAPE_PATTERN.sub('', result.stdout).strip()
+        # 打包后的启动器可能按系统本地编码输出，不应受父进程 UTF-8 模式影响。
+        try:
+            version_output = result.stdout.decode('utf-8')
+        except UnicodeDecodeError:
+            version_output = result.stdout.decode(locale.getencoding())
+        version_output = ANSI_ESCAPE_PATTERN.sub('', version_output).strip()
         return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
     except Exception:
         return ""
