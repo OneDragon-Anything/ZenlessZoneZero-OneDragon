@@ -68,7 +68,6 @@ class PcControllerBase(ControllerBase):
         Returns:
             是否初始化成功
         """
-        self.game_win.init_win()
         if self.is_game_window_ready:
             self.screenshot_controller.init_screenshot(self.screenshot_method)
             return True
@@ -78,8 +77,8 @@ class PcControllerBase(ControllerBase):
     def init_before_context_run(self) -> bool:
         pyautogui.PAUSE = 0.001  # pyautogui的操作会有延迟, 一些需要低延迟的操作中会取消这个延迟然后恢复延迟, 以免影响其他功能
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
-        self.init_game_win()
-        if not self.background_mode:
+        ready = self.init_game_win()
+        if ready and not self.background_mode:
             self.game_win.active()
         return True
 
@@ -94,8 +93,7 @@ class PcControllerBase(ControllerBase):
         """
         前置窗口
         """
-        self.game_win.init_win()
-        if not self.background_mode:
+        if self.is_game_window_ready and not self.background_mode:
             self.game_win.active()
 
     def set_window_title(self, new_title: str) -> None:
@@ -105,6 +103,14 @@ class PcControllerBase(ControllerBase):
             new_title: 新的窗口标题
         """
         self.game_win.update_win_title(new_title)
+
+    def set_window_hwnd(self, hwnd: int) -> None:
+        """设置业务层已经确认的游戏窗口句柄。
+
+        Args:
+            hwnd: 业务层已经确认的窗口句柄。
+        """
+        self.game_win.update_hwnd(hwnd)
 
     def enable_xbox(self):
         if pc_button_utils.is_vgamepad_installed():
@@ -144,7 +150,12 @@ class PcControllerBase(ControllerBase):
     @property
     def is_game_window_ready(self) -> bool:
         """游戏窗口是否已经准备好了。"""
-        return self.game_win.is_win_valid
+        return self._ensure_game_window()
+
+    def _ensure_game_window(self) -> bool:
+        """复用有效窗口，失效时查找窗口；业务控制器可重写选择规则。"""
+        self.game_win.init_win()
+        return self.game_win.is_cached_win_valid
 
     def close_game(self) -> None:
         win = self.game_win.get_win()
