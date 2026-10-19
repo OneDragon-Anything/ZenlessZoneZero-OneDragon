@@ -21,6 +21,7 @@ class ExeLauncher(LauncherBase):
     def show_version(self) -> None:
         """显示版本信息"""
         # 版本输出会被其他程序读取；固定为 UTF-8，避免非中文系统的本地编码无法表示中文描述而报错。
+        # 只改本进程 stdout 的写出编码，不调用 SetConsoleOutputCP，控制台代码页不变，退出后无需恢复。
         sys.stdout.reconfigure(encoding='utf-8')
         print(f"{self.description} {self.version}")
         sys.exit(0)
