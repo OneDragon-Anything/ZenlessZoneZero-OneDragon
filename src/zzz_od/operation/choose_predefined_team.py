@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 
+from one_dragon.base.controller.drag_timing import DragTiming
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
@@ -56,8 +57,10 @@ class ChoosePredefinedTeam(ZOperation):
     TEAM_SLOT_COUNT: int = 6
     TEAM_DRAG_START: Point = Point(960, 715)
     TEAM_DRAG_END: Point = Point(960, 150)
-    # 一次翻页拖动的总时长预算：按住停顿 0.6 + 移动 0.3 + 松手前定住 1.0
-    TEAM_DRAG_DURATION: float = 1.9
+    # 预备编队翻页单独指定等待时间，避免影响其他场景的拖拽。
+    TEAM_DRAG_TIMING: DragTiming = DragTiming(
+        press_wait=0.6, move_duration=0.3, release_wait=1.0,
+    )
     MAX_TEAM_COUNT: int = 20
     # 编队卡片上 100% 不是队名的 UI 文本：槽位标记、右下角标签、头像等级
     TEAM_NAME_UI_TEXT_SET: frozenset[str] = frozenset(
@@ -855,11 +858,11 @@ class ChoosePredefinedTeam(ZOperation):
             self.ctx.controller.drag_to(
                 start=ChoosePredefinedTeam.TEAM_DRAG_START,
                 end=ChoosePredefinedTeam.TEAM_DRAG_END,
-                duration=ChoosePredefinedTeam.TEAM_DRAG_DURATION,
+                timing=ChoosePredefinedTeam.TEAM_DRAG_TIMING,
             )
         else:
             self.ctx.controller.drag_to(
                 start=ChoosePredefinedTeam.TEAM_DRAG_END,
                 end=ChoosePredefinedTeam.TEAM_DRAG_START,
-                duration=ChoosePredefinedTeam.TEAM_DRAG_DURATION,
+                timing=ChoosePredefinedTeam.TEAM_DRAG_TIMING,
             )

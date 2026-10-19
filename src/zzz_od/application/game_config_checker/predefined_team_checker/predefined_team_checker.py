@@ -1,5 +1,6 @@
 from cv2.typing import MatLike
 
+from one_dragon.base.controller.drag_timing import DragTiming
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
@@ -30,6 +31,10 @@ class PredefinedTeamChecker(ZApplication):
 
     TEAM_SLOT_COUNT: int = 6
     TEAM_SCROLL_STEP: int = 4
+    # 翻页保留最短移动时间，按下等待和松开前等待单独指定。
+    TEAM_DRAG_TIMING: DragTiming = DragTiming(
+        press_wait=0.6, move_duration=0.1, release_wait=1.0,
+    )
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -66,7 +71,10 @@ class PredefinedTeamChecker(ZApplication):
         if self.scroll_times < 4:
             drag_start = Point(960, 715)
             drag_end = Point(960, 150)
-            self.ctx.controller.drag_to(start=drag_start, end=drag_end)
+            self.ctx.controller.drag_to(
+                start=drag_start, end=drag_end,
+                timing=PredefinedTeamChecker.TEAM_DRAG_TIMING,
+            )
             self.scroll_times += 1
             return self.round_wait('继续识别', wait=1)
         else:

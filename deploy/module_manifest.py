@@ -102,6 +102,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
+    from math import isfinite
     from packaging import version
     from pathlib import Path
     from pyautogui import screenshot
