@@ -1,4 +1,6 @@
 try:
+    import os
+    import subprocess
     import sys
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
@@ -94,6 +96,12 @@ try:
             self.overlay_manager = OverlayManager.create(self.ctx, parent=self)
             if self.overlay_manager is not None:
                 self.overlay_manager.start()
+
+            # 游戏运行时间监控：每 60 秒检测一次游戏进程，累计运行分钟数
+            self._game_monitor_timer = QTimer(self)
+            self._game_monitor_timer.setInterval(60_000)
+            self._game_monitor_timer.timeout.connect(self._check_game_running)
+            self._game_monitor_timer.start()
 
         # 继承初始化函数
         def init_window(self):
@@ -258,6 +266,26 @@ try:
             self._check_first_run()
             self.check_resource_updates(force=True)
             self.on_welcome_dialog_closed()
+
+        def _check_game_running(self) -> None:
+            """定时检测游戏进程是否运行，运行中则累计分钟数"""
+            game_path = self.ctx.game_account_config.game_path
+            if not game_path:
+                return
+            exe_name = os.path.basename(game_path)
+            if not exe_name:
+                return
+            try:
+                result = subprocess.run(
+                    ['tasklist', '/FI', f'IMAGENAME eq {exe_name}', '/NH'],
+                    capture_output=True,
+                    timeout=5,
+                )
+                output = result.stdout.decode('gbk', errors='replace')
+                if exe_name.lower() in output.lower():
+                    self.ctx.user_stats.increment_game_play_minutes()
+            except Exception:
+                pass
 
         def closeEvent(self, event: QCloseEvent) -> None:
             """窗口关闭事件"""

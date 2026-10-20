@@ -301,3 +301,29 @@ AppSettingManager.discover()
 | factory 模块中无 ApplicationFactory 子类 | 记录 "No ApplicationFactory subclass found" |
 
 所有失败都不会中断整体扫描流程，可通过 `factory_manager.scan_failures` 查看详情。
+
+## 插件导入服务: PluginImportService
+
+`src/one_dragon/base/operation/application/plugin_import_service.py` 提供第三方插件的安装与卸载能力，供插件管理界面调用：
+
+| 能力 | 方法 | 说明 |
+|------|------|------|
+| ZIP 导入 | `import_plugins(zip_paths, overwrite)` | 校验压缩包内含 `*_factory.py` 后解压到 `plugins/` |
+| 目录导入 | `import_directory(dir_path, overwrite)` | `copytree` 复制整个插件目录 |
+| 导入预览 | `preview_plugin` / `preview_directory` | 导入前读取 `*_const.py` 展示版本/作者，确认后再落盘 |
+| 覆盖策略 | `overwrite` 参数 | 同名插件已存在时：版本更高才静默覆盖，版本更低弹窗告警（`packaging.version` 比较） |
+| 删除 | `delete_plugin(plugin_dir)` | 删除插件目录（带路径边界校验，防止误删 `plugins/` 外内容） |
+
+插件目录的确定：优先取 `ctx.application_plugin_dirs` 中标记为 `THIRD_PARTY` 的目录；`plugins/` 尚不存在（首次导入）时按框架同规则（`file_utils.find_src_dir`）推导项目根下的 `plugins/`。
+
+导入 / 删除完成后由调用方触发 `ctx.refresh_application_registration()` 重新发现应用。
+
+## 插件管理界面: SettingPluginInterface
+
+`src/zzz_od/gui/view/setting/setting_plugin_interface.py` 挂在设置页（`app_setting_interface.create_sub_interface`），提供：
+
+- 第三方插件卡片列表（版本 / 作者 / 描述 / 主页跳转 / 删除），数据来自 `ctx.factory_manager.third_party_plugins`
+- 操作组：导入 ZIP / 导入目录 / 刷新 / 打开插件目录
+- 顶部商城帮助卡与「应用运行说明」卡（插件中心导航下另有同款卡片组）
+
+「应用运行」导航已改名为「插件中心」（`zzz_standalone_app_interface` / `zzz_standalone_app_run_interface`），入口卡片组合并展示运行说明与商城链接。
