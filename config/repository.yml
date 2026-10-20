@@ -8,6 +8,9 @@ repositories:
     test:
       label: 测试分支
       desc: 选择后请点击同步最新代码
+    mirror:
+      label: 官方最新镜像
+      desc: 跟随官方主分支的镜像，不含增强改动，选择后请点击同步最新代码
     zode:
       label: ZODE 增强分支
       desc: 集成社区精选 PR 与增强功能，选择后请点击同步最新代码
