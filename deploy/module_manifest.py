@@ -68,7 +68,6 @@ if not getattr(sys, 'frozen', False):
     import win32clipboard
     import win32con
     import win32gui
-    import win32ui
     import winreg
     import yaml
     import zipfile
