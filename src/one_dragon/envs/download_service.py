@@ -16,6 +16,17 @@ class DownloadService:
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
 
+    def _get_env_source_candidates(self) -> list[str]:
+        """获取环境下载源候选：当前配置（用户选择/上次成功源）优先，其余按 YAML 顺序在后（去重）。"""
+        candidates: list[str] = []
+        current_source = self.env_config.env_source.strip()
+        if current_source:
+            candidates.append(current_source)
+        for source in self.env_config.repo_config.get_source_values('env_source'):
+            if source.value not in candidates:
+                candidates.append(source.value)
+        return candidates
+
     def download_env_file(self, file_name: str, save_file_path: str,
                           progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
@@ -25,8 +36,21 @@ class DownloadService:
         :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
         :return: 是否下载成功
         """
-        download_url = f'{self.env_config.env_source}/{self.project_config.project_name}/{file_name}'
-        return self.download_file_from_url(download_url, save_file_path, progress_callback)
+        for source_url in self._get_env_source_candidates():
+            download_url = f'{source_url}/{self.project_config.project_name}/{file_name}'
+            if progress_callback is not None:
+                progress_callback(-1, f'尝试下载源: {source_url}')
+            log.info(f'尝试下载源: {source_url}')
+            if self.download_file_from_url(download_url, save_file_path, progress_callback):
+                # 成功源写回配置，下次优先尝试
+                if source_url != self.env_config.env_source:
+                    try:
+                        self.env_config.env_source = source_url
+                    except Exception:
+                        log.warning('记录上次成功下载源失败', exc_info=True)
+                return True
+            log.warning(f'下载源 {source_url} 失败，尝试下一个下载源')
+        return False
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
                                progress_callback: Callable[[float, str], None] | None = None) -> bool:
