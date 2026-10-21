@@ -47,10 +47,17 @@ class BagelOpenCompendium(BagelOperation):
     @operation_node(name='打开迷宫诡域', timeout_seconds=30)
     def open_bagel(self) -> OperationRoundResult:
         """标题与前往按钮必须属于同一卡片；点击后只等完整贝果入口。"""
-        if all(self._has(name, '贝果-研究站') for name in ('标题', '前往空洞')):
+        if self._at_bagel_hub():
             return self.round_success('已到贝果入口')
         if self.node_clicked:
-            return self.round_wait('等待快捷手册打开贝果主界面', wait=0.5)
+            # 点卡片「前往」后可能先停在活动页（标题为「迷宫诡域：古怪试炼」并带赛季内容）。
+            # 该页同样有「前往空洞」，点它进入贝果选图页；选图页没有主界面标题，
+            # 所以这里只等「前往备战」出现，不能等主界面标题。
+            return self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-研究站', '前往空洞',
+                until_find_all=[('贝果-选图', '前往备战')],
+                success_wait=1, retry_wait=1,
+            )
         if not self._has('TAB-作战', '快捷手册-作战'):
             return self.round_wait('等待快捷手册作战页', wait=0.5)
         titles_area = self.ctx.screen_loader.get_area('快捷手册', '副本列表')
@@ -60,8 +67,11 @@ class BagelOpenCompendium(BagelOperation):
         titles = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot, rect=titles_area.rect,
         )
+        # 卡片标题在活动期间带副标题（如「迷宫诡域：古怪试炼」），只用前缀匹配，
+        # 避免整串相等时找不到卡片而一直滚动。
+        bagel_title = gt('迷宫诡域', 'game')
         target = next((item for item in titles
-                       if str_utils.remove_whitespace(item.data) == gt('迷宫诡域', 'game')), None)
+                       if str_utils.remove_whitespace(item.data).startswith(bagel_title)), None)
         if target is None:
             if self.scroll_count >= 5:
                 return self.round_fail('快捷手册未找到迷宫诡域，停止并保留现场')

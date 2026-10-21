@@ -198,6 +198,13 @@ class BagelEnter(BagelOperation):
             if at_map or at_hub:
                 return self.round_success()
         at_dialog = all(self._has(name, '贝果-研究站') for name in ('对话人', '出发对话'))
+        if self._at_bagel_activity():
+            # 活动页也有「前往空洞」，点它进入选图页，不能停在这里。
+            return self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-研究站', '前往空洞',
+                until_find_all=[('贝果-选图', '前往备战')],
+                success_wait=1, retry_wait=1,
+            )
         current = self.check_and_update_current_screen(self.last_screenshot)
         if current is None:
             current = self._ordinary_warehouse()

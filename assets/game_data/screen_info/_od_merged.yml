@@ -536,34 +536,34 @@
     lcs_percent: 1.0
   - area_name: 搜查容器标题
     pc_rect:
-    - 1265
-    - 120
-    - 1530
-    - 180
+    - 1290
+    - 140
+    - 1745
+    - 195
     text: 武备箱
     lcs_percent: 1.0
   - area_name: 搜查完成
     pc_rect:
-    - 1275
-    - 212
-    - 1450
-    - 262
-    text: 搜索结果
+    - 1640
+    - 460
+    - 1790
+    - 525
+    text: 全部拾取
     lcs_percent: 1.0
   - area_name: 搜查进行中
     pc_rect:
-    - 1275
-    - 212
-    - 1450
-    - 262
-    text: 搜查中
+    - 1640
+    - 460
+    - 1790
+    - 525
+    text: 全部拾取
     lcs_percent: 1.0
   - area_name: 搜查安全箱
     pc_rect:
     - 240
-    - 795
-    - 340
-    - 837
+    - 798
+    - 330
+    - 842
     text: 安全箱
     lcs_percent: 1.0
   - area_name: 搜查返回

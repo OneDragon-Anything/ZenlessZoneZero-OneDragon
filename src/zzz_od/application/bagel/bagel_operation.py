@@ -6,6 +6,8 @@ from threading import RLock
 from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.operation import Operation
+from one_dragon.utils import str_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -107,6 +109,31 @@ class BagelOperation(ZOperation):
     def _has(self, area: str, screen_name: str = '贝果-局内') -> bool:
         """只使用当前截图核对指定画面区域。"""
         return self.round_by_find_area(self.last_screenshot, screen_name, area).is_success
+
+    def _at_bagel_activity(self) -> bool:
+        """核对是否停在贝果活动页。
+
+        活动页标题为「迷宫诡域：活动名」（如「迷宫诡域：古怪试炼」），
+        与贝果主界面的「迷宫诡域贝果计划」不同，但两页都有「前往空洞」。
+        活动页点「前往空洞」进入选图页，再进入主界面。
+        """
+        area = self.ctx.screen_loader.get_area('贝果-研究站', '标题')
+        if area is None:
+            return False
+        texts = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot, rect=area.rect,
+        )
+        title = ''.join(str_utils.remove_whitespace(item.data) for item in texts)
+        return title.startswith(gt('迷宫诡域', 'game')) and not title.startswith(gt('迷宫诡域贝果计划', 'game'))
+
+    def _at_bagel_hub(self) -> bool:
+        """核对是否已到达可继续的贝果页面。
+
+        活动页不算；主界面（标题加前往空洞）和活动页点「前往空洞」后的选图页都算。
+        """
+        if all(self._has(name, '贝果-研究站') for name in ('标题', '前往空洞')):
+            return True
+        return self._has('前往备战', '贝果-选图')
 
     def execute(self) -> OperationResult:
         """操作返回前完成贝果本次执行的事件清理。"""

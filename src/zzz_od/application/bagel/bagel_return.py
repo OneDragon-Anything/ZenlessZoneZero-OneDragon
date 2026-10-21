@@ -67,7 +67,14 @@ class BagelReturn(BagelOperation):
                 self.reward_confirmed = True
                 return self.round_wait('等待撤离奖励提示关闭', wait=0.5)
             return result
-        if all(self._has(name, '贝果-研究站') for name in ('标题', '前往空洞')):
+        if self._at_bagel_activity():
+            # 结算返回也可能落在活动页；该页也有「前往空洞」，点它回到选图页。
+            return self.round_by_find_and_click_area(
+                self.last_screenshot, '贝果-研究站', '前往空洞',
+                until_find_all=[('贝果-选图', '前往备战')],
+                success_wait=1, retry_wait=1,
+            )
+        if self._at_bagel_hub():
             return self.round_success('已返回贝果入口')
         if self._has('快捷手册', '大世界-普通'):
             return self.round_success('已返回大世界')

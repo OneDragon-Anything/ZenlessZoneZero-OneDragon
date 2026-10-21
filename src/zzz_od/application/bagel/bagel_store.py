@@ -247,13 +247,9 @@ class BagelStoreSafe(BagelOperation):
         if before is None or source is None or destination is None or kind is None:
             return self.round_fail('缺少入箱前后对照数据')
         safe = inspect_safe_slots(self.last_screenshot)
-        destination_index = SAFE_SLOT_CENTERS.index(destination)
         if safe is None:
             return self._wait_for_safe_slots()
         self._safe_unknown_rounds = 0
-        if destination_index in safe.locked:
-            self._clear_pending()
-            return self.round_fail('入箱后安全箱格子状态不明或目标已锁定，停止并保留现场')
         if self._drag_visually_ok(kind, before, source, destination):
             self._clear_pending()
             self._drag_repeated = 0

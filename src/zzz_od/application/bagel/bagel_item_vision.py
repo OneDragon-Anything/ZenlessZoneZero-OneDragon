@@ -11,7 +11,7 @@ import numpy as np
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.utils import cv2_utils, os_utils
-from zzz_od.application.bagel.bagel_slots import slot_crop, slot_occupied
+from zzz_od.application.bagel.bagel_slots import slot_occupied
 
 if TYPE_CHECKING:
     from cv2.typing import MatLike
@@ -37,13 +37,22 @@ TYPE_RANK: dict[str, int] = {
 ACTION_FILL: str = 'fill'
 ACTION_SWAP: str = 'swap'
 
-# 角标在格心左上；占用裁剪（半边 32）往往切不到角标，单独开搜索窗。
-_BADGE_OFFSET: int = 60
-_BADGE_SEARCH: int = 48
+# 角标在卡片左上角。新版卡片 90x112、格心到卡片左边 45、上边 56，
+# 实测品质角标中心约在格心左上 (-70,-78)、类型角标约在 (-70,-62)，
+# 因此搜索窗取放大后的左上角；实测该窗在结果格与安全箱格上都命中。
+_BADGE_OFFSET: int = 65
+_BADGE_SEARCH: int = 52
 _BADGE_MATCH_MIN: float = 0.75
 # OpenCV HSV：H 0–180。红=Z、金=S、紫=A、蓝=B、绿=C。
 _QUALITY_S_MIN: float = 40.0
 _QUALITY_V_MIN: float = 40.0
+# 品质底色的取法：卡内饱和度最高的这一比例像素。
+# 旧实现按固定左右色带取样，那是按旧版卡片的图标尺寸定的；新版图标变高变宽，
+# 固定色带会落到图标本体上，实测把金色读成 S=0。改为在全卡内找最饱和像素。
+_QUALITY_TOP_FRACTION: float = 0.25
+# 品质底色裁剪：卡片内缩一点，避免把卡片边框算进来。
+_QUALITY_HALF_W: int = 44
+_QUALITY_HALF_H: int = 54
 
 _BADGE_FILES: tuple[tuple[str, str], ...] = (
     (ITEM_TYPE_CURRENCY, 'currency'),
@@ -101,17 +110,26 @@ def is_strictly_better(left: BagelSlotMark, right: BagelSlotMark) -> bool:
     return left.priority > right.priority
 
 
-def identify_quality(crop: MatLike) -> str:
-    """用格子底色的 HSV 中位数判断 Z/S/A/B/C；对不上则为未知。
+def identify_quality(screen: MatLike, center: Point) -> str:
+    """用卡片内最饱和像素的色相判断 Z/S/A/B/C；对不上则为未知。
 
     Args:
-        crop: 格子占用裁剪，RGB。
+        screen: 整屏 RGB。
+        center: 格子中心。
     """
-    if crop.ndim != 3 or crop.size == 0:
+    x1 = max(0, int(center.x) - _QUALITY_HALF_W)
+    y1 = max(0, int(center.y) - _QUALITY_HALF_H)
+    x2 = min(screen.shape[1], int(center.x) + _QUALITY_HALF_W)
+    y2 = min(screen.shape[0], int(center.y) + _QUALITY_HALF_H)
+    if x2 <= x1 or y2 <= y1:
         return QUALITY_UNKNOWN
-    hsv = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)
-    hue, saturation, value = np.median(hsv.reshape(-1, 3), axis=0)
-    if saturation < _QUALITY_S_MIN or value < _QUALITY_V_MIN:
+    hsv = cv2.cvtColor(screen[y1:y2, x1:x2], cv2.COLOR_RGB2HSV)
+    flat = hsv.reshape(-1, 3)
+    saturation = flat[:, 1].astype(np.float32)
+    keep = max(1, int(len(saturation) * _QUALITY_TOP_FRACTION))
+    picked = flat[np.argsort(saturation)[-keep:]]
+    hue, sat, value = (float(np.median(picked[:, index])) for index in range(3))
+    if sat < _QUALITY_S_MIN or value < _QUALITY_V_MIN:
         return QUALITY_UNKNOWN
     if hue <= 12 or hue >= 165:
         return 'Z'
@@ -161,16 +179,11 @@ def inspect_occupied(screen: MatLike, centers: tuple[Point, ...]) -> list[BagelS
     for index, center in enumerate(centers):
         if not slot_occupied(screen, center):
             continue
-        crop = slot_crop(screen, center, half=40)
-        if crop is None or crop.shape[:2] != (80, 80):
-            continue
-        # 格心图案会遮住底色；只取左右色带，避开左上角标和底部数量。
-        background = np.concatenate((crop[6:55, 2:7], crop[6:55, 73:78]), axis=1)
         marks.append(
             BagelSlotMark(
                 index=index,
                 center=center,
-                quality=identify_quality(background),
+                quality=identify_quality(screen, center),
                 item_type=identify_type(screen, center),
             ),
         )

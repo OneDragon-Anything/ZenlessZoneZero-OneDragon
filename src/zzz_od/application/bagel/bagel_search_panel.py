@@ -1,4 +1,14 @@
-"""确认局内搜查面板的位置与稳定性，不判断物品内容。"""
+"""确认开箱面板是否已经铺开并静下来，不判断物品内容。
+
+旧实现用 Canny 轮廓按 85–105 x 100–120 的框去「找卡片」来确认栅格到位，
+那一组尺寸与排距都是针对旧版面板卡的。新版卡片为 90x112、排距也变了，
+轮廓再也命不中，于是整个面板永远被判定为「不到位」，`装入安全箱` 会一直
+空转到 `DRAG_REPEAT_LIMIT` 之外的那次超时（日志表现为连续打印
+「等待搜查面板到位并稳定」然后报「搜查面板状态持续不明」）。
+
+这里改为直接比对画面区域：面板是否打开由 OCR 判据（容器标题、安全箱标题、
+全部拾取）确认，本模块只负责确认面板已经铺开并且静下来可以安全拖拽。
+"""
 
 from __future__ import annotations
 
@@ -7,45 +17,49 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
-from zzz_od.application.bagel.bagel_slots import RESULT_SLOT_CENTERS, SAFE_SLOT_CENTERS
-
 if TYPE_CHECKING:
     from cv2.typing import MatLike
 
-    from one_dragon.base.geometry.point import Point
+# 取样带（1080p 实测）：
+#   结果区——边界正好是结果格栅格的外沿（x 1306–1801、y 205–430），
+#           物品进出结果格、翻页都会让它变化；两局内容不同时差异 28.07。
+#   面板标题栏——标题文字下方的纯色空白，两局之间差异 0.00，完全静止。
+# 前者负责「画面变了就得重新等」，后者负责「这是个已经在位的稳定面板」。
+_RESULT_REGION: tuple[slice, slice] = (slice(205, 430), slice(1306, 1801))
+_TITLE_REGION: tuple[slice, slice] = (slice(156, 178), slice(1520, 1740))
+# 两帧之间区域平均绝对差的下限。静置的同一画面为 0；换一局内容不同的
+# 画面为 28.07；拖拽过程中物品移动、格位高亮都会远超这个值。
+_STABLE_MAX_DIFF: float = 6.0
 
 
-def _row_in_position(gray: MatLike, centers: tuple[Point, ...]) -> bool:
-    """至少四个完整格框位于预期位置；允许一个格框被鼠标或揭示动画遮住。"""
-    left, top = int(centers[0].x) - 70, int(centers[0].y) - 70
-    right, bottom = int(centers[-1].x) + 70, int(centers[0].y) + 70
-    edges = cv2.Canny(gray[top:bottom, left:right], 40, 100)
-    contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    matched: set[int] = set()
-    for contour in contours:
-        x, y, width, height = cv2.boundingRect(contour)
-        if not (85 <= width <= 105 and 100 <= height <= 120):
-            continue
-        cx, cy = left + x + width / 2, top + y + height / 2
-        for index, center in enumerate(centers):
-            if abs(cx - center.x) <= 4 and abs(cy - center.y) <= 4:
-                matched.add(index)
-    return len(matched) >= 4
+def _region(gray: MatLike, region: tuple[slice, slice]) -> MatLike:
+    """按预设区域裁出灰度取样带。"""
+    rows, cols = region
+    return gray[rows, cols].copy()
 
 
 def search_panel_pixels(screen: MatLike) -> tuple[MatLike, MatLike] | None:
-    """左右格框到位后，提取安全箱标题栏和结果面板侧框，避开物品动画。"""
+    """提取结果区与面板标题栏两块取样带，供稳定性比对。"""
     if screen is None or screen.shape != (1080, 1920, 3):
         return None
     gray = cv2.cvtColor(screen, cv2.COLOR_RGB2GRAY)
-    if not (_row_in_position(gray, SAFE_SLOT_CENTERS)
-            and _row_in_position(gray, RESULT_SLOT_CENTERS[:5])):
-        return None
-    return gray[800:837, 210:715].copy(), gray[195:520, 1250:1275].copy()
+    return _region(gray, _RESULT_REGION), _region(gray, _TITLE_REGION)
+
+
+def _regions_stable(
+    previous: tuple[MatLike, MatLike],
+    current: tuple[MatLike, MatLike],
+) -> bool:
+    """两块取样带的平均绝对差都必须足够小。"""
+    return all(
+        float(np.abs(before.astype(np.float32) - after.astype(np.float32)).mean())
+        < _STABLE_MAX_DIFF
+        for before, after in zip(previous, current, strict=True)
+    )
 
 
 class SearchPanelGuard:
-    """只有连续两张新截图均到位且静态区域变化很小，才允许处理物品。"""
+    """只有连续两张新截图的内容都基本一致，才允许处理物品。"""
 
     def __init__(self) -> None:
         """首次观察必须等待下一张截图。"""
@@ -58,7 +72,7 @@ class SearchPanelGuard:
         self._screenshot_time = None
 
     def observe(self, screen: MatLike, screenshot_time: float) -> bool:
-        """重复截图不算稳定证据；位置不符时立即丢弃旧基线。"""
+        """重复截图不算稳定证据；取不到取样带时立即丢弃旧基线。"""
         if self._screenshot_time is not None and screenshot_time <= self._screenshot_time:
             return False
         pixels = search_panel_pixels(screen)
@@ -68,7 +82,4 @@ class SearchPanelGuard:
         previous = self._pixels
         self._pixels = pixels
         self._screenshot_time = screenshot_time
-        return previous is not None and all(
-            float(np.abs(before.astype(np.float32) - after.astype(np.float32)).mean()) < 4
-            for before, after in zip(previous, pixels, strict=True)
-        )
+        return previous is not None and _regions_stable(previous, pixels)
