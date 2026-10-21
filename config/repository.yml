@@ -10,10 +10,10 @@ repositories:
       desc: 选择后请点击同步最新代码
     mirror:
       label: 官方最新镜像
-      desc: 官方主分支的镜像，内容与官方主分支相同，仅 idk500 增强源可用，选择后请点击同步最新代码
+      desc: 官方主分支的镜像，内容与官方主分支相同，仅 idk500 增强源（GitHub / CNB）可用，选择后请点击同步最新代码
     zode:
       label: ZODE 增强分支
-      desc: 集成社区精选 PR 与增强功能，仅 idk500 增强源可用，选择后请点击同步最新代码
+      desc: 集成社区精选 PR 与增强功能，仅 idk500 增强源（GitHub / CNB）可用，选择后请点击同步最新代码
   options:
     github:
       label: GitHub
@@ -31,6 +31,10 @@ repositories:
       label: idk500 增强源
       url: "https://github.com/idk500/ZenlessZoneZero-OneDragon.git"
       use_proxy: true
+    idk500_cnb:
+      label: idk500 增强源 CNB
+      url: "https://cnb.cool/zzz1d/ZODE.git"
+      use_proxy: false
 env_source:
   default: cnb
   options:
