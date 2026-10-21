@@ -841,6 +841,10 @@ class ZzzBackendContext:
         target_app_id = app_id or self._ctx.standalone_app_config.active_app_id
         if not target_app_id:
             raise BackendNotReadyError('未选择独立应用')
+        if not self._ctx.run_context.is_app_registered(target_app_id):
+            raise BackendNotReadyError(f'应用 {target_app_id} 未注册')
+        if not self._ctx.run_context.is_app_standalone_available(target_app_id):
+            raise BackendNotReadyError(f'应用 {target_app_id} 只能通过固定入口运行')
         return self._start_app(source, target_app_id, application_const.DEFAULT_GROUP_ID)
 
     def _start_app(self, source: str, app_id: str, group_id: str) -> tuple[bool, Future | None]:
@@ -867,18 +871,22 @@ class ZzzBackendContext:
     def list_applications(self) -> ApplicationListResult:
         """列出当前实例可运行应用和独立应用选择状态(只读路径,不刷新配置)。"""
         self._ensure_ready()
-        active_standalone_app_id = self._ctx.standalone_app_config.active_app_id
-        standalone_app_ids = set(self._ctx.standalone_app_config.app_list)
+        configured_active_app_id = self._ctx.standalone_app_config.active_app_id
+        active_standalone_app_id = (
+            configured_active_app_id
+            if self._ctx.run_context.is_app_standalone_available(configured_active_app_id)
+            else None
+        )
+        standalone_app_ids = {
+            app_id
+            for app_id in self._ctx.standalone_app_config.app_list
+            if self._ctx.run_context.is_app_standalone_available(app_id)
+        }
         group_config = self._ctx.app_group_manager.get_one_dragon_group_config(self._ctx.current_instance_idx)
         enabled_map = {item.app_id: item.enabled for item in group_config.app_list}
 
-        # 展示顺序与运行语义一致：先固定一条龙入口，再追加默认组注册的独立应用。
-        app_ids: list[str] = []
-        if self._ctx.run_context.is_app_registered(application_const.ONE_DRAGON_APP_ID):
-            app_ids.append(application_const.ONE_DRAGON_APP_ID)
-        for app_id in self._ctx.run_context.default_group_apps:
-            if app_id not in app_ids:
-                app_ids.append(app_id)
+        # 固定入口应用不通过通用应用总览暴露。
+        app_ids = self._ctx.run_context.standalone_apps
 
         applications: list[ApplicationInfo] = []
         for app_id in app_ids:

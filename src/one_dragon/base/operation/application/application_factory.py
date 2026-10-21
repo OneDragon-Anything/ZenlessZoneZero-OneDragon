@@ -1,8 +1,12 @@
 from types import ModuleType
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class ApplicationFactory:
@@ -12,11 +16,18 @@ class ApplicationFactory:
     负责创建应用实例、应用配置和运行记录的工厂类，提供缓存机制以避免重复创建。
     每个具体应用都需要继承此类并实现其抽象方法来定义应用的创建逻辑。
 
-    应用分组:
-        - 通过构造函数的 `default_group` 参数声明是否属于默认应用组
-        - 默认为 True，表示应用会出现在一条龙运行列表中
-        - const 文件中可定义 `DEFAULT_GROUP = False` 表示不属于默认组
+    应用入口:
+        - `DEFAULT_GROUP` 表示应用是否默认进入一条龙列表
+        - `INTERNAL_APP` 表示应用是否只能由代码固定入口调用，可选，默认为 False
+        - 两者不能同时为 True
+
+    子类约定:
+        - 子类构造函数必须接收上下文并保存到 `self.ctx`
+        - 父类的默认运行记录实现依赖 `self.ctx` 读取当前区服的游戏刷新时间偏移
     """
+
+    # 子类必须提供的上下文，父类不负责赋值
+    ctx: 'OneDragonContext'
 
     # app_const 模块必须定义的字段
     REQUIRED_CONST_FIELDS: tuple[str, ...] = (
@@ -41,7 +52,8 @@ class ApplicationFactory:
         从 app_const 模块中自动解析以下字段:
             - APP_ID: 应用唯一标识符
             - APP_NAME: 显示用的应用名称
-            - DEFAULT_GROUP: 是否属于默认应用组
+            - DEFAULT_GROUP: 是否默认进入一条龙列表
+            - INTERNAL_APP: 是否只能由代码固定入口调用（可选，默认 False）
             - NEED_NOTIFY: 应用是否需要通知
             - PRIORITY: 默认组排序优先级（可选）
 
@@ -51,6 +63,16 @@ class ApplicationFactory:
         self.app_id: str = app_const.APP_ID
         self.app_name: str = app_const.APP_NAME
         self.default_group: bool = app_const.DEFAULT_GROUP
+        if not isinstance(self.default_group, bool):
+            raise ValueError(f'应用 {self.app_id} 的 DEFAULT_GROUP 必须为布尔值')
+        self.internal_app: bool = getattr(app_const, 'INTERNAL_APP', False)
+        if not isinstance(self.internal_app, bool):
+            raise ValueError(f'应用 {self.app_id} 的 INTERNAL_APP 必须为布尔值')
+        if self.default_group and self.internal_app:
+            raise ValueError(
+                f'应用 {self.app_id} 的 DEFAULT_GROUP 和 INTERNAL_APP 不能同时为 True，'
+                f'固定入口应用不能默认进入一条龙'
+            )
         self.need_notify: bool = app_const.NEED_NOTIFY
         priority = getattr(app_const, 'PRIORITY', None)
         if priority is not None and (
@@ -97,7 +119,8 @@ class ApplicationFactory:
         """
         创建运行记录实例。
 
-        由子类实现，用于创建应用的运行记录对象，用于记录应用的运行状态和历史。
+        默认创建基础运行记录，按当前区服的游戏刷新时间每日重置。
+        子类需要按周重置、记录业务进度或自定义完成判定时才覆盖本方法。
 
         Args:
             instance_idx: 账号实例下标
@@ -105,7 +128,11 @@ class ApplicationFactory:
         Returns:
             AppRunRecord: 创建的运行记录对象
         """
-        raise Exception(f"未提供应用运行记录创建方法 {self.app_id}")
+        return AppRunRecord(
+            app_id=self.app_id,
+            instance_idx=instance_idx,
+            game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
+        )
 
     def get_config(
         self, instance_idx: int, group_id: str
@@ -145,19 +172,14 @@ class ApplicationFactory:
             instance_idx: 账号实例下标
 
         Returns:
-            AppRunRecord: 运行记录对象，如果创建失败则返回None
-
-        Raises:
-            Exception: 如果子类应用无需配置(即不提供create_run_record)时，调用本方法会抛出异常
+            AppRunRecord: 运行记录对象
         """
         key = f"{instance_idx}"
         if key in self._run_record_cache:
             return self._run_record_cache[key]
 
         record = self.create_run_record(instance_idx)
-        if record is not None:
-            self._run_record_cache[key] = record
-
+        self._run_record_cache[key] = record
         return record
 
     def clear_cache(self) -> None:
