@@ -60,7 +60,7 @@
 - `ONE_DRAGON_SOURCE_ROOT`：当前唯一启用的源码根。
 - `ONE_DRAGON_RUNTIME_MODE`：`external` 或 `recovery`。
 
-`one_dragon.utils.runtime_source` 提供统一读取接口。正常模式把安装目录 `src/` 放在模块搜索路径首位；恢复模式只放入 `.runtime/builtin_src/src/`。切换前会从 `sys.path` 中移除两棵候选源码树，防止同时存在。项目 profile 会在冻结入口中提前加载，因此启动内核还会根据正常和恢复入口模块名，把已经缓存的业务入口父包搜索路径指向选中的源码树。Git、下载、更新、启动器替换事务和恢复编排等稳定模块由 profile 的 `frozen_import_modules` 声明并冻结在启动器中，不随外部业务源码切换；恢复界面及其他业务入口仍从选中的源码树动态加载。
+`one_dragon.utils.runtime_source` 提供统一读取接口。正常模式把安装目录 `src/` 追加到模块搜索路径末尾；恢复模式只追加 `.runtime/builtin_src/src/`。切换前会从 `sys.path` 中移除两棵候选源码树，防止同时存在。项目 profile 会在冻结入口中提前加载，因此启动内核还会根据正常和恢复入口模块名，把选中源码树追加到已缓存业务入口父包的搜索路径末尾。已有冻结路径保持在前面，磁盘源码只补齐未冻结模块。Git、下载、更新、启动器替换事务和恢复编排等稳定模块由 profile 的 `frozen_import_modules` 声明并冻结在启动器中，不随外部业务源码切换；恢复界面及其他业务入口仍从选中的源码树动态加载。
 
 恢复模式设置 `sys.dont_write_bytecode = True`，不在内置快照中写入 `pyc`。
 

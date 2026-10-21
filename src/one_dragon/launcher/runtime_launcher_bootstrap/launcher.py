@@ -190,7 +190,7 @@ class RuntimeLauncherSupervisor:
             if entry_path not in rejected:
                 retained.append(entry)
 
-        sys.path[:] = [str(selected), *retained]
+        sys.path[:] = [*retained, str(selected)]
         package_names = {
             'one_dragon',
             'one_dragon.launcher',
@@ -215,12 +215,12 @@ class RuntimeLauncherSupervisor:
                 (self.paths.builtin_src / relative_root).resolve(),
             }
             package.__path__ = [
-                str(selected_package_root),
                 *[
                     path
                     for path in getattr(package, '__path__', ())
                     if Path(path).resolve() not in rejected_package_roots
                 ],
+                str(selected_package_root),
             ]
         if mode == _SOURCE_MODE_RECOVERY:
             sys.dont_write_bytecode = True
