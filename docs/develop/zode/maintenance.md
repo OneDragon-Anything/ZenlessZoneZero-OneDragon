@@ -29,6 +29,7 @@ ZODE（**Z**enless **O**ne **D**ragon **E**nhanced）是本 fork 的增强发行
 2. 从清单队列取队首 PR：fetch `refs/pull/N/head` 并把拿到的 SHA 记入清单（作者后续 force-push 不影响已 pin 的内容）；`git merge-tree --write-tree` 预检冲突，干净则合入；冲突记入 parked 并试队列下一个，连续 3 个冲突即停车。
 3. 校验：本次触碰的 `.py` 过 py_compile / ruff，`.yml` 过 YAML 解析；失败则回退该 merge，按「不静默修复」政策处理，本期不合入该 PR、试队列下一个。
 4. 推送 zode；更新清单并备份到 `zode-meta` 分支。
+5. 快照仓库 traffic 数据（clones / views 原始值）留存于 `zode-meta` 的 `telemetry.yml`（GitHub 仅保留 14 天滚动窗口）。口径：fetch 更新不计数，该数据反映新装与页面访问趋势，不等于活跃用户数。
 
 ## 冲突分类
 
