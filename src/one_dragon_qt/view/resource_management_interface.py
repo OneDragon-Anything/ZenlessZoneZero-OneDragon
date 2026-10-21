@@ -20,10 +20,9 @@ from one_dragon.base.config.basic_model_config import (
     get_ocr_opts,
 )
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
-from one_dragon.envs.env_config import ProxyTypeEnum
 from one_dragon.envs.git_service import GitLog, GitSyncStatus
 from one_dragon.envs.repo_config import ModelResourceDefinition
 from one_dragon.envs.update_service import LauncherType
@@ -42,20 +41,16 @@ from one_dragon_qt.widgets.download_card.onnx_model_download_card import (
     OnnxModelDownloadCard,
 )
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
-from one_dragon_qt.widgets.resource_download_dialog import (
-    build_resource_source_options,
-)
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
-    ExpandSettingCardGroup,
+from one_dragon_qt.widgets.setting_card.download_source_settings_group import (
+    DownloadSourceSettingsGroup,
 )
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
@@ -86,9 +81,9 @@ class FetchPageRunner(QThread):
 class OcrReloadRunner(QThread):
     """后台重新初始化 OCR 模型 避免下载与加载阻塞界面线程。"""
 
-    def __init__(self, ctx: OneDragonContext):
+    def __init__(self, ctx: OneDragonEnvContext):
         super().__init__()
-        self.ctx: OneDragonContext = ctx
+        self.ctx: OneDragonEnvContext = ctx
 
     def run(self) -> None:
         try:
@@ -101,14 +96,16 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
     def __init__(
         self,
-        ctx: OneDragonContext,
-        download_queue: DownloadQueueService,
+        ctx: OneDragonEnvContext,
+        download_queue: DownloadQueueService | None,
         parent: QWidget | None = None,
+        launcher_type: LauncherType | None = None,
     ) -> None:
         self.page_num: int = -1
         self.page_size: int = 10
-        self.ctx: OneDragonContext = ctx
+        self.ctx: OneDragonEnvContext = ctx
         self.download_queue: DownloadQueueService = download_queue
+        self.launcher_type: LauncherType | None = launcher_type
         self._last_proxy_type: str = ctx.env_config.proxy_type
 
         VerticalScrollInterface.__init__(
@@ -251,60 +248,18 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
     def _add_resource_content(self, content_widget: Column) -> None:
         """添加框架通用资源和项目资源。"""
-        self.download_settings_group = SettingCardGroup('下载设置')
-        self.resource_source_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GLOBE,
-            title='下载源',
-            content='自动模式优先使用上次成功源，失败后继续尝试其他源',
-            options_list=build_resource_source_options(self.ctx.env_config),
+        self.download_settings_group = DownloadSourceSettingsGroup(
+            self.ctx,
+            proxy_content='为代码和资源下载配置网络代理',
+            show_fetch_button=True,
+            fetch_proxy=self._fetch_proxy_url,
         )
-        self.resource_source_opt.combo_box.setFixedWidth(160)
-        self.download_settings_group.addSettingCard(self.resource_source_opt)
-
-        self.proxy_group = ExpandSettingCardGroup(
-            icon=FluentIcon.WIFI,
-            title='代理设置',
-            content='为代码和资源下载配置网络代理',
-        )
-        self.proxy_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GLOBE,
-            title='代理类型',
-            options_enum=ProxyTypeEnum,
-        )
-        self.proxy_type_opt.value_changed.connect(
-            self._on_proxy_type_changed
-        )
-        self.proxy_group.addHeaderWidget(self.proxy_type_opt.combo_box)
-
-        self.proxy_url_input = TextSettingCard(
-            icon=FluentIcon.WIFI,
-            title='代理地址',
-            input_max_width=300,
-        )
-        self.proxy_url_input.line_edit.setFixedWidth(300)
-        self.proxy_url_input.value_changed.connect(
-            lambda _value: self.ctx.env_config.init_system_proxy()
-        )
-        self.proxy_group.addSettingCard(self.proxy_url_input)
-
-        self.auto_fetch_proxy_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC,
-            title='自动获取免费代理地址',
-            content='仅在使用 GitHub 代理时生效',
-            on_text_cn='',
-            off_text_cn='',
-        )
-        self.fetch_proxy_btn = PushButton(gt('立即获取'), self)
-        self.fetch_proxy_btn.setFixedWidth(112)
-        self.fetch_proxy_btn.clicked.connect(self._fetch_proxy_url)
-        self.auto_fetch_proxy_opt.hBoxLayout.addWidget(
-            self.fetch_proxy_btn,
-            0,
-            Qt.AlignmentFlag.AlignRight,
-        )
-        self.auto_fetch_proxy_opt.hBoxLayout.addSpacing(16)
-        self.proxy_group.addSettingCard(self.auto_fetch_proxy_opt)
-        self.download_settings_group.addSettingCard(self.proxy_group)
+        self.resource_source_opt = self.download_settings_group.resource_source_opt
+        self.proxy_group = self.download_settings_group.proxy_group
+        self.proxy_type_opt = self.download_settings_group.proxy_type_opt
+        self.proxy_url_input = self.download_settings_group.proxy_url_input
+        self.auto_fetch_proxy_opt = self.download_settings_group.auto_fetch_proxy_opt
+        self.fetch_proxy_btn = self.download_settings_group.fetch_proxy_btn
 
         self.auto_download_opt = SwitchSettingCard(
             icon=FluentIcon.DOWNLOAD,
@@ -318,13 +273,18 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
         self.download_items_group = SettingCardGroup('更新与下载')
         self.download_items_group.addSettingCard(self.code_card)
-        self.launcher_opt = LauncherDownloadCard(self.ctx)
+        self.launcher_opt = LauncherDownloadCard(
+            self.ctx,
+            launcher_type=self.launcher_type,
+            check_version=True,
+        )
         self.launcher_opt.use_download_queue(
             self.download_queue,
-            self._build_launcher_spec,
+            self.build_launcher_spec,
         )
         self.download_items_group.addSettingCard(self.launcher_opt)
 
+        self.model_resource_cards: dict[str, OnnxModelDownloadCard] = {}
         self.ocr_opt = self._create_model_card(
             title='OCR识别',
             options=get_ocr_opts(),
@@ -343,7 +303,6 @@ class ResourceManagementInterface(VerticalScrollInterface):
         group: SettingCardGroup,
     ) -> None:
         """按项目模型配置声明自动创建全部模型卡片。"""
-        self.model_resource_cards: dict[str, OnnxModelDownloadCard] = {}
         for resource in self.ctx.model_config.get_model_resources():
             def current_getter(
                 selected: ModelResourceDefinition = resource,
@@ -375,54 +334,6 @@ class ResourceManagementInterface(VerticalScrollInterface):
                 self.ctx.model_config.update(key, value)
             )
         )
-
-    def _on_proxy_type_changed(
-        self,
-        _index: int,
-        _value: str,
-    ) -> None:
-        """代理类型变化后刷新输入项并应用系统代理。"""
-        proxy_type = self.ctx.env_config.proxy_type
-        self._update_proxy_ui()
-        if (
-            self._last_proxy_type == ProxyTypeEnum.NONE.value.value
-            and proxy_type != ProxyTypeEnum.NONE.value.value
-        ):
-            self.proxy_group.setExpand(True)
-        self._last_proxy_type = proxy_type
-        self.ctx.env_config.init_system_proxy()
-
-    def _update_proxy_ui(self) -> None:
-        """按后端代理类型绑定对应地址配置。"""
-        proxy_type = self.ctx.env_config.proxy_type
-        proxy_enabled = proxy_type != ProxyTypeEnum.NONE.value.value
-        if not proxy_enabled:
-            self.proxy_group.setExpand(False)
-        self.proxy_group.card.expandButton.setEnabled(proxy_enabled)
-
-        if proxy_type == ProxyTypeEnum.PERSONAL.value.value:
-            self.proxy_url_input.init_with_adapter(
-                self.ctx.env_config.get_prop_adapter('personal_proxy')
-            )
-            self.proxy_url_input.titleLabel.setText(gt('个人代理地址'))
-            self.proxy_url_input.line_edit.setPlaceholderText(
-                'http://127.0.0.1:7890'
-            )
-            self.proxy_url_input.setVisible(True)
-            self.auto_fetch_proxy_opt.setVisible(False)
-        elif proxy_type == ProxyTypeEnum.GHPROXY.value.value:
-            self.proxy_url_input.init_with_adapter(
-                self.ctx.env_config.get_prop_adapter('gh_proxy_url')
-            )
-            self.proxy_url_input.titleLabel.setText(gt('免费代理地址'))
-            self.proxy_url_input.line_edit.setPlaceholderText(
-                'https://ghproxy.link/'
-            )
-            self.proxy_url_input.setVisible(True)
-            self.auto_fetch_proxy_opt.setVisible(True)
-        else:
-            self.proxy_url_input.setVisible(False)
-            self.auto_fetch_proxy_opt.setVisible(False)
 
     def _fetch_proxy_url(self) -> None:
         """立即获取免费代理地址并刷新输入框。"""
@@ -488,7 +399,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
             ),
         )
 
-    def _build_launcher_spec(self) -> ResourceDownloadSpec:
+    def build_launcher_spec(self) -> ResourceDownloadSpec:
         """根据启动器卡片当前通道构造队列任务。"""
         launcher_type = self.launcher_opt._launcher_type
         target_version = self.launcher_opt.target_version
@@ -614,18 +525,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
             self.ctx.env_config.git_branch
         )
         self.code_card.check_and_update_display()
-        self.resource_source_opt.init_with_adapter(
-            self.ctx.env_config.get_prop_adapter('resource_source')
-        )
-        self.proxy_type_opt.init_with_adapter(
-            self.ctx.env_config.get_prop_adapter('proxy_type')
-        )
-        self.auto_fetch_proxy_opt.init_with_adapter(
-            self.ctx.env_config.get_prop_adapter(
-                'auto_fetch_gh_proxy_url'
-            )
-        )
-        self._update_proxy_ui()
+        self.download_settings_group.init_adapters()
         self.auto_download_opt.init_with_adapter(
             self.ctx.env_config.get_prop_adapter(
                 'resource_download_no_confirm'

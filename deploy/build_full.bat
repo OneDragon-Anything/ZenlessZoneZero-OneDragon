@@ -9,6 +9,9 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
 
 set "DIST_DIR=%~dp0dist"
+uv run python generate_builtin_source.py --output-root "%DIST_DIR%\OneDragon-RuntimeLauncher\.runtime\builtin_src"
+if errorlevel 1 exit /b 1
+
 set "TARGET_DIR=%DIST_DIR%\ZenlessZoneZero-OneDragon"
 if not exist "%TARGET_DIR%" (
     mkdir "%TARGET_DIR%"

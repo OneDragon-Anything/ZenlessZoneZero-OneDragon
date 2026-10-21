@@ -1,5 +1,7 @@
+from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
@@ -7,7 +9,6 @@ from PySide6.QtWidgets import QAbstractButton
 from qfluentwidgets import FluentIconBase, PrimaryPushButton, SettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import (
     CommonDownloader,
     CommonDownloaderParam,
@@ -25,6 +26,9 @@ from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class DownloadRunner(QThread):
@@ -325,6 +329,8 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if self.download_queue is not None and self.download_spec_factory is not None:
             spec = self.download_spec_factory()
             task = self.download_queue.get_task(spec.task_key)
+            if spec.resource_type == 'launcher':
+                task = self.download_queue.get_active_launcher_task(spec.resource_id) or task
             if task is not None and task.state in (
                 ResourceDownloadTaskState.WAITING,
                 ResourceDownloadTaskState.DOWNLOADING,
@@ -340,12 +346,12 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
             if task is not None and task.state == ResourceDownloadTaskState.CANCELLED:
                 self.download_queue.retry(task.task_key)
             elif task is not None and task.state == ResourceDownloadTaskState.SUCCEEDED:
-                if task.spec.resource_type == 'launcher':
+                self.download_queue.remove(task.task_key)
+                if self.download_queue.get_task(task.task_key) is not None:
                     window = self.window()
                     if hasattr(window, 'show_download_queue'):
                         window.show_download_queue()
                     return
-                self.download_queue.remove(task.task_key)
                 self.download_queue.enqueue(spec)
             else:
                 self.download_queue.enqueue(spec)

@@ -65,6 +65,8 @@ class ResourceUpdateDialog(MessageBoxBase):
         grid.setColumnStretch(1, 2)
         for row, spec in enumerate(specs):
             existing = queue.get_task(spec.task_key)
+            if spec.resource_type == 'launcher':
+                existing = queue.get_active_launcher_task(spec.resource_id) or existing
             retryable = existing is not None and existing.state in (
                 ResourceDownloadTaskState.FAILED,
                 ResourceDownloadTaskState.CANCELLED,

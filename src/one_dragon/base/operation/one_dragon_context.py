@@ -39,7 +39,13 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import (
+    debug_utils,
+    file_utils,
+    i18_utils,
+    log_utils,
+    thread_utils,
+)
 from one_dragon.utils.log_utils import log
 
 
@@ -260,9 +266,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     #------------------- 以下是 初始化相关 -------------------#
 
-    def init(self) -> None:
+    def init(self, raise_on_error: bool = False) -> bool:
+        """初始化完整业务上下文，并向启动器暴露 ready 结果。"""
         if not self._init_lock.acquire(blocking=False):
-            return
+            return self.ready_for_application
 
         try:
             self.ready_for_application = False
@@ -272,11 +279,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             else:
                 i18_utils.update_default_lang(self.custom_config.ui_language)
 
-            log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+            log_utils.set_log_level(
+                logging.DEBUG if self.env_config.is_debug else logging.INFO
+            )
 
             if not self._application_registered:  # 只需要注册一次
                 self.register_application_factory()
-                self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+                self.app_group_manager.set_default_apps(
+                    self.run_context.default_group_apps
+                )
                 self._application_registered = True
 
             self.init_ocr()
@@ -292,9 +303,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_for_application()
 
-            self.ready_for_application = True
-
-            self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+            self.run_context.check_and_update_all_run_record(
+                self.current_instance_idx
+            )
 
             self.push_service.init_push_channels()
 
@@ -303,10 +314,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
-
             self._start_btn_listener()
+
+            self.ready_for_application = True
+            return True
         except Exception:
+            self.ready_for_application = False
             log.error('初始化出错', exc_info=True)
+            if raise_on_error:
+                raise
+            return False
         finally:
             self._init_lock.release()
 

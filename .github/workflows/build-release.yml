@@ -104,6 +104,9 @@ jobs:
         uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
         uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
         uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
+        uv run python generate_builtin_source.py `
+          --output-root "dist\OneDragon-RuntimeLauncher\.runtime\builtin_src" `
+          --release-version $env:RELEASE_VERSION
         Copy-Item -Path "..\src" -Destination "dist\OneDragon-RuntimeLauncher\src" -Recurse -Force
 
     - name: Bundle dependencies into wheels

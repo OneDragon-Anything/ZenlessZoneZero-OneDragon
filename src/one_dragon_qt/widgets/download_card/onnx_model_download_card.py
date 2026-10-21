@@ -1,10 +1,17 @@
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QIcon, Qt
-from qfluentwidgets import FluentIconBase, SwitchButton, IndicatorPosition
-from typing import Union
+from __future__ import annotations
 
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon_qt.widgets.setting_card.common_download_card import ZipDownloaderSettingCard
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QIcon
+from qfluentwidgets import FluentIconBase, IndicatorPosition, SwitchButton
+
+from one_dragon_qt.widgets.setting_card.common_download_card import (
+    ZipDownloaderSettingCard,
+)
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class OnnxModelDownloadCard(ZipDownloaderSettingCard):
@@ -14,7 +21,7 @@ class OnnxModelDownloadCard(ZipDownloaderSettingCard):
     def __init__(
             self,
             ctx: OneDragonContext,
-            icon: Union[str, QIcon, FluentIconBase],
+            icon: str | QIcon | FluentIconBase,
             title: str,
             content=None,
             parent=None
