@@ -411,8 +411,11 @@ class HomeInterface(BaseInterface):
         self._stats_bar = StatsBar(self.ctx.user_stats)
         left_layout.addWidget(self._stats_bar, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        # 公告卡片
-        self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
+        # 公告卡片 公告要闻头部固定一条最新功能提交（来自远程跟踪分支）
+        self.notice_container = NoticeCard(
+            self.ctx.project_config.notice_url,
+            update_provider=self._get_update_posts,
+        )
         apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
         left_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
@@ -479,6 +482,16 @@ class HomeInterface(BaseInterface):
         """给首页右侧悬浮图标加硬阴影，增强在复杂背景上的辨识度。"""
         for button in self.button_group.buttons:
             apply_shadow(button)
+
+    def _get_update_posts(self) -> list[dict]:
+        """公告卡头部的最新功能提交 取自远程跟踪分支 沿用后台定时 fetch 的结果 不另发网络请求"""
+        posts: list[dict] = []
+        for commit_log in self.ctx.git_service.fetch_recent_remote_commits():
+            if not commit_log.commit_message.startswith('feat:'):
+                continue
+            posts.append({'title': commit_log.commit_message, 'date': commit_log.commit_time})
+            break  # 固定第一条 只取最新一条功能提交
+        return posts
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
