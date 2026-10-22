@@ -143,17 +143,36 @@ class ApplicationFactoryManager:
         if source == PluginSource.THIRD_PARTY:
             python_files: list[Path] = []
             if directory.is_dir():
-                directory_resolved = directory.resolve(strict=True)
-                for plugin_dir in directory.iterdir():
-                    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
-                        continue
+                try:
+                    directory_resolved = directory.resolve(strict=True)
+                    plugin_dirs = sorted(
+                        directory.iterdir(),
+                        key=lambda path: (path.name.casefold(), path.name),
+                    )
+                except (OSError, RuntimeError) as e:
+                    self._scan_failures.append(
+                        (directory, f"{type(e).__name__}: {e}")
+                    )
+                    return non_default_factories, default_factories
+
+                for plugin_dir in plugin_dirs:
                     try:
+                        if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
                         plugin_dir_resolved = plugin_dir.resolve(strict=True)
-                    except (OSError, RuntimeError):
+                        if plugin_dir_resolved != directory_resolved / plugin_dir.name:
+                            continue
+                        python_files_in_plugin = sorted(
+                            plugin_dir.glob("*.py"),
+                            key=lambda path: (path.name.casefold(), path.name),
+                        )
+                    except (OSError, RuntimeError) as e:
+                        self._scan_failures.append(
+                            (plugin_dir, f"{type(e).__name__}: {e}")
+                        )
                         continue
-                    if plugin_dir_resolved != directory_resolved / plugin_dir.name:
-                        continue
-                    for python_file in plugin_dir.glob("*.py"):
+
+                    for python_file in python_files_in_plugin:
                         if python_file.is_symlink():
                             continue
                         try:

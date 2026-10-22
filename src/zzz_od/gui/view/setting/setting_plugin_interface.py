@@ -1,12 +1,14 @@
 import contextlib
 import webbrowser
 from collections.abc import Callable
+from functools import partial
 from pathlib import Path
+from typing import TypeVar
 
 from packaging import version
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QFileDialog, QWidget
+from PySide6.QtCore import Qt, QThread, QUrl, Signal
+from PySide6.QtGui import QCloseEvent, QDesktopServices
+from PySide6.QtWidgets import QApplication, QFileDialog, QWidget
 from qfluentwidgets import (
     FluentIcon,
     InfoBar,
@@ -33,6 +35,33 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
+
+_T = TypeVar("_T")
+
+
+class PluginImportRunner(QThread):
+    """在后台线程执行插件导入任务。"""
+
+    import_finished = Signal(object)
+    import_failed = Signal(str)
+
+    def __init__(
+        self,
+        task: Callable[[], object],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._task: Callable[[], object] = task
+
+    def run(self) -> None:
+        """执行任务并把结果或异常发回界面线程。"""
+        try:
+            result = self._task()
+        except Exception as e:
+            log.error(f"插件导入任务异常: {e}", exc_info=True)
+            self.import_failed.emit(str(e))
+            return
+        self.import_finished.emit(result)
 
 
 class PluginCard(MultiPushSettingCard):
@@ -126,6 +155,8 @@ class SettingPluginInterface(VerticalScrollInterface):
         self.plugin_import_service: PluginImportService = PluginImportService(ctx)
         self._plugin_cards: list[PluginCard] = []
         self._empty_card: MultiPushSettingCard | None = None
+        self._import_runner: PluginImportRunner | None = None
+        self._import_busy: bool = False
 
         VerticalScrollInterface.__init__(
             self,
@@ -211,6 +242,11 @@ class SettingPluginInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
         self._refresh_plugin_list()
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """关闭前等待插件导入线程结束。"""
+        self._wait_for_plugin_import()
+        super().closeEvent(event)
+
     def _clear_plugin_cards(self) -> None:
         """清除旧的插件卡片（不删除 empty_card）
 
@@ -274,6 +310,9 @@ class SettingPluginInterface(VerticalScrollInterface):
 
     def _on_import_clicked(self) -> None:
         """导入 ZIP 来源。"""
+        if self._import_busy:
+            return
+
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             gt('选择插件压缩包'),
@@ -284,14 +323,29 @@ class SettingPluginInterface(VerticalScrollInterface):
         if not file_paths:
             return
 
-        previews: list[tuple[str, PluginPreviewInfo | None]] = []
-        for file_path in file_paths:
-            source_previews = self.plugin_import_service.preview_plugins_from_zip(file_path)
-            if source_previews:
-                previews.extend((file_path, preview) for preview in source_previews)
-            else:
-                previews.append((file_path, None))
+        def preview_task() -> list[tuple[str, PluginPreviewInfo | None]]:
+            previews: list[tuple[str, PluginPreviewInfo | None]] = []
+            for file_path in file_paths:
+                source_previews = self.plugin_import_service.preview_plugins_from_zip(
+                    file_path
+                )
+                if source_previews:
+                    previews.extend((file_path, preview) for preview in source_previews)
+                else:
+                    previews.append((file_path, None))
+            return previews
 
+        self._start_plugin_import(
+            preview_task,
+            partial(self._confirm_zip_import, file_paths),
+        )
+
+    def _confirm_zip_import(
+        self,
+        file_paths: list[str],
+        previews: list[tuple[str, PluginPreviewInfo | None]],
+    ) -> None:
+        """确认 ZIP 预览后启动首次导入。"""
         preview_lines: list[str] = []
         for file_path, preview in previews:
             if preview is None:
@@ -313,16 +367,30 @@ class SettingPluginInterface(VerticalScrollInterface):
         msg.yesButton.setText(gt('确认导入'))
         msg.cancelButton.setText(gt('取消'))
         if not msg.exec():
+            self._finish_import_operation()
             return
 
-        results: list[tuple[str, ImportResult]] = []
-        for file_path in file_paths:
-            source_results = self.plugin_import_service.import_plugins_from_zip(
-                file_path,
-                overwrite=False,
-            )
-            results.extend((file_path, result) for result in source_results)
+        def import_task() -> list[tuple[str, ImportResult]]:
+            results: list[tuple[str, ImportResult]] = []
+            for file_path in file_paths:
+                source_results = self.plugin_import_service.import_plugins_from_zip(
+                    file_path,
+                    overwrite=False,
+                )
+                results.extend((file_path, result) for result in source_results)
+            return results
 
+        self._start_plugin_import(
+            import_task,
+            partial(self._handle_zip_import_results, previews),
+        )
+
+    def _handle_zip_import_results(
+        self,
+        previews: list[tuple[str, PluginPreviewInfo | None]],
+        results: list[tuple[str, ImportResult]],
+    ) -> None:
+        """处理 ZIP 导入结果，并在需要时继续询问覆盖。"""
         existing_plugins = [
             (file_path, result)
             for file_path, result in results
@@ -403,53 +471,40 @@ class SettingPluginInterface(VerticalScrollInterface):
                     for file_path, names in selected_overwrites.items()
                     for name in names
                 }
-                results = [
+                remaining_results = [
                     (file_path, result)
                     for file_path, result in results
                     if self._get_source_plugin_key(file_path, result.plugin_name)
                     not in selected_keys
                 ]
-                for file_path, names in selected_overwrites.items():
-                    overwrite_results = self.plugin_import_service.import_plugins_from_zip(
-                        file_path,
-                        overwrite=True,
-                        selected_plugin_names=names,
-                    )
-                    results.extend((file_path, result) for result in overwrite_results)
 
-        success_count = sum(1 for _, result in results if result.success)
-        fail_count = len(results) - success_count
-        if success_count > 0:
-            self.ctx.refresh_application_registration()
-            self._refresh_plugin_list()
-            InfoBar.success(
-                title=gt('导入成功'),
-                content=gt('成功导入 {count} 个插件').format(count=success_count),
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3000,
-                parent=self
-            )
+                def overwrite_task() -> list[tuple[str, ImportResult]]:
+                    merged_results = list(remaining_results)
+                    for file_path, names in selected_overwrites.items():
+                        overwrite_results = self.plugin_import_service.import_plugins_from_zip(
+                            file_path,
+                            overwrite=True,
+                            selected_plugin_names=names,
+                        )
+                        merged_results.extend(
+                            (file_path, result) for result in overwrite_results
+                        )
+                    return merged_results
 
-        if fail_count > 0:
-            fail_messages = [
-                f"{result.plugin_name}: {result.message}"
-                for _, result in results
-                if not result.success
-            ]
-            InfoBar.warning(
-                title=gt('部分导入失败'),
-                content='\n'.join(fail_messages),
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=5000,
-                parent=self
-            )
+                self._start_plugin_import(overwrite_task, self._finish_zip_import)
+                return
+
+        self._finish_zip_import(results)
+
+    def _finish_zip_import(self, results: list[tuple[str, ImportResult]]) -> None:
+        """完成 ZIP 导入并刷新插件列表。"""
+        self._finish_import_results([result for _, result in results])
 
     def _on_import_dir_clicked(self) -> None:
         """导入松散目录来源。"""
+        if self._import_busy:
+            return
+
         dir_path = QFileDialog.getExistingDirectory(
             self,
             gt('选择插件目录'),
@@ -459,8 +514,19 @@ class SettingPluginInterface(VerticalScrollInterface):
         if not dir_path:
             return
 
-        previews = self.plugin_import_service.preview_plugins_from_directory(dir_path)
+        self._start_plugin_import(
+            lambda: self.plugin_import_service.preview_plugins_from_directory(dir_path),
+            partial(self._confirm_dir_import, dir_path),
+        )
+
+    def _confirm_dir_import(
+        self,
+        dir_path: str,
+        previews: list[PluginPreviewInfo],
+    ) -> None:
+        """确认目录预览后启动首次导入。"""
         if not previews:
+            self._finish_import_operation()
             InfoBar.error(
                 title=gt('无效的插件目录'),
                 content=gt('该目录不包含有效的插件结构（缺少或冲突的 *_factory.py / *_const.py 文件）'),
@@ -489,12 +555,27 @@ class SettingPluginInterface(VerticalScrollInterface):
         msg.yesButton.setText(gt('确认导入'))
         msg.cancelButton.setText(gt('取消'))
         if not msg.exec():
+            self._finish_import_operation()
             return
 
-        results = self.plugin_import_service.import_plugins_from_directory(
-            dir_path,
-            overwrite=False,
+        def import_task() -> list[ImportResult]:
+            return self.plugin_import_service.import_plugins_from_directory(
+                dir_path,
+                overwrite=False,
+            )
+
+        self._start_plugin_import(
+            import_task,
+            partial(self._handle_dir_import_results, dir_path, previews),
         )
+
+    def _handle_dir_import_results(
+        self,
+        dir_path: str,
+        previews: list[PluginPreviewInfo],
+        results: list[ImportResult],
+    ) -> None:
+        """处理目录导入结果，并在需要时继续询问覆盖。"""
         existing_plugins = [
             result
             for result in results
@@ -564,19 +645,90 @@ class SettingPluginInterface(VerticalScrollInterface):
 
             if selected_names:
                 selected_name_keys = {name.casefold() for name in selected_names}
-                results = [
+                remaining_results = [
                     result
                     for result in results
                     if result.plugin_name.casefold() not in selected_name_keys
                 ]
-                results.extend(
-                    self.plugin_import_service.import_plugins_from_directory(
-                        dir_path,
-                        overwrite=True,
-                        selected_plugin_names=selected_names,
-                    )
-                )
 
+                def overwrite_task() -> list[ImportResult]:
+                    merged_results = list(remaining_results)
+                    merged_results.extend(
+                        self.plugin_import_service.import_plugins_from_directory(
+                            dir_path,
+                            overwrite=True,
+                            selected_plugin_names=selected_names,
+                        )
+                    )
+                    return merged_results
+
+                self._start_plugin_import(overwrite_task, self._finish_import_results)
+                return
+
+        self._finish_import_results(results)
+
+    def _start_plugin_import(
+        self,
+        task: Callable[[], _T],
+        on_finished: Callable[[_T], None],
+    ) -> None:
+        """在后台线程执行一次导入任务。"""
+        if self._import_runner is not None:
+            return
+
+        runner = PluginImportRunner(task, self)
+        runner.import_finished.connect(on_finished)
+        runner.import_failed.connect(self._on_plugin_import_failed)
+        runner.finished.connect(lambda: self._cleanup_import_runner(runner))
+        self._import_runner = runner
+        self._set_import_operation_enabled(False)
+        runner.start()
+
+    def _cleanup_import_runner(self, runner: PluginImportRunner) -> None:
+        """清理已结束的导入线程引用。"""
+        if self._import_runner is runner:
+            self._import_runner = None
+        runner.deleteLater()
+
+    def _wait_for_plugin_import(self) -> None:
+        """等待当前导入线程结束，避免界面销毁时线程仍在运行。"""
+        runner = self._import_runner
+        if runner is None or not runner.isRunning():
+            return
+
+        while runner.isRunning():
+            runner.wait(50)
+            QApplication.processEvents()
+
+    def _on_plugin_import_failed(self, message: str) -> None:
+        """处理后台导入异常。"""
+        self._finish_import_operation()
+        InfoBar.error(
+            title=gt('导入失败'),
+            content=message,
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=5000,
+            parent=self
+        )
+
+    def _set_import_operation_enabled(self, enabled: bool) -> None:
+        """设置导入期间会冲突的界面操作是否可用。"""
+        self._import_busy = not enabled
+        self.import_btn.setEnabled(enabled)
+        self.import_dir_btn.setEnabled(enabled)
+        self.refresh_btn.setEnabled(enabled)
+        for card in self._plugin_cards:
+            card.delete_btn.setEnabled(enabled)
+
+    def _finish_import_operation(self) -> None:
+        """结束一次导入流程并恢复界面操作。"""
+        self._set_import_operation_enabled(True)
+
+    def _finish_import_results(self, results: list[ImportResult]) -> None:
+        """汇总导入结果并刷新插件列表。"""
+        self._finish_import_operation()
         success_count = sum(1 for result in results if result.success)
         fail_count = len(results) - success_count
         if success_count > 0:
@@ -610,6 +762,9 @@ class SettingPluginInterface(VerticalScrollInterface):
 
     def _on_refresh_clicked(self) -> None:
         """刷新按钮点击"""
+        if self._import_busy:
+            return
+
         try:
             self.ctx.refresh_application_registration()
             self._refresh_plugin_list()
@@ -642,6 +797,9 @@ class SettingPluginInterface(VerticalScrollInterface):
 
     def _on_delete_plugin(self, plugin_info: PluginInfo) -> None:
         """删除插件"""
+        if self._import_busy:
+            return
+
         # 确认对话框
         msg_box = MessageBox(
             gt('确认删除'),
@@ -662,6 +820,18 @@ class SettingPluginInterface(VerticalScrollInterface):
             InfoBar.error(
                 title=gt('删除失败'),
                 content=gt('无法定位插件目录，只能删除 plugins 目录下的插件'),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
+            return
+
+        if self._is_plugin_running(plugin_package_dir):
+            InfoBar.error(
+                title=gt('删除失败'),
+                content=gt('插件正在运行，请先停止后再删除'),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -721,6 +891,26 @@ class SettingPluginInterface(VerticalScrollInterface):
 
         relative_path = plugin_dir.relative_to(plugins_root)
         return plugins_root / relative_path.parts[0]
+
+    def _is_plugin_running(self, plugin_package_dir: Path) -> bool:
+        """判断插件包中是否有应用正在运行。"""
+        run_context = self.ctx.run_context
+        # 停止请求会先把状态改为 STOP，但应用线程退出前 current_app_id 仍有效。
+        if run_context.current_app_id is None:
+            return False
+
+        current_plugin = self.ctx.factory_manager.get_plugin_info(
+            run_context.current_app_id
+        )
+        if current_plugin is None or not current_plugin.is_third_party:
+            return False
+
+        current_package_dir = self._get_plugin_package_dir(current_plugin)
+        if current_package_dir is None:
+            return False
+        return current_package_dir.resolve(strict=False) == plugin_package_dir.resolve(
+            strict=False
+        )
 
     def _get_installed_plugins_by_package(self) -> dict[str, PluginInfo]:
         """按顶层插件目录索引已安装插件。"""

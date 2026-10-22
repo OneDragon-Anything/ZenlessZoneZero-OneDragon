@@ -25,6 +25,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
@@ -98,18 +99,15 @@ class PluginImportService:
 
     @property
     def plugins_dir(self) -> Path:
-        """获取插件目录
+        """获取插件目录。
 
-        返回项目根目录下的 plugins 目录。
+        与应用加载使用同一套 src 目录定位规则，避免导入目录与加载目录不一致。
         """
         cls_file = inspect.getfile(self.ctx.__class__)
-        parts = Path(cls_file).parts
-        try:
-            src_index = parts.index("src")
-            project_root = Path(*parts[:src_index])
-            return project_root / "plugins"
-        except ValueError:
-            return Path(cls_file).parent.parent / "plugins"
+        src_dir = find_src_dir(cls_file)
+        if src_dir is None:
+            raise ValueError(f"无法从 {cls_file} 定位项目 src 目录，插件导入不可用")
+        return src_dir.parent / "plugins"
 
     def import_plugins(self, zip_paths: list[str | Path], overwrite: bool = False) -> list[ImportResult]:
         """按旧单插件语义导入多个 ZIP 文件。"""
@@ -511,7 +509,7 @@ class PluginImportService:
             const_file = self._find_primary_const_file(dir_path)
             self._validate_plugin_dir_name(plugin_name)
             self._validate_directory_symlinks(dir_path)
-        except ValueError as e:
+        except (OSError, ValueError) as e:
             return ImportResult(success=False, plugin_name=plugin_name, message=str(e))
 
         return self._import_directory_layout(
@@ -555,7 +553,7 @@ class PluginImportService:
                     for layout in layouts
                     if layout.plugin_dir_name.casefold() in requested_names
                 ]
-        except ValueError as e:
+        except (OSError, ValueError) as e:
             return [ImportResult(success=False, plugin_name=source_name, message=str(e))]
 
         return [
@@ -712,12 +710,17 @@ class PluginImportService:
         file_paths: list[PurePosixPath] = []
         for current_root, dir_names, file_names in os.walk(source_dir, followlinks=False):
             current_dir = Path(current_root)
+            current_dir_resolved = current_dir.resolve(strict=True)
             relative_dir = current_dir.relative_to(source_dir)
-            dir_names[:] = sorted(
-                name
-                for name in dir_names
-                if name != "__MACOSX" and not (current_dir / name).is_symlink()
-            )
+            real_dir_names: list[str] = []
+            for name in sorted(dir_names):
+                child_dir = current_dir / name
+                if name == "__MACOSX" or child_dir.is_symlink():
+                    continue
+                child_dir_resolved = child_dir.resolve(strict=True)
+                if child_dir_resolved == current_dir_resolved / name:
+                    real_dir_names.append(name)
+            dir_names[:] = real_dir_names
             for file_name in sorted(file_names):
                 relative_path = PurePosixPath(*relative_dir.parts, file_name)
                 if not self._is_metadata_path(relative_path):
@@ -760,7 +763,12 @@ class PluginImportService:
                                 )
                             visit_directory(target_path)
                     elif entry_path.is_dir():
-                        visit_directory(entry_path.resolve(strict=True))
+                        target_path = entry_path.resolve(strict=True)
+                        if not target_path.is_relative_to(plugin_root):
+                            raise ValueError(
+                                f"插件目录包含越界目录链接: {entry_path}"
+                            )
+                        visit_directory(target_path)
             finally:
                 active_dirs.remove(directory)
             visited_dirs.add(directory)
