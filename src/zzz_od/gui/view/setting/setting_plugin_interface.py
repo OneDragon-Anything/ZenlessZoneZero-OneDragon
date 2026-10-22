@@ -182,8 +182,8 @@ class SettingPluginInterface(VerticalScrollInterface):
         self.import_btn = PrimaryPushButton(FluentIcon.ADD, gt('导入 ZIP'))
         self.import_btn.clicked.connect(self._on_import_clicked)
 
-        # 导入目录按钮
-        self.import_dir_btn = PushButton(FluentIcon.FOLDER_ADD, gt('导入目录'))
+        # 导入文件夹按钮
+        self.import_dir_btn = PushButton(FluentIcon.FOLDER_ADD, gt('导入文件夹'))
         self.import_dir_btn.clicked.connect(self._on_import_dir_clicked)
 
         # 刷新按钮
@@ -507,7 +507,7 @@ class SettingPluginInterface(VerticalScrollInterface):
 
         dir_path = QFileDialog.getExistingDirectory(
             self,
-            gt('选择插件目录'),
+            gt('选择插件文件夹'),
             ''
         )
 
@@ -528,8 +528,8 @@ class SettingPluginInterface(VerticalScrollInterface):
         if not previews:
             self._finish_import_operation()
             InfoBar.error(
-                title=gt('无效的插件目录'),
-                content=gt('该目录不包含有效的插件结构（缺少或冲突的 *_factory.py / *_const.py 文件）'),
+                title=gt('没有找到可用插件'),
+                content=gt('这个文件夹里没有找到可用插件'),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
