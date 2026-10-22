@@ -19,9 +19,12 @@ import inspect
 import os
 import re
 import shutil
+import stat
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from types import TracebackType
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -920,4 +923,15 @@ class PluginImportService:
         if path.is_symlink() or path.is_file():
             path.unlink()
         elif path.exists():
-            shutil.rmtree(path)
+            shutil.rmtree(path, onerror=self._retry_remove_readonly)
+
+    @staticmethod
+    def _retry_remove_readonly(
+        func: Callable[[str], object],
+        path: str,
+        exc_info: tuple[type[BaseException], BaseException, TracebackType | None],
+    ) -> None:
+        """清除只读属性后重试一次删除。"""
+        del exc_info
+        os.chmod(path, stat.S_IWRITE)
+        func(path)

@@ -256,7 +256,26 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if 'notify_config' in self.__dict__:
             del self.__dict__['notify_config']
 
+        self._sync_current_application_after_refresh()
+
         log.info("应用注册刷新完成")
+
+    def _sync_current_application_after_refresh(self) -> None:
+        """刷新后校验当前运行应用，避免继续引用已移除的注册。"""
+        run_context = self.run_context
+        current_app_id = run_context.current_app_id
+        if current_app_id is None:
+            return
+
+        if run_context.is_app_registered(current_app_id):
+            return
+
+        if not run_context.is_context_stop:
+            run_context.stop_running()
+        run_context.current_app_id = None
+        run_context.current_group_id = None
+        run_context.current_instance_idx = None
+        run_context.current_application = None
 
     #------------------- 以下是 初始化相关 -------------------#
 
