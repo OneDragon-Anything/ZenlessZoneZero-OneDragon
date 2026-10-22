@@ -20,6 +20,8 @@ class ExeLauncher(LauncherBase):
 
     def show_version(self) -> None:
         """显示版本信息"""
+        # 版本号会被其他程序读取，固定 UTF-8 写出；不改控制台代码页。
+        sys.stdout.reconfigure(encoding='utf-8')
         print(f"{self.description} {self.version}")
         sys.exit(0)
 
@@ -32,6 +34,10 @@ class ExeLauncher(LauncherBase):
             launch_args.append("--close-game")
         if args.shutdown:
             launch_args.extend(["--shutdown", str(args.shutdown)])
+        if args.hibernate:
+            launch_args.append("--hibernate")
+        if args.sleep:
+            launch_args.append("--sleep")
 
         return launch_args
 
@@ -48,8 +54,8 @@ class ExeLauncher(LauncherBase):
         if args.version:
             self.show_version()
 
-        if not args.onedragon and (args.close_game or args.shutdown or args.instance):
-            print("错误：参数 --close-game, --shutdown, --instance 只能在指定 --onedragon 时使用")
+        if not args.onedragon and (args.close_game or args.shutdown or args.hibernate or args.sleep or args.instance):
+            print("错误：参数 --close-game, --shutdown, --hibernate, --sleep, --instance 只能在指定 --onedragon 时使用")
             sys.exit(1)
 
         if not pyuac.isUserAdmin():

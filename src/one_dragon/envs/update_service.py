@@ -1,5 +1,9 @@
+import gc
+import importlib
 import shutil
 import sys
+import time
+from importlib import metadata
 from pathlib import Path
 from typing import Literal
 
@@ -274,7 +278,7 @@ class UpdateService:
                     exe_backed_up = True
                     log.info(f'备份文件: {exe_path.name} -> {backup_path.name}')
                 if launcher_type == 'runtime' and runtime_path.exists():
-                    runtime_path.rename(runtime_backup_path)
+                    self._rename_runtime_dir(runtime_path, runtime_backup_path)
                     log.info(f'备份目录: {runtime_path.name} -> {runtime_backup_path.name}')
             except Exception:
                 log.error('备份启动器失败', exc_info=True)
@@ -297,10 +301,41 @@ class UpdateService:
             try:
                 if runtime_path.exists():
                     shutil.rmtree(runtime_path)
-                runtime_backup_path.rename(runtime_path)
+                self._rename_runtime_dir(runtime_backup_path, runtime_path)
                 log.info(f'回滚目录: {runtime_backup_path.name} -> {runtime_path.name}')
             except Exception:
                 log.error(f'回滚目录失败 {runtime_backup_path.name}', exc_info=True)
+
+    @staticmethod
+    def _release_runtime_dir_handles() -> None:
+        """释放进程内可能挡住 .runtime 目录改名的文件句柄。
+
+        importlib.metadata 扫描 sys.path 时会把 base_library.zip 用 zipfile 打开，
+        并把 zipfile.Path 挂在被 lru_cache 缓存的 FastPath 上，句柄不再释放。
+        Windows 下会让 .runtime 目录改名报 WinError 5。
+        清掉该缓存并回收引用后，句柄才会真正关闭。
+        """
+        metadata.FastPath.__new__.cache_clear()
+        importlib.invalidate_caches()
+        gc.collect()
+
+    def _rename_runtime_dir(self, src: Path, dst: Path) -> None:
+        """重命名 .runtime 相关目录；失败时释放进程内句柄后重试。"""
+        last_error: OSError | None = None
+        for attempt in range(3):
+            try:
+                src.rename(dst)
+                return
+            except OSError as error:
+                last_error = error
+                if attempt == 0:
+                    log.warning(
+                        f'重命名目录失败，释放文件句柄后重试: {src.name} -> {dst.name} {error}'
+                    )
+                self._release_runtime_dir_handles()
+                time.sleep(0.3)
+        if last_error is not None:
+            raise last_error
 
     def _cleanup_launcher_backup(self, launcher_type: LauncherType) -> None:
         """删除启动器备份文件和集成启动器的运行时备份目录。"""

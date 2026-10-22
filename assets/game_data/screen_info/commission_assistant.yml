@@ -81,7 +81,7 @@ area_list:
   color_range: null
   goto_list: []
 - area_name: 战斗-菜单
-  id_mark: true
+  id_mark: false
   pc_rect:
   - 58
   - 40

@@ -579,3 +579,15 @@ class AgentEnum(Enum):
                                      lower_color=(150, 0, 0), upper_color=(255, 90, 50),
                                      max_length=100, min_value_trigger_state=5),
                    ])
+
+    ROXY = Agent('roxy', '洛克茜', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.WIND, ['roxy'])
+
+    PHOENIX = Agent('phoenix', '菲欧妮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['phoenix', 'phoenix_daydream_complex'],
+                    state_list=[AgentStateDef('菲欧妮-燔焰', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                              template_id='phoenix',
+                                              hsv_color=(4, 128, 255), hsv_color_diff=(9, 128, 55),
+                                              max_length=120),
+                                AgentStateDef('菲欧妮-升变', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                              template_id='phoenix_pp',
+                                              hsv_color=(10, 128, 255), hsv_color_diff=(10, 128, 20),
+                                              connect_cnt=4)])

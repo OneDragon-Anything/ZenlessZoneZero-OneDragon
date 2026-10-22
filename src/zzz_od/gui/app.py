@@ -11,7 +11,7 @@ try:
     )
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
-    from one_dragon.utils import app_utils
+    from one_dragon.utils import app_utils, os_utils
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -48,7 +48,11 @@ try:
         def run(self):
             launcher_version = app_utils.get_launcher_version()
             code_version = self.ctx.git_service.get_current_version()
-            versions = (launcher_version, code_version)
+
+            # 区分启动器类型：集成启动器（exe 打包运行）与源码启动器
+            launch_tag = '集成' if os_utils.run_in_exe() else '源码'
+
+            versions = (launcher_version, code_version, launch_tag)
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
@@ -230,14 +234,15 @@ try:
             instance_name = self.ctx.one_dragon_config.current_active_instance.name
             self.setWindowTitle(f'{project_name} {instance_name}')
 
-        def _update_version(self, versions: tuple[str, str]) -> None:
+        def _update_version(self, versions: tuple[str, str, str]) -> None:
             """
             更新版本显示
-            @param ver:
+            @param versions: (启动器版本, 代码版本, 启动器类型tag)
             @return:
             """
             self.titleBar.setLauncherVersion(versions[0])
             self.titleBar.setCodeVersion(versions[1])
+            self.titleBar.setLaunchTag(versions[2])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""

@@ -28,6 +28,8 @@
 
 当前使用 onnxruntime-dml 在多线程下同时访问多个session是会出现各种意想不到的异常的，因此需要异步使用onnx session时，需统一使用 `gpu_executor.submit` 来提交，保证只有一个session被访问。
 
+另外，onnx session 的线程池默认会自旋等待，空闲时也占用 CPU。本项目都是间歇调用，统一在创建 session 时关闭自旋（见 `onnxocr/inference_engine.py`、`one_dragon/yolo/onnx_model_loader.py`）。
+
 ### 1.3.测试
 
 由于部分测试代码需要游戏截图，防止仓库过大，测试相关代码存放在另一个仓库中，见 [zzz-od-test](https://github.com/OneDragon-Anything/zzz-od-test)
@@ -91,6 +93,8 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 ```shell
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
+
+启动器的 `--version` 固定按 UTF-8 输出：版本描述含中文，按系统本地编码输出时，英文、日文、韩文等系统的本地编码无法表示这些字符，启动器会直接报错退出。旧版启动器仍按系统本地编码输出，因此版本查询先捕获原始字节，再依次尝试 UTF-8 与本地编码；不能依赖父 Python 的默认文本编码，也不要求用户关闭全局 UTF-8 模式。该路径只解析 stdout，stderr 的编码不应影响版本识别。
 
 ### 3.3.集成启动器（RuntimeLauncher）
 
