@@ -42,6 +42,7 @@ from one_dragon_qt.widgets.download_card.onnx_model_download_card import (
     OnnxModelDownloadCard,
 )
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
+from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from one_dragon_qt.widgets.resource_download_dialog import (
     build_resource_source_options,
 )
@@ -97,7 +98,7 @@ class OcrReloadRunner(QThread):
             log.error('后台重新加载 OCR 模型失败', exc_info=True)
 
 
-class ResourceManagementInterface(VerticalScrollInterface):
+class ResourceManagementPage(VerticalScrollInterface):
 
     def __init__(
         self,
@@ -114,9 +115,9 @@ class ResourceManagementInterface(VerticalScrollInterface):
         VerticalScrollInterface.__init__(
             self,
             content_widget=None,
-            object_name='resource_management_interface',
+            object_name='resource_management_page',
             parent=parent,
-            nav_text_cn='资源管理', nav_icon=FluentIcon.SYNC
+            nav_text_cn='资源',
         )
 
         self.fetch_total_runner = FetchTotalRunner(ctx.git_service.fetch_total_commit)
@@ -811,3 +812,34 @@ class ResourceManagementInterface(VerticalScrollInterface):
         dialog.cancelButton.setText(gt('稍后重启'))
         if dialog.exec():
             start_one_dragon(restart=True)
+
+
+class ResourceManagementInterface(PivotNavigatorInterface):
+    """资源管理一级界面，包含资源和插件两个二级页面。"""
+
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        download_queue: DownloadQueueService,
+        parent: QWidget | None = None,
+    ) -> None:
+        self.ctx: OneDragonContext = ctx
+        self.download_queue: DownloadQueueService = download_queue
+        PivotNavigatorInterface.__init__(
+            self,
+            object_name='resource_management_interface',
+            nav_text_cn='资源管理',
+            nav_icon=FluentIcon.SYNC,
+            parent=parent,
+        )
+
+    def create_sub_interface(self) -> None:
+        """创建资源管理下的二级页面。"""
+        from zzz_od.gui.view.setting.setting_plugin_interface import (
+            SettingPluginInterface,
+        )
+
+        self.add_sub_interface(
+            ResourceManagementPage(self.ctx, self.download_queue, parent=self)
+        )
+        self.add_sub_interface(SettingPluginInterface(self.ctx, parent=self))

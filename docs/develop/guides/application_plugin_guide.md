@@ -117,7 +117,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ## 通过 GUI 导入插件
 
-1. 打开设置 → 插件管理
+1. 打开资源管理 → 插件管理
 2. 点击“导入 ZIP”或“导入目录”
 3. 选择插件压缩包、单个插件目录或包含多个插件的集合目录
 4. 插件分别安装到 `plugins/<插件名>/` 并注册
