@@ -164,6 +164,12 @@ class ResourceManagementInterface(VerticalScrollInterface):
         )
         self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
 
+        self.custom_repository_url_opt = TextSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='自定义代码源',
+            content='填写 git 仓库地址后，同步只使用该地址；留空则使用上方代码源',
+        )
+
         self.git_branch_opt = ComboBoxSettingCard(
             icon=FluentIcon.GITHUB,
             title='代码分支',
@@ -194,6 +200,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
         self.code_settings_group = SettingCardGroup(gt('代码设置'))
         self.code_settings_group.addSettingCard(self.repository_url_opt)
+        self.code_settings_group.addSettingCard(self.custom_repository_url_opt)
         self.code_settings_group.addSettingCard(self.git_branch_opt)
         self.code_settings_group.addSettingCard(self.force_update_opt)
 
@@ -652,6 +659,9 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
+        self.custom_repository_url_opt.init_with_adapter(
+            self.ctx.env_config.get_prop_adapter('custom_repository_url')
+        )
         self.git_branch_opt.init_with_adapter(
             self.ctx.env_config.get_prop_adapter('git_branch')
         )
