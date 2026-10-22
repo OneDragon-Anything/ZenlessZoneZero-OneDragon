@@ -718,8 +718,8 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         elif 'prev' in actions:
             self._show_step(self.current_step - 1)
         elif {'capture', 'next'} <= actions:
-            # 截图和下一步设为同一个键时 未截图先截图 已截图进入下一步
-            if self.crops[self.current_step] is None:
+            # 截图和下一步设为同一个键时 未完成先截图 已完成进入下一步
+            if not self._step_done(self.current_step):
                 self._capture_current()
             else:
                 self._on_float_next_clicked()
