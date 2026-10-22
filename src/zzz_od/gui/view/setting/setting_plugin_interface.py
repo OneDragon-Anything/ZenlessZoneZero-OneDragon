@@ -840,9 +840,15 @@ class SettingPluginInterface(VerticalScrollInterface):
             )
             return
 
-        result = self.plugin_import_service.delete_plugin(plugin_package_dir)
+        self._start_plugin_import(
+            lambda: self.plugin_import_service.delete_plugin(plugin_package_dir),
+            partial(self._finish_delete_plugin, plugin_info),
+        )
+
+    def _finish_delete_plugin(self, plugin_info: PluginInfo, result: ImportResult) -> None:
+        """在界面线程处理插件删除结果。"""
+        self._finish_import_operation()
         if result.success:
-            # 刷新应用注册
             self.ctx.refresh_application_registration()
             self._refresh_plugin_list()
             InfoBar.success(
@@ -854,16 +860,17 @@ class SettingPluginInterface(VerticalScrollInterface):
                 duration=3000,
                 parent=self
             )
-        else:
-            InfoBar.error(
-                title=gt('删除失败'),
-                content=result.message,
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=5000,
-                parent=self
-            )
+            return
+
+        InfoBar.error(
+            title=gt('删除失败'),
+            content=result.message,
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=5000,
+            parent=self
+        )
 
     def _on_open_homepage(self, plugin_info: PluginInfo) -> None:
         """打开插件主页"""
