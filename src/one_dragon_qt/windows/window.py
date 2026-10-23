@@ -127,7 +127,7 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        # 启动器类型 tag（集成/源码），使用主题色背景
+        # 启动器类型 tag（集成/源码），灰色底框
         self.launchTagLabel = QLabel(self)
         self.launchTagLabel.setObjectName("launchTagLabel")
         self.launchTagLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
