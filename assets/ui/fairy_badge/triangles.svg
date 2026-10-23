@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="266" height="266" viewBox="60 70 266 266">
+  <!-- 透明背景 -->
+
+  <!-- 独立三角图层：透明背景，四个三角围绕中心旋转分布 -->
+  <!-- 中心点 (193,203)，与徽章同心圆圆心一致 -->
+  <g transform="translate(193,203)">
+    <!-- 四个三角，旋转90°分布，无描边，纯色 #00126E，尖收到 r≈122（距白边内缘127内侧5px） -->
+    <g fill="#00126E">
+      <polygon points="0,-122 -32,-88 32,-88"/>
+      <polygon points="0,-122 -32,-88 32,-88" transform="rotate(90)"/>
+      <polygon points="0,-122 -32,-88 32,-88" transform="rotate(180)"/>
+      <polygon points="0,-122 -32,-88 32,-88" transform="rotate(270)"/>
+    </g>
+  </g>
+</svg>

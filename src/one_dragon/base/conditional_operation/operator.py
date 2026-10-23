@@ -353,6 +353,17 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
+                    bus = self._get_debug_trace_bus()
+                    if bus is not None and bus.enabled:
+                        bus.add_decision(
+                            DecisionTraceItem(
+                                source=self.__class__.__name__,
+                                trigger="中断",
+                                expression="复合中断条件满足",
+                                operation=self._op_list_summary(self.current_execution_info),
+                                status="执行中断",
+                            )
+                        )
                     self._emit_debug_timeline(
                         category="decision",
                         title="触发中断",
