@@ -182,9 +182,7 @@ PcControllerBase
 │   ├── _gamepad_click()         → 后台 + gamepad_key 时手柄按键替代
 │   ├── _background_click()      → 后台 SetCursorPos + PostMessage 点击
 │   └── _foreground_click()      → 前台 pyautogui + ALT 点击
-├── drag_to()                    → 分发到下列私有方法
-│   ├── _background_drag()       → 后台 SetCursorPos + PostMessage 拖拽
-│   └── _foreground_drag()       → 前台 pyautogui 拖拽
+├── drag_to()                    → 同步拖拽，按前后台模式分发
 ├── btn_controller               → keyboard_controller / xbox_controller
 ├── btn_tap / btn_press          → 按键前 _ensure_gamepad_mode()
 ├── btn_release                  → 释放前 _ensure_gamepad_mode()（防御性）
@@ -258,7 +256,7 @@ move_mouse_relative(dx, dy)
 **`PcControllerBase` 核心方法：**
 - `background_mode: bool` — 全局后台模式标志
 - `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
-- `drag_to(end, start=None, duration=0.5, *, timing=None)` — 统一拖拽入口；可选 `DragTiming` 指定按下等待、移动、松开前等待
+- `drag_to(end, start=None, duration=0.5, *, timing=None)` — 同步拖拽，按前后台模式分发；可选 `DragTiming` 指定三段时序
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
 - `_foreground_drag(start, end, duration, *, timing=None)` — 前台 pyautogui 拖拽
 - `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
@@ -286,7 +284,11 @@ move_mouse_relative(dx, dy)
   - `gamepad_type`: `'xbox'` / `'ds4'`（默认读 `config.background_gamepad_type`）
   - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
 
-前后台共用的拖拽参数与默认时序见[控制器拖拽时序](one_dragon_architecture.md#拖拽时序)。
+#### 拖拽输入与清理
+
+前后台共用的参数、默认时序和最短移动时间见[控制器拖拽时序](one_dragon_architecture.md#拖拽时序)。前台通过 pyautogui 按下和松开鼠标；后台使用 PostMessage，并在输入前确认键鼠模式。
+
+拖拽同步执行，不支持中途取消。前后台都在 `finally` 中尝试松开左键；系统松键调用失败时不能保证已经释放。暂停和停止由调用方在动作之间处理，不应在异步回调中提前松开拖拽鼠标。
 
 ## 前置条件
 

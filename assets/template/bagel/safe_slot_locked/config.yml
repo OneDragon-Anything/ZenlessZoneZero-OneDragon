@@ -1,0 +1,10 @@
+sub_dir: bagel
+template_id: safe_slot_locked
+# 历史模板：新开箱面板里格内的时钟图标表示该格闲置、五个格子都可用，
+# 不再有「锁定格」这回事，代码已不再加载本模板，仅保留备查。
+template_name: 安全箱时钟图标（历史遗留，未使用）
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 639, 858
+- 687, 914

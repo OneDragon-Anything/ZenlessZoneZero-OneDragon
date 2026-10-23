@@ -10,7 +10,6 @@ import pyautogui
 import win32api
 import win32con
 import win32gui
-from cv2.typing import MatLike
 from pynput import keyboard
 
 from one_dragon.base.controller.controller_base import ControllerBase
@@ -33,6 +32,8 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
+    from cv2.typing import MatLike
+
     from one_dragon.base.controller.drag_timing import DragTiming
 
 
@@ -226,21 +227,18 @@ class PcControllerBase(ControllerBase):
 
         if not self.game_win.active():
             return False
-
-        mouse_flash_duration = self.get_mouse_flash_duration()
-        time.sleep(mouse_flash_duration)
-
-        # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
-        user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(mouse_flash_duration)
-
-        # 切回原来的前台窗口
-        if prev_hwnd and prev_hwnd != hwnd:
-            with contextlib.suppress(Exception):
-                win32gui.SetForegroundWindow(prev_hwnd)
+        try:
+            mouse_flash_duration = self.get_mouse_flash_duration()
+            time.sleep(mouse_flash_duration)
+            # 鼠标移动触发 Raw Input，让游戏切回键鼠。
+            user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
+            time.sleep(mouse_flash_duration)
+        finally:
+            if prev_hwnd and prev_hwnd != hwnd:
+                with contextlib.suppress(Exception):
+                    win32gui.SetForegroundWindow(prev_hwnd)
         time.sleep(0.1)
         self._game_input_mode = 'keyboard_mouse'
-
         return True
 
     def get_mouse_flash_duration(self) -> float:
@@ -416,7 +414,7 @@ class PcControllerBase(ControllerBase):
         self, end: Point, start: Point | None = None, duration: float = 0.5,
         *, timing: DragTiming | None = None,
     ) -> None:
-        """按住拖拽。
+        """同步完成本次拖拽，不支持中途取消。
 
         Args:
             end: 拖拽目的点。
@@ -426,11 +424,10 @@ class PcControllerBase(ControllerBase):
         """
         if start is None:
             start = get_current_mouse_pos()
-
         if self.background_mode:
-            return self._background_drag(start, end, duration, timing=timing)
-
-        return self._foreground_drag(start, end, duration, timing=timing)
+            self._background_drag(start, end, duration, timing=timing)
+        else:
+            self._foreground_drag(start, end, duration, timing=timing)
 
     def _foreground_drag(
         self, start: Point, end: Point, duration: float = 0.5,
@@ -469,7 +466,7 @@ class PcControllerBase(ControllerBase):
             timing: 显式三段时序，None 保留原行为。
         """
         if not self._ensure_mouse_mode():
-            log.error('无法切到键鼠模式，后台拖拽失败')
+            log.error('无法切到键鼠模式，后台拖拽停止')
             return
 
         hwnd = self.game_win.get_hwnd()
@@ -491,13 +488,13 @@ class PcControllerBase(ControllerBase):
             return
         ex, ey = int(scaled_end.x), int(scaled_end.y)
 
+        release_needed = False
         try:
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
             time.sleep(0.01)
-
-            # 移动到起点并按下
             self._set_cursor_to(hwnd, sx, sy)
             time.sleep(0.01)
+            release_needed = True
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
             press_wait = 0.02 if timing is None else timing.press_wait
             if press_wait > 0:
@@ -516,12 +513,13 @@ class PcControllerBase(ControllerBase):
                 self._set_cursor_to(hwnd, cx, cy)
                 time.sleep(duration_drag / steps)
 
-            # 松开之前先定住鼠标以消除滑动惯性
+            # 松开之前先定住鼠标以消除滑动惯性。
             time.sleep(release_wait)
-            # 松开
-            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
         except Exception:
             log.error('后台拖拽失败', exc_info=True)
+        finally:
+            if release_needed:
+                win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
 
     def scroll(self, down: int, pos: Point | None = None) -> None:
         """向下滚动。
@@ -614,27 +612,26 @@ def drag_mouse(
 
     # 移动到起点并按下
     pyautogui.moveTo(start.x, start.y)
-    pyautogui.mouseDown()
-    if timing is not None and timing.press_wait > 0:
-        time.sleep(timing.press_wait)
+    try:
+        pyautogui.mouseDown()
+        if timing is not None and timing.press_wait > 0:
+            time.sleep(timing.press_wait)
 
-    # 默认前台不增加按下等待，保留原有计算方式。
-    release_wait = PcControllerBase.SLEEP_BEFORE_DRAG_END if timing is None else timing.release_wait
-    move_duration = duration - release_wait if timing is None else timing.move_duration
-    duration_drag = max(move_duration, PcControllerBase.DRAG_MIN_DURATION)
-    # 分步移动到终点
-    steps = max(int(duration_drag / 0.02), 5)
-    for i in range(1, steps + 1):
-        t = i / steps
-        cx = int(start.x + (end.x - start.x) * t)
-        cy = int(start.y + (end.y - start.y) * t)
-        pyautogui.moveTo(cx, cy)
-        ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_MOVE, 0, 0, 0, 0)
-        time.sleep(duration_drag / steps)
-    # 松开之前先定住鼠标以消除滑动惯性
-    time.sleep(release_wait)
-    # 松开
-    pyautogui.mouseUp()
+        # 默认前台不增加按下等待，保留原有计算方式。
+        release_wait = PcControllerBase.SLEEP_BEFORE_DRAG_END if timing is None else timing.release_wait
+        move_duration = duration - release_wait if timing is None else timing.move_duration
+        duration_drag = max(move_duration, PcControllerBase.DRAG_MIN_DURATION)
+        steps = max(int(duration_drag / 0.02), 5)
+        for i in range(1, steps + 1):
+            t = i / steps
+            cx = int(start.x + (end.x - start.x) * t)
+            cy = int(start.y + (end.y - start.y) * t)
+            pyautogui.moveTo(cx, cy)
+            ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_MOVE, 0, 0, 0, 0)
+            time.sleep(duration_drag / steps)
+        time.sleep(release_wait)
+    finally:
+        pyautogui.mouseUp()
 
 
 def get_current_mouse_pos() -> Point:

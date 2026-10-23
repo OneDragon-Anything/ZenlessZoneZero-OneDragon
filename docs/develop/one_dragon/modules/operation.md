@@ -67,6 +67,9 @@ class OperationBase:
 - `_init_network()`: 构建操作节点网络
 - `_execute_one_round()`: 执行单轮操作
 - `_get_next_node()`: 根据结果选择下一个节点
+- `_log_round_result()`: 输出一轮节点的文本日志；默认保持逐轮 INFO，业务子类可合并自己的重复等待
+
+文本日志与调试事件分开发送。覆写 `_log_round_result()` 不改变节点结果、重试预算或 `_emit_debug_round_trace()` 的调用次数；原有 `mute` 规则仍适用。业务侧若合并输出，应独立保留状态变化和重试，并在超时、人工停止及操作返回前补齐剩余汇总。贝果的具体策略见[运行日志](../../zzz/application/bagel.md#运行日志)。
 
 ### 3.3 OperationNode (操作节点)
 

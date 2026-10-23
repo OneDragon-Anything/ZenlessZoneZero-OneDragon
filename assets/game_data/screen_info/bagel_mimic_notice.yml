@@ -1,0 +1,22 @@
+screen_id: bagel_mimic_notice
+screen_name: 贝果-拟态单质提示
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 标题
+  pc_rect:
+  - 690
+  - 300
+  - 1228
+  - 356
+  id_mark: true
+  text: 拟态单质
+  lcs_percent: 0.9
+- area_name: 确认
+  pc_rect:
+  - 925
+  - 798
+  - 1025
+  - 862
+  text: 确认
+  lcs_percent: 0.9
