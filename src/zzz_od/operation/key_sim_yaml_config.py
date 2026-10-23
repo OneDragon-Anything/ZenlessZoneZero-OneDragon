@@ -34,7 +34,10 @@ class KeySimYamlConfig(YamlConfig):
             if len(plugin_ymls) > 1:
                 raise ValueError(f'插件键鼠脚本重名: {self.module_name}.yml')
             if plugin_ymls:
-                plugin_yml = plugin_ymls[0]
+                plugin_yml = plugin_ymls[0].resolve(strict=True)
+                plugin_root = self._plugin_dir.resolve(strict=True)
+                if not plugin_yml.is_relative_to(plugin_root):
+                    raise ValueError(f'插件键鼠脚本超出注册目录: {self.module_name}.yml')
                 return str(plugin_yml), str(plugin_yml), None
         # 最后回退仓库自带 sample 文件
         return YamlConfig._get_yaml_file_paths(self)
