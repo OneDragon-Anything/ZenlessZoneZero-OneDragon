@@ -28,6 +28,7 @@ class DailySignInApp(ZApplication):
             ctx=ctx,
             app_id=daily_signin_const.APP_ID,
             op_name=daily_signin_const.APP_NAME,
+            op_after=None,
         )
         self.instance_idx: int = instance_idx
         self.group_id: str = group_id
