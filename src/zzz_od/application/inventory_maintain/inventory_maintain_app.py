@@ -1,0 +1,5 @@
+from one_dragon.base.operation.application_base import Application
+from one_dragon.base.operation.operation_node import operation_node
+from zzz_od.application.inventory_maintain.inventory_maintain import application_type
+
+InventoryMaintainApplication = application_type(Application, operation_node)

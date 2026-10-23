@@ -95,7 +95,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def _get_all_apps(self) -> dict[str, str]:
         """获取所有已注册的默认组应用 {app_id: app_name}"""
         result: dict[str, str] = {}
-        for app_id in self.ctx.run_context.default_group_apps:
+        for app_id in self.ctx.run_context.standalone_app_ids:
             name = self.ctx.run_context.get_application_name(app_id)
             result[app_id] = name or app_id
         return result

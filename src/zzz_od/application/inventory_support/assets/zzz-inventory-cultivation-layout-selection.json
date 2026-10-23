@@ -1,0 +1,1596 @@
+{
+  "schema": "native-bag-calibration/v1",
+  "game": "zzz",
+  "ready": true,
+  "candidate_only": true,
+  "reason": "Inherited layout; each new identity needs fresh exact-name/count evidence at runtime.",
+  "game_version": "OSPRODWin3.2.0_R19437730_S19159270_D19437730",
+  "game_exe_sha256": "bd809b00609e029f114f8213fc248b5fd2d7466a3251e5ab8beaa2ca15387faf",
+  "resource_fingerprints": {
+    "ZenlessZoneZero_Data/Persistent/base_version_hash": "65eb96c5909aa946cef0f05baf131655210d1423b15c5874b453dd4213cbc81a",
+    "ZenlessZoneZero_Data/Persistent/op_version": "5cef4de6441d0553355eec8cebac5ea7ff5cdfb61711f72e005cfc000dc8cb38",
+    "ZenlessZoneZero_Data/Persistent/data_version_persist": "b046c748f617139393103a78613736b5701c2c66d5e007668b0fb53ef29da0ab",
+    "ZenlessZoneZero_Data/Persistent/res_version_persist": "ed201cb1e5e5126409a4ad91c11e6362668c5f7fdadf9a364a4bdaeb2413bfe8",
+    "ZenlessZoneZero_Data/Persistent/silence_version_persist": "2087b538fc25648062f516db2d328d8352c5dc259b1f6994ce75ad0eb5178014"
+  },
+  "scope": "selected_materials_only",
+  "native_evidence": "LAYOUT ONLY, not these items: audits/2026-10-10/inventory/zzz-121249-615547/report.json: two fresh native LOW detail OCR frames; crop hashes and stored OCR independently replay-verified; owned PID36796 created2026-10-10T12:02:44.2993510-04:00. Selected detail only, automatic traversal still pending.",
+  "page_anchor": {
+    "text": "材料道具",
+    "roi": [
+      70,
+      120,
+      115,
+      36
+    ]
+  },
+  "materials": [
+    {
+      "id": "advanced-attack-seal",
+      "name": "高阶强攻认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "pioneer-certification-seal",
+      "name": "先行者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-physical-chip",
+      "name": "进阶物理芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-physical-chip",
+      "name": "特化物理芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-freeze-chip",
+      "name": "基础冰结芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-freeze-chip",
+      "name": "进阶冰结芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-freeze-chip",
+      "name": "特化冰结芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-caustic-thorn",
+      "name": "高维数据：淬刺蚀芯",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-dream-corroded-iron",
+      "name": "高维数据：蚀梦残铁",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "turbid-patterned-crystal",
+      "name": "浊纹晶质",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "foul-red-crystal-spike",
+      "name": "秽红晶刺",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "hamster-cage-pass",
+      "name": "「仓鼠笼」访问器",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-stun-seal",
+      "name": "初阶击破认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-stun-seal",
+      "name": "高阶击破认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "buster-certification-seal",
+      "name": "破阵者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-anomaly-seal",
+      "name": "初阶异常认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-anomaly-seal",
+      "name": "高阶异常认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "controller-certification-seal",
+      "name": "掌控者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-support-seal",
+      "name": "初阶支援认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-support-seal",
+      "name": "高阶支援认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "ruler-certification-seal",
+      "name": "统御者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-defense-seal",
+      "name": "初阶防护认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-defense-seal",
+      "name": "高阶防护认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "defender-certification-seal",
+      "name": "捍卫者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-rupture-seal",
+      "name": "初阶命破认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-rupture-seal",
+      "name": "高阶命破认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "arbiter-certification-seal",
+      "name": "裁决者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-burn-chip",
+      "name": "基础引燃芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-burn-chip",
+      "name": "进阶引燃芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-burn-chip",
+      "name": "特化引燃芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-shock-chip",
+      "name": "基础电击芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-shock-chip",
+      "name": "进阶电击芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-shock-chip",
+      "name": "特化电击芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-ether-chip",
+      "name": "基础以太芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-ether-chip",
+      "name": "进阶以太芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-ether-chip",
+      "name": "特化以太芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "attack-component",
+      "name": "强攻组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-attack-component",
+      "name": "增强型强攻组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-attack-component",
+      "name": "特化型强攻组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "stun-component",
+      "name": "击破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-stun-component",
+      "name": "增强型击破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-stun-component",
+      "name": "特化型击破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "anomaly-component",
+      "name": "异常组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-anomaly-component",
+      "name": "增强型异常组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-anomaly-component",
+      "name": "特化型异常组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-support-component",
+      "name": "增强型支援组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-support-component",
+      "name": "特化型支援组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "defense-component",
+      "name": "防护组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-defense-component",
+      "name": "增强型防护组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-defense-component",
+      "name": "特化型防护组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "rupture-component",
+      "name": "命破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-rupture-component",
+      "name": "增强型命破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-rupture-component",
+      "name": "特化型命破组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "trainee-investigator-log",
+      "name": "见习调查员记录",
+      "category": "character_exp",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "official-investigator-log",
+      "name": "正式调查员记录",
+      "category": "character_exp",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "w-engine-battery",
+      "name": "音擎蓄电池",
+      "category": "weapon_exp",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "w-engine-power-supply",
+      "name": "变频音擎电源",
+      "category": "weapon_exp",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-wind-chip",
+      "name": "基础风蚀芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-wind-chip",
+      "name": "进阶风蚀芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-wind-chip",
+      "name": "特化风蚀芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-lumen-chip",
+      "name": "基础流明芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-lumen-chip",
+      "name": "进阶流明芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-lumen-chip",
+      "name": "特化流明芯片",
+      "category": "skill",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-death-notice",
+      "name": "高维数据：凶刑讣告",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-crimson-awe",
+      "name": "高维数据：殷红震慑",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-pursuing-phantom",
+      "name": "高维数据：追袭骸影",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-steel-malice",
+      "name": "高维数据：钢铁恶意",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-destructive-advance",
+      "name": "高维数据：毁荡突进",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-falling-fist",
+      "name": "高维数据：拳坠如陨",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-stealth-phantom",
+      "name": "高维数据：潜袭魅影",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-thunderous-scales",
+      "name": "高维数据：游鳞雷动",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-life-cutting",
+      "name": "高维数据：索命切割",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-corrupted-elytra",
+      "name": "高维数据：鞘翅秽种",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-venomous-edge",
+      "name": "高维数据：诡运毒锋",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-deep-corrosion-circuit",
+      "name": "高维数据：深蚀回路",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "living-drive",
+      "name": "活态驱动",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "finale-dance-shoes",
+      "name": "终幕舞鞋",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "scarlet-engine",
+      "name": "猩红引擎",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "fanatic-sculpture",
+      "name": "狂信之塑",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "refined-exuvia",
+      "name": "塑炼遗蜕",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-bloodstained-feather",
+      "name": "高维数据：喋血秽羽",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "marrow-thorn",
+      "name": "吮髓之棘",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "fate-exuvia",
+      "name": "刻命残蜕",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "basic-edge-seal",
+      "name": "初阶锋御认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "advanced-edge-seal",
+      "name": "高阶锋御认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "edge-certification-seal",
+      "name": "执锋者认证章",
+      "category": "character_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "edge-component",
+      "name": "锋御组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "reinforced-edge-component",
+      "name": "增强型锋御组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "specialized-edge-component",
+      "name": "特化型锋御组件",
+      "category": "weapon_promotion",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "higher-dimensional-data-simulated-core",
+      "name": "高维数据：拟造核心",
+      "category": "core_skill_expert",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    },
+    {
+      "id": "counterfeit-core",
+      "name": "赝造离核",
+      "category": "weekly_boss",
+      "label_roi": [
+        1410,
+        268,
+        300,
+        42
+      ],
+      "quantity_roi": [
+        1540,
+        423,
+        95,
+        39
+      ]
+    }
+  ],
+  "navigation_rois": {
+    "grid": [
+      95,
+      210,
+      1220,
+      680
+    ],
+    "scrollbar": [
+      1350,
+      215,
+      30,
+      675
+    ]
+  },
+  "recognition_basis": {
+    "kind": "inherited_layout_runtime_exact_identity",
+    "layout_sha256": "7f6556ca6caa83a4a8394f44d22f8748458d9e4f20c808190c58c999a9705bf5",
+    "catalog_sha256": "901253ccdfdc552e95520051a78da67dc7763a5177ead961c7e7061f6bfe7d9e",
+    "per_item_native_acceptance": "unproven_before_capture"
+  }
+}
