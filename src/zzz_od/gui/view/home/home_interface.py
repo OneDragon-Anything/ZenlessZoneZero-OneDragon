@@ -100,7 +100,7 @@ class ButtonGroup(QWidget):
 
         # 创建 插件商城 按钮
         market_button = IconButton(
-            FluentIcon.SHOP.icon(color=QColor("#fff")),
+            FluentIcon.CART.icon(color=QColor("#fff")),
             tip_title="插件商城",
             tip_content="浏览与下载官方收录插件",
             isTooltip=True,
