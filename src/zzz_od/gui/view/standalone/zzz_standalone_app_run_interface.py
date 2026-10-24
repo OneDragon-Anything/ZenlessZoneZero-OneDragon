@@ -16,7 +16,7 @@ class ZStandaloneAppRunInterface(StandaloneRunInterface):
             self,
             ctx=ctx,
             object_name='standalone_app_run_interface',
-            nav_text_cn='应用运行',
+            nav_text_cn='自定义运行',
             nav_icon=FluentIcon.APPLICATION,
             parent=parent,
         )
@@ -24,6 +24,6 @@ class ZStandaloneAppRunInterface(StandaloneRunInterface):
     def get_widget_at_top(self) -> QWidget:
         return HelpCard(
             url='https://one-dragon.com/zzz/zh/feat/feat_standalone_app.html',
-            title='应用运行说明',
+            title='自定义运行说明',
             content='从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程',
         )

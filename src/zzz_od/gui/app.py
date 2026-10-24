@@ -142,11 +142,12 @@ try:
             )
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
-            # 应用运行
-            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import (
-                ZStandaloneAppInterface,
+            # 插件
+            from zzz_od.gui.view.plugin.plugin_interface import (
+                PluginInterface,
             )
-            self.add_sub_interface(ZStandaloneAppInterface(self.ctx, parent=self))
+            self.plugin_interface = PluginInterface(self.ctx, parent=self)
+            self.add_sub_interface(self.plugin_interface)
 
             # 画中画
             from one_dragon_qt.widgets.pip_button import PipButton
@@ -264,6 +265,8 @@ try:
             super().closeEvent(event)
             if not event.isAccepted():
                 return
+            if hasattr(self, 'plugin_interface') and self.plugin_interface is not None:
+                self.plugin_interface.shutdown()
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 

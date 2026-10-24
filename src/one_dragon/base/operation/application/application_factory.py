@@ -3,6 +3,7 @@ from types import ModuleType
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from one_dragon.utils.log_utils import log
 
 
 class ApplicationFactory:
@@ -140,21 +141,24 @@ class ApplicationFactory:
         获取运行记录实例。
 
         使用缓存机制，如果运行记录已存在则返回缓存的记录，否则创建新的记录并缓存。
+        插件未实现 create_run_record 时回退到通用运行记录，避免一个插件导致整个应用列表无法显示。
 
         Args:
             instance_idx: 账号实例下标
 
         Returns:
-            AppRunRecord: 运行记录对象，如果创建失败则返回None
-
-        Raises:
-            Exception: 如果子类应用无需配置(即不提供create_run_record)时，调用本方法会抛出异常
+            AppRunRecord: 运行记录对象
         """
         key = f"{instance_idx}"
         if key in self._run_record_cache:
             return self._run_record_cache[key]
 
-        record = self.create_run_record(instance_idx)
+        try:
+            record = self.create_run_record(instance_idx)
+        except Exception as exc:  # noqa: BLE001 - 插件缺实现时降级，不打断界面
+            log.warning(f'应用 {self.app_id} 未实现 create_run_record，改用通用运行记录: {exc}')
+            record = AppRunRecord(app_id=self.app_id, instance_idx=instance_idx)
+
         if record is not None:
             self._run_record_cache[key] = record
 

@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 
@@ -65,6 +66,9 @@ class AppRunList(DraggableList):
         # 存储应用卡片
         self._app_cards: list[AppRunCard] = []
 
+        # 最近一次设置的应用列表，含因异常未能建卡的应用
+        self._app_list: list[ApplicationGroupConfigItem] = []
+
         # 连接父类的拖拽排序信号
         self.order_changed.connect(self._handle_order_changed)
 
@@ -82,6 +86,7 @@ class AppRunList(DraggableList):
         """
         # 如果已有卡片且数量一致，更新现有卡片（更高效）
         if len(self._app_cards) > 0 and len(self._app_cards) == len(app_list):
+            self._app_list = list(app_list)
             self._update_existing_cards(app_list, instance_idx)
         else:
             # 数量不一致或首次创建，重建整个列表
@@ -103,10 +108,15 @@ class AppRunList(DraggableList):
             if idx < len(self._app_cards):
                 card = self._app_cards[idx]
                 card.update_item(app, idx)
-                run_record = self.ctx.run_context.get_run_record(
-                    app_id=app.app_id,
-                    instance_idx=instance_idx
-                )
+                try:
+                    run_record = self.ctx.run_context.get_run_record(
+                        app_id=app.app_id,
+                        instance_idx=instance_idx
+                    )
+                except Exception as exc:  # noqa: BLE001 - 单个应用异常不能中断整个列表刷新
+                    log.warning(f'应用 {app.app_id} 创建运行记录失败，使用空运行状态: {exc}')
+                    run_record = None
+
                 card.set_app(
                     app,
                     run_record,
@@ -127,14 +137,19 @@ class AppRunList(DraggableList):
             app_list: 应用配置列表
             instance_idx: 实例索引
         """
+        self._app_list = list(app_list)
         self._app_cards.clear()
         self.clear()
 
         for idx, app in enumerate(app_list):
-            run_record = self.ctx.run_context.get_run_record(
-                app_id=app.app_id,
-                instance_idx=instance_idx
-            )
+            try:
+                run_record = self.ctx.run_context.get_run_record(
+                    app_id=app.app_id,
+                    instance_idx=instance_idx
+                )
+            except Exception as exc:  # noqa: BLE001 - 单个应用异常不能拖垮整页
+                log.warning(f'应用 {app.app_id} 创建运行记录失败，跳过该卡片: {exc}')
+                continue
             card = AppRunCard(
                 app=app,
                 index=idx,
@@ -193,9 +208,19 @@ class AppRunList(DraggableList):
                     self._rebuild_layout()
 
                     # 触发信号
-                    new_app_list = [card.app for card in self._app_cards]
-                    self.app_list_changed.emit(new_app_list)
+                    self.app_list_changed.emit(self._ordered_app_list())
                 break
+
+    def _ordered_app_list(self) -> list[ApplicationGroupConfigItem]:
+        """按当前卡片顺序排出完整应用列表。
+
+        某些应用可能因运行记录创建失败没有建卡，它们不在卡片里，但仍属于配置，
+        排序保存时按原顺序补在后面，避免被静默剔除。
+        """
+        ordered = [card.app for card in self._app_cards]
+        known = {app.app_id for app in ordered}
+        ordered.extend(app for app in self._app_list if app.app_id not in known)
+        return ordered
 
     def _handle_order_changed(self, new_data_list: list) -> None:
         """
@@ -218,5 +243,4 @@ class AppRunList(DraggableList):
             card.update_item(card.data, idx)
 
         # 触发应用列表改变信号
-        new_app_list = [card.app for card in self._app_cards]
-        self.app_list_changed.emit(new_app_list)
+        self.app_list_changed.emit(self._ordered_app_list())

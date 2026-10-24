@@ -85,6 +85,39 @@ PLUGIN_VERSION = "1.0.0"
 PLUGIN_DESCRIPTION = "插件功能描述"
 ```
 
+### 工厂类必须实现的方法
+
+`ApplicationFactory` 有三个必须实现的方法，漏掉任意一个都会在界面上暴露成异常：
+
+```python
+class MyPluginFactory(ApplicationFactory):
+    def create_application(self, instance_idx: int, group_id: str) -> Application: ...
+    def create_config(self, instance_idx: int, group_id: str) -> ApplicationConfig: ...
+    def create_run_record(self, instance_idx: int) -> AppRunRecord: ...
+```
+
+`create_run_record` 最容易漏：`DEFAULT_GROUP = True` 的插件会出现在一条龙运行列表里，列表要为每个应用读取运行记录才能显示状态。漏实现时主程序会回退到通用运行记录并打警告，插件卡片仍能显示，但运行状态不会按插件自己的周期重置，需要插件自行实现才准确。
+
+### 插件封面
+
+插件包根目录放一个 `plugin.json` 声明元数据，封面用其中的 `cover` 字段指向包内图片：
+
+```json
+{
+  "id": "my_plugin",
+  "name": "我的插件",
+  "version": "1.0.0",
+  "cover": "assets/cover.png"
+}
+```
+
+要求与约定：
+
+- `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
+- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
+- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对站点根目录的路径。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存。
+
 ### 工厂类
 
 ```python
@@ -117,7 +150,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ## 通过 GUI 导入插件
 
-1. 打开资源管理 → 插件管理
+1. 打开 插件 → 插件管理
 2. 点击“导入 ZIP”或“导入文件夹”
 3. 选择插件压缩包、单个插件目录或包含多个插件的集合目录
 4. 插件分别安装到 `plugins/<插件名>/` 并注册

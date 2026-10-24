@@ -59,6 +59,9 @@ assets/ui/static_background.webp
 assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
+config/plugin_market_cache.json
+config/plugin_subscription.yml
+config/temp/
 
 # 执行文件
 *.exe

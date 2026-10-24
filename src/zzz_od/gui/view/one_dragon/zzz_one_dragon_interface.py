@@ -12,6 +12,9 @@ from zzz_od.gui.view.one_dragon.predefined_team_interface import PredefinedTeamI
 from zzz_od.gui.view.one_dragon.zzz_one_dragon_run_interface import (
     ZOneDragonRunInterface,
 )
+from zzz_od.gui.view.standalone.zzz_standalone_app_run_interface import (
+    ZStandaloneAppRunInterface,
+)
 
 
 class ZOneDragonInterface(PivotNavigatorInterface):
@@ -31,6 +34,10 @@ class ZOneDragonInterface(PivotNavigatorInterface):
     def create_sub_interface(self) -> None:
         self.add_sub_interface(
             sub_interface=ZOneDragonRunInterface(self.ctx),
+            enable_page_stack=True,
+        )
+        self.add_sub_interface(
+            sub_interface=ZStandaloneAppRunInterface(self.ctx),
             enable_page_stack=True,
         )
         self.add_sub_interface(ChargePlanInterface(self.ctx))
