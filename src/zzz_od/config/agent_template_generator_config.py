@@ -8,7 +8,8 @@ class AgentTemplateGeneratorConfig(YamlConfig):
         YamlConfig.__init__(self, 'agent_template_generator')
 
     def get_hotkey(self, action: str, default_value: str) -> str:
-        return self.get(f'hotkey_{action}', default_value)
+        value = self.get(f'hotkey_{action}', default_value)
+        return value if isinstance(value, str) else default_value
 
     def set_hotkey(self, action: str, value: str) -> None:
         self.update(f'hotkey_{action}', value)

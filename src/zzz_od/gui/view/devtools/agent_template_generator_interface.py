@@ -344,8 +344,8 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             if p.is_dir() and p.name.startswith(prefix) and p.name != f'{prefix}template'
         ]
 
-    def _committed_agent_ids(self) -> set[str]:
-        """当前提交中已有的代理人，读取失败时返回空集合。"""
+    def _committed_agent_ids(self) -> set[str] | None:
+        """当前提交中已有的代理人，读取失败时返回 None。"""
         prefix = 'avatar_1_'
         try:
             repo = pygit2.Repository(os_utils.get_work_dir())
@@ -353,7 +353,10 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             return {e.name.removeprefix(prefix) for e in tree if e.name.startswith(prefix)}
         except Exception:
             log.error('读取已提交的代理人模板失败', exc_info=True)
-            return set()
+            return None
+
+    def _show_git_error(self) -> None:
+        self.show_info_bar(gt('无法读取 Git 提交记录'), '', icon=InfoBarIcon.ERROR, duration=5000)
 
     def _saved_raw_paths(self, agent_id: str) -> list[Path]:
         return [Path(get_template_raw_path(step.sub_dir, step.template_id_of(agent_id))) for step in TEMPLATE_STEPS]
@@ -361,10 +364,13 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
     def _show_list(self, open_new_if_empty: bool = False) -> None:
         """列表页只显示未提交的代理人，最近修改的排在前面。"""
         committed = self._committed_agent_ids()
+        if committed is None:
+            # 无法区分哪些已提交 不列出任何代理人 避免误改内置模板
+            self._show_git_error()
         quick_idx = next(i for i, step in enumerate(TEMPLATE_STEPS) if step.key == 'quick')
         rows: list[tuple[float, str, list[Path]]] = []
         for agent_id in self._local_agent_ids():
-            if agent_id in committed:
+            if committed is None or agent_id in committed:
                 continue
             paths = [p for p in self._saved_raw_paths(agent_id) if p.exists()]
             rows.append((max((p.stat().st_mtime for p in paths), default=0), agent_id, paths))
@@ -391,7 +397,11 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         self.agent_list.show()
 
     def _on_delete_agent(self, agent_id: str) -> None:
-        if agent_id in self._committed_agent_ids():
+        committed = self._committed_agent_ids()
+        if committed is None:
+            self._show_git_error()
+            return
+        if agent_id in committed:
             return
         box = MessageBox(gt('删除 {name}？').format(name=agent_id), '', self.window())
         box.yesButton.setText(gt('删除'))

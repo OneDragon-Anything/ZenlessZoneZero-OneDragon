@@ -219,10 +219,10 @@ class AgentTemplateFloatWindow(QWidget):
         self.adjustSize()
 
     def show_at(self, x: int, y: int) -> None:
-        """显示在指定位置，位置无效时显示在主屏右上角。"""
+        """显示在指定位置，位置不在任何屏幕内时显示在主屏右上角。"""
         self.adjustSize()
-        screen = QGuiApplication.primaryScreen().availableGeometry()
-        if not screen.contains(QPoint(x, y)):
+        if QGuiApplication.screenAt(QPoint(x, y)) is None:
+            screen = QGuiApplication.primaryScreen().availableGeometry()
             x = screen.right() - self.width() - 24
             y = screen.top() + 24
         self.move(x, y)
