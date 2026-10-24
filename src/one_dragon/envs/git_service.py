@@ -34,6 +34,10 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
+from one_dragon.envs.runtime_compatibility import (
+    check_manifest_compatible,
+    load_runtime_manifest,
+)
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -1390,11 +1394,10 @@ class GitService:
     # ================== 模块清单检查 ==================
 
     def _check_manifest_compatible(self, target_oid: Oid) -> tuple[bool, str]:
-        """检查模块清单是否与当前运行环境兼容
+        """读取目标提交的清单，调用运行时兼容性检查。
 
-        本地清单从 .runtime/module_manifest.py 读取（打包时写入），
-        远程清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
-        仅在 frozen 环境（PyInstaller 打包后）下执行检查。
+        没有可用的运行时打包清单时跳过检查。
+        目标清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
 
         Args:
             target_oid: 目标提交 OID
@@ -1402,19 +1405,8 @@ class GitService:
         Returns:
             (是否兼容, 提示消息)
         """
-        if not getattr(sys, 'frozen', False):
-            return True, ''
-
-        # 读取本地 manifest（打包进 .runtime/ 的文件）
-        runtime_dir = Path(getattr(sys, '_MEIPASS', ''))
-        local_manifest_path = runtime_dir / 'module_manifest.py'
-        if not local_manifest_path.is_file():
-            return True, ''
-
-        try:
-            local_manifest = local_manifest_path.read_bytes()
-        except Exception:
-            log.warning('读取本地模块清单失败，跳过检查', exc_info=True)
+        local_manifest = load_runtime_manifest()
+        if local_manifest is None:
             return True, ''
 
         # 从目标 commit 的 project.yml 获取清单路径
@@ -1427,19 +1419,11 @@ class GitService:
         if remote_manifest is None:
             return True, ''
 
-        if local_manifest == remote_manifest:
-            return True, ''
+        if not check_manifest_compatible(local_manifest, remote_manifest):
+            log.warning(f'运行环境不兼容，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
-        # 兼容旧打包产物的 CRLF；先走 raw bytes 快路径，仅不一致时再归一化。
-        if b'\r' in local_manifest or b'\r' in remote_manifest:
-            normalized_local_manifest = local_manifest.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-            normalized_remote_manifest = remote_manifest.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-            if normalized_local_manifest == normalized_remote_manifest:
-                return True, ''
-
-        msg = gt('目标版本的运行环境与当前不兼容')
-        log.warning(f'模块清单已变更，阻止代码更新。目标: {str(target_oid)[:7]}')
-        return False, msg
+        return True, ''
 
     def _get_manifest_path_from_commit(self, commit_oid: Oid) -> str | None:
         """从指定 commit 的 project.yml 中读取 manifest_path
