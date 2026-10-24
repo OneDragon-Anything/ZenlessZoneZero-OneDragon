@@ -1,8 +1,10 @@
 import json
+import threading
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -45,6 +47,9 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 class SettingPushInterface(VerticalScrollInterface):
 
+    # 推送在子线程进行 结果用信号回传 由 Qt 排队到界面线程再弹提示条
+    push_test_finished = Signal(bool, str, str)
+
     def __init__(self, ctx, parent=None):
 
         VerticalScrollInterface.__init__(
@@ -55,6 +60,7 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.MESSAGE
         )
         self.ctx = ctx
+        self.push_test_finished.connect(self._on_test_push_finished)
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -233,8 +239,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _send_test_message(self):
         """发送测试消息到当前选择的通知方式"""
-        selected_method = self.notification_method_opt.getValue()
-        test_method = str(selected_method)
+        test_method = str(self.notification_method_opt.getValue())
         if test_method == "WEBHOOK":
             # 如果是Webhook方式，先验证配置
             try:
@@ -243,39 +248,53 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message(str(e))
                 return
 
-        try:
-            ok, msg = self.ctx.push_service.push(
-                title=gt('测试推送通知'),
-                content=gt('这是一条测试消息'),
-                image=self._get_test_screenshot(),
-                channel_id=test_method,
-            )
-            if not ok:
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向当前通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+        self._start_test_push(test_method, "已向当前通知方式发送测试消息")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        try:
-            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
-            ok, msg = self.ctx.push_service.push(
-                title=gt('测试推送通知'),
-                content=gt('这是一条测试消息'),
-                image=self._get_test_screenshot(),
-            )
-            if not ok:
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向所有已配置的通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+        self._start_test_push(None, "已向所有已配置的通知方式发送测试消息")
+
+    def _start_test_push(self, channel_id: str | None, success_msg: str) -> None:
+        """
+        后台发送测试推送 避免网络请求卡住界面线程
+
+        推送期间禁用按钮 既提示正在发送 也避免连点堆积多次推送。
+
+        Args:
+            channel_id: 推送渠道ID 为空时使用所有通过配置校验的渠道
+            success_msg: 推送成功时的提示文案
+        """
+        # 先生成截图再禁用按钮 生成失败时按钮仍可点击 不会卡在禁用状态
+        image = self._get_test_screenshot()
+
+        self.test_current_btn.setDisabled(True)
+        self.test_all_btn.setDisabled(True)
+        self._show_success_message("正在发送测试消息...")
+
+        def push_in_background() -> None:
+            try:
+                ok, msg = self.ctx.push_service.push(
+                    title=gt('测试推送通知'),
+                    content=gt('这是一条测试消息'),
+                    image=image,
+                    channel_id=channel_id,
+                )
+            except Exception as e:
+                ok, msg = False, f'测试推送失败: {e}'
+
+            self.push_test_finished.emit(ok, msg, success_msg)
+
+        threading.Thread(target=push_in_background, daemon=True).start()
+
+    def _on_test_push_finished(self, ok: bool, msg: str, success_msg: str) -> None:
+        """测试推送结束后的界面反馈"""
+        self.test_current_btn.setDisabled(False)
+        self.test_all_btn.setDisabled(False)
+
+        if ok:
+            self._show_success_message(success_msg)
+        else:
+            self._show_error_message(msg if msg else "测试推送失败")
 
     def _get_test_screenshot(self) -> MatLike | None:
         """生成通知测试用标准色相图。"""
