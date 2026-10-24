@@ -16,7 +16,7 @@ class ZStandaloneAppRunInterface(StandaloneRunInterface):
             self,
             ctx=ctx,
             object_name='standalone_app_run_interface',
-            nav_text_cn='插件中心',
+            nav_text_cn='应用运行',
             nav_icon=FluentIcon.APPLICATION,
             parent=parent,
         )
