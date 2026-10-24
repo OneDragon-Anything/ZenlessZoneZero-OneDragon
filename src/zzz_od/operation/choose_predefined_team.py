@@ -62,6 +62,10 @@ class ChoosePredefinedTeam(ZOperation):
         press_wait=0.6, move_duration=0.3, release_wait=1.0,
     )
     MAX_TEAM_COUNT: int = 20
+    # 从代理人详情页点「预备编队」进入列表有转场动画，首帧可能还读不到按钮。
+    # 读不到视为未就绪，用 round_wait 等下一轮重截再读，读满次数仍没有才判失败。
+    SELECT_BUTTON_MAX_WAIT_TIMES: int = 3
+    SELECT_BUTTON_WAIT_INTERVAL: float = 0.5
     # 编队卡片上 100% 不是队名的 UI 文本：槽位标记、右下角标签、头像等级
     TEAM_NAME_UI_TEXT_SET: frozenset[str] = frozenset(
         {'1P', '2P', '3P', 'TEAM', 'AGENT', 'BANGBOO', '60'}
@@ -103,6 +107,7 @@ class ChoosePredefinedTeam(ZOperation):
         self.shiyu_team_selected: bool = shiyu_target_list is None
         self.pending_select_button_center: Point | None = None
         self.pending_cancel_button_center: Point | None = None
+        self.select_missing_wait_times: int = 0
         self.start_at_team_list: bool = start_at_team_list
         self.finish_without_confirm: bool = finish_without_confirm
 
@@ -144,6 +149,7 @@ class ChoosePredefinedTeam(ZOperation):
         此时需取消预选并等待原按钮恢复为 SELECT，避免直接选择失败。
         取消或选择后若持续无法确认状态，按节点重试上限失败退出，避免无限等待。
         每次点击后也要等待画面确认选中，再继续处理下一支编队。
+        进入列表有转场动画，首帧读不到按钮时先等待重读，读满次数才判失败。
         """
         if not self.shiyu_team_selected:
             if not self.scan_started:
@@ -257,6 +263,7 @@ class ChoosePredefinedTeam(ZOperation):
             )
             self.pending_select_button_center = None
             self.current_target_idx += 1
+            self.select_missing_wait_times = 0
             return self.round_wait(
                 ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
                 wait=0.2,
@@ -307,7 +314,30 @@ class ChoosePredefinedTeam(ZOperation):
                 team_slot_rect,
             )
             if selected_button_mr is None:
+                # 进入列表有转场动画，首帧读不到按钮不代表编队不可选；
+                # 先当作未就绪等下一轮重新截图再读，读满次数才判失败。
+                if (
+                    self.select_missing_wait_times
+                    < ChoosePredefinedTeam.SELECT_BUTTON_MAX_WAIT_TIMES
+                ):
+                    self.select_missing_wait_times += 1
+                    log.info(
+                        '当前编队未找到SELECT，等待画面刷新后重读:%d 次 队伍:%s',
+                        self.select_missing_wait_times,
+                        target_team.name,
+                    )
+                    return self.round_wait(
+                        ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE,
+                        wait=ChoosePredefinedTeam.SELECT_BUTTON_WAIT_INTERVAL,
+                    )
+                file_name = self.save_screenshot(prefix='choose_team_no_select')
+                log.info(
+                    '当前编队未找到SELECT 截图已保存:%s 队伍:%s',
+                    file_name,
+                    target_team.name,
+                )
                 return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
+            self.select_missing_wait_times = 0
             log.info('预备编队取消预选:队伍:%s', target_team.name)
             self.ctx.controller.click(selected_button_mr.center)
             self.pending_cancel_button_center = selected_button_mr.center
@@ -321,6 +351,7 @@ class ChoosePredefinedTeam(ZOperation):
             target_team.name,
             target_team_idx + 1,
         )
+        self.select_missing_wait_times = 0
         self.ctx.controller.click(select_button_mr.center)
         self.pending_select_button_center = select_button_mr.center
         return self.round_wait(ChoosePredefinedTeam.STATUS_CONTINUE_CHOOSE, wait=0.5)
