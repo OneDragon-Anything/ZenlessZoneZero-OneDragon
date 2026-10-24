@@ -1,0 +1,3694 @@
+{
+  "image": "quality_samples.png",
+  "local_center": [
+    65,
+    70
+  ],
+  "scope": "古怪试炼；69个格子观测，包含同一物品在不同位置或时刻的重复；未覆盖C",
+  "metrics": {
+    "robust": {
+      "whole": {
+        "total": 1725,
+        "wrong": 175
+      },
+      "no_text": {
+        "total": 1725,
+        "wrong": 475
+      },
+      "baseline": {
+        "total": 1725,
+        "wrong": 9
+      },
+      "strips": {
+        "total": 1725,
+        "wrong": 0
+      }
+    },
+    "quality": {
+      "whole": 62,
+      "no_text": 50,
+      "baseline": 69,
+      "strips": 69
+    },
+    "count": 69
+  },
+  "samples": [
+    {
+      "sample": 1,
+      "source": "BagelStoreSafe_1792771368620.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 0,
+      "center": [
+        1353,
+        245
+      ],
+      "type": "战术道具",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            6.0,
+            226.0,
+            207.5
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            242.0,
+            203.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            3.0,
+            184.5,
+            209.5
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            195.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        0,
+        130,
+        130
+      ]
+    },
+    {
+      "sample": 2,
+      "source": "BagelStoreSafe_1792771368620.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        245
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            194.0,
+            173.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            205.0,
+            168.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.5
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            169.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        0,
+        270,
+        130
+      ]
+    },
+    {
+      "sample": 3,
+      "source": "20261023-164658-368419-verify/frame-1160.0.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            135.0,
+            145.0,
+            158.0
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            134.0,
+            151.0,
+            146.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            133.0,
+            184.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            194.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        0,
+        410,
+        130
+      ]
+    },
+    {
+      "sample": 4,
+      "source": "20261023-164658-368419-verify/frame-1160.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            4.0,
+            223.0,
+            216.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            18.0,
+            238.0,
+            207.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            2.0,
+            194.5,
+            229.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            208.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        0,
+        550,
+        130
+      ]
+    },
+    {
+      "sample": 5,
+      "source": "20261023-164658-368419-verify/frame-1160.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "蓝图",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            168.0,
+            183.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            21.0,
+            183.0,
+            179.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            167.0,
+            200.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        0,
+        690,
+        130
+      ]
+    },
+    {
+      "sample": 6,
+      "source": "20261023-164658-368419-verify/frame-1160.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            188.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            167.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            203.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        0,
+        830,
+        130
+      ]
+    },
+    {
+      "sample": 7,
+      "source": "20261023-164658-368419-verify/frame-1160.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 3,
+      "center": [
+        562,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            188.0,
+            179.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            196.0,
+            173.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        0,
+        970,
+        130
+      ]
+    },
+    {
+      "sample": 8,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            241.0,
+            247.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            21.0,
+            243.0,
+            240.5
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            109.0,
+            148.0,
+            162.0
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            148.0,
+            173.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        0,
+        1110,
+        130
+      ]
+    },
+    {
+      "sample": 9,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            187.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            166.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            169.0,
+            201.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        156,
+        130,
+        286
+      ]
+    },
+    {
+      "sample": 10,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            6.0,
+            227.0,
+            215.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            242.0,
+            206.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            2.0,
+            203.0,
+            220.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            217.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        156,
+        270,
+        286
+      ]
+    },
+    {
+      "sample": 11,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            193.0,
+            178.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            170.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        156,
+        410,
+        286
+      ]
+    },
+    {
+      "sample": 12,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 3,
+      "center": [
+        562,
+        898
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            134.0,
+            148.0,
+            157.0
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            134.0,
+            151.0,
+            146.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        156,
+        550,
+        286
+      ]
+    },
+    {
+      "sample": 13,
+      "source": "20261023-164658-368419-verify/frame-152.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 4,
+      "center": [
+        663,
+        898
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            187.0,
+            178.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            197.0,
+            171.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            197.5
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            167.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        156,
+        690,
+        286
+      ]
+    },
+    {
+      "sample": 14,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            195.0,
+            175.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            199.0,
+            170.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.5,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        156,
+        830,
+        286
+      ]
+    },
+    {
+      "sample": 15,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 3,
+      "center": [
+        1655,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            241.0,
+            247.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            22.0,
+            243.0,
+            242.0
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            109.0,
+            148.0,
+            163.0
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            148.0,
+            173.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        156,
+        970,
+        286
+      ]
+    },
+    {
+      "sample": 16,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            124.0,
+            155.0,
+            150.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            7.0,
+            193.0,
+            171.5
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        156,
+        1110,
+        286
+      ]
+    },
+    {
+      "sample": 17,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            193.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            205.0,
+            169.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        312,
+        130,
+        442
+      ]
+    },
+    {
+      "sample": 18,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            191.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            203.0,
+            166.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        312,
+        270,
+        442
+      ]
+    },
+    {
+      "sample": 19,
+      "source": "20261023-164658-368419-verify/frame-1922.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 3,
+      "center": [
+        562,
+        898
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            134.0,
+            148.0,
+            157.0
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            134.0,
+            151.0,
+            146.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        312,
+        410,
+        442
+      ]
+    },
+    {
+      "sample": 20,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            241.0,
+            247.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            21.0,
+            243.0,
+            241.5
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            109.0,
+            148.0,
+            163.0
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            148.0,
+            173.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        312,
+        550,
+        442
+      ]
+    },
+    {
+      "sample": 21,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            125.0,
+            153.0,
+            149.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            11.0,
+            179.0,
+            147.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        312,
+        690,
+        442
+      ]
+    },
+    {
+      "sample": 22,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            195.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            205.0,
+            169.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        312,
+        830,
+        442
+      ]
+    },
+    {
+      "sample": 23,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.5,
+            183.0,
+            181.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            195.0,
+            171.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        312,
+        970,
+        442
+      ]
+    },
+    {
+      "sample": 24,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 3,
+      "center": [
+        562,
+        898
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            136.0,
+            141.0,
+            160.0
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            134.5,
+            150.0,
+            147.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        312,
+        1110,
+        442
+      ]
+    },
+    {
+      "sample": 25,
+      "source": "20261023-164658-368419-verify/frame-2105.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 4,
+      "center": [
+        663,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            22.0,
+            178.0,
+            185.5
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            192.0,
+            174.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        468,
+        130,
+        598
+      ]
+    },
+    {
+      "sample": 26,
+      "source": "20261023-164658-368419-verify/frame-213.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            181.0,
+            179.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            21.0,
+            198.0,
+            171.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            167.0,
+            199.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        468,
+        270,
+        598
+      ]
+    },
+    {
+      "sample": 27,
+      "source": "20261023-164658-368419-verify/frame-213.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            193.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            205.0,
+            169.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        468,
+        410,
+        598
+      ]
+    },
+    {
+      "sample": 28,
+      "source": "20261023-164658-368419-verify/frame-213.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            125.0,
+            153.0,
+            147.0
+          ]
+        ],
+        "no_text": [
+          "B",
+          [
+            103.0,
+            174.0,
+            144.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        468,
+        550,
+        598
+      ]
+    },
+    {
+      "sample": 29,
+      "source": "20261023-164658-368419-verify/frame-2319.6.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            241.0,
+            247.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            21.0,
+            243.0,
+            240.5
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            109.0,
+            148.0,
+            162.0
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            148.0,
+            173.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        468,
+        690,
+        598
+      ]
+    },
+    {
+      "sample": 30,
+      "source": "20261023-164658-368419-verify/frame-2319.6.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            219.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            222.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            1.0,
+            204.0,
+            238.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            236.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        468,
+        830,
+        598
+      ]
+    },
+    {
+      "sample": 31,
+      "source": "20261023-164658-368419-verify/frame-2319.6.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            19.0,
+            203.0,
+            181.0
+          ]
+        ],
+        "no_text": [
+          "?",
+          [
+            13.0,
+            213.0,
+            211.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        468,
+        970,
+        598
+      ]
+    },
+    {
+      "sample": 32,
+      "source": "20261023-164658-368419-verify/frame-2319.6.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            189.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            166.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        468,
+        1110,
+        598
+      ]
+    },
+    {
+      "sample": 33,
+      "source": "20261023-164658-368419-verify/frame-2319.6.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            192.0,
+            175.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            199.0,
+            170.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        624,
+        130,
+        754
+      ]
+    },
+    {
+      "sample": 34,
+      "source": "20261023-164658-368419-verify/frame-2380.8.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            125.0,
+            154.0,
+            150.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            7.0,
+            191.0,
+            173.5
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            133.0,
+            184.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        624,
+        270,
+        754
+      ]
+    },
+    {
+      "sample": 35,
+      "source": "20261023-164658-368419-verify/frame-2380.8.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            188.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            167.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        624,
+        410,
+        754
+      ]
+    },
+    {
+      "sample": 36,
+      "source": "20261023-164658-368419-verify/frame-2899.4.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            188.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            167.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        624,
+        550,
+        754
+      ]
+    },
+    {
+      "sample": 37,
+      "source": "20261023-164658-368419-verify/frame-2899.4.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            125.0,
+            154.0,
+            149.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            10.0,
+            182.0,
+            146.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        624,
+        690,
+        754
+      ]
+    },
+    {
+      "sample": 38,
+      "source": "20261023-164658-368419-verify/frame-3082.4.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 3,
+      "center": [
+        1655,
+        256
+      ],
+      "type": "蓝图",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            24.0,
+            167.0,
+            177.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            22.0,
+            181.0,
+            180.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            173.0,
+            195.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            165.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        624,
+        830,
+        754
+      ]
+    },
+    {
+      "sample": 39,
+      "source": "20261023-164658-368419-verify/frame-3082.4.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            193.5,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            206.0,
+            169.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        624,
+        970,
+        754
+      ]
+    },
+    {
+      "sample": 40,
+      "source": "20261023-164658-368419-verify/frame-3082.4.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            19.0,
+            202.5,
+            180.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            18.0,
+            212.5,
+            209.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        624,
+        1110,
+        754
+      ]
+    },
+    {
+      "sample": 41,
+      "source": "20261023-164658-368419-verify/frame-3082.4.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "蓝图",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            2.0,
+            217.0,
+            169.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            2.0,
+            219.0,
+            160.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            3.0,
+            185.0,
+            188.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            2.0,
+            217.0,
+            154.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        780,
+        130,
+        910
+      ]
+    },
+    {
+      "sample": 42,
+      "source": "20261023-164658-368419-verify/frame-4028.1.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            5.0,
+            226.0,
+            218.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            243.0,
+            209.5
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            1.0,
+            207.0,
+            233.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            1.0,
+            219.0,
+            224.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        780,
+        270,
+        910
+      ]
+    },
+    {
+      "sample": 43,
+      "source": "20261023-164658-368419-verify/frame-4181.0.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 0,
+      "center": [
+        1353,
+        256
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            187.0,
+            179.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            196.0,
+            171.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        780,
+        410,
+        910
+      ]
+    },
+    {
+      "sample": 44,
+      "source": "20261023-164658-368419-verify/frame-4181.0.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            36.0,
+            242.0,
+            157.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            37.0,
+            253.0,
+            160.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.5,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        780,
+        550,
+        910
+      ]
+    },
+    {
+      "sample": 45,
+      "source": "20261023-164658-368419-verify/frame-4181.0.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            126.0,
+            172.0,
+            142.0
+          ]
+        ],
+        "no_text": [
+          "B",
+          [
+            109.0,
+            205.5,
+            121.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            133.0,
+            186.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            194.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        780,
+        690,
+        910
+      ]
+    },
+    {
+      "sample": 46,
+      "source": "20261023-164658-368419-verify/frame-4181.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "B",
+          [
+            112.0,
+            160.0,
+            147.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            7.0,
+            187.0,
+            162.5
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        780,
+        830,
+        910
+      ]
+    },
+    {
+      "sample": 47,
+      "source": "20261023-164658-368419-verify/frame-4181.0.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            188.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            167.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        780,
+        970,
+        910
+      ]
+    },
+    {
+      "sample": 48,
+      "source": "20261023-164658-368419-verify/frame-4425.2.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            19.0,
+            197.0,
+            177.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            206.0,
+            174.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        780,
+        1110,
+        910
+      ]
+    },
+    {
+      "sample": 49,
+      "source": "20261023-164658-368419-verify/frame-4425.2.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            187.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            166.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            200.5
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        936,
+        130,
+        1066
+      ]
+    },
+    {
+      "sample": 50,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "result",
+      "index": 3,
+      "center": [
+        1655,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            23.0,
+            241.0,
+            247.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            22.0,
+            243.0,
+            242.0
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            109.0,
+            148.0,
+            163.0
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            148.0,
+            173.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        936,
+        270,
+        1066
+      ]
+    },
+    {
+      "sample": 51,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "战术道具",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            19.0,
+            203.0,
+            181.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            18.0,
+            212.0,
+            210.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        936,
+        410,
+        1066
+      ]
+    },
+    {
+      "sample": 52,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            188.0,
+            170.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            204.0,
+            167.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            204.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        936,
+        550,
+        1066
+      ]
+    },
+    {
+      "sample": 53,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            183.0,
+            181.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            195.0,
+            171.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            205.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        936,
+        690,
+        1066
+      ]
+    },
+    {
+      "sample": 54,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 3,
+      "center": [
+        562,
+        898
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            136.0,
+            139.0,
+            160.0
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            135.0,
+            145.0,
+            150.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            138.0,
+            134.0,
+            187.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            139.0,
+            132.0,
+            194.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        936,
+        830,
+        1066
+      ]
+    },
+    {
+      "sample": 55,
+      "source": "20261023-155054-723059-verify/frame-324.7.png",
+      "time_seconds": null,
+      "group": "safe",
+      "index": 4,
+      "center": [
+        663,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            188.0,
+            173.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            20.0,
+            200.0,
+            169.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            23.0,
+            172.0,
+            198.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            23.0,
+            170.0,
+            206.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        936,
+        970,
+        1066
+      ]
+    },
+    {
+      "sample": 56,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 56,
+      "group": "result",
+      "index": 0,
+      "center": [
+        1353,
+        256
+      ],
+      "type": "金币",
+      "quality": "B",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            24.0,
+            232.0,
+            238.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            249.0,
+            206.5
+          ]
+        ],
+        "baseline": [
+          "B",
+          [
+            110.0,
+            140.0,
+            155.5
+          ]
+        ],
+        "strips": [
+          "B",
+          [
+            109.0,
+            141.0,
+            168.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        936,
+        1110,
+        1066
+      ]
+    },
+    {
+      "sample": 57,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 58,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "材料",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            20.0,
+            192.0,
+            163.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            198.0,
+            159.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            164.0,
+            192.5
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            162.0,
+            200.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        1092,
+        130,
+        1222
+      ]
+    },
+    {
+      "sample": 58,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 60,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "材料",
+      "quality": "A",
+      "methods": {
+        "whole": [
+          "A",
+          [
+            137.0,
+            161.0,
+            151.5
+          ]
+        ],
+        "no_text": [
+          "A",
+          [
+            135.0,
+            168.0,
+            140.0
+          ]
+        ],
+        "baseline": [
+          "A",
+          [
+            139.0,
+            149.0,
+            178.0
+          ]
+        ],
+        "strips": [
+          "A",
+          [
+            140.0,
+            149.0,
+            190.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        1092,
+        270,
+        1222
+      ]
+    },
+    {
+      "sample": 59,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 80,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            177.0,
+            233.0,
+            174.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            177.0,
+            237.0,
+            208.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            177.0,
+            205.0,
+            200.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            177.0,
+            233.0,
+            192.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        1092,
+        410,
+        1222
+      ]
+    },
+    {
+      "sample": 60,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 94,
+      "group": "result",
+      "index": 0,
+      "center": [
+        1353,
+        256
+      ],
+      "type": "战术道具",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            19.0,
+            211.0,
+            162.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            4.0,
+            223.0,
+            113.5
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            162.0,
+            194.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            24.0,
+            162.0,
+            200.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        1092,
+        550,
+        1222
+      ]
+    },
+    {
+      "sample": 61,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 94,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            177.0,
+            233.0,
+            177.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            177.0,
+            238.0,
+            209.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            177.0,
+            213.0,
+            199.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            177.0,
+            234.0,
+            194.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        1092,
+        690,
+        1222
+      ]
+    },
+    {
+      "sample": 62,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 96,
+      "group": "result",
+      "index": 1,
+      "center": [
+        1453,
+        256
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            198.0,
+            160.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            217.0,
+            152.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            163.0,
+            193.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            160.0,
+            199.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        700,
+        1092,
+        830,
+        1222
+      ]
+    },
+    {
+      "sample": 63,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 96,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            177.0,
+            232.0,
+            175.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            177.0,
+            238.0,
+            214.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            177.0,
+            216.0,
+            193.5
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            177.0,
+            232.0,
+            189.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        840,
+        1092,
+        970,
+        1222
+      ]
+    },
+    {
+      "sample": 64,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 98,
+      "group": "result",
+      "index": 2,
+      "center": [
+        1554,
+        256
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            25.0,
+            186.0,
+            161.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            22.0,
+            198.0,
+            123.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            161.0,
+            193.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            160.0,
+            193.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        980,
+        1092,
+        1110,
+        1222
+      ]
+    },
+    {
+      "sample": 65,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 98,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            177.0,
+            232.0,
+            176.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            177.0,
+            238.0,
+            213.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            177.0,
+            209.0,
+            201.0
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            177.0,
+            233.0,
+            191.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        0,
+        1248,
+        130,
+        1378
+      ]
+    },
+    {
+      "sample": 66,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 98,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            195.0,
+            163.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            219.0,
+            157.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            162.0,
+            195.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            161.0,
+            199.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        140,
+        1248,
+        270,
+        1378
+      ]
+    },
+    {
+      "sample": 67,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 102,
+      "group": "safe",
+      "index": 0,
+      "center": [
+        259,
+        898
+      ],
+      "type": "贵重物品",
+      "quality": "Z",
+      "methods": {
+        "whole": [
+          "Z",
+          [
+            177.0,
+            233.0,
+            171.0
+          ]
+        ],
+        "no_text": [
+          "Z",
+          [
+            177.0,
+            238.0,
+            208.0
+          ]
+        ],
+        "baseline": [
+          "Z",
+          [
+            177.0,
+            210.5,
+            200.5
+          ]
+        ],
+        "strips": [
+          "Z",
+          [
+            177.0,
+            232.0,
+            189.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        280,
+        1248,
+        410,
+        1378
+      ]
+    },
+    {
+      "sample": 68,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 102,
+      "group": "safe",
+      "index": 1,
+      "center": [
+        360,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            21.0,
+            197.0,
+            162.0
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            19.0,
+            225.5,
+            147.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            162.0,
+            194.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            161.0,
+            199.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        420,
+        1248,
+        550,
+        1378
+      ]
+    },
+    {
+      "sample": 69,
+      "source": "2026-10-21 tmp.flv",
+      "time_seconds": 102,
+      "group": "safe",
+      "index": 2,
+      "center": [
+        461,
+        898
+      ],
+      "type": "战术棱镜",
+      "quality": "S",
+      "methods": {
+        "whole": [
+          "S",
+          [
+            25.0,
+            186.0,
+            159.5
+          ]
+        ],
+        "no_text": [
+          "S",
+          [
+            22.0,
+            198.0,
+            67.0
+          ]
+        ],
+        "baseline": [
+          "S",
+          [
+            24.0,
+            161.0,
+            194.0
+          ]
+        ],
+        "strips": [
+          "S",
+          [
+            25.0,
+            159.0,
+            195.0
+          ]
+        ]
+      },
+      "atlas_rect": [
+        560,
+        1248,
+        690,
+        1378
+      ]
+    }
+  ]
+}

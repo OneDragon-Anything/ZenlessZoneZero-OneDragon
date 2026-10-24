@@ -1,0 +1,24 @@
+screen_id: bagel_mimic_notice
+screen_name: 贝果-拟态单质提示
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 标题
+  area_type: text
+  id_mark: true
+  pc_rect:
+  - 690
+  - 300
+  - 1228
+  - 356
+  text: 带出的拟态单质已失活，转化为惰性单质
+  lcs_percent: 0.9
+- area_name: 确认
+  area_type: text
+  pc_rect:
+  - 925
+  - 798
+  - 1025
+  - 862
+  text: 确认
+  lcs_percent: 0.9

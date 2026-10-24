@@ -115,3 +115,5 @@ typeCheckingMode = "off"
 # (取代 CI 的 PYTHONPATH=src env 和测试文件里手动的 sys.path.insert)
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+addopts = "--import-mode=importlib"
+markers = ["bagel_fast: 贝果日常关键行为，串行60秒内"]

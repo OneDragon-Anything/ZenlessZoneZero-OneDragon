@@ -1,0 +1,30 @@
+screen_id: bagel_result
+screen_name: 贝果-结算
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 失败
+  pc_rect:
+  - 850
+  - 90
+  - 1070
+  - 165
+  id_mark: true
+  text: DEFEAT
+  lcs_percent: 0.9
+- area_name: 地图
+  pc_rect:
+  - 625
+  - 665
+  - 865
+  - 720
+  text: 高危雅努斯幻境
+  lcs_percent: 1.0
+- area_name: 继续
+  pc_rect:
+  - 830
+  - 930
+  - 1090
+  - 1000
+  text: 继续
+  lcs_percent: 0.9
