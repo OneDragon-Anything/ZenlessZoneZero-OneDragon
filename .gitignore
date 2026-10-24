@@ -34,6 +34,7 @@ config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
 config/pip.yml
+config/agent_template_generator.yml
 config/push.yml
 config/redemption_codes.yml
 config/[0-9]*/
