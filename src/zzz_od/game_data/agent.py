@@ -582,7 +582,7 @@ class AgentEnum(Enum):
 
     ROXY = Agent('roxy', '洛克茜', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.WIND, ['roxy'])
 
-    PHOENIX = Agent('phoenix', '菲欧妮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['phoenix', 'phoenix_daydream_complex'],
+    PHOENIX = Agent('phoenix', '菲欧妮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['phoenix', 'phoenix_daydream_complex', 'phoenix_the_illness_called_life'],
                     state_list=[AgentStateDef('菲欧妮-燔焰', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                               template_id='phoenix',
                                               hsv_color=(4, 128, 255), hsv_color_diff=(9, 128, 55),

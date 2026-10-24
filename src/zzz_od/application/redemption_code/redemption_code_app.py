@@ -83,7 +83,8 @@ class RedemptionCodeApp(ZApplication):
         time.sleep(1)
 
         self.ctx.controller.keyboard_controller.keyboard.type(self.unused_code_list[self.code_idx])
-        time.sleep(6)
+
+        time.sleep(6 if self.previous_node.name == '兑换后确认' else 1)
 
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换',
                                                  success_wait=1, retry_wait=1)

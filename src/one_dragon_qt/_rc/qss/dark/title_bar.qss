@@ -28,8 +28,8 @@
 }
 
 #TitleBar > #launchTagLabel {
-    color: rgba(0, 0, 0, 200);
-    background-color: --ThemeColorPrimary;
+    color: white;
+    background-color: rgba(128, 128, 128, 76);
     border-radius: 8px;
     padding: 4px 8px;
     font: 11px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';

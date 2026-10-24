@@ -11,16 +11,66 @@
 ## 加载机制
 
 加载插件时，`plugins/` 目录会被添加到 `sys.path`，使每个插件包成为独立的顶级模块。
-支持嵌套子目录，所有中间包会自动加载（有 `__init__.py` 时执行它，没有时创建命名空间包）：
+插件根内支持嵌套子目录和 Python 子包，但第三方插件只扫描插件根第一层的 `*_factory.py`：
 
 ```python
 # 加载过程
 sys.path.insert(0, "project_root/plugins")  # 添加一次
 
-# 插件模块名示例
-# plugins/my_plugin/my_plugin_factory.py     → my_plugin.my_plugin_factory
-# plugins/my_plugin/sub/sub_factory.py       → my_plugin.sub.sub_factory
+# plugins/my_plugin/my_plugin_factory.py  → 会注册
+# plugins/my_plugin/sub/helper.py         → 可以被插件代码导入
+# plugins/my_plugin/sub/sub_factory.py    → 不会被自动发现或注册
 ```
+
+## 插件根和运行文件边界
+
+每个 `plugins/<插件名>/` 目录都是一个独立的插件根，主 `*_factory.py` 和对应的 `*_const.py` 必须直接放在插件根中。插件运行所需的代码、资源和配置必须全部位于插件根子树内。
+
+可以在插件根内使用 `src/`、`assets/` 等目录：
+
+```
+plugins/
+└── my_plugin/                   # 插件根
+    ├── my_plugin_factory.py
+    ├── my_plugin_const.py
+    ├── src/
+    │   └── ...
+    └── assets/
+        └── ...
+```
+
+不支持把 factory 放在 `src/` 深处，同时依赖 factory 目录之外的兄弟目录：
+
+```
+repository/
+├── src/my_plugin/
+│   ├── my_plugin_factory.py     # 这里会被识别为插件根
+│   └── my_plugin_const.py
+└── assets/                      # 插件根外，导入时不会安装
+```
+
+源码仓库可以使用任意开发布局，但交给插件管理器导入的 ZIP 必须包含一个自包含的运行包。当前导入器不读取 `plugin.json` 来声明插件根、源码根或额外安装目录。
+
+插件内的 Python 模块可以用相对导入引用插件根内的代码，但不能越过插件根依赖外部文件。ZIP 外层的仓库目录、开发脚本和说明文件不会复制到 `plugins/`；原 ZIP 本身不会被修改。
+
+## 集合 ZIP 和集合目录
+
+一个 ZIP 或所选目录可以包含多个互不隶属的合法插件根。插件管理器只选择最外层合法根，并分别安装为 `plugins/<插件名>/`：
+
+```
+plugin_collection/
+├── README.md                  # 不安装
+├── plugin_a/
+│   ├── plugin_a_factory.py
+│   └── plugin_a_const.py
+└── plugin_b/
+    ├── plugin_b_factory.py
+    └── plugin_b_const.py
+```
+
+如果来源根本身直接包含唯一 `*_factory.py` 和唯一 `*_const.py`，整个来源只作为一个插件，不再拆分其子目录。插件根内更深的 factory 仍是普通文件，不会成为第二个插件，也不会被运行时注册。
+
+同一来源中插件目录名大小写不敏感地重复时，整个来源会在写盘前被拒绝。每个插件独立安装、覆盖和回滚；覆盖已存在插件时，不会重复处理同一来源中已经成功安装的其他插件。松散目录中的符号链接不能越出所属插件根或形成循环，插件根第一层的 Python 文件不能是符号链接。
 
 ## 目录结构示例
 
@@ -35,14 +85,13 @@ plugins/                          # ← 添加到 sys.path
 │   └── utils/                    # 子包
 │       ├── __init__.py
 │       └── helper.py
-├── plugin_b/                     # 插件 B（含嵌套 factory）
+├── plugin_b/                     # 插件 B（含子包）
 │   ├── __init__.py
-│   ├── plugin_b_const.py         # 主插件常量
-│   ├── plugin_b_factory.py       # 主插件工厂
-│   └── sub_feature/              # 子功能模块
+│   ├── plugin_b_const.py
+│   ├── plugin_b_factory.py       # 插件根第一层的唯一工厂
+│   └── sub_feature/              # 普通子包
 │       ├── __init__.py
-│       ├── sub_feature_const.py
-│       └── sub_feature_factory.py  # 嵌套工厂，模块名: plugin_b.sub_feature.sub_feature_factory
+│       └── helper.py
 └── plugin_c/                     # 插件 C
     ├── __init__.py
     ├── plugin_c_const.py
@@ -130,4 +179,4 @@ class MyPlugin(Application):
 4. **模块名唯一性**：插件包名（目录名）应该唯一，避免与其他插件或主程序模块冲突
 5. **备份**：此目录被 `.gitignore` 忽略，请自行备份
 6. **热重载**：刷新应用时会卸载整个插件包并重新加载
-7. **嵌套目录**：支持在插件包内任意深度放置 `_factory.py` 文件
+7. **factory 层级**：第三方插件只注册插件根第一层的唯一 `_factory.py`，子目录中的 `_factory.py` 不会被扫描

@@ -47,11 +47,57 @@ def _scan_directory(
 ) -> tuple[list[ApplicationPriorityItem], list[str]]:
     items: list[ApplicationPriorityItem] = []
     errors: list[str] = []
-    app_dirs = sorted({factory_file.parent for factory_file in directory.rglob('*_factory.py')})
+    if source == 'third_party':
+        try:
+            directory_resolved = directory.resolve(strict=True)
+            plugin_dirs = sorted(directory.iterdir())
+        except (OSError, RuntimeError) as exc:
+            errors.append(
+                f'{directory.relative_to(project_root)}: {type(exc).__name__}: {exc}'
+            )
+            app_dirs = []
+        else:
+            app_dirs = []
+            for plugin_dir in plugin_dirs:
+                try:
+                    if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                        continue
+                    plugin_dir_resolved = plugin_dir.resolve(strict=True)
+                except (OSError, RuntimeError) as exc:
+                    errors.append(
+                        f'{plugin_dir.relative_to(project_root)}: '
+                        f'{type(exc).__name__}: {exc}'
+                    )
+                    continue
+                if plugin_dir_resolved == directory_resolved / plugin_dir.name:
+                    app_dirs.append(plugin_dir)
+    else:
+        app_dirs = sorted({factory_file.parent for factory_file in directory.rglob('*_factory.py')})
 
     for app_dir in app_dirs:
-        factory_files = sorted(app_dir.glob('*_factory.py'))
-        const_files = sorted(app_dir.glob('*_const.py'))
+        if source == 'third_party':
+            try:
+                factory_files = sorted(
+                    factory_file
+                    for factory_file in app_dir.glob('*_factory.py')
+                    if not factory_file.is_symlink()
+                )
+                const_files = sorted(
+                    const_file
+                    for const_file in app_dir.glob('*_const.py')
+                    if not const_file.is_symlink()
+                )
+            except (OSError, RuntimeError) as exc:
+                errors.append(
+                    f'{app_dir.relative_to(project_root)}: '
+                    f'{type(exc).__name__}: {exc}'
+                )
+                continue
+            if not factory_files:
+                continue
+        else:
+            factory_files = sorted(app_dir.glob('*_factory.py'))
+            const_files = sorted(app_dir.glob('*_const.py'))
         relative_dir = app_dir.relative_to(project_root)
         if len(factory_files) != 1:
             errors.append(f'{relative_dir}: 应用目录必须只有一个 factory 文件')
@@ -78,7 +124,7 @@ def _scan_directory(
                 not isinstance(priority, int) or isinstance(priority, bool)
             ):
                 raise ValueError('PRIORITY 必须为整数')
-        except (SyntaxError, ValueError) as exc:
+        except (OSError, SyntaxError, ValueError) as exc:
             errors.append(f'{const_file.relative_to(project_root)}: {exc}')
             continue
 
