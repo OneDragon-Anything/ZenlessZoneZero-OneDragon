@@ -1,10 +1,9 @@
+import contextlib
 import json
-import threading
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
-from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -39,6 +38,7 @@ from one_dragon_qt.widgets.setting_card.key_value_setting_card import (
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.qq_bot_bind_card import QQBotBindCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
@@ -46,9 +46,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 
 class SettingPushInterface(VerticalScrollInterface):
-
-    # 推送在子线程进行 结果用信号回传 由 Qt 排队到界面线程再弹提示条
-    push_test_finished = Signal(bool, str, str)
 
     def __init__(self, ctx, parent=None):
 
@@ -60,7 +57,7 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.MESSAGE
         )
         self.ctx = ctx
-        self.push_test_finished.connect(self._on_test_push_finished)
+        self._error_bar: InfoBar | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -145,6 +142,12 @@ class SettingPushInterface(VerticalScrollInterface):
         self.email_service_opt.combo_box.setCurrentIndex(-1)
         self.email_service_opt.setVisible(False)
 
+        # QQ 官方机器人的接收方 openid 只能从机器人网关收到的事件里取，用绑定按钮自动回填
+        self.qq_bot_bind_card = QQBotBindCard(get_app_credentials=self._get_qq_bot_credentials)
+        self.qq_bot_bind_card.openid_bound.connect(self._on_qq_bot_openid_bound)
+        self.qq_bot_bind_card.bind_failed.connect(self._show_error_message)
+        self.qq_bot_bind_card.setVisible(False)
+
         # 按渠道组织卡片
         self.push_channel_cards: dict[str, list] = {}
         for channel in self.ctx.push_service.channels:
@@ -158,6 +161,11 @@ class SettingPushInterface(VerticalScrollInterface):
                 channel_group.addSettingCard(self.curl_btn)
 
             for field in channel.config_schema:
+                # QQ 官方机器人的绑定按钮放在接收方字段上方
+                if channel.channel_id == 'QQ_BOT' and field.var_suffix == 'OPENID':
+                    channel_cards.append(self.qq_bot_bind_card)
+                    channel_group.addSettingCard(self.qq_bot_bind_card)
+
                 card = self._create_card(channel.channel_id, field)
                 channel_cards.append(card)
                 channel_group.addSettingCard(card)
@@ -239,7 +247,8 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _send_test_message(self):
         """发送测试消息到当前选择的通知方式"""
-        test_method = str(self.notification_method_opt.getValue())
+        selected_method = self.notification_method_opt.getValue()
+        test_method = str(selected_method)
         if test_method == "WEBHOOK":
             # 如果是Webhook方式，先验证配置
             try:
@@ -248,53 +257,42 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message(str(e))
                 return
 
-        self._start_test_push(test_method, "已向当前通知方式发送测试消息")
+        try:
+            ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
+                content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
+                channel_id=test_method,
+            )
+            if not ok:
+                self._show_error_message(msg)
+            else:
+                self._show_success_message("已向当前通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        self._start_test_push(None, "已向所有已配置的通知方式发送测试消息")
-
-    def _start_test_push(self, channel_id: str | None, success_msg: str) -> None:
-        """
-        后台发送测试推送 避免网络请求卡住界面线程
-
-        推送期间禁用按钮 既提示正在发送 也避免连点堆积多次推送。
-
-        Args:
-            channel_id: 推送渠道ID 为空时使用所有通过配置校验的渠道
-            success_msg: 推送成功时的提示文案
-        """
-        # 先生成截图再禁用按钮 生成失败时按钮仍可点击 不会卡在禁用状态
-        image = self._get_test_screenshot()
-
-        self.test_current_btn.setDisabled(True)
-        self.test_all_btn.setDisabled(True)
-        self._show_success_message("正在发送测试消息...")
-
-        def push_in_background() -> None:
-            try:
-                ok, msg = self.ctx.push_service.push(
-                    title=gt('测试推送通知'),
-                    content=gt('这是一条测试消息'),
-                    image=image,
-                    channel_id=channel_id,
-                )
-            except Exception as e:
-                ok, msg = False, f'测试推送失败: {e}'
-
-            self.push_test_finished.emit(ok, msg, success_msg)
-
-        threading.Thread(target=push_in_background, daemon=True).start()
-
-    def _on_test_push_finished(self, ok: bool, msg: str, success_msg: str) -> None:
-        """测试推送结束后的界面反馈"""
-        self.test_current_btn.setDisabled(False)
-        self.test_all_btn.setDisabled(False)
-
-        if ok:
-            self._show_success_message(success_msg)
-        else:
-            self._show_error_message(msg if msg else "测试推送失败")
+        try:
+            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+            ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
+                content=gt('这是一条测试消息'),
+                image=self._get_test_screenshot(),
+            )
+            if not ok:
+                self._show_error_message(msg)
+            elif len(msg) > 0:
+                # 有渠道失败但其他渠道成功时 ok 仍为 True，错误信息只在这里带回来
+                self._show_error_message(msg)
+            else:
+                self._show_success_message("已向所有已配置的通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _get_test_screenshot(self) -> MatLike | None:
         """生成通知测试用标准色相图。"""
@@ -353,6 +351,24 @@ class SettingPushInterface(VerticalScrollInterface):
     def _set_proxy_input_visibility(self):
         """设置代理输入框的可见性"""
         self.proxy_input_opt.setVisible(self.proxy_opt.getValue() == PushProxy.PERSONAL.value.value)
+
+    def _get_qq_bot_credentials(self) -> tuple[str, str]:
+        """取 QQ 机器人配置里的 AppID 与 AppSecret"""
+        channel_config = self.ctx.push_service.get_channel_config('QQ_BOT')
+        return channel_config.get('APP_ID', ''), channel_config.get('CLIENT_SECRET', '')
+
+    def _on_qq_bot_openid_bound(self, is_group: bool, openid: str) -> None:
+        """绑定成功，写进配置并回填输入框"""
+        field_name = 'GROUP_OPENID' if is_group else 'OPENID'
+        self.ctx.push_service.push_config.update_channel_config_value('QQ_BOT', field_name, openid)
+
+        card: TextSettingCard | None = getattr(self, f'qq_bot_{field_name.lower()}_push_card', None)
+        if card is not None:
+            card.setValue(openid)
+            if card.adapter is not None:
+                card.adapter.set_value(openid)
+
+        self._show_success_message('绑定成功')
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -436,8 +452,19 @@ class SettingPushInterface(VerticalScrollInterface):
         except (json.JSONDecodeError, TypeError):
             return False
 
+    def _clear_error_bar(self) -> None:
+        """关闭常驻的错误提示"""
+        if self._error_bar is None:
+            return
+
+        # 用户手动点掉后底层对象可能已被删除
+        with contextlib.suppress(RuntimeError):
+            self._error_bar.close()
+        self._error_bar = None
+
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
+        self._clear_error_bar()
         InfoBar.success(
             title='成功',
             content=message,
@@ -448,12 +475,13 @@ class SettingPushInterface(VerticalScrollInterface):
         )
 
     def _show_error_message(self, message: str):
-        """显示错误消息提示"""
-        InfoBar.error(
+        """显示错误消息提示，不自动消失，新的错误替换旧的"""
+        self._clear_error_bar()
+        self._error_bar = InfoBar.error(
             title='错误',
             content=message,
             orient=InfoBarPosition.TOP,
             isClosable=True,
-            duration=5000,
+            duration=-1,
             parent=self
         )
