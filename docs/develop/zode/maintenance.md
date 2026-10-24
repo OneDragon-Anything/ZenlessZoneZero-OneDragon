@@ -20,13 +20,13 @@ ZODE（**Z**enless **O**ne **D**ragon **E**nhanced）是本 fork 的增强发行
 2. **merge-based，禁止改写历史。** 只做普通 merge 与普通 push，禁止 rebase、禁止 force push——用户的增量更新与更新去重都依赖「历史只增不改」。
 3. **PR 以原始提交合入。** fetch 上游 `refs/pull/N/head` 后直接 merge，保留原作者姓名、邮箱与提交日期；禁止 squash、禁止 cherry-pick 改写身份。
 4. **合并消息必须署名原作者**：`<PR原type>: 合入 PR #N <标题>（@<作者>）`。type 沿用 PR 自己的 conventional 前缀。
-5. **每周期至多合入 1 个 PR**；校验不过不合入。
+5. **合入数量不设上限**：队列按序合入，冲突项记入 parked 并试队列下一个，连续 3 个冲突即停车（安全阀）；每个 PR 合入前照常过校验，校验不过不合入。
 6. **不静默修复待合 PR。** 校验发现待合 PR 有问题时，不自行修复后合入；按下方「不静默修复」政策交原作者确认，长期无应答才转本 fork 众审。
 
 ## 维护周期
 
 1. fetch 官方 main，merge 进 zode（`--no-ff`，消息 `feat: 同步官方 main 至 <短id>`）；mirror 同步为官方 main 指针。随后检查 `feat/background-update-check` 是否有未进入 zode 的新提交，有则 `--no-ff` merge（消息 `feat: 合入增强分支新提交`）。
-2. 从清单队列取队首 PR：fetch `refs/pull/N/head` 并把拿到的 SHA 记入清单（作者后续 force-push 不影响已 pin 的内容）；`git merge-tree --write-tree` 预检冲突，干净则合入；冲突记入 parked 并试队列下一个，连续 3 个冲突即停车。
+2. 从清单队列按序合入 PR（数量不设上限，见铁律 5）：fetch `refs/pull/N/head` 并把拿到的 SHA 记入清单（作者后续 force-push 不影响已 pin 的内容）；`git merge-tree --write-tree` 预检冲突，干净则合入；冲突记入 parked 并试队列下一个，连续 3 个冲突即停车。
 3. 校验：本次触碰的 `.py` 过 py_compile / ruff，`.yml` 过 YAML 解析；失败则回退该 merge，按「不静默修复」政策处理，本期不合入该 PR、试队列下一个。
 4. 推送 zode；更新清单并备份到 `zode-meta` 分支。
 5. 快照仓库 traffic 数据（clones / views 原始值）留存于 `zode-meta` 的 `telemetry.yml`（GitHub 仅保留 14 天滚动窗口）。口径：fetch 更新不计数，该数据反映新装与页面访问趋势，不等于活跃用户数。
