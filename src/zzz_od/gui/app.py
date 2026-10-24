@@ -80,6 +80,9 @@ try:
                 app_icon="logo.ico",
                 parent=parent,
             )
+
+            # 增强源用户反馈走 CNB issues（大陆直连可达），覆盖基类指向官方仓的默认值
+            self.titleBar.issue_url = 'https://cnb.cool/zzz1d/ZODE/-/issues'
             self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_active_event)
             self._context_event_signal: ContextEventSignal = ContextEventSignal()
             self._context_event_signal.instance_changed.connect(self._on_instance_active_signal)
