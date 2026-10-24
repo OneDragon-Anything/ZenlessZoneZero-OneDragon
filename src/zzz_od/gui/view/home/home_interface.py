@@ -52,7 +52,7 @@ class ButtonGroup(QWidget):
         QWidget.__init__(self, parent=parent)
         self.ctx = ctx
 
-        self.setFixedSize(70, 250)
+        self.setFixedSize(70, 310)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -98,6 +98,18 @@ class ButtonGroup(QWidget):
         layout.addWidget(doc_button)
         self.buttons.append(doc_button)
 
+        # 创建 插件商城 按钮
+        market_button = IconButton(
+            FluentIcon.SHOP.icon(color=QColor("#fff")),
+            tip_title="插件商城",
+            tip_content="浏览与下载官方收录插件",
+            isTooltip=True,
+        )
+        market_button.setIconSize(QSize(30, 30))
+        market_button.clicked.connect(self.open_plugin_market)
+        layout.addWidget(market_button)
+        self.buttons.append(market_button)
+
         # 创建 频道 按钮
         chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
@@ -118,6 +130,10 @@ class ButtonGroup(QWidget):
     def open_github(self):
         """打开 GitHub 链接"""
         QDesktopServices.openUrl(QUrl(self.ctx.project_config.github_homepage))
+
+    def open_plugin_market(self):
+        """打开官方插件商城（plugin-registry 站点）"""
+        QDesktopServices.openUrl(QUrl('https://onedragon-anyone.github.io/plugin-registry/'))
 
     def open_chat(self):
         """打开 频道 链接"""
