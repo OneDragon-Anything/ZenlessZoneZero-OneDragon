@@ -1,0 +1,403 @@
+{
+  "schema": "inventory-inspection-plan/v1",
+  "game": "zzz",
+  "ready": true,
+  "candidate_only": true,
+  "scan_mode": "grouped",
+  "budget_seconds": 600,
+  "navigation": "zzz-inventory-navigation.json",
+  "pages": [
+    {
+      "calibration": "zzz-inventory-basic-physical-chip.json",
+      "material_id": "basic-physical-chip"
+    },
+    {
+      "calibration": "zzz-inventory-basic-attack-seal.json",
+      "material_id": "basic-attack-seal"
+    },
+    {
+      "calibration": "zzz-inventory-support-component.json",
+      "material_id": "support-component"
+    },
+    {
+      "calibration": "zzz-inventory-w-engine-energy-module.json",
+      "material_id": "w-engine-energy-module"
+    },
+    {
+      "calibration": "zzz-inventory-senior-investigator-log.json",
+      "material_id": "senior-investigator-log"
+    },
+    {
+      "calibration": "zzz-inventory-ferocious-grip.json",
+      "material_id": "ferocious-grip"
+    },
+    {
+      "calibration": "zzz-inventory-denny-popup.json",
+      "material_id": "denny"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-attack-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "pioneer-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-physical-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-physical-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-freeze-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-freeze-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-freeze-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-caustic-thorn"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-dream-corroded-iron"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "turbid-patterned-crystal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "foul-red-crystal-spike"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "hamster-cage-pass"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-stun-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-stun-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "buster-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-anomaly-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-anomaly-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "controller-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-support-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-support-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "ruler-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-defense-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-defense-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "defender-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-rupture-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-rupture-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "arbiter-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-burn-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-burn-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-burn-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-shock-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-shock-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-shock-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-ether-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-ether-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-ether-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "attack-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-attack-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-attack-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "stun-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-stun-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-stun-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "anomaly-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-anomaly-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-anomaly-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-support-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-support-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "defense-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-defense-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-defense-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "rupture-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-rupture-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-rupture-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "trainee-investigator-log"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "official-investigator-log"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "w-engine-battery"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "w-engine-power-supply"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-wind-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-wind-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-wind-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-lumen-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-lumen-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-lumen-chip"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-death-notice"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-crimson-awe"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-pursuing-phantom"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-steel-malice"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-destructive-advance"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-falling-fist"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-stealth-phantom"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-thunderous-scales"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-life-cutting"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-corrupted-elytra"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-venomous-edge"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-deep-corrosion-circuit"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "living-drive"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "finale-dance-shoes"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "scarlet-engine"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "fanatic-sculpture"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "refined-exuvia"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-bloodstained-feather"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "marrow-thorn"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "fate-exuvia"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "basic-edge-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "advanced-edge-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "edge-certification-seal"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "edge-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "reinforced-edge-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "specialized-edge-component"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "higher-dimensional-data-simulated-core"
+    },
+    {
+      "calibration": "zzz-inventory-cultivation-layout-selection.json",
+      "material_id": "counterfeit-core"
+    }
+  ]
+}

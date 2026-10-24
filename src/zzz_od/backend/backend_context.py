@@ -876,7 +876,7 @@ class ZzzBackendContext:
         app_ids: list[str] = []
         if self._ctx.run_context.is_app_registered(application_const.ONE_DRAGON_APP_ID):
             app_ids.append(application_const.ONE_DRAGON_APP_ID)
-        for app_id in self._ctx.run_context.default_group_apps:
+        for app_id in self._ctx.run_context.standalone_app_ids:
             if app_id not in app_ids:
                 app_ids.append(app_id)
 
