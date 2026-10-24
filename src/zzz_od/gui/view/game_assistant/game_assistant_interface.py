@@ -8,9 +8,6 @@ from zzz_od.gui.view.battle_assistant.battle_assistant_interface import (
 from zzz_od.gui.view.game_assistant.commission_assistant_interface import (
     CommissionAssistantRunInterface,
 )
-from zzz_od.gui.view.game_assistant.inventory_scan_interface import (
-    InventoryScanInterface,
-)
 
 
 class GameAssistantInterface(PivotNavigatorInterface):
@@ -36,4 +33,3 @@ class GameAssistantInterface(PivotNavigatorInterface):
         """
         self.add_sub_interface(BattleAssistantInterface(self.ctx))
         self.add_sub_interface(CommissionAssistantRunInterface(self.ctx))
-        self.add_sub_interface(InventoryScanInterface(self.ctx))
