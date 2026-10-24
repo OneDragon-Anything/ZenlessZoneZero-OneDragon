@@ -14,6 +14,22 @@ class AgentTemplateGeneratorConfig(YamlConfig):
         self.update(f'hotkey_{action}', value)
 
     @property
+    def float_enabled(self) -> bool:
+        return self.get('float_enabled', True)
+
+    @float_enabled.setter
+    def float_enabled(self, value: bool) -> None:
+        self.update('float_enabled', value)
+
+    @property
+    def float_expanded(self) -> bool:
+        return self.get('float_expanded', False)
+
+    @float_expanded.setter
+    def float_expanded(self, value: bool) -> None:
+        self.update('float_expanded', value)
+
+    @property
     def float_x(self) -> int:
         return self.get('float_x', -1)
 

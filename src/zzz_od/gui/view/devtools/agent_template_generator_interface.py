@@ -57,7 +57,7 @@ from zzz_od.gui.view.devtools.agent_template_float_window import (
     AgentTemplateFloatWindow,
 )
 from zzz_od.gui.view.devtools.agent_template_hotkey import (
-    HotkeyDialog,
+    HotkeyListDialog,
     HotkeyListener,
     hotkey_keys,
     normalize_hotkey,
@@ -68,7 +68,7 @@ from zzz_od.gui.view.devtools.agent_template_list import (
 )
 from zzz_od.gui.view.devtools.agent_template_widgets import (
     ImageSlot,
-    ShortcutButton,
+    KeyCapRow,
     StepThumb,
 )
 
@@ -99,13 +99,14 @@ class HotkeyAction:
 
 
 TEMPLATE_STEPS: list[TemplateStep] = [
-    TemplateStep('battle_1', '1 号位', '进入自由训练，配队编入三人，其中把目标角色设为 1 号位',
+    TemplateStep('battle_1', '1 号位', '进入自由训练，建议编队：目标角色、2 号位安比、3 号位妮可。'
+                 '截图时目标角色为当前操作的角色，即左上角的大头像',
                  'battle', 'avatar_1_{agent_id}', 'avatar_1_template'),
-    TemplateStep('battle_2', '2 号位', '进入自由训练，配队编入三人，其中把目标角色设为 2 号位',
+    TemplateStep('battle_2', '2 号位', '使用同样的编队，切换角色，让目标角色出现在大头像右侧的第一个小头像',
                  'battle', 'avatar_2_{agent_id}', 'avatar_2_template'),
-    TemplateStep('chain', '连携', '在自由训练中触发目标角色的连携技（{side}）',
+    TemplateStep('chain', '连携', '使用同样的编队，在自由训练中触发目标角色的连携技（{side}）',
                  'battle', 'avatar_chain_{agent_id}', 'avatar_chain_template', side_selectable=True),
-    TemplateStep('quick', '快速支援', '在自由训练中触发目标角色的快速支援',
+    TemplateStep('quick', '快速支援', '使用同样的编队，在自由训练中触发目标角色的快速支援',
                  'battle', 'avatar_quick_{agent_id}', 'avatar_quick_template'),
     TemplateStep('hollow', '零号空洞', '进入零号空洞-枯萎之都（走格子）的随意关卡，并设置目标角色为编队 1 号位',
                  'hollow', 'avatar_{agent_id}', 'avatar_hollow_template'),
@@ -113,11 +114,14 @@ TEMPLATE_STEPS: list[TemplateStep] = [
                  'predefined_team', 'avatar_{agent_id}', 'avatar_template_team'),
 ]
 
+SWITCH_HOTKEY = 'switch'
+EXPAND_HOTKEY = 'expand'
+
+# 每个模板一个截图快捷键 另有切换窗口和展开悬浮窗
 HOTKEY_ACTIONS: list[HotkeyAction] = [
-    HotkeyAction('capture', '截图', 'f8'),
-    HotkeyAction('next', '下一步', 'ctrl+f'),
-    HotkeyAction('prev', '上一步', ''),
-    HotkeyAction('main', '回到主界面', ''),
+    *[HotkeyAction(step.key, step.name, f'ctrl+{idx + 1}') for idx, step in enumerate(TEMPLATE_STEPS)],
+    HotkeyAction(SWITCH_HOTKEY, '切换窗口', 'ctrl+0'),
+    HotkeyAction(EXPAND_HOTKEY, '展开/收起悬浮窗', 'ctrl+9'),
 ]
 
 SCREEN_SIZE: tuple[int, int] = (1920, 1080)
@@ -176,47 +180,47 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         self.breadcrumb.currentItemChanged.connect(self._on_breadcrumb_changed)
         layout.addWidget(self.breadcrumb)
 
-        field_row = QHBoxLayout()
-        field_row.setContentsMargins(0, 0, 0, 0)
-        field_row.setSpacing(12)
-        field_row.addWidget(BodyLabel(gt('名称')))
+        name_row = QHBoxLayout()
+        name_row.setContentsMargins(0, 0, 0, 0)
+        name_row.setSpacing(12)
+        name_row.addWidget(BodyLabel(gt('名称')))
         self.agent_id_edit = LineEdit()
         self.agent_id_edit.setPlaceholderText(gt('代理人英文名'))
         self.agent_id_edit.setFixedWidth(320)
         self.agent_id_edit.textChanged.connect(self._on_agent_id_changed)
-        field_row.addWidget(self.agent_id_edit)
+        name_row.addWidget(self.agent_id_edit)
         self.agent_id_error = CaptionLabel()
         self.agent_id_error.setTextColor('#c42b1c', '#ff99a4')
         self.agent_id_error.hide()
-        field_row.addWidget(self.agent_id_error)
-        field_row.addSpacing(12)
-        field_row.addWidget(BodyLabel(gt('悬浮窗')))
+        name_row.addWidget(self.agent_id_error)
+        name_row.addStretch(1)
+        self.btn_hotkeys = PushButton(FluentIcon.EDIT, gt('快捷键'))
+        self.btn_hotkeys.clicked.connect(self._on_hotkeys_clicked)
+        name_row.addWidget(self.btn_hotkeys)
+        self.btn_save = PrimaryPushButton(FluentIcon.SAVE, gt('保存'))
+        self.btn_save.clicked.connect(self._save_all)
+        name_row.addWidget(self.btn_save)
+        layout.addLayout(name_row)
+
+        float_row = QHBoxLayout()
+        float_row.setContentsMargins(0, 0, 0, 0)
+        float_row.setSpacing(12)
+        float_row.addWidget(BodyLabel(gt('悬浮窗')))
         self.float_switch = SwitchButton()
         self.float_switch.setOnText(gt('开'))
         self.float_switch.setOffText(gt('关'))
         self.float_switch.checkedChanged.connect(self._on_float_toggled)
-        field_row.addWidget(self.float_switch)
-        field_row.addStretch(1)
-        layout.addLayout(field_row)
-
-        shortcut_row = QHBoxLayout()
-        shortcut_row.setContentsMargins(0, 0, 0, 0)
-        shortcut_row.setSpacing(24)
-        self.shortcut_buttons: dict[str, ShortcutButton] = {}
-        for action in HOTKEY_ACTIONS:
-            item = QHBoxLayout()
-            item.setContentsMargins(0, 0, 0, 0)
-            item.setSpacing(8)
-            item.addWidget(BodyLabel(gt(action.name)))
-            btn = ShortcutButton()
-            btn.setAccessibleName(gt(action.name))
-            btn.clicked.connect(lambda _=False, a=action: self._on_shortcut_clicked(a))
-            item.addWidget(btn)
-            shortcut_row.addLayout(item)
-            self.shortcut_buttons[action.key] = btn
-        shortcut_row.addStretch(1)
-        layout.addLayout(shortcut_row)
-        self._refresh_shortcut_buttons()
+        float_row.addWidget(self.float_switch)
+        float_row.addSpacing(12)
+        float_row.addWidget(BodyLabel(gt('切换窗口')))
+        self.switch_caps = KeyCapRow()
+        float_row.addWidget(self.switch_caps)
+        float_row.addSpacing(12)
+        float_row.addWidget(BodyLabel(gt('展开/收起悬浮窗')))
+        self.expand_caps = KeyCapRow()
+        float_row.addWidget(self.expand_caps)
+        float_row.addStretch(1)
+        layout.addLayout(float_row)
 
         rail = QWidget()
         rail_layout = FlowLayout(rail, needAni=False)
@@ -227,9 +231,11 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         for idx, step in enumerate(TEMPLATE_STEPS):
             thumb = StepThumb(gt(step.name))
             thumb.clicked.connect(lambda i=idx: self._show_step(i))
+            thumb.capture_clicked.connect(lambda i=idx: self._capture_step(i))
             rail_layout.addWidget(thumb)
             self.step_thumbs.append(thumb)
         layout.addWidget(rail)
+        self._refresh_hotkey_labels()
 
         return self.editor_top
 
@@ -277,9 +283,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         actions.setContentsMargins(0, 0, 0, 0)
         actions.setSpacing(8)
         self.btn_capture = PrimaryPushButton(FluentIcon.CAMERA, gt('截图'))
-        self.btn_capture.clicked.connect(self._capture_current)
+        self.btn_capture.clicked.connect(lambda: self._capture_step(self.current_step))
         self.btn_retake = PushButton(FluentIcon.CAMERA, gt('重拍'))
-        self.btn_retake.clicked.connect(self._capture_current)
+        self.btn_retake.clicked.connect(lambda: self._capture_step(self.current_step))
         self.btn_open_file = TransparentToolButton(FluentIcon.FOLDER)
         self.btn_open_file.setToolTip(gt('从文件选择'))
         self.btn_open_file.setAccessibleName(gt('从文件选择'))
@@ -289,12 +295,6 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         actions.addWidget(self.btn_retake)
         actions.addWidget(self.btn_open_file)
         actions.addStretch(1)
-        self.btn_prev = PushButton(gt('上一步'))
-        self.btn_prev.clicked.connect(lambda: self._show_step(self.current_step - 1))
-        self.btn_next = PrimaryPushButton(gt('下一步'))
-        self.btn_next.clicked.connect(self._on_next_clicked)
-        actions.addWidget(self.btn_prev)
-        actions.addWidget(self.btn_next)
         layout.addLayout(actions)
 
         content = QWidget()
@@ -375,7 +375,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             return
 
         self.editing = False
-        self.float_switch.setChecked(False)
+        self._set_float_visible(False)
         self.hotkey_listener.stop()
         self.editor_top.hide()
         self.editor_card.hide()
@@ -429,6 +429,10 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         self._on_agent_id_changed(agent_id or '')
         if self._page_visible:
             self.hotkey_listener.start()
+        self.float_switch.blockSignals(True)
+        self.float_switch.setChecked(self.config.float_enabled)
+        self.float_switch.blockSignals(False)
+        self._set_float_visible(self.config.float_enabled)
 
     def _on_breadcrumb_changed(self, route_key: str) -> None:
         if route_key != 'list':
@@ -482,10 +486,6 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
     # 步骤
 
-    @property
-    def _is_last_step(self) -> bool:
-        return self.current_step == len(TEMPLATE_STEPS) - 1
-
     def _display_crop(self, idx: int) -> MatLike | None:
         return self.crops[idx] if self.crops[idx] is not None else self.saved_crops[idx]
 
@@ -496,9 +496,6 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         return (self.agent_id is not None
                 and any(crop is not None for crop in self.crops)
                 and all(self._step_done(i) for i in range(len(TEMPLATE_STEPS))))
-
-    def _can_next(self) -> bool:
-        return self._can_save() if self._is_last_step else self._step_done(self.current_step)
 
     def _show_step(self, idx: int) -> None:
         self.current_step = max(0, min(idx, len(TEMPLATE_STEPS) - 1))
@@ -518,31 +515,13 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         done = self._step_done(idx)
         self.btn_capture.setVisible(not done)
         self.btn_retake.setVisible(done)
-        self.btn_prev.setEnabled(idx > 0)
-        self.btn_next.setText(gt('保存') if self._is_last_step else gt('下一步'))
-        self.btn_next.setIcon(FluentIcon.SAVE if self._is_last_step else None)
-        self.btn_next.setEnabled(self._can_next())
+        self.btn_save.setEnabled(self._can_save())
 
         for i, thumb in enumerate(self.step_thumbs):
             thumb.set_selected(i == idx)
             thumb.set_image(self._display_crop(i))
 
         self._refresh_float_window()
-
-    def _on_next_clicked(self) -> None:
-        if not self._can_next():
-            return
-        if self._is_last_step:
-            self._save_all()
-        else:
-            self._show_step(self.current_step + 1)
-
-    def _on_float_next_clicked(self) -> None:
-        """悬浮窗和快捷键只推进步骤，最后一步回到主界面由用户点保存。"""
-        if self._is_last_step:
-            self._bring_main_window()
-        elif self._can_next():
-            self._show_step(self.current_step + 1)
 
     def _on_side_changed(self, side: str) -> None:
         self.chain_side = side
@@ -553,7 +532,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
     # 截图与裁剪
 
-    def _capture_current(self) -> None:
+    def _capture_step(self, idx: int) -> None:
+        """截图到指定模板，并切换到该模板。"""
+        self._show_step(idx)
         controller = self.ctx.controller
         if controller is not None and not controller.is_game_window_ready:
             controller.init_game_win()
@@ -691,42 +672,53 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
     def _update_listener_combos(self) -> None:
         self.hotkey_listener.combos = {combo for combo in self.hotkeys.values() if combo}
 
-    def _refresh_shortcut_buttons(self) -> None:
-        for key, btn in self.shortcut_buttons.items():
-            btn.set_keys(hotkey_keys(self.hotkeys[key]))
+    def _refresh_hotkey_labels(self) -> None:
+        for step, thumb in zip(TEMPLATE_STEPS, self.step_thumbs, strict=True):
+            thumb.set_hotkey(hotkey_keys(self.hotkeys[step.key]))
+        self.switch_caps.set_keys(hotkey_keys(self.hotkeys[SWITCH_HOTKEY]))
+        self.expand_caps.set_keys(hotkey_keys(self.hotkeys[EXPAND_HOTKEY]))
 
-    def _on_shortcut_clicked(self, action: HotkeyAction) -> None:
+    def _on_hotkeys_clicked(self) -> None:
         was_running = self.hotkey_listener.is_running
-        dialog = HotkeyDialog(
-            self.hotkey_listener, gt(action.name), self.hotkeys[action.key], action.default_value,
+        dialog = HotkeyListDialog(
+            self.hotkey_listener,
+            [(action.key, gt(action.name), action.default_value) for action in HOTKEY_ACTIONS],
+            self.hotkeys,
+            batch_keys=[step.key for step in TEMPLATE_STEPS],
             parent=self.window(),
         )
         if dialog.exec():
-            self.hotkeys[action.key] = normalize_hotkey(dialog.value)
-            self.config.set_hotkey(action.key, self.hotkeys[action.key])
+            self.hotkeys = dialog.values
+            for key, value in self.hotkeys.items():
+                self.config.set_hotkey(key, value)
             self._update_listener_combos()
-            self._refresh_shortcut_buttons()
+            self._refresh_hotkey_labels()
+            self._refresh_float_window()
         if not was_running:
             self.hotkey_listener.stop()
 
     def _on_hotkey_pressed(self, combo: str) -> None:
         if not self.editing:
             return
-        actions = {key for key, value in self.hotkeys.items() if value == combo}
-        if 'main' in actions:
+        if combo == self.hotkeys[SWITCH_HOTKEY]:
+            self._switch_window()
+            return
+        if combo == self.hotkeys[EXPAND_HOTKEY]:
+            if self._is_float_visible():
+                self.float_window.set_expanded(not self.float_window.expanded, emit=True)
+            return
+        for idx, step in enumerate(TEMPLATE_STEPS):
+            if combo == self.hotkeys[step.key]:
+                self._capture_step(idx)
+                return
+
+    def _switch_window(self) -> None:
+        """游戏在前台时切到一条龙，否则切回游戏。"""
+        controller = self.ctx.controller
+        if controller is not None and controller.game_win.is_win_active:
             self._bring_main_window()
-        elif 'prev' in actions:
-            self._show_step(self.current_step - 1)
-        elif {'capture', 'next'} <= actions:
-            # 截图和下一步设为同一个键时 未完成先截图 已完成进入下一步
-            if not self._step_done(self.current_step):
-                self._capture_current()
-            else:
-                self._on_float_next_clicked()
-        elif 'capture' in actions:
-            self._capture_current()
-        elif 'next' in actions:
-            self._on_float_next_clicked()
+        elif controller is not None:
+            controller.game_win.active()
 
     def _bring_main_window(self) -> None:
         win = self.window()
@@ -752,7 +744,12 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         return self.float_window is not None and self.float_window.isVisible()
 
     def _on_float_toggled(self, checked: bool) -> None:
-        if not checked:
+        self.config.float_enabled = checked
+        self._set_float_visible(checked)
+
+    def _set_float_visible(self, visible: bool) -> None:
+        """只显示或隐藏悬浮窗，不改变用户的开关设置。"""
+        if not visible:
             if self.float_window is not None:
                 self.float_window.hide()
             if not self._page_visible:
@@ -760,14 +757,19 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             return
 
         if self.float_window is None:
-            self.float_window = AgentTemplateFloatWindow()
-            self.float_window.capture_clicked.connect(self._capture_current)
-            self.float_window.next_clicked.connect(self._on_float_next_clicked)
+            self.float_window = AgentTemplateFloatWindow([step.name for step in TEMPLATE_STEPS])
+            self.float_window.switch_clicked.connect(self._switch_window)
+            self.float_window.expand_toggled.connect(self._on_float_expand_toggled)
+            self.float_window.template_clicked.connect(self._show_step)
+            self.float_window.set_expanded(self.config.float_expanded)
             self.float_window.close_clicked.connect(lambda: self.float_switch.setChecked(False))
             self.float_window.moved.connect(self._on_float_moved)
         self._refresh_float_window()
         self.float_window.show_at(self.config.float_x, self.config.float_y)
         self.hotkey_listener.start()
+
+    def _on_float_expand_toggled(self, expanded: bool) -> None:
+        self.config.float_expanded = expanded
 
     def _on_float_moved(self, x: int, y: int) -> None:
         self.config.float_x = x
@@ -776,8 +778,10 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
     def _refresh_float_window(self) -> None:
         if self.float_window is None:
             return
-        idx = self.current_step
-        self.float_window.set_step(
-            idx, len(TEMPLATE_STEPS), gt(TEMPLATE_STEPS[idx].name), self._display_crop(idx),
-            can_next=self._is_last_step or self._step_done(idx), is_last=self._is_last_step,
+        self.float_window.set_state(
+            current_idx=self.current_step,
+            crops=[self._display_crop(i) for i in range(len(TEMPLATE_STEPS))],
+            keys=[hotkey_keys(self.hotkeys[step.key]) for step in TEMPLATE_STEPS],
+            switch_text=' + '.join(hotkey_keys(self.hotkeys[SWITCH_HOTKEY])),
+            expand_text=' + '.join(hotkey_keys(self.hotkeys[EXPAND_HOTKEY])),
         )

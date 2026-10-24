@@ -78,18 +78,22 @@ class ImageSlot(QWidget):
 
 
 class StepThumb(CardWidget):
-    """步骤条中的一项，显示裁剪预览和名称，选中时显示强调色边框。"""
+    """一个模板的缩略图，点击打开该模板，下方按钮直接截图，选中时显示强调色边框。"""
+
+    WIDTH: int = 152
+
+    capture_clicked = Signal()
 
     def __init__(self, name: str, parent: QWidget | None = None) -> None:
         CardWidget.__init__(self, parent)
         self._selected: bool = False
-        self.setFixedWidth(128)
+        self.setFixedWidth(self.WIDTH)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        self.image = ImageSlot(112, 64)
+        self.image = ImageSlot(self.WIDTH - 16, 64)
         layout.addWidget(self.image)
 
         name_row = QHBoxLayout()
@@ -104,9 +108,16 @@ class StepThumb(CardWidget):
         name_row.addStretch(1)
         layout.addLayout(name_row)
 
+        self.btn_capture = CaptureButton()
+        self.btn_capture.clicked.connect(self.capture_clicked)
+        layout.addWidget(self.btn_capture)
+
     def set_image(self, image: MatLike | None) -> None:
         self.image.set_image(image)
         self.done_icon.setVisible(image is not None)
+
+    def set_hotkey(self, keys: list[str]) -> None:
+        self.btn_capture.set_keys(keys)
 
     def set_selected(self, selected: bool) -> None:
         self._selected = selected
@@ -128,18 +139,15 @@ class StepThumb(CardWidget):
 class KeyCap(QWidget):
     """单个按键，显示为强调色圆角块。"""
 
-    def __init__(self, text: str, large: bool = False, parent: QWidget | None = None) -> None:
+    def __init__(self, text: str, parent: QWidget | None = None) -> None:
         QWidget.__init__(self, parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._text: str = text
-        self._font: QFont = getFont(16 if large else 12, QFont.Weight.DemiBold)
-        self._height: int = 48 if large else 22
-        self._padding: int = 16 if large else 6
-        self._min_width: int = 48 if large else 22
+        self._font: QFont = getFont(12, QFont.Weight.DemiBold)
 
     def sizeHint(self) -> QSize:
         text_width = QFontMetrics(self._font).horizontalAdvance(self._text)
-        return QSize(max(self._min_width, text_width + self._padding * 2), self._height)
+        return QSize(max(22, text_width + 12), 22)
 
     def paintEvent(self, e: QPaintEvent) -> None:
         painter = QPainter(self)
@@ -153,26 +161,25 @@ class KeyCap(QWidget):
 
 
 class KeyCapRow(QWidget):
-    """一组按键，无按键时显示未设置。"""
+    """一组按键，无按键时显示占位文字。"""
 
-    def __init__(self, large: bool = False, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         QWidget.__init__(self, parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self._large: bool = large
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(8 if large else 4)
+        self._layout.setSpacing(4)
 
-    def set_keys(self, keys: list[str]) -> None:
+    def set_keys(self, keys: list[str], placeholder: str | None = None) -> None:
         while self._layout.count():
             widget = self._layout.takeAt(0).widget()
             if widget is not None:
                 widget.hide()
                 widget.deleteLater()
 
-        widgets: list[QWidget] = [KeyCap(key, large=self._large) for key in keys]
+        widgets: list[QWidget] = [KeyCap(key) for key in keys]
         if not widgets:
-            label = CaptionLabel(gt('未设置'))
+            label = CaptionLabel(placeholder or gt('未设置'))
             label.setTextColor(QColor(96, 96, 96), QColor(206, 206, 206))
             widgets.append(label)
         for widget in widgets:
@@ -194,9 +201,9 @@ class ShortcutButton(PushButton):
         self.caps = KeyCapRow()
         layout.addWidget(self.caps, alignment=Qt.AlignmentFlag.AlignCenter)
 
-    def set_keys(self, keys: list[str]) -> None:
-        self.caps.set_keys(keys)
-        self.setFixedWidth(max(64, self.caps.width() + 24))
+    def set_keys(self, keys: list[str], placeholder: str | None = None) -> None:
+        self.caps.set_keys(keys, placeholder)
+        self.setFixedWidth(max(88, self.caps.width() + 24))
 
 
 class AgentCard(CardWidget):
@@ -251,3 +258,30 @@ class AgentCard(CardWidget):
         menu = RoundMenu(parent=self)
         menu.addAction(Action(FluentIcon.DELETE, gt('删除'), triggered=lambda: self.delete_requested.emit(self.agent_id)))
         menu.exec(self.btn_more.mapToGlobal(QPoint(0, self.btn_more.height())))
+
+
+class CaptureButton(PushButton):
+    """截图按钮，显示相机图标和对应的快捷键。"""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        PushButton.__init__(self, parent)
+        self.setFixedHeight(32)
+        self.installEventFilter(ToolTipFilter(self))
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setSpacing(8)
+        layout.addStretch(1)
+        icon = IconWidget(FluentIcon.CAMERA)
+        icon.setFixedSize(16, 16)
+        icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(icon)
+        self.caps = KeyCapRow()
+        layout.addWidget(self.caps)
+        layout.addStretch(1)
+
+    def set_keys(self, keys: list[str]) -> None:
+        self.caps.set_keys(keys)
+        text = ' + '.join(keys)
+        tip = f'{gt("截图")} ({text})' if text else gt('截图')
+        self.setToolTip(tip)
+        self.setAccessibleName(tip)
