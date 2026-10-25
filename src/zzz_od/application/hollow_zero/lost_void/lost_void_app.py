@@ -46,6 +46,7 @@ class LostVoidApp(ZApplication):
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
+    STATUS_NO_STRATEGY: ClassVar[str] = '没有可刷的调查战略'
 
     def __init__(self, ctx: ZContext,
                  lost_void_debug: bool = False,
@@ -75,6 +76,7 @@ class LostVoidApp(ZApplication):
         self._strategy_last_page: list[tuple[str, int]] = []
         self._strategy_level_map: dict[str, int] = {}  # 向右检查时看到的 可选战略名称 -> 等级 只记 0～7
         self._strategy_target_name: str | None = None  # 看完整个列表后要选的战略
+        self._stop_reason: str | None = None  # 挑战配置要求提前结束运行的原因
 
         # debug
         self.lost_void_debug = lost_void_debug
@@ -480,6 +482,37 @@ class LostVoidApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='副本画面识别')
+    @operation_node(name='选择难度', node_max_retry_times=5)
+    def choose_difficulty(self) -> OperationRoundResult:
+        """
+        挑战配置指定了难度时 在战线肃清切换到该难度 没指定时沿用游戏当前难度
+        难度一~六只差一个字 lcs匹配会互相命中 这里用包含判断
+        """
+        difficulty = self.ctx.lost_void.challenge_config.difficulty
+        if not difficulty or self.config.mission_name != '战线肃清':
+            return self.round_success('无需选择')
+
+        target = gt(difficulty, 'game')
+        title_area = self.ctx.screen_loader.get_area('迷失之地-战线肃清', '标题-战线肃清')
+        title_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=self.last_screenshot, rect=title_area.rect, crop_first=True,
+        )
+        if any(target in text.replace(' ', '') for text in title_map):
+            return self.round_success(f'已选择{difficulty}')
+
+        list_area = self.ctx.screen_loader.get_area('迷失之地-战线肃清', '区域-难度列表')
+        list_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=self.last_screenshot, rect=list_area.rect, crop_first=True,
+        )
+        for text, mrl in list_map.items():
+            if target in text.replace(' ', '') and mrl.max is not None:
+                self.ctx.controller.click(mrl.max.center)
+                return self.round_retry(f'点击{difficulty}', wait=1)
+
+        self.round_by_click_area('迷失之地-战线肃清', '按钮-难度')
+        return self.round_retry('打开难度列表', wait=1)
+
+    @node_from(from_name='选择难度')
     @operation_node(name='打开调查战略列表')
     def open_strategy_list(self) -> OperationRoundResult:
         self._strategy_scan_phase = '回到左端'
@@ -555,6 +588,11 @@ class LostVoidApp(ZApplication):
             self._strategy_scan_phase = '选择目标'
             log.info('调查战略追新 | 选择等级最低战略=%s 等级=%s', name, self._strategy_level_map[name])
             return self._choose_strategy_by_ocr(name)
+
+        if self.ctx.lost_void.challenge_config.stop_when_no_strategy:
+            self._stop_reason = '没有找到可继续刷取的调查战略 结束运行'
+            log.warning(self._stop_reason)
+            return self.round_success(LostVoidApp.STATUS_NO_STRATEGY)
 
         # 回退逻辑: 没有确认未满级的战略 选择第一个
         frame_context = self.ctx.cv_service.run_pipeline('调查战略等级圈圈', self.last_screenshot)
@@ -804,9 +842,13 @@ class LostVoidApp(ZApplication):
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
+                self.ctx.lost_void.on_enter_region(op_result.data)
             elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
                 self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 self.next_region_type = LostVoidRegionType.ENTRY
+                # 通关和失败退出空洞都会返回这个状态 本局已经结束
+                # 其他失败(如超时)可能还在局内 下次启动从大世界接着跑 不清除
+                self.ctx.lost_void.on_challenge_end()
 
         return self.round_by_op_result(op_result)
 
@@ -855,10 +897,15 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='全部领取')
     @node_from(from_name='全部领取', success=False)
+    @node_from(from_name='选择调查战略', status=STATUS_NO_STRATEGY)
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        result = self.round_by_op_result(op.execute())
+        if result.is_success and self._stop_reason is not None:
+            # 提前结束不算正常完成 不触发完成后的关机等动作
+            return self.round_fail(self._stop_reason)
+        return result
 
 
 def __debug():
