@@ -50,7 +50,8 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 class PushTestRunner(QThread):
     """后台发送测试推送 避免网络请求卡住界面线程。"""
 
-    finished = Signal(bool, str)
+    # 不能用 finished 命名 会遮蔽 QThread 内置的线程结束信号
+    push_done = Signal(bool, str)
 
     def __init__(self, push_func: Callable[[], tuple[bool, str]]) -> None:
         super().__init__()
@@ -62,7 +63,7 @@ class PushTestRunner(QThread):
         except Exception as e:
             ok, msg = False, f'测试推送失败: {e}'
 
-        self.finished.emit(ok, msg)
+        self.push_done.emit(ok, msg)
 
 
 class SettingPushInterface(VerticalScrollInterface):
@@ -325,7 +326,7 @@ class SettingPushInterface(VerticalScrollInterface):
             return ok, ('' if ok and channel_id is not None else msg)
 
         self._push_test_runner = PushTestRunner(push_func=push_test)
-        self._push_test_runner.finished.connect(
+        self._push_test_runner.push_done.connect(
             lambda ok, msg: self._on_test_push_finished(ok, msg, success_msg)
         )
         self._push_test_runner.start()
