@@ -134,6 +134,25 @@ class ChoosePredefinedTeam(ZOperation):
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='画面识别', status=STATUS_TEAM_LIST_READY)
+    @operation_node(name='等待编队列表就绪', node_max_retry_times=15)
+    def wait_team_list_ready(self) -> OperationRoundResult:
+        """
+        等待预备编队列表渲染停稳。
+
+        从代理人详情页点击「预备编队」进入列表有转场动画，首帧可能还停在详情页。
+        详情页右下角是「出战」，与「预备出战」的最长公共子序列也有 2 个字，按默认
+        0.5 阈值会误判就绪；这里要求四个字全部识别到（lcs_percent=1）才认可。
+        """
+        return self.round_by_ocr(
+            self.last_screenshot,
+            '预备出战',
+            area=self.ctx.screen_loader.get_area('实战模拟室', '预备出战'),
+            lcs_percent=1,
+            success_wait=0.2,
+            retry_wait_round=0.2,
+        )
+
+    @node_from(from_name='等待编队列表就绪', status='预备出战')
     @node_from(from_name='选择编队', status=STATUS_CONTINUE_CHOOSE)
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
@@ -307,6 +326,8 @@ class ChoosePredefinedTeam(ZOperation):
                 team_slot_rect,
             )
             if selected_button_mr is None:
+                screenshot_file = self.save_screenshot(prefix='no_select')
+                log.error('当前编队未找到SELECT 相关截图保存至 %s', screenshot_file)
                 return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
             log.info('预备编队取消预选:队伍:%s', target_team.name)
             self.ctx.controller.click(selected_button_mr.center)
