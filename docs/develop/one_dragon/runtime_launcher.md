@@ -110,6 +110,7 @@ LauncherBase          → 基础参数解析、run() 入口
 
 - **打包时**：spec 文件通过 `importlib` 动态加载 `generate_module_manifest.py`，在 Analysis 阶段生成 `module_manifest.py`
 - **CI 自动构建**：`build-running-resources.yml` 工作流每次推送到 main 或者 pr 更新时运行 `generate_module_manifest.py`，如果清单有变化则自动提交
+- **CI 兼容性检查**：`runtime-compatibility.yml` 在推送到 main 或手动触发时，下载最新正式版 RuntimeLauncher。检查脚本提取 EXE 内的 PYZ 和冻结导入器，使用同版本 Python 加载 `.runtime` 中的标准库、扩展模块和 DLL，再调用同一套新增导入检查。确认不兼容时打开或评论同一个未关闭 issue，并提醒仓库变量 `COMPATIBILITY_NOTIFY_USER` 指定的 GitHub 用户；变量缺失、为空或不是合法用户名时，Action 失败且不打开 issue。下载、解压或检查进程异常同样只让 Action 失败，不打开 issue。
 
 ## 代码同步流程
 
