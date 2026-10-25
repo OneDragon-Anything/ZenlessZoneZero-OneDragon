@@ -8,6 +8,10 @@
 
 各种推送渠道需要继承实现PushChannel，提供统一的推送接口、推送配置schema。
 
+个别渠道的配置无法只靠填写获得：QQ 官方机器人的接收方 OpenID 只能在机器人网关收到消息时拿到，
+由 `qq_bot.py` 里的绑定流程走网关获取，界面侧是 `widgets/setting_card/qq_bot_bind_card.py`
+的两个“绑定单聊/绑定群聊”按钮，绑定成功后自动回填。
+
 ### 1.2.推送配置 - PushConfig
 
 提供：

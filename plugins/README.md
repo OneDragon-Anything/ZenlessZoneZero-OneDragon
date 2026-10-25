@@ -79,7 +79,7 @@ plugins/                          # ← 添加到 sys.path
 ├── README.md
 ├── plugin_a/                     # 插件 A
 │   ├── __init__.py               # 推荐添加
-│   ├── plugin_a_const.py         # 定义 APP_ID, APP_NAME, DEFAULT_GROUP, NEED_NOTIFY
+│   ├── plugin_a_const.py         # 定义 APP_ID, APP_NAME, DEFAULT_GROUP, NEED_NOTIFY；可选 INTERNAL_APP
 │   ├── plugin_a_factory.py       # 工厂类（必须以 _factory.py 结尾）
 │   ├── plugin_a.py               # 应用实现
 │   └── utils/                    # 子包
@@ -113,8 +113,11 @@ plugins/                          # ← 添加到 sys.path
 
 APP_ID = "my_plugin"
 APP_NAME = "我的插件"
-DEFAULT_GROUP = True  # True: 显示在一条龙列表，False: 独立工具
+DEFAULT_GROUP = True  # 是否默认进入一条龙列表
 NEED_NOTIFY = True    # 是否需要通知
+
+# 可选，默认 False。设为 True 后只允许代码中的固定入口调用
+# INTERNAL_APP = True
 
 # 插件元数据（可选，用于 GUI 显示）
 PLUGIN_AUTHOR = "作者名"
@@ -139,17 +142,30 @@ from .my_plugin import MyPlugin    # ✅ 相对导入
 
 class MyPluginFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
-        super().__init__(
-            app_id=my_plugin_const.APP_ID,
-            app_name=my_plugin_const.APP_NAME,
-            default_group=my_plugin_const.DEFAULT_GROUP,
-            need_notify=my_plugin_const.NEED_NOTIFY,
-        )
-        self.ctx = ctx
+        super().__init__(my_plugin_const)
+        self.ctx: ZContext = ctx
 
-    def create_application(self, instance_idx, group_id):
+    def create_application(self, instance_idx: int, group_id: str) -> MyPlugin:
         return MyPlugin(self.ctx)
 ```
+
+### 应用入口字段
+
+| `DEFAULT_GROUP` | `INTERNAL_APP` | 行为 |
+|:---:|:---:|---|
+| `True` | `False` | 默认进入一条龙，也可在通用“应用运行”页面及后端、HTTP、MCP 中选择 |
+| `False` | `False` | 不进入一条龙，只在上述通用独立应用入口中选择 |
+| `False` | `True` | 不进入通用列表，只允许专用页面、父应用或系统代码按固定 `app_id` 调用 |
+
+`INTERNAL_APP` 省略时为 `False`。`DEFAULT_GROUP=True` 与 `INTERNAL_APP=True` 是非法组合，插件会加载失败。底层 `run_application()` 仍可运行 internal 应用，限制只作用于通用选择入口。
+
+### 运行记录
+
+`DEFAULT_GROUP=True` 的普通插件不用实现 `create_run_record()`。父工厂会创建基础 `AppRunRecord`，自动使用当前区服刷新时间划分游戏日；一条龙会根据记录跳过当天已经成功的应用。
+
+`DEFAULT_GROUP=False` 的插件默认没有运行记录，也不会因为缺少记录而加载或运行失败。只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，才覆盖 `create_run_record()`。
+
+手动入口始终允许执行，并与一条龙共享运行记录；手动成功后，一条龙会跳过同一账号当天已经完成的应用。
 
 ### 4. 实现应用逻辑
 
@@ -174,9 +190,10 @@ class MyPlugin(Application):
 ## 注意事项
 
 1. **文件命名**：工厂文件必须以 `_factory.py` 结尾
-2. **必需字段**：const 文件必须定义 `APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`（顺序一致）
-3. **`__init__.py`**：建议添加以支持相对导入，无 `__init__.py` 时会自动创建命名空间包
-4. **模块名唯一性**：插件包名（目录名）应该唯一，避免与其他插件或主程序模块冲突
-5. **备份**：此目录被 `.gitignore` 忽略，请自行备份
-6. **热重载**：刷新应用时会卸载整个插件包并重新加载
-7. **factory 层级**：第三方插件只注册插件根第一层的唯一 `_factory.py`，子目录中的 `_factory.py` 不会被扫描
+2. **const 字段**：必须定义 `APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`；`INTERNAL_APP` 可选，默认 `False`
+3. **入口组合**：`DEFAULT_GROUP` 和 `INTERNAL_APP` 不能同时为 `True`
+4. **`__init__.py`**：建议添加以支持相对导入，无 `__init__.py` 时会自动创建命名空间包
+5. **模块名唯一性**：插件包名（目录名）应该唯一，避免与其他插件或主程序模块冲突
+6. **备份**：此目录被 `.gitignore` 忽略，请自行备份
+7. **热重载**：刷新应用时会卸载整个插件包并重新加载
+8. **factory 层级**：第三方插件只注册插件根第一层的唯一 `_factory.py`，子目录中的 `_factory.py` 不会被扫描

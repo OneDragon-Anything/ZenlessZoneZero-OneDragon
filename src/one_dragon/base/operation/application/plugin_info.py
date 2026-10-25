@@ -32,7 +32,8 @@ class PluginInfo:
     Attributes:
         app_id: 应用唯一标识符
         app_name: 应用显示名称
-        default_group: 是否属于默认应用组
+        default_group: 是否默认进入一条龙列表
+        internal_app: 是否只能由代码固定入口调用，不出现在通用应用列表
         source: 插件来源（由扫描器设置，非用户可控）
         author: 作者名称（可选）
         homepage: 项目主页 URL（可选）
@@ -50,6 +51,9 @@ class PluginInfo:
 
     # 插件来源
     source: PluginSource = PluginSource.BUILTIN
+
+    # 应用入口
+    internal_app: bool = False
 
     # 插件元数据（从 const 获取，可选）
     author: str = ''

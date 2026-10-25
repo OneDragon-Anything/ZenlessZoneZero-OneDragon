@@ -243,13 +243,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         :param value:
         :return:
         """
-        removed = self.ctx.app_group_manager.set_one_dragon_app_enable(
+        self.ctx.app_group_manager.set_one_dragon_app_enable(
             config=self.config,
             app_id=app_id,
             enabled=value,
         )
-        if removed:
-            self._init_app_list()
 
     def _on_instance_event(self, event) -> None:
         """

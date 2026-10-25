@@ -23,8 +23,11 @@ src/zzz_od/application/my_app/    # 内置应用
 
 APP_ID = "my_app"
 APP_NAME = "我的应用"
-DEFAULT_GROUP = True   # True → 出现在一条龙列表; False → 独立工具
+DEFAULT_GROUP = True   # 是否默认进入一条龙列表
 NEED_NOTIFY = True     # 是否需要通知
+
+# 可选。只允许专用页面、父应用或系统代码按固定 app_id 调用时设为 True
+# INTERNAL_APP = True
 ```
 
 ### 步骤 2: 创建工厂类
@@ -77,6 +80,9 @@ APP_ID = "my_plugin"
 APP_NAME = "我的插件"
 DEFAULT_GROUP = True
 NEED_NOTIFY = True
+
+# 可选，默认 False
+# INTERNAL_APP = True
 
 # 可选元数据（用于 GUI 显示）
 PLUGIN_AUTHOR = "作者名"
@@ -247,12 +253,36 @@ ctx.refresh_application_registration()
 
 ---
 
-## 应用分组
+## 应用入口
 
-| 分组 | `DEFAULT_GROUP` | 场景 |
-|------|:---------------:|------|
-| 默认组 | `True` | 默认出现在一条龙列表，用于日常任务（体力刷本、咖啡店、邮件等） |
-| 非默认组 | `False` | 默认不出现在一条龙列表；若实例配置中已有该应用且处于启用状态，则继续显示，禁用后永久移除 |
+`DEFAULT_GROUP` 和可选字段 `INTERNAL_APP` 分别控制两个维度：
+
+- `DEFAULT_GROUP`：是否默认进入一条龙列表。
+- `INTERNAL_APP`：是否只能由专用页面、父应用或系统代码按固定 `app_id` 调用。省略时为 `False`。
+
+| `DEFAULT_GROUP` | `INTERNAL_APP` | 行为 |
+|:---:|:---:|---|
+| `True` | `False` | 默认进入一条龙，也可在通用“应用运行”页面及后端、HTTP、MCP 的独立应用入口中选择 |
+| `False` | `False` | standalone：不进入一条龙，可在上述通用独立应用入口中选择 |
+| `False` | `True` | internal：不进入任何通用应用列表，只能由固定入口调用 |
+| `True` | `True` | 非法组合，工厂加载失败 |
+
+旧 const 缺少 `INTERNAL_APP` 时按 `False` 处理，因此旧的 `DEFAULT_GROUP=False` 应用会作为 standalone 应用。internal 应用必须显式声明 `INTERNAL_APP=True`。
+
+`INTERNAL_APP` 只限制通用选择入口，不限制底层 `run_application()`；固定入口仍能运行 internal 应用。运行时会过滤已保存配置中的 internal 或未注册应用，但不会因此删除 YAML 中的原始 ID。
+
+## 运行记录
+
+工厂没有覆盖 `create_run_record()` 时：
+
+- `DEFAULT_GROUP=True`：父工厂创建基础 `AppRunRecord`，使用工厂的 `APP_ID`、请求的账号实例和当前区服的 `game_refresh_hour_offset`。记录按游戏日重置，一条龙据此跳过当天已经成功的应用。
+- `DEFAULT_GROUP=False`：默认没有运行记录，返回 `None`，不会因此抛出错误。
+
+只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，才覆盖 `create_run_record()`。覆盖方法本身抛出的创建错误仍会正常暴露。
+
+手动运行和一条龙共享同一账号、同一应用的运行记录。手动入口不根据完成状态跳过执行，但手动成功后，一条龙会根据共享记录跳过当天已完成的应用。需要不同完成判断时提供自定义运行记录，不按运行入口另建一套每日状态。
+
+应用组执行器本身没有注册工厂，构造时通过 `use_factory_run_record=False` 显式关闭获取工厂记录；普通应用不根据 ID 前缀判断是否需要记录。
 
 ---
 
@@ -282,7 +312,8 @@ class MyContext(OneDragonContext):
 
 1. **APP_ID 全局唯一**：重复的 APP_ID 会被拒绝，先注册者胜
 2. **一模块一工厂**：每个 `_factory.py` 中只定义一个 `ApplicationFactory` 子类
-3. **const 必需字段**：`APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`
-4. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
-5. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
-6. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)
+3. **const 字段**：必须定义 `APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`；`INTERNAL_APP` 可选，默认为 `False`
+4. **入口组合**：`DEFAULT_GROUP` 和 `INTERNAL_APP` 不能同时为 `True`
+5. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
+6. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
+7. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)

@@ -198,14 +198,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         使用工厂管理器自动扫描和注册应用工厂。
         """
-        # 发现并注册应用
-        non_default_factories, default_factories = self.factory_manager.discover_factories()
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        # 发现并注册应用，入口列表由 ApplicationRunContext 按工厂元数据派生
+        factories = self.factory_manager.discover_factories()
+        if factories:
+            self.run_context.registry_application(factories)
 
     def _load_plugin_screens(self) -> None:
         """加载插件的 screen_info
@@ -234,13 +230,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.run_context.clear_applications()
 
         # 重新发现并注册
-        non_default_factories, default_factories = self.factory_manager.discover_factories(reload_modules=True)
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        factories = self.factory_manager.discover_factories(reload_modules=True)
+        if factories:
+            self.run_context.registry_application(factories)
 
         # 重新加载插件 screen
         self.screen_loader.reload()
@@ -311,9 +303,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_for_application()
 
-            self.ready_for_application = True
-
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.ready_for_application = True
 
             self.push_service.init_push_channels()
 
