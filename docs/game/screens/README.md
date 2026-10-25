@@ -58,7 +58,6 @@
 
 **⚠️ 跳过**:
 - `hou_hou_bakery` 见 [吼吼饼铺.md](吼吼饼铺.md)(骨架已建,信息源三层;⚠️Transport 卡 3.0 布亚斯特城区未探索,截图待补)
-- `life_on_line`(危局:含战斗 `EnterHddMission` + `KeySimRunner`,**非「不含战斗」app**,不在建档范围)
 - `commission_assistant` 见 [委托助手.md](委托助手.md)(辅助循环器多态识别已建 doc;⚠️含可选 auto_battle,边界;非固定画面)
 - `coffee` 见 [咖啡店.md](咖啡店.md)(已建档非战斗画面;⚠️边界 app,可选挑战副本含战斗)
 
