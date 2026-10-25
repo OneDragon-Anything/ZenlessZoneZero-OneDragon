@@ -16,14 +16,19 @@ class OpenGame(Operation):
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+        self._restore_hdr: bool = False
         Operation.__init__(self, ctx, op_name=gt('打开游戏'),
                            need_check_game_win=False)
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
         """禁用自动 HDR + 启动游戏 exe。"""
+        self._restore_hdr = False
+        if self.ctx.controller.is_game_window_ready:
+            return self.round_success()
+
         hdr_op = DisableAutoHDR(self.ctx)
-        hdr_op.execute()
+        self._restore_hdr = hdr_op.execute().success
 
         if self.ctx.game_account_config.game_path == '':
             return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
@@ -65,8 +70,10 @@ class OpenGame(Operation):
         self.ctx.controller.init_game_win()
         if self.ctx.controller.is_game_window_ready:
             self.ctx.controller.active_window()
-            hdr_op = EnableAutoHDR(self.ctx)
-            hdr_op.execute()
+            if self._restore_hdr:
+                hdr_op = EnableAutoHDR(self.ctx)
+                hdr_op.execute()
+                self._restore_hdr = False
             return self.round_success()
         else:
             return self.round_retry(wait=1)
