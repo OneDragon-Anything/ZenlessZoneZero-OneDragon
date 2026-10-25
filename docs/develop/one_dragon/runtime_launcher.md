@@ -127,6 +127,14 @@ LauncherBase          → 基础参数解析、run() 入口
 
 用户提示只说明结果、影响和下一步，不展示 tag、checkout、reset、OID 或模块清单等实现细节。具体错误继续写日志。
 
+## 界面重启
+
+代码同步完成后的“立即重启”、语言切换等入口统一通过 `app_utils.start_one_dragon()` 启动新进程。集成启动器重新运行当前 exe；源码模式运行工作目录中的 `OneDragon-Launcher.exe`。
+
+启动时直接传递可执行文件参数列表，以项目目录作为工作目录，并创建独立控制台，避免路径中的空格或特殊字符被命令解释器处理。仅在创建进程成功后退出当前程序；创建失败时保留当前程序并抛出异常。
+
+新进程的环境副本必须设置 `PYINSTALLER_RESET_ENVIRONMENT=1`，让 PyInstaller 将其作为独立程序初始化，避免复用旧进程的运行时环境。不要修改当前进程的环境变量。此要求见 [PyInstaller 重启说明](https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#using-sys-executable-to-spawn-subprocesses-that-outlive-the-application-process-implementing-application-restart)。
+
 ## 错误处理
 
 ### 集成启动器的 try/except

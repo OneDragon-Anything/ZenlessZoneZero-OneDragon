@@ -1,3 +1,4 @@
+import contextlib
 import json
 import threading
 
@@ -39,6 +40,7 @@ from one_dragon_qt.widgets.setting_card.key_value_setting_card import (
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.qq_bot_bind_card import QQBotBindCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
@@ -60,6 +62,7 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.MESSAGE
         )
         self.ctx = ctx
+        self._error_bar: InfoBar | None = None
         self.push_test_finished.connect(self._on_test_push_finished)
 
     def get_content_widget(self) -> QWidget:
@@ -145,6 +148,12 @@ class SettingPushInterface(VerticalScrollInterface):
         self.email_service_opt.combo_box.setCurrentIndex(-1)
         self.email_service_opt.setVisible(False)
 
+        # QQ 官方机器人的接收方 openid 只能从机器人网关收到的事件里取，用绑定按钮自动回填
+        self.qq_bot_bind_card = QQBotBindCard(get_app_credentials=self._get_qq_bot_credentials)
+        self.qq_bot_bind_card.openid_bound.connect(self._on_qq_bot_openid_bound)
+        self.qq_bot_bind_card.bind_failed.connect(self._show_error_message)
+        self.qq_bot_bind_card.setVisible(False)
+
         # 按渠道组织卡片
         self.push_channel_cards: dict[str, list] = {}
         for channel in self.ctx.push_service.channels:
@@ -158,6 +167,11 @@ class SettingPushInterface(VerticalScrollInterface):
                 channel_group.addSettingCard(self.curl_btn)
 
             for field in channel.config_schema:
+                # QQ 官方机器人的绑定按钮放在接收方字段上方
+                if channel.channel_id == 'QQ_BOT' and field.var_suffix == 'OPENID':
+                    channel_cards.append(self.qq_bot_bind_card)
+                    channel_group.addSettingCard(self.qq_bot_bind_card)
+
                 card = self._create_card(channel.channel_id, field)
                 channel_cards.append(card)
                 channel_group.addSettingCard(card)
@@ -239,7 +253,8 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _send_test_message(self):
         """发送测试消息到当前选择的通知方式"""
-        test_method = str(self.notification_method_opt.getValue())
+        selected_method = self.notification_method_opt.getValue()
+        test_method = str(selected_method)
         if test_method == "WEBHOOK":
             # 如果是Webhook方式，先验证配置
             try:
@@ -291,10 +306,11 @@ class SettingPushInterface(VerticalScrollInterface):
         self.test_current_btn.setDisabled(False)
         self.test_all_btn.setDisabled(False)
 
-        if ok:
-            self._show_success_message(success_msg)
-        else:
+        # 部分渠道失败时 ok 仍为 True 错误信息通过 msg 带回来
+        if not ok or len(msg) > 0:
             self._show_error_message(msg if msg else "测试推送失败")
+        else:
+            self._show_success_message(success_msg)
 
     def _get_test_screenshot(self) -> MatLike | None:
         """生成通知测试用标准色相图。"""
@@ -353,6 +369,24 @@ class SettingPushInterface(VerticalScrollInterface):
     def _set_proxy_input_visibility(self):
         """设置代理输入框的可见性"""
         self.proxy_input_opt.setVisible(self.proxy_opt.getValue() == PushProxy.PERSONAL.value.value)
+
+    def _get_qq_bot_credentials(self) -> tuple[str, str]:
+        """取 QQ 机器人配置里的 AppID 与 AppSecret"""
+        channel_config = self.ctx.push_service.get_channel_config('QQ_BOT')
+        return channel_config.get('APP_ID', ''), channel_config.get('CLIENT_SECRET', '')
+
+    def _on_qq_bot_openid_bound(self, is_group: bool, openid: str) -> None:
+        """绑定成功，写进配置并回填输入框"""
+        field_name = 'GROUP_OPENID' if is_group else 'OPENID'
+        self.ctx.push_service.push_config.update_channel_config_value('QQ_BOT', field_name, openid)
+
+        card: TextSettingCard | None = getattr(self, f'qq_bot_{field_name.lower()}_push_card', None)
+        if card is not None:
+            card.setValue(openid)
+            if card.adapter is not None:
+                card.adapter.set_value(openid)
+
+        self._show_success_message('绑定成功')
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -436,8 +470,19 @@ class SettingPushInterface(VerticalScrollInterface):
         except (json.JSONDecodeError, TypeError):
             return False
 
+    def _clear_error_bar(self) -> None:
+        """关闭常驻的错误提示"""
+        if self._error_bar is None:
+            return
+
+        # 用户手动点掉后底层对象可能已被删除
+        with contextlib.suppress(RuntimeError):
+            self._error_bar.close()
+        self._error_bar = None
+
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
+        self._clear_error_bar()
         InfoBar.success(
             title='成功',
             content=message,
@@ -448,12 +493,13 @@ class SettingPushInterface(VerticalScrollInterface):
         )
 
     def _show_error_message(self, message: str):
-        """显示错误消息提示"""
-        InfoBar.error(
+        """显示错误消息提示，不自动消失，新的错误替换旧的"""
+        self._clear_error_bar()
+        self._error_bar = InfoBar.error(
             title='错误',
             content=message,
             orient=InfoBarPosition.TOP,
             isClosable=True,
-            duration=5000,
+            duration=-1,
             parent=self
         )
