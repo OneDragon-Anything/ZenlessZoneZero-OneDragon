@@ -68,6 +68,14 @@ class LostVoidContext:
         self.load_challenge_config()
         self.load_investigation_strategy()
 
+    def reset_for_new_challenge(self) -> None:
+        """
+        每局开始前清空上一局的动态优先级 避免带入下一局
+        """
+        self.priority_updated = False
+        self.dynamic_priority_list = []
+        self.dynamic_abandon_list = []
+
     def load_artifact_data(self) -> None:
         """
         加载 武备、鸣徽 信息
@@ -256,6 +264,23 @@ class LostVoidContext:
 
         return None
 
+    def find_artifact_data(self, category: str, name: str) -> LostVoidArtifact | None:
+        """
+        按 OCR 出的分类和名称 在藏品数据里找对应的藏品 得到是否武备、等级
+        名称允许个别错字(如 万能催化剂 识别成 万能催化物)
+        :param category: 分类 卡牌和无详情的文字在这两类里一起找
+        :param name: 名称
+        :return: 找不到时为空 说明候选名没识别出来(比如 OCR 读到的是效果描述)
+        """
+        if category in ['卡牌', '无详情']:
+            cate_list = ['卡牌', '无详情']
+        else:
+            normalized = self._normalize_category_text(category)
+            cate_list = [i for i in self.cate_2_artifact if self._normalize_category_text(i) == normalized]
+        art_list = [art for cate in cate_list for art in self.cate_2_artifact.get(cate, [])]
+        idx = str_utils.find_in_list_with_fuzzy(name, [i.name for i in art_list], cutoff=0.7)
+        return art_list[idx] if idx is not None else None
+
     def match_artifact_by_ocr_full(self, name_full_str: str) -> LostVoidArtifact | None:
         """
         使用 [类型]名称 的文本匹配 藏品
@@ -392,14 +417,18 @@ class LostVoidContext:
 
                 if closest_artifact_pos is not None:
                     original_artifact = closest_artifact_pos.artifact
-                    # 分支标识按OCR候选直接派生，不依赖本地藏品库
-                    closest_artifact_pos.artifact = LostVoidArtifact(
-                        category=original_artifact.category,
-                        name=f'{original_artifact.name}-{branch}',
-                        level=original_artifact.level,
-                        is_gear=original_artifact.is_gear,
-                        template_id=original_artifact.template_id,
-                    )
+                    branch_name = f'{original_artifact.name}-{branch}'
+                    # 分支优先用藏品数据里的 对不上时按OCR候选直接派生
+                    branch_artifact = self.find_artifact_data(original_artifact.category, branch_name)
+                    if branch_artifact is None:
+                        branch_artifact = LostVoidArtifact(
+                            category=original_artifact.category,
+                            name=branch_name,
+                            level=original_artifact.level,
+                            is_gear=original_artifact.is_gear,
+                            template_id=original_artifact.template_id,
+                        )
+                    closest_artifact_pos.artifact = branch_artifact
 
         # 标题标识（已选择/NEW/齿轮硬币不足）仍按全图OCR做空间关联
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
@@ -543,7 +572,11 @@ class LostVoidContext:
             if len(category) == 0:
                 category = raw_category
 
-            return LostVoidArtifact(category=category, name=raw_name, level='?'), True
+            # 对上藏品数据时用数据里的 才知道是不是武备、等级
+            artifact = self.find_artifact_data(category, raw_name)
+            if artifact is None:
+                artifact = LostVoidArtifact(category=category, name=raw_name, level='?')
+            return artifact, True
 
         # 卡牌界面常见主标题样式：`「xxx」yyy`
         # 该结构应视为主选名称，而不是无详情说明文本。
@@ -552,11 +585,17 @@ class LostVoidContext:
             title = quote_match.group(1).strip()
             suffix = quote_match.group(2).strip()
             if len(title) > 0:
-                name = f'{title} {suffix}'.strip() if len(suffix) > 0 else title
-                return LostVoidArtifact(category='卡牌', name=name, level='?'), True
+                artifact = self.find_artifact_data('卡牌', text)
+                if artifact is None:
+                    name = f'{title} {suffix}'.strip() if len(suffix) > 0 else title
+                    artifact = LostVoidArtifact(category='卡牌', name=name, level='?')
+                return artifact, True
 
-        # 没有[]结构，归为次选，直接保留原文。
-        return LostVoidArtifact(category='无详情', name=text, level='?'), False
+        # 没有[]结构，归为次选，对不上藏品数据时直接保留原文。
+        artifact = self.find_artifact_data('无详情', text)
+        if artifact is None:
+            artifact = LostVoidArtifact(category='无详情', name=text, level='?')
+        return artifact, False
 
     @staticmethod
     def _pick_better_candidate(left: LostVoidArtifactPos, right: LostVoidArtifactPos) -> LostVoidArtifactPos:
