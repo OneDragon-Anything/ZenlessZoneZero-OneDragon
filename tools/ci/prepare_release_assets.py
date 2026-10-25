@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -13,7 +14,7 @@ from urllib.parse import urlsplit
 
 
 class _DownloadRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """跨主机重定向不转发下载凭据。"""
+    """仅同源重定向保留凭据，拒绝携带凭据的 HTTPS 请求降级。"""
 
     def redirect_request(
         self,
@@ -24,8 +25,14 @@ class _DownloadRedirectHandler(urllib.request.HTTPRedirectHandler):
         headers: object,
         newurl: str,
     ) -> urllib.request.Request | None:
+        source = urlsplit(req.full_url)
+        target = urlsplit(newurl)
+        if req.has_header('Authorization') and source.scheme == 'https' and target.scheme == 'http':
+            raise urllib.error.HTTPError(req.full_url, code, '拒绝携带凭据的 HTTPS 请求重定向到 HTTP', headers, fp)
         redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
-        if redirected is not None and urlsplit(req.full_url).hostname != urlsplit(newurl).hostname:
+        source_origin = (source.scheme, source.hostname, source.port if source.port is not None else (443 if source.scheme == 'https' else 80))
+        target_origin = (target.scheme, target.hostname, target.port if target.port is not None else (443 if target.scheme == 'https' else 80))
+        if redirected is not None and source_origin != target_origin:
             redirected.remove_header('Authorization')
         return redirected
 
