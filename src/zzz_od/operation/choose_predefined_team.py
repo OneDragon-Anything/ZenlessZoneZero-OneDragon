@@ -137,9 +137,9 @@ class ChoosePredefinedTeam(ZOperation):
     @operation_node(name='等待编队列表就绪', node_max_retry_times=15)
     def wait_team_list_ready(self) -> OperationRoundResult:
         """
-        等待预备编队列表渲染停稳。
+        等待预备编队列表就绪。
 
-        从代理人详情页点击「预备编队」进入列表有转场动画，首帧可能还停在详情页。
+        点击「预备编队」后，按钮要过一小段时间才回弹到位，这期间列表还不能交互。
         详情页右下角是「出战」，与「预备出战」的最长公共子序列也有 2 个字，按默认
         0.5 阈值会误判就绪；这里要求四个字全部识别到（lcs_percent=1）才认可。
         """
