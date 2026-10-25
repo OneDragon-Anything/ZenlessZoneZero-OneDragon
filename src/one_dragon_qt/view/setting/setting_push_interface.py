@@ -1,11 +1,11 @@
 import contextlib
 import json
-import threading
+from collections.abc import Callable
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -47,10 +47,25 @@ from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAda
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
-class SettingPushInterface(VerticalScrollInterface):
+class PushTestRunner(QThread):
+    """后台发送测试推送 避免网络请求卡住界面线程。"""
 
-    # 推送在子线程进行 结果用信号回传 由 Qt 排队到界面线程再弹提示条
-    push_test_finished = Signal(bool, str, str)
+    finished = Signal(bool, str)
+
+    def __init__(self, push_func: Callable[[], tuple[bool, str]]) -> None:
+        super().__init__()
+        self._push_func: Callable[[], tuple[bool, str]] = push_func
+
+    def run(self) -> None:
+        try:
+            ok, msg = self._push_func()
+        except Exception as e:
+            ok, msg = False, f'测试推送失败: {e}'
+
+        self.finished.emit(ok, msg)
+
+
+class SettingPushInterface(VerticalScrollInterface):
 
     def __init__(self, ctx, parent=None):
 
@@ -63,7 +78,7 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.ctx = ctx
         self._error_bar: InfoBar | None = None
-        self.push_test_finished.connect(self._on_test_push_finished)
+        self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -279,6 +294,10 @@ class SettingPushInterface(VerticalScrollInterface):
             channel_id: 推送渠道ID 为空时使用所有通过配置校验的渠道
             success_msg: 推送成功时的提示文案
         """
+        # 上一次未结束时直接返回 覆盖字段会让仍在运行的线程被回收导致崩溃
+        if self._push_test_runner is not None and self._push_test_runner.isRunning():
+            return
+
         # 先生成截图再禁用按钮 生成失败时按钮仍可点击 不会卡在禁用状态
         image = self._get_test_screenshot()
 
@@ -286,23 +305,21 @@ class SettingPushInterface(VerticalScrollInterface):
         self.test_all_btn.setDisabled(True)
         self._show_success_message("正在发送测试消息...")
 
-        def push_in_background() -> None:
-            try:
-                ok, msg = self.ctx.push_service.push(
-                    title=gt('测试推送通知'),
-                    content=gt('这是一条测试消息'),
-                    image=image,
-                    channel_id=channel_id,
-                )
-                # 单渠道成功时渠道也会回「推送成功」这类文案 只有全渠道的空 msg 才代表全部成功
-                if ok and channel_id is not None:
-                    msg = ''
-            except Exception as e:
-                ok, msg = False, f'测试推送失败: {e}'
+        def push_test() -> tuple[bool, str]:
+            ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
+                content=gt('这是一条测试消息'),
+                image=image,
+                channel_id=channel_id,
+            )
+            # 单渠道成功时渠道也会回「推送成功」这类文案 只有全渠道的空 msg 才代表全部成功
+            return ok, ('' if ok and channel_id is not None else msg)
 
-            self.push_test_finished.emit(ok, msg, success_msg)
-
-        threading.Thread(target=push_in_background, daemon=True).start()
+        self._push_test_runner = PushTestRunner(push_func=push_test)
+        self._push_test_runner.finished.connect(
+            lambda ok, msg: self._on_test_push_finished(ok, msg, success_msg)
+        )
+        self._push_test_runner.start()
 
     def _on_test_push_finished(self, ok: bool, msg: str, success_msg: str) -> None:
         """测试推送结束后的界面反馈"""
