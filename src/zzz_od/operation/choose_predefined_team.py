@@ -137,11 +137,7 @@ class ChoosePredefinedTeam(ZOperation):
     @operation_node(name='等待编队列表就绪', node_max_retry_times=15)
     def wait_team_list_ready(self) -> OperationRoundResult:
         """
-        等待预备编队列表就绪。
-
-        点击「预备编队」后，按钮要过一小段时间才回弹到位，这期间列表还不能交互。
-        详情页右下角是「出战」，与「预备出战」的最长公共子序列也有 2 个字，按默认
-        0.5 阈值会误判就绪；这里要求四个字全部识别到（lcs_percent=1）才认可。
+        等待预备编队列表可交互；匹配阈值取 0.75，以排除详情页「出战」的误判。
 
         Returns:
             完整识别到「预备出战」时返回成功结果，否则返回等待重试的结果。
@@ -150,7 +146,7 @@ class ChoosePredefinedTeam(ZOperation):
             self.last_screenshot,
             '预备出战',
             area=self.ctx.screen_loader.get_area('实战模拟室', '预备出战'),
-            lcs_percent=1,
+            lcs_percent=0.75,
             success_wait=0.2,
             retry_wait_round=0.2,
         )
