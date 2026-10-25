@@ -94,6 +94,8 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
 
+启动器的 `--version` 固定按 UTF-8 输出：版本描述含中文，按系统本地编码输出时，英文、日文、韩文等系统的本地编码无法表示这些字符，启动器会直接报错退出。旧版启动器仍按系统本地编码输出，因此版本查询先捕获原始字节，再依次尝试 UTF-8 与本地编码；不能依赖父 Python 的默认文本编码，也不要求用户关闭全局 UTF-8 模式。该路径只解析 stdout，stderr 的编码不应影响版本识别。
+
 ### 3.3.集成启动器（RuntimeLauncher）
 
 > 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)

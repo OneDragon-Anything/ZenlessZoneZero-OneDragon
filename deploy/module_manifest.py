@@ -39,6 +39,7 @@ if not getattr(sys, 'frozen', False):
     import psutil
     import pyautogui
     import pyclipper
+    import pygit2
     import pyuac
     import pywintypes
     import queue
@@ -64,6 +65,7 @@ if not getattr(sys, 'frozen', False):
     import vgamepad
     import warnings
     import webbrowser
+    import websocket
     import win32api
     import win32clipboard
     import win32con
@@ -102,15 +104,16 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
+    from math import isfinite
     from packaging import version
-    from pathlib import Path
+    from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
     from pygetwindow import Win32Window
     from pygit2 import Blob, Commit, Oid, Remote, RemoteCallbacks, Repository, Walker, discover_repository, init_repository, settings
     from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
     from pynput import keyboard, mouse
     from pynput.keyboard import Controller, Key
-    from qfluentwidgets import Action, BodyLabel, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, ExpandSettingCard, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HorizontalSeparator, HyperlinkButton, HyperlinkCard, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PillPushButton, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopUpAniStackedWidget, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SegmentedWidget, SettingCard, SettingCardGroup, SimpleCardWidget, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, drawIcon, getFont, isDarkTheme, qconfig, qrouter, setCustomStyleSheet, setFont, setTheme, setThemeColor, themeColor
+    from qfluentwidgets import Action, BodyLabel, BreadcrumbBar, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, ExpandSettingCard, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HorizontalSeparator, HyperlinkButton, HyperlinkCard, IconWidget, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PillPushButton, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopUpAniStackedWidget, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SearchLineEdit, SegmentedWidget, SettingCard, SettingCardGroup, SimpleCardWidget, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, drawIcon, getFont, isDarkTheme, qconfig, qrouter, setCustomStyleSheet, setFont, setTheme, setThemeColor, themeColor
     from qfluentwidgets.common.animation import BackgroundAnimationWidget, ScaleSlideAnimation
     from qfluentwidgets.common.overload import singledispatchmethod
     from qfluentwidgets.common.smooth_scroll import SmoothMode
@@ -129,7 +132,8 @@ if not getattr(sys, 'frozen', False):
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
-    from types import ModuleType
+    from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urlparse
+    from uuid import uuid4
     from yaml import CSafeLoader, SafeLoader

@@ -37,6 +37,25 @@
 
 `ControllerBase` 定义截图和输入控制接口。具体项目根据平台提供控制器实现，例如 PC 控制器负责查找游戏窗口并发送键鼠或手柄输入。
 
+### 拖拽时序
+
+`drag_to(end, start=None, duration=0.5, *, timing=None)` 提供前后台共用的拖拽接口。`DragTiming`（`one_dragon.base.controller.drag_timing`）表示按下等待（`press_wait`）、移动时间（`move_duration`）和松开前等待（`release_wait`）；各字段以秒为单位，必须是有限的非负数。传入 `timing` 后忽略 `duration`，移动时间仍至少为 0.1 秒。前台底层函数 `drag_mouse` 使用相同参数。
+
+不传 `timing` 时，`PcControllerBase` 使用以下默认时序：
+
+| 模式 | 按下等待 | 移动时间 | 松开前等待 |
+|------|----------|----------|------------|
+| 前台 | 不等待 | `max(duration - 0.2, 0.1)` | 0.2 秒 |
+| 后台 | 0.02 秒，不计入 `duration` | `max(duration - 0.2, 0.1)` | 0.2 秒 |
+
+默认值只覆盖不关心时序的通用拖拽。需要更长按下等待或终点等待的场景在自己的调用点显式传入 `timing`，例如预备编队选择和预备编队角色识别：
+
+```python
+TEAM_DRAG_TIMING: DragTiming = DragTiming(press_wait=0.6, move_duration=0.3, release_wait=1.0)
+```
+
+因此 #2599 引入的全局 0.6 秒按下等待和 1.0 秒终点等待不再作为公共默认值，未传 `timing` 的拖拽调用点都回到上表时序。上述时间不包含模式切换、输入调用和节点额外等待。
+
 ## 应用系统
 
 ### ApplicationFactoryManager

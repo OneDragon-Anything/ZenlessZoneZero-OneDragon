@@ -248,7 +248,26 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if 'notify_config' in self.__dict__:
             del self.__dict__['notify_config']
 
+        self._sync_current_application_after_refresh()
+
         log.info("应用注册刷新完成")
+
+    def _sync_current_application_after_refresh(self) -> None:
+        """刷新后校验当前运行应用，避免继续引用已移除的注册。"""
+        run_context = self.run_context
+        current_app_id = run_context.current_app_id
+        if current_app_id is None:
+            return
+
+        if run_context.is_app_registered(current_app_id):
+            return
+
+        if not run_context.is_context_stop:
+            run_context.stop_running()
+        run_context.current_app_id = None
+        run_context.current_group_id = None
+        run_context.current_instance_idx = None
+        run_context.current_application = None
 
     #------------------- 以下是 初始化相关 -------------------#
 
@@ -486,7 +505,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        ocr_model_name = self._decide_ocr_model_name()
+        ocr_model_name = self.model_config.ocr
 
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
@@ -566,12 +585,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def _on_resource_source_failure(self, source_id: str) -> None:
         """自动模式下清除已经失效的上次成功源。"""
         self.env_config.mark_resource_source_failure(source_id)
-
-    def _decide_ocr_model_name(self) -> str:
-        """
-        决定本次初始化使用的 OCR 模型名 默认使用配置里的模型名 子类可按项目需要覆写
-        """
-        return self.model_config.ocr
 
     def _start_btn_listener(self) -> None:
         """

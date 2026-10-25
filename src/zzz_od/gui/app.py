@@ -171,11 +171,11 @@ try:
             )
 
             # 资源管理
-            from one_dragon_qt.view.resource_management_interface import (
-                ResourceManagementInterface,
+            from one_dragon_qt.view.resource_manager_interface import (
+                ResourceManagerInterface,
             )
             self.add_sub_interface(
-                ResourceManagementInterface(
+                ResourceManagerInterface(
                     self.ctx,
                     self.download_queue,
                     parent=self,

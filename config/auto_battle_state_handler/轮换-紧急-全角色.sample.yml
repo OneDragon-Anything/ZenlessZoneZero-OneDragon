@@ -59,11 +59,11 @@ handlers:
         state: "自定义-非失衡连携"
 
   - states: "([前台-强攻] | [前台-命破])"
-    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-琉音] & ([按键-切换角色-下一个, 0.3, 1] | [按键-切换角色-上一个, 0.3, 1])"
     debug_name: "琉音状态检查"
     sub_handlers:
       - state_template: "琉音-送客决策"
       - states: "([琉音-终结技可用] & ![自定义-失衡时间, -10, 12])"
+        interrupt_states: "[前台-能量, 0, 0.1] & ![前台-琉音] & ([按键-切换角色-下一个, 0.3, 1] | [按键-切换角色-上一个, 0.3, 1])"
         debug_name: "琉音终结技"
         operations:
           - op_name: "等待秒数"
@@ -211,12 +211,25 @@ handlers:
               - states: "![前台-南宫羽]"
                 debug_name: "南宫羽紧急切入"
                 sub_handlers:
-                  - states: "[南宫羽-重拍]{80, 100} & ![自定义-失衡时间, 0, 10]"
-                    debug_name: "南宫羽高重拍切入"
+                  - states: "[南宫羽-重拍]{90, 100} & ![自定义-失衡时间, 0, 15] & [南宫羽-终结技可用]"
+                    debug_name: "南宫羽重拍90以上-非失衡-先终结技"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "南宫羽"
-                      - operation_template: "南宫羽-长按普攻"
+                      - operation_template: "南宫羽-终结技"
+                      - op_name: "设置状态"
+                        state: "自定义-南宫羽-可爱地雷飞天撞"
+                        seconds: 2
+
+                  - states: "[南宫羽-重拍]{90, 100} & [南宫羽-特殊技可用]"
+                    debug_name: "南宫羽重拍90以上且有强化特殊技-强制切入"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "南宫羽"
+                      - operation_template: "南宫羽-强化特殊技"
+                      - op_name: "设置状态"
+                        state: "自定义-南宫羽-可爱地雷飞天撞"
+                        seconds: 2
 
               # 千夏紧急切入
               - states: "![前台-千夏]"
