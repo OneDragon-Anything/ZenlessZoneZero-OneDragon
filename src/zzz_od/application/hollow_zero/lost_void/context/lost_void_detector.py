@@ -15,9 +15,13 @@ class LostVoidDetector(Yolov8Detector):
     CLASS_DISTANCE: ClassVar[str] = '0001-距离'
     CLASS_ENTRY: ClassVar[str] = 'xxxx-入口'
 
-    # 战斗画面左上头像整片区域(1080p)，包住 头像-3-1/3-2/3-3
-    # 角色头像易被误检为目标，推理前统一涂黑
-    BATTLE_AVATAR_MASK_RECT: ClassVar[tuple[int, int, int, int]] = (104, 40, 844, 110)
+    # 推理前涂黑的界面区域(1080p) 这些位置的图标容易被误检为目标
+    HUD_MASK_RECT_LIST: ClassVar[list[tuple[int, int, int, int]]] = [
+        (104, 40, 844, 110),  # 左上角色头像 包住 头像-3-1/3-2/3-3
+        # 右上通知列 如进房间的「战斗·鸣徽」、战斗中的「侦测到新的敌人」 每条右端有圆形图标 会被认成感叹号或距离
+        # 只涂前两条的图标 第三条附近(y≈270)会有真实的感叹号
+        (1760, 30, 1850, 200),
+    ]
 
     def __init__(self,
                  model_name: str,
@@ -51,15 +55,15 @@ class LostVoidDetector(Yolov8Detector):
             debug_trace_bus=debug_trace_bus
         )
 
-    def mask_battle_avatars(self, image: MatLike) -> MatLike:
+    def mask_hud(self, image: MatLike) -> MatLike:
         """
-        将战斗画面左上角色头像区域涂黑，避免 YOLO 误检
+        将容易被误检的界面区域涂黑，避免 YOLO 误检
         :param image: 原始游戏画面
-        :return: 涂黑头像后的画面副本
+        :return: 涂黑后的画面副本
         """
         masked = image.copy()
-        x1, y1, x2, y2 = LostVoidDetector.BATTLE_AVATAR_MASK_RECT
-        cv2.rectangle(masked, (x1, y1), (x2, y2), (0, 0, 0), thickness=-1)
+        for x1, y1, x2, y2 in LostVoidDetector.HUD_MASK_RECT_LIST:
+            cv2.rectangle(masked, (x1, y1), (x2, y2), (0, 0, 0), thickness=-1)
         return masked
 
     def run(
@@ -72,11 +76,11 @@ class LostVoidDetector(Yolov8Detector):
         category_list: list[str] | None = None,
     ) -> DetectFrameResult:
         """
-        对图片进行识别；推理前先涂黑战斗头像区域
+        对图片进行识别；推理前先涂黑容易误检的界面区域
         """
         return Yolov8Detector.run(
             self,
-            image=self.mask_battle_avatars(image),
+            image=self.mask_hud(image),
             conf=conf,
             iou=iou,
             run_time=run_time,
