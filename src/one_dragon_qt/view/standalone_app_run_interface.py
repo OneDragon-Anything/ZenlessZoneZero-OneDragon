@@ -122,6 +122,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
         if target:
             self.app_list_widget.select_app(target)
         self.app_id = target or ''
+        self.ctx.standalone_app_config.active_app_id = self.app_id
 
     # ── 事件处理 ──
 

@@ -73,7 +73,7 @@ NEED_NOTIFY = True
 | `False` | `False` | 不进入一条龙，只允许从通用独立应用入口选择 |
 | `False` | `True` | 不进入通用列表，只允许固定入口调用 |
 
-不得同时设为 `True`，否则工厂加载失败。不要用入口字段表达运行记录需求。
+不得同时设为 `True`，否则工厂加载失败。先按入口需求选择字段，再按是否进入一条龙使用默认每日记录；非一条龙应用有业务记录需求时单独实现。
 
 第三方插件可额外提供 GUI 元数据：
 
@@ -154,7 +154,9 @@ class MyPluginFactory(ApplicationFactory):
         return MyPlugin(self.ctx)
 ```
 
-不要为普通每日状态实现 `create_run_record()`。父工厂会自动创建基础 `AppRunRecord`，并从当前上下文读取区服刷新时间偏移。
+`DEFAULT_GROUP=True` 时，不要为普通每日状态实现 `create_run_record()`。父工厂会自动创建基础 `AppRunRecord`，并从当前上下文读取区服刷新时间偏移。
+
+`DEFAULT_GROUP=False` 时，默认返回 `None`。不要为了表示“没有记录”抛出异常；只有应用确实需要记录时才覆盖 `create_run_record()`。
 
 只有需要不同重置周期、业务进度或自定义完成判定时，才实现自定义记录并覆盖 `create_run_record()`：
 

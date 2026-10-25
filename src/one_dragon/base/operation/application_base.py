@@ -33,6 +33,7 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
+                 use_factory_run_record: bool = True,
                  ) -> None:
         Operation.__init__(
             self,
@@ -48,15 +49,13 @@ class Application(Operation):
         # 应用唯一标识
         self.app_id: str = app_id
 
-        # 运行记录
-        self.run_record: AppRunRecord = (
-            run_record
-            if run_record is not None
-            else ctx.run_context.get_run_record(
+        # 优先使用显式记录；组执行器等无工厂的应用可关闭自动获取。
+        self.run_record: AppRunRecord | None = run_record
+        if self.run_record is None and use_factory_run_record:
+            self.run_record = ctx.run_context.get_run_record(
                 app_id=self.app_id,
                 instance_idx=ctx.current_instance_idx,
             )
-        )
 
     def handle_init(self) -> None:
         """
@@ -64,8 +63,9 @@ class Application(Operation):
         """
         Operation.handle_init(self)
 
-        self.run_record.check_and_update_status()  # 先判断是否重置记录
-        self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
+        if self.run_record is not None:
+            self.run_record.check_and_update_status()  # 先判断是否重置记录
+            self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
             send_application_notify(self, None)
@@ -109,6 +109,9 @@ class Application(Operation):
         :param result: 运行结果
         :return:
         """
+        if self.run_record is None:
+            return
+
         if result.success:
             self.run_record.update_status(AppRunRecord.STATUS_SUCCESS)
         else:

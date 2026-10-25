@@ -115,19 +115,22 @@ class ApplicationFactory:
         """
         raise Exception(f"未提供应用配置创建方法 {self.app_id}")
 
-    def create_run_record(self, instance_idx: int) -> AppRunRecord:
+    def create_run_record(self, instance_idx: int) -> AppRunRecord | None:
         """
         创建运行记录实例。
 
-        默认创建基础运行记录，按当前区服的游戏刷新时间每日重置。
-        子类需要按周重置、记录业务进度或自定义完成判定时才覆盖本方法。
+        一条龙应用默认使用按当前区服刷新时间每日重置的基础记录。
+        非一条龙应用默认没有运行记录；需要记录时由子类覆盖本方法。
 
         Args:
             instance_idx: 账号实例下标
 
         Returns:
-            AppRunRecord: 创建的运行记录对象
+            AppRunRecord | None: 创建的运行记录对象；没有记录时返回 None
         """
+        if not self.default_group:
+            return None
+
         return AppRunRecord(
             app_id=self.app_id,
             instance_idx=instance_idx,
@@ -162,24 +165,26 @@ class ApplicationFactory:
 
         return config
 
-    def get_run_record(self, instance_idx: int) -> AppRunRecord:
+    def get_run_record(self, instance_idx: int) -> AppRunRecord | None:
         """
         获取运行记录实例。
 
         使用缓存机制，如果运行记录已存在则返回缓存的记录，否则创建新的记录并缓存。
+        应用明确没有运行记录时返回 None，不把这种情况当成创建错误。
 
         Args:
             instance_idx: 账号实例下标
 
         Returns:
-            AppRunRecord: 运行记录对象
+            AppRunRecord | None: 运行记录对象；应用没有记录时返回 None
         """
         key = f"{instance_idx}"
         if key in self._run_record_cache:
             return self._run_record_cache[key]
 
         record = self.create_run_record(instance_idx)
-        self._run_record_cache[key] = record
+        if record is not None:
+            self._run_record_cache[key] = record
         return record
 
     def clear_cache(self) -> None:

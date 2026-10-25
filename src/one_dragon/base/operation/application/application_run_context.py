@@ -290,7 +290,7 @@ class ApplicationRunContext:
         self,
         app_id: str | None = None,
         instance_idx: int | None = None,
-    ) -> RECORD:
+    ) -> RECORD | None:
         """
         获取运行记录实例。
 
@@ -301,10 +301,10 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标 为空时使用当前运行的
 
         Returns:
-            AppRunRecord: 运行记录对象
+            AppRunRecord | None: 运行记录对象；应用没有记录时返回 None
 
         Raises:
-            Exception: 应用未注册或参数为空时抛出异常
+            Exception: 应用未注册、参数为空或运行记录创建失败时抛出异常
         """
         if app_id is None:
             app_id = self.current_app_id
@@ -584,7 +584,8 @@ class ApplicationRunContext:
         """
         for app_id in self._application_factory_map:
             run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
-            run_record.check_and_update_status()
+            if run_record is not None:
+                run_record.check_and_update_status()
 
     def after_app_shutdown(self) -> None:
         """

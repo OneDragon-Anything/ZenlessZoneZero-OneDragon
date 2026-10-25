@@ -129,11 +129,15 @@ uv run python src/zzz_od/application/devtools/application_priority_scanner.py
 
 ## 默认运行记录
 
-`ApplicationFactory.create_run_record()` 默认创建基础 `AppRunRecord`，使用工厂的 `app_id`、请求的账号实例，以及 `self.ctx.game_account_config.game_refresh_hour_offset`。基础记录按当前区服游戏日重置，并记录等待、运行中、成功和失败状态；一条龙据此跳过当前游戏日已经成功的应用。
+`DEFAULT_GROUP=True` 且工厂没有覆盖 `create_run_record()` 时，父工厂创建基础 `AppRunRecord`。记录使用工厂的 `app_id`、请求的账号实例，以及 `self.ctx.game_account_config.game_refresh_hour_offset`，按当前区服游戏日重置；一条龙据此跳过当前游戏日已经成功的应用。
 
-只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，具体工厂才覆盖 `create_run_record()`。父工厂不接收额外构造参数；具体工厂必须继续保存 `self.ctx`，作为默认运行记录和应用创建共同使用的上下文。
+`DEFAULT_GROUP=False` 的 standalone 和 internal 应用默认返回 `None`。没有运行记录是正常状态，不抛出错误；应用需要记录时再覆盖 `create_run_record()`。
 
-入口字段与运行记录相互独立。默认组、standalone 和 internal 应用都会获得运行记录；运行记录创建异常会正常暴露，不再用“没有运行记录”语义吞掉。
+只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，具体工厂才覆盖 `create_run_record()`。父工厂不接收额外构造参数；具体工厂必须继续保存 `self.ctx`，作为默认运行记录和应用创建共同使用的上下文。覆盖方法抛出的创建异常会正常暴露，不能再用“没有运行记录”语义吞掉。
+
+手动执行和一条龙共用同一账号的应用记录。手动入口直接执行应用，不检查当天是否已完成；一条龙先刷新记录，再根据 `is_done` 跳过。手动成功同样更新记录，因此可以使一条龙跳过当天已完成的应用。没有单独按运行来源保存的每日状态。
+
+`GroupApplication` 是无注册工厂的组执行器，通过 `use_factory_run_record=False` 显式关闭获取工厂记录，不通过应用 ID 前缀推断类型。
 
 ## 插件加载机制
 

@@ -173,14 +173,16 @@ ctx.refresh_application_registration()
 
 ## 运行记录
 
-工厂没有覆盖 `create_run_record()` 时，父工厂会自动创建基础 `AppRunRecord`：
+工厂没有覆盖 `create_run_record()` 时：
 
-- 使用工厂的 `APP_ID` 和请求的账号实例；
-- 使用当前区服的 `game_refresh_hour_offset` 划分游戏日；
-- 记录等待、运行中、成功、失败状态；
-- 一条龙会根据基础记录跳过当前游戏日已经成功的应用。
+- `DEFAULT_GROUP=True`：父工厂创建基础 `AppRunRecord`，使用工厂的 `APP_ID`、请求的账号实例和当前区服的 `game_refresh_hour_offset`。记录按游戏日重置，一条龙据此跳过当天已经成功的应用。
+- `DEFAULT_GROUP=False`：默认没有运行记录，返回 `None`，不会因此抛出错误。
 
-只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，才覆盖 `create_run_record()`。应用入口字段与运行记录相互独立，standalone 和 internal 应用也会获得基础运行记录。
+只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，才覆盖 `create_run_record()`。覆盖方法本身抛出的创建错误仍会正常暴露。
+
+手动运行和一条龙共享同一账号、同一应用的运行记录。手动入口不根据完成状态跳过执行，但手动成功后，一条龙会根据共享记录跳过当天已完成的应用。需要不同完成判断时提供自定义运行记录，不按运行入口另建一套每日状态。
+
+应用组执行器本身没有注册工厂，构造时通过 `use_factory_run_record=False` 显式关闭获取工厂记录；普通应用不根据 ID 前缀判断是否需要记录。
 
 ---
 
