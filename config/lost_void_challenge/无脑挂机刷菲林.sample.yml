@@ -29,5 +29,6 @@ smart_escape: true
 same_faction_first: true
 store_save_coin: true
 route_plan_by_map: true
+depth_avoid: true
 difficulty: 难度五
 stop_when_no_strategy: true

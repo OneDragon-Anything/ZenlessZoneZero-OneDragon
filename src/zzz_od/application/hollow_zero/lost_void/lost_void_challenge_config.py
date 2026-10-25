@@ -339,6 +339,17 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('difficulty', new_value)
 
     @property
+    def depth_avoid(self) -> bool:
+        """
+        :return: 寻路时是否用深度模型提前绕开障碍 需要同时开启 smart_escape 需要 GPU 和在资源管理页下载深度模型
+        """
+        return self.get('depth_avoid', False)
+
+    @depth_avoid.setter
+    def depth_avoid(self, new_value: bool):
+        self.update('depth_avoid', new_value)
+
+    @property
     def stop_when_no_strategy(self) -> bool:
         """
         :return: 追新模式找不到可刷的调查战略时 是否结束本次运行 关闭时点第一个战略

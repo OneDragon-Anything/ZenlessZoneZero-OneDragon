@@ -16,6 +16,9 @@ from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import (
     LostVoidArtifact,
 )
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_depth_estimator import (
+    LostVoidDepthEstimator,
+)
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import (
     LostVoidDetector,
 )
@@ -52,6 +55,7 @@ class LostVoidContext:
         self.ctx: ZContext = ctx
 
         self.detector: LostVoidDetector | None = None
+        self.depth_estimator: LostVoidDepthEstimator | None = None  # 寻路避障用 没开深度避障或没下载模型时为空
         # 寻路转向比例 = 鼠标移动量 ÷ 目标在画面上横移的像素 原地转向后按实际转动平滑更新 跨移动保留
         # 只在挑战配置开启 smart_escape 时使用 初始值来自寻路采样 单次转向实测中位数约 0.6
         self.move_turn_ratio: float = 0.6
@@ -304,6 +308,27 @@ class LostVoidContext:
             group_id=application_const.DEFAULT_GROUP_ID,
         )
         self.challenge_config = LostVoidChallengeConfig(config.challenge_config)
+        self.init_depth_model(self.challenge_config.depth_avoid and self.challenge_config.smart_escape)
+
+    def init_depth_model(self, enabled: bool) -> None:
+        """
+        初始化寻路避障用的深度模型 只用 GPU 推理 没有 GPU 时不启用
+        :param enabled: 是否开启深度避障
+        """
+        if not enabled:
+            self.depth_estimator = None
+            return
+        if not LostVoidDepthEstimator.is_model_existed():
+            self.depth_estimator = None
+            log.info('深度避障 | 未下载深度模型 寻路不避障')
+            return
+        if not LostVoidDepthEstimator.is_gpu_available():
+            self.depth_estimator = None
+            log.info('深度避障 | 没有可用的 GPU 深度模型只用 GPU 推理 寻路不避障')
+            return
+
+        if self.depth_estimator is None:
+            self.depth_estimator = LostVoidDepthEstimator()
 
     def is_last_rest_area(self) -> bool:
         """

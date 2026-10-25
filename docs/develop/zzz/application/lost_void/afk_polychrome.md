@@ -11,6 +11,7 @@
 | 字段 | 作用 |
 |---|---|
 | `smart_escape` | 寻路用新的卡住判断、脱困和转向，见「寻路脱困」 |
+| `depth_avoid` | 深度避障，需要同时开启 `smart_escape`，见 [深度避障](depth_avoid.md) |
 | `same_faction_first` | 同派系抱团，见「同派系抱团」 |
 | `store_save_coin` | 邦布商店留硬币，见「邦布商店留硬币」 |
 | `route_plan_by_map` | 按 Tab 地图规划路线，见「路线规划」 |
