@@ -294,6 +294,9 @@ class SettingPushInterface(VerticalScrollInterface):
                     image=image,
                     channel_id=channel_id,
                 )
+                # 单渠道成功时渠道也会回「推送成功」这类文案 只有全渠道的空 msg 才代表全部成功
+                if ok and channel_id is not None:
+                    msg = ''
             except Exception as e:
                 ok, msg = False, f'测试推送失败: {e}'
 
