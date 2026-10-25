@@ -270,6 +270,10 @@ class ChoosePredefinedTeam(ZOperation):
             team_slot_rect,
         )
         team_name = recognition.team_name
+        # 游戏默认队名「编队 N」与列表位置一致 编号对不上说明翻页错位 改过名的队伍按位置选
+        team_no_match = re.match(r'编队(\d+)', team_name) if team_name is not None else None
+        if team_no_match is not None and int(team_no_match.group(1)) != target_team_idx + 1:
+            return self.round_fail(f'编队编号不一致 目标:编队{target_team_idx + 1} 识别:{team_name}')
         if team_name is not None:
             target_team.name = team_name
 

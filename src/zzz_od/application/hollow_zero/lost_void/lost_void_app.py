@@ -435,6 +435,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='矩阵行动-开始挑战')
     def matrix_start_challenge(self) -> OperationRoundResult:
         """在矩阵行动页面点击开始挑战。"""
+        self.ctx.lost_void.reset_for_new_challenge()
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动-编队选择',
@@ -774,6 +775,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='出战')
     def deploy(self) -> OperationRoundResult:
         self.next_region_type = LostVoidRegionType.ENTRY
+        self.ctx.lost_void.reset_for_new_challenge()
         op = Deploy(self.ctx)
         return self.round_by_op_result(op.execute())
 
