@@ -13,6 +13,26 @@ import urllib.request
 import zipfile
 import zlib
 from pathlib import Path
+from urllib.parse import urlsplit
+
+
+class _DownloadRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """跨主机重定向不转发下载凭据。"""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: object,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and urlsplit(req.full_url).hostname != urlsplit(newurl).hostname:
+            redirected.remove_header('Authorization')
+        return redirected
+
 
 REPOSITORY = 'OneDragon-Anything/ZenlessZoneZero-OneDragon'
 ASSET_NAME = 'ZenlessZoneZero-OneDragon-RuntimeLauncher.zip'
@@ -56,7 +76,8 @@ def _download(url: str, destination: Path, token: str) -> None:
                     'Authorization': f'Bearer {token}',
                 },
             )
-            with urllib.request.urlopen(request, timeout=300) as response, destination.open('wb') as output:
+            opener = urllib.request.build_opener(_DownloadRedirectHandler())
+            with opener.open(request, timeout=300) as response, destination.open('wb') as output:
                 shutil.copyfileobj(response, output)
             return
         except Exception as error:
@@ -77,14 +98,15 @@ def _latest_stable_release(token: str) -> tuple[str, str]:
             continue
         tag = release.get('tag_name')
         assets = release.get('assets')
-        if not isinstance(tag, str) or not isinstance(assets, list):
-            continue
+        if not isinstance(tag, str) or not tag or not isinstance(assets, list):
+            raise RuntimeError('最新正式版的标签或资产列表无效')
         for asset in assets:
             if isinstance(asset, dict) and asset.get('name') == ASSET_NAME:
                 url = asset.get('url')
                 if isinstance(url, str) and url:
                     return tag, url
-    raise RuntimeError(f'最新正式版没有找到 {ASSET_NAME}')
+        raise RuntimeError(f'最新正式版 {tag} 没有找到 {ASSET_NAME}')
+    raise RuntimeError('发布列表中没有正式版')
 
 
 def _target_manifest(repository_root: Path) -> bytes:
@@ -210,7 +232,7 @@ TARGET_MANIFEST = Path(r"{manifest_text}")
 
 import sys
 
-os.add_dll_directory(str(RUNTIME_DIR))
+dll_directory_handle = os.add_dll_directory(str(RUNTIME_DIR))
 sys.path[:] = [str(RUNTIME_DIR / "base_library.zip"), str(IMPORTER_DIR), str(RUNTIME_DIR), str(SOURCE_DIR)]
 sys.frozen = True
 sys._MEIPASS = str(RUNTIME_DIR)
@@ -262,6 +284,7 @@ def _check_with_runtime(
             'PYTHONPATH': '',
             'PYTHONHOME': '',
             'PYTHONDONTWRITEBYTECODE': '1',
+            'PYTHONUTF8': '1',
         },
         check=False,
     )

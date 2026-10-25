@@ -9,6 +9,25 @@ import time
 import urllib.request
 import zipfile
 from pathlib import Path
+from urllib.parse import urlsplit
+
+
+class _DownloadRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """跨主机重定向不转发下载凭据。"""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: object,
+        code: int,
+        msg: str,
+        headers: object,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and urlsplit(req.full_url).hostname != urlsplit(newurl).hostname:
+            redirected.remove_header('Authorization')
+        return redirected
 
 
 def _log(msg: str) -> None:
@@ -32,7 +51,8 @@ def _download(url: str, dest: Path, *, token: str | None = None, retries: int = 
     for attempt in range(1, retries + 1):
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=timeout) as resp, dest.open("wb") as f:
+            opener = urllib.request.build_opener(_DownloadRedirectHandler())
+            with opener.open(req, timeout=timeout) as resp, dest.open("wb") as f:
                 shutil.copyfileobj(resp, f)
             return
         except Exception as e:
