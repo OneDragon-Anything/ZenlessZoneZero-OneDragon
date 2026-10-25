@@ -78,6 +78,7 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.ctx = ctx
         self._error_bar: InfoBar | None = None
+        self._info_bar: InfoBar | None = None
         self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
@@ -303,7 +304,15 @@ class SettingPushInterface(VerticalScrollInterface):
 
         self.test_current_btn.setDisabled(True)
         self.test_all_btn.setDisabled(True)
-        self._show_success_message("正在发送测试消息...")
+        self._clear_error_bar()
+        self._info_bar = InfoBar.info(
+            title='提示',
+            content="正在发送测试消息...",
+            orient=InfoBarPosition.TOP,
+            isClosable=True,
+            duration=-1,
+            parent=self
+        )
 
         def push_test() -> tuple[bool, str]:
             ok, msg = self.ctx.push_service.push(
@@ -325,6 +334,11 @@ class SettingPushInterface(VerticalScrollInterface):
         """测试推送结束后的界面反馈"""
         self.test_current_btn.setDisabled(False)
         self.test_all_btn.setDisabled(False)
+
+        if self._info_bar is not None:
+            with contextlib.suppress(RuntimeError):
+                self._info_bar.close()
+            self._info_bar = None
 
         # 部分渠道失败时 ok 仍为 True 错误信息通过 msg 带回来
         if not ok or len(msg) > 0:
