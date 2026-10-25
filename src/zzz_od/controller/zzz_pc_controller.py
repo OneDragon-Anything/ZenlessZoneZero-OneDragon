@@ -45,7 +45,11 @@ class ZPcController(PcControllerBase):
         self.is_moving: bool = False  # 是否正在移动
 
     def close_game(self) -> None:
-        """通过窗口句柄找到进程并关闭游戏。"""
+        """本地游戏正常关闭窗口，云游戏通过窗口 PID 结束进程。"""
+        if not self.is_cloud_game:
+            super().close_game()
+            return
+
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
             return

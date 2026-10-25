@@ -160,7 +160,7 @@ graph LR
 
 ### 关闭游戏 (`zzz_pc_controller.py`)
 
-`ZPcController.close_game()` 覆写了基础 controller 的关闭逻辑：
+`ZPcController.close_game()` 按客户端类型选择关闭方式。本地游戏直接调用 `PcControllerBase.close_game()`，正常关闭窗口，不查询 PID，也不执行 `taskkill`。云游戏才执行下面的进程关闭逻辑：
 
 - 调用 `game_win.get_hwnd()`。缓存为空时，这个方法会 `init_win()`，按窗口标题枚举，不走云游戏选择器。
 - 句柄为 `None` 时直接返回，不调用 `PcControllerBase.close_game()`。
@@ -174,9 +174,11 @@ graph LR
 账号实例配置位于 `src/one_dragon_qt/view/setting/setting_instance_interface.py`，账户设置中保留云游戏客户端和路径：
 
 - `游戏客户端`：绑定 `client_type`，可选本地游戏或云游戏。
-- `游戏路径`：显示和写入 `game_account_config.game_path`，因此会随 `client_type` 自动指向本地或云游戏路径。
+- `游戏路径`：编辑当前所选客户端的路径，通过 `game_account_config.game_path` 兼容入口读写配置。这个界面字段不等于 YAML 中的旧键 `game_path`；实际保存的两个路径键及分流规则见第 2 节“游戏账户配置”。
 
-切换 `游戏客户端` 后，界面会刷新当前显示的路径，并调用 `ctx.on_switch_instance()` 更新 controller 的窗口标题。选择路径时仍只选择 `.exe`，云游戏模式下该路径会写入 `cloud_game_path`。
+当前代码只创建一张 `游戏路径` 设置卡，不同时显示“本地游戏路径”和“云游戏路径”两个字段。两个客户端的路径分别保存、互不覆盖：先选本地游戏配置其路径，再切到云游戏配置云客户端路径；切回任一客户端时会显示它之前保存的路径。
+
+切换 `游戏客户端` 后，界面会刷新当前显示的路径，并调用 `ctx.on_switch_instance()` 更新 controller 的窗口标题。选择路径时仍只选择 `.exe`。
 
 邦邦点开关在游戏设置 `src/zzz_od/gui/view/setting/setting_game_interface.py`。「云游戏」分组放在「游戏基础」下面，`邦邦点快速队列` 绑定 `game_config.prefer_bangbang_points`。
 
@@ -201,4 +203,4 @@ graph LR
 - 云游戏按已登录的单个客户端使用。强制切号由 `force_login=False` 和 `already_login=True` 跳过。没有单独的云游戏登录、验证码或切号流程；`EnterGame.check_login_related()` 仍会识别本地登录区域。
 - 目前云游戏识别区域名称以 `国服PC云-*` 为主，新增其他区服或不同客户端界面时，需要补充 `assets/game_data/screen_info/cloud_game.yml` 和窗口未进入状态列表。
 - `ZOperation` 与 `ZApplication` 共用 mixin 的云游戏初始化检查和未进入状态列表，新增状态时统一维护该列表。
-- 正式关闭入口是 `ZPcController.close_game()`。缓存为空时它会按标题找窗口；找到进程后用 `taskkill` 结束。
+- 正式关闭入口是 `ZPcController.close_game()`。本地游戏正常关闭窗口；云游戏缓存为空时按标题找窗口，取得有效 PID 后才用 `taskkill` 结束进程。
