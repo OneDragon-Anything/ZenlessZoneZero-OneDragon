@@ -89,6 +89,10 @@ class SettingGameInterface(VerticalScrollInterface):
                                             btn_list=[self.hdr_btn_disable, self.hdr_btn_enable])
         basic_group.addSettingCard(self.hdr_btn)
 
+        self.use_d3d12_switch = SwitchSettingCard(icon=FluentIcon.GAME, title='DX12 启动',
+                                                  content='自动启动游戏时使用 DX12，与官方启动器勾选 DX12 相同')
+        basic_group.addSettingCard(self.use_d3d12_switch)
+
         basic_group.addSettingCard(self._get_launch_argument_group())
 
         return basic_group
@@ -249,6 +253,7 @@ class SettingGameInterface(VerticalScrollInterface):
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
         self._toggle_action_cards()
 
+        self.use_d3d12_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('use_d3d12'))
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
         self.full_screen_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('full_screen'))

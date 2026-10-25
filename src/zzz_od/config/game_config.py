@@ -209,6 +209,15 @@ class GameConfig(BasicGameConfig):
         self.update('ds4_key_press_time', new_value)
 
     @property
+    def use_d3d12(self) -> bool:
+        """自动启动游戏时使用 DX12 与官方启动器勾选 DX12 时传的参数一致"""
+        return self.get('use_d3d12', False)
+
+    @use_d3d12.setter
+    def use_d3d12(self, new_value: bool) -> None:
+        self.update('use_d3d12', new_value)
+
+    @property
     def background_mode(self) -> bool:
         return self.get('background_mode', False)
 

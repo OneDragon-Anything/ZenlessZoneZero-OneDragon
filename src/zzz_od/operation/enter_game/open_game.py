@@ -43,6 +43,9 @@ class OpenGame(Operation):
                          f' -screen-width {screen_width} -screen-height {screen_height}'
                          f' -screen-fullscreen {full_screen} {popup_window} -monitor {monitor}')
             command = f'{command} {arguement}'
+        if self.ctx.game_config.use_d3d12:
+            # 与官方启动器勾选 DX12 时传的参数一致 Unity 自带的 -force-d3d12 已被游戏禁用
+            command = f'{command} -use-d3d12'
         command = f'{command} & exit"'
         log.info('命令行指令 %s', command)
 
