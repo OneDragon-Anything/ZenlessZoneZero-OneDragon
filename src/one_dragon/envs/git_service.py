@@ -1397,7 +1397,7 @@ class GitService:
         """读取目标提交的清单，调用运行时兼容性检查。
 
         没有可用的运行时打包清单时跳过检查。
-        目标清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
+        本地清单可用时，目标 project.yml 缺少有效 manifest_path、目标清单读取失败或检查异常都阻止更新。
 
         Args:
             target_oid: 目标提交 OID
@@ -1412,14 +1412,22 @@ class GitService:
         # 从目标 commit 的 project.yml 获取清单路径
         manifest_git_path = self._get_manifest_path_from_commit(target_oid)
         if not manifest_git_path:
-            return True, ''
+            log.warning(f'目标版本缺少有效模块清单路径，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
         # 读取目标 commit 中的 manifest
         remote_manifest = self._get_file_at_commit(target_oid, manifest_git_path)
         if remote_manifest is None:
-            return True, ''
+            log.warning(f'目标版本模块清单读取失败，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
-        if not check_manifest_compatible(local_manifest, remote_manifest):
+        try:
+            compatible = check_manifest_compatible(local_manifest, remote_manifest)
+        except Exception:
+            log.warning(f'检查模块清单时出错，阻止代码更新。目标: {str(target_oid)[:7]}', exc_info=True)
+            return False, gt('目标版本的运行环境与当前不兼容')
+
+        if not compatible:
             log.warning(f'运行环境不兼容，阻止代码更新。目标: {str(target_oid)[:7]}')
             return False, gt('目标版本的运行环境与当前不兼容')
 
@@ -1447,7 +1455,7 @@ class GitService:
     def _check_remote_manifest_compatible(self) -> tuple[bool, str]:
         """检查远程分支的模块清单是否与当前运行环境兼容
 
-        封装远程 OID 解析 + 清单比对，异常时跳过检查。
+        封装远程 OID 解析 + 清单比对；本地清单可用时，检查异常阻止更新。
 
         Returns:
             (是否兼容, 提示消息)
@@ -1460,8 +1468,11 @@ class GitService:
             remote_oid = repo.references[remote_ref].target
             return self._check_manifest_compatible(remote_oid)
         except Exception:
-            log.warning('检查模块清单时出错，跳过检查', exc_info=True)
-            return True, ''
+            if load_runtime_manifest() is None:
+                log.warning('检查模块清单时出错，跳过检查', exc_info=True)
+                return True, ''
+            log.warning('检查模块清单时出错，阻止代码更新', exc_info=True)
+            return False, gt('目标版本的运行环境与当前不兼容')
 
     def _checkout_branch(self) -> tuple[GitSyncStatus, bool, str]:
         """切换到目标分支，并返回是否发生了分支切换。"""
