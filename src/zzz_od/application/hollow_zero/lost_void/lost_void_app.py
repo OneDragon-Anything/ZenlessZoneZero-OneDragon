@@ -73,6 +73,7 @@ class LostVoidApp(ZApplication):
 
         self._strategy_scan_phase: str = '回到左端'
         self._strategy_last_page: list[tuple[str, int]] = []
+        self._strategy_scan_rounds: int = 0  # 当前阶段已拖动的次数 超过上限强制当作到头 防止一直拖
         self._strategy_level_map: dict[str, int] = {}  # 向右检查时看到的 可选战略名称 -> 等级 只记 0～7
         self._strategy_target_name: str | None = None  # 看完整个列表后要选的战略
 
@@ -483,6 +484,7 @@ class LostVoidApp(ZApplication):
     def open_strategy_list(self) -> OperationRoundResult:
         self._strategy_scan_phase = '回到左端'
         self._strategy_last_page = []
+        self._strategy_scan_rounds = 0
         self._strategy_level_map = {}
         self._strategy_target_name = None
         return self.round_by_click_area(f'迷失之地-{self.config.mission_name}', '按钮-调查战略',
@@ -526,13 +528,19 @@ class LostVoidApp(ZApplication):
                 for (name, x), (last_name, last_x) in zip(page, self._strategy_last_page, strict=True)
             )
         )
+        # OCR 漏字或卡片位置抖动时 到头判断可能一直不成立 拖动次数超过上限就强制当作到头
+        if not at_edge and self._strategy_scan_rounds >= 30:
+            log.warning('调查战略追新 | %s 拖动次数超过上限 强制当作到头', self._strategy_scan_phase)
+            at_edge = True
         if self._strategy_scan_phase == '回到左端':
             if not at_edge:
                 self._strategy_last_page = page
+                self._strategy_scan_rounds += 1
                 self._swipe_strategy_list(towards_right=False)
                 return self.round_wait('调查战略列表返回左端')
             self._strategy_scan_phase = '向右检查'
             self._strategy_last_page = []
+            self._strategy_scan_rounds = 0
             at_edge = False
 
         for name, level, _ in candidates:
@@ -540,6 +548,7 @@ class LostVoidApp(ZApplication):
 
         if not at_edge:
             self._strategy_last_page = page
+            self._strategy_scan_rounds += 1
             self._swipe_strategy_list()
             return self.round_wait('向右检查调查战略')
 
@@ -555,10 +564,11 @@ class LostVoidApp(ZApplication):
             log.info('调查战略追新 | 选择等级最低战略=%s 等级=%s', name, self._strategy_level_map[name])
             return self._choose_strategy_by_ocr(name)
 
-        # 回退逻辑: 没有确认未满级的战略 选择第一个
+        # 回退逻辑: 没有确认未满级的战略 选择当前画面最左边的一个
         frame_context = self.ctx.cv_service.run_pipeline('调查战略等级圈圈', self.last_screenshot)
         if frame_context.is_success and frame_context.contours:
-            target_contour = frame_context.contours[0]
+            # findContours 返回顺序不是从左到右 按横坐标取最左边的
+            target_contour = min(frame_context.contours, key=lambda c: cv2.boundingRect(c)[0])
             M = cv2.moments(target_contour)
             center_x = int(M["m10"] / M["m00"])
             center_y = int(M["m01"] / M["m00"])
