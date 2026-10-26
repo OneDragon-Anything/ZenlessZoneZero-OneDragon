@@ -58,8 +58,12 @@ class LostVoidDetector(Yolov8Detector):
     def mask_hud(self, image: MatLike) -> MatLike:
         """
         将容易被误检的界面区域涂黑，避免 YOLO 误检
-        :param image: 原始游戏画面
-        :return: 涂黑后的画面副本
+
+        Args:
+            image: 原始游戏画面
+
+        Returns:
+            涂黑后的画面副本
         """
         masked = image.copy()
         for x1, y1, x2, y2 in LostVoidDetector.HUD_MASK_RECT_LIST:

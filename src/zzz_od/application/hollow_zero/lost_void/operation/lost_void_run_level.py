@@ -765,7 +765,12 @@ class LostVoidRunLevel(ZOperation):
         """
         判断是否在挑战结果画面
         顶部的关卡进度条可能盖住标题 标题识别不到时用「总计用时」兜底
-        @return:
+
+        Args:
+            screen: 游戏画面
+
+        Returns:
+            是否在挑战结果画面
         """
         for area_name in ['标题-挑战结果', '文本-总计用时']:
             if self.round_by_find_area(screen, '迷失之地-挑战结果', area_name).is_success:
