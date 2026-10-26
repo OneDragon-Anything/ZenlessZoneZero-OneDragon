@@ -122,7 +122,12 @@ class ChoosePredefinedTeam(ZOperation):
             return self.round_success(result.status)
         return self.round_retry(result.status, wait=1)
 
-    @node_from(from_name='等待编队列表就绪', success=False)
+    @node_from(
+        from_name='等待编队列表就绪',
+        success=False,
+        status='编队列表未就绪',
+        ignore_status=False,
+    )
     @node_from(from_name='画面识别', status='预备编队')
     @operation_node(name='点击预备编队')
     def click_team(self) -> OperationRoundResult:
@@ -142,15 +147,13 @@ class ChoosePredefinedTeam(ZOperation):
         等待预备编队列表可交互；匹配阈值取 0.75，以排除详情页「出战」的误判。
 
         单次等待耗尽后由失败边回到「点击预备编队」重连 1 次；
-        累计超过 20 轮（约 4 秒）视为卡死，判失败以避免无限重连。
+        两次等待共 20 轮（约 4 秒）仍不就绪，判失败结束，避免无限重连。
 
         Returns:
             完整识别到「预备出战」时返回成功结果，否则返回等待重试的结果。
         """
         self.team_list_ready_rounds += 1
-        if self.team_list_ready_rounds > 20:
-            return self.round_fail('等待预备编队列表就绪超时')
-        return self.round_by_ocr(
+        result = self.round_by_ocr(
             self.last_screenshot,
             '预备出战',
             area=self.ctx.screen_loader.get_area('实战模拟室', '预备出战'),
@@ -158,6 +161,12 @@ class ChoosePredefinedTeam(ZOperation):
             success_wait=0.2,
             retry_wait_round=0.2,
         )
+        if result.is_success:
+            return result
+        # 20 轮用完（首次与重连各 10 轮仍没就绪）就结束，不再回到点击
+        if self.team_list_ready_rounds >= 20:
+            return self.round_fail('等待预备编队列表就绪超时')
+        return self.round_retry('编队列表未就绪')
 
     @node_from(from_name='等待编队列表就绪', status='预备出战')
     @node_from(from_name='选择编队', status=STATUS_CONTINUE_CHOOSE)
