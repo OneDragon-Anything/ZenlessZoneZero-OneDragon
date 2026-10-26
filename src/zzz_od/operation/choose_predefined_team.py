@@ -100,6 +100,7 @@ class ChoosePredefinedTeam(ZOperation):
         self.disabled_team_count: int = 0
         self.unrecognized_team_member_count: int = 0
         self.scan_started: bool = False
+        self.team_list_ready_rounds: int = 0
         self.shiyu_team_selected: bool = shiyu_target_list is None
         self.pending_select_button_center: Point | None = None
         self.pending_cancel_button_center: Point | None = None
@@ -121,6 +122,7 @@ class ChoosePredefinedTeam(ZOperation):
             return self.round_success(result.status)
         return self.round_retry(result.status, wait=1)
 
+    @node_from(from_name='等待编队列表就绪', success=False)
     @node_from(from_name='画面识别', status='预备编队')
     @operation_node(name='点击预备编队')
     def click_team(self) -> OperationRoundResult:
@@ -134,14 +136,20 @@ class ChoosePredefinedTeam(ZOperation):
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='画面识别', status=STATUS_TEAM_LIST_READY)
-    @operation_node(name='等待编队列表就绪', node_max_retry_times=15)
+    @operation_node(name='等待编队列表就绪', node_max_retry_times=10)  # 10 轮约 2 秒
     def wait_team_list_ready(self) -> OperationRoundResult:
         """
         等待预备编队列表可交互；匹配阈值取 0.75，以排除详情页「出战」的误判。
 
+        单次等待耗尽后由失败边回到「点击预备编队」重连 1 次；
+        累计超过 20 轮（约 4 秒）视为卡死，判失败以避免无限重连。
+
         Returns:
             完整识别到「预备出战」时返回成功结果，否则返回等待重试的结果。
         """
+        self.team_list_ready_rounds += 1
+        if self.team_list_ready_rounds > 20:
+            return self.round_fail('等待预备编队列表就绪超时')
         return self.round_by_ocr(
             self.last_screenshot,
             '预备出战',
