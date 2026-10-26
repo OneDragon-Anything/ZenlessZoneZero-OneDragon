@@ -264,13 +264,18 @@ class LostVoidContext:
 
         return None
 
-    def find_artifact_data(self, category: str, name: str) -> LostVoidArtifact | None:
+    def find_artifact_data(self, category: str, name: str, exact: bool = False) -> LostVoidArtifact | None:
         """
         按 OCR 出的分类和名称 在藏品数据里找对应的藏品 得到是否武备、等级
         名称允许个别错字(如 万能催化剂 识别成 万能催化物)
-        :param category: 分类 卡牌和无详情的文字在这两类里一起找
-        :param name: 名称
-        :return: 找不到时为空 说明候选名没识别出来(比如 OCR 读到的是效果描述)
+
+        Args:
+            category: 分类 卡牌和无详情的文字在这两类里一起找
+            name: 名称
+            exact: 只做精确匹配 用于分支名(如 敕令玄幡-a) 避免模糊匹配回基础藏品
+
+        Returns:
+            找不到时为空 说明候选名没识别出来(比如 OCR 读到的是效果描述)
         """
         if category in ['卡牌', '无详情']:
             cate_list = ['卡牌', '无详情']
@@ -278,6 +283,8 @@ class LostVoidContext:
             normalized = self._normalize_category_text(category)
             cate_list = [i for i in self.cate_2_artifact if self._normalize_category_text(i) == normalized]
         art_list = [art for cate in cate_list for art in self.cate_2_artifact.get(cate, [])]
+        if exact:
+            return next((art for art in art_list if art.name == name), None)
         idx = str_utils.find_in_list_with_fuzzy(name, [i.name for i in art_list], cutoff=0.7)
         return art_list[idx] if idx is not None else None
 
@@ -419,7 +426,7 @@ class LostVoidContext:
                     original_artifact = closest_artifact_pos.artifact
                     branch_name = f'{original_artifact.name}-{branch}'
                     # 分支优先用藏品数据里的 对不上时按OCR候选直接派生
-                    branch_artifact = self.find_artifact_data(original_artifact.category, branch_name)
+                    branch_artifact = self.find_artifact_data(original_artifact.category, branch_name, exact=True)
                     if branch_artifact is None:
                         branch_artifact = LostVoidArtifact(
                             category=original_artifact.category,
