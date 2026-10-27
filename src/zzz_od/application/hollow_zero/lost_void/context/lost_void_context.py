@@ -273,19 +273,23 @@ class LostVoidContext:
             category: 分类 卡牌和无详情的文字在这两类里一起找
             name: 名称
             exact: 只做精确匹配 用于分支名(如 敕令玄幡-a) 避免模糊匹配回基础藏品
+                此时分类和名称是藏品数据里的原文 不是 OCR 文字
 
         Returns:
             找不到时为空 说明候选名没识别出来(比如 OCR 读到的是效果描述)
         """
         if category in ['卡牌', '无详情']:
             cate_list = ['卡牌', '无详情']
+        elif exact:
+            cate_list = [category]
         else:
+            # OCR 文字是游戏语言 要和藏品数据翻译后的文字比
             normalized = self._normalize_category_text(category)
-            cate_list = [i for i in self.cate_2_artifact if self._normalize_category_text(i) == normalized]
+            cate_list = [i for i in self.cate_2_artifact if self._normalize_category_text(gt(i, 'game')) == normalized]
         art_list = [art for cate in cate_list for art in self.cate_2_artifact.get(cate, [])]
         if exact:
             return next((art for art in art_list if art.name == name), None)
-        idx = str_utils.find_in_list_with_fuzzy(name, [i.name for i in art_list], cutoff=0.7)
+        idx = str_utils.find_in_list_with_fuzzy(name, [gt(i.name, 'game') for i in art_list], cutoff=0.7)
         return art_list[idx] if idx is not None else None
 
     def match_artifact_by_ocr_full(self, name_full_str: str) -> LostVoidArtifact | None:
