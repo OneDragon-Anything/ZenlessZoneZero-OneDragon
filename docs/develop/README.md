@@ -96,6 +96,18 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 
 启动器的 `--version` 固定按 UTF-8 输出：版本描述含中文，按系统本地编码输出时，英文、日文、韩文等系统的本地编码无法表示这些字符，启动器会直接报错退出。旧版启动器仍按系统本地编码输出，因此版本查询先捕获原始字节，再依次尝试 UTF-8 与本地编码；不能依赖父 Python 的默认文本编码，也不要求用户关闭全局 UTF-8 模式。该路径只解析 stdout，stderr 的编码不应影响版本识别。
 
+### WPF 启动器
+
+WPF 启动器源码位于 [`src/one_dragon/launcher/wpf/`](../../src/one_dragon/launcher/wpf/README.md)，由主仓统一管理。使用 Windows、Visual Studio 的“.NET 桌面开发”组件和 .NET Framework 4.7.2 targeting pack，在仓库根目录运行：
+
+```powershell
+.\src\one_dragon\launcher\wpf\build.ps1
+```
+
+脚本还原 NuGet 依赖并构建 Release x64，产物位于该目录下的 `artifacts/`。将 `OneDragon-Launcher.exe` 复制到一条龙项目根目录运行；它依赖已有 Python/uv 环境，不包含 RuntimeLauncher 的内嵌 Python 运行时。界面预览可使用 `--preview`，深色预览追加 `--dark`。
+
+源码目录不包含独立 Git 仓库、测试或原独立工程的发布工作流；依赖、IDE 缓存和编译产物均被忽略。当前构建脚本只负责编译和打包，尚未接入主仓的自动发布流程。详细运行参数与兼容性说明见上述 README。
+
 ### 3.3.集成启动器（RuntimeLauncher）
 
 > 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)
