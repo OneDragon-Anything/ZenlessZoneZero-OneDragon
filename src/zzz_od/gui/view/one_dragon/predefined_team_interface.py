@@ -107,7 +107,8 @@ class TeamSettingCard(SettingCardBase):
 
         if not self.only_agents:
             self.name_input.blockSignals(True)
-            self.name_input.setText(gt(self.team_info.name))
+            # 编辑框内容会回写为编队名称 需与游戏内名称一致 不能翻译
+            self.name_input.setText(self.team_info.name)
             self.name_input.blockSignals(False)
 
             self.auto_battle_btn.set_items(auto_battle_list, team.auto_battle)

@@ -56,9 +56,11 @@ class BackToNormalWorld(ZOperation):
             return modal_res
 
         # 检查小地图：如果小地图已出现，说明已经处于正常大世界，直接返回成功，避免误触发场景对话
-        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
-        if mini_map is not None and getattr(mini_map, 'play_mask_found', False):
-            return self.round_success(status='大世界-普通')
+        # 勘域中同样有小地图 需要确保在普通大世界时交给下方画面识别处理传送
+        if not self.ensure_normal_world:
+            mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+            if mini_map is not None and getattr(mini_map, 'play_mask_found', False):
+                return self.round_success(status='大世界-普通')
 
         # 2. 优先检查并推进活跃的剧情/NPC对话（避免处于对话中却误判为大世界已就绪）
         dialogue_res = self._handle_any_dialogue(self.last_screenshot)

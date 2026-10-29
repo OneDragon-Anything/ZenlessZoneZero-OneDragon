@@ -187,7 +187,7 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
         route_lists = self.world_patrol_service.get_world_patrol_route_lists()
         list_items = []
         for route_list in route_lists:
-            display_name = f"{gt(route_list.name)} ({route_list.list_type})"
+            display_name = f"{route_list.name} ({route_list.list_type})"  # 用户自定义名称 不翻译
             list_items.append(ConfigItem(display_name, route_list))
 
         # 添加空选项

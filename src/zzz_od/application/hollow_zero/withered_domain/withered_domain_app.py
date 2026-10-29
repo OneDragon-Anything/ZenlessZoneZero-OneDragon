@@ -142,7 +142,8 @@ class WitheredDomainApp(ZApplication):
         target_list = [self.mission_name]
         if '-' in self.mission_name:
             target_list.append(self.mission_name.split('-')[-1])
-        target_list.extend(['核心', 'Core', '枯败花圃-核心', '枯萎之都-核心'])
+        if '核心' in self.mission_name:
+            target_list.extend(['核心', 'Core', '枯败花圃-核心', '枯萎之都-核心'])
         # 去重并保持顺序
         target_list = list(dict.fromkeys(target_list))
         return self.round_by_ocr_and_click_by_priority(target_list, area=area,

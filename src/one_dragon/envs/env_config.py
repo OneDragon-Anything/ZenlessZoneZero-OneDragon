@@ -209,7 +209,7 @@ class EnvConfig(YamlConfig):
         代码是否强制更新 会直接丢弃现有的改动
         :return:
         """
-        return self.get('force_update', False)
+        return self.get('force_update', True)
 
     @force_update.setter
     def force_update(self, new_value: bool) -> None:
@@ -225,7 +225,7 @@ class EnvConfig(YamlConfig):
         自动更新
         :return:
         """
-        return self.get('auto_update_code', False)
+        return self.get('auto_update_code', True)
 
     @auto_update_code.setter
     def auto_update_code(self, new_value: bool) -> None:
