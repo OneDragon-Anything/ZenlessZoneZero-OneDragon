@@ -200,7 +200,7 @@ class BambooMerchant(ZOperation):
     @operation_node(name='购买后确定')
     def confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-商店', '购买后确定',
-                                                   success_wait=1, retry_wait=1)
+                                                   success_wait=1)
         if result.is_success:
             return result
 
