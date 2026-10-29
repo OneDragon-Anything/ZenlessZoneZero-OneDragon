@@ -26,14 +26,3 @@ class Point:
 
     def __sub__(self, other):
         return Point(self.x - other.x, self.y - other.y)
-
-    def __eq__(self, other):
-        if isinstance(other, Point):
-            return self.x == other.x and self.y == other.y
-        if isinstance(other, (tuple, list)) and len(other) == 2:
-            return self.x == other[0] and self.y == other[1]
-        return False
-
-    def __hash__(self):
-        # 定义 __eq__ 后需显式定义 否则 Point 无法放入 set 或作为 dict 的键
-        return hash((self.x, self.y))
