@@ -7,6 +7,7 @@ from qfluentwidgets import (
 )
 from qfluentwidgets.common.overload import singledispatchmethod
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.teaching_tip import TeachingTip
 
 
@@ -37,8 +38,8 @@ class IconButton(TransparentToolButton):
         if isTooltip:
             self.installEventFilter(self)
 
-        self.tip_title: str = tip_title
-        self.tip_content: str = tip_content
+        self.tip_title: str = gt(tip_title)
+        self.tip_content: str = gt(tip_content)
 
     def eventFilter(self, watched, event: QEvent) -> bool:
         """处理鼠标事件。"""

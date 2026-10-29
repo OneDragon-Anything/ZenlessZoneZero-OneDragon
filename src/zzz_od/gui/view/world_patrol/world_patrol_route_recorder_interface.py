@@ -9,6 +9,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum, OneDragonContext
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.click_image_label import ClickImageLabel
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -125,15 +126,15 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.route_row)
 
-        self.new_route_btn = PushButton(text='新增')
+        self.new_route_btn = PushButton(text=gt('新增', 'ui'))
         self.new_route_btn.clicked.connect(self.on_new_route_btn_clicked)
-        self.save_route_btn = PushButton(text='保存')
+        self.save_route_btn = PushButton(text=gt('保存', 'ui'))
         self.save_route_btn.clicked.connect(self.on_save_route_btn_clicked)
-        self.delete_route_btn = PushButton(text='删除')
+        self.delete_route_btn = PushButton(text=gt('删除', 'ui'))
         self.delete_route_btn.clicked.connect(self.on_delete_route_btn_clicked)
-        self.cancel_route_btn = PushButton(text='取消')
+        self.cancel_route_btn = PushButton(text=gt('取消', 'ui'))
         self.cancel_route_btn.clicked.connect(self.on_cancel_route_btn_clicked)
-        self.edit_operations_btn = PushButton(text='编辑操作')
+        self.edit_operations_btn = PushButton(text=gt('编辑操作', 'ui'))
         self.edit_operations_btn.clicked.connect(self.on_edit_operations_btn_clicked)
         self.rout_opt_row = MultiPushSettingCard(
             icon=FluentIcon.SAVE, title='编辑',
@@ -157,11 +158,11 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.tp_opt)
 
-        self.screenshot_btn = PushButton(text='截图(1)')
+        self.screenshot_btn = PushButton(text=gt('截图(1)', 'ui'))
         self.screenshot_btn.clicked.connect(self.on_screenshot_btn_clicked)
-        self.add_move_btn = PushButton(text='添加移动(4)')
+        self.add_move_btn = PushButton(text=gt('添加移动(4)', 'ui'))
         self.add_move_btn.clicked.connect(self.on_add_move_btn_clicked)
-        self.undo_move_btn = PushButton(text='回退(5)')
+        self.undo_move_btn = PushButton(text=gt('回退(5)', 'ui'))
         self.undo_move_btn.clicked.connect(self.on_undo_move_btn_clicked)
         self.pos_opt_row = MultiPushSettingCard(
             icon=FluentIcon.ROBOT, title='操作',
@@ -177,7 +178,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.debug_start_input.setMinimum(0)
         self.debug_start_input.setValue(0)
         self.debug_start_input.setMinimumWidth(80)
-        self.debug_route_btn = PushButton(text='调试')
+        self.debug_route_btn = PushButton(text=gt('调试', 'ui'))
         self.debug_route_btn.clicked.connect(self.on_debug_route_btn_clicked)
         self.debug_row = MultiPushSettingCard(
             icon=FluentIcon.ROBOT, title='调试',
@@ -307,7 +308,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
             # 筛选出传送点图标 (template_id = map_icon_01)
             for icon in self.chosen_large_map.icon_list:
                 if icon.template_id == 'map_icon_01':
-                    display_name = icon.icon_name if icon.icon_name else f'传送点({icon.lm_pos.x}, {icon.lm_pos.y})'
+                    display_name = icon.icon_name if icon.icon_name else gt('传送点({}, {})').format(icon.lm_pos.x, icon.lm_pos.y)
                     tp_list.append(ConfigItem(display_name, icon))
 
         self.tp_combo_box.set_items(tp_list, self.chosen_tp_icon)
@@ -325,7 +326,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         if self.chosen_area is not None:
             self.existing_routes = self.world_patrol_service.get_world_patrol_routes_by_area(self.chosen_area)
             for route in self.existing_routes:
-                display_name = f'{route.idx:02d} - {route.tp_name} ({len(route.op_list)}步)'
+                display_name = gt('{} - {} ({}步)').format(f'{route.idx:02d}', route.tp_name, len(route.op_list))
                 route_list.append(ConfigItem(display_name, route))
 
         self.route_combo_box.set_items(route_list, None)

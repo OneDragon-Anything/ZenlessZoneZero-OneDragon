@@ -293,8 +293,8 @@ class SettingGameInterface(VerticalScrollInterface):
             self.background_mode_switch.setValue(False, emit_signal=False)
             self.ctx.game_config.background_mode = False
             InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                title=gt('后台模式不可用'),
+                content=gt('未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动'),
                 parent=self, duration=5000,
             )
 

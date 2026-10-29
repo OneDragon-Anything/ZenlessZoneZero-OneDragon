@@ -1,5 +1,1136 @@
+#
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "ZenlessZoneZero"
+msgstr "Zenless Zone Zero"
+
+msgid "ZenlessZoneZero-OneDragon"
+msgstr "Zenless Zone Zero OneDragon"
+
+msgid "ZenlessZoneZero-OneDragon-installer"
+msgstr "Zenless Zone Zero OneDragon Installer"
+
+msgid "绝区零"
+msgstr "Zenless Zone Zero"
+
+msgid "绝区零 一条龙"
+msgstr "Zenless Zone Zero OneDragon"
+
+msgid "绝区零一条龙"
+msgstr "Zenless Zone Zero OneDragon"
+
+msgid "绝区零 一条龙 安装器"
+msgstr "Zenless Zone Zero OneDragon Installer"
+
+msgid "一条龙"
+msgstr "OneDragon"
+
+msgid "一条龙运行"
+msgstr "OneDragon Run"
+
+msgid "一条龙安装向导"
+msgstr "OneDragon Installation Wizard"
+
+msgid "启动一条龙"
+msgstr "Launch OneDragon"
+
+msgid "欢迎使用一条龙"
+msgstr "Welcome to OneDragon"
+
+msgid "欢迎使用绝区零一条龙"
+msgstr "Welcome to Zenless Zone Zero OneDragon"
+
+msgid "电量"
+msgstr "Battery Charge"
+
+msgid "体力"
+msgstr "Battery Charge"
+
+msgid "储蓄电量"
+msgstr "Backup Battery Charge"
+
+msgid "以太电池"
+msgstr "Ether Battery"
+
+msgid "合成电池"
+msgstr "Craft Ether Battery"
+
+msgid "丁尼"
+msgstr "Dennies"
+
+msgid "菲林"
+msgstr "Polychrome"
+
+msgid "母带"
+msgstr "Master Tape"
+
+msgid "原装母带"
+msgstr "Master Tape"
+
+msgid "加密母带"
+msgstr "Encrypted Master Tape"
+
+msgid "邦布券"
+msgstr "Boopon"
+
+msgid "齿轮硬币"
+msgstr "Gear Coins"
+
+msgid "齿轮硬币不足"
+msgstr "Insufficient Gear Coins"
+
+msgid "鸣徽"
+msgstr "Resonium"
+
+msgid "侵蚀"
+msgstr "Corruption"
+
+msgid "侵蚀症状"
+msgstr "Corruption Symptoms"
+
+msgid "清除侵蚀症状"
+msgstr "Purge Corruption Symptoms"
+
+msgid "压力值"
+msgstr "Pressure"
+
+msgid "降压"
+msgstr "Reduce Pressure"
+
+msgid "代理人"
+msgstr "Agent"
+
+msgid "代理人英文名"
+msgstr "Agent English Name"
+
+msgid "代理人模板"
+msgstr "Agent Template"
+
+msgid "代理人模板生成"
+msgstr "Agent Template Generator"
+
+msgid "代理人皮肤"
+msgstr "Agent Outfit"
+
+msgid "搜索代理人"
+msgstr "Search Agent"
+
+msgid "没有未提交的代理人"
+msgstr "No unsubmitted Agents"
+
+msgid "角色切换-下一个"
+msgstr "Switch Agent - Next"
+
+msgid "角色切换-上一个"
+msgstr "Switch Agent - Previous"
+
+msgid "代理人经验"
+msgstr "Agent EXP"
+
+msgid "代理人晋升"
+msgstr "Agent Promotion"
+
+msgid "代理人技能"
+msgstr "Agent Skills"
+
+msgid "代理人方案培养"
+msgstr "Special Training Plan"
+
+msgid "音擎"
+msgstr "W-Engine"
+
+msgid "音擎经验"
+msgstr "W-Engine EXP"
+
+msgid "音擎专项"
+msgstr "W-Engine Special Course"
+
+msgid "音擎改装"
+msgstr "W-Engine Modification"
+
+msgid "驱动盘"
+msgstr "Drive Disc"
+
+msgid "驱动盘经验"
+msgstr "Drive Disc EXP"
+
+msgid "驱动盘拆解"
+msgstr "Drive Disc Dismantling"
+
+msgid "驱动盘拆解等级"
+msgstr "Drive Disc Dismantle Rank"
+
+msgid "镀剂专项"
+msgstr "Disc Plating Course"
+
+msgid "邦布"
+msgstr "Bangboo"
+
+msgid "邦布商人"
+msgstr "Bangboo Merchant"
+
+msgid "邦布商店"
+msgstr "Bangboo Shop"
+
+msgid "邦布商人策略"
+msgstr "Bangboo Merchant Strategy"
+
+msgid "买齐买净"
+msgstr "Clear Out Shop"
+
+msgid "预备编队"
+msgstr "Predefined Squad"
+
+msgid "选择预备编队"
+msgstr "Select Predefined Squad"
+
+msgid "预备编队角色识别"
+msgstr "Predefined Squad Agent Recognition"
+
+msgid "游戏内配队"
+msgstr "In-Game Squad"
+
+msgid "银行UP编队"
+msgstr "Bank UP Squad"
+
+msgid "普通攻击"
+msgstr "Basic Attack"
+
+msgid "特殊攻击"
+msgstr "Special Attack"
+
+msgid "强化特殊技"
+msgstr "EX Special Attack"
+
+msgid "终结技"
+msgstr "Ultimate"
+
+msgid "连携技"
+msgstr "Chain Attack"
+
+msgid "连携技-左"
+msgstr "Chain Attack - Left"
+
+msgid "连携技-右"
+msgstr "Chain Attack - Right"
+
+msgid "连携技-取消"
+msgstr "Chain Attack - Cancel"
+
+msgid "闪避"
+msgstr "Dodge"
+
+msgid "冲刺攻击"
+msgstr "Dash Attack"
+
+msgid "闪避反击"
+msgstr "Dodge Counter"
+
+msgid "快速支援"
+msgstr "Quick Assist"
+
+msgid "招架支援"
+msgstr "Defensive Assist"
+
+msgid "回避支援"
+msgstr "Evasive Assist"
+
+msgid "支援突击"
+msgstr "Assist Follow-Up"
+
+msgid "切换后援"
+msgstr "Switch Support"
+
+msgid "锁定敌人"
+msgstr "Lock Enemy"
+
+msgid "交互"
+msgstr "Interact"
+
+msgid "移动-前"
+msgstr "Move - Forward"
+
+msgid "移动-后"
+msgstr "Move - Backward"
+
+msgid "移动-左"
+msgstr "Move - Left"
+
+msgid "移动-右"
+msgstr "Move - Right"
+
+msgid "失衡值"
+msgstr "Daze"
+
+msgid "失衡状态"
+msgstr "Stunned"
+
+msgid "分贝值"
+msgstr "Decibels"
+
+msgid "属性异常"
+msgstr "Attribute Anomaly"
+
+msgid "异常精通"
+msgstr "Anomaly Proficiency"
+
+msgid "异常掌控"
+msgstr "Anomaly Mastery"
+
+msgid "暴击率"
+msgstr "CRIT Rate"
+
+msgid "暴击伤害"
+msgstr "CRIT DMG"
+
+msgid "穿透率"
+msgstr "PEN Ratio"
+
+msgid "穿透值"
+msgstr "PEN"
+
+msgid "强攻"
+msgstr "Attack"
+
+msgid "击破"
+msgstr "Stun"
+
+msgid "异常"
+msgstr "Anomaly"
+
+msgid "支援"
+msgstr "Support"
+
+msgid "防护"
+msgstr "Defense"
+
+msgid "命破"
+msgstr "Rupture"
+
+msgid "锋御"
+msgstr "Slash"
+
+msgid "物理"
+msgstr "Physical"
+
+msgid "火属性"
+msgstr "Fire"
+
+msgid "火"
+msgstr "Fire"
+
+msgid "冰属性"
+msgstr "Ice"
+
+msgid "冰"
+msgstr "Ice"
+
+msgid "电属性"
+msgstr "Electric"
+
+msgid "电"
+msgstr "Electric"
+
+msgid "以太"
+msgstr "Ether"
+
+msgid "流明"
+msgstr "Lumina"
+
+msgid "快捷手册"
+msgstr "Compendium"
+
+msgid "打开快捷手册"
+msgstr "Open Compendium"
+
+msgid "实战模拟室"
+msgstr "Combat Simulation"
+
+msgid "专业挑战室"
+msgstr "Expert Challenge"
+
+msgid "区域巡防"
+msgstr "Area Patrol"
+
+msgid "定期清理"
+msgstr "Routine Cleanup"
+
+msgid "恶名狩猎"
+msgstr "Notorious Hunt"
+
+msgid "恶名狩猎计划"
+msgstr "Notorious Hunt Plan"
+
+msgid "恶名狩猎战斗"
+msgstr "Notorious Hunt Battle"
+
+msgid "新增恶名狩猎计划"
+msgstr "Add Notorious Hunt Plan"
+
+msgid "零号空洞"
+msgstr "Hollow Zero"
+
+msgid "空洞零"
+msgstr "Hollow Zero"
+
+msgid "进入 HDD 副本"
+msgstr "Enter HDD Commission"
+
+msgid "挑战副本"
+msgstr "Challenge Commission"
+
+msgid "离开空洞"
+msgstr "Leave Hollow"
+
+msgid "空洞操作器"
+msgstr "Hollow Device"
+
+msgid "空洞格子识别"
+msgstr "Hollow Tile Recognition"
+
+msgid "选择鸣徽"
+msgstr "Choose Resonium"
+
+msgid "确认鸣徽"
+msgstr "Confirm Resonium"
+
+msgid "交换鸣徽"
+msgstr "Exchange Resonium"
+
+msgid "丢弃鸣徽"
+msgstr "Discard Resonium"
+
+msgid "识别鸣徽关键词"
+msgstr "Recognize Resonium Keywords"
+
+msgid "枯萎之都"
+msgstr "Withered Domain"
+
+msgid "枯败花圃"
+msgstr "Withering Garden"
+
+msgid "枯萎之都配置"
+msgstr "Withering Garden Settings"
+
+msgid "挑战配置-枯"
+msgstr "Challenge Config - Withering Garden"
+
+msgid "迷失之地"
+msgstr "Lost Void"
+
+msgid "迷失之地配置"
+msgstr "Lost Void Settings"
+
+msgid "挑战配置-迷"
+msgstr "Challenge Config - Lost Void"
+
+msgid "迷失之地识别"
+msgstr "Lost Void Recognition"
+
+msgid "周期征讨"
+msgstr "Weekly Hunt"
+
+msgid "旧都列车"
+msgstr "Old Capital Train"
+
+msgid "旧都列车-外围"
+msgstr "Old Capital Train - Suburbs"
+
+msgid "旧都列车-前线"
+msgstr "Old Capital Train - Frontline"
+
+msgid "旧都列车-内部"
+msgstr "Old Capital Train - Interior"
+
+msgid "旧都列车-腹地"
+msgstr "Old Capital Train - Heartland"
+
+msgid "旧都列车-核心"
+msgstr "Old Capital Train - Core"
+
+msgid "施工废墟"
+msgstr "Construction Ruins"
+
+msgid "施工废墟-前线"
+msgstr "Construction Ruins - Frontline"
+
+msgid "施工废墟-内部"
+msgstr "Construction Ruins - Interior"
+
+msgid "施工废墟-腹地"
+msgstr "Construction Ruins - Heartland"
+
+msgid "施工废墟-核心"
+msgstr "Construction Ruins - Core"
+
+msgid "巨厦遗骸"
+msgstr "Tower Ruins"
+
+msgid "巨厦遗骸-内部"
+msgstr "Tower Ruins - Interior"
+
+msgid "巨厦遗骸-腹地"
+msgstr "Tower Ruins - Heartland"
+
+msgid "巨厦遗骸-核心"
+msgstr "Tower Ruins - Core"
+
+msgid "断层之谜"
+msgstr "Mystery of Arpeggio Fault"
+
+msgid "式舆防卫战"
+msgstr "Shiyu Defense"
+
+msgid "稳定节点"
+msgstr "Stable Node"
+
+msgid "纷争节点"
+msgstr "Disputed Node"
+
+msgid "剧变节点"
+msgstr "Critical Node"
+
+msgid "剧变节点 重置运行记录"
+msgstr "Critical Node: Reset Run Records"
+
+msgid "丽都城募"
+msgstr "New Eridu City Fund"
+
+msgid "丽都周纪"
+msgstr "New Eridu Weekly"
+
+msgid "丽都周纪 (领奖励)"
+msgstr "New Eridu Weekly (Claim Rewards)"
+
+msgid "咖啡馆"
+msgstr "Coff Cafe"
+
+msgid "咖啡店"
+msgstr "Coff Cafe"
+
+msgid "咖啡计划"
+msgstr "Coff Cafe Plan"
+
+msgid "咖啡选择"
+msgstr "Coffee Selection"
+
+msgid "喝后挑战"
+msgstr "Challenge After Coffee"
+
+msgid "吃拉面"
+msgstr "Waterfall Soup Ramen"
+
+msgid "录像店营业"
+msgstr "Random Play Store Management"
+
+msgid "刮刮卡"
+msgstr "Howl's Newsstand Scratch Card"
+
+msgid "吼吼饼铺"
+msgstr "Houhou Bakery"
+
+msgid "随便观"
+msgstr "Suibian Temple"
+
+msgid "随便观-游历派遣"
+msgstr "Suibian Temple - Adventure Dispatch"
+
+msgid "游历"
+msgstr "Adventure"
+
+msgid "游历中"
+msgstr "Adventuring"
+
+msgid "制造"
+msgstr "Craft"
+
+msgid "制造中"
+msgstr "Crafting"
+
+msgid "制造派驻"
+msgstr "Crafting Dispatch"
+
+msgid "自动托管"
+msgstr "Auto-Management"
+
+msgid "邦巢"
+msgstr "Bangboo Nest"
+
+msgid "售卖铺"
+msgstr "Sales Stall"
+
+msgid "售卖中"
+msgstr "Selling"
+
+msgid "好物铺"
+msgstr "Good Goods Stall"
+
+msgid "饮茶仙"
+msgstr "Tea Master Sin"
+
+msgid "德丰大押"
+msgstr "Defeng Pawnshop"
+
+msgid "卦象集录"
+msgstr "Trigrams Collection"
+
+msgid "锄大地"
+msgstr "World Patrol"
+
+msgid "锄大地配置"
+msgstr "World Patrol Settings"
+
+msgid "锄地路线录制"
+msgstr "Patrol Route Recording"
+
+msgid "路线列表"
+msgstr "Route List"
+
+msgid "大地图录制"
+msgstr "Large Map Recording"
+
+msgid "开始街机游戏"
+msgstr "Start Arcade Game"
+
+msgid "蛇对蛇自杀"
+msgstr "Snake Duel Auto-Lose"
+
+msgid "真·拿命验收[即将移除请转插件]"
+msgstr "Life on the Line [Deprecated, migrate to plugin]"
+
+msgid "情报板"
+msgstr "Intel Board"
+
+msgid "重置进度"
+msgstr "Reset Progress"
+
+msgid "已重置"
+msgstr "Reset Complete"
+
+msgid "兑换码"
+msgstr "Redemption Code"
+
+msgid "请输入兑换码"
+msgstr "Please enter redemption code"
+
+msgid "兑换码已存在"
+msgstr "Redemption code already exists"
+
+msgid "过期日期"
+msgstr "Expiration Date"
+
+msgid "每日签到"
+msgstr "Daily Check-in"
+
+msgid "活跃度奖励"
+msgstr "Daily Engagement Rewards"
+
+msgid "邮件"
+msgstr "Mail"
+
+msgid "通知"
+msgstr "Notifications"
+
+msgid "通知设置"
+msgstr "Notification Settings"
+
+msgid "闪避助手"
+msgstr "Dodge Assistant"
+
+msgid "闪避截图"
+msgstr "Dodge Screenshot"
+
+msgid "战斗助手"
+msgstr "Battle Assistant"
+
+msgid "委托助手"
+msgstr "Commission Assistant"
+
+msgid "指令调试"
+msgstr "Command Debugger"
+
+msgid "鼠标灵敏度检测"
+msgstr "Mouse Sensitivity Detection"
+
+msgid "游戏配置检查"
+msgstr "Game Config Checker"
+
+msgid "目标"
+msgstr "Target"
+
+msgid "日常"
+msgstr "Daily"
+
+msgid "训练"
+msgstr "Training"
+
+msgid "作战"
+msgstr "Combat"
+
+msgid "基础材料"
+msgstr "Basic Materials"
+
+msgid "调查专项"
+msgstr "Trainee Investigator Course"
+
+msgid "赏金专项"
+msgstr "Bounty Course"
+
+msgid "锋御演练"
+msgstr "Slash Practice"
+
+msgid "命破演练"
+msgstr "Rupture Practice"
+
+msgid "强攻演练"
+msgstr "Attack Practice"
+
+msgid "击破演练"
+msgstr "Stun Practice"
+
+msgid "异常演练"
+msgstr "Anomaly Practice"
+
+msgid "支援演练"
+msgstr "Support Practice"
+
+msgid "防护演练"
+msgstr "Defense Practice"
+
+msgid "锋御耦合试验"
+msgstr "Slash Coupling Test"
+
+msgid "命破共鸣试验"
+msgstr "Rupture Resonance Test"
+
+msgid "强攻极片试验"
+msgstr "Attack Pole Plate Test"
+
+msgid "击破振膜试验"
+msgstr "Stun Diaphragm Test"
+
+msgid "异常磁体试验"
+msgstr "Anomaly Magnet Test"
+
+msgid "支援分频试验"
+msgstr "Support Crossover Test"
+
+msgid "防护音圈试验"
+msgstr "Defense Voice Coil Test"
+
+msgid "刚性测试"
+msgstr "Rigidity Test (Physical)"
+
+msgid "升温测试"
+msgstr "Heating Test (Fire)"
+
+msgid "冰结测试"
+msgstr "Freezing Test (Ice)"
+
+msgid "电流测试"
+msgstr "Current Test (Electric)"
+
+msgid "风切测试"
+msgstr "Wind Shear Test (Wind)"
+
+msgid "共鸣测试"
+msgstr "Resonance Test (Ether)"
+
+msgid "琢光测试"
+msgstr "Polishing Test (Lumina)"
+
+msgid "自定义模板"
+msgstr "Custom Preset"
+
+msgid "自定义卡组1"
+msgstr "Custom Deck 1"
+
+msgid "自定义卡组2"
+msgstr "Custom Deck 2"
+
+msgid "自定义卡组3"
+msgstr "Custom Deck 3"
+
+msgid "自定义卡组4"
+msgstr "Custom Deck 4"
+
+msgid "自定义卡组5"
+msgstr "Custom Deck 5"
+
+msgid "特训目标"
+msgstr "Custom Target"
+
+msgid "怪兽与怪客"
+msgstr "Monsters and Men"
+
+msgid "恶拳与凶枪"
+msgstr "Fists and Guns"
+
+msgid "猎人与忠犬"
+msgstr "Hunter and Hound"
+
+msgid "高塔与巨炮"
+msgstr "Towers and Cannons"
+
+msgid "疯子与追随者"
+msgstr "Madman and Minions"
+
+msgid "锐牙与钝斧"
+msgstr "Sharp Fangs and Blunt Axes"
+
+msgid "猎手与凶兽"
+msgstr "Hunter and Beast"
+
+msgid "怪兽二重奏"
+msgstr "Monster Duet"
+
+msgid "游侠与守卫"
+msgstr "Ranger and Guardian"
+
+msgid "口舌与刀兵"
+msgstr "Words and Weapons"
+
+msgid "铁律与狂徒"
+msgstr "Law and Outlaw"
+
+msgid "诡步与重壁"
+msgstr "Ghostly Steps and Heavy Walls"
+
+msgid "伏龙与战车"
+msgstr "Hidden Dragon and Chariot"
+
+msgid "机师与叛甲"
+msgstr "Pilot and Rebel Armor"
+
+msgid "迅脊与裂爪"
+msgstr "Swift Spine and Rending Claw"
+
+msgid "摇摆爵士"
+msgstr "Swing Jazz"
+
+msgid "混沌重金属"
+msgstr "Chaos Metal"
+
+msgid "激素朋克"
+msgstr "Hormone Punk"
+
+msgid "獠牙重金属"
+msgstr "Fanged Metal"
+
+msgid "震星迪斯科"
+msgstr "Shockstar Disco"
+
+msgid "雷暴重金属"
+msgstr "Thunder Metal"
+
+msgid "啄木鸟电音"
+msgstr "Woodpecker Electro"
+
+msgid "灵魂摇滚"
+msgstr "Soul Rock"
+
+msgid "河豚电音"
+msgstr "Puffer Electro"
+
+msgid "炎狱重金属"
+msgstr "Inferno Metal"
+
+msgid "自由蓝调"
+msgstr "Freedom Blues"
+
+msgid "极地重金属"
+msgstr "Polar Metal"
+
+msgid "混沌爵士"
+msgstr "Chaos Jazz"
+
+msgid "原始朋克"
+msgstr "Proto Punk"
+
+msgid "折枝剑歌"
+msgstr "Branch & Blade Song"
+
+msgid "静听嘉音"
+msgstr "Melodic Echoes"
+
+msgid "如影相随"
+msgstr "Shadow Following"
+
+msgid "法厄同之歌"
+msgstr "Phaethon's Melody"
+
+msgid "云岿如我"
+msgstr "Steadfast as Clouds"
+
+msgid "山大王"
+msgstr "Mountain Monarch"
+
+msgid "拂晓生花"
+msgstr "Dawn's Bloom"
+
+msgid "月光骑士颂"
+msgstr "Moonlight Knight's Ode"
+
+msgid "沧浪行歌"
+msgstr "Billowing Song"
+
+msgid "流光咏叹"
+msgstr "Radiant Elegy"
+
+msgid "雪兔梦游仙境"
+msgstr "Snow Rabbit Wonderland"
+
+msgid "囚徒手记"
+msgstr "Prisoner's Notes"
+
+msgid "呼啸沙龙"
+msgstr "Howling Salon"
+
+msgid "拂晓行纪"
+msgstr "Dawn Travelogue"
+
+msgid "谶羽之誓"
+msgstr "Feather Vow"
+
+msgid "荆棘玫瑰"
+msgstr "Thorn Rose"
+
+msgid "摇摆爵士 混沌重金属"
+msgstr "Swing Jazz / Chaos Metal"
+
+msgid "激素朋克 獠牙重金属"
+msgstr "Hormone Punk / Fanged Metal"
+
+msgid "震星迪斯科 雷暴重金属"
+msgstr "Shockstar Disco / Thunder Metal"
+
+msgid "啄木鸟电音 灵魂摇滚"
+msgstr "Woodpecker Electro / Soul Rock"
+
+msgid "河豚电音 炎狱重金属"
+msgstr "Puffer Electro / Inferno Metal"
+
+msgid "自由蓝调 极地重金属"
+msgstr "Freedom Blues / Polar Metal"
+
+msgid "混沌爵士 原始朋克"
+msgstr "Chaos Jazz / Proto Punk"
+
+msgid "折枝剑歌 静听嘉音"
+msgstr "Branch & Blade Song / Melodic Echoes"
+
+msgid "如影相随 法厄同之歌"
+msgstr "Shadow Following / Phaethon's Melody"
+
+msgid "云岿如我 山大王"
+msgstr "Steadfast as Clouds / Mountain Monarch"
+
+msgid "拂晓生花 月光骑士颂"
+msgstr "Dawn's Bloom / Moonlight Knight's Ode"
+
+msgid "沧浪行歌 流光咏叹"
+msgstr "Billowing Song / Radiant Elegy"
+
+msgid "雪兔梦游仙境 囚徒手记"
+msgstr "Snow Rabbit Wonderland / Prisoner's Notes"
+
+msgid "呼啸沙龙 拂晓行纪"
+msgstr "Howling Salon / Dawn Travelogue"
+
+msgid "谶羽之誓 荆棘玫瑰"
+msgstr "Feather Vow / Thorn Rose"
+
+msgid "恶名·杜拉罕"
+msgstr "Notorious - Dullahan"
+
+msgid "祸首·通缉打手"
+msgstr "Culprit - Wanted Enforcer"
+
+msgid "恶名·装甲哈提"
+msgstr "Notorious - Armored Hati"
+
+msgid "汉斯·蓄能型"
+msgstr "Hans - Charged Type"
+
+msgid "「提丰·重击者型」"
+msgstr "Typhon - Heavy Striker"
+
+msgid "蛮横力士"
+msgstr "Rampant Brute"
+
+msgid "多佩冈亚·简"
+msgstr "Doppelganger - Jane"
+
+msgid "色雷斯人"
+msgstr "Thracian"
+
+msgid "伐木机"
+msgstr "Lumberjack"
+
+msgid "秽息蚀者·阿瓦鲁斯"
+msgstr "Corrupt Miasma - Avarus"
+
+msgid "牲鬼·凶魁愚者"
+msgstr "Fiend - Chief Fool"
+
+msgid "秽蚀·狛野真斗"
+msgstr "Corrupt Miasma - Komano Masato"
+
+msgid "秽息行者·蝎骸"
+msgstr "Miasma Walker - Scorpion Remains"
+
+msgid "牲鬼·卫律使者"
+msgstr "Fiend - Guardian Envoy"
+
+msgid "空域戒戍者"
+msgstr "Airspace Guard"
+
+msgid "「征服者」"
+msgstr "Conqueror"
+
+msgid "初生死路屠夫"
+msgstr "Dead End Butcher"
+
+msgid "未知复合侵蚀体"
+msgstr "Unknown Corrupted Complex"
+
+msgid "冥宁芙·双子"
+msgstr "Twin Marionettes"
+
+msgid "「霸主侵蚀体·庞培」"
+msgstr "Corrupted Overlord - Pompey"
+
+msgid "牲鬼·布林格"
+msgstr "Fiend - Bringer"
+
+msgid "秽息司祭"
+msgstr "Miasma Priest"
+
+msgid "彷徨猎手"
+msgstr "Wandering Hunter"
+
+msgid "魇缚者·叶释渊"
+msgstr "Nightmare Bound - Ye Shiyuan"
+
+msgid "魇缚者·???"
+msgstr "Nightmare Bound - ???"
+
+msgid "猎血清道夫"
+msgstr "Bloodhunter Scavenger"
+
+msgid "基塔布鲁"
+msgstr "Kitabulu"
+
+msgid "库萨里库"
+msgstr "Kusarikku"
+
+msgid "战线肃清"
+msgstr "Frontline Clearance"
+
+msgid "特遣调查"
+msgstr "Special Investigation"
+
+msgid "矩阵行动"
+msgstr "Matrix Operation"
+
+msgid "关键进展"
+msgstr "Crucial Progress"
+
+msgid "不宜久留"
+msgstr "No Time to Waste"
+
+msgid "及时补给"
+msgstr "Timely Supplies"
+
+msgid "代价之间"
+msgstr "Chamber of Sacrifice"
+
+msgid "休憩调息"
+msgstr "Rest & Recuperation"
+
+msgid "偶遇事件"
+msgstr "Chance Encounter"
+
+msgid "入口"
+msgstr "Entrance"
+
+msgid "挚交会谈"
+msgstr "Heart-to-Heart Talk"
+
+msgid "战斗-武备"
+msgstr "Battle - Tactical Gear"
+
+msgid "战斗-硬币"
+msgstr "Battle - Gear Coins"
+
+msgid "战斗-终结之役"
+msgstr "Battle - Final Conflict"
+
+msgid "战斗-道中危机"
+msgstr "Battle - Mid-way Crisis"
+
+msgid "战斗-鸣徽"
+msgstr "Battle - Resonium"
+
+msgid "挑战-收割"
+msgstr "Challenge - Harvest"
+
+msgid "挑战-无伤"
+msgstr "Challenge - Flawless"
+
+msgid "挑战-限时"
+msgstr "Challenge - Time Limit"
+
+msgid "藏品第一优先级"
+msgstr "Curio 1st Priority"
+
+msgid "藏品第二优先级 (无刷新时考虑)"
+msgstr "Curio 2nd Priority (No refresh)"
+
+msgid "区域类型优先级"
+msgstr "Area Type Priority"
+
+msgid "优先途经点"
+msgstr "Preferred Waypoints"
+
+msgid "避免途经点"
+msgstr "Avoided Waypoints"
+
+msgid "选项优先级"
+msgstr "Option Priority"
+
+msgid "奖励优先级"
+msgstr "Reward Priority"
+
+msgid "有同流派武备"
+msgstr "Matching School Gear Available"
+
+msgid "刷满业绩点"
+msgstr "Max Out Investigation Points"
+
+msgid "刷满周期奖励"
+msgstr "Max Out Weekly Rewards"
+
+msgid "完成周计划次数"
+msgstr "Complete Weekly Bounty Runs"
+
+msgid "完成悬赏委托"
+msgstr "Complete Bounty Commissions"
+
+msgid "2层业绩后退出"
+msgstr "Exit After Floor 2 Investigation Points"
+
+msgid "3层业绩后退出"
+msgstr "Exit After Floor 3 Investigation Points"
+
+msgid "通关"
+msgstr "Full Clear"
+
+msgid "速通"
+msgstr "Speedrun"
+
+msgid "默认"
+msgstr "Default"

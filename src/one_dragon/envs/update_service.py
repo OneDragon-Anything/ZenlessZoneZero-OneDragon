@@ -77,6 +77,8 @@ class UpdateService:
 
     def is_launcher_update_available(self) -> bool:
         """检查当前启动器通道是否存在可用更新。"""
+        if not self.env_config.auto_update_code:
+            return False
         launcher_type = self.detect_running_launcher_type() or 'launcher'
         current_version, latest_stable, latest_beta = (
             self.get_launcher_version_info(launcher_type)

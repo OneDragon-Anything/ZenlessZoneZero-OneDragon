@@ -9,7 +9,7 @@ class HelpCard(HyperlinkCard):
                  title: str = '使用说明',
                  content: str = '先看说明 再使用与提问',
                  parent=None):
-        super().__init__(url, text, FluentIcon.HELP, gt(title), gt(content), parent)
+        super().__init__(url, gt(text), FluentIcon.HELP, gt(title), gt(content), parent)
         self.setFixedHeight(50)
         if not url:
             self.linkButton.setVisible(False)

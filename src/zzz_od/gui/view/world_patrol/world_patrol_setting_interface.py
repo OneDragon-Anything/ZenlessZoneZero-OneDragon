@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
@@ -98,8 +99,8 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.run_record_opt = PushSettingCard(
             icon=FluentIcon.HISTORY,
-            title='运行记录',
-            text='重置记录'
+            title=gt('运行记录'),
+            text=gt('重置记录')
         )
         self.run_record_opt.setFixedHeight(50)
         self.run_record_opt.clicked.connect(self._on_reset_record_clicked)
@@ -196,8 +197,8 @@ class WorldPatrolSettingInterface(VerticalScrollInterface, GroupIdMixin):
         # finished 满额代表该轮已结束并已计入 completed_rounds，取模避免与整轮重复计数
         partial = (len(self.run_record.finished) % per_round) / per_round if per_round > 0 else 0.0
         progress = min(self.run_record.completed_rounds + partial, total)
-        content = f'当日进度 {progress:.2f}/{total}'
-        self.run_record_opt.setContent(content)
+        content = gt('当日进度 {}/{}').format(f'{progress:.2f}', total)
+        self.run_record_opt.setContent(gt(content))
 
     def _on_reset_record_clicked(self) -> None:
         if self.run_record is None:

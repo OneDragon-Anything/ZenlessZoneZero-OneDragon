@@ -24,6 +24,7 @@ from qfluentwidgets import (
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon.utils import os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import get_foreground_color
@@ -59,8 +60,8 @@ class ButtonGroup(QWidget):
         # 创建主页按钮
         home_button = IconButton(
             FluentIcon.HOME.icon(color=QColor("#fff")),
-            tip_title="官网",
-            tip_content="使用说明 · 功能介绍",
+            tip_title=gt("官网"),
+            tip_content=gt("使用说明 · 功能介绍"),
             isTooltip=True,
         )
         home_button.setIconSize(QSize(30, 30))
@@ -72,7 +73,7 @@ class ButtonGroup(QWidget):
         github_button = IconButton(
             FluentIcon.GITHUB.icon(color=QColor("#fff")),
             tip_title="GitHub",
-            tip_content="源码 · 反馈 · Star⭐",
+            tip_content=gt("源码 · 反馈 · Star⭐"),
             isTooltip=True,
         )
         github_button.setIconSize(QSize(30, 30))
@@ -83,8 +84,8 @@ class ButtonGroup(QWidget):
         # 创建 文档 按钮
         doc_button = IconButton(
             FluentIcon.LIBRARY.icon(color=QColor("#fff")),
-            tip_title="帮助文档",
-            tip_content="遇到问题？点这里找答案",
+            tip_title=gt("帮助文档"),
+            tip_content=gt("遇到问题？点这里找答案"),
             isTooltip=True,
         )
         doc_button.setIconSize(QSize(30, 30))
@@ -95,8 +96,8 @@ class ButtonGroup(QWidget):
         # 创建 频道 按钮
         chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
-            tip_title="官方频道",
-            tip_content="加入官方交流频道",
+            tip_title=gt("官方频道"),
+            tip_content=gt("加入官方交流频道"),
             isTooltip=True,
         )
         chat_button.setIconSize(QSize(30, 30))
@@ -390,7 +391,7 @@ class HomeInterface(BaseInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
+        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, gt('启动一条龙'))
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         self.start_button.setFixedHeight(48)
@@ -563,9 +564,9 @@ class HomeInterface(BaseInterface):
         self._ready = len(issues) == 0
         self._apply_button_icon()
         if self._ready:
-            self.start_button.setText('启动一条龙')
+            self.start_button.setText(gt('启动一条龙'))
         else:
-            self.start_button.setText(f'{len(issues)} 项待配置 ')
+            self.start_button.setText(f'{len(issues)} {gt("项待配置")}')
 
     def _find_widget_by_name(self, name: str) -> QWidget | None:
         stacked = self.main_window.stackedWidget
@@ -635,7 +636,7 @@ class HomeInterface(BaseInterface):
             self._update_start_button_style_from_banner()
             self.ctx.signal.reload_banner = False
             if show_notification:
-                self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+                self._show_info_bar(gt("背景已更新"), gt("新的背景已成功应用"), 3000)
         except Exception as e:
             log.error(f"刷新背景时出错: {e}")
 

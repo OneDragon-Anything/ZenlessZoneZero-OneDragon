@@ -12,6 +12,7 @@ from PySide6.QtGui import QGuiApplication
 from one_dragon.base.debug.debug_trace_bus import PerfTraceItem
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
@@ -839,7 +840,7 @@ class OverlayManager(QObject):
             if ts > latest_time:
                 latest_time = ts
                 latest_name = name
-        return latest_name
+        return gt(latest_name) if latest_name != "-" else latest_name
 
     def _latest_quick_assist_text(self, team_info) -> str:
         now = time.time()

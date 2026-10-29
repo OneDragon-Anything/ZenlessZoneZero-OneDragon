@@ -51,14 +51,16 @@ class WitheredDomainApp(ZApplication):
             app_id=withered_domain_const.APP_ID,
         )
 
-        self.mission_name: str = '内部'
-        self.mission_type_name: str = '旧都列车'
+        self.mission_name: str = '枯败花圃-核心'
+        self.mission_type_name: str = '枯败花圃'
         self.level: int = 1
         self.phase: int = 1
 
     def handle_init(self):
         self.ctx.withered_domain.init_before_run()
-        mission_name = self.config.mission_name
+        mission_name = self.config.mission_name if self.config is not None else None
+        if not mission_name:
+            mission_name = '枯败花圃-核心'
         idx = mission_name.find('-')
         if idx != -1:
             self.mission_name = mission_name
@@ -111,7 +113,7 @@ class WitheredDomainApp(ZApplication):
         if entry_result.is_success:
             return self.round_success('已进入枯萎之都-入口')
 
-        result = self.round_by_ocr_and_click(self.last_screenshot, '枯萎之都')
+        result = self.round_by_ocr_and_click_by_priority(['枯败花圃', '枯萎之都', '零号空洞'])
         if result.is_success:
             return self.round_retry('尝试进入枯萎之都-入口', wait=1)
 
@@ -128,15 +130,23 @@ class WitheredDomainApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        return self.round_by_ocr_and_click(self.last_screenshot, self.mission_type_name,
-                                           success_wait=1, retry_wait=1)
+        target_list = [self.mission_type_name]
+        if self.mission_type_name in ['枯萎之都', '枯败花圃']:
+            target_list = ['枯败花圃', '枯萎之都', '花圃']
+        return self.round_by_ocr_and_click_by_priority(target_list, success_wait=1, retry_wait=1)
 
     @node_from(from_name='选择副本类型')
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('零号空洞-入口', '副本列表')
-        return self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area,
-                                           success_wait=1, retry_wait=1)
+        target_list = [self.mission_name]
+        if '-' in self.mission_name:
+            target_list.append(self.mission_name.split('-')[-1])
+        target_list.extend(['核心', 'Core', '枯败花圃-核心', '枯萎之都-核心'])
+        # 去重并保持顺序
+        target_list = list(dict.fromkeys(target_list))
+        return self.round_by_ocr_and_click_by_priority(target_list, area=area,
+                                                       success_wait=1, retry_wait=1)
 
     @node_from(from_name='选择副本类型', status='下一步')
     @node_from(from_name='选择副本')

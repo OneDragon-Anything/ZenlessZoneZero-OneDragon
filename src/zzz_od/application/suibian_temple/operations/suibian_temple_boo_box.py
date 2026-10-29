@@ -60,8 +60,8 @@ class SuibianTempleBooBox(ZOperation):
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '邻里街坊',
             '邦巢',
+            '邻里街坊',
         ]
         ignore_cn_list: list[str] = [
         ]

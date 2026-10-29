@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -243,7 +244,6 @@ msgstr "界面主题"
 msgid "主页公告"
 msgstr "主页公告"
 
-
 msgid "版本海报"
 msgstr "版本海报"
 
@@ -321,9 +321,6 @@ msgstr "打开游戏"
 msgid "打开并登录游戏"
 msgstr "打开并登录游戏"
 
-msgid "禁用HDR"
-msgstr "禁用HDR"
-
 msgid "恢复HDR"
 msgstr "恢复HDR"
 
@@ -363,9 +360,6 @@ msgstr "切换 HDR 状态"
 
 msgid "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
 msgstr "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
-
-msgid "窗口尺寸"
-msgstr "窗口尺寸"
 
 # 代理人设置
 msgid "妮可"
@@ -720,9 +714,6 @@ msgid "企业微信代理地址"
 msgstr "企业微信代理地址"
 
 # 账户设置相关
-msgid "游戏区服"
-msgstr "游戏区服"
-
 msgid "所有信息都明文保存在本地"
 msgstr "所有信息都明文保存在本地"
 
@@ -730,17 +721,5979 @@ msgid "请自行妥善管理"
 msgstr "请自行妥善管理"
 
 # 主题和外观设置
-msgid "界面主题"
-msgstr "界面主题"
-
 msgid "版本活动海报持续整个版本"
 msgstr "版本活动海报持续整个版本"
 
 msgid "关闭后仅用本地图片"
 msgstr "关闭后仅用本地图片"
 
-msgid "自定义主页背景"
-msgstr "自定义主页背景"
-
 msgid "设置后重启脚本生效"
 msgstr "设置后重启脚本生效"
+
+msgid "绝区零"
+msgstr "绝区零"
+
+msgid "绝区零 一条龙"
+msgstr "绝区零 一条龙"
+
+msgid "绝区零一条龙"
+msgstr "绝区零一条龙"
+
+msgid "绝区零 一条龙 安装器"
+msgstr "绝区零 一条龙 安装器"
+
+msgid "一条龙运行"
+msgstr "一条龙运行"
+
+msgid "一条龙安装向导"
+msgstr "一条龙安装向导"
+
+msgid "电量"
+msgstr "电量"
+
+msgid "体力"
+msgstr "体力"
+
+msgid "储蓄电量"
+msgstr "储蓄电量"
+
+msgid "以太电池"
+msgstr "以太电池"
+
+msgid "合成电池"
+msgstr "合成电池"
+
+msgid "丁尼"
+msgstr "丁尼"
+
+msgid "菲林"
+msgstr "菲林"
+
+msgid "母带"
+msgstr "母带"
+
+msgid "原装母带"
+msgstr "原装母带"
+
+msgid "加密母带"
+msgstr "加密母带"
+
+msgid "邦布券"
+msgstr "邦布券"
+
+msgid "齿轮硬币"
+msgstr "齿轮硬币"
+
+msgid "齿轮硬币不足"
+msgstr "齿轮硬币不足"
+
+msgid "鸣徽"
+msgstr "鸣徽"
+
+msgid "侵蚀"
+msgstr "侵蚀"
+
+msgid "侵蚀症状"
+msgstr "侵蚀症状"
+
+msgid "清除侵蚀症状"
+msgstr "清除侵蚀症状"
+
+msgid "压力值"
+msgstr "压力值"
+
+msgid "降压"
+msgstr "降压"
+
+msgid "代理人"
+msgstr "代理人"
+
+msgid "代理人英文名"
+msgstr "代理人英文名"
+
+msgid "代理人模板"
+msgstr "代理人模板"
+
+msgid "代理人模板生成"
+msgstr "代理人模板生成"
+
+msgid "搜索代理人"
+msgstr "搜索代理人"
+
+msgid "没有未提交的代理人"
+msgstr "没有未提交的代理人"
+
+msgid "代理人经验"
+msgstr "代理人经验"
+
+msgid "代理人晋升"
+msgstr "代理人晋升"
+
+msgid "代理人技能"
+msgstr "代理人技能"
+
+msgid "代理人方案培养"
+msgstr "代理人方案培养"
+
+msgid "音擎"
+msgstr "音擎"
+
+msgid "音擎经验"
+msgstr "音擎经验"
+
+msgid "音擎专项"
+msgstr "音擎专项"
+
+msgid "音擎改装"
+msgstr "音擎改装"
+
+msgid "驱动盘"
+msgstr "驱动盘"
+
+msgid "驱动盘经验"
+msgstr "驱动盘经验"
+
+msgid "驱动盘拆解"
+msgstr "驱动盘拆解"
+
+msgid "镀剂专项"
+msgstr "镀剂专项"
+
+msgid "邦布"
+msgstr "邦布"
+
+msgid "邦布商人"
+msgstr "邦布商人"
+
+msgid "邦布商店"
+msgstr "邦布商店"
+
+msgid "预备编队角色识别"
+msgstr "预备编队角色识别"
+
+msgid "游戏内配队"
+msgstr "游戏内配队"
+
+msgid "强化特殊技"
+msgstr "强化特殊技"
+
+msgid "连携技"
+msgstr "连携技"
+
+msgid "冲刺攻击"
+msgstr "冲刺攻击"
+
+msgid "闪避反击"
+msgstr "闪避反击"
+
+msgid "快速支援"
+msgstr "快速支援"
+
+msgid "招架支援"
+msgstr "招架支援"
+
+msgid "回避支援"
+msgstr "回避支援"
+
+msgid "支援突击"
+msgstr "支援突击"
+
+msgid "切换后援"
+msgstr "切换后援"
+
+msgid "失衡值"
+msgstr "失衡值"
+
+msgid "失衡状态"
+msgstr "失衡状态"
+
+msgid "分贝值"
+msgstr "分贝值"
+
+msgid "属性异常"
+msgstr "属性异常"
+
+msgid "异常精通"
+msgstr "异常精通"
+
+msgid "异常掌控"
+msgstr "异常掌控"
+
+msgid "暴击率"
+msgstr "暴击率"
+
+msgid "暴击伤害"
+msgstr "暴击伤害"
+
+msgid "穿透率"
+msgstr "穿透率"
+
+msgid "穿透值"
+msgstr "穿透值"
+
+msgid "强攻"
+msgstr "强攻"
+
+msgid "击破"
+msgstr "击破"
+
+msgid "异常"
+msgstr "异常"
+
+msgid "支援"
+msgstr "支援"
+
+msgid "防护"
+msgstr "防护"
+
+msgid "命破"
+msgstr "命破"
+
+msgid "锋御"
+msgstr "锋御"
+
+msgid "物理"
+msgstr "物理"
+
+msgid "火属性"
+msgstr "火属性"
+
+msgid "火"
+msgstr "火"
+
+msgid "冰属性"
+msgstr "冰属性"
+
+msgid "冰"
+msgstr "冰"
+
+msgid "电属性"
+msgstr "电属性"
+
+msgid "电"
+msgstr "电"
+
+msgid "以太"
+msgstr "以太"
+
+msgid "流明"
+msgstr "流明"
+
+msgid "快捷手册"
+msgstr "快捷手册"
+
+msgid "实战模拟室"
+msgstr "实战模拟室"
+
+msgid "专业挑战室"
+msgstr "专业挑战室"
+
+msgid "区域巡防"
+msgstr "区域巡防"
+
+msgid "定期清理"
+msgstr "定期清理"
+
+msgid "恶名狩猎"
+msgstr "恶名狩猎"
+
+msgid "恶名狩猎战斗"
+msgstr "恶名狩猎战斗"
+
+msgid "新增恶名狩猎计划"
+msgstr "新增恶名狩猎计划"
+
+msgid "零号空洞"
+msgstr "零号空洞"
+
+msgid "空洞零"
+msgstr "空洞零"
+
+msgid "离开空洞"
+msgstr "离开空洞"
+
+msgid "空洞操作器"
+msgstr "空洞操作器"
+
+msgid "选择鸣徽"
+msgstr "选择鸣徽"
+
+msgid "确认鸣徽"
+msgstr "确认鸣徽"
+
+msgid "交换鸣徽"
+msgstr "交换鸣徽"
+
+msgid "丢弃鸣徽"
+msgstr "丢弃鸣徽"
+
+msgid "枯萎之都"
+msgstr "枯萎之都"
+
+msgid "枯败花圃"
+msgstr "枯败花圃"
+
+msgid "枯萎之都配置"
+msgstr "枯萎之都配置"
+
+msgid "挑战配置-枯"
+msgstr "挑战配置-枯"
+
+msgid "迷失之地"
+msgstr "迷失之地"
+
+msgid "迷失之地配置"
+msgstr "迷失之地配置"
+
+msgid "挑战配置-迷"
+msgstr "挑战配置-迷"
+
+msgid "周期征讨"
+msgstr "周期征讨"
+
+msgid "旧都列车"
+msgstr "旧都列车"
+
+msgid "旧都列车-外围"
+msgstr "旧都列车-外围"
+
+msgid "旧都列车-前线"
+msgstr "旧都列车-前线"
+
+msgid "旧都列车-内部"
+msgstr "旧都列车-内部"
+
+msgid "旧都列车-腹地"
+msgstr "旧都列车-腹地"
+
+msgid "旧都列车-核心"
+msgstr "旧都列车-核心"
+
+msgid "施工废墟"
+msgstr "施工废墟"
+
+msgid "施工废墟-前线"
+msgstr "施工废墟-前线"
+
+msgid "施工废墟-内部"
+msgstr "施工废墟-内部"
+
+msgid "施工废墟-腹地"
+msgstr "施工废墟-腹地"
+
+msgid "施工废墟-核心"
+msgstr "施工废墟-核心"
+
+msgid "巨厦遗骸"
+msgstr "巨厦遗骸"
+
+msgid "巨厦遗骸-内部"
+msgstr "巨厦遗骸-内部"
+
+msgid "巨厦遗骸-腹地"
+msgstr "巨厦遗骸-腹地"
+
+msgid "巨厦遗骸-核心"
+msgstr "巨厦遗骸-核心"
+
+msgid "断层之谜"
+msgstr "断层之谜"
+
+msgid "稳定节点"
+msgstr "稳定节点"
+
+msgid "纷争节点"
+msgstr "纷争节点"
+
+msgid "剧变节点"
+msgstr "剧变节点"
+
+msgid "丽都城募"
+msgstr "丽都城募"
+
+msgid "丽都周纪"
+msgstr "丽都周纪"
+
+msgid "丽都周纪 (领奖励)"
+msgstr "丽都周纪 (领奖励)"
+
+msgid "咖啡馆"
+msgstr "咖啡馆"
+
+msgid "咖啡店"
+msgstr "咖啡店"
+
+msgid "录像店营业"
+msgstr "录像店营业"
+
+msgid "刮刮卡"
+msgstr "刮刮卡"
+
+msgid "吼吼饼铺"
+msgstr "吼吼饼铺"
+
+msgid "随便观"
+msgstr "随便观"
+
+msgid "随便观-游历派遣"
+msgstr "随便观-游历派遣"
+
+msgid "游历"
+msgstr "游历"
+
+msgid "游历中"
+msgstr "游历中"
+
+msgid "制造"
+msgstr "制造"
+
+msgid "制造中"
+msgstr "制造中"
+
+msgid "制造派驻"
+msgstr "制造派驻"
+
+msgid "自动托管"
+msgstr "自动托管"
+
+msgid "邦巢"
+msgstr "邦巢"
+
+msgid "售卖铺"
+msgstr "售卖铺"
+
+msgid "售卖中"
+msgstr "售卖中"
+
+msgid "好物铺"
+msgstr "好物铺"
+
+msgid "饮茶仙"
+msgstr "饮茶仙"
+
+msgid "德丰大押"
+msgstr "德丰大押"
+
+msgid "卦象集录"
+msgstr "卦象集录"
+
+msgid "锄大地"
+msgstr "锄大地"
+
+msgid "锄大地配置"
+msgstr "锄大地配置"
+
+msgid "锄地路线录制"
+msgstr "锄地路线录制"
+
+msgid "路线列表"
+msgstr "路线列表"
+
+msgid "大地图录制"
+msgstr "大地图录制"
+
+msgid "真·拿命验收[即将移除请转插件]"
+msgstr "真·拿命验收[即将移除请转插件]"
+
+msgid "情报板"
+msgstr "情报板"
+
+msgid "重置进度"
+msgstr "重置进度"
+
+msgid "已重置"
+msgstr "已重置"
+
+msgid "兑换码"
+msgstr "兑换码"
+
+msgid "请输入兑换码"
+msgstr "请输入兑换码"
+
+msgid "兑换码已存在"
+msgstr "兑换码已存在"
+
+msgid "过期日期"
+msgstr "过期日期"
+
+msgid "每日签到"
+msgstr "每日签到"
+
+msgid "活跃度奖励"
+msgstr "活跃度奖励"
+
+msgid "邮件"
+msgstr "邮件"
+
+msgid "通知"
+msgstr "通知"
+
+msgid "通知设置"
+msgstr "通知设置"
+
+msgid "闪避助手"
+msgstr "闪避助手"
+
+msgid "闪避截图"
+msgstr "闪避截图"
+
+msgid "战斗助手"
+msgstr "战斗助手"
+
+msgid "委托助手"
+msgstr "委托助手"
+
+msgid "指令调试"
+msgstr "指令调试"
+
+msgid "鼠标灵敏度检测"
+msgstr "鼠标灵敏度检测"
+
+msgid "游戏配置检查"
+msgstr "游戏配置检查"
+
+msgid "目标"
+msgstr "目标"
+
+msgid "日常"
+msgstr "日常"
+
+msgid "训练"
+msgstr "训练"
+
+msgid "作战"
+msgstr "作战"
+
+msgid "基础材料"
+msgstr "基础材料"
+
+msgid "调查专项"
+msgstr "调查专项"
+
+msgid "赏金专项"
+msgstr "赏金专项"
+
+msgid "锋御演练"
+msgstr "锋御演练"
+
+msgid "命破演练"
+msgstr "命破演练"
+
+msgid "强攻演练"
+msgstr "强攻演练"
+
+msgid "击破演练"
+msgstr "击破演练"
+
+msgid "异常演练"
+msgstr "异常演练"
+
+msgid "支援演练"
+msgstr "支援演练"
+
+msgid "防护演练"
+msgstr "防护演练"
+
+msgid "锋御耦合试验"
+msgstr "锋御耦合试验"
+
+msgid "命破共鸣试验"
+msgstr "命破共鸣试验"
+
+msgid "强攻极片试验"
+msgstr "强攻极片试验"
+
+msgid "击破振膜试验"
+msgstr "击破振膜试验"
+
+msgid "异常磁体试验"
+msgstr "异常磁体试验"
+
+msgid "支援分频试验"
+msgstr "支援分频试验"
+
+msgid "防护音圈试验"
+msgstr "防护音圈试验"
+
+msgid "刚性测试"
+msgstr "刚性测试"
+
+msgid "升温测试"
+msgstr "升温测试"
+
+msgid "冰结测试"
+msgstr "冰结测试"
+
+msgid "电流测试"
+msgstr "电流测试"
+
+msgid "风切测试"
+msgstr "风切测试"
+
+msgid "共鸣测试"
+msgstr "共鸣测试"
+
+msgid "琢光测试"
+msgstr "琢光测试"
+
+msgid "自定义模板"
+msgstr "自定义模板"
+
+msgid "自定义卡组1"
+msgstr "自定义卡组1"
+
+msgid "自定义卡组2"
+msgstr "自定义卡组2"
+
+msgid "自定义卡组3"
+msgstr "自定义卡组3"
+
+msgid "自定义卡组4"
+msgstr "自定义卡组4"
+
+msgid "自定义卡组5"
+msgstr "自定义卡组5"
+
+msgid "特训目标"
+msgstr "特训目标"
+
+msgid "怪兽与怪客"
+msgstr "怪兽与怪客"
+
+msgid "恶拳与凶枪"
+msgstr "恶拳与凶枪"
+
+msgid "猎人与忠犬"
+msgstr "猎人与忠犬"
+
+msgid "高塔与巨炮"
+msgstr "高塔与巨炮"
+
+msgid "疯子与追随者"
+msgstr "疯子与追随者"
+
+msgid "锐牙与钝斧"
+msgstr "锐牙与钝斧"
+
+msgid "猎手与凶兽"
+msgstr "猎手与凶兽"
+
+msgid "怪兽二重奏"
+msgstr "怪兽二重奏"
+
+msgid "游侠与守卫"
+msgstr "游侠与守卫"
+
+msgid "口舌与刀兵"
+msgstr "口舌与刀兵"
+
+msgid "铁律与狂徒"
+msgstr "铁律与狂徒"
+
+msgid "诡步与重壁"
+msgstr "诡步与重壁"
+
+msgid "伏龙与战车"
+msgstr "伏龙与战车"
+
+msgid "机师与叛甲"
+msgstr "机师与叛甲"
+
+msgid "迅脊与裂爪"
+msgstr "迅脊与裂爪"
+
+msgid "摇摆爵士"
+msgstr "摇摆爵士"
+
+msgid "混沌重金属"
+msgstr "混沌重金属"
+
+msgid "激素朋克"
+msgstr "激素朋克"
+
+msgid "獠牙重金属"
+msgstr "獠牙重金属"
+
+msgid "震星迪斯科"
+msgstr "震星迪斯科"
+
+msgid "雷暴重金属"
+msgstr "雷暴重金属"
+
+msgid "啄木鸟电音"
+msgstr "啄木鸟电音"
+
+msgid "灵魂摇滚"
+msgstr "灵魂摇滚"
+
+msgid "河豚电音"
+msgstr "河豚电音"
+
+msgid "炎狱重金属"
+msgstr "炎狱重金属"
+
+msgid "自由蓝调"
+msgstr "自由蓝调"
+
+msgid "极地重金属"
+msgstr "极地重金属"
+
+msgid "混沌爵士"
+msgstr "混沌爵士"
+
+msgid "原始朋克"
+msgstr "原始朋克"
+
+msgid "折枝剑歌"
+msgstr "折枝剑歌"
+
+msgid "静听嘉音"
+msgstr "静听嘉音"
+
+msgid "如影相随"
+msgstr "如影相随"
+
+msgid "法厄同之歌"
+msgstr "法厄同之歌"
+
+msgid "云岿如我"
+msgstr "云岿如我"
+
+msgid "山大王"
+msgstr "山大王"
+
+msgid "拂晓生花"
+msgstr "拂晓生花"
+
+msgid "月光骑士颂"
+msgstr "月光骑士颂"
+
+msgid "沧浪行歌"
+msgstr "沧浪行歌"
+
+msgid "流光咏叹"
+msgstr "流光咏叹"
+
+msgid "雪兔梦游仙境"
+msgstr "雪兔梦游仙境"
+
+msgid "囚徒手记"
+msgstr "囚徒手记"
+
+msgid "呼啸沙龙"
+msgstr "呼啸沙龙"
+
+msgid "拂晓行纪"
+msgstr "拂晓行纪"
+
+msgid "谶羽之誓"
+msgstr "谶羽之誓"
+
+msgid "荆棘玫瑰"
+msgstr "荆棘玫瑰"
+
+msgid "摇摆爵士 混沌重金属"
+msgstr "摇摆爵士 混沌重金属"
+
+msgid "激素朋克 獠牙重金属"
+msgstr "激素朋克 獠牙重金属"
+
+msgid "震星迪斯科 雷暴重金属"
+msgstr "震星迪斯科 雷暴重金属"
+
+msgid "啄木鸟电音 灵魂摇滚"
+msgstr "啄木鸟电音 灵魂摇滚"
+
+msgid "河豚电音 炎狱重金属"
+msgstr "河豚电音 炎狱重金属"
+
+msgid "自由蓝调 极地重金属"
+msgstr "自由蓝调 极地重金属"
+
+msgid "混沌爵士 原始朋克"
+msgstr "混沌爵士 原始朋克"
+
+msgid "折枝剑歌 静听嘉音"
+msgstr "折枝剑歌 静听嘉音"
+
+msgid "如影相随 法厄同之歌"
+msgstr "如影相随 法厄同之歌"
+
+msgid "云岿如我 山大王"
+msgstr "云岿如我 山大王"
+
+msgid "拂晓生花 月光骑士颂"
+msgstr "拂晓生花 月光骑士颂"
+
+msgid "沧浪行歌 流光咏叹"
+msgstr "沧浪行歌 流光咏叹"
+
+msgid "雪兔梦游仙境 囚徒手记"
+msgstr "雪兔梦游仙境 囚徒手记"
+
+msgid "呼啸沙龙 拂晓行纪"
+msgstr "呼啸沙龙 拂晓行纪"
+
+msgid "谶羽之誓 荆棘玫瑰"
+msgstr "谶羽之誓 荆棘玫瑰"
+
+msgid "恶名·杜拉罕"
+msgstr "恶名·杜拉罕"
+
+msgid "祸首·通缉打手"
+msgstr "祸首·通缉打手"
+
+msgid "恶名·装甲哈提"
+msgstr "恶名·装甲哈提"
+
+msgid "汉斯·蓄能型"
+msgstr "汉斯·蓄能型"
+
+msgid "「提丰·重击者型」"
+msgstr "「提丰·重击者型」"
+
+msgid "蛮横力士"
+msgstr "蛮横力士"
+
+msgid "多佩冈亚·简"
+msgstr "多佩冈亚·简"
+
+msgid "色雷斯人"
+msgstr "色雷斯人"
+
+msgid "伐木机"
+msgstr "伐木机"
+
+msgid "秽息蚀者·阿瓦鲁斯"
+msgstr "秽息蚀者·阿瓦鲁斯"
+
+msgid "牲鬼·凶魁愚者"
+msgstr "牲鬼·凶魁愚者"
+
+msgid "秽蚀·狛野真斗"
+msgstr "秽蚀·狛野真斗"
+
+msgid "秽息行者·蝎骸"
+msgstr "秽息行者·蝎骸"
+
+msgid "牲鬼·卫律使者"
+msgstr "牲鬼·卫律使者"
+
+msgid "空域戒戍者"
+msgstr "空域戒戍者"
+
+msgid "「征服者」"
+msgstr "「征服者」"
+
+msgid "初生死路屠夫"
+msgstr "初生死路屠夫"
+
+msgid "未知复合侵蚀体"
+msgstr "未知复合侵蚀体"
+
+msgid "冥宁芙·双子"
+msgstr "冥宁芙·双子"
+
+msgid "「霸主侵蚀体·庞培」"
+msgstr "「霸主侵蚀体·庞培」"
+
+msgid "牲鬼·布林格"
+msgstr "牲鬼·布林格"
+
+msgid "秽息司祭"
+msgstr "秽息司祭"
+
+msgid "彷徨猎手"
+msgstr "彷徨猎手"
+
+msgid "魇缚者·叶释渊"
+msgstr "魇缚者·叶释渊"
+
+msgid "魇缚者·???"
+msgstr "魇缚者·???"
+
+msgid "猎血清道夫"
+msgstr "猎血清道夫"
+
+msgid "基塔布鲁"
+msgstr "基塔布鲁"
+
+msgid "库萨里库"
+msgstr "库萨里库"
+
+msgid "战线肃清"
+msgstr "战线肃清"
+
+msgid "特遣调查"
+msgstr "特遣调查"
+
+msgid "矩阵行动"
+msgstr "矩阵行动"
+
+msgid "关键进展"
+msgstr "关键进展"
+
+msgid "不宜久留"
+msgstr "不宜久留"
+
+msgid "及时补给"
+msgstr "及时补给"
+
+msgid "代价之间"
+msgstr "代价之间"
+
+msgid "休憩调息"
+msgstr "休憩调息"
+
+msgid "偶遇事件"
+msgstr "偶遇事件"
+
+msgid "入口"
+msgstr "入口"
+
+msgid "挚交会谈"
+msgstr "挚交会谈"
+
+msgid "战斗-武备"
+msgstr "战斗-武备"
+
+msgid "战斗-硬币"
+msgstr "战斗-硬币"
+
+msgid "战斗-终结之役"
+msgstr "战斗-终结之役"
+
+msgid "战斗-道中危机"
+msgstr "战斗-道中危机"
+
+msgid "战斗-鸣徽"
+msgstr "战斗-鸣徽"
+
+msgid "挑战-收割"
+msgstr "挑战-收割"
+
+msgid "挑战-无伤"
+msgstr "挑战-无伤"
+
+msgid "挑战-限时"
+msgstr "挑战-限时"
+
+msgid "藏品第一优先级"
+msgstr "藏品第一优先级"
+
+msgid "藏品第二优先级 (无刷新时考虑)"
+msgstr "藏品第二优先级 (无刷新时考虑)"
+
+msgid "区域类型优先级"
+msgstr "区域类型优先级"
+
+msgid "优先途经点"
+msgstr "优先途经点"
+
+msgid "避免途经点"
+msgstr "避免途经点"
+
+msgid "选项优先级"
+msgstr "选项优先级"
+
+msgid "奖励优先级"
+msgstr "奖励优先级"
+
+msgid "有同流派武备"
+msgstr "有同流派武备"
+
+msgid "刷满业绩点"
+msgstr "刷满业绩点"
+
+msgid "刷满周期奖励"
+msgstr "刷满周期奖励"
+
+msgid "完成周计划次数"
+msgstr "完成周计划次数"
+
+msgid "完成悬赏委托"
+msgstr "完成悬赏委托"
+
+msgid "2层业绩后退出"
+msgstr "2层业绩后退出"
+
+msgid "3层业绩后退出"
+msgstr "3层业绩后退出"
+
+msgid "通关"
+msgstr "通关"
+
+msgid "速通"
+msgstr "速通"
+
+msgid "默认"
+msgstr "默认"
+
+msgid "运行"
+msgstr "运行"
+
+msgid "应用运行"
+msgstr "应用运行"
+
+msgid "源"
+msgstr "源"
+
+msgid "自定义设置"
+msgstr "自定义设置"
+
+msgid "脚本环境"
+msgstr "脚本环境"
+
+msgid "多账户管理"
+msgstr "多账户管理"
+
+msgid "账户管理"
+msgstr "账户管理"
+
+msgid "资源管理"
+msgstr "资源管理"
+
+msgid "资源"
+msgstr "资源"
+
+msgid "点赞"
+msgstr "点赞"
+
+msgid "一键安装"
+msgstr "一键安装"
+
+msgid "模板管理"
+msgstr "模板管理"
+
+msgid "画面管理"
+msgstr "画面管理"
+
+msgid "图像分析"
+msgstr "图像分析"
+
+msgid "图像处理"
+msgstr "图像处理"
+
+msgid "图像扣图"
+msgstr "图像扣图"
+
+msgid "图片拼接"
+msgstr "图片拼接"
+
+msgid "游戏助手"
+msgstr "游戏助手"
+
+msgid "开发工具"
+msgstr "开发工具"
+
+msgid "开发者模式已开启"
+msgstr "开发者模式已开启"
+
+msgid "开发工具和实验功能现在可见"
+msgstr "开发工具和实验功能现在可见"
+
+msgid "开发者选项"
+msgstr "开发者选项"
+
+msgid "休眠"
+msgstr "休眠"
+
+msgid "睡眠"
+msgstr "睡眠"
+
+msgid "撤销"
+msgstr "撤销"
+
+msgid "撤回"
+msgstr "撤回"
+
+msgid "恢复"
+msgstr "恢复"
+
+msgid "警告"
+msgstr "警告"
+
+msgid "稍后"
+msgstr "稍后"
+
+msgid "新建"
+msgstr "新建"
+
+msgid "复制"
+msgstr "复制"
+
+msgid "停止"
+msgstr "停止"
+
+msgid "暂停"
+msgstr "暂停"
+
+msgid "继续"
+msgstr "继续"
+
+msgid "开始"
+msgstr "开始"
+
+msgid "完成"
+msgstr "完成"
+
+msgid "加载"
+msgstr "加载"
+
+msgid "刷新"
+msgstr "刷新"
+
+msgid "重命名"
+msgstr "重命名"
+
+msgid "搜索"
+msgstr "搜索"
+
+msgid "更多"
+msgstr "更多"
+
+msgid "操作"
+msgstr "操作"
+
+msgid "应用"
+msgstr "应用"
+
+msgid "返回"
+msgstr "返回"
+
+msgid "上一步"
+msgstr "上一步"
+
+msgid "下一步"
+msgstr "下一步"
+
+msgid "跳过"
+msgstr "跳过"
+
+msgid "跳过此步骤"
+msgstr "跳过此步骤"
+
+msgid "启动程序"
+msgstr "启动程序"
+
+msgid "开始安装"
+msgstr "开始安装"
+
+msgid "重新下载"
+msgstr "重新下载"
+
+msgid "使用说明"
+msgstr "使用说明"
+
+msgid "查看指南"
+msgstr "查看指南"
+
+msgid "帮助文档"
+msgstr "帮助文档"
+
+msgid "官网"
+msgstr "官网"
+
+msgid "官方社区"
+msgstr "官方社区"
+
+msgid "前往社区"
+msgstr "前往社区"
+
+msgid "前往配置"
+msgstr "前往配置"
+
+msgid "仍然继续"
+msgstr "仍然继续"
+
+msgid "国服"
+msgstr "国服"
+
+msgid "B服"
+msgstr "B服"
+
+msgid "亚服"
+msgstr "亚服"
+
+msgid "美服"
+msgstr "美服"
+
+msgid "欧服"
+msgstr "欧服"
+
+msgid "港澳台服"
+msgstr "港澳台服"
+
+msgid "键盘输入"
+msgstr "键盘输入"
+
+msgid "剪贴板"
+msgstr "剪贴板"
+
+msgid "启用 HDR"
+msgstr "启用 HDR"
+
+msgid "禁用 HDR"
+msgstr "禁用 HDR"
+
+msgid "窗口化"
+msgstr "窗口化"
+
+msgid "未打开游戏窗口"
+msgstr "未打开游戏窗口"
+
+msgid "未提供打开游戏方式"
+msgstr "未提供打开游戏方式"
+
+msgid "没找到游戏窗口"
+msgstr "没找到游戏窗口"
+
+msgid "地图传送"
+msgstr "地图传送"
+
+msgid "地图"
+msgstr "地图"
+
+msgid "小地图"
+msgstr "小地图"
+
+msgid "菜单"
+msgstr "菜单"
+
+msgid "功能导览"
+msgstr "功能导览"
+
+msgid "体力计划"
+msgstr "体力计划"
+
+msgid "体力刷本"
+msgstr "体力刷本"
+
+msgid "体力计划说明"
+msgstr "体力计划说明"
+
+msgid "合理安排每日体力消耗，支持自定义优先级和循环执行"
+msgstr "合理安排每日体力消耗，支持自定义优先级和循环执行"
+
+msgid "循环执行"
+msgstr "循环执行"
+
+msgid "开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划"
+msgstr "开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划"
+
+msgid "跳过计划"
+msgstr "跳过计划"
+
+msgid "开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划"
+msgstr "开启后，某项计划因电量不足且无法恢复达标时，会依次尝试后续计划"
+
+msgid "每日重置"
+msgstr "每日重置"
+
+msgid "开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零"
+msgstr "开启后，每天首次运行体力计划前，会将所有体力计划已运行次数清零"
+
+msgid "恢复电量"
+msgstr "恢复电量"
+
+msgid "电量不足时尝试按所选方式有效补足缺口"
+msgstr "电量不足时尝试按所选方式有效补足缺口"
+
+msgid "使用以太电池"
+msgstr "使用以太电池"
+
+msgid "使用储蓄电量"
+msgstr "使用储蓄电量"
+
+msgid "同时使用储蓄电量和以太电池"
+msgstr "同时使用储蓄电量和以太电池"
+
+msgid "不使用"
+msgstr "不使用"
+
+msgid "双倍活动"
+msgstr "双倍活动"
+
+msgid "有活动时自动添加对应任务"
+msgstr "有活动时自动添加对应任务"
+
+msgid "启用双倍活动"
+msgstr "启用双倍活动"
+
+msgid "删除已完成"
+msgstr "删除已完成"
+
+msgid "删除所有"
+msgstr "删除所有"
+
+msgid "删除体力计划"
+msgstr "删除体力计划"
+
+msgid "新增体力计划"
+msgstr "新增体力计划"
+
+msgid "1张卡片"
+msgstr "1张卡片"
+
+msgid "2张卡片"
+msgstr "2张卡片"
+
+msgid "3张卡片"
+msgstr "3张卡片"
+
+msgid "4张卡片"
+msgstr "4张卡片"
+
+msgid "5张卡片"
+msgstr "5张卡片"
+
+msgid "默认等级"
+msgstr "默认等级"
+
+msgid "默认数量"
+msgstr "默认数量"
+
+msgid "周一"
+msgstr "周一"
+
+msgid "周二"
+msgstr "周二"
+
+msgid "周三"
+msgstr "周三"
+
+msgid "周四"
+msgstr "周四"
+
+msgid "周五"
+msgstr "周五"
+
+msgid "周六"
+msgstr "周六"
+
+msgid "周日"
+msgstr "周日"
+
+msgid "第一个BUFF"
+msgstr "第一个BUFF"
+
+msgid "第二个BUFF"
+msgstr "第二个BUFF"
+
+msgid "第三个BUFF"
+msgstr "第三个BUFF"
+
+msgid "等级Lv.30"
+msgstr "等级Lv.30"
+
+msgid "等级Lv.40"
+msgstr "等级Lv.40"
+
+msgid "等级Lv.50"
+msgstr "等级Lv.50"
+
+msgid "等级Lv.60"
+msgstr "等级Lv.60"
+
+msgid "等级Lv.65"
+msgstr "等级Lv.65"
+
+msgid "十字键-上"
+msgstr "十字键-上"
+
+msgid "十字键-下"
+msgstr "十字键-下"
+
+msgid "十字键-左"
+msgstr "十字键-左"
+
+msgid "十字键-右"
+msgstr "十字键-右"
+
+msgid "左摇杆-上"
+msgstr "左摇杆-上"
+
+msgid "左摇杆-下"
+msgstr "左摇杆-下"
+
+msgid "左摇杆-左"
+msgstr "左摇杆-左"
+
+msgid "左摇杆-右"
+msgstr "左摇杆-右"
+
+msgid "左摇杆-按下"
+msgstr "左摇杆-按下"
+
+msgid "右摇杆-上"
+msgstr "右摇杆-上"
+
+msgid "右摇杆-下"
+msgstr "右摇杆-下"
+
+msgid "右摇杆-左"
+msgstr "右摇杆-左"
+
+msgid "右摇杆-右"
+msgstr "右摇杆-右"
+
+msgid "右摇杆-按下"
+msgstr "右摇杆-按下"
+
+msgid "触控板"
+msgstr "触控板"
+
+msgid "一条龙中运行"
+msgstr "一条龙中运行"
+
+msgid "一条龙中不运行"
+msgstr "一条龙中不运行"
+
+msgid "运行中"
+msgstr "运行中"
+
+msgid "空闲"
+msgstr "空闲"
+
+msgid "暂停中"
+msgstr "暂停中"
+
+msgid "任务"
+msgstr "任务"
+
+msgid "节点"
+msgstr "节点"
+
+msgid "执行成功"
+msgstr "执行成功"
+
+msgid "执行失败"
+msgstr "执行失败"
+
+msgid "执行出错"
+msgstr "执行出错"
+
+msgid "执行出错 相关截图保存至"
+msgstr "执行出错 相关截图保存至"
+
+msgid "执行返回结果错误"
+msgstr "执行返回结果错误"
+
+msgid "执行应用组"
+msgstr "执行应用组"
+
+msgid "指令"
+msgstr "指令"
+
+msgid "运行前检查"
+msgstr "运行前检查"
+
+msgid "以下配置项未就绪，可能影响正常运行："
+msgstr "以下配置项未就绪，可能影响正常运行："
+
+msgid "未开启代码自动更新，跳过"
+msgstr "未开启代码自动更新，跳过"
+
+msgid "代码自动更新已关闭"
+msgstr "代码自动更新已关闭"
+
+msgid "强制更新已关闭"
+msgstr "强制更新已关闭"
+
+msgid "检测到程序文件有改动，未自动更新"
+msgstr "检测到程序文件有改动，未自动更新"
+
+msgid "检测到程序文件有改动"
+msgstr "检测到程序文件有改动"
+
+msgid "继续使用当前版本"
+msgstr "继续使用当前版本"
+
+msgid "继续使用内置版本"
+msgstr "继续使用内置版本"
+
+msgid "当前已是最新版本"
+msgstr "当前已是最新版本"
+
+msgid "更新完成"
+msgstr "更新完成"
+
+msgid "更新失败"
+msgstr "更新失败"
+
+msgid "代码同步"
+msgstr "代码同步"
+
+msgid "代码已同步"
+msgstr "代码已同步"
+
+msgid "更新后需重启脚本生效。如不能运行，请更新启动器"
+msgstr "更新后需重启脚本生效。如不能运行，请更新启动器"
+
+msgid "代码已更新，重启以应用更改"
+msgstr "代码已更新，重启以应用更改"
+
+msgid "代码设置"
+msgstr "代码设置"
+
+msgid "同步本地代码"
+msgstr "同步本地代码"
+
+msgid "拉取远程代码"
+msgstr "拉取远程代码"
+
+msgid "拉取远程代码..."
+msgstr "拉取远程代码..."
+
+msgid "拉取远程代码成功"
+msgstr "拉取远程代码成功"
+
+msgid "同步中"
+msgstr "同步中"
+
+msgid "同步完成"
+msgstr "同步完成"
+
+msgid "同步失败"
+msgstr "同步失败"
+
+msgid "回滚"
+msgstr "回滚"
+
+msgid "回滚失败"
+msgstr "回滚失败"
+
+msgid "重置到远程提交失败"
+msgstr "重置到远程提交失败"
+
+msgid "切换到目标分支"
+msgstr "切换到目标分支"
+
+msgid "切换到目标版本失败"
+msgstr "切换到目标版本失败"
+
+msgid "快进更新失败"
+msgstr "快进更新失败"
+
+msgid "强制更新失败"
+msgstr "强制更新失败"
+
+msgid "本地代码更新完成"
+msgstr "本地代码更新完成"
+
+msgid "本地代码更新失败"
+msgstr "本地代码更新失败"
+
+msgid "暂时无法获取更新"
+msgstr "暂时无法获取更新"
+
+msgid "暂时无法获取当前版本所需文件"
+msgstr "暂时无法获取当前版本所需文件"
+
+msgid "请重新运行启动器；仍然失败时请重新安装"
+msgstr "请重新运行启动器；仍然失败时请重新安装"
+
+msgid "请查看日志后重试"
+msgstr "请查看日志后重试"
+
+msgid "首次运行，正在同步代码仓库..."
+msgstr "首次运行，正在同步代码仓库..."
+
+msgid "正在检查代码更新..."
+msgstr "正在检查代码更新..."
+
+msgid "请稍后重试或切换代码源"
+msgstr "请稍后重试或切换代码源"
+
+msgid "pip源"
+msgstr "pip源"
+
+msgid "网络代理设置"
+msgstr "网络代理设置"
+
+msgid "网络相关"
+msgstr "网络相关"
+
+msgid "个人代理"
+msgstr "个人代理"
+
+msgid "个人代理地址"
+msgstr "个人代理地址"
+
+msgid "免费代理地址"
+msgstr "免费代理地址"
+
+msgid "GitHub 代理"
+msgstr "GitHub 代理"
+
+msgid "自动测速选择"
+msgstr "自动测速选择"
+
+msgid "进行测速"
+msgstr "进行测速"
+
+msgid "选择最优"
+msgstr "选择最优"
+
+msgid "测速失败"
+msgstr "测速失败"
+
+msgid "正在安装..."
+msgstr "正在安装..."
+
+msgid "正在安装 UV..."
+msgstr "正在安装 UV..."
+
+msgid "安装 UV 成功"
+msgstr "安装 UV 成功"
+
+msgid "安装 UV 失败"
+msgstr "安装 UV 失败"
+
+msgid "已经安装了 UV"
+msgstr "已经安装了 UV"
+
+msgid "未配置 UV"
+msgstr "未配置 UV"
+
+msgid "正在使用 UV 创建虚拟环境..."
+msgstr "正在使用 UV 创建虚拟环境..."
+
+msgid "创建虚拟环境成功"
+msgstr "创建虚拟环境成功"
+
+msgid "创建虚拟环境失败"
+msgstr "创建虚拟环境失败"
+
+msgid "正在使用 UV 安装依赖..."
+msgstr "正在使用 UV 安装依赖..."
+
+msgid "运行依赖安装成功"
+msgstr "运行依赖安装成功"
+
+msgid "运行依赖安装失败"
+msgstr "运行依赖安装失败"
+
+msgid "运行环境已同步"
+msgstr "运行环境已同步"
+
+msgid "运行环境同步完成"
+msgstr "运行环境同步完成"
+
+msgid "运行环境同步失败"
+msgstr "运行环境同步失败"
+
+msgid "Python相关"
+msgstr "Python相关"
+
+msgid "Python 安装成功"
+msgstr "Python 安装成功"
+
+msgid "Python 安装失败"
+msgstr "Python 安装失败"
+
+msgid "安装 Python 失败 请尝试到「设置」更改 Python 下载源"
+msgstr "安装 Python 失败 请尝试到「设置」更改 Python 下载源"
+
+msgid "正在检查环境同步状态..."
+msgstr "正在检查环境同步状态..."
+
+msgid "检测到已存在的环境压缩包，正在解压..."
+msgstr "检测到已存在的环境压缩包，正在解压..."
+
+msgid "解压环境包成功，正在安装运行依赖..."
+msgstr "解压环境包成功，正在安装运行依赖..."
+
+msgid "正在清理旧文件"
+msgstr "正在清理旧文件"
+
+msgid "找不到 uv.lock，无法同步运行环境"
+msgstr "找不到 uv.lock，无法同步运行环境"
+
+msgid "读取 uv.lock 失败"
+msgstr "读取 uv.lock 失败"
+
+msgid "检查中..."
+msgstr "检查中..."
+
+msgid "正在下载"
+msgstr "正在下载"
+
+msgid "开始下载"
+msgstr "开始下载"
+
+msgid "正在连接"
+msgstr "正在连接"
+
+msgid "下载完成"
+msgstr "下载完成"
+
+msgid "下载已取消"
+msgstr "下载已取消"
+
+msgid "下载失败 请尝试更改网络代理"
+msgstr "下载失败 请尝试更改网络代理"
+
+msgid "正在解压"
+msgstr "正在解压"
+
+msgid "解压成功"
+msgstr "解压成功"
+
+msgid "解压失败"
+msgstr "解压失败"
+
+msgid "解压失败 准备重试"
+msgstr "解压失败 准备重试"
+
+msgid "已加入下载队列"
+msgstr "已加入下载队列"
+
+msgid "点击下载按钮查看进度"
+msgstr "点击下载按钮查看进度"
+
+msgid "下载仍在进行"
+msgstr "下载仍在进行"
+
+msgid "退出前需要取消正在进行的下载，是否取消全部任务？"
+msgstr "退出前需要取消正在进行的下载，是否取消全部任务？"
+
+msgid "暂无下载任务"
+msgstr "暂无下载任务"
+
+msgid "下载队列"
+msgstr "下载队列"
+
+msgid "下载源"
+msgstr "下载源"
+
+msgid "下载选中项"
+msgstr "下载选中项"
+
+msgid "以后自动下载，不再询问"
+msgstr "以后自动下载，不再询问"
+
+msgid "点击按键抛竿"
+msgstr "点击按键抛竿"
+
+msgid "等待上鱼"
+msgstr "等待上鱼"
+
+msgid "正确时机点击按键上鱼"
+msgstr "正确时机点击按键上鱼"
+
+msgid "连点"
+msgstr "连点"
+
+msgid "长按"
+msgstr "长按"
+
+msgid "运行路线"
+msgstr "运行路线"
+
+msgid "若再次卡住仍尝试脱困"
+msgstr "若再次卡住仍尝试脱困"
+
+msgid "若再次卡住则跳过脱困"
+msgstr "若再次卡住则跳过脱困"
+
+msgid "重开游戏并重试路线"
+msgstr "重开游戏并重试路线"
+
+msgid "重开游戏并跳过路线"
+msgstr "重开游戏并跳过路线"
+
+msgid "白名单"
+msgstr "白名单"
+
+msgid "黑名单"
+msgstr "黑名单"
+
+msgid "静默失败"
+msgstr "静默失败"
+
+msgid "插件市场"
+msgstr "插件市场"
+
+msgid "已安装插件"
+msgstr "已安装插件"
+
+msgid "暂无第三方插件"
+msgstr "暂无第三方插件"
+
+msgid "导入 ZIP"
+msgstr "导入 ZIP"
+
+msgid "导入文件夹"
+msgstr "导入文件夹"
+
+msgid "导入 zip 格式或目录格式的插件"
+msgstr "导入 zip 格式或目录格式的插件"
+
+msgid "导入成功"
+msgstr "导入成功"
+
+msgid "导入失败"
+msgstr "导入失败"
+
+msgid "确认导入"
+msgstr "确认导入"
+
+msgid "即将导入以下插件："
+msgstr "即将导入以下插件："
+
+msgid "成功导入 {count} 个插件"
+msgstr "成功导入 {count} 个插件"
+
+msgid "部分导入失败"
+msgstr "部分导入失败"
+
+msgid "覆盖安装"
+msgstr "覆盖安装"
+
+msgid "以下插件已存在，是否覆盖安装？"
+msgstr "以下插件已存在，是否覆盖安装？"
+
+msgid "⚠️ 版本降级警告"
+msgstr "⚠️ 版本降级警告"
+
+msgid "确认降级"
+msgstr "确认降级"
+
+msgid "以下插件将降级安装，确定继续？"
+msgstr "以下插件将降级安装，确定继续？"
+
+msgid "确定要删除插件 \"{name}\" 吗？此操作不可恢复。"
+msgstr "确定要删除插件 \"{name}\" 吗？此操作不可恢复。"
+
+msgid "插件正在运行，请先停止后再删除"
+msgstr "插件正在运行，请先停止后再删除"
+
+msgid "已重新加载所有插件"
+msgstr "已重新加载所有插件"
+
+msgid "打开目录"
+msgstr "打开目录"
+
+msgid "插件操作"
+msgstr "插件操作"
+
+msgid "浅色"
+msgstr "浅色"
+
+msgid "深色"
+msgstr "深色"
+
+msgid "跟随系统"
+msgstr "跟随系统"
+
+msgid "自定义主题色"
+msgstr "自定义主题色"
+
+msgid "请选择主题色"
+msgstr "请选择主题色"
+
+msgid "背景图片"
+msgstr "背景图片"
+
+msgid "Overlay 基础"
+msgstr "Overlay 基础"
+
+msgid "Overlay 不可用"
+msgstr "Overlay 不可用"
+
+msgid "Overlay 面板位置已重置"
+msgstr "Overlay 面板位置已重置"
+
+msgid "系统版本低于 Windows 10 2004，Overlay 已禁用"
+msgstr "系统版本低于 Windows 10 2004，Overlay 已禁用"
+
+msgid "视觉绘制"
+msgstr "视觉绘制"
+
+msgid "面板与刷新"
+msgstr "面板与刷新"
+
+msgid "性能指标"
+msgstr "性能指标"
+
+msgid "选择图片文件"
+msgstr "选择图片文件"
+
+msgid "选择图片"
+msgstr "选择图片"
+
+msgid "打开图片"
+msgstr "打开图片"
+
+msgid "打开图片文件"
+msgstr "打开图片文件"
+
+msgid "保存模板"
+msgstr "保存模板"
+
+msgid "保存掩码"
+msgstr "保存掩码"
+
+msgid "保存配置"
+msgstr "保存配置"
+
+msgid "模板原图"
+msgstr "模板原图"
+
+msgid "模板抠图"
+msgstr "模板抠图"
+
+msgid "模板掩码"
+msgstr "模板掩码"
+
+msgid "反向抠图"
+msgstr "反向抠图"
+
+msgid "点位"
+msgstr "点位"
+
+msgid "清除点位"
+msgstr "清除点位"
+
+msgid "横"
+msgstr "横"
+
+msgid "纵"
+msgstr "纵"
+
+msgid "横移"
+msgstr "横移"
+
+msgid "纵移"
+msgstr "纵移"
+
+msgid "缩放比例:"
+msgstr "缩放比例:"
+
+msgid "适应窗口"
+msgstr "适应窗口"
+
+msgid "原图"
+msgstr "原图"
+
+msgid "选择区域"
+msgstr "选择区域"
+
+msgid "选择区域: 未选择"
+msgstr "选择区域: 未选择"
+
+msgid "清除选择"
+msgstr "清除选择"
+
+msgid "模式:"
+msgstr "模式:"
+
+msgid "点击模式"
+msgstr "点击模式"
+
+msgid "框选模式"
+msgstr "框选模式"
+
+msgid "流水线"
+msgstr "流水线"
+
+msgid "流水线保存失败"
+msgstr "流水线保存失败"
+
+msgid "流水线已另存为"
+msgstr "流水线已另存为"
+
+msgid "流水线已重命名为"
+msgstr "流水线已重命名为"
+
+msgid "选择或新建流水线"
+msgstr "选择或新建流水线"
+
+msgid "请输入流水线名称"
+msgstr "请输入流水线名称"
+
+msgid "您确定要删除流水线"
+msgstr "您确定要删除流水线"
+
+msgid "参数设置"
+msgstr "参数设置"
+
+msgid "性能分析"
+msgstr "性能分析"
+
+msgid "总耗时"
+msgstr "总耗时"
+
+msgid "添加步骤"
+msgstr "添加步骤"
+
+msgid "删除步骤"
+msgstr "删除步骤"
+
+msgid "执行"
+msgstr "执行"
+
+msgid "另存为"
+msgstr "另存为"
+
+msgid "另存为失败"
+msgstr "另存为失败"
+
+msgid "加载失败"
+msgstr "加载失败"
+
+msgid "已保存"
+msgstr "已保存"
+
+msgid "已删除"
+msgstr "已删除"
+
+msgid "复制方法"
+msgstr "复制方法"
+
+msgid "已将方法代码复制到剪贴板"
+msgstr "已将方法代码复制到剪贴板"
+
+msgid "无可用模板"
+msgstr "无可用模板"
+
+msgid "请先打开一张图片"
+msgstr "请先打开一张图片"
+
+msgid "请先选择一个流水线"
+msgstr "请先选择一个流水线"
+
+msgid "此操作无法撤销。"
+msgstr "此操作无法撤销。"
+
+msgid "色彩通道"
+msgstr "色彩通道"
+
+msgid "展开悬浮窗"
+msgstr "展开悬浮窗"
+
+msgid "收起悬浮窗"
+msgstr "收起悬浮窗"
+
+msgid "展开/收起悬浮窗"
+msgstr "展开/收起悬浮窗"
+
+msgid "悬浮窗"
+msgstr "悬浮窗"
+
+msgid "切换窗口"
+msgstr "切换窗口"
+
+msgid "切换视图"
+msgstr "切换视图"
+
+msgid "重拍"
+msgstr "重拍"
+
+msgid "放弃"
+msgstr "放弃"
+
+msgid "放弃未保存的截图？"
+msgstr "放弃未保存的截图？"
+
+msgid "截图"
+msgstr "截图"
+
+msgid "截图失败"
+msgstr "截图失败"
+
+msgid "截图键修饰键"
+msgstr "截图键修饰键"
+
+msgid "快捷键"
+msgstr "快捷键"
+
+msgid "左侧"
+msgstr "左侧"
+
+msgid "右侧"
+msgstr "右侧"
+
+msgid "这个名称已存在"
+msgstr "这个名称已存在"
+
+msgid "只能用小写字母、数字和下划线，以字母开头"
+msgstr "只能用小写字母、数字和下划线，以字母开头"
+
+msgid "启动 F9"
+msgstr "启动 F9"
+
+msgid "停止 F10"
+msgstr "停止 F10"
+
+msgid "重启 F11"
+msgstr "重启 F11"
+
+msgid "执行中..."
+msgstr "执行中..."
+
+msgid "读取中..."
+msgstr "读取中..."
+
+msgid "状态"
+msgstr "状态"
+
+msgid "状态值"
+msgstr "状态值"
+
+msgid "API 地址"
+msgstr "API 地址"
+
+msgid "A及以下"
+msgstr "A及以下"
+
+msgid "S及以下"
+msgstr "S及以下"
+
+msgid "B服为选择已有登录记录的用户进行登录，需要先手动登录游戏"
+msgstr "B服为选择已有登录记录的用户进行登录，需要先手动登录游戏"
+
+msgid "B服使用提示"
+msgstr "B服使用提示"
+
+msgid "B服在登录时会采用BitBlt的截图方法用于识别登录框，登录后还原。"
+msgstr "B服在登录时会采用BitBlt的截图方法用于识别登录框，登录后还原。"
+
+msgid "B服用户名"
+msgstr "B服用户名"
+
+msgid "Ctrl+Z 撤回，Ctrl+Shift+Z 恢复"
+msgstr "Ctrl+Z 撤回，Ctrl+Shift+Z 恢复"
+
+msgid "DraggableList 对话框测试"
+msgstr "DraggableList 对话框测试"
+
+msgid "GPU运算"
+msgstr "GPU运算"
+
+msgid "GitHub主页右上角点一个星星是最简单直接的"
+msgstr "GitHub主页右上角点一个星星是最简单直接的"
+
+msgid "Gotify 地址"
+msgstr "Gotify 地址"
+
+msgid "HEAD 不存在且未开启强制更新"
+msgstr "HEAD 不存在且未开启强制更新"
+
+msgid "HTTP 方法"
+msgstr "HTTP 方法"
+
+msgid "Hex 颜色，例如 #f2f2f2"
+msgstr "Hex 颜色，例如 #f2f2f2"
+
+msgid "JSON 代码编辑器"
+msgstr "JSON 代码编辑器"
+
+msgid "MCP 地址"
+msgstr "MCP 地址"
+
+msgid "MCP 服务"
+msgstr "MCP 服务"
+
+msgid "OCR识别模型"
+msgstr "OCR识别模型"
+
+msgid "Overlay 属于测试功能，显示异常或影响截图时请先查看说明"
+msgstr "Overlay 属于测试功能，显示异常或影响截图时请先查看说明"
+
+msgid "PC 点击需 Alt"
+msgstr "PC 点击需 Alt"
+
+msgid "PowerShell 风格"
+msgstr "PowerShell 风格"
+
+msgid "QQ 号"
+msgstr "QQ 号"
+
+msgid "QQ 配置"
+msgstr "QQ 配置"
+
+msgid "UI完全消失持续到该秒数后判定为卡电梯"
+msgstr "UI完全消失持续到该秒数后判定为卡电梯"
+
+msgid "Unix 风格"
+msgstr "Unix 风格"
+
+msgid "Webhook 编码"
+msgstr "Webhook 编码"
+
+msgid "Webhook地址后缀"
+msgstr "Webhook地址后缀"
+
+msgid "X偏移"
+msgstr "X偏移"
+
+msgid "Y偏移"
+msgstr "Y偏移"
+
+msgid "patched 文件后缀"
+msgstr "patched 文件后缀"
+
+msgid "x次内只买高优先级"
+msgstr "x次内只买高优先级"
+
+msgid "☀️ 切换到亮色主题"
+msgstr "☀️ 切换到亮色主题"
+
+msgid "🌙 切换到暗色主题"
+msgstr "🌙 切换到暗色主题"
+
+msgid "⚠ 已跳过此步骤"
+msgstr "⚠ 已跳过此步骤"
+
+msgid "✓ 安装完成"
+msgstr "✓ 安装完成"
+
+msgid "✓ 已满足所有条件"
+msgstr "✓ 已满足所有条件"
+
+msgid "✗ 安装失败"
+msgstr "✗ 安装失败"
+
+msgid "❌ 当前选中: 无"
+msgstr "❌ 当前选中: 无"
+
+msgid "一次任务执行内总共执行的轮数"
+msgstr "一次任务执行内总共执行的轮数"
+
+msgid "一步可达时前往"
+msgstr "一步可达时前往"
+
+msgid "一直刷新"
+msgstr "一直刷新"
+
+msgid "一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力"
+msgstr "一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力"
+
+msgid "上次成功"
+msgstr "上次成功"
+
+msgid "上移"
+msgstr "上移"
+
+msgid "下移"
+msgstr "下移"
+
+msgid "下载"
+msgstr "下载"
+
+msgid "不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效"
+msgstr "不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效"
+
+msgid "不断重复指令 确保可以连贯执行"
+msgstr "不断重复指令 确保可以连贯执行"
+
+msgid "不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整"
+msgstr "不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整"
+
+msgid "不进行"
+msgstr "不进行"
+
+msgid "与远程分支不一致"
+msgstr "与远程分支不一致"
+
+msgid "为代码和资源下载配置网络代理"
+msgstr "为代码和资源下载配置网络代理"
+
+msgid "主分支用于稳定版本，测试分支用于提前体验新功能"
+msgstr "主分支用于稳定版本，测试分支用于提前体验新功能"
+
+msgid "主页"
+msgstr "主页"
+
+msgid "主页背景类型"
+msgstr "主页背景类型"
+
+msgid "仅决定当前功能是否启用后台模式，配置与全局的后台模式共享。配置更改请前往「设置 → 游戏设置」"
+msgstr "仅决定当前功能是否启用后台模式，配置与全局的后台模式共享。配置更改请前往「设置 → 游戏设置」"
+
+msgid "仅在使用 GitHub 代理时生效"
+msgstr "仅在使用 GitHub 代理时生效"
+
+msgid "仅控制当前功能是否临时启用后台模式；相关配置请前往「设置 → 游戏设置」调整"
+msgstr "仅控制当前功能是否临时启用后台模式；相关配置请前往「设置 → 游戏设置」调整"
+
+msgid "仅监听 127.0.0.1"
+msgstr "仅监听 127.0.0.1"
+
+msgid "仅购买优先级"
+msgstr "仅购买优先级"
+
+msgid "从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程"
+msgstr "从应用列表中选择单个功能模块独立运行，无需跑完整的一条龙流程"
+
+msgid "从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束"
+msgstr "从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束"
+
+msgid "从文件选择"
+msgstr "从文件选择"
+
+msgid "代理设置"
+msgstr "代理设置"
+
+msgid "代码分支"
+msgstr "代码分支"
+
+msgid "代码源"
+msgstr "代码源"
+
+msgid "企业 ID"
+msgstr "企业 ID"
+
+msgid "企业微信机器人 Key"
+msgstr "企业微信机器人 Key"
+
+msgid "优先选择NEW!藏品"
+msgstr "优先选择NEW!藏品"
+
+msgid "优先选择未满级的调查战略，开启后将禁用下方的调查战略选项"
+msgstr "优先选择未满级的调查战略，开启后将禁用下方的调查战略选项"
+
+msgid "传送地点"
+msgstr "传送地点"
+
+msgid "传送点"
+msgstr "传送点"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "使用 SSL"
+msgstr "使用 SSL"
+
+msgid "使用 STARTTLS"
+msgstr "使用 STARTTLS"
+
+msgid "使用 WDA_EXCLUDEFROMCAPTURE 隐藏 Overlay"
+msgstr "使用 WDA_EXCLUDEFROMCAPTURE 隐藏 Overlay"
+
+msgid "使用exe启动时，自动检测并更新代码"
+msgstr "使用exe启动时，自动检测并更新代码"
+
+msgid "使用中"
+msgstr "使用中"
+
+msgid "使用合并配置文件"
+msgstr "使用合并配置文件"
+
+msgid "使用图标计算坐标"
+msgstr "使用图标计算坐标"
+
+msgid "保存 patched 合成图"
+msgstr "保存 patched 合成图"
+
+msgid "保存截图按键"
+msgstr "保存截图按键"
+
+msgid "保存扣图结果"
+msgstr "保存扣图结果"
+
+msgid "保存掩码图"
+msgstr "保存掩码图"
+
+msgid "保存操作"
+msgstr "保存操作"
+
+msgid "保存结果"
+msgstr "保存结果"
+
+msgid "保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片"
+msgstr "保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片"
+
+msgid "修改配置字段"
+msgstr "修改配置字段"
+
+msgid "值"
+msgstr "值"
+
+msgid "停止正在运行的应用，不能恢复"
+msgstr "停止正在运行的应用，不能恢复"
+
+msgid "先看说明 再使用与提问"
+msgstr "先看说明 再使用与提问"
+
+msgid "克隆仓库成功"
+msgstr "克隆仓库成功"
+
+msgid "免费代理"
+msgstr "免费代理"
+
+msgid "免费代理仅能加速工具和模型下载，无法加速代码同步"
+msgstr "免费代理仅能加速工具和模型下载，无法加速代码同步"
+
+msgid "全部"
+msgstr "全部"
+
+msgid "全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。"
+msgstr "全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。"
+
+msgid "共享配置"
+msgstr "共享配置"
+
+msgid "关闭"
+msgstr "关闭"
+
+msgid "关闭后隐藏开发工具和实验功能，已有配置不会改变"
+msgstr "关闭后隐藏开发工具和实验功能，已有配置不会改变"
+
+msgid "关闭用于调试模板文件 正常开启即可"
+msgstr "关闭用于调试模板文件 正常开启即可"
+
+msgid "内容"
+msgstr "内容"
+
+msgid "出战"
+msgstr "出战"
+
+msgid "分摊到每天运行"
+msgstr "分摊到每天运行"
+
+msgid "分析游戏画面"
+msgstr "分析游戏画面"
+
+msgid "列出可改配置"
+msgstr "列出可改配置"
+
+msgid "列出可运行 operation"
+msgstr "列出可运行 operation"
+
+msgid "列出可运行应用"
+msgstr "列出可运行应用"
+
+msgid "列出操作指南"
+msgstr "列出操作指南"
+
+msgid "列表已重置"
+msgstr "列表已重置"
+
+msgid "列表项位置已交换"
+msgstr "列表项位置已交换"
+
+msgid "创建环境失败"
+msgstr "创建环境失败"
+
+msgid "初始化本地 Git 仓库"
+msgstr "初始化本地 Git 仓库"
+
+msgid "初始化本地 Git 仓库失败"
+msgstr "初始化本地 Git 仓库失败"
+
+msgid "删除 {name}？"
+msgstr "删除 {name}？"
+
+msgid "删除失败"
+msgstr "删除失败"
+
+msgid "删除成功"
+msgstr "删除成功"
+
+msgid "删除画面区域"
+msgstr "删除画面区域"
+
+msgid "删除配置列表项"
+msgstr "删除配置列表项"
+
+msgid "判定为疑似卡电梯后的处理方式"
+msgstr "判定为疑似卡电梯后的处理方式"
+
+msgid "到达第 x 轮（已刷新 x-1 次）后 才购买高优先级之外的藏品"
+msgstr "到达第 x 轮（已刷新 x-1 次）后 才购买高优先级之外的藏品"
+
+msgid "制造坊-最大下拉次数"
+msgstr "制造坊-最大下拉次数"
+
+msgid "刷取目标"
+msgstr "刷取目标"
+
+msgid "刷新0次"
+msgstr "刷新0次"
+
+msgid "刷新1次(50硬币)"
+msgstr "刷新1次(50硬币)"
+
+msgid "刷新2次(100硬币)"
+msgstr "刷新2次(100硬币)"
+
+msgid "刷新3次(200硬币)"
+msgstr "刷新3次(200硬币)"
+
+msgid "刷新4次(300硬币)"
+msgstr "刷新4次(300硬币)"
+
+msgid "刷新失败"
+msgstr "刷新失败"
+
+msgid "刷新成功"
+msgstr "刷新成功"
+
+msgid "刷满经验"
+msgstr "刷满经验"
+
+msgid "前往"
+msgstr "前往"
+
+msgid "剧情模式"
+msgstr "剧情模式"
+
+msgid "加载图片"
+msgstr "加载图片"
+
+msgid "加载底图"
+msgstr "加载底图"
+
+msgid "加载第二张图"
+msgstr "加载第二张图"
+
+msgid "区域"
+msgstr "区域"
+
+msgid "区域表格编辑"
+msgstr "区域表格编辑"
+
+msgid "区域选择"
+msgstr "区域选择"
+
+msgid "单条路线累计重试次数，超限后跳过该路线"
+msgstr "单条路线累计重试次数，超限后跳过该路线"
+
+msgid "单条路线重试上限"
+msgstr "单条路线重试上限"
+
+msgid "单聊 OpenID"
+msgstr "单聊 OpenID"
+
+msgid "单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态"
+msgstr "单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态"
+
+msgid "历史记录"
+msgstr "历史记录"
+
+msgid "压缩对象:"
+msgstr "压缩对象:"
+
+msgid "原始启动器"
+msgstr "原始启动器"
+
+msgid "原始图像"
+msgstr "原始图像"
+
+msgid "发现可下载资源"
+msgstr "发现可下载资源"
+
+msgid "发现资源缺失或有新版本时，跳过确认并自动下载"
+msgstr "发现资源缺失或有新版本时，跳过确认并自动下载"
+
+msgid "发生了一个未知错误"
+msgstr "发生了一个未知错误"
+
+msgid "发送模板"
+msgstr "发送模板"
+
+msgid "发送测试消息验证通知配置"
+msgstr "发送测试消息验证通知配置"
+
+msgid "发送渠道"
+msgstr "发送渠道"
+
+msgid "发送结果回调地址"
+msgstr "发送结果回调地址"
+
+msgid "取消中"
+msgstr "取消中"
+
+msgid "可下载"
+msgstr "可下载"
+
+msgid "可开启“强制更新”后重试"
+msgstr "可开启“强制更新”后重试"
+
+msgid "可选安装或配置"
+msgstr "可选安装或配置"
+
+msgid "可选择从第几步开始, 0代表需要传送，1代表已完成第1步"
+msgstr "可选择从第几步开始, 0代表需要传送，1代表已完成第1步"
+
+msgid "合并(4)"
+msgstr "合并(4)"
+
+msgid "合并图像"
+msgstr "合并图像"
+
+msgid "合并操作"
+msgstr "合并操作"
+
+msgid "合并模式失败节点立即通知"
+msgstr "合并模式失败节点立即通知"
+
+msgid "名单选择"
+msgstr "名单选择"
+
+msgid "名称"
+msgstr "名称"
+
+msgid "后台手柄类型"
+msgstr "后台手柄类型"
+
+msgid "后台模式不可用"
+msgstr "后台模式不可用"
+
+msgid "后台模式切换键鼠输入时的前台停留时长，过小可能切换失败"
+msgstr "后台模式切换键鼠输入时的前台停留时长，过小可能切换失败"
+
+msgid "后台模式（专享版）"
+msgstr "后台模式（专享版）"
+
+msgid "后台模式（测试版）"
+msgstr "后台模式（测试版）"
+
+msgid "启动后 Overlay 是否默认可见"
+msgstr "启动后 Overlay 是否默认可见"
+
+msgid "启动器"
+msgstr "启动器"
+
+msgid "启用 Overlay"
+msgstr "启用 Overlay"
+
+msgid "启用后可通过 Ctrl+Alt+O 切换显隐"
+msgstr "启用后可通过 Ctrl+Alt+O 切换显隐"
+
+msgid "启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用"
+msgstr "启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用"
+
+msgid "启用视觉层"
+msgstr "启用视觉层"
+
+msgid "周期增益"
+msgstr "周期增益"
+
+msgid "咖啡店在体力计划后运行可开启"
+msgstr "咖啡店在体力计划后运行可开启"
+
+msgid "商店-使用血量购买"
+msgstr "商店-使用血量购买"
+
+msgid "商店-使用金币购买"
+msgstr "商店-使用金币购买"
+
+msgid "回退"
+msgstr "回退"
+
+msgid "回退(5)"
+msgstr "回退(5)"
+
+msgid "图像加载"
+msgstr "图像加载"
+
+msgid "图像匹配"
+msgstr "图像匹配"
+
+msgid "图标匹配阈值"
+msgstr "图标匹配阈值"
+
+msgid "图片左上角为(0, 0)"
+msgstr "图片左上角为(0, 0)"
+
+msgid "在 config/auto_battle_operation 文件夹"
+msgstr "在 config/auto_battle_operation 文件夹"
+
+msgid "在线配置"
+msgstr "在线配置"
+
+msgid "增改画面区域"
+msgstr "增改画面区域"
+
+msgid "增改配置列表项"
+msgstr "增改配置列表项"
+
+msgid "声音闪避已停用"
+msgstr "声音闪避已停用"
+
+msgid "处理增量"
+msgstr "处理增量"
+
+msgid "处理选项"
+msgstr "处理选项"
+
+msgid "失败"
+msgstr "失败"
+
+msgid "好物铺购买"
+msgstr "好物铺购买"
+
+msgid "如何让AI打得更好？"
+msgstr "如何让AI打得更好？"
+
+msgid "如果喜欢本项目，你也可以为作者赞助一点维护费用~"
+msgstr "如果喜欢本项目，你也可以为作者赞助一点维护费用~"
+
+msgid "安装中"
+msgstr "安装中"
+
+msgid "安装启动器失败"
+msgstr "安装启动器失败"
+
+msgid "安装启动器成功"
+msgstr "安装启动器成功"
+
+msgid "安装失败"
+msgstr "安装失败"
+
+msgid "安装失败！"
+msgstr "安装失败！"
+
+msgid "安装失败！已自动打开排障文档"
+msgstr "安装失败！已自动打开排障文档"
+
+msgid "安装完成！"
+msgstr "安装完成！"
+
+msgid "安装成功"
+msgstr "安装成功"
+
+msgid "安装日志"
+msgstr "安装日志"
+
+msgid "安装进度"
+msgstr "安装进度"
+
+msgid "完成基础次数后，继续刷取"
+msgstr "完成基础次数后，继续刷取"
+
+msgid "完成次数"
+msgstr "完成次数"
+
+msgid "完整模板"
+msgstr "完整模板"
+
+msgid "完整通关，用于完成委托任务"
+msgstr "完整通关，用于完成委托任务"
+
+msgid "定位(2)"
+msgstr "定位(2)"
+
+msgid "宽度和高度的重叠区域大小"
+msgstr "宽度和高度的重叠区域大小"
+
+msgid "对话框测试已完成"
+msgstr "对话框测试已完成"
+
+msgid "对话点击间隔(秒)"
+msgstr "对话点击间隔(秒)"
+
+msgid "对话选项优先级"
+msgstr "对话选项优先级"
+
+msgid "寻路方式"
+msgstr "寻路方式"
+
+msgid "导入模板区域"
+msgstr "导入模板区域"
+
+msgid "将空洞分摊到每天运行"
+msgstr "将空洞分摊到每天运行"
+
+msgid "小地图朝向检测"
+msgstr "小地图朝向检测"
+
+msgid "尚未探测"
+msgstr "尚未探测"
+
+msgid "尚未读取"
+msgstr "尚未读取"
+
+msgid "已在队列"
+msgstr "已在队列"
+
+msgid "已复制版本号"
+msgstr "已复制版本号"
+
+msgid "已存在，是否覆盖？"
+msgstr "已存在，是否覆盖？"
+
+msgid "已安装"
+msgstr "已安装"
+
+msgid "已完成"
+msgstr "已完成"
+
+msgid "已完成刷取业绩 如错误可重置"
+msgstr "已完成刷取业绩 如错误可重置"
+
+msgid "已完成刷取周期奖励 如错误可重置"
+msgstr "已完成刷取周期奖励 如错误可重置"
+
+msgid "已完成刷取周期性奖励 如错误可重置"
+msgstr "已完成刷取周期性奖励 如错误可重置"
+
+msgid "已完成悬赏委托 如错误可重置"
+msgstr "已完成悬赏委托 如错误可重置"
+
+msgid "已恢复为初始任务列表"
+msgstr "已恢复为初始任务列表"
+
+msgid "已选择"
+msgstr "已选择"
+
+msgid "已选择区域"
+msgstr "已选择区域"
+
+msgid "应用 AgentId"
+msgstr "应用 AgentId"
+
+msgid "应用 Secret"
+msgstr "应用 Secret"
+
+msgid "应用设置"
+msgstr "应用设置"
+
+msgid "应用运行说明"
+msgstr "应用运行说明"
+
+msgid "应用通知"
+msgstr "应用通知"
+
+msgid "应用颜色过滤"
+msgstr "应用颜色过滤"
+
+msgid "建议版本"
+msgstr "建议版本"
+
+msgid "开发者模式"
+msgstr "开发者模式"
+
+msgid "开启后可拖拽调整位置，并可在日志窗调整字体/透明度"
+msgstr "开启后可拖拽调整位置，并可在日志窗调整字体/透明度"
+
+msgid "开启后可自定义主题色"
+msgstr "开启后可自定义主题色"
+
+msgid "开启时截图按键之前的画面，关闭时截图按键之后的画面"
+msgstr "开启时截图按键之前的画面，关闭时截图按键之后的画面"
+
+msgid "开始、暂停、恢复某个应用"
+msgstr "开始、暂停、恢复某个应用"
+
+msgid "弹出表格"
+msgstr "弹出表格"
+
+msgid "强制更新"
+msgstr "强制更新"
+
+msgid "强制重新登录"
+msgstr "强制重新登录"
+
+msgid "当前图像"
+msgstr "当前图像"
+
+msgid "当前版本"
+msgstr "当前版本"
+
+msgid "当前状态"
+msgstr "当前状态"
+
+msgid "当前运行状态"
+msgstr "当前运行状态"
+
+msgid "当期UP代理人"
+msgstr "当期UP代理人"
+
+msgid "当画面检测不到任何内容时, 开启下一轮检测的等待时间"
+msgstr "当画面检测不到任何内容时, 开启下一轮检测的等待时间"
+
+msgid "形状"
+msgstr "形状"
+
+msgid "形状使用说明"
+msgstr "形状使用说明"
+
+msgid "微调"
+msgstr "微调"
+
+msgid "微调第二张图的位置（累积偏移）"
+msgstr "微调第二张图的位置（累积偏移）"
+
+msgid "恶名狩猎（周期挑战）开始日"
+msgstr "恶名狩猎（周期挑战）开始日"
+
+msgid "想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭"
+msgstr "想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭"
+
+msgid "我们匿名收集你的信息用于改进我们的产品，感谢您的参与！"
+msgstr "我们匿名收集你的信息用于改进我们的产品，感谢您的参与！"
+
+msgid "战斗中-重新开始"
+msgstr "战斗中-重新开始"
+
+msgid "战斗中退出"
+msgstr "战斗中退出"
+
+msgid "战斗后选择"
+msgstr "战斗后选择"
+
+msgid "战斗配置"
+msgstr "战斗配置"
+
+msgid "截图(1)"
+msgstr "截图(1)"
+
+msgid "截图助手"
+msgstr "截图助手"
+
+msgid "截图方法"
+msgstr "截图方法"
+
+msgid "截图间隔 (秒)"
+msgstr "截图间隔 (秒)"
+
+msgid "截图间隔(秒)"
+msgstr "截图间隔(秒)"
+
+msgid "手动更改yml文件后 需要触发更新生效"
+msgstr "手动更改yml文件后 需要触发更新生效"
+
+msgid "手动调整"
+msgstr "手动调整"
+
+msgid "执行颜色过滤"
+msgstr "执行颜色过滤"
+
+msgid "扩展安装"
+msgstr "扩展安装"
+
+msgid "找不到"
+msgstr "找不到"
+
+msgid "拆解等级"
+msgstr "拆解等级"
+
+msgid "拉取对象"
+msgstr "拉取对象"
+
+msgid "拼接方向"
+msgstr "拼接方向"
+
+msgid "持续时间(秒)"
+msgstr "持续时间(秒)"
+
+msgid "按下后，保存 持续时间(秒) 内的截图，用于捕捉漏判"
+msgstr "按下后，保存 持续时间(秒) 内的截图，用于捕捉漏判"
+
+msgid "按优先级将剩余小队派遣"
+msgstr "按优先级将剩余小队派遣"
+
+msgid "按当前端口管理本机 zzz_od.backend.entry.server 进程"
+msgstr "按当前端口管理本机 zzz_od.backend.entry.server 进程"
+
+msgid "按照自动战斗配置 选择角色位置"
+msgstr "按照自动战斗配置 选择角色位置"
+
+msgid "按键前截图"
+msgstr "按键前截图"
+
+msgid "按键后，进入/退出自动战斗"
+msgstr "按键后，进入/退出自动战斗"
+
+msgid "按键后，进入/退出自动闪避"
+msgstr "按键后，进入/退出自动闪避"
+
+msgid "按键设置"
+msgstr "按键设置"
+
+msgid "捕获游戏截图"
+msgstr "捕获游戏截图"
+
+msgid "接收者 ID"
+msgstr "接收者 ID"
+
+msgid "推荐"
+msgstr "推荐"
+
+msgid "推送 Key"
+msgstr "推送 Key"
+
+msgid "推送 URL"
+msgstr "推送 URL"
+
+msgid "推送中断级别"
+msgstr "推送中断级别"
+
+msgid "推送分组"
+msgstr "推送分组"
+
+msgid "推送图标"
+msgstr "推送图标"
+
+msgid "推送地址或 Key"
+msgstr "推送地址或 Key"
+
+msgid "推送是否存档"
+msgstr "推送是否存档"
+
+msgid "推送跳转URL"
+msgstr "推送跳转URL"
+
+msgid "推送铃声"
+msgstr "推送铃声"
+
+msgid "描述配置结构"
+msgstr "描述配置结构"
+
+msgid "插件 \"{name}\" 已删除"
+msgstr "插件 \"{name}\" 已删除"
+
+msgid "插件已存在"
+msgstr "插件已存在"
+
+msgid "插件开发说明"
+msgstr "插件开发说明"
+
+msgid "插件管理"
+msgstr "插件管理"
+
+msgid "插入变量"
+msgstr "插入变量"
+
+msgid "收发件人名称"
+msgstr "收发件人名称"
+
+msgid "收发件邮箱"
+msgstr "收发件邮箱"
+
+msgid "数据错误"
+msgstr "数据错误"
+
+msgid "文件不存在"
+msgstr "文件不存在"
+
+msgid "文件已存在"
+msgstr "文件已存在"
+
+msgid "文件已成功删除"
+msgstr "文件已成功删除"
+
+msgid "文字颜色"
+msgstr "文字颜色"
+
+msgid "无内容时等待时间(秒)"
+msgstr "无内容时等待时间(秒)"
+
+msgid "无法定位插件目录，只能删除 plugins 目录下的插件"
+msgstr "无法定位插件目录，只能删除 plugins 目录下的插件"
+
+msgid "无法获取 Python 版本"
+msgstr "无法获取 Python 版本"
+
+msgid "无法获取 UV 版本"
+msgstr "无法获取 UV 版本"
+
+msgid "无法计算朝向时截图"
+msgstr "无法计算朝向时截图"
+
+msgid "无法读取 Git 提交记录"
+msgstr "无法读取 Git 提交记录"
+
+msgid "无法读取这张图片"
+msgstr "无法读取这张图片"
+
+msgid "无法连接服务器"
+msgstr "无法连接服务器"
+
+msgid "日志最大行数"
+msgstr "日志最大行数"
+
+msgid "日志过期秒数"
+msgstr "日志过期秒数"
+
+msgid "时间"
+msgstr "时间"
+
+msgid "显示 CV Pipeline"
+msgstr "显示 CV Pipeline"
+
+msgid "显示 OCR"
+msgstr "显示 OCR"
+
+msgid "显示 Template"
+msgstr "显示 Template"
+
+msgid "显示 YOLO"
+msgstr "显示 YOLO"
+
+msgid "显示 YOLO/OCR/Template/CV 绘制结果"
+msgstr "显示 YOLO/OCR/Template/CV 绘制结果"
+
+msgid "显示决策链路面板"
+msgstr "显示决策链路面板"
+
+msgid "显示性能面板"
+msgstr "显示性能面板"
+
+msgid "显示日志面板"
+msgstr "显示日志面板"
+
+msgid "显示时间轴面板"
+msgstr "显示时间轴面板"
+
+msgid "显示状态面板"
+msgstr "显示状态面板"
+
+msgid "显隐热键主键"
+msgstr "显隐热键主键"
+
+msgid "更新"
+msgstr "更新"
+
+msgid "更新合并配置文件"
+msgstr "更新合并配置文件"
+
+msgid "最后一个"
+msgstr "最后一个"
+
+msgid "最新版本"
+msgstr "最新版本"
+
+msgid "最高优先级 但不保证识别正确"
+msgstr "最高优先级 但不保证识别正确"
+
+msgid "服务器返回的数据格式不正确"
+msgstr "服务器返回的数据格式不正确"
+
+msgid "服务地址"
+msgstr "服务地址"
+
+msgid "服务异常"
+msgstr "服务异常"
+
+msgid "服务控制"
+msgstr "服务控制"
+
+msgid "服务状态"
+msgstr "服务状态"
+
+msgid "服务类型"
+msgstr "服务类型"
+
+msgid "未安装"
+msgstr "未安装"
+
+msgid "未安装。可选择你自己的 uv.exe"
+msgstr "未安装。可选择你自己的 uv.exe"
+
+msgid "未安装。可选择手动创建"
+msgstr "未安装。可选择手动创建"
+
+msgid "未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动"
+msgstr "未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动"
+
+msgid "未知"
+msgstr "未知"
+
+msgid "未知错误"
+msgstr "未知错误"
+
+msgid "未设置"
+msgstr "未设置"
+
+msgid "本地配置"
+msgstr "本地配置"
+
+msgid "机器人 AppID"
+msgstr "机器人 AppID"
+
+msgid "机器人 AppSecret"
+msgstr "机器人 AppSecret"
+
+msgid "机器人 Token"
+msgstr "机器人 Token"
+
+msgid "机器人签名校验密钥"
+msgstr "机器人签名校验密钥"
+
+msgid "枚举对象:"
+msgstr "枚举对象:"
+
+msgid "查看 operation 参数"
+msgstr "查看 operation 参数"
+
+msgid "查看失败"
+msgstr "查看失败"
+
+msgid "查询运行状态"
+msgstr "查询运行状态"
+
+msgid "核对当前仓库"
+msgstr "核对当前仓库"
+
+msgid "检查工作区状态"
+msgstr "检查工作区状态"
+
+msgid "检查游戏窗口"
+msgstr "检查游戏窗口"
+
+msgid "检查运行环境兼容性"
+msgstr "检查运行环境兼容性"
+
+msgid "检测当前 Python 版本"
+msgstr "检测当前 Python 版本"
+
+msgid "检测当前 UV 版本"
+msgstr "检测当前 UV 版本"
+
+msgid "检测当前代码分支"
+msgstr "检测当前代码分支"
+
+msgid "检测当前代码是否最新"
+msgstr "检测当前代码是否最新"
+
+msgid "检测当前代码是否有修改"
+msgstr "检测当前代码是否有修改"
+
+msgid "检测当前代码状态失败"
+msgstr "检测当前代码状态失败"
+
+msgid "模型等资源的下载源 自动模式按系统语言推荐"
+msgstr "模型等资源的下载源 自动模式按系统语言推荐"
+
+msgid "模式选择"
+msgstr "模式选择"
+
+msgid "模板ID"
+msgstr "模板ID"
+
+msgid "模板名称"
+msgstr "模板名称"
+
+msgid "正在发送测试消息..."
+msgstr "正在发送测试消息..."
+
+msgid "正在检查版本..."
+msgstr "正在检查版本..."
+
+msgid "正在连接 QQ 网关…"
+msgstr "正在连接 QQ 网关…"
+
+msgid "每周基础次数"
+msgstr "每周基础次数"
+
+msgid "每周第1次 优先选择包含当期UP的编队"
+msgstr "每周第1次 优先选择包含当期UP的编队"
+
+msgid "每日次数"
+msgstr "每日次数"
+
+msgid "每轮最少占用时长（敌人刷新时间）"
+msgstr "每轮最少占用时长（敌人刷新时间）"
+
+msgid "每轮跑完：不足则补等到该秒数，超过则立即开始下一轮"
+msgstr "每轮跑完：不足则补等到该秒数，超过则立即开始下一轮"
+
+msgid "没有可用的图像进行分析"
+msgstr "没有可用的图像进行分析"
+
+msgid "没有找到可用插件"
+msgstr "没有找到可用插件"
+
+msgid "没法访问GitHub可以查看帮助文档"
+msgstr "没法访问GitHub可以查看帮助文档"
+
+msgid "派遣-副本优先级"
+msgstr "派遣-副本优先级"
+
+msgid "派遣-时长"
+msgstr "派遣-时长"
+
+msgid "测试全部"
+msgstr "测试全部"
+
+msgid "测试完成"
+msgstr "测试完成"
+
+msgid "测试当前方式"
+msgstr "测试当前方式"
+
+msgid "测试推送通知"
+msgstr "测试推送通知"
+
+msgid "测试版"
+msgstr "测试版"
+
+msgid "测试通知方式"
+msgstr "测试通知方式"
+
+msgid "测速结果"
+msgstr "测速结果"
+
+msgid "消息优先级"
+msgstr "消息优先级"
+
+msgid "添加单条路线"
+msgstr "添加单条路线"
+
+msgid "添加应用"
+msgstr "添加应用"
+
+msgid "添加整个区域"
+msgstr "添加整个区域"
+
+msgid "添加移动(4)"
+msgstr "添加移动(4)"
+
+msgid "添加路线"
+msgstr "添加路线"
+
+msgid "清空图像"
+msgstr "清空图像"
+
+msgid "温馨提示"
+msgstr "温馨提示"
+
+msgid "游戏在后台时暂停"
+msgstr "游戏在后台时暂停"
+
+msgid "游戏画面掉帧的话 可以不启用"
+msgstr "游戏画面掉帧的话 可以不启用"
+
+msgid "游戏路径、输入方式等基础设置，建议首次使用前检查一遍"
+msgstr "游戏路径、输入方式等基础设置，建议首次使用前检查一遍"
+
+msgid "灵敏度校准"
+msgstr "灵敏度校准"
+
+msgid "点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动"
+msgstr "点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动"
+
+msgid "点击后自动追加移动"
+msgstr "点击后自动追加移动"
+
+msgid "点击启用后到各模块进行设置，各账户之间的设置是独立的。"
+msgstr "点击启用后到各模块进行设置，各账户之间的设置是独立的。"
+
+msgid "点击大地图可更新坐标"
+msgstr "点击大地图可更新坐标"
+
+msgid "点击游戏坐标"
+msgstr "点击游戏坐标"
+
+msgid "点绑定后按提示用 QQ 给机器人发验证码，OpenID 自动填入下方"
+msgstr "点绑定后按提示用 QQ 给机器人发验证码，OpenID 自动填入下方"
+
+msgid "版本记录"
+msgstr "版本记录"
+
+msgid "状态刷新间隔(ms)"
+msgstr "状态刷新间隔(ms)"
+
+msgid "环境已同步"
+msgstr "环境已同步"
+
+msgid "环境未同步，请点击默认安装更新"
+msgstr "环境未同步，请点击默认安装更新"
+
+msgid "生成 cURL 命令"
+msgstr "生成 cURL 命令"
+
+msgid "用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中"
+msgstr "用于开发、提交bug。会自动对UID打码，保存在 .debug/images/ 文件夹中"
+
+msgid "用于开发，部分应用开始调试"
+msgstr "用于开发，部分应用开始调试"
+
+msgid "用于校正识别框上下偏移（像素）"
+msgstr "用于校正识别框上下偏移（像素）"
+
+msgid "用于校正识别框左右偏移（像素）"
+msgstr "用于校正识别框左右偏移（像素）"
+
+msgid "用户 ID"
+msgstr "用户 ID"
+
+msgid "用户动作"
+msgstr "用户动作"
+
+msgid "用户名称"
+msgstr "用户名称"
+
+msgid "用户密码"
+msgstr "用户密码"
+
+msgid "画中画"
+msgstr "画中画"
+
+msgid "画面"
+msgstr "画面"
+
+msgid "画面信息"
+msgstr "画面信息"
+
+msgid "界面消失处理方式"
+msgstr "界面消失处理方式"
+
+msgid "界面消失预警时间"
+msgstr "界面消失预警时间"
+
+msgid "登录密码"
+msgstr "登录密码"
+
+msgid "目标名称"
+msgstr "目标名称"
+
+msgid "目标版本"
+msgstr "目标版本"
+
+msgid "目标版本的运行环境与当前不兼容"
+msgstr "目标版本的运行环境与当前不兼容"
+
+msgid "目标类型"
+msgstr "目标类型"
+
+msgid "目标配队"
+msgstr "目标配队"
+
+msgid "矩阵行动 - 手动选择代理人"
+msgstr "矩阵行动 - 手动选择代理人"
+
+msgid "确定要删除吗"
+msgstr "确定要删除吗"
+
+msgid "确认删除"
+msgstr "确认删除"
+
+msgid "移到顶部"
+msgstr "移到顶部"
+
+msgid "移动"
+msgstr "移动"
+
+msgid "移除"
+msgstr "移除"
+
+msgid "稳定版"
+msgstr "稳定版"
+
+msgid "窗口跟随间隔(ms)"
+msgstr "窗口跟随间隔(ms)"
+
+msgid "立即获取"
+msgstr "立即获取"
+
+msgid "端口"
+msgstr "端口"
+
+msgid "第一个"
+msgstr "第一个"
+
+msgid "第三个"
+msgstr "第三个"
+
+msgid "第三方插件需要包含 *_const.py 和 *_factory.py 文件，详见 plugins 目录下的 README.md"
+msgstr "第三方插件需要包含 *_const.py 和 *_factory.py 文件，详见 plugins 目录下的 README.md"
+
+msgid "第二个"
+msgstr "第二个"
+
+msgid "第二张图相对于底图的位置"
+msgstr "第二张图相对于底图的位置"
+
+msgid "等待中"
+msgstr "等待中"
+
+msgid "等待剧情自动播放"
+msgstr "等待剧情自动播放"
+
+msgid "简体中文"
+msgstr "简体中文"
+
+msgid "练度低情况下 仅建议绝境武备开启"
+msgstr "练度低情况下 仅建议绝境武备开启"
+
+msgid "组合键固定 Ctrl+Alt，主键可自定义"
+msgstr "组合键固定 Ctrl+Alt，主键可自定义"
+
+msgid "终结技一好就放"
+msgstr "终结技一好就放"
+
+msgid "终结技无视时机立刻释放"
+msgstr "终结技无视时机立刻释放"
+
+msgid "绑定 QQ 机器人"
+msgstr "绑定 QQ 机器人"
+
+msgid "绑定单聊"
+msgstr "绑定单聊"
+
+msgid "绑定群聊"
+msgstr "绑定群聊"
+
+msgid "绝区零状态检查"
+msgstr "绝区零状态检查"
+
+msgid "统计对象:"
+msgstr "统计对象:"
+
+msgid "编辑"
+msgstr "编辑"
+
+msgid "编辑图标"
+msgstr "编辑图标"
+
+msgid "编辑操作"
+msgstr "编辑操作"
+
+msgid "缩放"
+msgstr "缩放"
+
+msgid "缺失或有新版本"
+msgstr "缺失或有新版本"
+
+msgid "缺少参考模板"
+msgstr "缺少参考模板"
+
+msgid "网络代理"
+msgstr "网络代理"
+
+msgid "群号"
+msgstr "群号"
+
+msgid "群组编码"
+msgstr "群组编码"
+
+msgid "群聊 GroupOpenID"
+msgstr "群聊 GroupOpenID"
+
+msgid "脚本识别黄光红光时，自动截图，用于捕捉误判"
+msgstr "脚本识别黄光红光时，自动截图，用于捕捉误判"
+
+msgid "自动"
+msgstr "自动"
+
+msgid "自动刷新购买S级别邦布。随便观25级后可用。"
+msgstr "自动刷新购买S级别邦布。随便观25级后可用。"
+
+msgid "自动匹配"
+msgstr "自动匹配"
+
+msgid "自动战斗开关"
+msgstr "自动战斗开关"
+
+msgid "自动更新"
+msgstr "自动更新"
+
+msgid "自动模式优先使用上次成功源"
+msgstr "自动模式优先使用上次成功源"
+
+msgid "自动模式优先使用上次成功源，失败后继续尝试其他源"
+msgstr "自动模式优先使用上次成功源，失败后继续尝试其他源"
+
+msgid "自动点击"
+msgstr "自动点击"
+
+msgid "自动生成掩码"
+msgstr "自动生成掩码"
+
+msgid "自动获取免费代理地址"
+msgstr "自动获取免费代理地址"
+
+msgid "自动裁剪到有效区域"
+msgstr "自动裁剪到有效区域"
+
+msgid "自动购买好物铺中的指定商品"
+msgstr "自动购买好物铺中的指定商品"
+
+msgid "自动闪避"
+msgstr "自动闪避"
+
+msgid "自动闪避开关"
+msgstr "自动闪避开关"
+
+msgid "自定义"
+msgstr "自定义"
+
+msgid "自定义分支"
+msgstr "自定义分支"
+
+msgid "自定义安装"
+msgstr "自定义安装"
+
+msgid "自定义窗口标题"
+msgstr "自定义窗口标题"
+
+msgid "自建应用 App ID"
+msgstr "自建应用 App ID"
+
+msgid "自建应用 Secret"
+msgstr "自建应用 Secret"
+
+msgid "自由"
+msgstr "自由"
+
+msgid "自行调整，过小可能按键被吞，过大可能影响操作"
+msgstr "自行调整，过小可能按键被吞，过大可能影响操作"
+
+msgid "节点通知"
+msgstr "节点通知"
+
+msgid "节点通知为全部合并时，失败节点会额外立即推送"
+msgstr "节点通知为全部合并时，失败节点会额外立即推送"
+
+msgid "获取"
+msgstr "获取"
+
+msgid "获取commit"
+msgstr "获取commit"
+
+msgid "获取commit总数"
+msgstr "获取commit总数"
+
+msgid "获取失败时 可前往 https://ghproxy.link/ 查看自行更新"
+msgstr "获取失败时 可前往 https://ghproxy.link/ 查看自行更新"
+
+msgid "获取本地提交信息失败"
+msgstr "获取本地提交信息失败"
+
+msgid "获取系统环境变量中的 UV"
+msgstr "获取系统环境变量中的 UV"
+
+msgid "获取远程提交信息失败"
+msgstr "获取远程提交信息失败"
+
+msgid "血量 ≥ x% 时 才会进行购买"
+msgstr "血量 ≥ x% 时 才会进行购买"
+
+msgid "视觉层 X 偏移"
+msgstr "视觉层 X 偏移"
+
+msgid "视觉层 X 缩放"
+msgstr "视觉层 X 缩放"
+
+msgid "视觉层 Y 偏移"
+msgstr "视觉层 Y 偏移"
+
+msgid "视觉层 Y 缩放"
+msgstr "视觉层 Y 缩放"
+
+msgid "角色坐标"
+msgstr "角色坐标"
+
+msgid "解析提交ID失败"
+msgstr "解析提交ID失败"
+
+msgid "触发中断"
+msgstr "触发中断"
+
+msgid "触发秒数"
+msgstr "触发秒数"
+
+msgid "设备码"
+msgstr "设备码"
+
+msgid "设置说明"
+msgstr "设置说明"
+
+msgid "设置颜色过滤的上限值 (R,G,B 或 H,S,V)"
+msgstr "设置颜色过滤的上限值 (R,G,B 或 H,S,V)"
+
+msgid "设置颜色过滤的下限值 (R,G,B 或 H,S,V)"
+msgstr "设置颜色过滤的下限值 (R,G,B 或 H,S,V)"
+
+msgid "访问GitHub指南"
+msgstr "访问GitHub指南"
+
+msgid "访问令牌"
+msgstr "访问令牌"
+
+msgid "语言、主题和背景调整后，部分效果可能需要重启后生效"
+msgstr "语言、主题和背景调整后，部分效果可能需要重启后生效"
+
+msgid "请先更新启动器"
+msgstr "请先更新启动器"
+
+msgid "请先选择或创建模板"
+msgstr "请先选择或创建模板"
+
+msgid "请求体 (Payload)"
+msgstr "请求体 (Payload)"
+
+msgid "请求地址"
+msgstr "请求地址"
+
+msgid "请求头 (Headers)"
+msgstr "请求头 (Headers)"
+
+msgid "请确保手动创建的虚拟环境目录为"
+msgstr "请确保手动创建的虚拟环境目录为"
+
+msgid "请稍后重试"
+msgstr "请稍后重试"
+
+msgid "请稍后重试；仍然失败时请查看日志"
+msgstr "请稍后重试；仍然失败时请查看日志"
+
+msgid "请输入 JSON 格式的请求体"
+msgstr "请输入 JSON 格式的请求体"
+
+msgid "请重启后重试；仍然失败时请重新安装"
+msgstr "请重启后重试；仍然失败时请重新安装"
+
+msgid "读取操作指南"
+msgstr "读取操作指南"
+
+msgid "读取配置"
+msgstr "读取配置"
+
+msgid "读取预备编队列表"
+msgstr "读取预备编队列表"
+
+msgid "调整图标识别的匹配阈值，默认0.7"
+msgstr "调整图标识别的匹配阈值，默认0.7"
+
+msgid "调整大地图的，只有第一次需要"
+msgstr "调整大地图的，只有第一次需要"
+
+msgid "调查战略"
+msgstr "调查战略"
+
+msgid "调试按钮"
+msgstr "调试按钮"
+
+msgid "购买"
+msgstr "购买"
+
+msgid "资源下载源"
+msgstr "资源下载源"
+
+msgid "资源自动下载"
+msgstr "资源自动下载"
+
+msgid "赞赏"
+msgstr "赞赏"
+
+msgid "路线"
+msgstr "路线"
+
+msgid "路线名单"
+msgstr "路线名单"
+
+msgid "路线脱困失败，重试后再次卡住时的处理方式"
+msgstr "路线脱困失败，重试后再次卡住时的处理方式"
+
+msgid "路线重试处理方式"
+msgstr "路线重试处理方式"
+
+msgid "跳过剧情"
+msgstr "跳过剧情"
+
+msgid "跳过底部的低级商品"
+msgstr "跳过底部的低级商品"
+
+msgid "输入关键字进行搜索..."
+msgstr "输入关键字进行搜索..."
+
+msgid "输入文本"
+msgstr "输入文本"
+
+msgid "输入状态关键词过滤..."
+msgstr "输入状态关键词过滤..."
+
+msgid "运行 operation"
+msgstr "运行 operation"
+
+msgid "运行一条龙"
+msgstr "运行一条龙"
+
+msgid "运行独立应用"
+msgstr "运行独立应用"
+
+msgid "运行环境"
+msgstr "运行环境"
+
+msgid "运行绝区零一条龙"
+msgstr "运行绝区零一条龙"
+
+msgid "运行绝区零独立应用"
+msgstr "运行绝区零独立应用"
+
+msgid "返回状态"
+msgstr "返回状态"
+
+msgid "这个文件夹里没有找到可用插件"
+msgstr "这个文件夹里没有找到可用插件"
+
+msgid "这是一条测试消息"
+msgstr "这是一条测试消息"
+
+msgid "远程分支不存在"
+msgstr "远程分支不存在"
+
+msgid "追新模式"
+msgstr "追新模式"
+
+msgid "选择主页显示的背景"
+msgstr "选择主页显示的背景"
+
+msgid "选择你的"
+msgstr "选择你的"
+
+msgid "选择前往的咖啡店"
+msgstr "选择前往的咖啡店"
+
+msgid "选择副本"
+msgstr "选择副本"
+
+msgid "选择副本类型"
+msgstr "选择副本类型"
+
+msgid "选择已有"
+msgstr "选择已有"
+
+msgid "选择截图"
+msgstr "选择截图"
+
+msgid "选择插件压缩包"
+msgstr "选择插件压缩包"
+
+msgid "选择插件文件夹"
+msgstr "选择插件文件夹"
+
+msgid "选择模板配置文件"
+msgstr "选择模板配置文件"
+
+msgid "选择空洞及难度等级"
+msgstr "选择空洞及难度等级"
+
+msgid "选择签到商店"
+msgstr "选择签到商店"
+
+msgid "选择角色、鸣徽和事件"
+msgstr "选择角色、鸣徽和事件"
+
+msgid "选择路径"
+msgstr "选择路径"
+
+msgid "选择路线起始传送点"
+msgstr "选择路线起始传送点"
+
+msgid "选择运行模式"
+msgstr "选择运行模式"
+
+msgid "选择颜色过滤的颜色空间"
+msgstr "选择颜色过滤的颜色空间"
+
+msgid "通用"
+msgstr "通用"
+
+msgid "通知类型"
+msgstr "通知类型"
+
+msgid "邦巢-最低购买价格"
+msgstr "邦巢-最低购买价格"
+
+msgid "邦巢-购买"
+msgstr "邦巢-购买"
+
+msgid "邦布商人购买时只购买符合优先级的"
+msgstr "邦布商人购买时只购买符合优先级的"
+
+msgid "邮件服务器"
+msgstr "邮件服务器"
+
+msgid "部分模板没有保存"
+msgstr "部分模板没有保存"
+
+msgid "配置运行通知的推送方式或渠道，所有已配置的渠道都会启用"
+msgstr "配置运行通知的推送方式或渠道，所有已配置的渠道都会启用"
+
+msgid "重叠(3)"
+msgstr "重叠(3)"
+
+msgid "重叠比例"
+msgstr "重叠比例"
+
+msgid "重启后生效"
+msgstr "重启后生效"
+
+msgid "重置 Overlay 面板到默认位置与尺寸"
+msgstr "重置 Overlay 面板到默认位置与尺寸"
+
+msgid "重置记录"
+msgstr "重置记录"
+
+msgid "重置面板位置"
+msgstr "重置面板位置"
+
+msgid "锁定"
+msgstr "锁定"
+
+msgid "锄地每日循环次数"
+msgstr "锄地每日循环次数"
+
+msgid "键"
+msgstr "键"
+
+msgid "键盘按键"
+msgstr "键盘按键"
+
+msgid "闪切时长（秒）"
+msgstr "闪切时长（秒）"
+
+msgid "闪避方式"
+msgstr "闪避方式"
+
+msgid "闪避检测"
+msgstr "闪避检测"
+
+msgid "防截图保护"
+msgstr "防截图保护"
+
+msgid "集成启动器"
+msgstr "集成启动器"
+
+msgid "需下载"
+msgstr "需下载"
+
+msgid "需更新"
+msgstr "需更新"
+
+msgid "需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）"
+msgstr "需要在下框配置代理人 可用试用角色（矩阵行动无法保存默认配队）"
+
+msgid "需要安装或配置"
+msgstr "需要安装或配置"
+
+msgid "需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。"
+msgstr "需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。"
+
+msgid "面板字体大小"
+msgstr "面板字体大小"
+
+msgid "面板编辑模式"
+msgstr "面板编辑模式"
+
+msgid "面板透明度(%)"
+msgstr "面板透明度(%)"
+
+msgid "项资源"
+msgstr "项资源"
+
+msgid "顺序已更新"
+msgstr "顺序已更新"
+
+msgid "顺序调整"
+msgstr "顺序调整"
+
+msgid "预备编队使用游戏内配队时生效"
+msgstr "预备编队使用游戏内配队时生效"
+
+msgid "预备编队识别"
+msgstr "预备编队识别"
+
+msgid "颜色上限"
+msgstr "颜色上限"
+
+msgid "颜色下限"
+msgstr "颜色下限"
+
+msgid "颜色空间"
+msgstr "颜色空间"
+
+msgid "额外刷取"
+msgstr "额外刷取"
+
+msgid "额外刷取方式"
+msgstr "额外刷取方式"
+
+msgid "额外刷取时，选择何时退出"
+msgstr "额外刷取时，选择何时退出"
+
+msgid "风属性"
+msgstr "风属性"
+
+msgid "饮茶仙-委托刷新"
+msgstr "饮茶仙-委托刷新"
+
+msgid "默认 _patched"
+msgstr "默认 _patched"
+
+msgid "默认显示"
+msgstr "默认显示"
+
+msgid "默认配置复制后可修改"
+msgstr "默认配置复制后可修改"
+
+msgid "鼠标拖拽"
+msgstr "鼠标拖拽"
+
+msgid "鼠标点击坐标"
+msgstr "鼠标点击坐标"
+
+msgid ""
+"本软件完全<font color='red'>开源 免费</font><br>\\n不要在<font "
+"color='red'>第三方渠道</font>购买<br>\\n谨防<font color='red'>诈骗 盗号</font>"
+msgstr ""
+"本软件完全<font color='red'>开源 免费</font><br>\\n不要在<font "
+"color='red'>第三方渠道</font>购买<br>\\n谨防<font color='red'>诈骗 盗号</font>"
+
+msgid "点击\"导入插件\"按钮添加新插件"
+msgstr "点击\"导入插件\"按钮添加新插件"
+
+msgid "自动获取接收方 <span style='color: #ff6b6b;'>*</span>"
+msgstr "自动获取接收方 <span style='color: #ff6b6b;'>*</span>"
+
+msgid "当前区域可用路线"
+msgstr "当前区域可用路线"
+
+msgid "新建路线列表"
+msgstr "新建路线列表"
+
+msgid "请输入列表名称:"
+msgstr "请输入列表名称:"
+
+msgid "保存路线列表失败"
+msgstr "保存路线列表失败"
+
+msgid "删除路线列表失败"
+msgstr "删除路线列表失败"
+
+msgid "当前区域没有可用路线"
+msgstr "当前区域没有可用路线"
+
+msgid "下载设置"
+msgstr "下载设置"
+
+msgid "更新与下载"
+msgstr "更新与下载"
+
+msgid "使用说明 · 功能介绍"
+msgstr "使用说明 · 功能介绍"
+
+msgid "删除确认"
+msgstr "删除确认"
+
+msgid "加入官方交流频道"
+msgstr "加入官方交流频道"
+
+msgid "即将删除该配置"
+msgstr "即将删除该配置"
+
+msgid "外部编辑"
+msgstr "外部编辑"
+
+msgid "官方频道"
+msgstr "官方频道"
+
+msgid "插件"
+msgstr "插件"
+
+msgid "插件 "
+msgstr "插件 "
+
+msgid "是否删除所有体力计划？"
+msgstr "是否删除所有体力计划？"
+
+msgid "是否删除所有已完成的体力计划？"
+msgstr "是否删除所有已完成的体力计划？"
+
+msgid "服务操作"
+msgstr "服务操作"
+
+msgid "源码 · 反馈 · Star⭐"
+msgstr "源码 · 反馈 · Star⭐"
+
+msgid "点击"
+msgstr "点击"
+
+msgid "确定要删除插件"
+msgstr "确定要删除插件"
+
+msgid "确定要删除插件 "
+msgstr "确定要删除插件 "
+
+msgid "运行消息"
+msgstr "运行消息"
+
+msgid "遇到问题？点这里找答案"
+msgstr "遇到问题？点这里找答案"
+
+msgid "项待配置"
+msgstr "项待配置"
+
+msgid "项待配置 "
+msgstr "项待配置 "
+
+msgid "MCP 服务操作和运行状态消息会显示在这里"
+msgstr "MCP 服务操作和运行状态消息会显示在这里"
+
+msgid "节点处理函数未返回正确结果"
+msgstr "节点处理函数未返回正确结果"
+
+msgid "11号"
+msgstr "11号"
+
+msgid "安比"
+msgstr "安比"
+
+msgid "安东"
+msgstr "安东"
+
+msgid "本"
+msgstr "本"
+
+msgid "比利"
+msgstr "比利"
+
+msgid "可琳"
+msgstr "可琳"
+
+msgid "格莉丝"
+msgstr "格莉丝"
+
+msgid "珂蕾妲"
+msgstr "珂蕾妲"
+
+msgid "露西"
+msgstr "露西"
+
+msgid "莱卡恩"
+msgstr "莱卡恩"
+
+msgid "猫又"
+msgstr "猫又"
+
+msgid "派派"
+msgstr "派派"
+
+msgid "丽娜"
+msgstr "丽娜"
+
+msgid "苍角"
+msgstr "苍角"
+
+msgid "朱鸢"
+msgstr "朱鸢"
+
+msgid "青衣"
+msgstr "青衣"
+
+msgid "简"
+msgstr "简"
+
+msgid "赛斯"
+msgstr "赛斯"
+
+msgid "凯撒"
+msgstr "凯撒"
+
+msgid "柏妮思"
+msgstr "柏妮思"
+
+msgid "柳"
+msgstr "柳"
+
+msgid "莱特"
+msgstr "莱特"
+
+msgid "悠真"
+msgstr "悠真"
+
+msgid "雅"
+msgstr "雅"
+
+msgid "伊芙琳"
+msgstr "伊芙琳"
+
+msgid "零号安比"
+msgstr "零号安比"
+
+msgid "波可娜"
+msgstr "波可娜"
+
+msgid "扳机"
+msgstr "扳机"
+
+msgid "薇薇安"
+msgstr "薇薇安"
+
+msgid "雨果"
+msgstr "雨果"
+
+msgid "潘引壶"
+msgstr "潘引壶"
+
+msgid "橘福福"
+msgstr "橘福福"
+
+msgid "浮波柚叶"
+msgstr "浮波柚叶"
+
+msgid "爱丽丝"
+msgstr "爱丽丝"
+
+msgid "席德"
+msgstr "席德"
+
+msgid "奥菲丝"
+msgstr "奥菲丝"
+
+msgid "卢西娅"
+msgstr "卢西娅"
+
+msgid "真斗"
+msgstr "真斗"
+
+msgid "伊德海莉"
+msgstr "伊德海莉"
+
+msgid "琉音"
+msgstr "琉音"
+
+msgid "般岳"
+msgstr "般岳"
+
+msgid "照"
+msgstr "照"
+
+msgid "千夏"
+msgstr "千夏"
+
+msgid "叶瞬光"
+msgstr "叶瞬光"
+
+msgid "爱芮"
+msgstr "爱芮"
+
+msgid "南宫羽"
+msgstr "南宫羽"
+
+msgid "希希芙"
+msgstr "希希芙"
+
+msgid "普罗米娅"
+msgstr "普罗米娅"
+
+msgid "维琳娜"
+msgstr "维琳娜"
+
+msgid "佩洛伊斯"
+msgstr "佩洛伊斯"
+
+msgid "星辉比利"
+msgstr "星辉比利"
+
+msgid "诺姆"
+msgstr "诺姆"
+
+msgid "蕾米埃尔"
+msgstr "蕾米埃尔"
+
+msgid "希格莉德"
+msgstr "希格莉德"
+
+msgid "克拉蕾"
+msgstr "克拉蕾"
+
+msgid "洛克茜"
+msgstr "洛克茜"
+
+msgid "菲欧妮"
+msgstr "菲欧妮"
+
+msgid "全配队通用"
+msgstr "全配队通用"
+
+msgid "当前UP代理人"
+msgstr "当前UP代理人"
+
+msgid "编队"
+msgstr "编队"
+
+msgid "编队1"
+msgstr "编队1"
+
+msgid "编队2"
+msgstr "编队2"
+
+msgid "编队3"
+msgstr "编队3"
+
+msgid "编队4"
+msgstr "编队4"
+
+msgid "编队5"
+msgstr "编队5"
+
+msgid "编队6"
+msgstr "编队6"
+
+msgid "编队7"
+msgstr "编队7"
+
+msgid "编队8"
+msgstr "编队8"
+
+msgid "编队9"
+msgstr "编队9"
+
+msgid "编队10"
+msgstr "编队10"
+
+msgid "编队11"
+msgstr "编队11"
+
+msgid "编队12"
+msgstr "编队12"
+
+msgid "编队13"
+msgstr "编队13"
+
+msgid "编队14"
+msgstr "编队14"
+
+msgid "编队15"
+msgstr "编队15"
+
+msgid "编队16"
+msgstr "编队16"
+
+msgid "编队17"
+msgstr "编队17"
+
+msgid "编队18"
+msgstr "编队18"
+
+msgid "编队19"
+msgstr "编队19"
+
+msgid "编队20"
+msgstr "编队20"
+
+msgid "[触发器]"
+msgstr "[触发器]"
+
+msgid "[条件集]"
+msgstr "[条件集]"
+
+msgid "[持续时间]"
+msgstr "[持续时间]"
+
+# 界面补充翻译
+msgid "启动器版本"
+msgstr "启动器版本"
+
+msgid "代码版本"
+msgstr "代码版本"
+
+msgid "安装器版本"
+msgstr "安装器版本"
+
+msgid "程序版本"
+msgstr "程序版本"
+
+msgid "问题反馈"
+msgstr "问题反馈"
+
+msgid "背景已更新"
+msgstr "背景已更新"
+
+msgid "新的背景已成功应用"
+msgstr "新的背景已成功应用"
+
+msgid "不通知"
+msgstr "不通知"
+
+msgid "仅结束"
+msgstr "仅结束"
+
+msgid "开始和结束"
+msgstr "开始和结束"
+
+msgid "仅失败"
+msgstr "仅失败"
+
+msgid "逐条"
+msgstr "逐条"
+
+msgid "合并"
+msgstr "合并"
+
+msgid "不发送开始和结束通知"
+msgstr "不发送开始和结束通知"
+
+msgid "应用完成后发送通知"
+msgstr "应用完成后发送通知"
+
+msgid "应用开始和完成时发送通知"
+msgstr "应用开始和完成时发送通知"
+
+msgid "不发送节点细节通知"
+msgstr "不发送节点细节通知"
+
+msgid "只在节点失败时立即通知"
+msgstr "只在节点失败时立即通知"
+
+msgid "每个标记节点完成后立即通知"
+msgstr "每个标记节点完成后立即通知"
+
+msgid "应用结束时合并发送节点细节"
+msgstr "应用结束时合并发送节点细节"
+
+msgid ""
+"为了让您的自动战斗体验更加顺畅，这里有一些温馨的小建议给到您：\n"
+"\n"
+"1. 关于画面设置：建议您将游戏帧数限制在 30 帧，并适当降低画质设置。如果您的电脑配置非常强大，尝试 60 帧也是可以的，但请务必不要开启「无限帧率」哦。\n"
+"\n"
+"2. 释放电脑性能：自动战斗功能依托于 AI 视觉识别技术，需要消耗一定的计算资源。建议您在使用时尽量关闭不必要的后台程序，电脑运行越流畅，AI 的表现也会越出色。\n"
+"\n"
+"3. 截图间隔设置：为了不让 AI 错过每一个精彩瞬间，请确保截图频率至少达到每秒 20 次。毕竟，我们不能强求 AI 在 1 帧的画面里完成电竞级的操作呀。\n"
+"\n"
+"4. 按键设置建议：强烈建议您将连携技的「左」、「右」和「取消」设置为独立的按键，避免与普攻、闪避或终结技共用键位。特别需要强调的是，几乎所有的连携技释放错误都源自于使用了同一个按键。默认键位下，连携技出现时很容易被普攻误触，导致操作失误，分开设置会让战斗更精准。\n"
+"\n"
+"比如把连携左设置为1，连携右设置为3，取消设置为2\n"
+"\n"
+"5. 应对特殊情况：目前的 AI 还在学习中，暂时无法完美应对 BOSS 的转阶段或特殊状态攻击。遇到这种情况时，可能需要您稍微费心，暂停自动战斗并手动应对一下。\n"
+"\n"
+"6. 最佳显示环境：为了保证识别准确，请将游戏分辨率设置为 1920x1080，并关闭 HDR 功能。同时，请确保游戏画面没有被其他窗口遮挡，让 AI 能看清全局。\n"
+"\n"
+"祝您游戏愉快！"
+msgstr ""
+"为了让您的自动战斗体验更加顺畅，这里有一些温馨的小建议给到您：\n"
+"\n"
+"1. 关于画面设置：建议您将游戏帧数限制在 30 帧，并适当降低画质设置。如果您的电脑配置非常强大，尝试 60 帧也是可以的，但请务必不要开启「无限帧率」哦。\n"
+"\n"
+"2. 释放电脑性能：自动战斗功能依托于 AI 视觉识别技术，需要消耗一定的计算资源。建议您在使用时尽量关闭不必要的后台程序，电脑运行越流畅，AI 的表现也会越出色。\n"
+"\n"
+"3. 截图间隔设置：为了不让 AI 错过每一个精彩瞬间，请确保截图频率至少达到每秒 20 次。毕竟，我们不能强求 AI 在 1 帧的画面里完成电竞级的操作呀。\n"
+"\n"
+"4. 按键设置建议：强烈建议您将连携技的「左」、「右」和「取消」设置为独立的按键，避免与普攻、闪避或终结技共用键位。特别需要强调的是，几乎所有的连携技释放错误都源自于使用了同一个按键。默认键位下，连携技出现时很容易被普攻误触，导致操作失误，分开设置会让战斗更精准。\n"
+"\n"
+"比如把连携左设置为1，连携右设置为3，取消设置为2\n"
+"\n"
+"5. 应对特殊情况：目前的 AI 还在学习中，暂时无法完美应对 BOSS 的转阶段或特殊状态攻击。遇到这种情况时，可能需要您稍微费心，暂停自动战斗并手动应对一下。\n"
+"\n"
+"6. 最佳显示环境：为了保证识别准确，请将游戏分辨率设置为 1920x1080，并关闭 HDR 功能。同时，请确保游戏画面没有被其他窗口遮挡，让 AI 能看清全局。\n"
+"\n"
+"祝您游戏愉快！"
+
+msgid ""
+"▎编队名称\n"
+"\n"
+"请确保编队名称与游戏内完全一致，顺序随意，\n"
+"名称不匹配会导致无法识别。\n"
+"\n"
+"不建议使用默认的数字命名编队，\n"
+"OCR 识别数字容易出错，建议使用中文名称。\n"
+"\n"
+"▎自动识别\n"
+"\n"
+"点击「开始」后将自动打开游戏内预备编队页面，\n"
+"通过截图识别各编队中的代理人并填入左侧配置。"
+msgstr ""
+"▎编队名称\n"
+"\n"
+"请确保编队名称与游戏内完全一致，顺序随意，\n"
+"名称不匹配会导致无法识别。\n"
+"\n"
+"不建议使用默认的数字命名编队，\n"
+"OCR 识别数字容易出错，建议使用中文名称。\n"
+"\n"
+"▎自动识别\n"
+"\n"
+"点击「开始」后将自动打开游戏内预备编队页面，\n"
+"通过截图识别各编队中的代理人并填入左侧配置。"
+
+# 战斗配置模板名分段
+msgid "专属配队"
+msgstr "专属配队"
+
+msgid "击破站场"
+msgstr "击破站场"
+
+msgid "强攻站场"
+msgstr "强攻站场"
+
+msgid "异常站场"
+msgstr "异常站场"
+
+msgid "支援站场"
+msgstr "支援站场"
+
+msgid "防护站场"
+msgstr "防护站场"
+
+msgid "强攻速切"
+msgstr "强攻速切"
+
+msgid "击破支援速切"
+msgstr "击破支援速切"
+
+msgid "自动守护"
+msgstr "自动守护"
+
+msgid "切换角色"
+msgstr "切换角色"
+
+msgid "下一个"
+msgstr "下一个"
+
+msgid "智能格挡"
+msgstr "智能格挡"
+
+msgid "格挡"
+msgstr "格挡"
+
+msgid "闪A切下一个"
+msgstr "闪A切下一个"
+
+msgid "闪A切强攻"
+msgstr "闪A切强攻"
+
+msgid "闪A模板"
+msgstr "闪A模板"
+
+msgid "站场模板"
+msgstr "站场模板"
+
+msgid "速切模板"
+msgstr "速切模板"
+
+msgid "连携模板"
+msgstr "连携模板"
+
+msgid "支援攻击模板"
+msgstr "支援攻击模板"
+
+msgid "快速支援模板"
+msgstr "快速支援模板"
+
+msgid "双反模板"
+msgstr "双反模板"
+
+msgid "通用模板"
+msgstr "通用模板"
+
+msgid "自动锁定模板"
+msgstr "自动锁定模板"
+
+msgid "首领交互"
+msgstr "首领交互"
+
+msgid "全角色"
+msgstr "全角色"
+
+msgid "未识别角色"
+msgstr "未识别角色"
+
+msgid "前置角色"
+msgstr "前置角色"
+
+msgid "后置角色"
+msgstr "后置角色"
+
+msgid "特殊情况"
+msgstr "特殊情况"
+
+msgid "轮换"
+msgstr "轮换"
+
+msgid "合轴"
+msgstr "合轴"
+
+msgid "救命"
+msgstr "救命"
+
+msgid "紧急"
+msgstr "紧急"
+
+msgid "合轴决策"
+msgstr "合轴决策"
+
+msgid "失衡决策"
+msgstr "失衡决策"
+
+msgid "强特决策"
+msgstr "强特决策"
+
+msgid "送客决策"
+msgstr "送客决策"
+
+msgid "送客连携"
+msgstr "送客连携"
+
+msgid "刷好评"
+msgstr "刷好评"
+
+msgid "好评套路"
+msgstr "好评套路"
+
+msgid "暗破检测"
+msgstr "暗破检测"
+
+msgid "黄光支援切入"
+msgstr "黄光支援切入"
+
+# 界面下拉选项
+msgid "不启用"
+msgstr "不启用"
+
+msgid "矩形"
+msgstr "矩形"
+
+msgid "圆形"
+msgstr "圆形"
+
+msgid "四边形"
+msgstr "四边形"
+
+msgid "多边形"
+msgstr "多边形"
+
+msgid "多个矩形"
+msgstr "多个矩形"
+
+msgid "枯萎之都-核心"
+msgstr "枯萎之都-核心"
+
+msgid "枯败花圃-核心"
+msgstr "枯败花圃-核心"
+
+# 咖啡名称 界面显示用 非游戏官方译名 待核对
+msgid "参汤黑咖"
+msgstr "参汤黑咖"
+
+msgid "新艾利都特调"
+msgstr "新艾利都特调"
+
+msgid "月壤摩咔"
+msgstr "月壤摩咔"
+
+msgid "果泡拿提"
+msgstr "果泡拿提"
+
+msgid "汀曼特调"
+msgstr "汀曼特调"
+
+msgid "沙罗特调"
+msgstr "沙罗特调"
+
+msgid "浓缩咖啡"
+msgstr "浓缩咖啡"
+
+msgid "空泡摩咔"
+msgstr "空泡摩咔"
+
+msgid "红茶拿提"
+msgstr "红茶拿提"
+
+msgid "胡椒拿提"
+msgstr "胡椒拿提"
+
+msgid "薄荷黑咖"
+msgstr "薄荷黑咖"
+
+msgid "麦草拿提"
+msgstr "麦草拿提"
+
+msgid "参汤黑咖（浓）"
+msgstr "参汤黑咖（浓）"
+
+msgid "参汤黑咖（淡）"
+msgstr "参汤黑咖（淡）"
+
+msgid "新艾利都特调（浓）"
+msgstr "新艾利都特调（浓）"
+
+msgid "新艾利都特调（淡）"
+msgstr "新艾利都特调（淡）"
+
+msgid "月壤摩咔（浓）"
+msgstr "月壤摩咔（浓）"
+
+msgid "月壤摩咔（淡）"
+msgstr "月壤摩咔（淡）"
+
+msgid "果泡拿提（浓）"
+msgstr "果泡拿提（浓）"
+
+msgid "果泡拿提（淡）"
+msgstr "果泡拿提（淡）"
+
+msgid "汀曼特调（浓）"
+msgstr "汀曼特调（浓）"
+
+msgid "汀曼特调（淡）"
+msgstr "汀曼特调（淡）"
+
+msgid "沙罗特调（浓）"
+msgstr "沙罗特调（浓）"
+
+msgid "沙罗特调（淡）"
+msgstr "沙罗特调（淡）"
+
+msgid "浓缩咖啡（浓）"
+msgstr "浓缩咖啡（浓）"
+
+msgid "浓缩咖啡（淡）"
+msgstr "浓缩咖啡（淡）"
+
+msgid "空泡摩咔（浓）"
+msgstr "空泡摩咔（浓）"
+
+msgid "空泡摩咔（淡）"
+msgstr "空泡摩咔（淡）"
+
+msgid "红茶拿提（浓）"
+msgstr "红茶拿提（浓）"
+
+msgid "红茶拿提（淡）"
+msgstr "红茶拿提（淡）"
+
+msgid "胡椒拿提（浓）"
+msgstr "胡椒拿提（浓）"
+
+msgid "胡椒拿提（淡）"
+msgstr "胡椒拿提（淡）"
+
+msgid "薄荷黑咖（浓）"
+msgstr "薄荷黑咖（浓）"
+
+msgid "薄荷黑咖（淡）"
+msgstr "薄荷黑咖（淡）"
+
+msgid "麦草拿提（浓）"
+msgstr "麦草拿提（浓）"
+
+msgid "麦草拿提（淡）"
+msgstr "麦草拿提（淡）"
+
+# 通知设置 - 推送渠道名称
+msgid "智能微秘书"
+msgstr "智能微秘书"
+
+msgid "钉钉机器人"
+msgstr "钉钉机器人"
+
+msgid "Discord 机器人"
+msgstr "Discord 机器人"
+
+msgid "飞书"
+msgstr "飞书"
+
+msgid "飞书/Lark 机器人"
+msgstr "飞书/Lark 机器人"
+
+msgid "Qmsg 酱"
+msgstr "Qmsg 酱"
+
+msgid "QQ 官方机器人"
+msgstr "QQ 官方机器人"
+
+msgid "Server酱"
+msgstr "Server酱"
+
+msgid "SMTP邮件"
+msgstr "SMTP邮件"
+
+msgid "微加机器人"
+msgstr "微加机器人"
+
+msgid "通用Webhook"
+msgstr "通用Webhook"
+
+msgid "企业微信应用"
+msgstr "企业微信应用"
+
+msgid "企业微信机器人"
+msgstr "企业微信机器人"
+
+msgid "下面的方法无人维护，遇到问题请自行解决"
+msgstr "下面的方法无人维护，遇到问题请自行解决"
+
+# 通知设置 - 推送渠道输入提示
+msgid "请输入个人中心的 APIKEY"
+msgstr "请输入个人中心的 APIKEY"
+
+msgid "发送群名或者好友昵称，和 type 要对应"
+msgstr "发送群名或者好友昵称，和 type 要对应"
+
+msgid "请输入 Bark 推送地址或 Key"
+msgstr "请输入 Bark 推送地址或 Key"
+
+msgid "请填写设备码"
+msgstr "请填写设备码"
+
+msgid "请填写推送分组"
+msgstr "请填写推送分组"
+
+msgid "请填写铃声名称"
+msgstr "请填写铃声名称"
+
+msgid "请填写图标的URL"
+msgstr "请填写图标的URL"
+
+msgid "请填写推送跳转URL"
+msgstr "请填写推送跳转URL"
+
+msgid "填写在CHRONOCAT文件生成的访问密钥"
+msgstr "填写在CHRONOCAT文件生成的访问密钥"
+
+msgid "请输入钉钉机器人的Secret密钥"
+msgstr "请输入钉钉机器人的Secret密钥"
+
+msgid "请输入钉钉机器人的Token密钥"
+msgstr "请输入钉钉机器人的Token密钥"
+
+msgid "Discord API 地址 (默认使用官方地址)"
+msgstr "Discord API 地址 (默认使用官方地址)"
+
+msgid "请输入 Discord 机器人的 Token"
+msgstr "请输入 Discord 机器人的 Token"
+
+msgid "请输入要接收私信的用户 ID"
+msgstr "请输入要接收私信的用户 ID"
+
+msgid "请输入飞书机器人的Webhook地址后缀"
+msgstr "请输入飞书机器人的Webhook地址后缀"
+
+msgid "创建机器人时勾选签名校验显示的密钥"
+msgstr "创建机器人时勾选签名校验显示的密钥"
+
+msgid "非必填，填写则用于发送图片"
+msgstr "非必填，填写则用于发送图片"
+
+msgid "Gotify 的 App Token"
+msgstr "Gotify 的 App Token"
+
+msgid "请输入 iGot 的 推送 Key"
+msgstr "请输入 iGot 的 推送 Key"
+
+msgid "ntfy服务器"
+msgstr "ntfy服务器"
+
+msgid "ntfy 应用 Topic"
+msgstr "ntfy 应用 Topic"
+
+msgid "ntfy 应用 token"
+msgstr "ntfy 应用 token"
+
+msgid "ntfy 应用用户名"
+msgstr "ntfy 应用用户名"
+
+msgid "ntfy 应用密码"
+msgstr "ntfy 应用密码"
+
+msgid "ntfy 用户动作，最多三个"
+msgstr "ntfy 用户动作，最多三个"
+
+msgid "请输入请求地址"
+msgstr "请输入请求地址"
+
+msgid "请输入目标 QQ 号"
+msgstr "请输入目标 QQ 号"
+
+msgid "请输入目标群号"
+msgstr "请输入目标群号"
+
+msgid "请输入 OneBot 的 Token"
+msgstr "请输入 OneBot 的 Token"
+
+msgid "请输入 PushDeer 的 KEY"
+msgstr "请输入 PushDeer 的 KEY"
+
+msgid "请输入 PushDeer 的 推送URL"
+msgstr "请输入 PushDeer 的 推送URL"
+
+msgid "请输入 PushMe 的 KEY"
+msgstr "请输入 PushMe 的 KEY"
+
+msgid "请输入 PushMe 的 URL"
+msgstr "请输入 PushMe 的 URL"
+
+msgid "请输入群组编码"
+msgstr "请输入群组编码"
+
+msgid "可在公众号上扩展配置出更多渠道"
+msgstr "可在公众号上扩展配置出更多渠道"
+
+msgid "请输入 Qmsg 酱的 KEY"
+msgstr "请输入 Qmsg 酱的 KEY"
+
+msgid "QQ 开放平台 -> 机器人 -> 开发设置 -> AppID"
+msgstr "QQ 开放平台 -> 机器人 -> 开发设置 -> AppID"
+
+msgid "QQ 开放平台 -> 机器人 -> 开发设置 -> AppSecret"
+msgstr "QQ 开放平台 -> 机器人 -> 开发设置 -> AppSecret"
+
+msgid "点上方“绑定单聊”自动填入"
+msgstr "点上方“绑定单聊”自动填入"
+
+msgid "点上方“绑定群聊”自动填入"
+msgstr "点上方“绑定群聊”自动填入"
+
+msgid "请输入 Server酱 的 PUSH_KEY"
+msgstr "请输入 Server酱 的 PUSH_KEY"
+
+msgid "将由自己发给自己"
+msgstr "将由自己发给自己"
+
+msgid "SMTP 登录密码，也可能为特殊口令"
+msgstr "SMTP 登录密码，也可能为特殊口令"
+
+msgid "可随意填写"
+msgstr "可随意填写"
+
+msgid "请输入 Synology Chat 的 URL"
+msgstr "请输入 Synology Chat 的 URL"
+
+msgid "请输入 Synology Chat 的 Token"
+msgstr "请输入 Synology Chat 的 Token"
+
+msgid "请输入 Webhook URL"
+msgstr "请输入 Webhook URL"
+
+msgid "请输入请求体内容"
+msgstr "请输入请求体内容"
+
+msgid "企业微信后台 -> 我的企业 -> 企业信息 -> 企业 ID"
+msgstr "企业微信后台 -> 我的企业 -> 企业信息 -> 企业 ID"
+
+msgid "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> Secret"
+msgstr "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> Secret"
+
+msgid "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> AgentId"
+msgstr "企业微信后台 -> 应用管理 -> 自建应用 -> 你的应用 -> AgentId"
+
+msgid "成员ID，多个用 '|' 分隔。默认 @all"
+msgstr "成员ID，多个用 '|' 分隔。默认 @all"
+
+msgid "只填 Key"
+msgstr "只填 Key"
+
+msgid "请输入 appToken"
+msgstr "请输入 appToken"
+
+msgid "多个用英文分号;分隔"
+msgstr "多个用英文分号;分隔"
+
+msgid "二者至少配置其中之一"
+msgstr "二者至少配置其中之一"
+
+# 通知设置 - 代理与界面
+msgid "不使用代理发送"
+msgstr "不使用代理发送"
+
+msgid "沿用脚本环境的个人代理发送"
+msgstr "沿用脚本环境的个人代理发送"
+
+msgid "一条龙运行通知"
+msgstr "一条龙运行通知"
+
+msgid "选择后自动填充相关配置"
+msgstr "选择后自动填充相关配置"
+
+msgid "已向当前通知方式发送测试消息"
+msgstr "已向当前通知方式发送测试消息"
+
+msgid "已向所有已配置的通知方式发送测试消息"
+msgstr "已向所有已配置的通知方式发送测试消息"
+
+msgid "测试推送失败"
+msgstr "测试推送失败"
+
+msgid "测试推送失败: {}"
+msgstr "测试推送失败: {}"
+
+msgid "绑定成功"
+msgstr "绑定成功"
+
+msgid "请先配置 Webhook URL"
+msgstr "请先配置 Webhook URL"
+
+msgid "Webhook URL 不能为空"
+msgstr "Webhook URL 不能为空"
+
+msgid "Webhook URL 未配置，无法推送"
+msgstr "Webhook URL 未配置，无法推送"
+
+msgid "URL、请求头或者请求体中必须包含 $content 变量"
+msgstr "URL、请求头或者请求体中必须包含 $content 变量"
+
+msgid "请求体不是合法的JSON格式"
+msgstr "请求体不是合法的JSON格式"
+
+msgid "请求头不是合法的JSON格式"
+msgstr "请求头不是合法的JSON格式"
+
+msgid "cURL 命令已复制到剪贴板！"
+msgstr "cURL 命令已复制到剪贴板！"
+
+msgid "没有可用的推送渠道"
+msgstr "没有可用的推送渠道"
+
+msgid "推送成功"
+msgstr "推送成功"
+
+msgid "推送失败"
+msgstr "推送失败"
+
+msgid "配置验证通过"
+msgstr "配置验证通过"
+
+msgid "不支持"
+msgstr "不支持"
+
+msgid "部分推送成功"
+msgstr "部分推送成功"
+
+msgid "所有消息推送失败"
+msgstr "所有消息推送失败"
+
+# 通知设置 - 配置校验提示
+msgid "APIKEY不能为空"
+msgstr "APIKEY不能为空"
+
+msgid "目标类型不能为空"
+msgstr "目标类型不能为空"
+
+msgid "目标名称不能为空"
+msgstr "目标名称不能为空"
+
+msgid "目标类型必须是 room 或 contact"
+msgstr "目标类型必须是 room 或 contact"
+
+msgid "PUSH 不能为空"
+msgstr "PUSH 不能为空"
+
+msgid "服务地址不能为空"
+msgstr "服务地址不能为空"
+
+msgid "访问令牌不能为空"
+msgstr "访问令牌不能为空"
+
+msgid "QQ 配置不能为空"
+msgstr "QQ 配置不能为空"
+
+msgid "QQ 配置格式错误，需要包含 user_id 或 group_id"
+msgstr "QQ 配置格式错误，需要包含 user_id 或 group_id"
+
+msgid "未找到有效的用户ID或群ID配置"
+msgstr "未找到有效的用户ID或群ID配置"
+
+msgid "Secret不能为空"
+msgstr "Secret不能为空"
+
+msgid "Token不能为空"
+msgstr "Token不能为空"
+
+msgid "机器人 Token 不能为空"
+msgstr "机器人 Token 不能为空"
+
+msgid "用户 ID 不能为空"
+msgstr "用户 ID 不能为空"
+
+msgid "密钥不能为空"
+msgstr "密钥不能为空"
+
+msgid "服务类型不能为空"
+msgstr "服务类型不能为空"
+
+msgid "Gotify 地址不能为空"
+msgstr "Gotify 地址不能为空"
+
+msgid "App Token 不能为空"
+msgstr "App Token 不能为空"
+
+msgid "推送 Key 不能为空"
+msgstr "推送 Key 不能为空"
+
+msgid "TOPIC 不能为空"
+msgstr "TOPIC 不能为空"
+
+msgid "请求地址不能为空"
+msgstr "请求地址不能为空"
+
+msgid "KEY 不能为空"
+msgstr "KEY 不能为空"
+
+msgid "TOKEN 不能为空"
+msgstr "TOKEN 不能为空"
+
+msgid "通知类型不能为空"
+msgstr "通知类型不能为空"
+
+msgid "通知类型必须是 send 或 group"
+msgstr "通知类型必须是 send 或 group"
+
+msgid "机器人 AppID 不能为空"
+msgstr "机器人 AppID 不能为空"
+
+msgid "机器人 AppSecret 不能为空"
+msgstr "机器人 AppSecret 不能为空"
+
+msgid "PUSH_KEY 不能为空"
+msgstr "PUSH_KEY 不能为空"
+
+msgid "邮件服务器不能为空"
+msgstr "邮件服务器不能为空"
+
+msgid "收发件邮箱不能为空"
+msgstr "收发件邮箱不能为空"
+
+msgid "登录密码不能为空"
+msgstr "登录密码不能为空"
+
+msgid "SSL配置必须为 true 或 false"
+msgstr "SSL配置必须为 true 或 false"
+
+msgid "STARTTLS配置必须为 true 或 false"
+msgstr "STARTTLS配置必须为 true 或 false"
+
+msgid "邮箱格式不正确"
+msgstr "邮箱格式不正确"
+
+msgid "邮件服务器格式不正确，应包含端口号（如：smtp.exmail.qq.com:465）"
+msgstr "邮件服务器格式不正确，应包含端口号（如：smtp.exmail.qq.com:465）"
+
+msgid "端口号必须在1-65535之间"
+msgstr "端口号必须在1-65535之间"
+
+msgid "端口号必须为数字"
+msgstr "端口号必须为数字"
+
+msgid "URL 不能为空"
+msgstr "URL 不能为空"
+
+msgid "URL不能为空"
+msgstr "URL不能为空"
+
+msgid "BOT_TOKEN 不能为空"
+msgstr "BOT_TOKEN 不能为空"
+
+msgid "USER_ID 不能为空"
+msgstr "USER_ID 不能为空"
+
+msgid "用户令牌不能为空"
+msgstr "用户令牌不能为空"
+
+msgid "消息接收者不能为空"
+msgstr "消息接收者不能为空"
+
+msgid "HTTP方法不能为空"
+msgstr "HTTP方法不能为空"
+
+msgid "HTTP方法必须是 POST、GET 或 PUT"
+msgstr "HTTP方法必须是 POST、GET 或 PUT"
+
+msgid "Content-Type不能为空"
+msgstr "Content-Type不能为空"
+
+msgid "请求体不能为空"
+msgstr "请求体不能为空"
+
+msgid "企业 ID 不能为空"
+msgstr "企业 ID 不能为空"
+
+msgid "应用 Secret 不能为空"
+msgstr "应用 Secret 不能为空"
+
+msgid "应用 AgentId 不能为空"
+msgstr "应用 AgentId 不能为空"
+
+msgid "应用 AgentId 必须是有效的数字"
+msgstr "应用 AgentId 必须是有效的数字"
+
+msgid "企业微信机器人 Key 不能为空"
+msgstr "企业微信机器人 Key 不能为空"
+
+msgid "appToken不能为空"
+msgstr "appToken不能为空"
+
+msgid "QQ 号和群号至少需要配置一个"
+msgstr "QQ 号和群号至少需要配置一个"
+
+msgid "主题ID和用户ID至少需要配置其中之一"
+msgstr "主题ID和用户ID至少需要配置其中之一"
+
+msgid "请先点“绑定单聊”或“绑定群聊”获取接收方 OpenID"
+msgstr "请先点“绑定单聊”或“绑定群聊”获取接收方 OpenID"
+
+msgid "请先填写机器人 AppID 与 AppSecret"
+msgstr "请先填写机器人 AppID 与 AppSecret"
+
+# 通知设置 - QQ 机器人绑定
+msgid "请先填写 AppID 与 AppSecret，再点绑定"
+msgstr "请先填写 AppID 与 AppSecret，再点绑定"
+
+msgid "验证码 {}，请用手机 QQ 私聊机器人发送"
+msgstr "验证码 {}，请用手机 QQ 私聊机器人发送"
+
+msgid "验证码 {}，请把机器人拉进群或在群里 @机器人 发送"
+msgstr "验证码 {}，请把机器人拉进群或在群里 @机器人 发送"
+
+msgid "绑定失败：{}"
+msgstr "绑定失败：{}"
+
+msgid "绑定成功，已自动填入{} OpenID"
+msgstr "绑定成功，已自动填入{} OpenID"
+
+msgid "群聊"
+msgstr "群聊"
+
+msgid "单聊"
+msgstr "单聊"
+
+msgid "绑定超时，请在 60 秒内用手机 QQ 私聊机器人发送验证码"
+msgstr "绑定超时，请在 60 秒内用手机 QQ 私聊机器人发送验证码"
+
+msgid "绑定超时，请在 60 秒内把机器人拉进群，或在群里 @机器人 发送验证码"
+msgstr "绑定超时，请在 60 秒内把机器人拉进群，或在群里 @机器人 发送验证码"
+
+msgid "已取消绑定"
+msgstr "已取消绑定"
+
+msgid "QQ 网关连接已断开，请重试"
+msgstr "QQ 网关连接已断开，请重试"
+
+# 游戏设置与配置项说明
+msgid "需确保使用时没有启用输入法"
+msgstr "需确保使用时没有启用输入法"
+
+msgid "出现剪切板失败时 切换到输入法"
+msgstr "出现剪切板失败时 切换到输入法"
+
+msgid "如果你不知道这是做什么的 请不要填写"
+msgstr "如果你不知道这是做什么的 请不要填写"
+
+msgid "填写游戏中切换B服账号时显示的用户名"
+msgstr "填写游戏中切换B服账号时显示的用户名"
+
+msgid "点此查看指南"
+msgstr "点此查看指南"
+
+msgid "请输入密码"
+msgstr "请输入密码"
+
+msgid "密码错误，请重新输入"
+msgstr "密码错误，请重新输入"
+
+# Overlay 设置
+msgid "OCR 耗时"
+msgstr "OCR 耗时"
+
+msgid "YOLO 耗时"
+msgstr "YOLO 耗时"
+
+msgid "CV Pipeline 耗时"
+msgstr "CV Pipeline 耗时"
+
+msgid "节点轮次耗时"
+msgstr "节点轮次耗时"
+
+msgid "Overlay 刷新耗时"
+msgstr "Overlay 刷新耗时"
+
+msgid "显示 {}"
+msgstr "显示 {}"
+
+msgid "启用后可通过 Ctrl+Alt+{} 切换显隐"
+msgstr "启用后可通过 Ctrl+Alt+{} 切换显隐"
+
+msgid "连携技-准备"
+msgstr "连携技-准备"
+
+msgid "闪避识别-黄光"
+msgstr "闪避识别-黄光"
+
+msgid "闪避识别-红光"
+msgstr "闪避识别-红光"
+
+msgid "闪避识别-声音"
+msgstr "闪避识别-声音"
+
+msgid "快速支援-{}"
+msgstr "快速支援-{}"
+
+msgid "减小字号 (Ctrl+滚轮下)"
+msgstr "减小字号 (Ctrl+滚轮下)"
+
+msgid "增大字号 (Ctrl+滚轮上)"
+msgstr "增大字号 (Ctrl+滚轮上)"
+
+msgid "降低面板不透明度"
+msgstr "降低面板不透明度"
+
+msgid "提高面板不透明度"
+msgstr "提高面板不透明度"
+
+msgid "切换锁定/自由模式"
+msgstr "切换锁定/自由模式"
+
+msgid "关闭编辑模式"
+msgstr "关闭编辑模式"
+
+msgid "切换到锁定模式"
+msgstr "切换到锁定模式"
+
+msgid "切换到自由模式"
+msgstr "切换到自由模式"
+
+# 资源下载与安装
+msgid "正在应用更新"
+msgstr "正在应用更新"
+
+msgid "已取消"
+msgstr "已取消"
+
+msgid "正在取消"
+msgstr "正在取消"
+
+msgid "下载线程异常结束"
+msgstr "下载线程异常结束"
+
+msgid "首次使用需要下载"
+msgstr "首次使用需要下载"
+
+msgid "启动器更新"
+msgstr "启动器更新"
+
+msgid "模型文件缺失"
+msgstr "模型文件缺失"
+
+msgid "推荐版本更新"
+msgstr "推荐版本更新"
+
+msgid "{}模型"
+msgstr "{}模型"
+
+msgid "重试"
+msgstr "重试"
+
+msgid "可用资源更新"
+msgstr "可用资源更新"
+
+msgid "下载资源成功"
+msgstr "下载资源成功"
+
+msgid "下载资源失败 请尝试更换代理"
+msgstr "下载资源失败 请尝试更换代理"
+
+msgid "未同步"
+msgstr "未同步"
+
+msgid "未配置"
+msgstr "未配置"
+
+msgid "已同步"
+msgstr "已同步"
+
+msgid "已配置"
+msgstr "已配置"
+
+msgid "环境配置"
+msgstr "环境配置"
+
+msgid "安装启动器"
+msgstr "安装启动器"
+
+msgid "从 GitHub 仓库同步最新项目代码，确保使用最新功能和修复。"
+msgstr "从 GitHub 仓库同步最新项目代码，确保使用最新功能和修复。"
+
+msgid "配置 Python 运行环境和依赖管理工具，为项目运行做好准备。"
+msgstr "配置 Python 运行环境和依赖管理工具，为项目运行做好准备。"
+
+msgid "下载项目启动器，用于启动和管理一条龙应用。"
+msgstr "下载项目启动器，用于启动和管理一条龙应用。"
+
+msgid "安装项目所需的扩展组件和特定功能模块，提供完整的功能体验。"
+msgstr "安装项目所需的扩展组件和特定功能模块，提供完整的功能体验。"
+
+msgid "默认安装"
+msgstr "默认安装"
+
+msgid "Python 虚拟环境"
+msgstr "Python 虚拟环境"
+
+msgid "虚拟手柄"
+msgstr "虚拟手柄"
+
+msgid "请先查看安装指南再继续"
+msgstr "请先查看安装指南再继续"
+
+msgid "正在安装...安装过程可能需要安装驱动 正常安装即可"
+msgstr "正在安装...安装过程可能需要安装驱动 正常安装即可"
+
+msgid "未配置UV"
+msgstr "未配置UV"
+
+msgid "请选择..."
+msgstr "请选择..."
+
+msgid "已选择最快的Pip源：{}（{}ms）"
+msgstr "已选择最快的Pip源：{}（{}ms）"
+
+msgid "测速：{}"
+msgstr "测速：{}"
+
+msgid "耗时 {}ms"
+msgstr "耗时 {}ms"
+
+# 主页、公告与鸣谢
+msgid "公告要闻"
+msgstr "公告要闻"
+
+msgid "软件科研"
+msgstr "软件科研"
+
+msgid "游戏攻略"
+msgstr "游戏攻略"
+
+msgid "画中画已关闭，点击开启后游戏切到后台自动显示画中画"
+msgstr "画中画已关闭，点击开启后游戏切到后台自动显示画中画"
+
+msgid "画中画已开启，游戏切到后台会自动显示，点击画中画切回游戏"
+msgstr "画中画已开启，游戏切到后台会自动显示，点击画中画切回游戏"
+
+msgid "核心贡献者"
+msgstr "核心贡献者"
+
+msgid "文档贡献者"
+msgstr "文档贡献者"
+
+msgid "社区维护者"
+msgstr "社区维护者"
+
+msgid "近期贡献者"
+msgstr "近期贡献者"
+
+msgid "其他贡献者"
+msgstr "其他贡献者"
+
+msgid "模范好市民🏅"
+msgstr "模范好市民🏅"
+
+msgid "测试先锋队🚀"
+msgstr "测试先锋队🚀"
+
+msgid "空洞观察员📚"
+msgstr "空洞观察员📚"
+
+msgid "特别鸣谢"
+msgstr "特别鸣谢"
+
+msgid "感谢您的支持与陪伴"
+msgstr "感谢您的支持与陪伴"
+
+msgid "contributors.yaml文件不存在"
+msgstr "contributors.yaml文件不存在"
+
+msgid "未获取到贡献者信息"
+msgstr "未获取到贡献者信息"
+
+msgid "加载贡献者信息失败: {}"
+msgstr "加载贡献者信息失败: {}"
+
+msgid "上传者"
+msgstr "上传者"
+
+msgid "上传时间"
+msgstr "上传时间"
+
+# 代码编辑器与对话框
+msgid "标题变量"
+msgstr "标题变量"
+
+msgid "内容变量"
+msgstr "内容变量"
+
+msgid "图片变量"
+msgstr "图片变量"
+
+msgid "时间戳 (2024-12-19 15:30:45)"
+msgstr "时间戳 (2024-12-19 15:30:45)"
+
+msgid "ISO时间戳 (2024-12-19T15:30:45)"
+msgstr "ISO时间戳 (2024-12-19T15:30:45)"
+
+msgid "Unix时间戳 (1703004645)"
+msgstr "Unix时间戳 (1703004645)"
+
+msgid "代码编辑器"
+msgstr "代码编辑器"
+
+msgid "Python 脚本编辑器"
+msgstr "Python 脚本编辑器"
+
+msgid "# 输入 Python 脚本"
+msgstr "# 输入 Python 脚本"
+
+msgid "已选 {} 项"
+msgstr "已选 {} 项"
+
+msgid "色彩通道分析"
+msgstr "色彩通道分析"
+
+msgid "{} 色彩空间"
+msgstr "{} 色彩空间"
+
+msgid "颜色信息"
+msgstr "颜色信息"
+
+msgid "坐标"
+msgstr "坐标"
+
+msgid "无有效颜色信息"
+msgstr "无有效颜色信息"
+
+msgid "集成"
+msgstr "集成"
+
+msgid "源码"
+msgstr "源码"
+
+# 运行前检查与运行记录
+msgid "未设置游戏路径 - 请在「账户管理 → 多账户管理 → 当前账户设置」中配置"
+msgstr "未设置游戏路径 - 请在「账户管理 → 多账户管理 → 当前账户设置」中配置"
+
+msgid "闪光识别模型未下载 - 请在「设置 → 资源下载」中下载"
+msgstr "闪光识别模型未下载 - 请在「设置 → 资源下载」中下载"
+
+msgid "当前为默认配置，点击复制后可修改"
+msgstr "当前为默认配置，点击复制后可修改"
+
+msgid "通关次数 本日: {}, 本周: {}"
+msgstr "通关次数 本日: {}, 本周: {}"
+
+msgid "当日: {}"
+msgstr "当日: {}"
+
+msgid "当日进度 {}/{}"
+msgstr "当日进度 {}/{}"
+
+msgid "作者: {}"
+msgstr "作者: {}"
+
+msgid "• {} (无法读取信息)"
+msgstr "• {} (无法读取信息)"
+
+msgid "售卖"
+msgstr "售卖"
+
+# 锄大地路线编辑
+msgid "编辑路线操作"
+msgstr "编辑路线操作"
+
+msgid "添加操作"
+msgstr "添加操作"
+
+msgid "删除选中"
+msgstr "删除选中"
+
+msgid "序号"
+msgstr "序号"
+
+msgid "操作类型"
+msgstr "操作类型"
+
+msgid "数据1"
+msgstr "数据1"
+
+msgid "数据2"
+msgstr "数据2"
+
+msgid "确定要删除第{}个操作吗？"
+msgstr "确定要删除第{}个操作吗？"
+
+msgid "第{}个操作的数据不完整"
+msgstr "第{}个操作的数据不完整"
+
+msgid "第{}个操作的坐标数据必须是数字"
+msgstr "第{}个操作的坐标数据必须是数字"
+
+msgid "{}. {} ({}步)"
+msgstr "{}. {} ({}步)"
+
+msgid "{} - {} ({}步)"
+msgstr "{} - {} ({}步)"
+
+msgid "传送点({}, {})"
+msgstr "传送点({}, {})"
+
+# 下载源与分支配置项 (来自 config/repository.yml)
+msgid "主分支"
+msgstr "主分支"
+
+msgid "测试分支"
+msgstr "测试分支"
+
+msgid "选择后请点击同步最新代码"
+msgstr "选择后请点击同步最新代码"
+
+msgid "官方"
+msgstr "官方"
+
+msgid "清华大学"
+msgstr "清华大学"
+
+msgid "阿里云"
+msgstr "阿里云"
+
+msgid "中国 - CNB"
+msgstr "中国 - CNB"
+
+msgid "中国 - Gitee"
+msgstr "中国 - Gitee"
+
+msgid "中国 - GitHub 代理"
+msgstr "中国 - GitHub 代理"
+
+msgid "海外"
+msgstr "海外"
+
+# 随便观 下拉选项
+msgid "3分钟"
+msgstr "3分钟"
+
+msgid "15分钟"
+msgstr "15分钟"
+
+msgid "1小时"
+msgstr "1小时"
+
+msgid "2小时"
+msgstr "2小时"
+
+msgid "6小时"
+msgstr "6小时"
+
+msgid "12小时"
+msgstr "12小时"
+
+msgid "20小时"
+msgstr "20小时"
+
+msgid "不购买"
+msgstr "不购买"
+
+# 随便观 派遣任务 非游戏官方译名 待核对
+msgid "制造区1-1"
+msgstr "制造区1-1"
+
+msgid "制造区1-2"
+msgstr "制造区1-2"
+
+msgid "制造区1-3"
+msgstr "制造区1-3"
+
+msgid "制造区1-4"
+msgstr "制造区1-4"
+
+msgid "制造区2-1"
+msgstr "制造区2-1"
+
+msgid "制造区2-2"
+msgstr "制造区2-2"
+
+msgid "制造区2-3"
+msgstr "制造区2-3"
+
+msgid "制造区2-4"
+msgstr "制造区2-4"
+
+msgid "制造区3-1"
+msgstr "制造区3-1"
+
+msgid "制造区3-2"
+msgstr "制造区3-2"
+
+msgid "制造区3-3"
+msgstr "制造区3-3"
+
+msgid "制造区3-4"
+msgstr "制造区3-4"
+
+msgid "社区旧址1-1"
+msgstr "社区旧址1-1"
+
+msgid "社区旧址1-2"
+msgstr "社区旧址1-2"
+
+msgid "社区旧址1-3"
+msgstr "社区旧址1-3"
+
+msgid "社区旧址1-4"
+msgstr "社区旧址1-4"
+
+msgid "社区旧址2-1"
+msgstr "社区旧址2-1"
+
+msgid "社区旧址2-2"
+msgstr "社区旧址2-2"
+
+msgid "社区旧址2-3"
+msgstr "社区旧址2-3"
+
+msgid "社区旧址2-4"
+msgstr "社区旧址2-4"
+
+msgid "社区旧址3-1"
+msgstr "社区旧址3-1"
+
+msgid "社区旧址3-2"
+msgstr "社区旧址3-2"
+
+msgid "社区旧址3-3"
+msgstr "社区旧址3-3"
+
+msgid "社区旧址3-4"
+msgstr "社区旧址3-4"
+
+msgid "科研院旧址1-1"
+msgstr "科研院旧址1-1"
+
+msgid "科研院旧址1-2"
+msgstr "科研院旧址1-2"
+
+msgid "科研院旧址1-3"
+msgstr "科研院旧址1-3"
+
+msgid "科研院旧址1-4"
+msgstr "科研院旧址1-4"
+
+msgid "科研院旧址2-1"
+msgstr "科研院旧址2-1"
+
+msgid "科研院旧址2-2"
+msgstr "科研院旧址2-2"
+
+msgid "科研院旧址2-3"
+msgstr "科研院旧址2-3"
+
+msgid "科研院旧址2-4"
+msgstr "科研院旧址2-4"
+
+msgid "科研院旧址3-1"
+msgstr "科研院旧址3-1"
+
+msgid "科研院旧址3-2"
+msgstr "科研院旧址3-2"
+
+msgid "科研院旧址3-3"
+msgstr "科研院旧址3-3"
+
+msgid "科研院旧址3-4"
+msgstr "科研院旧址3-4"
+
+# 迷失之地 / 枯萎之都 配置与策略 非游戏官方译名 待核对
+msgid "专属空洞"
+msgstr "专属空洞"
+
+msgid "成就"
+msgstr "成就"
+
+msgid "成就模式"
+msgstr "成就模式"
+
+msgid "空洞金融大亨"
+msgstr "空洞金融大亨"
+
+msgid "异常·击破"
+msgstr "异常·击破"
+
+msgid "终结"
+msgstr "终结"
+
+msgid "绝境"
+msgstr "绝境"
+
+msgid "全副武装战略"
+msgstr "全副武装战略"
+
+msgid "养精蓄锐战略"
+msgstr "养精蓄锐战略"
+
+msgid "呼朋引伴战略"
+msgstr "呼朋引伴战略"
+
+msgid "固守阵线战略"
+msgstr "固守阵线战略"
+
+msgid "抢占先机战略"
+msgstr "抢占先机战略"
+
+msgid "攻其不备战略"
+msgstr "攻其不备战略"
+
+msgid "狡黠盗洞战略"
+msgstr "狡黠盗洞战略"
+
+msgid "秘宝猎人战略"
+msgstr "秘宝猎人战略"
+
+msgid "经商友好战略"
+msgstr "经商友好战略"
+
+msgid "舍生陷阵战略"
+msgstr "舍生陷阵战略"
+
+msgid "迅刃连击战略"
+msgstr "迅刃连击战略"
+
+msgid "鸣徽狂热战略"
+msgstr "鸣徽狂热战略"
+
+msgid "完成每周8000积分奖励"
+msgstr "完成每周8000积分奖励"
+
+msgid "刷满每周业绩点"
+msgstr "刷满每周业绩点"
+
+msgid "刷满每周丁尼"
+msgstr "刷满每周丁尼"
+
+msgid "完成配置的每周计划次数"
+msgstr "完成配置的每周计划次数"
+
+msgid "默认的寻路方式"
+msgstr "默认的寻路方式"
+
+msgid "途经呼叫增援和业绩考察点 避免战斗"
+msgstr "途经呼叫增援和业绩考察点 避免战斗"
+
+msgid "自己在下边填吧 名称可以看游戏图鉴"
+msgstr "自己在下边填吧 名称可以看游戏图鉴"
+
+# 锄大地 区域名称 非游戏官方译名 待核对
+msgid "中央制造区"
+msgstr "中央制造区"
+
+msgid "科研院旧址"
+msgstr "科研院旧址"
+
+msgid "粗加工中心"
+msgstr "粗加工中心"
+
+msgid "职工社区旧址"
+msgstr "职工社区旧址"
+
+msgid "卫非地"
+msgstr "卫非地"
+
+msgid "外环地带"
+msgstr "外环地带"
+
+msgid "斯卡莫空洞"
+msgstr "斯卡莫空洞"
+
+msgid "索恩区"
+msgstr "索恩区"
+
+msgid "罗斯凯利法"
+msgstr "罗斯凯利法"
+
+msgid "莱姆尼安空洞"
+msgstr "莱姆尼安空洞"
+
+msgid "雅努斯区"
+msgstr "雅努斯区"
+
+# 通知推送结果提示 (渠道返回的固定文案)
+msgid "Discord 私聊频道建立失败"
+msgstr "Discord 私聊频道建立失败"
+
+msgid "图片上传失败"
+msgstr "图片上传失败"
+
+msgid "图片处理失败"
+msgstr "图片处理失败"
+
+msgid "图片转换失败"
+msgstr "图片转换失败"
+
+msgid "图片转换或压缩失败"
+msgstr "图片转换或压缩失败"
+
+msgid "gotify 推送失败！"
+msgstr "gotify 推送失败！"
+
+msgid "Ntfy 推送成功！"
+msgstr "Ntfy 推送成功！"
+
+msgid "部分 Ntfy 推送成功！"
+msgstr "部分 Ntfy 推送成功！"
+
+msgid "Ntfy 推送失败！"
+msgstr "Ntfy 推送失败！"
+
+msgid "未配置有效的接收者"
+msgstr "未配置有效的接收者"
+
+msgid "合并转发成功"
+msgstr "合并转发成功"
+
+msgid "PushPlus(hxtrip) 推送成功！"
+msgstr "PushPlus(hxtrip) 推送成功！"
+
+msgid "主动消息无权限：群聊需群主在手机 QQ 的群机器人设置里打开“机器人在群内主动发言”"
+msgstr "主动消息无权限：群聊需群主在手机 QQ 的群机器人设置里打开“机器人在群内主动发言”"
+
+msgid "主动消息发送太频繁：同一接收方每分钟最多 20 条、每天最多 1000 条"
+msgstr "主动消息发送太频繁：同一接收方每分钟最多 20 条、每天最多 1000 条"
+
+msgid "机器人还没添加对方为好友，单聊需先把机器人加为好友"
+msgstr "机器人还没添加对方为好友，单聊需先把机器人加为好友"
+
+msgid "接收方拒收了消息：需要接收方在手机 QQ 打开该机器人资料页，开启“接收机器人推送”"
+msgstr "接收方拒收了消息：需要接收方在手机 QQ 打开该机器人资料页，开启“接收机器人推送”"
+
+msgid "消息长度超出上限"
+msgstr "消息长度超出上限"
+
+msgid "markdown 内容无效"
+msgstr "markdown 内容无效"
+
+msgid "上传准备未返回分片地址"
+msgstr "上传准备未返回分片地址"
+
+msgid "QQ 机器人鉴权失败，请检查 AppID/AppSecret，并确认已开通单聊事件权限"
+msgstr "QQ 机器人鉴权失败，请检查 AppID/AppSecret，并确认已开通单聊事件权限"
+
+msgid "QQ 机器人鉴权失败，请检查 AppID/AppSecret，并确认已开通群聊事件权限"
+msgstr "QQ 机器人鉴权失败，请检查 AppID/AppSecret，并确认已开通群聊事件权限"
+
+msgid "已收到群内 @机器人消息，但未获取到群 OpenID，请重试"
+msgstr "已收到群内 @机器人消息，但未获取到群 OpenID，请重试"
+
+msgid "已收到群内 @机器人消息，但验证码不匹配，请发送当前显示的验证码"
+msgstr "已收到群内 @机器人消息，但验证码不匹配，请发送当前显示的验证码"
+
+msgid "已收到机器人入群事件，但未获取到群 OpenID，请重试"
+msgstr "已收到机器人入群事件，但未获取到群 OpenID，请重试"
+
+msgid "SMTP邮件推送成功"
+msgstr "SMTP邮件推送成功"
+
+msgid "SMTP邮件合并推送成功"
+msgstr "SMTP邮件合并推送成功"
+
+msgid "Token 不能为空"
+msgstr "Token 不能为空"
+
+msgid "图文消息失败，已回退至文本消息推送成功"
+msgstr "图文消息失败，已回退至文本消息推送成功"
+
+msgid "主题ID格式不正确"
+msgstr "主题ID格式不正确"
+
+msgid "主题ID必须为数字"
+msgstr "主题ID必须为数字"
+
+# 鸣谢页分类标题括号
+msgid "【{}】"
+msgstr "【{}】"
+
+msgid "入场"
+msgstr "入场"

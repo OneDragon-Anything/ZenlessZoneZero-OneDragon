@@ -63,7 +63,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         target_idx = 0
         for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
-            self.run_opt.addItem(text=opt.label, userData=opt.value)
+            self.run_opt.addItem(text=opt.ui_text, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
         self.run_opt.setCurrentIndex(target_idx)

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
 
+from one_dragon.utils.i18_utils import gt, gt_compound
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
@@ -99,8 +100,8 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
         self.run_record_opt = PushSettingCard(
             icon=FluentIcon.SYNC,
-            title='运行记录',
-            text='重置记录'
+            title=gt('运行记录'),
+            text=gt('重置记录')
         )
         self.run_record_opt.clicked.connect(self._on_reset_record_clicked)
         right_layout.addWidget(self.run_record_opt)
@@ -166,8 +167,8 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
         elif self.run_record.no_eval_point:
             content = '已完成刷取业绩 如错误可重置'
         else:
-            content = f'通关次数 本日: {self.run_record.daily_run_times}, 本周: {self.run_record.weekly_run_times}'
-        self.run_record_opt.setContent(content)
+            content = gt('通关次数 本日: {}, 本周: {}').format(self.run_record.daily_run_times, self.run_record.weekly_run_times)
+        self.run_record_opt.setContent(gt(content))
 
     def _update_mission_options(self) -> None:
         self.mission_opt.blockSignals(True)
@@ -186,7 +187,7 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
         """
         config_list: list[HollowZeroChallengeConfig] = get_all_hollow_zero_challenge_config()
         opt_list = [
-            ConfigItem(config.module_name, config.module_name)
+            ConfigItem(gt_compound(config.module_name), config.module_name)
             for config in config_list
         ]
         self.challenge_config_opt.set_options_by_list(opt_list)

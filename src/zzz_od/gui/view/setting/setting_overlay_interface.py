@@ -312,7 +312,7 @@ class SettingOverlayInterface(VerticalScrollInterface):
         for title, metric_key in self._PERF_CORE_METRICS:
             card = SwitchSettingCard(
                 icon=FluentIcon.ZOOM,
-                title=f"显示 {title}",
+                title=gt("显示 {}").format(gt(title)),
             )
             card.value_changed.connect(
                 lambda enabled, metric=metric_key: self._on_perf_metric_changed(metric, enabled)
@@ -418,7 +418,7 @@ class SettingOverlayInterface(VerticalScrollInterface):
 
     def _refresh_hotkey_content(self) -> None:
         key = self._format_hotkey_key(self.config.toggle_hotkey)
-        self.enabled_opt.setContent(f"启用后可通过 Ctrl+Alt+{key} 切换显隐")
+        self.enabled_opt.setContent(gt("启用后可通过 Ctrl+Alt+{} 切换显隐").format(key))
 
     def _sync_perf_metric_cards(self) -> None:
         for _, metric_key in self._PERF_CORE_METRICS:

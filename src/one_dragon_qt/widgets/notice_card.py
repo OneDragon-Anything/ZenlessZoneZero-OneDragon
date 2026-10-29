@@ -46,6 +46,7 @@ from qfluentwidgets import (
     qconfig,
 )
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -584,7 +585,7 @@ class NoticeCard(SimpleCardWidget):
             widget.itemClicked.connect(
                 lambda _, w=widget, t=post_type: self.open_post_link(w, t)
             )
-            self.addSubInterface(widget, post_type, name)
+            self.addSubInterface(widget, post_type, gt(name))
 
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.stackedWidget.setCurrentWidget(self.announcementsWidget)

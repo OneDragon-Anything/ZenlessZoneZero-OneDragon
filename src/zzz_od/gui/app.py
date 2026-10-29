@@ -50,7 +50,7 @@ try:
             code_version = self.ctx.git_service.get_current_version()
 
             # 区分启动器类型：集成启动器（exe 打包运行）与源码启动器
-            launch_tag = '集成' if os_utils.run_in_exe() else '源码'
+            launch_tag = gt('集成') if os_utils.run_in_exe() else gt('源码')
 
             versions = (launcher_version, code_version, launch_tag)
             self.get.emit(versions)

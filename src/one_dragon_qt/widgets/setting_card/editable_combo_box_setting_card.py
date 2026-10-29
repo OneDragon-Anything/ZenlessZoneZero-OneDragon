@@ -12,6 +12,7 @@ from typing import Optional, List, Iterable
 from typing import Union
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -49,7 +50,7 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
 
         # 初始化下拉框
         self.combo_box = EditableComboBox(self)
-        self.combo_box.setPlaceholderText(input_placeholder)
+        self.combo_box.setPlaceholderText(gt(input_placeholder))
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
@@ -108,7 +109,7 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         if self.with_tooltip:
             if self._tooltip:
                 self._tooltip.close()
-            self._tooltip = ToolTip(self.tooltip_text, self)
+            self._tooltip = ToolTip(gt(self.tooltip_text), self)
             self._tooltip.shadowEffect.setColor(QColor(0, 0, 0, 15))
             self._tooltip.shadowEffect.setOffset(0, 1)
             self._tooltip.setDuration(0)

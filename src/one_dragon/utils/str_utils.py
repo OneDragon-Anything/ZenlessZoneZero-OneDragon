@@ -292,3 +292,16 @@ def remove_whitespace(v: str | None) -> str:
 
     # 移除空格
     return re.sub(r'\s', '', v)
+
+
+def match_ocr_text(
+    target: str,
+    ocr_data: str,
+    percent: float = 0.3,
+    ignore_case: bool = True,
+    **kwargs,
+) -> bool:
+    """
+    匹配 OCR 文本与目标字符串（兼容包装 find_by_lcs）。
+    """
+    return find_by_lcs(target, ocr_data, percent=percent, ignore_case=ignore_case)

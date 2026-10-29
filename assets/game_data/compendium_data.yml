@@ -164,7 +164,12 @@
             - mission_name: "特遣调查"
             - mission_name: "矩阵行动"
         - mission_type_name: "断层之谜"
+        - mission_type_name: "枯败花圃"
+          mission_list:
+            - mission_name: "枯败花圃-核心"
         - mission_type_name: "枯萎之都"
+          mission_list:
+            - mission_name: "枯萎之都-核心"
         - mission_type_name: "旧都列车"
           mission_list:
             - mission_name: "旧都列车-外围"

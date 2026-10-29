@@ -48,8 +48,8 @@ class SuibianTempleCraft(ZOperation):
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '经营',
             '制造',
+            '经营',
         ]
         ignore_cn_list: list[str] = [
         ]

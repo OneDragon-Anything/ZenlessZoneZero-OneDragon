@@ -97,7 +97,7 @@ class PluginCard(MultiPushSettingCard):
         if plugin_info.version:
             content_parts.append(f"v{plugin_info.version}")
         if plugin_info.author:
-            content_parts.append(f"作者: {plugin_info.author}")
+            content_parts.append(gt("作者: {}").format(plugin_info.author))
         if plugin_info.description:
             content_parts.append(plugin_info.description)
 
@@ -136,7 +136,7 @@ class PluginCard(MultiPushSettingCard):
         if plugin_info.version:
             content_parts.append(f"v{plugin_info.version}")
         if plugin_info.author:
-            content_parts.append(f"作者: {plugin_info.author}")
+            content_parts.append(gt("作者: {}").format(plugin_info.author))
         if plugin_info.description:
             content_parts.append(plugin_info.description)
 
@@ -349,7 +349,7 @@ class SettingPluginInterface(VerticalScrollInterface):
         preview_lines: list[str] = []
         for file_path, preview in previews:
             if preview is None:
-                preview_lines.append(f"• {Path(file_path).stem} (无法读取信息)")
+                preview_lines.append(gt("• {} (无法读取信息)").format(Path(file_path).stem))
                 continue
 
             line = f"• {preview.plugin_name}"
@@ -451,7 +451,7 @@ class SettingPluginInterface(VerticalScrollInterface):
 
             if downgrade_overwrite:
                 warnings = [
-                    f'{name}: {new_version or "未知"} ← {old_version or "未知"}'
+                    f'{name}: {new_version or gt("未知")} ← {old_version or gt("未知")}'
                     for _, name, new_version, old_version in downgrade_overwrite
                 ]
                 msg = MessageBox(
@@ -630,7 +630,7 @@ class SettingPluginInterface(VerticalScrollInterface):
 
             if downgrade_overwrite:
                 warnings = [
-                    f'{name}: {new_version or "未知"} ← {old_version or "未知"}'
+                    f'{name}: {new_version or gt("未知")} ← {old_version or gt("未知")}'
                     for name, new_version, old_version in downgrade_overwrite
                 ]
                 msg = MessageBox(

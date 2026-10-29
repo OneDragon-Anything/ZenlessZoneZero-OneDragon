@@ -38,8 +38,8 @@ class SuibianTempleSalesStall(ZOperation):
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '经营',
             '售卖',
+            '经营',
         ]
         ignore_cn_list: list[str] = [
         ]

@@ -68,7 +68,7 @@ class SharedConfigDialog(FramelessDialog):
         # 在线配置表格视图
         self.online_table_widget = TableWidget(self)
         self.online_table_widget.setColumnCount(3)
-        self.online_table_widget.setHorizontalHeaderLabels(COLUMN_HEADERS)
+        self.online_table_widget.setHorizontalHeaderLabels([gt(h) for h in COLUMN_HEADERS])
         self.online_table_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.online_table_widget.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
