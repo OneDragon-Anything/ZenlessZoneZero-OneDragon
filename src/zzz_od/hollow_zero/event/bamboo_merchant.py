@@ -199,8 +199,19 @@ class BambooMerchant(ZOperation):
     @node_from(from_name='购买')
     @operation_node(name='购买后确定')
     def confirm(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-商店', '购买后确定',
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-商店', '购买后确定',
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            return result
+
+        # 购买后的确认弹窗位置/文本可能与原区域不一致 与确认鸣徽一样在底部选择列表中查找
+        area = self.ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
+        for word in ['确认', '确定']:
+            result = self.round_by_ocr_and_click(self.last_screenshot, word, area=area)
+            if result.is_success:
+                return self.round_success(wait=1)
+
+        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='画面识别', status=STATUS_LEVEL_2_UPGRADE)
     @operation_node(name='鸣徽催化')
