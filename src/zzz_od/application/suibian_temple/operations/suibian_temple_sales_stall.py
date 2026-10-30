@@ -43,6 +43,7 @@ class SuibianTempleSalesStall(ZOperation):
 
     @operation_node(name='前往售卖铺', is_start_node=True)
     def goto_sales_stall(self) -> OperationRoundResult:
+        """前往售卖铺画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-售卖铺'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
@@ -182,6 +183,7 @@ class SuibianTempleSalesStall(ZOperation):
     @node_from(from_name='前往售卖铺', success=False)
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
+        """返回随便观入口 点击次数达到上限时失败"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
         if current_screen_name is not None:
             return self.round_success()
