@@ -110,7 +110,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from math import atan2, cos, degrees, hypot, isfinite, radians, sin
+    from math import atan2, cos, degrees, floor, hypot, isfinite, radians, sin
     from packaging import version
     from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
@@ -138,12 +138,9 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from statistics import median
     from threading import Event, Lock, RLock
     from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
-
     from urllib.parse import urlencode, urljoin, urlparse
     from uuid import NAMESPACE_URL, uuid4, uuid5
-
     from yaml import CSafeLoader, SafeLoader
