@@ -54,11 +54,20 @@ class SuibianTempleCraft(ZOperation):
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 
+        # 每日首次进入可能弹出 经营日志 其中的 经营 会被误认为经营页签 需要先关闭
+        result = self.round_by_ocr(self.last_screenshot, '经营日志', lcs_percent=1)
+        if result.is_success:
+            result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
+            if result.is_success:
+                return self.round_wait(status='关闭经营日志', wait=1)
+
         target_cn_list: list[str] = [
+            '经营日志',
             '经营',
             '制造',
         ]
         ignore_cn_list: list[str] = [
+            '经营日志',
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
