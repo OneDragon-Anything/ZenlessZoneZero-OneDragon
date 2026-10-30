@@ -1,5 +1,1136 @@
+#
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "ZenlessZoneZero"
+msgstr "ZenlessZoneZero"
+
+msgid "ZenlessZoneZero-OneDragon"
+msgstr "ZenlessZoneZero-OneDragon"
+
+msgid "ZenlessZoneZero-OneDragon-installer"
+msgstr "ZenlessZoneZero-OneDragon-installer"
+
+msgid "绝区零"
+msgstr "绝区零"
+
+msgid "绝区零 一条龙"
+msgstr "绝区零 一条龙"
+
+msgid "绝区零一条龙"
+msgstr "绝区零一条龙"
+
+msgid "绝区零 一条龙 安装器"
+msgstr "绝区零 一条龙 安装器"
+
+msgid "一条龙"
+msgstr "一条龙"
+
+msgid "一条龙运行"
+msgstr "一条龙运行"
+
+msgid "一条龙安装向导"
+msgstr "一条龙安装向导"
+
+msgid "启动一条龙"
+msgstr "启动一条龙"
+
+msgid "欢迎使用一条龙"
+msgstr "欢迎使用一条龙"
+
+msgid "欢迎使用绝区零一条龙"
+msgstr "欢迎使用绝区零一条龙"
+
+msgid "电量"
+msgstr "电量"
+
+msgid "体力"
+msgstr "体力"
+
+msgid "储蓄电量"
+msgstr "储蓄电量"
+
+msgid "以太电池"
+msgstr "以太电池"
+
+msgid "合成电池"
+msgstr "合成电池"
+
+msgid "丁尼"
+msgstr "丁尼"
+
+msgid "菲林"
+msgstr "菲林"
+
+msgid "母带"
+msgstr "母带"
+
+msgid "原装母带"
+msgstr "原装母带"
+
+msgid "加密母带"
+msgstr "加密母带"
+
+msgid "邦布券"
+msgstr "邦布券"
+
+msgid "齿轮硬币"
+msgstr "齿轮硬币"
+
+msgid "齿轮硬币不足"
+msgstr "齿轮硬币不足"
+
+msgid "鸣徽"
+msgstr "鸣徽"
+
+msgid "侵蚀"
+msgstr "侵蚀"
+
+msgid "侵蚀症状"
+msgstr "侵蚀症状"
+
+msgid "清除侵蚀症状"
+msgstr "清除侵蚀症状"
+
+msgid "压力值"
+msgstr "压力值"
+
+msgid "降压"
+msgstr "降压"
+
+msgid "代理人"
+msgstr "代理人"
+
+msgid "代理人英文名"
+msgstr "代理人英文名"
+
+msgid "代理人模板"
+msgstr "代理人模板"
+
+msgid "代理人模板生成"
+msgstr "代理人模板生成"
+
+msgid "代理人皮肤"
+msgstr "代理人皮肤"
+
+msgid "搜索代理人"
+msgstr "搜索代理人"
+
+msgid "没有未提交的代理人"
+msgstr "没有未提交的代理人"
+
+msgid "角色切换-下一个"
+msgstr "角色切换-下一个"
+
+msgid "角色切换-上一个"
+msgstr "角色切换-上一个"
+
+msgid "代理人经验"
+msgstr "代理人经验"
+
+msgid "代理人晋升"
+msgstr "代理人晋升"
+
+msgid "代理人技能"
+msgstr "代理人技能"
+
+msgid "代理人方案培养"
+msgstr "代理人方案培养"
+
+msgid "音擎"
+msgstr "音擎"
+
+msgid "音擎经验"
+msgstr "音擎经验"
+
+msgid "音擎专项"
+msgstr "音擎专项"
+
+msgid "音擎改装"
+msgstr "音擎改装"
+
+msgid "驱动盘"
+msgstr "驱动盘"
+
+msgid "驱动盘经验"
+msgstr "驱动盘经验"
+
+msgid "驱动盘拆解"
+msgstr "驱动盘拆解"
+
+msgid "驱动盘拆解等级"
+msgstr "驱动盘拆解等级"
+
+msgid "镀剂专项"
+msgstr "镀剂专项"
+
+msgid "邦布"
+msgstr "邦布"
+
+msgid "邦布商人"
+msgstr "邦布商人"
+
+msgid "邦布商店"
+msgstr "邦布商店"
+
+msgid "邦布商人策略"
+msgstr "邦布商人策略"
+
+msgid "买齐买净"
+msgstr "买齐买净"
+
+msgid "预备编队"
+msgstr "预备编队"
+
+msgid "选择预备编队"
+msgstr "选择预备编队"
+
+msgid "预备编队角色识别"
+msgstr "预备编队角色识别"
+
+msgid "游戏内配队"
+msgstr "游戏内配队"
+
+msgid "银行UP编队"
+msgstr "银行UP编队"
+
+msgid "普通攻击"
+msgstr "普通攻击"
+
+msgid "特殊攻击"
+msgstr "特殊攻击"
+
+msgid "强化特殊技"
+msgstr "强化特殊技"
+
+msgid "终结技"
+msgstr "终结技"
+
+msgid "连携技"
+msgstr "连携技"
+
+msgid "连携技-左"
+msgstr "连携技-左"
+
+msgid "连携技-右"
+msgstr "连携技-右"
+
+msgid "连携技-取消"
+msgstr "连携技-取消"
+
+msgid "闪避"
+msgstr "闪避"
+
+msgid "冲刺攻击"
+msgstr "冲刺攻击"
+
+msgid "闪避反击"
+msgstr "闪避反击"
+
+msgid "快速支援"
+msgstr "快速支援"
+
+msgid "招架支援"
+msgstr "招架支援"
+
+msgid "回避支援"
+msgstr "回避支援"
+
+msgid "支援突击"
+msgstr "支援突击"
+
+msgid "切换后援"
+msgstr "切换后援"
+
+msgid "锁定敌人"
+msgstr "锁定敌人"
+
+msgid "交互"
+msgstr "交互"
+
+msgid "移动-前"
+msgstr "移动-前"
+
+msgid "移动-后"
+msgstr "移动-后"
+
+msgid "移动-左"
+msgstr "移动-左"
+
+msgid "移动-右"
+msgstr "移动-右"
+
+msgid "失衡值"
+msgstr "失衡值"
+
+msgid "失衡状态"
+msgstr "失衡状态"
+
+msgid "分贝值"
+msgstr "分贝值"
+
+msgid "属性异常"
+msgstr "属性异常"
+
+msgid "异常精通"
+msgstr "异常精通"
+
+msgid "异常掌控"
+msgstr "异常掌控"
+
+msgid "暴击率"
+msgstr "暴击率"
+
+msgid "暴击伤害"
+msgstr "暴击伤害"
+
+msgid "穿透率"
+msgstr "穿透率"
+
+msgid "穿透值"
+msgstr "穿透值"
+
+msgid "强攻"
+msgstr "强攻"
+
+msgid "击破"
+msgstr "击破"
+
+msgid "异常"
+msgstr "异常"
+
+msgid "支援"
+msgstr "支援"
+
+msgid "防护"
+msgstr "防护"
+
+msgid "命破"
+msgstr "命破"
+
+msgid "锋御"
+msgstr "锋御"
+
+msgid "物理"
+msgstr "物理"
+
+msgid "火属性"
+msgstr "火属性"
+
+msgid "火"
+msgstr "火"
+
+msgid "冰属性"
+msgstr "冰属性"
+
+msgid "冰"
+msgstr "冰"
+
+msgid "电属性"
+msgstr "电属性"
+
+msgid "电"
+msgstr "电"
+
+msgid "以太"
+msgstr "以太"
+
+msgid "流明"
+msgstr "流明"
+
+msgid "快捷手册"
+msgstr "快捷手册"
+
+msgid "打开快捷手册"
+msgstr "打开快捷手册"
+
+msgid "实战模拟室"
+msgstr "实战模拟室"
+
+msgid "专业挑战室"
+msgstr "专业挑战室"
+
+msgid "区域巡防"
+msgstr "区域巡防"
+
+msgid "定期清理"
+msgstr "定期清理"
+
+msgid "恶名狩猎"
+msgstr "恶名狩猎"
+
+msgid "恶名狩猎计划"
+msgstr "恶名狩猎计划"
+
+msgid "恶名狩猎战斗"
+msgstr "恶名狩猎战斗"
+
+msgid "新增恶名狩猎计划"
+msgstr "新增恶名狩猎计划"
+
+msgid "零号空洞"
+msgstr "零号空洞"
+
+msgid "空洞零"
+msgstr "空洞零"
+
+msgid "进入 HDD 副本"
+msgstr "进入 HDD 副本"
+
+msgid "挑战副本"
+msgstr "挑战副本"
+
+msgid "离开空洞"
+msgstr "离开空洞"
+
+msgid "空洞操作器"
+msgstr "空洞操作器"
+
+msgid "空洞格子识别"
+msgstr "空洞格子识别"
+
+msgid "选择鸣徽"
+msgstr "选择鸣徽"
+
+msgid "确认鸣徽"
+msgstr "确认鸣徽"
+
+msgid "交换鸣徽"
+msgstr "交换鸣徽"
+
+msgid "丢弃鸣徽"
+msgstr "丢弃鸣徽"
+
+msgid "识别鸣徽关键词"
+msgstr "识别鸣徽关键词"
+
+msgid "枯萎之都"
+msgstr "枯萎之都"
+
+msgid "枯败花圃"
+msgstr "枯败花圃"
+
+msgid "枯萎之都配置"
+msgstr "枯萎之都配置"
+
+msgid "挑战配置-枯"
+msgstr "挑战配置-枯"
+
+msgid "迷失之地"
+msgstr "迷失之地"
+
+msgid "迷失之地配置"
+msgstr "迷失之地配置"
+
+msgid "挑战配置-迷"
+msgstr "挑战配置-迷"
+
+msgid "迷失之地识别"
+msgstr "迷失之地识别"
+
+msgid "周期征讨"
+msgstr "周期征讨"
+
+msgid "旧都列车"
+msgstr "旧都列车"
+
+msgid "旧都列车-外围"
+msgstr "旧都列车-外围"
+
+msgid "旧都列车-前线"
+msgstr "旧都列车-前线"
+
+msgid "旧都列车-内部"
+msgstr "旧都列车-内部"
+
+msgid "旧都列车-腹地"
+msgstr "旧都列车-腹地"
+
+msgid "旧都列车-核心"
+msgstr "旧都列车-核心"
+
+msgid "施工废墟"
+msgstr "施工废墟"
+
+msgid "施工废墟-前线"
+msgstr "施工废墟-前线"
+
+msgid "施工废墟-内部"
+msgstr "施工废墟-内部"
+
+msgid "施工废墟-腹地"
+msgstr "施工废墟-腹地"
+
+msgid "施工废墟-核心"
+msgstr "施工废墟-核心"
+
+msgid "巨厦遗骸"
+msgstr "巨厦遗骸"
+
+msgid "巨厦遗骸-内部"
+msgstr "巨厦遗骸-内部"
+
+msgid "巨厦遗骸-腹地"
+msgstr "巨厦遗骸-腹地"
+
+msgid "巨厦遗骸-核心"
+msgstr "巨厦遗骸-核心"
+
+msgid "断层之谜"
+msgstr "断层之谜"
+
+msgid "式舆防卫战"
+msgstr "式舆防卫战"
+
+msgid "稳定节点"
+msgstr "稳定节点"
+
+msgid "纷争节点"
+msgstr "纷争节点"
+
+msgid "剧变节点"
+msgstr "剧变节点"
+
+msgid "剧变节点 重置运行记录"
+msgstr "剧变节点 重置运行记录"
+
+msgid "丽都城募"
+msgstr "丽都城募"
+
+msgid "丽都周纪"
+msgstr "丽都周纪"
+
+msgid "丽都周纪 (领奖励)"
+msgstr "丽都周纪 (领奖励)"
+
+msgid "咖啡馆"
+msgstr "咖啡馆"
+
+msgid "咖啡店"
+msgstr "咖啡店"
+
+msgid "咖啡计划"
+msgstr "咖啡计划"
+
+msgid "咖啡选择"
+msgstr "咖啡选择"
+
+msgid "喝后挑战"
+msgstr "喝后挑战"
+
+msgid "吃拉面"
+msgstr "吃拉面"
+
+msgid "录像店营业"
+msgstr "录像店营业"
+
+msgid "刮刮卡"
+msgstr "刮刮卡"
+
+msgid "吼吼饼铺"
+msgstr "吼吼饼铺"
+
+msgid "随便观"
+msgstr "随便观"
+
+msgid "随便观-游历派遣"
+msgstr "随便观-游历派遣"
+
+msgid "游历"
+msgstr "游历"
+
+msgid "游历中"
+msgstr "游历中"
+
+msgid "制造"
+msgstr "制造"
+
+msgid "制造中"
+msgstr "制造中"
+
+msgid "制造派驻"
+msgstr "制造派驻"
+
+msgid "自动托管"
+msgstr "自动托管"
+
+msgid "邦巢"
+msgstr "邦巢"
+
+msgid "售卖铺"
+msgstr "售卖铺"
+
+msgid "售卖中"
+msgstr "售卖中"
+
+msgid "好物铺"
+msgstr "好物铺"
+
+msgid "饮茶仙"
+msgstr "饮茶仙"
+
+msgid "德丰大押"
+msgstr "德丰大押"
+
+msgid "卦象集录"
+msgstr "卦象集录"
+
+msgid "锄大地"
+msgstr "锄大地"
+
+msgid "锄大地配置"
+msgstr "锄大地配置"
+
+msgid "锄地路线录制"
+msgstr "锄地路线录制"
+
+msgid "路线列表"
+msgstr "路线列表"
+
+msgid "大地图录制"
+msgstr "大地图录制"
+
+msgid "开始街机游戏"
+msgstr "开始街机游戏"
+
+msgid "蛇对蛇自杀"
+msgstr "蛇对蛇自杀"
+
+msgid "真·拿命验收[即将移除请转插件]"
+msgstr "真·拿命验收[即将移除请转插件]"
+
+msgid "情报板"
+msgstr "情报板"
+
+msgid "重置进度"
+msgstr "重置进度"
+
+msgid "已重置"
+msgstr "已重置"
+
+msgid "兑换码"
+msgstr "兑换码"
+
+msgid "请输入兑换码"
+msgstr "请输入兑换码"
+
+msgid "兑换码已存在"
+msgstr "兑换码已存在"
+
+msgid "过期日期"
+msgstr "过期日期"
+
+msgid "每日签到"
+msgstr "每日签到"
+
+msgid "活跃度奖励"
+msgstr "活跃度奖励"
+
+msgid "邮件"
+msgstr "邮件"
+
+msgid "通知"
+msgstr "通知"
+
+msgid "通知设置"
+msgstr "通知设置"
+
+msgid "闪避助手"
+msgstr "闪避助手"
+
+msgid "闪避截图"
+msgstr "闪避截图"
+
+msgid "战斗助手"
+msgstr "战斗助手"
+
+msgid "委托助手"
+msgstr "委托助手"
+
+msgid "指令调试"
+msgstr "指令调试"
+
+msgid "鼠标灵敏度检测"
+msgstr "鼠标灵敏度检测"
+
+msgid "游戏配置检查"
+msgstr "游戏配置检查"
+
+msgid "目标"
+msgstr "目标"
+
+msgid "日常"
+msgstr "日常"
+
+msgid "训练"
+msgstr "训练"
+
+msgid "作战"
+msgstr "作战"
+
+msgid "基础材料"
+msgstr "基础材料"
+
+msgid "调查专项"
+msgstr "调查专项"
+
+msgid "赏金专项"
+msgstr "赏金专项"
+
+msgid "锋御演练"
+msgstr "锋御演练"
+
+msgid "命破演练"
+msgstr "命破演练"
+
+msgid "强攻演练"
+msgstr "强攻演练"
+
+msgid "击破演练"
+msgstr "击破演练"
+
+msgid "异常演练"
+msgstr "异常演练"
+
+msgid "支援演练"
+msgstr "支援演练"
+
+msgid "防护演练"
+msgstr "防护演练"
+
+msgid "锋御耦合试验"
+msgstr "锋御耦合试验"
+
+msgid "命破共鸣试验"
+msgstr "命破共鸣试验"
+
+msgid "强攻极片试验"
+msgstr "强攻极片试验"
+
+msgid "击破振膜试验"
+msgstr "击破振膜试验"
+
+msgid "异常磁体试验"
+msgstr "异常磁体试验"
+
+msgid "支援分频试验"
+msgstr "支援分频试验"
+
+msgid "防护音圈试验"
+msgstr "防护音圈试验"
+
+msgid "刚性测试"
+msgstr "刚性测试"
+
+msgid "升温测试"
+msgstr "升温测试"
+
+msgid "冰结测试"
+msgstr "冰结测试"
+
+msgid "电流测试"
+msgstr "电流测试"
+
+msgid "风切测试"
+msgstr "风切测试"
+
+msgid "共鸣测试"
+msgstr "共鸣测试"
+
+msgid "琢光测试"
+msgstr "琢光测试"
+
+msgid "自定义模板"
+msgstr "自定义模板"
+
+msgid "自定义卡组1"
+msgstr "自定义卡组1"
+
+msgid "自定义卡组2"
+msgstr "自定义卡组2"
+
+msgid "自定义卡组3"
+msgstr "自定义卡组3"
+
+msgid "自定义卡组4"
+msgstr "自定义卡组4"
+
+msgid "自定义卡组5"
+msgstr "自定义卡组5"
+
+msgid "特训目标"
+msgstr "特训目标"
+
+msgid "怪兽与怪客"
+msgstr "怪兽与怪客"
+
+msgid "恶拳与凶枪"
+msgstr "恶拳与凶枪"
+
+msgid "猎人与忠犬"
+msgstr "猎人与忠犬"
+
+msgid "高塔与巨炮"
+msgstr "高塔与巨炮"
+
+msgid "疯子与追随者"
+msgstr "疯子与追随者"
+
+msgid "锐牙与钝斧"
+msgstr "锐牙与钝斧"
+
+msgid "猎手与凶兽"
+msgstr "猎手与凶兽"
+
+msgid "怪兽二重奏"
+msgstr "怪兽二重奏"
+
+msgid "游侠与守卫"
+msgstr "游侠与守卫"
+
+msgid "口舌与刀兵"
+msgstr "口舌与刀兵"
+
+msgid "铁律与狂徒"
+msgstr "铁律与狂徒"
+
+msgid "诡步与重壁"
+msgstr "诡步与重壁"
+
+msgid "伏龙与战车"
+msgstr "伏龙与战车"
+
+msgid "机师与叛甲"
+msgstr "机师与叛甲"
+
+msgid "迅脊与裂爪"
+msgstr "迅脊与裂爪"
+
+msgid "摇摆爵士"
+msgstr "摇摆爵士"
+
+msgid "混沌重金属"
+msgstr "混沌重金属"
+
+msgid "激素朋克"
+msgstr "激素朋克"
+
+msgid "獠牙重金属"
+msgstr "獠牙重金属"
+
+msgid "震星迪斯科"
+msgstr "震星迪斯科"
+
+msgid "雷暴重金属"
+msgstr "雷暴重金属"
+
+msgid "啄木鸟电音"
+msgstr "啄木鸟电音"
+
+msgid "灵魂摇滚"
+msgstr "灵魂摇滚"
+
+msgid "河豚电音"
+msgstr "河豚电音"
+
+msgid "炎狱重金属"
+msgstr "炎狱重金属"
+
+msgid "自由蓝调"
+msgstr "自由蓝调"
+
+msgid "极地重金属"
+msgstr "极地重金属"
+
+msgid "混沌爵士"
+msgstr "混沌爵士"
+
+msgid "原始朋克"
+msgstr "原始朋克"
+
+msgid "折枝剑歌"
+msgstr "折枝剑歌"
+
+msgid "静听嘉音"
+msgstr "静听嘉音"
+
+msgid "如影相随"
+msgstr "如影相随"
+
+msgid "法厄同之歌"
+msgstr "法厄同之歌"
+
+msgid "云岿如我"
+msgstr "云岿如我"
+
+msgid "山大王"
+msgstr "山大王"
+
+msgid "拂晓生花"
+msgstr "拂晓生花"
+
+msgid "月光骑士颂"
+msgstr "月光骑士颂"
+
+msgid "沧浪行歌"
+msgstr "沧浪行歌"
+
+msgid "流光咏叹"
+msgstr "流光咏叹"
+
+msgid "雪兔梦游仙境"
+msgstr "雪兔梦游仙境"
+
+msgid "囚徒手记"
+msgstr "囚徒手记"
+
+msgid "呼啸沙龙"
+msgstr "呼啸沙龙"
+
+msgid "拂晓行纪"
+msgstr "拂晓行纪"
+
+msgid "谶羽之誓"
+msgstr "谶羽之誓"
+
+msgid "荆棘玫瑰"
+msgstr "荆棘玫瑰"
+
+msgid "摇摆爵士 混沌重金属"
+msgstr "摇摆爵士 混沌重金属"
+
+msgid "激素朋克 獠牙重金属"
+msgstr "激素朋克 獠牙重金属"
+
+msgid "震星迪斯科 雷暴重金属"
+msgstr "震星迪斯科 雷暴重金属"
+
+msgid "啄木鸟电音 灵魂摇滚"
+msgstr "啄木鸟电音 灵魂摇滚"
+
+msgid "河豚电音 炎狱重金属"
+msgstr "河豚电音 炎狱重金属"
+
+msgid "自由蓝调 极地重金属"
+msgstr "自由蓝调 极地重金属"
+
+msgid "混沌爵士 原始朋克"
+msgstr "混沌爵士 原始朋克"
+
+msgid "折枝剑歌 静听嘉音"
+msgstr "折枝剑歌 静听嘉音"
+
+msgid "如影相随 法厄同之歌"
+msgstr "如影相随 法厄同之歌"
+
+msgid "云岿如我 山大王"
+msgstr "云岿如我 山大王"
+
+msgid "拂晓生花 月光骑士颂"
+msgstr "拂晓生花 月光骑士颂"
+
+msgid "沧浪行歌 流光咏叹"
+msgstr "沧浪行歌 流光咏叹"
+
+msgid "雪兔梦游仙境 囚徒手记"
+msgstr "雪兔梦游仙境 囚徒手记"
+
+msgid "呼啸沙龙 拂晓行纪"
+msgstr "呼啸沙龙 拂晓行纪"
+
+msgid "谶羽之誓 荆棘玫瑰"
+msgstr "谶羽之誓 荆棘玫瑰"
+
+msgid "恶名·杜拉罕"
+msgstr "恶名·杜拉罕"
+
+msgid "祸首·通缉打手"
+msgstr "祸首·通缉打手"
+
+msgid "恶名·装甲哈提"
+msgstr "恶名·装甲哈提"
+
+msgid "汉斯·蓄能型"
+msgstr "汉斯·蓄能型"
+
+msgid "「提丰·重击者型」"
+msgstr "「提丰·重击者型」"
+
+msgid "蛮横力士"
+msgstr "蛮横力士"
+
+msgid "多佩冈亚·简"
+msgstr "多佩冈亚·简"
+
+msgid "色雷斯人"
+msgstr "色雷斯人"
+
+msgid "伐木机"
+msgstr "伐木机"
+
+msgid "秽息蚀者·阿瓦鲁斯"
+msgstr "秽息蚀者·阿瓦鲁斯"
+
+msgid "牲鬼·凶魁愚者"
+msgstr "牲鬼·凶魁愚者"
+
+msgid "秽蚀·狛野真斗"
+msgstr "秽蚀·狛野真斗"
+
+msgid "秽息行者·蝎骸"
+msgstr "秽息行者·蝎骸"
+
+msgid "牲鬼·卫律使者"
+msgstr "牲鬼·卫律使者"
+
+msgid "空域戒戍者"
+msgstr "空域戒戍者"
+
+msgid "「征服者」"
+msgstr "「征服者」"
+
+msgid "初生死路屠夫"
+msgstr "初生死路屠夫"
+
+msgid "未知复合侵蚀体"
+msgstr "未知复合侵蚀体"
+
+msgid "冥宁芙·双子"
+msgstr "冥宁芙·双子"
+
+msgid "「霸主侵蚀体·庞培」"
+msgstr "「霸主侵蚀体·庞培」"
+
+msgid "牲鬼·布林格"
+msgstr "牲鬼·布林格"
+
+msgid "秽息司祭"
+msgstr "秽息司祭"
+
+msgid "彷徨猎手"
+msgstr "彷徨猎手"
+
+msgid "魇缚者·叶释渊"
+msgstr "魇缚者·叶释渊"
+
+msgid "魇缚者·???"
+msgstr "魇缚者·???"
+
+msgid "猎血清道夫"
+msgstr "猎血清道夫"
+
+msgid "基塔布鲁"
+msgstr "基塔布鲁"
+
+msgid "库萨里库"
+msgstr "库萨里库"
+
+msgid "战线肃清"
+msgstr "战线肃清"
+
+msgid "特遣调查"
+msgstr "特遣调查"
+
+msgid "矩阵行动"
+msgstr "矩阵行动"
+
+msgid "关键进展"
+msgstr "关键进展"
+
+msgid "不宜久留"
+msgstr "不宜久留"
+
+msgid "及时补给"
+msgstr "及时补给"
+
+msgid "代价之间"
+msgstr "代价之间"
+
+msgid "休憩调息"
+msgstr "休憩调息"
+
+msgid "偶遇事件"
+msgstr "偶遇事件"
+
+msgid "入口"
+msgstr "入口"
+
+msgid "挚交会谈"
+msgstr "挚交会谈"
+
+msgid "战斗-武备"
+msgstr "战斗-武备"
+
+msgid "战斗-硬币"
+msgstr "战斗-硬币"
+
+msgid "战斗-终结之役"
+msgstr "战斗-终结之役"
+
+msgid "战斗-道中危机"
+msgstr "战斗-道中危机"
+
+msgid "战斗-鸣徽"
+msgstr "战斗-鸣徽"
+
+msgid "挑战-收割"
+msgstr "挑战-收割"
+
+msgid "挑战-无伤"
+msgstr "挑战-无伤"
+
+msgid "挑战-限时"
+msgstr "挑战-限时"
+
+msgid "藏品第一优先级"
+msgstr "藏品第一优先级"
+
+msgid "藏品第二优先级 (无刷新时考虑)"
+msgstr "藏品第二优先级 (无刷新时考虑)"
+
+msgid "区域类型优先级"
+msgstr "区域类型优先级"
+
+msgid "优先途经点"
+msgstr "优先途经点"
+
+msgid "避免途经点"
+msgstr "避免途经点"
+
+msgid "选项优先级"
+msgstr "选项优先级"
+
+msgid "奖励优先级"
+msgstr "奖励优先级"
+
+msgid "有同流派武备"
+msgstr "有同流派武备"
+
+msgid "刷满业绩点"
+msgstr "刷满业绩点"
+
+msgid "刷满周期奖励"
+msgstr "刷满周期奖励"
+
+msgid "完成周计划次数"
+msgstr "完成周计划次数"
+
+msgid "完成悬赏委托"
+msgstr "完成悬赏委托"
+
+msgid "2层业绩后退出"
+msgstr "2层业绩后退出"
+
+msgid "3层业绩后退出"
+msgstr "3层业绩后退出"
+
+msgid "通关"
+msgstr "通关"
+
+msgid "速通"
+msgstr "速通"
+
+msgid "默认"
+msgstr "默认"

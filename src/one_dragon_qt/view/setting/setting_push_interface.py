@@ -58,10 +58,11 @@ class PushTestRunner(QThread):
         self._push_func: Callable[[], tuple[bool, str]] = push_func
 
     def run(self) -> None:
+        """执行测试推送 并通过 push_done 信号返回结果"""
         try:
             ok, msg = self._push_func()
         except Exception as e:
-            ok, msg = False, f'测试推送失败: {e}'
+            ok, msg = False, gt('测试推送失败: {}').format(e)
 
         self.push_done.emit(ok, msg)
 
@@ -83,6 +84,7 @@ class SettingPushInterface(VerticalScrollInterface):
         self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
+        """构建推送设置页面内容"""
         content_widget = Column()
 
         self.help_opt = HelpCard(
@@ -115,9 +117,9 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.proxy_input_opt)
 
-        self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
+        self.test_current_btn = PushButton(text=gt('测试当前方式'), icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
-        self.test_all_btn = PushButton(text='测试全部', icon=FluentIcon.SEND_FILL, parent=self)
+        self.test_all_btn = PushButton(text=gt('测试全部'), icon=FluentIcon.SEND_FILL, parent=self)
         self.test_all_btn.clicked.connect(self._send_test_all_message)
 
         self.test_notification_card = MultiPushSettingCard(
@@ -145,9 +147,9 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_widget(channel_group)
 
         # 预创建特殊卡片（稍后按渠道分配）
-        self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
+        self.pwsh_curl_btn = PushButton(text=gt('PowerShell 风格'))
         self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
-        self.unix_curl_btn = PushButton(text='Unix 风格')
+        self.unix_curl_btn = PushButton(text=gt('Unix 风格'))
         self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
@@ -213,7 +215,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         """"""
         var_name = self._get_channel_field_card_name(channel_id, field)
-        title = field.title
+        title = gt(field.title)
         card_type = field.field_type
         is_required = field.required
 
@@ -307,8 +309,8 @@ class SettingPushInterface(VerticalScrollInterface):
         self.test_all_btn.setDisabled(True)
         self._clear_error_bar()
         self._info_bar = InfoBar.info(
-            title='提示',
-            content="正在发送测试消息...",
+            title=gt('提示'),
+            content=gt("正在发送测试消息..."),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=-1,
@@ -343,7 +345,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         # 部分渠道失败时 ok 仍为 True 错误信息通过 msg 带回来
         if not ok or len(msg) > 0:
-            self._show_error_message(msg if msg else "测试推送失败")
+            self._show_error_message(msg if msg else gt("测试推送失败"))
         else:
             self._show_success_message(success_msg)
 
@@ -519,8 +521,8 @@ class SettingPushInterface(VerticalScrollInterface):
         """显示成功消息提示"""
         self._clear_error_bar()
         InfoBar.success(
-            title='成功',
-            content=message,
+            title=gt('成功'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=3000,
@@ -531,8 +533,8 @@ class SettingPushInterface(VerticalScrollInterface):
         """显示错误消息提示，不自动消失，新的错误替换旧的"""
         self._clear_error_bar()
         self._error_bar = InfoBar.error(
-            title='错误',
-            content=message,
+            title=gt('错误'),
+            content=gt(message),
             orient=InfoBarPosition.TOP,
             isClosable=True,
             duration=-1,

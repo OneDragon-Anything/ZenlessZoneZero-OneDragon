@@ -439,8 +439,8 @@ class Operation(OperationBase):
                 if (self._current_node is None
                         or (self._current_node is not None and not self._current_node.mute)
                 ):
-                    node_name = 'none' if self._current_node is None else self._current_node.cn
-                    from_node_name = 'none' if self._previous_node is None else self._previous_node.cn
+                    node_name = 'none' if self._current_node is None else getattr(self._current_node, 'display_name', self._current_node.cn)
+                    from_node_name = 'none' if self._previous_node is None else getattr(self._previous_node, 'display_name', self._previous_node.cn)
                     round_result_status = 'none' if round_result is None else coalesce_gt(round_result.status, round_result.status_display, model='ui')
                     if (self._current_node is not None
                             and self._current_node.mute
@@ -448,7 +448,7 @@ class Operation(OperationBase):
                         pass
                     else:
                         arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
-                        log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
+                        log.info('%s %s %s %s %s', self.display_name, gt('节点', 'ui'), arrow, gt('返回状态', 'ui'), round_result_status)
                     self._emit_debug_round_trace(
                         from_node_name=from_node_name,
                         node_name=node_name,
@@ -460,9 +460,9 @@ class Operation(OperationBase):
                 round_result: OperationRoundResult = self.round_retry('异常')
                 if self.last_screenshot is not None:
                     file_name = self.save_screenshot()
-                    log.error('%s 执行出错 相关截图保存至 %s', self.display_name, file_name, exc_info=True)
+                    log.error('%s %s %s', self.display_name, gt('执行出错 相关截图保存至', 'ui'), file_name, exc_info=True)
                 else:
-                    log.error('%s 执行出错', self.display_name, exc_info=True)
+                    log.error('%s %s', self.display_name, gt('执行出错', 'ui'), exc_info=True)
                 self._emit_debug_timeline(
                     category="node",
                     title=self.display_name,
@@ -498,7 +498,7 @@ class Operation(OperationBase):
                     op_result = self.op_fail(round_result.status, round_result.data)
                     break
                 else:
-                    log.error('%s 执行返回结果错误 %s', self.display_name, op_result)
+                    log.error('%s %s %s', self.display_name, gt('执行返回结果错误', 'ui'), op_result)
                     op_result = self.op_fail(round_result.status)
                     break
             else:  # 继续下一个节点
@@ -538,6 +538,9 @@ class Operation(OperationBase):
                                                            wait=self._current_node.wait_after_op)
         else:
             return self.round_fail('节点处理函数和指令都没有设置')
+
+        if not isinstance(current_round_result, OperationRoundResult):
+            return self.round_fail('节点处理函数未返回正确结果')
 
         # 自动保存启用了 save_status 的节点状态
         if self._current_node.save_status and current_round_result.result in (
@@ -687,7 +690,8 @@ class Operation(OperationBase):
         Returns:
             str: 格式化的显示名称。
         """
-        return f'指令[ {self.op_name} ]'
+        op_title = gt(self.op_name, 'ui') if self.op_name else ''
+        return f"{gt('指令', 'ui')}[ {op_title} ]"
 
     def after_operation_done(self, result: OperationResult):
         """处理操作完成后的处理。
@@ -697,13 +701,13 @@ class Operation(OperationBase):
         """
         self.ctx.unlisten_all_event(self)
         if result.success:
-            log.info('%s 执行成功 返回状态 %s', self.display_name, coalesce_gt(result.status, '成功', model='ui'))
+            log.info('%s %s %s %s', self.display_name, gt('执行成功', 'ui'), gt('返回状态', 'ui'), coalesce_gt(result.status, '成功', model='ui'))
         else:
-            log.error('%s 执行失败 返回状态 %s', self.display_name, coalesce_gt(result.status, '失败', model='ui'))
+            log.error('%s %s %s %s', self.display_name, gt('执行失败', 'ui'), gt('返回状态', 'ui'), coalesce_gt(result.status, '失败', model='ui'))
         self._emit_debug_timeline(
             category="operation",
             title=self.display_name,
-            detail=f"完成: {coalesce_gt(result.status, '成功' if result.success else '失败', model='ui')}",
+            detail=f"{gt('完成', 'ui')}: {coalesce_gt(result.status, '成功' if result.success else '失败', model='ui')}",
             level="INFO" if result.success else "ERROR",
         )
 
@@ -1282,8 +1286,11 @@ class Operation(OperationBase):
                 to_click = to_click + offset
 
             time.sleep(pre_delay)
-            self.ctx.controller.click(to_click)
-            return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+            click = self.ctx.controller.click(to_click)
+            if click:
+                return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+            else:
+                return self.round_retry(f'点击 {match_word} 失败', wait=retry_wait, wait_round_time=retry_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 

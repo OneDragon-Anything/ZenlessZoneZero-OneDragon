@@ -71,13 +71,14 @@ class SuibianTempleYumChaSin(ZOperation):
 
     @operation_node(name='前往饮茶仙', is_start_node=True)
     def goto_yum_cha_sin(self) -> OperationRoundResult:
+        """前往饮茶仙画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '邻里街坊',
             '饮茶仙',
+            '邻里街坊',
         ]
         ignore_cn_list: list[str] = [
         ]

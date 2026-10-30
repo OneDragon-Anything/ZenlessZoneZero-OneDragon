@@ -48,6 +48,7 @@ class SharedConfigDialog(FramelessDialog):
         self.load_local_configs()  # 加载本地配置文件
 
     def init_ui(self):
+        """构建在线配置弹窗界面 包含搜索栏和配置表格"""
         self.widget = SimpleCardWidget()
         layout = QVBoxLayout(self.widget)
 
@@ -68,7 +69,7 @@ class SharedConfigDialog(FramelessDialog):
         # 在线配置表格视图
         self.online_table_widget = TableWidget(self)
         self.online_table_widget.setColumnCount(3)
-        self.online_table_widget.setHorizontalHeaderLabels(COLUMN_HEADERS)
+        self.online_table_widget.setHorizontalHeaderLabels([gt(h) for h in COLUMN_HEADERS])
         self.online_table_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.online_table_widget.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch

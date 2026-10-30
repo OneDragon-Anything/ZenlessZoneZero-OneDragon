@@ -22,6 +22,7 @@ class SuibianTempleAutoManage(ZOperation):
 
     @operation_node(name='检查并停止托管', is_start_node=True)
     def check_and_stop_hosting(self) -> OperationRoundResult:
+        """检查托管状态 依次点击停止托管、领取收益等按钮 直到出现 开始托管"""
         target_cn_list = [
             '停止托管',
             '开始托管',
@@ -37,6 +38,9 @@ class SuibianTempleAutoManage(ZOperation):
         ignore_cn_list = ['自动托管中', '可关闭自动托管进行手动操作', '经营']
         area = self.ctx.screen_loader.get_area('随便观-入口', '区域-左半屏')
         result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list, area=area)
+        if not result.is_success:
+            # 兼容弹窗或详情界面按钮不在左半屏区域的情况，进行全屏兜底检索
+            result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
             if result.status == '停止托管':
                 return self.round_wait(status='点击停止', wait=1)

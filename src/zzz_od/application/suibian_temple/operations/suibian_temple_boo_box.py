@@ -55,13 +55,14 @@ class SuibianTempleBooBox(ZOperation):
 
     @operation_node(name='前往邦巢', is_start_node=True, node_max_retry_times=5)
     def goto_boo_box(self) -> OperationRoundResult:
+        """前往邦巢画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-邦巢'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '邻里街坊',
             '邦巢',
+            '邻里街坊',
         ]
         ignore_cn_list: list[str] = [
         ]

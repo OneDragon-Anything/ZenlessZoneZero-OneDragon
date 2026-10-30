@@ -10,6 +10,7 @@ from zzz_od.context.zzz_context import ZContext
 class PreFlightCheckDialog(MessageBoxBase):
 
     def __init__(self, issues: list[str], parent: QWidget | None = None):
+        """初始化运行前检查弹窗 列出未就绪的配置项"""
         MessageBoxBase.__init__(self, parent)
         self.yesButton.setText(gt('前往配置'))
         self.cancelButton.setText(gt('仍然继续'))
@@ -22,7 +23,7 @@ class PreFlightCheckDialog(MessageBoxBase):
         self.viewLayout.addSpacing(4)
 
         for issue in issues:
-            item = BodyLabel(f'{issue}')
+            item = BodyLabel(gt(str(issue)))
             item.setWordWrap(True)
             self.viewLayout.addWidget(item)
 

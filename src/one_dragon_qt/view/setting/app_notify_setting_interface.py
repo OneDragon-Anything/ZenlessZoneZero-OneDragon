@@ -109,8 +109,8 @@ class NotifySettingInterface(VerticalScrollInterface):
             icon=FluentIcon.INFO,
             title='合并模式失败节点立即通知',
             content='节点通知为全部合并时，失败节点会额外立即推送',
-            on_text_cn='开启',
-            off_text_cn='关闭',
+            on_text_cn='开',
+            off_text_cn='关',
         )
         self.merge_error_notify_switch.value_changed.connect(self._on_merge_error_notify_changed)
         basic_group.addSettingCard(self.merge_error_notify_switch)
