@@ -199,6 +199,7 @@ class BambooMerchant(ZOperation):
     @node_from(from_name='购买')
     @operation_node(name='购买后确定')
     def confirm(self) -> OperationRoundResult:
+        """购买后确定 原区域点击失败时 在底部选择列表中查找 确认 或 确定"""
         result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-商店', '购买后确定',
                                                    success_wait=1)
         if result.is_success:
