@@ -40,7 +40,7 @@ class BackToNormalWorld(ZOperation):
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.prefer_dialog_confirm: bool = True  # 默认为 True：优先确认/前往，确保导航和操作正常推进
         self._dialog_confirm_times: int = 0  # 弹窗确认点击尝试次数
-        self._last_dialog_key: tuple[str, ...] | None = None  # 上次处理的双按钮弹窗标识 弹窗变化时重置确认次数
+        self._last_dialog_key: tuple[int, int, int, int] | None = None  # 上次处理的双按钮弹窗的确认/取消按钮位置 弹窗变化时重置确认次数
 
     @node_from(from_name='打开地图', success=False)
     @node_from(from_name='执行传送')
@@ -246,9 +246,16 @@ class BackToNormalWorld(ZOperation):
 
         # 双按钮弹窗：始终优先点击确认（前往/确定），连续多次确认无效时才尝试取消兜底
         if confirm_items and cancel_items:
-            # 以弹窗区域内全部文本作为弹窗标识，换了弹窗就重新计数，避免计数跨弹窗累加后误点取消
-            dialog_key = tuple(sorted(item.data.strip() for item in ocr_result_list))
-            if dialog_key != self._last_dialog_key:
+            # 以确认/取消按钮的位置作为弹窗标识，换了弹窗就重新计数，避免计数跨弹窗累加后误点取消
+            # 不用文本做标识 OCR 识别结果有抖动 会导致同一弹窗的计数被反复清零
+            confirm_pos = confirm_items[0].center
+            cancel_pos = cancel_items[0].center
+            dialog_key = (confirm_pos.x, confirm_pos.y, cancel_pos.x, cancel_pos.y)
+            is_same_dialog = (
+                self._last_dialog_key is not None
+                and all(abs(a - b) <= 30 for a, b in zip(dialog_key, self._last_dialog_key, strict=True))
+            )
+            if not is_same_dialog:
                 self._last_dialog_key = dialog_key
                 self._dialog_confirm_times = 0
             if self._dialog_confirm_times < 3:
