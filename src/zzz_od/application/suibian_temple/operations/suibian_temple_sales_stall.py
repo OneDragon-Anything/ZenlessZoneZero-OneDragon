@@ -6,6 +6,8 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
 
+MAX_GOTO_CLICK_TIMES: int = 5  # 前往目标画面时最多点击的次数
+
 class SuibianTempleSalesStall(ZOperation):
 
     def __init__(self, ctx: ZContext):
@@ -31,6 +33,10 @@ class SuibianTempleSalesStall(ZOperation):
             op_name=f'{gt("随便观", "game")} {gt("售卖铺", "game")}'
         )
 
+    def handle_init(self) -> None:
+        ZOperation.handle_init(self)
+        self.goto_click_times = 0
+
     @operation_node(name='前往售卖铺', is_start_node=True)
     def goto_sales_stall(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-售卖铺'])
@@ -45,6 +51,10 @@ class SuibianTempleSalesStall(ZOperation):
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
+            # 点击后等待不计入重试次数 需要单独限制 防止点击后画面不变时无限循环
+            self.goto_click_times += 1
+            if self.goto_click_times > MAX_GOTO_CLICK_TIMES:
+                return self.round_fail(status='前往售卖铺失败')
             return self.round_wait(status=result.status, wait=1)
 
         return self.round_retry(status='未识别当前画面', wait=1)
@@ -153,6 +163,7 @@ class SuibianTempleSalesStall(ZOperation):
     @node_from(from_name='选择货架开始售卖', success=False)
     @node_from(from_name='选择商品', status='库存不足')
     @node_from(from_name='选择商品', success=False)
+    @node_from(from_name='前往售卖铺', success=False)
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
