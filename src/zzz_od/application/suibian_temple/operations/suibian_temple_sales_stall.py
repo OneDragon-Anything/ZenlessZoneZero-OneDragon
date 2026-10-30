@@ -7,6 +7,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 
 MAX_GOTO_CLICK_TIMES: int = 5  # 前往目标画面时最多点击的次数
+MAX_BACK_CLICK_TIMES: int = 10  # 返回随便观时最多点击的次数
 
 class SuibianTempleSalesStall(ZOperation):
 
@@ -33,10 +34,12 @@ class SuibianTempleSalesStall(ZOperation):
             op_name=f'{gt("随便观", "game")} {gt("售卖铺", "game")}'
         )
         self.goto_click_times: int = 0  # 前往目标画面的点击次数
+        self.back_click_times: int = 0  # 返回随便观的点击次数
 
     def handle_init(self) -> None:
         ZOperation.handle_init(self)
         self.goto_click_times = 0
+        self.back_click_times = 0
 
     @operation_node(name='前往售卖铺', is_start_node=True)
     def goto_sales_stall(self) -> OperationRoundResult:
@@ -44,11 +47,17 @@ class SuibianTempleSalesStall(ZOperation):
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 
+        # 点击后等待不计入重试次数 需要单独限制 防止点击后画面不变时无限循环
+        # 在点击前检查 保证最后一次点击后仍能识别到目标画面
+        if self.goto_click_times >= MAX_GOTO_CLICK_TIMES:
+            return self.round_fail(status='前往售卖铺失败')
+
         # 每日首次进入可能弹出 经营日志 其中的 经营 会被误认为经营页签 需要先关闭
         result = self.round_by_ocr(self.last_screenshot, '经营日志', lcs_percent=1)
         if result.is_success:
             result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
             if result.is_success:
+                self.goto_click_times += 1
                 return self.round_wait(status='关闭经营日志', wait=1)
 
         target_cn_list: list[str] = [
@@ -61,10 +70,7 @@ class SuibianTempleSalesStall(ZOperation):
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
-            # 点击后等待不计入重试次数 需要单独限制 防止点击后画面不变时无限循环
             self.goto_click_times += 1
-            if self.goto_click_times > MAX_GOTO_CLICK_TIMES:
-                return self.round_fail(status='前往售卖铺失败')
             return self.round_wait(status=result.status, wait=1)
 
         return self.round_retry(status='未识别当前画面', wait=1)
@@ -180,8 +186,13 @@ class SuibianTempleSalesStall(ZOperation):
         if current_screen_name is not None:
             return self.round_success()
 
+        # 同样需要限制点击次数 防止点击返回后画面不变时无限循环
+        if self.back_click_times >= MAX_BACK_CLICK_TIMES:
+            return self.round_fail(status='返回随便观失败')
+
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
         if result.is_success:
+            self.back_click_times += 1
             return self.round_wait(status=result.status, wait=1)
         else:
             return self.round_retry(status=result.status, wait=1)
