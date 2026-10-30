@@ -31,7 +31,6 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.bagel import bagel_screen
 from zzz_od.application.bagel.bagel_close_search import BagelCloseSearch
 from zzz_od.application.bagel.bagel_input_worker import (
     TURN_DEADBAND,
@@ -61,7 +60,11 @@ from zzz_od.application.bagel.bagel_spawn import (
     BagelSpawnMatch,
     match_spawn,
 )
-from zzz_od.application.bagel.bagel_stats import BagelSafeLedger, parse_value
+from zzz_od.application.bagel.bagel_stats import (
+    BagelSafeLedger,
+    format_value,
+    parse_value,
+)
 from zzz_od.application.bagel.bagel_store import BagelStoreSafe
 from zzz_od.application.bagel.bagel_unlock_safe import BagelUnlockSafe
 from zzz_od.game_data.map_locator.map_locator import (
@@ -224,6 +227,21 @@ MECHANICAL_HOLD_SECONDS: float = 5.0
 INTERACT_TAP_SECONDS: float = 0.2
 """点按交互键 F 的按住时长（秒）。"""
 
+FAIL_SURVEY_SECONDS: float = 3.0
+"""装箱或关闭面板失败后，等 HUD 调查收益读数停稳的最长时间（秒）。
+
+战斗中普通攻击按键可能被动画遮住，涨幅浮字也可能干扰读数，所以要多等几帧。
+"""
+
+FAIL_SURVEY_WAIT: float = 0.3
+"""失败后补读调查收益时，两次读数的间隔（秒）。"""
+
+SURVEY_LINE_TOLERANCE: int = 6
+"""读调查收益时，同一行文字中心的纵向容差（像素）。
+
+物品入箱后，HUD 数字上方可能浮出该件涨幅（如「+10K」），会落进读数区域。
+"""
+
 ICON_THRESHOLD: float = 0.8
 """交互图标与刷卡图标的模板匹配阈值；实测同类 1.0、异类 0.33。"""
 
@@ -281,6 +299,7 @@ class BagelRouteWalker(BagelOperation):
     STATUS_CONFIG_INVALID: str = '路线配置无效'
     STATUS_NOT_FOREGROUND: str = '游戏不在前台，已停止'
     STATUS_DONE: str = '路线走完'
+    STATUS_FAIL_SURVEY: str = '失败前补读调查收益'
 
     def __init__(
         self, ctx: ZContext, blueprint_priority: bool = True,
@@ -365,8 +384,19 @@ class BagelRouteWalker(BagelOperation):
         """按键单独线程：主线投递即返回；同种操作不打断自己，不同操作打断旧的。"""
         self.ledger: BagelSafeLedger = BagelSafeLedger()
         """本局安全箱物品，只用于统计日志。"""
-        self.survey_value: int | None = None
-        """最近一次关闭搜查面板后从 HUD 读到的调查收益，只用于统计日志。"""
+        self.survey_value: int = 0
+        """本局调查收益的最后一次读数，只用于统计日志。
+
+        零携带入场，开局为 0；每次关闭搜查面板后读 HUD 更新，装箱或关闭面板失败时再补读一次。
+        """
+        self.fail_reason: str | None = None
+        """装箱或关闭面板失败的原因；补读调查收益后按它结束本局。"""
+        self.fail_screenshot: tuple[float, MatLike] | None = None
+        """失败时的截图时间和截图；补读结束后恢复，现场截图仍是失败画面。"""
+        self.fail_survey_started: float | None = None
+        """开始补读调查收益的时刻。"""
+        self.fail_survey_last: int | None = None
+        """上一帧补读到的 HUD 读数；连续两帧相同才采用。"""
 
     def state_snapshot(self) -> dict[str, object]:
         """给悬浮窗用的执行状态快照。
@@ -939,7 +969,7 @@ class BagelRouteWalker(BagelOperation):
         self._adopt_screenshot(op)
         if result.success:
             return self.round_success('已入箱')
-        return self.round_recoverable_fail(f'入箱失败：{result.status}')
+        return self._fail_after_survey(f'入箱失败：{result.status}')
 
     @node_from(from_name='收集入箱', status='已入箱')
     @operation_node(name='关闭面板')
@@ -951,7 +981,66 @@ class BagelRouteWalker(BagelOperation):
         if result.success:
             self._read_survey_value()
             return self.round_success('已关闭面板')
-        return self.round_recoverable_fail(f'关闭面板失败：{result.status}')
+        return self._fail_after_survey(f'关闭面板失败：{result.status}')
+
+    def _fail_after_survey(self, reason: str) -> OperationRoundResult:
+        """记下失败原因和失败画面，先补读调查收益，再按原因结束本局。
+
+        Args:
+            reason: 失败原因；补读结束后原样作为可结算重开的失败返回。
+        """
+        log.info('贝果%s；先补读调查收益，再结束本局', reason)
+        self.fail_reason = reason
+        if self.last_screenshot is not None:
+            self.fail_screenshot = (self.last_screenshot_time, self.last_screenshot)
+        return self.round_fail(self.STATUS_FAIL_SURVEY)
+
+    @node_from(from_name='收集入箱', success=False, status=STATUS_FAIL_SURVEY)
+    @node_from(from_name='关闭面板', success=False, status=STATUS_FAIL_SURVEY)
+    @operation_node(name='失败前补读收益')
+    def read_survey_before_fail(self) -> OperationRoundResult:
+        """已回到局内时补读一次 HUD 调查收益，再按原失败原因结束本局。
+
+        连续两帧读数相同才采用，避开涨幅浮字刚出现时的错读。
+        以下情况不读，保留最后一次读数：
+        - 已是 DEFEAT 画面；
+        - 搜查面板仍开着：底栏数字左侧的金币图标会被 OCR 读成「9」（如「187K」读成「9187K」），
+          错值每帧相同，连续两帧相同也挡不住；
+        - 超过 ``FAIL_SURVEY_SECONDS`` 仍读不到稳定读数。
+        """
+        now = time.monotonic()
+        if self.fail_survey_started is None:
+            self.fail_survey_started = now
+        if self.is_bagel_result():
+            return self._finish_fail('已是失败结算画面')
+        if self._has('搜查安全箱'):
+            return self._finish_fail('搜查面板仍开着，不读底栏')
+        value: int | None = None
+        if self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击').is_success:
+            value = self._read_hud_survey()
+        if value is not None and value == self.fail_survey_last:
+            log.info(
+                '贝果失败前补读调查收益：HUD 读数 %s，上一次读数 %s',
+                format_value(value), format_value(self.survey_value),
+            )
+            self.survey_value = value
+            return self._finish_fail(None)
+        self.fail_survey_last = value
+        if now - self.fail_survey_started >= FAIL_SURVEY_SECONDS:
+            return self._finish_fail(f'{FAIL_SURVEY_SECONDS:.0f} 秒内读数未停稳')
+        return self.round_wait('等调查收益读数停稳', wait=FAIL_SURVEY_WAIT)
+
+    def _finish_fail(self, skipped: str | None) -> OperationRoundResult:
+        """恢复失败画面，按原失败原因结束本局。
+
+        Args:
+            skipped: 没有采用补读结果的原因；已采用时为 None。
+        """
+        if skipped is not None:
+            log.info('贝果失败前补读调查收益：%s，沿用最后一次读数 %s', skipped, format_value(self.survey_value))
+        if self.fail_screenshot is not None:
+            self.last_screenshot_time, self.last_screenshot = self.fail_screenshot
+        return self.round_recoverable_fail(self.fail_reason or self.STATUS_FAIL_SURVEY)
 
     @node_from(from_name='按类型交互', status='已完成')
     @node_from(from_name='现场交互', status='已完成')
@@ -1489,17 +1578,38 @@ class BagelRouteWalker(BagelOperation):
         self.input_worker.stop_backward()
 
     def _read_survey_value(self) -> None:
-        """关闭面板回到局内后读 HUD 调查收益；失败局用最后一次读数作为本局收益。"""
+        """关闭面板回到局内后读 HUD 调查收益；读不到时保留上一次读数。"""
+        value = self._read_hud_survey()
+        if value is not None:
+            self.survey_value = value
+
+    def _read_hud_survey(self) -> int | None:
+        """读 HUD 调查收益区域最下面一行的数字，只用于统计日志。
+
+        物品入箱后，HUD 数字上方可能浮出该件涨幅（如「+10K」），会落进读数区域。
+        OCR 读不出浮字前的「+」，整块拼起来会先读到涨幅，所以只取最下面一行。
+
+        Returns:
+            读数；读不出数字或读取出错时为 None。
+        """
         try:
-            value = parse_value(bagel_screen.read_area(
-                self.ctx, self.last_screenshot, '贝果-局内', '调查收益',
-            ))
+            area = self.ctx.screen_loader.get_area('贝果-局内', '调查收益')
+            if area is None:
+                raise ValueError('缺少贝果画面区域：贝果-局内/调查收益')
+            matches = self.ctx.ocr_service.get_ocr_result_list(
+                self.last_screenshot, rect=area.pc_rect, crop_first=True, color_range=area.color_range,
+            )
         except Exception:
             log.error('读取调查收益失败，本次不计入统计', exc_info=True)
-            return
-        if value is None:
-            return
-        self.survey_value = value
+            return None
+        if not matches:
+            return None
+        bottom = max(match.center.y for match in matches)
+        line = sorted(
+            (match for match in matches if bottom - match.center.y <= SURVEY_LINE_TOLERANCE),
+            key=lambda match: match.x,
+        )
+        return parse_value(''.join(match.data for match in line))
 
     def _adopt_screenshot(self, op: BagelOperation) -> None:
         """子操作结束后同步其最后截图。"""

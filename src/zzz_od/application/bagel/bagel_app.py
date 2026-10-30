@@ -89,8 +89,8 @@ class BagelApp(ZApplication):
         """每局收益、红色物品与用时统计；写日志，任务结束推送摘要。"""
         self._round_ledger: BagelSafeLedger | None = None
         """本局路线执行器的安全箱账本；本局没跑路线时为 None。"""
-        self._round_survey: int | None = None
-        """路线执行器最后一次读到的调查收益。"""
+        self._round_survey: int = 0
+        """本局调查收益的最后一次读数；零携带入场后为 0，路线执行器读到后更新。"""
         self._route_recorder: BagelRouteRecorder = BagelRouteRecorder()
         """路线数据记录：每局写一行，任务结束输出按出生点的汇总表。"""
         self._round_map_id: str | None = None
@@ -284,7 +284,7 @@ class BagelApp(ZApplication):
         self.last_return_status = None
         self._stats = BagelRunStats()
         self._round_ledger = None
-        self._round_survey = None
+        self._round_survey = 0
         self._reset_round_route()
         self._route_rounds = 0
         self._route_reported = False
@@ -369,7 +369,7 @@ class BagelApp(ZApplication):
         log.info('贝果收集：准备第 %s 次入场', self.attempts + 1)
         self._stats.start_round(self.attempts + 1)
         self._round_ledger = None
-        self._round_survey = None
+        self._round_survey = 0
         self._reset_round_route()
         result = BagelEnter(
             self.ctx, allow_clear_loadout=allow_clear_loadout, allow_world_recovery=True,
