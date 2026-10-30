@@ -37,6 +37,12 @@
 
 `ControllerBase` 定义截图和输入控制接口。具体项目根据平台提供控制器实现，例如 PC 控制器负责查找游戏窗口并发送键鼠或手柄输入。
 
+### 截图缓存
+
+`PcScreenshotController.get_screenshot` 在窗口内限流：游戏约 30 帧，每帧约 33 毫秒，窗口内重复索取直接返缓存，多少线程同时要图也只真截一次。PrintWindow 下 10 线程各要 10 次从 2072 毫秒压到 29 毫秒，单线程连要 10 次约 27 毫秒（窗口外每次真截，不误命中）。
+
+键按独立模式、是否缩放、窗口矩形分开存，独立与主线不串味。成图设只读，调用方全是读（裁剪、识别、写盘），原地改图直接报错，不悄悄污染。外层时间戳照常打新时间，窗口内本来就是同一帧，调用方不用改。
+
 ### 拖拽时序
 
 `drag_to(end, start=None, duration=0.5, *, timing=None)` 提供前后台共用的拖拽接口。`DragTiming`（`one_dragon.base.controller.drag_timing`）表示按下等待（`press_wait`）、移动时间（`move_duration`）和松开前等待（`release_wait`）；各字段以秒为单位，必须是有限的非负数。传入 `timing` 后忽略 `duration`，移动时间仍至少为 0.1 秒。前台底层函数 `drag_mouse` 使用相同参数。

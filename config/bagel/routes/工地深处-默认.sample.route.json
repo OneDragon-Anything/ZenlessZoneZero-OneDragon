@@ -1,0 +1,94 @@
+{
+ "version": 2,
+ "route_id": "工地深处-默认",
+ "name": "工地深处-默认",
+ "spawn_id": "janus_worksite_depths",
+ "started_at": "2026-10-30T21:08:24+08:00",
+ "ended_at": "2026-10-30T22:28:03+08:00",
+ "points": [
+  {
+   "x": 257,
+   "y": 830,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 257,
+   "y": 771,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 253,
+   "y": 642,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 277,
+   "y": 635,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 278,
+   "y": 581,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 296,
+   "y": 579,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 295,
+   "y": 505,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 285,
+   "y": 505,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 265,
+   "y": 512,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "door"
+  },
+  {
+   "x": 223,
+   "y": 510,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 227,
+   "y": 448,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 249,
+   "y": 423,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 290,
+   "y": 427,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 307,
+   "y": 426,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "mechanical_safe"
+  }
+ ]
+}

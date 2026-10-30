@@ -20,8 +20,7 @@
 from __future__ import annotations
 
 import time
-from math import atan2, cos, degrees, hypot, radians, sin
-from statistics import median
+from math import atan2, cos, degrees, floor, hypot, radians, sin
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -164,6 +163,9 @@ TURN_SCALE_DRIFT_TOLERANCE: float = 0.15
 TURN_SCALE_MIN_CHANGE: float = 0.03
 """与本次初值差不到这么多就不写盘：实测每局的改进只有 0.03~0.06，门槛取大就永远写不进去。"""
 
+TURN_SCALE_PEAK_BIN_WIDTH: float = 0.05
+"""峰值箱的分箱宽度：箱以 1.0 为中心（如 0.975~1.025），取个数最多的箱的区间中点。"""
+
 TURN_SCALE_BOUNDS: tuple[float, float] = (0.55, 1.95)
 """可信的补偿比例范围；超出说明样本被别的动作污染，存了也是错的。"""
 
@@ -252,6 +254,23 @@ def _closest_on_segment(
     t = ((position[0] - start.x) * dx + (position[1] - start.y) * dy) / length_sq
     t = max(0.0, min(1.0, t))
     return (start.x + t * dx, start.y + t * dy)
+
+
+def peak_bin_midpoint(samples: list[float], bin_width: float) -> tuple[float, int]:
+    """全程补偿比例的峰值箱中点：箱以 1.0 为中心，取个数最多的箱的区间中点。
+
+    Args:
+        samples: 全程原始补偿比例样本。
+        bin_width: 分箱宽度，必须大于零。
+
+    Returns:
+        峰值箱区间中点与该箱内样本数。
+    """
+    bins: dict[int, list[float]] = {}
+    for value in samples:
+        bins.setdefault(floor((value - 1.0) / bin_width + 0.5 + 1e-9), []).append(value)
+    peak_key = max(bins, key=lambda key: len(bins[key]))
+    return (1.0 + peak_key * bin_width, len(bins[peak_key]))
 
 
 class BagelRouteWalker(BagelOperation):
@@ -1142,19 +1161,14 @@ class BagelRouteWalker(BagelOperation):
     def persist_turn_scale(self) -> None:
         """把本局学到的补偿比例写回现有灵敏度字段 turn_dx，供下一局直接用。
 
-        单条样本抖动很大，所以取整局中位数；前后半局中位数差太多、超出可信范围、
-        或与 1.0 几乎一样时都不写盘，避免把错的值写进全局灵敏度。
+        全程原始样本按箱宽分箱，取个数最多的箱的区间中点；远离峰值的脏样本
+        够不着峰值直接丢掉。超出可信范围、或与 1.0 几乎一样时不写盘。
         不再写 config/bagel/turn_scale.yml，直接改现有 turn_dx 字段。
         """
         samples = self.input_worker.turn_scale_samples
         if len(samples) < TURN_SCALE_LESSON_SAMPLES:
             return
-        half = len(samples) // 2
-        scale = median(samples)
-        drift = abs(median(samples[:half]) - median(samples[half:]))
-        if drift > TURN_SCALE_DRIFT_TOLERANCE:
-            log.info('贝果转向校准前后半局差 %.3f，还没稳定，不写回 turn_dx', drift)
-            return
+        scale, peak_count = peak_bin_midpoint(samples, TURN_SCALE_PEAK_BIN_WIDTH)
         min_scale, max_scale = TURN_SCALE_BOUNDS
         if not min_scale <= scale <= max_scale:
             log.info('贝果转向校准值 %.3f 超出可信范围，不写回 turn_dx', scale)
@@ -1169,8 +1183,8 @@ class BagelRouteWalker(BagelOperation):
             log.error('转向补偿写回 turn_dx 失败', exc_info=True)
             return
         log.info(
-            '贝果转向补偿比例 %.3f 已写回 turn_dx（%.4f → %.4f，有效样本 %s），下一局直接用',
-            scale, old_dx, new_dx, len(samples),
+            '贝果转向补偿比例 %.3f 已写回 turn_dx（%.4f → %.4f，峰值 %s/%s 样本），下一局直接用',
+            scale, old_dx, new_dx, peak_count, len(samples),
         )
 
     def _set_sprint(self, distance: float) -> None:

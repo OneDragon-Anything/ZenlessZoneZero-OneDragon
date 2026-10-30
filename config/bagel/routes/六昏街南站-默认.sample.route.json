@@ -4,7 +4,7 @@
  "name": "六昏街南站-默认",
  "spawn_id": "janus_south_station",
  "started_at": "2026-10-27T03:24:08+08:00",
- "ended_at": "2026-10-27T03:24:08+08:00",
+ "ended_at": "2026-10-30T21:50:36+08:00",
  "points": [
   {
    "x": 1003,
@@ -13,8 +13,14 @@
    "kind": "beacon"
   },
   {
-   "x": 1001,
-   "y": 442,
+   "x": 1008,
+   "y": 445,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 955,
+   "y": 413,
    "layer": "雅努斯幻境/Custom",
    "kind": "beacon"
   },
