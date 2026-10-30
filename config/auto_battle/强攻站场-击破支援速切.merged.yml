@@ -8381,48 +8381,29 @@
           "post_delay": 0.1
           "repeat": 14
         - "op_name": "等待秒数"
-          "seconds": 1
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
+          "seconds": 0.5
         - "op_name": "按键-特殊攻击"
           "post_delay": 0.1
           "repeat": 5
         - "op_name": "等待秒数"
           "seconds": 0.5
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        "states": "[前台-能量]{40, 120}"
+        "states": "[前台-能量]{80, 120}"
       - "debug_name": "失衡期普攻攒豆"
         "operations":
         - "op_name": "按键-普通攻击-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
-        - "add": 1
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "清除状态"
-          "state": "自定义-动作不打断"
         "states": "[爱芮-应援能量]{0, 2}"
       - "debug_name": "失衡期保底普攻"
         "operations":
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 25
-        - "add": 2
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
         "states": ""
     - "debug_name": "爱芮-非失衡速切期"
       "states": ""
       "sub_handlers":
-      - "debug_name": "手动连携提示"
-        "operations":
-        - "op_name": "清除状态"
-          "state": "自定义-提示-手动连携"
-        "states": "[自定义-提示-手动连携]"
       - "debug_name": "无击破直接开大"
         "operations":
         - "op_name": "设置状态"
@@ -8451,28 +8432,6 @@
           "seconds": 15
           "state": "自定义-爱芮-妄想时刻"
         "states": "[爱芮-终结技可用] & ![后台-1-击破] & ![后台-2-击破]"
-      - "debug_name": "非失衡期补豆"
-        "operations":
-        - "op_name": "设置状态"
-          "seconds": 3.5
-          "state": "自定义-动作不打断"
-        - "op_name": "按键-特殊攻击"
-          "post_delay": 0.1
-          "repeat": 14
-        - "op_name": "等待秒数"
-          "seconds": 1
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "按键-特殊攻击"
-          "post_delay": 0.1
-          "repeat": 5
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        "states": "[前台-能量]{80, 120}"
       - "debug_name": "非失衡小爆发"
         "operations":
         - "op_name": "设置状态"
@@ -8493,18 +8452,29 @@
         - "add": -4
           "op_name": "设置状态"
           "state": "自定义-爱芮-应援能量"
-        "states": "[爱芮-应援能量]{8, 8}"
+        "states": "[爱芮-应援能量]{4, 8}"
+      - "debug_name": "非失衡期补豆"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 3.5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 14
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 5
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[前台-能量]{80, 120}"
       - "debug_name": "非失衡积攒应援"
         "operations":
         - "op_name": "按键-普通攻击-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
-        - "add": 1
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "清除状态"
-          "state": "自定义-动作不打断"
         "states": ""
   - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-南宫羽]"
     "states": "[前台-南宫羽]"
@@ -8709,6 +8679,8 @@
       - "op_name": "按键-终结技"
         "post_delay": 0.1
         "repeat": 50
+      - "op_name": "等待秒数"
+        "seconds": 1
       "states": "[自定义-终结技被强制释放, 0, 1]"
     - "debug_name": "黄光切人：设置保护"
       "operations":
@@ -8778,6 +8750,8 @@
       - "op_name": "按键-终结技"
         "post_delay": 0.1
         "repeat": 50
+      - "op_name": "等待秒数"
+        "seconds": 1
       "states": "[蕾米埃尔-终结技可用]"
     - "debug_name": "等待快速支援出现"
       "operations":
@@ -8795,8 +8769,11 @@
         - "自定义-蕾米埃尔-长按强化特殊技"
       "states": "[按键可用-快速支援]"
     - "debug_name": "长按普攻"
-      "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [按键可用-快速支援]"
+      "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [前台-蕾米埃尔, 2.5, 6]"
       "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-蕾米埃尔-尝试释放普攻"
       - "op_name": "设置状态"
         "seconds": 10
         "state_list":
@@ -8823,9 +8800,13 @@
       - "op_name": "按键-普通攻击-按下"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-普通攻击-松开"
+      - "op_name": "按键-普通攻击-按下"
       - "op_name": "等待秒数"
-        "seconds": 2
+        "seconds": 0.5
+      - "op_name": "按键-普通攻击-松开"
+      - "op_name": "按键-特殊攻击-按下"
+      - "op_name": "等待秒数"
+        "seconds": 10
       "states": "[蕾米埃尔-虚曜]{3,3}"
     - "debug_name": "长按强化特殊技"
       "interrupt_states": "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
@@ -8847,35 +8828,15 @@
       - "op_name": "按键-特殊攻击-按下"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
       - "op_name": "按键-特殊攻击-松开"
+      - "op_name": "按键-切换角色-下一个"
       "states": "[蕾米埃尔-浮晖]{100,100}"
     - "debug_name": "其他情况：普通攻击"
       "interrupt_states": "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
       "operations":
-      - "op_name": "按键-普通攻击"
-        "post_delay": 0.1
-        "repeat": 50
+      - "op_name": "按键-普通攻击-按下"
+      - "op_name": "等待秒数"
+        "seconds": 0.5
       "states": ""
   - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-希格莉德]"
     "states": "[前台-希格莉德]"
@@ -18759,48 +18720,29 @@
           "post_delay": 0.1
           "repeat": 14
         - "op_name": "等待秒数"
-          "seconds": 1
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
+          "seconds": 0.5
         - "op_name": "按键-特殊攻击"
           "post_delay": 0.1
           "repeat": 5
         - "op_name": "等待秒数"
           "seconds": 0.5
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        "states": "[前台-能量]{40, 120}"
+        "states": "[前台-能量]{80, 120}"
       - "debug_name": "失衡期普攻攒豆"
         "operations":
         - "op_name": "按键-普通攻击-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
-        - "add": 1
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "清除状态"
-          "state": "自定义-动作不打断"
         "states": "[爱芮-应援能量]{0, 2}"
       - "debug_name": "失衡期保底普攻"
         "operations":
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 25
-        - "add": 2
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
         "states": ""
     - "debug_name": "爱芮-非失衡速切期"
       "states": ""
       "sub_handlers":
-      - "debug_name": "手动连携提示"
-        "operations":
-        - "op_name": "清除状态"
-          "state": "自定义-提示-手动连携"
-        "states": "[自定义-提示-手动连携]"
       - "debug_name": "无击破直接开大"
         "operations":
         - "op_name": "设置状态"
@@ -18829,28 +18771,6 @@
           "seconds": 15
           "state": "自定义-爱芮-妄想时刻"
         "states": "[爱芮-终结技可用] & ![后台-1-击破] & ![后台-2-击破]"
-      - "debug_name": "非失衡期补豆"
-        "operations":
-        - "op_name": "设置状态"
-          "seconds": 3.5
-          "state": "自定义-动作不打断"
-        - "op_name": "按键-特殊攻击"
-          "post_delay": 0.1
-          "repeat": 14
-        - "op_name": "等待秒数"
-          "seconds": 1
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "按键-特殊攻击"
-          "post_delay": 0.1
-          "repeat": 5
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "add": 3
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        "states": "[前台-能量]{80, 120}"
       - "debug_name": "非失衡小爆发"
         "operations":
         - "op_name": "设置状态"
@@ -18871,18 +18791,29 @@
         - "add": -4
           "op_name": "设置状态"
           "state": "自定义-爱芮-应援能量"
-        "states": "[爱芮-应援能量]{8, 8}"
+        "states": "[爱芮-应援能量]{4, 8}"
+      - "debug_name": "非失衡期补豆"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 3.5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 14
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 5
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[前台-能量]{80, 120}"
       - "debug_name": "非失衡积攒应援"
         "operations":
         - "op_name": "按键-普通攻击-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
-        - "add": 1
-          "op_name": "设置状态"
-          "state": "自定义-爱芮-应援能量"
-        - "op_name": "清除状态"
-          "state": "自定义-动作不打断"
         "states": ""
   - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-南宫羽]"
     "states": "[前台-南宫羽]"
@@ -19087,6 +19018,8 @@
       - "op_name": "按键-终结技"
         "post_delay": 0.1
         "repeat": 50
+      - "op_name": "等待秒数"
+        "seconds": 1
       "states": "[自定义-终结技被强制释放, 0, 1]"
     - "debug_name": "黄光切人：设置保护"
       "operations":
@@ -19156,6 +19089,8 @@
       - "op_name": "按键-终结技"
         "post_delay": 0.1
         "repeat": 50
+      - "op_name": "等待秒数"
+        "seconds": 1
       "states": "[蕾米埃尔-终结技可用]"
     - "debug_name": "等待快速支援出现"
       "operations":
@@ -19173,8 +19108,11 @@
         - "自定义-蕾米埃尔-长按强化特殊技"
       "states": "[按键可用-快速支援]"
     - "debug_name": "长按普攻"
-      "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [按键可用-快速支援]"
+      "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [前台-蕾米埃尔, 2.5, 6]"
       "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-蕾米埃尔-尝试释放普攻"
       - "op_name": "设置状态"
         "seconds": 10
         "state_list":
@@ -19201,9 +19139,13 @@
       - "op_name": "按键-普通攻击-按下"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-普通攻击-松开"
+      - "op_name": "按键-普通攻击-按下"
       - "op_name": "等待秒数"
-        "seconds": 2
+        "seconds": 0.5
+      - "op_name": "按键-普通攻击-松开"
+      - "op_name": "按键-特殊攻击-按下"
+      - "op_name": "等待秒数"
+        "seconds": 10
       "states": "[蕾米埃尔-虚曜]{3,3}"
     - "debug_name": "长按强化特殊技"
       "interrupt_states": "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
@@ -19225,35 +19167,15 @@
       - "op_name": "按键-特殊攻击-按下"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
-      - "op_name": "按键-特殊攻击-按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.5
       - "op_name": "按键-特殊攻击-松开"
+      - "op_name": "按键-切换角色-下一个"
       "states": "[蕾米埃尔-浮晖]{100,100}"
     - "debug_name": "其他情况：普通攻击"
       "interrupt_states": "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
       "operations":
-      - "op_name": "按键-普通攻击"
-        "post_delay": 0.1
-        "repeat": 50
+      - "op_name": "按键-普通攻击-按下"
+      - "op_name": "等待秒数"
+        "seconds": 0.5
       "states": ""
   - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-希格莉德]"
     "states": "[前台-希格莉德]"

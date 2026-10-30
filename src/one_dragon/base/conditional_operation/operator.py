@@ -12,6 +12,7 @@ from one_dragon.base.conditional_operation.operation_executor import (
     OperationExecutor,
 )
 from one_dragon.base.conditional_operation.scene import Scene
+from one_dragon.base.conditional_operation.state_cal_tree import StateCalNode
 from one_dragon.base.conditional_operation.state_record_service import (
     StateRecordService,
 )
@@ -345,20 +346,40 @@ class ConditionalOperator(ConditionalOperatorLoader):
             # 没有场景需要触发 看是否需要打断当前操作
             with self._task_lock:
                 interrupt: bool = False
+                snapshot: list[str] = []
                 if (self.running_executor is not None and self.running_executor.running
                         and self.current_execution_info.interrupt_cal_tree is not None):
                     now = time.time()
                     if self.current_execution_info.interrupt_cal_tree.in_time_range(now):
                         interrupt = True
-                        log.debug('复合中断条件满足，执行中断')
+                        snapshot = self._state_snapshot(self.current_execution_info.interrupt_cal_tree, now)
+                        log.debug('复合中断条件满足，执行中断\n%s', '\n'.join(snapshot))
                 if interrupt:
                     self._stop_running_task()
                     self._emit_debug_timeline(
                         category="decision",
                         title="触发中断",
-                        detail="复合中断条件满足",
+                        detail=' ; '.join(snapshot),
                         level="WARNING",
                     )
+
+    @staticmethod
+    def _state_snapshot(cal_tree: StateCalNode, now: float) -> list[str]:
+        """
+        把中断条件涉及的状态当前值与距今时间列出来 每行一个状态
+        :param cal_tree: 中断条件树
+        :param now: 当前时间
+        :return: 形如 [蕾米埃尔-虚曜]  v=1  t=0.02s 的行
+        """
+        lines: list[str] = []
+        for recorder in cal_tree.usage_recorders:
+            value = '-' if recorder.last_value is None else recorder.last_value
+            if recorder.last_record_time == -1:
+                time_desc = '-'
+            else:
+                time_desc = f'{now - recorder.last_record_time:.2f}s'
+            lines.append(f'[{recorder.state_name}]  v={value}  t={time_desc}')
+        return lines
 
     def _emit_debug_decision(
         self,

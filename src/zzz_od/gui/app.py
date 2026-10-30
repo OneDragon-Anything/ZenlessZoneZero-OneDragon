@@ -170,6 +170,16 @@ try:
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 插件总入口，紧挨在资源管理上面
+            from one_dragon_qt.view.plugin.plugin_interface import (
+                PluginInterface,
+            )
+            self.plugin_interface = PluginInterface(self.ctx, parent=self)
+            self.add_sub_interface(
+                self.plugin_interface,
+                position=NavigationItemPosition.BOTTOM,
+            )
+
             # 资源管理
             from one_dragon_qt.view.resource_manager_interface import (
                 ResourceManagerInterface,
@@ -264,6 +274,8 @@ try:
             super().closeEvent(event)
             if not event.isAccepted():
                 return
+            if hasattr(self, 'plugin_interface') and self.plugin_interface is not None:
+                self.plugin_interface.shutdown()
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 

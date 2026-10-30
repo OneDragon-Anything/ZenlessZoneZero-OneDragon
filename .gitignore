@@ -64,6 +64,9 @@ config/bagel/*
 !config/bagel/routes/
 config/bagel/routes/*
 !config/bagel/routes/*.sample.route.json
+config/plugin_market_cache.json
+config/plugin_subscription.yml
+config/temp/
 
 # 执行文件
 *.exe

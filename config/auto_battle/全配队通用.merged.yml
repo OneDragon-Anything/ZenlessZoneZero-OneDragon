@@ -10,6 +10,60 @@
 "introduction": "支持全角色 任意三人/单人/双人作战，通杀所有情况，有问题去主页发需求"
 "scenes":
 - "handlers":
+  - "debug_name": "薇斯珀-首领交互"
+    "interrupt_states": "![按键禁用-终结技, 0, 999]"
+    "operations":
+    - "op_name": "等待秒数"
+      "seconds": 2.846
+    - "op_name": "按键-切换角色-下一个"
+    - "op_name": "等待秒数"
+      "seconds": 1.3
+    - "op_name": "按键-切换角色-下一个"
+    - "op_name": "等待秒数"
+      "seconds": 1.3
+    - "op_name": "按键-切换角色-下一个"
+    - "op_name": "等待秒数"
+      "seconds": 1.7
+    - "op_name": "按键-切换角色-下一个"
+    - "op_name": "等待秒数"
+      "seconds": 1.8
+    - "op_name": "按键-切换角色-下一个"
+    - "op_name": "等待秒数"
+      "seconds": 10
+    "states": "[首领-薇斯珀, 0, 999]"
+  - "debug_name": "基塔布鲁-首领交互"
+    "states": "[首领-基塔布鲁, 0, 999]"
+    "sub_handlers":
+    - "debug_name": "基塔布鲁-首领交互-切人"
+      "interrupt_states": "![按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.8
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.2
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.4
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 10
+      "states": "[按键禁用-普通攻击, 0, 999]"
+    - "debug_name": "基塔布鲁-首领交互-闪避"
+      "interrupt_states": "[按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 3.5
+      - "op_name": "按键-闪避"
+      - "op_name": "等待秒数"
+        "seconds": 10
+      "states": "[按键禁用-终结技, 0, 999]"
+  "interval": 0.01
+  "priority": 100
+  "triggers":
+  - "按键禁用-终结技"
+  - "按键禁用-普通攻击"
+- "handlers":
   - "debug_name": "画面黑白无法支援"
     "operations":
     - "op_name": "清除状态"
@@ -1241,6 +1295,44 @@
       - "debug_name": "非耀嘉音快速支援"
         "states": "[耀嘉音-能量]{0, 120} | ![按键可用-快速支援]"
         "sub_handlers":
+        - "debug_name": "蕾米埃尔虚曜入场技切入"
+          "operations":
+          - "op_name": "设置状态"
+            "seconds": 10
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds_add": -4
+            "state": "自定义-失衡时间"
+          - "agent_name": "蕾米埃尔"
+            "op_name": "按键-切换角色"
+            "post_delay": 0.5
+          - "agent_name": "蕾米埃尔"
+            "op_name": "按键-切换角色"
+            "post_delay": 0.5
+          - "agent_name": "蕾米埃尔"
+            "op_name": "按键-切换角色"
+          - "op_name": "等待秒数"
+            "seconds": 3
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[蕾米埃尔-虚曜]{3,3} & [蕾米埃尔-浮晖]{10,75} & ![前台-蕾米埃尔]"
+        - "debug_name": "蕾米埃尔浮晖满点切入"
+          "operations":
+          - "agent_name": "蕾米埃尔"
+            "op_name": "按键-切换角色"
+          - "op_name": "设置状态"
+            "seconds": 1
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-无视闪光"
+          "states": "[蕾米埃尔-浮晖]{100,100} & ![前台-蕾米埃尔]"
+        - "debug_name": "蕾米埃尔虚曜满点切入"
+          "operations":
+          - "agent_name": "蕾米埃尔"
+            "op_name": "按键-切换角色"
+          "states": "[蕾米埃尔-虚曜]{3,3} & ![前台-蕾米埃尔]"
         - "debug_name": "非失衡期青衣换入前场"
           "operations":
           - "agent_name": "青衣"
@@ -1918,9 +2010,11 @@
             "states": "[奥菲丝-蓄炎]{100, 125}"
         - "states": ""
           "sub_handlers":
-          - "states": "[后台-1-赛斯]"
+          - "debug_name": "后台1赛斯"
+            "states": "[后台-1-赛斯]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "赛斯能量够且没有意气风发-切入"
+              "operations":
               - "agent_name": "赛斯"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -1932,9 +2026,11 @@
           - "debug_name": "非失衡期间才有你们"
             "states": "![自定义-失衡时间, -10, 12]"
             "sub_handlers":
-            - "states": "![前台-扳机]"
+            - "debug_name": "扳机补强化追击"
+              "states": "![前台-扳机]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "扳机有技能且追击过期-切入"
+                "operations":
                 - "agent_name": "扳机"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -1942,9 +2038,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "([扳机-特殊技可用] | [扳机-终结技可用]) & ![自定义-扳机-强化追击, 0, 7]"
-            - "states": "![前台-本]"
+            - "debug_name": "本补护盾"
+              "states": "![前台-本]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "本有特殊技且守卫过期-切入"
+                "operations":
                 - "agent_name": "本"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -1952,9 +2050,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[本-特殊技可用] & ![自定义-本-守卫, 0, 20]"
-            - "states": "![前台-凯撒]"
+            - "debug_name": "凯撒补护盾"
+              "states": "![前台-凯撒]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "凯撒有特殊技且掉血或护盾过期-切入"
+                "operations":
                 - "agent_name": "凯撒"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -1963,7 +2063,8 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 20])"
-              - "operations":
+              - "debug_name": "凯撒有终结技-非失衡期切入"
+                "operations":
                 - "agent_name": "凯撒"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2033,9 +2134,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "![前台-南宫羽] & [南宫羽-重拍]{41, 100}"
-            - "states": "![前台-莱特]"
+            - "debug_name": "莱特补BUFF"
+              "states": "![前台-莱特]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "莱特能量够或士气够-切入"
+                "operations":
                 - "agent_name": "莱特"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2044,9 +2147,11 @@
                   - "自定义-动作不打断"
                 "states": "[莱特-能量]{80, 120} | ![自定义-莱特-BUFF, 0, 15] & [莱特-士气]{80,\
                   \ 100}"
-            - "states": "![前台-波可娜] & [波可娜-猎步]{0, 0}"
+            - "debug_name": "波可娜没有猎步"
+              "states": "![前台-波可娜] & [波可娜-猎步]{0, 0}"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "波可娜有技能-切入"
+                "operations":
                 - "agent_name": "波可娜"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2054,9 +2159,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[波可娜-特殊技可用] | [波可娜-终结技可用]"
-            - "states": "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
+            - "debug_name": "潘引壶补通窍"
+              "states": "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "潘引壶有特殊技-切入"
+                "operations":
                 - "agent_name": "潘引壶"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2064,9 +2171,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[潘引壶-特殊技可用]"
-            - "states": "![前台-莱卡恩]"
+            - "debug_name": "莱卡恩有特殊技就切"
+              "states": "![前台-莱卡恩]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "莱卡恩有特殊技-切入"
+                "operations":
                 - "agent_name": "莱卡恩"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2074,9 +2183,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[莱卡恩-特殊技可用]"
-            - "states": "![前台-橘福福]"
+            - "debug_name": "橘福福有特殊技就切"
+              "states": "![前台-橘福福]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "橘福福有特殊技-切入"
+                "operations":
                 - "agent_name": "橘福福"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2084,9 +2195,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[橘福福-特殊技可用]"
-            - "states": "![前台-珂蕾妲]"
+            - "debug_name": "珂蕾妲有特殊技就切"
+              "states": "![前台-珂蕾妲]"
               "sub_handlers":
-              - "operations":
+              - "debug_name": "珂蕾妲有特殊技-切入"
+                "operations":
                 - "agent_name": "珂蕾妲"
                   "op_name": "按键-切换角色"
                 - "op_name": "清除状态"
@@ -2105,9 +2218,11 @@
                   - "自定义-合轴时间"
                   - "自定义-动作不打断"
                 "states": "[洛克茜-能量]{90, 120}"
-          - "states": "![前台-卢西娅]"
+          - "debug_name": "卢西娅有特殊技就切"
+            "states": "![前台-卢西娅]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "卢西娅有特殊技-切入"
+              "operations":
               - "agent_name": "卢西娅"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2115,9 +2230,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[卢西娅-特殊技可用]"
-          - "states": "![前台-浮波柚叶] & [后台-1-浮波柚叶]"
+          - "debug_name": "后台1浮波柚叶"
+            "states": "![前台-浮波柚叶] & [后台-1-浮波柚叶]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "浮波柚叶有特殊技-切入"
+              "operations":
               - "agent_name": "浮波柚叶"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2125,9 +2242,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[浮波柚叶-特殊技可用]"
-          - "states": "![前台-苍角]"
+          - "debug_name": "苍角有特殊技就切"
+            "states": "![前台-苍角]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "苍角有特殊技-切入"
+              "operations":
               - "agent_name": "苍角"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2135,9 +2254,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[苍角-特殊技可用]"
-          - "states": "![前台-丽娜]"
+          - "debug_name": "丽娜补人偶"
+            "states": "![前台-丽娜]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "丽娜人偶过期-切入"
+              "operations":
               - "agent_name": "丽娜"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2145,9 +2266,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[丽娜-能量]{0, 120} & ![自定义-丽娜-人偶, 0, 8]"
-          - "states": "![前台-露西]"
+          - "debug_name": "露西有技能就切"
+            "states": "![前台-露西]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "露西有技能-切入"
+              "operations":
               - "agent_name": "露西"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2155,9 +2278,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "([露西-特殊技可用] | [露西-终结技可用])"
-          - "states": "![前台-妮可]"
+          - "debug_name": "妮可补能量场"
+            "states": "![前台-妮可]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "妮可有技能-切入"
+              "operations":
               - "agent_name": "妮可"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2177,9 +2302,11 @@
                 - "自定义-动作不打断"
               "states": "([柏妮思-特殊技可用] & [柏妮思-燃点]{0, 40}) | (![自定义-柏妮思-灼烧, 0, 12] &\
                 \ [柏妮思-燃点]{60, 100})"
-          - "states": "![前台-柳]"
+          - "debug_name": "柳有特殊技就切"
+            "states": "![前台-柳]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "柳有特殊技-切入"
+              "operations":
               - "agent_name": "柳"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2187,9 +2314,11 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[柳-特殊技可用]"
-          - "states": "![前台-薇薇安]"
+          - "debug_name": "薇薇安补护羽"
+            "states": "![前台-薇薇安]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "薇薇安护羽没了-切入"
+              "operations":
               - "agent_name": "薇薇安"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2197,51 +2326,59 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[薇薇安-护羽]{0,1}"
-          - "operations":
+          - "debug_name": "后台1异常有特殊技-顺切"
+            "operations":
             - "op_name": "按键-切换角色-下一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-1-异常] & [后台-1-特殊技可用]"
-          - "operations":
+          - "debug_name": "后台1强攻有特殊技-顺切"
+            "operations":
             - "op_name": "按键-切换角色-下一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-1-强攻]& [后台-1-特殊技可用]"
-          - "operations":
+          - "debug_name": "后台2异常有特殊技-反切"
+            "operations":
             - "op_name": "按键-切换角色-上一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-2-异常]& [后台-2-特殊技可用]"
-          - "operations":
+          - "debug_name": "后台2强攻有特殊技-反切"
+            "operations":
             - "op_name": "按键-切换角色-上一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-2-强攻]& [后台-2-特殊技可用]"
-          - "operations":
+          - "debug_name": "后台1是输出职业-顺切"
+            "operations":
             - "op_name": "按键-切换角色-下一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-1-异常] | [后台-1-强攻] | [后台-1-命破]"
-          - "operations":
+          - "debug_name": "后台2是输出职业-反切"
+            "operations":
             - "op_name": "按键-切换角色-上一个"
             - "op_name": "清除状态"
               "state_list":
               - "自定义-合轴时间"
               - "自定义-动作不打断"
             "states": "[后台-2-异常] | [后台-2-强攻] | [后台-2-命破]"
-          - "states": "![前台-诺姆]"
+          - "debug_name": "诺姆没有特殊技"
+            "states": "![前台-诺姆]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "诺姆有特殊技-切入"
+              "operations":
               - "agent_name": "诺姆"
                 "op_name": "按键-切换角色"
               - "op_name": "清除状态"
@@ -2249,7 +2386,8 @@
                 - "自定义-合轴时间"
                 - "自定义-动作不打断"
               "states": "[诺姆-特殊技可用]"
-          - "operations":
+          - "debug_name": "前台丽娜-切下一个"
+            "operations":
             - "op_name": "按键-切换角色-下一个"
             - "op_name": "清除状态"
               "state_list":
@@ -10459,48 +10597,29 @@
               "post_delay": 0.1
               "repeat": 14
             - "op_name": "等待秒数"
-              "seconds": 1
-            - "add": 3
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
+              "seconds": 0.5
             - "op_name": "按键-特殊攻击"
               "post_delay": 0.1
               "repeat": 5
             - "op_name": "等待秒数"
               "seconds": 0.5
-            - "add": 3
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
-            "states": "[前台-能量]{40, 120}"
+            "states": "[前台-能量]{80, 120}"
           - "debug_name": "失衡期普攻攒豆"
             "operations":
             - "op_name": "按键-普通攻击-松开"
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 10
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
-            - "op_name": "清除状态"
-              "state": "自定义-动作不打断"
             "states": "[爱芮-应援能量]{0, 2}"
           - "debug_name": "失衡期保底普攻"
             "operations":
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 25
-            - "add": 2
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
             "states": ""
         - "debug_name": "爱芮-非失衡速切期"
           "states": ""
           "sub_handlers":
-          - "debug_name": "手动连携提示"
-            "operations":
-            - "op_name": "清除状态"
-              "state": "自定义-提示-手动连携"
-            "states": "[自定义-提示-手动连携]"
           - "debug_name": "无击破直接开大"
             "operations":
             - "op_name": "设置状态"
@@ -10529,28 +10648,6 @@
               "seconds": 15
               "state": "自定义-爱芮-妄想时刻"
             "states": "[爱芮-终结技可用] & ![后台-1-击破] & ![后台-2-击破]"
-          - "debug_name": "非失衡期补豆"
-            "operations":
-            - "op_name": "设置状态"
-              "seconds": 3.5
-              "state": "自定义-动作不打断"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.1
-              "repeat": 14
-            - "op_name": "等待秒数"
-              "seconds": 1
-            - "add": 3
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.1
-              "repeat": 5
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "add": 3
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
-            "states": "[前台-能量]{80, 120}"
           - "debug_name": "非失衡小爆发"
             "operations":
             - "op_name": "设置状态"
@@ -10571,18 +10668,29 @@
             - "add": -4
               "op_name": "设置状态"
               "state": "自定义-爱芮-应援能量"
-            "states": "[爱芮-应援能量]{8, 8}"
+            "states": "[爱芮-应援能量]{4, 8}"
+          - "debug_name": "非失衡期补豆"
+            "operations":
+            - "op_name": "设置状态"
+              "seconds": 3.5
+              "state": "自定义-动作不打断"
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 0.1
+              "repeat": 14
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 0.1
+              "repeat": 5
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            "states": "[前台-能量]{80, 120}"
           - "debug_name": "非失衡积攒应援"
             "operations":
             - "op_name": "按键-普通攻击-松开"
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 10
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-爱芮-应援能量"
-            - "op_name": "清除状态"
-              "state": "自定义-动作不打断"
             "states": ""
       - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-南宫羽]"
         "states": "[前台-南宫羽]"
@@ -10787,6 +10895,8 @@
           - "op_name": "按键-终结技"
             "post_delay": 0.1
             "repeat": 50
+          - "op_name": "等待秒数"
+            "seconds": 1
           "states": "[自定义-终结技被强制释放, 0, 1]"
         - "debug_name": "黄光切人：设置保护"
           "operations":
@@ -10856,6 +10966,8 @@
           - "op_name": "按键-终结技"
             "post_delay": 0.1
             "repeat": 50
+          - "op_name": "等待秒数"
+            "seconds": 1
           "states": "[蕾米埃尔-终结技可用]"
         - "debug_name": "等待快速支援出现"
           "operations":
@@ -10873,8 +10985,11 @@
             - "自定义-蕾米埃尔-长按强化特殊技"
           "states": "[按键可用-快速支援]"
         - "debug_name": "长按普攻"
-          "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [按键可用-快速支援]"
+          "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [前台-蕾米埃尔, 2.5, 6]"
           "operations":
+          - "op_name": "设置状态"
+            "state_list":
+            - "自定义-蕾米埃尔-尝试释放普攻"
           - "op_name": "设置状态"
             "seconds": 10
             "state_list":
@@ -10901,9 +11016,13 @@
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
-          - "op_name": "按键-普通攻击-松开"
+          - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 2
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-松开"
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 10
           "states": "[蕾米埃尔-虚曜]{3,3}"
         - "debug_name": "长按强化特殊技"
           "interrupt_states": "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
@@ -10925,35 +11044,15 @@
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
           - "op_name": "按键-特殊攻击-松开"
+          - "op_name": "按键-切换角色-下一个"
           "states": "[蕾米埃尔-浮晖]{100,100}"
         - "debug_name": "其他情况：普通攻击"
           "interrupt_states": "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
           "operations":
-          - "op_name": "按键-普通攻击"
-            "post_delay": 0.1
-            "repeat": 50
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
           "states": ""
       - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-希格莉德]"
         "states": "[前台-希格莉德]"
@@ -12850,6 +12949,44 @@
         - "debug_name": "补BUFF"
           "states": ""
           "sub_handlers":
+          - "debug_name": "蕾米埃尔虚曜入场技切入"
+            "operations":
+            - "op_name": "设置状态"
+              "seconds": 10
+              "state_list":
+              - "自定义-动作不打断"
+              - "自定义-无视闪光"
+            - "op_name": "设置状态"
+              "seconds_add": -4
+              "state": "自定义-失衡时间"
+            - "agent_name": "蕾米埃尔"
+              "op_name": "按键-切换角色"
+              "post_delay": 0.5
+            - "agent_name": "蕾米埃尔"
+              "op_name": "按键-切换角色"
+              "post_delay": 0.5
+            - "agent_name": "蕾米埃尔"
+              "op_name": "按键-切换角色"
+            - "op_name": "等待秒数"
+              "seconds": 3
+            - "op_name": "等待秒数"
+              "seconds": 2
+            "states": "[蕾米埃尔-虚曜]{3,3} & [蕾米埃尔-浮晖]{10,75} & ![前台-蕾米埃尔]"
+          - "debug_name": "蕾米埃尔浮晖满点切入"
+            "operations":
+            - "agent_name": "蕾米埃尔"
+              "op_name": "按键-切换角色"
+            - "op_name": "设置状态"
+              "seconds": 1
+              "state_list":
+              - "自定义-动作不打断"
+              - "自定义-无视闪光"
+            "states": "[蕾米埃尔-浮晖]{100,100} & ![前台-蕾米埃尔]"
+          - "debug_name": "蕾米埃尔虚曜满点切入"
+            "operations":
+            - "agent_name": "蕾米埃尔"
+              "op_name": "按键-切换角色"
+            "states": "[蕾米埃尔-虚曜]{3,3} & ![前台-蕾米埃尔]"
           - "debug_name": "露西补BUFF"
             "operations":
             - "agent_name": "露西"
@@ -13255,7 +13392,8 @@
           - "debug_name": "柚叶补BUFF"
             "states": "![自定义-浮波柚叶-狸之愿, 0, 40]"
             "sub_handlers":
-            - "operations":
+            - "debug_name": "柚叶有特殊技-切入"
+              "operations":
               - "agent_name": "浮波柚叶"
                 "op_name": "按键-切换角色"
               - "op_name": "设置状态"
@@ -13269,7 +13407,8 @@
               - "op_name": "设置状态"
                 "state": "自定义-合轴时间"
               "states": "[浮波柚叶-特殊技可用]"
-            - "operations":
+            - "debug_name": "柚叶有终结技-切入"
+              "operations":
               - "agent_name": "浮波柚叶"
                 "op_name": "按键-切换角色"
               - "op_name": "设置状态"
@@ -13492,11 +13631,6 @@
               - "op_name": "等待秒数"
                 "seconds": 1
               "states": "[千夏-终结技可用] & ![自定义-失衡时间, 0, 10]"
-          - "debug_name": "蕾米埃尔虚曜满点切入"
-            "operations":
-            - "agent_name": "蕾米埃尔"
-              "op_name": "按键-切换角色"
-            "states": "[蕾米埃尔-虚曜]{3,3} & ![前台-蕾米埃尔]"
           - "debug_name": "维琳娜紧急切入"
             "states": "![前台-维琳娜]"
             "sub_handlers":
@@ -21796,48 +21930,29 @@
             "post_delay": 0.1
             "repeat": 14
           - "op_name": "等待秒数"
-            "seconds": 1
-          - "add": 3
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
+            "seconds": 0.5
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.1
             "repeat": 5
           - "op_name": "等待秒数"
             "seconds": 0.5
-          - "add": 3
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
-          "states": "[前台-能量]{40, 120}"
+          "states": "[前台-能量]{80, 120}"
         - "debug_name": "失衡期普攻攒豆"
           "operations":
           - "op_name": "按键-普通攻击-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
-          - "op_name": "清除状态"
-            "state": "自定义-动作不打断"
           "states": "[爱芮-应援能量]{0, 2}"
         - "debug_name": "失衡期保底普攻"
           "operations":
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 25
-          - "add": 2
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
           "states": ""
       - "debug_name": "爱芮-非失衡速切期"
         "states": ""
         "sub_handlers":
-        - "debug_name": "手动连携提示"
-          "operations":
-          - "op_name": "清除状态"
-            "state": "自定义-提示-手动连携"
-          "states": "[自定义-提示-手动连携]"
         - "debug_name": "无击破直接开大"
           "operations":
           - "op_name": "设置状态"
@@ -21866,28 +21981,6 @@
             "seconds": 15
             "state": "自定义-爱芮-妄想时刻"
           "states": "[爱芮-终结技可用] & ![后台-1-击破] & ![后台-2-击破]"
-        - "debug_name": "非失衡期补豆"
-          "operations":
-          - "op_name": "设置状态"
-            "seconds": 3.5
-            "state": "自定义-动作不打断"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.1
-            "repeat": 14
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "add": 3
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.1
-            "repeat": 5
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "add": 3
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
-          "states": "[前台-能量]{80, 120}"
         - "debug_name": "非失衡小爆发"
           "operations":
           - "op_name": "设置状态"
@@ -21908,18 +22001,29 @@
           - "add": -4
             "op_name": "设置状态"
             "state": "自定义-爱芮-应援能量"
-          "states": "[爱芮-应援能量]{8, 8}"
+          "states": "[爱芮-应援能量]{4, 8}"
+        - "debug_name": "非失衡期补豆"
+          "operations":
+          - "op_name": "设置状态"
+            "seconds": 3.5
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 14
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 5
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          "states": "[前台-能量]{80, 120}"
         - "debug_name": "非失衡积攒应援"
           "operations":
           - "op_name": "按键-普通攻击-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-爱芮-应援能量"
-          - "op_name": "清除状态"
-            "state": "自定义-动作不打断"
           "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-南宫羽]"
       "states": "[前台-南宫羽]"
@@ -22124,6 +22228,8 @@
         - "op_name": "按键-终结技"
           "post_delay": 0.1
           "repeat": 50
+        - "op_name": "等待秒数"
+          "seconds": 1
         "states": "[自定义-终结技被强制释放, 0, 1]"
       - "debug_name": "黄光切人：设置保护"
         "operations":
@@ -22193,6 +22299,8 @@
         - "op_name": "按键-终结技"
           "post_delay": 0.1
           "repeat": 50
+        - "op_name": "等待秒数"
+          "seconds": 1
         "states": "[蕾米埃尔-终结技可用]"
       - "debug_name": "等待快速支援出现"
         "operations":
@@ -22210,8 +22318,11 @@
           - "自定义-蕾米埃尔-长按强化特殊技"
         "states": "[按键可用-快速支援]"
       - "debug_name": "长按普攻"
-        "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [按键可用-快速支援]"
+        "interrupt_states": "[蕾米埃尔-虚曜]{0,0} | [前台-蕾米埃尔, 2.5, 6]"
         "operations":
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-蕾米埃尔-尝试释放普攻"
         - "op_name": "设置状态"
           "seconds": 10
           "state_list":
@@ -22238,9 +22349,13 @@
         - "op_name": "按键-普通攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 0.5
-        - "op_name": "按键-普通攻击-松开"
+        - "op_name": "按键-普通攻击-按下"
         - "op_name": "等待秒数"
-          "seconds": 2
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-松开"
+        - "op_name": "按键-特殊攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 10
         "states": "[蕾米埃尔-虚曜]{3,3}"
       - "debug_name": "长按强化特殊技"
         "interrupt_states": "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
@@ -22262,35 +22377,15 @@
         - "op_name": "按键-特殊攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-特殊攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
         - "op_name": "按键-特殊攻击-松开"
+        - "op_name": "按键-切换角色-下一个"
         "states": "[蕾米埃尔-浮晖]{100,100}"
       - "debug_name": "其他情况：普通攻击"
         "interrupt_states": "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
         "operations":
-        - "op_name": "按键-普通攻击"
-          "post_delay": 0.1
-          "repeat": 50
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-希格莉德]"
       "states": "[前台-希格莉德]"

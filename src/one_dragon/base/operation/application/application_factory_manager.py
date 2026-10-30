@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -456,6 +457,8 @@ class ApplicationFactoryManager:
         plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
         plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
+        # 读取封面：插件包内的 plugin.json 声明，缺失时界面用默认封面
+        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent)
 
         # 校验 KEY_SIM_DIR：必须是相对目录名，防止插件从 plugin_dir 外加载脚本
         key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
@@ -471,3 +474,39 @@ class ApplicationFactoryManager:
         self._plugin_infos[plugin_info.app_id] = plugin_info
 
         return plugin_info
+
+    @staticmethod
+    def _resolve_cover_path(plugin_dir: Path) -> Path | None:
+        """从插件包内的 plugin.json 读取封面图路径。
+
+        封面属于可选信息，未声明、格式损坏、路径越界或文件不存在都按「没有封面」
+        处理，由界面回退到默认封面，不打断插件加载。
+
+        Args:
+            plugin_dir: 插件根目录。
+
+        Returns:
+            封面图的绝对路径；不可用时返回 None。
+        """
+        manifest_file = plugin_dir / 'plugin.json'
+        if not manifest_file.is_file():
+            return None
+
+        try:
+            manifest = json.loads(manifest_file.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(manifest, dict):
+            return None
+
+        raw_path = str(manifest.get('cover') or '').strip()
+        if not raw_path or Path(raw_path).is_absolute():
+            return None
+
+        root = plugin_dir.resolve(strict=False)
+        cover = (root / raw_path).resolve(strict=False)
+        if not cover.is_relative_to(root):
+            return None
+        if not cover.is_file():
+            return None
+        return cover
