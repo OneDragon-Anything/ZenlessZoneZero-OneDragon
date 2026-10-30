@@ -375,6 +375,7 @@ class ChoosePredefinedTeam(ZOperation):
             if team_idx >= self.MAX_TEAM_COUNT:
                 log.debug('预备编队扫描结束:已达到最大队伍数量:%d', self.MAX_TEAM_COUNT)
                 return True
+            new_team_found = True
 
             agent_scan_result_list = self._recognize_team_agents(
                 screen,
@@ -400,11 +401,9 @@ class ChoosePredefinedTeam(ZOperation):
             if team_member_count == 0 or (
                 len(agent_list) == 0 and team_member_count is None
             ):
-                log.debug('预备编队扫描跳过:队名:%s 队伍为空', team_name)
-                self.scanned_team_name_set.add(team_name)
-                continue
+                log.debug('预备编队扫描结束:队名:%s 队伍为空', team_name)
+                return True
 
-            new_team_found = True
             self.scanned_team_name_set.add(team_name)
 
             if team_member_count is None:
