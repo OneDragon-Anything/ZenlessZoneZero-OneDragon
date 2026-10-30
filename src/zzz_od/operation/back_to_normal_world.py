@@ -326,11 +326,13 @@ class BackToNormalWorld(ZOperation):
 
         # 选项必须有对话特征（标记符如 ▶ / 「 / 」，或者底部对话框处于活跃状态），防止误点街景文字
         dialogue_markers = ['▶', '◀', '「', '」', '『', '』', '►', '>', '·', '•']
-        has_marked_option = any(any(m in item.data for m in dialogue_markers) for item in valid_options)
+        marked_options = [item for item in valid_options if any(m in item.data for m in dialogue_markers)]
+        # 底部对话框活跃时 所有有效选项都可点击；否则仅凭标记判定为对话 只在带标记的选项中选择 避免点到普通文字
+        candidate_options = valid_options if is_dialogue_active else marked_options
 
-        if valid_options and (is_dialogue_active or has_marked_option):
-            self.last_dialog_idx = (self.last_dialog_idx + 1) % len(valid_options)
-            chosen = valid_options[self.last_dialog_idx]
+        if candidate_options:
+            self.last_dialog_idx = (self.last_dialog_idx + 1) % len(candidate_options)
+            chosen = candidate_options[self.last_dialog_idx]
             self.ctx.controller.click(chosen.center)
             return self.round_retry(status=f'点击对话选项 {chosen.data}', wait=1)
 

@@ -1,11 +1,16 @@
+import difflib
 import time
 from typing import ClassVar
 
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen.screen_area import ScreenArea
+from one_dragon.utils import str_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
@@ -146,8 +151,43 @@ class WitheredDomainApp(ZApplication):
             target_list.extend(['核心', 'Core', '枯败花圃-核心', '枯萎之都-核心'])
         # 去重并保持顺序
         target_list = list(dict.fromkeys(target_list))
-        return self.round_by_ocr_and_click_by_priority(target_list, area=area,
-                                                       success_wait=1, retry_wait=1)
+        return self._click_mission_by_priority(target_list, area)
+
+    def _click_mission_by_priority(self, target_list: list[str], area: ScreenArea) -> OperationRoundResult:
+        """
+        按优先级在副本列表中点击副本
+        同一个候选名称可能模糊匹配到多个副本（如 枯萎之都-核心 / 枯萎之都-外围 都能匹配 枯萎之都-核心）
+        此时优先点击文本最相似的结果 相似度相同再比较 OCR 置信度
+        :param target_list: 按优先级排序的候选名称
+        :param area: 副本列表区域
+        :return:
+        """
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=self.last_screenshot,
+            rect=area.rect,
+            color_range=area.color_range,
+        )
+        to_match_list: list[str] = [gt(i, 'game') for i in target_list]
+        for word_idx, word in enumerate(target_list):
+            candidate_list: list[tuple[float, float, Point]] = []
+            for ocr_text, mrl in ocr_result_map.items():
+                if mrl.max is None:
+                    continue
+                # 与 match_word_list_by_priority 相同的分组方式：OCR 文本归到最相近的候选名称
+                if str_utils.find_best_match_by_difflib(ocr_text, to_match_list) != word_idx:
+                    continue
+                ratio = difflib.SequenceMatcher(None, ocr_text, to_match_list[word_idx]).ratio()
+                candidate_list.append((ratio, mrl.max.confidence, mrl.max.center))
+            if len(candidate_list) == 0:
+                continue
+
+            _, _, to_click = max(candidate_list, key=lambda c: (c[0], c[1]))
+            time.sleep(0.3)
+            if self.ctx.controller.click(to_click):
+                return self.round_success(status=word, wait=1)
+            return self.round_retry(f'点击 {word} 失败', wait=1)
+
+        return self.round_retry(status='未匹配到目标文本', wait=1)
 
     @node_from(from_name='选择副本类型', status='下一步')
     @node_from(from_name='选择副本')
