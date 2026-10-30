@@ -1286,8 +1286,11 @@ class Operation(OperationBase):
                 to_click = to_click + offset
 
             time.sleep(pre_delay)
-            self.ctx.controller.click(to_click)
-            return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+            click = self.ctx.controller.click(to_click)
+            if click:
+                return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+            else:
+                return self.round_retry(f'点击 {match_word} 失败', wait=retry_wait, wait_round_time=retry_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 

@@ -1,4 +1,5 @@
 import re
+
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -6,7 +7,7 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils, i18_utils
+from one_dragon.utils import cv2_utils, i18_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
@@ -39,6 +40,7 @@ class BackToNormalWorld(ZOperation):
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.prefer_dialog_confirm: bool = True  # 默认为 True：优先确认/前往，确保导航和操作正常推进
         self._dialog_confirm_times: int = 0  # 弹窗确认点击尝试次数
+        self._last_dialog_key: tuple[str, ...] | None = None  # 上次处理的双按钮弹窗标识 弹窗变化时重置确认次数
 
     @node_from(from_name='打开地图', success=False)
     @node_from(from_name='执行传送')
@@ -207,6 +209,7 @@ class BackToNormalWorld(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(screen, rect=dialog_rect, crop_first=False)
         if not ocr_result_list:
             self._dialog_confirm_times = 0
+            self._last_dialog_key = None
             return None
 
         confirm_items = []
@@ -238,10 +241,16 @@ class BackToNormalWorld(ZOperation):
 
         if not confirm_items and not cancel_items:
             self._dialog_confirm_times = 0
+            self._last_dialog_key = None
             return None
 
         # 双按钮弹窗：始终优先点击确认（前往/确定），连续多次确认无效时才尝试取消兜底
         if confirm_items and cancel_items:
+            # 以弹窗区域内全部文本作为弹窗标识，换了弹窗就重新计数，避免计数跨弹窗累加后误点取消
+            dialog_key = tuple(sorted(item.data.strip() for item in ocr_result_list))
+            if dialog_key != self._last_dialog_key:
+                self._last_dialog_key = dialog_key
+                self._dialog_confirm_times = 0
             if self._dialog_confirm_times < 3:
                 target = confirm_items[0]
                 self._dialog_confirm_times += 1
@@ -289,7 +298,8 @@ class BackToNormalWorld(ZOperation):
         has_gray_mask = cv2_utils.is_in_gray_mask(screen, rect=dialogue_text_rect)
         text_ocr = self.ctx.ocr_service.get_ocr_result_list(screen, rect=dialogue_text_rect, crop_first=False)
         has_dialogue_text = any(str_utils.with_chinese(i.data) or len(i.data.strip()) > 3 for i in text_ocr)
-        is_dialogue_active = has_gray_mask or has_dialogue_text
+        # 菜单、战斗等画面底部也可能有中文 只有底部文字不能说明处于对话 需同时有对话框灰色遮罩
+        is_dialogue_active = has_gray_mask and has_dialogue_text
 
         # 2. 检查右侧对话选项区域
         options_rect = Rect(1400, 480, 1920, 850)

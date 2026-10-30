@@ -1039,10 +1039,10 @@ msgid "枯败花圃"
 msgstr "Withering Garden"
 
 msgid "枯萎之都配置"
-msgstr "Withering Garden Settings"
+msgstr "Withered Domain Settings"
 
 msgid "挑战配置-枯"
-msgstr "Challenge Config - Withering Garden"
+msgstr "Challenge Config - Withered Domain"
 
 msgid "迷失之地"
 msgstr "Lost Void"
