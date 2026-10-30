@@ -1349,9 +1349,9 @@ wheels = [
 
 [[package]]
 name = "vgamepad"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8a/54/0eaddc33f84247963af078f364b37153d09fcd6cdc398f243ec3e8842c56/vgamepad-0.1.0.tar.gz", hash = "sha256:57f6bd01aec0c172947517fb782d150ef9b285f7f4d524c317374fa5c24a89de", size = 1174896, upload-time = "2023-10-14T20:29:06.154Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/a5/990701a89ea8d7528a269c2be1ba71d888de38a762a1b0f8d8eae4c2be62/vgamepad-0.2.0.tar.gz", hash = "sha256:6ac247e6441e194a0277b46f6f9abc02d7995de5ed8dc495b67eddd214364a88", size = 1187555, upload-time = "2026-10-27T04:33:12.455Z" }
 
 [[package]]
 name = "virtualenv"
@@ -1410,6 +1410,7 @@ dependencies = [
     { name = "pyyaml", marker = "sys_platform == 'win32'" },
     { name = "shapely", marker = "sys_platform == 'win32'" },
     { name = "soundcard", marker = "sys_platform == 'win32'" },
+    { name = "vgamepad", marker = "sys_platform == 'win32'" },
     { name = "websocket-client", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1427,9 +1428,6 @@ dev = [
     { name = "pyuac", marker = "sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'win32'" },
-]
-gamepad = [
-    { name = "vgamepad", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -1450,6 +1448,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.3" },
     { name = "shapely", specifier = "==2.1.2" },
     { name = "soundcard", specifier = "==0.4.6" },
+    { name = "vgamepad", specifier = "==0.2.0" },
     { name = "websocket-client", specifier = "==1.9.2" },
 ]
 
@@ -1468,4 +1467,3 @@ dev = [
     { name = "ruff", specifier = ">=0.15.18" },
     { name = "uvicorn", specifier = ">=0.30.0" },
 ]
-gamepad = [{ name = "vgamepad", specifier = "==0.1.0" }]
