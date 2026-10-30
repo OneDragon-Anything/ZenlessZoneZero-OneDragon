@@ -290,5 +290,5 @@ move_mouse_relative(dx, dy)
 
 ## 前置条件
 
-1. **ViGEmBus 驱动**：首次安装 vgamepad 时会弹出驱动安装程序，可直接取消跳过；设置环境变量 `VGAMEPAD_SKIP_VIGEMBUS_INSTALL=true` 可不弹出（CI 即如此）。未装驱动时 `import vgamepad` 失败，后台模式不可用
+1. **ViGEmBus 驱动**：首次安装 vgamepad 时会弹出驱动安装程序，可直接取消跳过；设置环境变量 `VGAMEPAD_SKIP_VIGEMBUS_INSTALL=true` 可不弹出（CI 和启动器即如此）。未装驱动时 `import vgamepad` 失败，后台模式不可用
 2. **vgamepad Python 包**：已在主依赖中，`uv sync` 即会安装
