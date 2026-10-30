@@ -32,6 +32,7 @@ class SuibianTempleSalesStall(ZOperation):
             self, ctx,
             op_name=f'{gt("随便观", "game")} {gt("售卖铺", "game")}'
         )
+        self.goto_click_times: int = 0  # 前往目标画面的点击次数
 
     def handle_init(self) -> None:
         ZOperation.handle_init(self)

@@ -42,6 +42,7 @@ class SuibianTempleCraft(ZOperation):
         self.chosen_item_list: list[str] = []  # 已经选择过的商品列表
         self.scroll_after_choose: bool = False  # 选择后是否已经滑动了
         self.drag_times: int = 0  # 下拉次数
+        self.goto_click_times: int = 0  # 前往目标画面的点击次数
 
     def handle_init(self) -> None:
         ZOperation.handle_init(self)
