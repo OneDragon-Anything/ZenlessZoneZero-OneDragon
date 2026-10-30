@@ -211,7 +211,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success('接取失败')
 
-        return self.round_by_ocr_and_click_with_action(
+        result = self.round_by_ocr_and_click_with_action(
             target_action_list=[
                 ('下一步', OperationRoundResultEnum.WAIT),
                 ('无报酬模式', OperationRoundResultEnum.WAIT),
@@ -219,6 +219,29 @@ class IntelBoardApp(ZApplication):
             wait_wait=1,
             retry_wait=1
         )
+        if result.result != OperationRoundResultEnum.RETRY:
+            return result
+
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(image=self.last_screenshot)
+        if any('挑战等级' in text for text in ocr_result_map):
+            if self.current_commission_type == CommissionType.EXPERT_CHALLENGE:
+                screen_name, area_name = '实战模拟室', '下一步'
+            elif self.current_commission_type == CommissionType.NOTORIOUS_HUNT:
+                screen_name, area_name = '恶名狩猎', '按钮-无报酬模式'
+            else:
+                screen_name, area_name = None, None
+
+            if screen_name is not None and area_name is not None:
+                area_result = self.round_by_click_area(screen_name, area_name)
+                if area_result.is_success:
+                    return self.round_wait(status=f'点击{area_name}区域', wait=1)
+                return area_result
+
+        log.warning(
+            '情报板下一步节点未匹配到按钮，OCR识别文本: %s',
+            list(ocr_result_map),
+        )
+        return result
 
     @node_from(from_name='下一步', status='接取失败')
     @operation_node(name='接取失败')
