@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+if TYPE_CHECKING:
+    from zzz_od.config.one_dragon_config import ZOneDragonConfig
+    from zzz_od.game_settings.game_settings_profile_service import (
+        GameSettingsProfileService,
+    )
 
 
 class ZContext(OneDragonContext):
@@ -18,6 +25,18 @@ class ZContext(OneDragonContext):
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
+
+    @cached_property
+    def one_dragon_config(self) -> ZOneDragonConfig:
+        from zzz_od.config.one_dragon_config import ZOneDragonConfig
+        return ZOneDragonConfig()
+
+    @cached_property
+    def game_settings_profile_service(self) -> GameSettingsProfileService:
+        from zzz_od.game_settings.game_settings_profile_service import (
+            GameSettingsProfileService,
+        )
+        return GameSettingsProfileService(self)
 
     @cached_property
     def model_config(self):
