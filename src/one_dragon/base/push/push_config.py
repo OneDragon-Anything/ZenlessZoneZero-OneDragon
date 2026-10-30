@@ -1,11 +1,8 @@
-import os
-import shutil
-from enum import Enum, StrEnum
+from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
-from one_dragon.utils import os_utils
 
 
 class PushProxy(Enum):
@@ -17,31 +14,7 @@ class PushProxy(Enum):
 class PushConfig(YamlConfig):
 
     def __init__(self):
-        """
-        推送配置
-        应该是一个全局配置
-        """
-        # 将账号实例下的配置复制到全局 预计 2026-01-01 可删除这部分兼容代码
-        instance_config_file_path = os.path.join(
-            os_utils.get_path_under_work_dir('config', '01'),
-            'push.yml'
-        )
-        global_config_file_path = os.path.join(
-            os_utils.get_path_under_work_dir('config'),
-            'push.yml'
-        )
-        if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
-            shutil.copy(instance_config_file_path, global_config_file_path)
-
         YamlConfig.__init__(self, 'push')
-
-    @property
-    def custom_push_title(self) -> str:
-        return self.get('custom_push_title', '一条龙运行通知')
-
-    @custom_push_title.setter
-    def custom_push_title(self, new_value: str) -> None:
-        self.update('custom_push_title', new_value)
 
     @property
     def send_image(self) -> bool:

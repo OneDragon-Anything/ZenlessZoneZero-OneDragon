@@ -1,13 +1,12 @@
 import time
-
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.life_on_line import life_on_line_const
 from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
 from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
@@ -22,6 +21,8 @@ from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 class LifeOnLineApp(ZApplication):
 
+    """真·拿命验收:第二章间章的 HDD 战斗委托,可重复挑战;主要用于推进/跳过游戏时间(过夜)。进入战斗、单次很快(默认按次数重复)。"""
+
     STATUS_TIMES_FINISHED: ClassVar[str] = '完成指定次数'
     STATUS_CONTINUE: ClassVar[str] = '继续'
     STATUS_CONTINUE_OVER_NIGHT: ClassVar[str] = '过夜后继续'
@@ -32,8 +33,7 @@ class LifeOnLineApp(ZApplication):
             self,
             ctx=ctx,
             app_id=life_on_line_const.APP_ID,
-            op_name=gt(life_on_line_const.APP_NAME),
-            need_notify=True,
+            op_name=life_on_line_const.APP_NAME,
         )
         self.config: LifeOnLineConfig = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,
@@ -115,8 +115,7 @@ class LifeOnLineApp(ZApplication):
 
         # 有选项就点选项
         area = self.ctx.screen_loader.get_area('真拿命验收', '对话选项')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         for ocr_result, mrl in ocr_result_map.items():
             to_click = mrl.max.center + area.left_top
             self.ctx.controller.click(to_click)
@@ -142,7 +141,8 @@ class LifeOnLineApp(ZApplication):
             return self.round_wait(result.status, wait=0.5)
 
         # 过夜提醒的对话比较多 不进行识别 不断点击空白直到返回大世界
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx, check_once=True)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             self.is_over_night = True
             self.run_record.add_times()
@@ -166,9 +166,9 @@ class LifeOnLineApp(ZApplication):
                 return self.round_success(LifeOnLineApp.STATUS_CONTINUE)
 
     @node_from(from_name='检查运行次数', status=STATUS_TIMES_FINISHED)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -200,7 +200,8 @@ class LifeOnLineApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     app = LifeOnLineApp(ctx)
     app.execute()
 

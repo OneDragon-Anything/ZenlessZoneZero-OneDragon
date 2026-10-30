@@ -1,8 +1,0 @@
-sub_dir: menu
-template_id: friends
-template_name: 菜单-朋友
-template_shape: circle
-auto_mask: true
-point_list:
-- 535, 51
-- 505, 51

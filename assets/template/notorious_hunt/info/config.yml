@@ -1,0 +1,8 @@
+sub_dir: notorious_hunt
+template_id: info
+template_name: 深度追猎-信息
+template_shape: circle
+auto_mask: true
+point_list:
+- 1501, 699
+- 1521, 699

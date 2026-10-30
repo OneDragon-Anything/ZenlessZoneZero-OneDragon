@@ -114,22 +114,22 @@ class Discord(PushChannel):
 
             # 发送消息
             message_url = f"{api_host}/channels/{channel_id}/messages"
-            message_payload = {"content": f"{title}\n{content}"}
+            message_payload = self._build_message_payload(title, content, image is not None)
 
             files = None
             if image is not None:
                 image_data = self.image_to_bytes(image)
                 if image_data is not None:
                     image_data.seek(0)
-                    files = {'file': ('image.png', image_data, 'image/png')}
-                    data = {'payload_json': json.dumps(message_payload)}
+                    files = {'files[0]': ('screenshot.jpg', image_data, 'image/jpeg')}
+                    data = {'payload_json': json.dumps(message_payload, ensure_ascii=False)}
                     if "Content-Type" in headers:
                         del headers["Content-Type"]
                 else:
-                    data = json.dumps(message_payload)
+                    data = json.dumps(self._build_message_payload(title, content), ensure_ascii=False)
                     headers["Content-Type"] = "application/json"
             else:
-                data = json.dumps(message_payload)
+                data = json.dumps(message_payload, ensure_ascii=False)
                 headers["Content-Type"] = "application/json"
 
             response = requests.post(message_url, headers=headers, data=data, files=files, timeout=30)
@@ -140,6 +140,21 @@ class Discord(PushChannel):
         except Exception as e:
             log.error("Discord 推送异常", exc_info=True)
             return False, f"Discord 推送异常: {str(e)}"
+
+    @staticmethod
+    def _build_message_payload(title: str, content: str, with_thumbnail: bool = False) -> dict:
+        if not with_thumbnail:
+            return {"content": f"{title}\n{content}"}
+
+        return {
+            "embeds": [
+                {
+                    "title": title,
+                    "description": content,
+                    "thumbnail": {"url": "attachment://screenshot.jpg"},
+                }
+            ],
+        }
 
     def validate_config(self, config: dict[str, str]) -> tuple[bool, str]:
         """

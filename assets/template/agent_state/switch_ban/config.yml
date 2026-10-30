@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: switch_ban
+template_name: 角色状态-无法切人
+template_shape: circle
+auto_mask: true
+point_list:
+- 1778, 967
+- 1808, 967

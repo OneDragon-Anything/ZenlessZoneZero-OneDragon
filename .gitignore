@@ -1,8 +1,10 @@
 # 开发过程产生的临时文件
 build/
 dist/
+zzz-od-test/
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
 __pycache__/
 deploy/build/
 deploy/dist/
@@ -10,14 +12,18 @@ deploy/dist/
 recording.jsonl
 QWEN.md
 GEMINI.md
-CLAUDE.md
+CLAUDE.local.md
 .lingma/
 .qwen/
-.claude/
+.claude/*
+.pai/
+!.claude/CLAUDE.md
+nul
+.kiro/
 
-# 子模块
-test/
-zzz-od-test/
+# superpowers
+docs/superpowers/
+.superpowers/
 
 # 用户独有的配置文件
 env.bat
@@ -27,7 +33,10 @@ config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
+config/pip.yml
+config/agent_template_generator.yml
 config/push.yml
+config/redemption_codes.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
@@ -44,10 +53,11 @@ config/lost_void_challenge/*
 !config/lost_void_challenge/*.sample.yml
 config/yolo.yml
 config/model.yml
+config/overlay.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
-assets/ui/remote_banner.webp
-assets/ui/official_dynamic.webm
+assets/ui/static_background.webp
+assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
 
@@ -62,8 +72,13 @@ config/world_patrol_route_list/*
 .debug/
 .conda/
 .venv/
+.runtime/
 notice_cache/
 *.bak
+
+# 第三方插件目录
+plugins/*
+!plugins/README.md
 
 # 需自行下载的模型文件
 models/

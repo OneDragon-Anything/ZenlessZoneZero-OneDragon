@@ -9,26 +9,30 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList, MatchResult
+from one_dragon.utils.log_utils import log
 
 feature_detector = cv2.SIFT_create()
 
 
 def read_image(file_path: str) -> Optional[MatLike]:
     """
-    读取图片
-    :param file_path: 图片路径
-    :return:
+    读取图片。用 ``np.fromfile`` + ``cv2.imdecode``,兼容非 ASCII(如中文)路径——
+    ``cv2.imread`` 在 Windows 走 C stdlib,中文路径会读失败。
+
+    :param file_path: 图片路径(支持中文等非 ASCII)。
+    :return: RGB 格式图像;文件不存在 / 读失败 / 解析失败时返 None。
     """
     if not os.path.exists(file_path):
         return None
     file_type = get_image_file_type(file_path)
-
-    # 默认以BGR格式加载
-    if file_type == 'webp':
-        image = cv2.imread(file_path, cv2.IMREAD_COLOR)
-    else:
-        image = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
-
+    flag = cv2.IMREAD_COLOR if file_type.lower() == 'webp' else cv2.IMREAD_UNCHANGED
+    try:
+        buf = np.fromfile(file_path, dtype=np.uint8)  # 兼容非 ASCII 路径
+    except OSError:
+        return None
+    image = cv2.imdecode(buf, flag)
+    if image is None:
+        return None
     if image.ndim == 2:
         return image
     elif image.ndim == 3:
@@ -41,18 +45,24 @@ def read_image(file_path: str) -> Optional[MatLike]:
 
 def save_image(img: MatLike, file_path: str) -> None:
     """
-    保存图片
-    :param img: RBG格式的图片
-    :param file_path: 保存路径
+    保存图片(RGB)。用 ``cv2.imencode`` + ``ndarray.tofile``,兼容非 ASCII(如中文)路径——
+    ``cv2.imwrite`` 在 Windows 走 C stdlib,中文路径会写失败。webp 用无损质量(q=100)。
+    写盘失败(目录缺失等)静默跳过,与原 ``cv2.imwrite`` 的 best-effort 行为一致。
+
+    :param img: RGB 格式图片。
+    :param file_path: 保存路径(支持中文等非 ASCII)。
     """
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
     file_type = get_image_file_type(file_path)
-    if file_type == 'webp':  # 无损压缩保存
-        cv2.imwrite(file_path, img, [cv2.IMWRITE_WEBP_QUALITY, 100])
-    else:
-        cv2.imwrite(file_path, img)
+    ext = '.' + file_type.lower()
+    params = [cv2.IMWRITE_WEBP_QUALITY, 100] if file_type.lower() == 'webp' else []
+    ok, buf = cv2.imencode(ext, img, params)
+    if ok:
+        try:
+            buf.tofile(file_path)  # 兼容非 ASCII;目录缺失等 OSError 静默(同 imwrite best-effort)
+        except OSError:
+            pass
 
 
 def get_image_file_type(file_path: str) -> str:
@@ -176,7 +186,7 @@ def mark_area_as_color(image: MatLike, pos: List, color, new_image: bool = False
 
 
 def match_template(source: MatLike, template: MatLike, threshold,
-                   mask: np.ndarray = None, only_best: bool = True,
+                   mask: np.ndarray | None = None, only_best: bool = True,
                    ignore_inf: bool = False) -> MatchResultList:
     """
     在原图中匹配模板 注意无法从负偏移量开始匹配 即需要保证目标模板不会在原图边缘位置导致匹配不到
@@ -189,6 +199,11 @@ def match_template(source: MatLike, template: MatLike, threshold,
     :return: 所有匹配结果
     """
     tx, ty = template.shape[1], template.shape[0]
+    # 防御:source 比 template 还小(如 area 的 pc_rect 占位 [0,0,0,0] 裁出空图)时,
+    # cv2.matchTemplate 会触发断言(_img >= _templ)失败,让整个 analyze 中断。
+    # 此时直接返回空结果(视为不匹配),由调用方按"未命中"处理。
+    if source.shape[0] < ty or source.shape[1] < tx:
+        return MatchResultList(only_best=only_best)
     # 进行模板匹配
     # show_image(source, win_name='source')
     # show_image(template, win_name='template')
@@ -1174,3 +1189,114 @@ def get_hsv_range_in_contour(image: MatLike, contour: np.ndarray) -> dict:
         'center_hsv': (int(h_center), int(s_center), int(v_center)),
         'diff_hsv': (int(h_diff), int(s_diff), int(v_diff))
     }
+
+
+def to_binary(img: MatLike, threshold: int = 127) -> MatLike:
+    """
+    将图像转换为二值化图像
+    Args:
+        img: 输入图像（可以是彩色或灰度图像）
+        threshold: 二值化阈值，默认为127
+    Returns:
+        二值化图像（单通道，只有0和255两个值）
+    """
+    if len(img.shape) == 3:  # 彩色图像
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = img
+    _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+    return binary
+
+
+def is_colorful(img: MatLike, saturation_threshold: int = 30, color_ratio_threshold: float = 0.1) -> bool:
+    """
+    判断图像是否为彩色（不是灰度）
+
+    彩色图像的判断依据：
+    1. 饱和度：HSV空间中的S通道平均值高于阈值
+    2. 颜色占比：具有明显饱和度的像素占比高于阈值
+
+    Args:
+        img: 输入图像（RGB格式）
+        saturation_threshold: 饱和度阈值，低于此值认为是不饱和的（灰度）。默认30
+        color_ratio_threshold: 彩色像素占比阈值。默认0.1（10%）
+
+    Returns:
+        bool: True 表示是彩色的，False 表示接近灰度
+    """
+    if img is None or img.size == 0:
+        return False
+
+    # 确保是彩色图像
+    if len(img.shape) != 3 or img.shape[2] != 3:
+        return False
+
+    # 转换为HSV颜色空间
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+
+    # 获取饱和度通道（S通道）
+    s_channel = hsv[:, :, 1]
+
+    # 方法1：计算饱和度均值
+    mean_saturation = np.mean(s_channel)
+
+    # 方法2：计算具有明显饱和度的像素比例
+    saturated_pixels = np.sum(s_channel > saturation_threshold)
+    total_pixels = s_channel.size
+    color_ratio = saturated_pixels / total_pixels
+
+    # 判断条件：饱和度均值高于阈值 且 彩色像素占比高于阈值
+    is_colorful = mean_saturation > saturation_threshold and color_ratio > color_ratio_threshold
+
+    return is_colorful
+
+
+def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold: int = 55, rgb_diff_threshold: int = 20,
+                    percent_rate: float = 0.9) -> bool:
+    """
+    判断图像是否接近灰色遮罩下的区域, 可用于判断游戏下方的对话框遮罩
+    性能比 is_colorful 稍慢, 但是几乎能准确识别所有对话框
+
+    判断依据：
+    1.  统计 (RGB都<threshold) OR (RGB都>255-threshold) 的像素占比
+        在游戏下方的对话框中, 应该是只有文字边缘像素颜色值会不在50以下
+    2.  统计RGB之差小于 rgb_diff_threshold 的像素占比, 以判断是否为灰度像素 (文字周围一圈在图片压缩之后是灰色的)
+
+    Args:
+        img: 输入图像（RGB格式）
+        rect: 先裁切
+        threshold: 颜色阈值，RGB都低于此或者都高于(255-此)认为接近黑白
+        rgb_diff_threshold: 颜色阈值，RGB只差小于此则认为像素块为灰色
+        percent_rate: 满足条件的点的占比阈值
+
+    Returns:
+        bool: True 表示接近灰色遮罩下的区域，False 表示是彩色的
+    """
+    if img is None or img.size == 0:
+        return False
+
+    # 裁剪图片
+    if rect is not None:
+        img, _ = crop_image(img, rect)
+
+    if img is None or img.size == 0:
+        return False
+
+    total = img.shape[0] * img.shape[1]
+
+    # 条件1：纯黑 或 纯白
+    cond1 = (np.all(img < threshold, axis=-1) | np.all(img > 255 - threshold, axis=-1))
+
+    # 条件2：RGB 相差很小（最大值 - 最小值 < 阈值）
+    img_max = img.max(axis=-1)
+    img_min = img.min(axis=-1)
+    cond2 = (img_max - img_min) < rgb_diff_threshold
+
+    # 满足任意一个就计数（超快向量化）
+    count = (cond1 | cond2).sum()
+    # save_image(img, 'y:\\debug.png')
+    percent = count / total
+    log.debug('灰遮罩图片置信度 [%2f]', percent)
+    # is_colorful(img)
+
+    return percent > percent_rate

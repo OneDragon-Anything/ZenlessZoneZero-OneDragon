@@ -1,0 +1,19 @@
+template_name: "闪A模板-般岳"
+# 般岳闪A模板 - 处理红光闪避后的反击
+# 技能名称：
+# - 闪避：不动如山、越岭、叫阵
+# - 闪避反击：扬砾
+handlers:
+  - states: "[前台-般岳] & [自定义-红光闪避, 0, 1]"
+    sub_handlers:
+      # 怒相状态下使用不动如山格挡
+      - states: "[自定义-般岳-怒相, 0, 30]"
+        debug_name: "怒相格挡反击"
+        operations:
+          - operation_template: "般岳-闪避-不动如山"
+
+      # 非怒相状态下使用扬砾闪避反击
+      - states: ""
+        debug_name: "扬砾闪避反击"
+        operations:
+          - operation_template: "般岳-闪避反击-扬砾"

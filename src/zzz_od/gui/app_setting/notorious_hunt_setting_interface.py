@@ -1,0 +1,364 @@
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
+from qfluentwidgets import (
+    CaptionLabel,
+    FluentIcon,
+    LineEdit,
+    MessageBoxBase,
+    PrimaryPushButton,
+    SubtitleLabel,
+    ToolButton,
+)
+
+from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
+from one_dragon_qt.utils.config_utils import get_prop_adapter
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
+from zzz_od.application.notorious_hunt import notorious_hunt_const
+from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+    NotoriousHuntBuffEnum,
+    NotoriousHuntConfig,
+    NotoriousHuntLevelEnum,
+    NotoriousHuntWeekdayEnum,
+)
+from zzz_od.context.zzz_context import ZContext
+
+
+class NotoriousHuntCard(DraggableListItem):
+
+    changed = Signal(int, ChargePlanItem)
+    move_top = Signal(int)
+    delete = Signal(int)
+
+    def __init__(self, ctx: ZContext, idx: int, plan: ChargePlanItem) -> None:
+        self.ctx: ZContext = ctx
+        self.idx: int = idx
+        self.plan: ChargePlanItem = plan
+
+        self.mission_type_combo_box = ComboBox()
+        self.mission_type_combo_box.currentIndexChanged.connect(self._on_mission_type_changed)
+
+        self.level_combo_box = ComboBox()
+        self.level_combo_box.currentIndexChanged.connect(self._on_level_changed)
+
+        self.predefined_team_opt = ComboBox()
+        self.predefined_team_opt.currentIndexChanged.connect(self.on_predefined_team_changed)
+
+        self.auto_battle_combo_box = ComboBox()
+        self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
+
+        self.buff_opt = ComboBox()
+        self.buff_opt.currentIndexChanged.connect(self.on_buff_changed)
+
+        run_times_label = CaptionLabel(text=gt('已运行次数'))
+        self.run_times_input = LineEdit()
+        self.run_times_input.textChanged.connect(self._on_run_times_changed)
+
+        plan_times_label = CaptionLabel(text=gt('计划次数'))
+        self.plan_times_input = LineEdit()
+        self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
+
+        self.move_top_btn = ToolButton(FluentIcon.PIN, None)
+        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+        self.del_btn = ToolButton(FluentIcon.DELETE, None)
+        self.del_btn.clicked.connect(self._on_del_clicked)
+
+        content_widget = MultiLineSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='',
+            line_list=[
+                [
+                    self.mission_type_combo_box,
+                    self.level_combo_box,
+                    self.predefined_team_opt,
+                    self.auto_battle_combo_box,
+                    self.buff_opt,
+                ],
+                [
+                    run_times_label,
+                    self.run_times_input,
+                    plan_times_label,
+                    self.plan_times_input,
+                    self.move_top_btn,
+                    self.del_btn,
+                ]
+            ]
+        )
+
+        DraggableListItem.__init__(
+            self,
+            data=plan,
+            index=idx,
+            content_widget=content_widget
+        )
+
+        self.init_with_plan(plan)
+
+    def after_update_item(self) -> None:
+        self.idx = self.index
+        self.init_with_plan(self.data)
+
+    def _on_move_top_clicked(self) -> None:
+        self.move_top.emit(self.idx)
+
+    def _on_del_clicked(self) -> None:
+        self.delete.emit(self.idx)
+
+    def init_with_plan(self, plan: ChargePlanItem) -> None:
+        """
+        以一个体力计划进行初始化
+        """
+        self.plan = plan
+
+        self.init_mission_type_combo_box()
+        self.init_predefined_team_opt()
+        self.init_auto_battle_box()
+        self.init_level_combo_box()
+        self.init_buff_combo_box()
+
+        self.init_plan_times_input()
+        self.init_run_times_input()
+
+    def init_mission_type_combo_box(self) -> None:
+        config_list = self.ctx.compendium_service.get_notorious_hunt_plan_mission_type_list(self.plan.category_name)
+        self.mission_type_combo_box.set_items(config_list, self.plan.mission_type_name)
+
+    def init_level_combo_box(self) -> None:
+        config_list = [i.value for i in NotoriousHuntLevelEnum]
+        self.level_combo_box.set_items(config_list, self.plan.level)
+
+    def init_buff_combo_box(self) -> None:
+        config_list = [i.value for i in NotoriousHuntBuffEnum]
+        self.buff_opt.set_items(config_list, self.plan.notorious_hunt_buff_num)
+
+    def init_auto_battle_box(self) -> None:
+        config_list = get_auto_battle_op_config_list(sub_dir='auto_battle')
+        self.auto_battle_combo_box.set_items(config_list, self.plan.auto_battle_config)
+        self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
+
+    def init_predefined_team_opt(self) -> None:
+        """
+        初始化预备编队的下拉框
+        """
+        config_list = ([ConfigItem('游戏内配队', -1)] +
+                       [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
+        self.predefined_team_opt.set_items(config_list, self.plan.predefined_team_idx)
+
+    def init_run_times_input(self) -> None:
+        self.run_times_input.blockSignals(True)
+        self.run_times_input.setText(str(self.plan.run_times))
+        self.run_times_input.blockSignals(False)
+
+    def init_plan_times_input(self) -> None:
+        self.plan_times_input.blockSignals(True)
+        self.plan_times_input.setText(str(self.plan.plan_times))
+        self.plan_times_input.blockSignals(False)
+
+    def _on_mission_type_changed(self, idx: int) -> None:
+        mission_type_name = self.mission_type_combo_box.itemData(idx)
+        self.plan.mission_type_name = mission_type_name
+
+        self._emit_value()
+
+    def _on_level_changed(self, idx: int) -> None:
+        level = self.level_combo_box.itemData(idx)
+        self.plan.level = level
+
+        self._emit_value()
+
+    def on_buff_changed(self, idx: int) -> None:
+        self.plan.notorious_hunt_buff_num = self.buff_opt.currentData()
+        self._emit_value()
+
+    def on_predefined_team_changed(self, idx: int) -> None:
+        self.plan.predefined_team_idx = self.predefined_team_opt.currentData()
+        self.init_auto_battle_box()
+        self._emit_value()
+
+    def _on_auto_battle_changed(self, idx: int) -> None:
+        auto_battle = self.auto_battle_combo_box.itemData(idx)
+        self.plan.auto_battle_config = auto_battle
+
+        self._emit_value()
+
+    def _on_run_times_changed(self) -> None:
+        self.plan.run_times = int(self.run_times_input.text())
+        self._emit_value()
+
+    def _on_plan_times_changed(self) -> None:
+        self.plan.plan_times = int(self.plan_times_input.text())
+        self._emit_value()
+
+    def _emit_value(self) -> None:
+        self.changed.emit(self.idx, self.plan)
+
+
+class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
+
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+        self.ctx: ZContext = ctx
+
+        VerticalScrollInterface.__init__(
+            self,
+            object_name='zzz_notorious_hunt_setting_interface',
+            content_widget=None, parent=parent,
+            nav_text_cn='恶名狩猎计划'
+        )
+
+        self.config: NotoriousHuntConfig | None = None
+
+    def get_content_widget(self) -> QWidget:
+        self.content_widget = Column()
+
+        self.weekly_challenge_start_weekday_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='恶名狩猎（周期挑战）开始日',
+            content='从开始日起才会自动运行。当日未完成会顺延到次日，直到当周完成/结束',
+            options_enum=NotoriousHuntWeekdayEnum,
+        )
+
+        self.loop_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC,
+            title='循环执行',
+            content='开启后，除本次已跳过的特训目标外，其余计划均已完成时会重置全部计划',
+        )
+
+        self.content_widget.add_widget(
+            HorizontalSettingCardGroup([self.weekly_challenge_start_weekday_opt, self.loop_opt], spacing=6)
+        )
+
+        self.drag_list = DraggableList()
+        drag_list_layout = self.drag_list.layout()
+        if drag_list_layout is not None:
+            drag_list_layout.setSpacing(0)
+        self.drag_list.order_changed.connect(self._on_order_changed)
+        self.content_widget.add_widget(self.drag_list)
+
+        self.card_list: list[NotoriousHuntCard] = []
+
+        self.plus_btn = PrimaryPushButton(text=gt('新增'))
+        self.plus_btn.clicked.connect(self._on_add_clicked)
+        self.content_widget.add_widget(self.plus_btn, stretch=1)
+
+        return self.content_widget
+
+    def update_plan_list_display(self) -> None:
+        plan_list = self.config.plan_list
+
+        # 清空原来的卡片再创建新的卡片, 以防止部分信息未更新
+        self.drag_list.clear()
+        self.card_list.clear()
+        idx = 0
+        while idx < len(plan_list):
+            card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
+            card.changed.connect(self._on_plan_item_changed)
+            card.delete.connect(self._on_plan_item_deleted)
+            card.move_top.connect(self._on_plan_item_move_top)
+
+            self.card_list.append(card)
+            self.drag_list.add_list_item(card)
+            card_layout = card.layout()
+            if card_layout is not None:
+                card_layout.setContentsMargins(0, 4, 0, 4)
+            idx += 1
+
+    def on_interface_shown(self) -> None:
+        VerticalScrollInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+
+        self.weekly_challenge_start_weekday_opt.init_with_adapter(
+            get_prop_adapter(self.config, 'weekly_challenge_start_weekday')
+        )
+        self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
+        self.update_plan_list_display()
+
+    def on_interface_hidden(self) -> None:
+        VerticalScrollInterface.on_interface_hidden(self)
+
+    def _on_add_clicked(self) -> None:
+        dialog = NotoriousHuntDialog(self.ctx, self.config, parent=self.window())
+        if dialog.exec():
+            self.config.add_plan(dialog.plan)
+            self.update_plan_list_display()
+
+    def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
+        self.config.update_plan(idx, plan)
+
+    def _on_plan_item_deleted(self, idx: int) -> None:
+        self.config.delete_plan(idx)
+        self.update_plan_list_display()
+
+    def _on_plan_item_move_top(self, idx: int) -> None:
+        self.config.move_top(idx)
+        self.update_plan_list_display()
+
+    def _on_order_changed(self, new_data_list: list[ChargePlanItem]) -> None:
+        self.config.plan_list = new_data_list
+        self.config.save()
+
+        new_card_list: list[NotoriousHuntCard] = []
+        for data in new_data_list:
+            for card in self.card_list:
+                if card.data == data:
+                    new_card_list.append(card)
+                    break
+        self.card_list = new_card_list
+
+        for idx, card in enumerate(self.card_list):
+            card.update_item(card.data, idx)
+
+
+class NotoriousHuntDialog(MessageBoxBase):
+
+    def __init__(self, ctx: ZContext, config: NotoriousHuntConfig, parent: QWidget | None = None):
+        self.ctx: ZContext = ctx
+        self.config: NotoriousHuntConfig = config
+
+        MessageBoxBase.__init__(self, parent)
+
+        self.yesButton.setText(gt('确定'))
+        self.cancelButton.setText(gt('取消'))
+
+        self.titleLabel = SubtitleLabel(text=gt('新增恶名狩猎计划'))
+        self.viewLayout.addWidget(self.titleLabel)
+
+        self.plan = ChargePlanItem(
+            tab_name='训练',
+            category_name='恶名狩猎',
+            mission_type_name='初生死路屠夫',
+            mission_name=None,
+            level='默认等级',
+            auto_battle_config='全配队通用',
+            run_times=0,
+            plan_times=1,
+            predefined_team_idx=-1,
+        )
+        self.card = NotoriousHuntCard(self.ctx, idx=-1, plan=self.plan)
+        # 对话框内仅配置计划，隐藏置顶与删除控件
+        self.card.move_top_btn.hide()
+        self.card.del_btn.hide()
+        self.viewLayout.addWidget(self.card)
+        self.viewLayout.addStretch(1)

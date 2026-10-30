@@ -1,19 +1,35 @@
 import json
-from typing import Union, Optional
 
-from PySide6.QtCore import QRegularExpression, Signal, Qt, QRect
-from PySide6.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QIcon, QKeyEvent
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from PySide6.QtCore import QSize
-from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel,\
-                           BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
+from PySide6.QtCore import QRect, QRegularExpression, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import (
+    QColor,
+    QDesktopServices,
+    QIcon,
+    QKeyEvent,
+    QSyntaxHighlighter,
+    QTextCharFormat,
+)
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import (
+    Action,
+    BodyLabel,
+    FluentIcon,
+    FluentIconBase,
+    MessageBoxBase,
+    PlainTextEdit,
+    RoundMenu,
+    SubtitleLabel,
+    ToolButton,
+    ToolTipFilter,
+    ToolTipPosition,
+    isDarkTheme,
+)
 
-from one_dragon_qt.utils.layout_utils import Margins, IconSize
-from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
-from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.layout_utils import IconSize, Margins
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
+from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 
 
 class TemplateVariables:
@@ -132,6 +148,7 @@ class CodeEditor(PlainTextEdit):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setMinimumSize(800, 400)
 
         self.line_number_area = LineNumberArea(self)
 
@@ -177,15 +194,15 @@ class CodeEditor(PlainTextEdit):
         if rect.contains(self.viewport().rect()):
             self.update_line_number_area_width(0)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, e):
         """调整大小事件"""
-        super().resizeEvent(event)
+        super().resizeEvent(e)
         cr = self.contentsRect()
         self.line_number_area.setGeometry(QRect(cr.left(), cr.top(), self.line_number_area_width(), cr.height()))
 
-    def keyPressEvent(self, event: QKeyEvent):
+    def keyPressEvent(self, e: QKeyEvent):
         """处理按键事件，支持tab缩进"""
-        if event.key() == Qt.Key.Key_Tab:
+        if e.key() == Qt.Key.Key_Tab:
             cursor = self.textCursor()
 
             # 检查是否有选中文本
@@ -222,7 +239,7 @@ class CodeEditor(PlainTextEdit):
                 cursor.insertText("    ")
                 return
 
-        elif event.key() == Qt.Key.Key_Backtab:
+        elif e.key() == Qt.Key.Key_Backtab:
             cursor = self.textCursor()
 
             # 检查是否有选中文本
@@ -280,11 +297,11 @@ class CodeEditor(PlainTextEdit):
                     cursor.insertText(text[4:])
                     return
 
-        super().keyPressEvent(event)
+        super().keyPressEvent(e)
 
 
-class CodeEditorMixin:
-    """代码编辑器功能混入类，提供通用的编辑器操作方法"""
+class JsonEditorMixin:
+    """Json编辑器功能混入类，提供通用操作方法"""
 
     def _format_json(self):
         """格式化 JSON 内容"""
@@ -355,8 +372,8 @@ class CodeEditorMixin:
         self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
 
         # 创建模板变量菜单，设置父级为按钮的窗口而不是对话框本身
-        parent_window = self.parent_window if hasattr(self, 'parent_window') and self.parent_window else self
-        self.template_menu = TemplateVariableMenu(parent=parent_window, editor=self.editor)
+        parent_widget = self.parent_widget if hasattr(self, 'parent_widget') and self.parent_widget else self
+        self.template_menu = TemplateVariableMenu(parent=parent_widget, editor=self.editor)
 
         # 连接模板菜单信号
         self.template_menu.variable_selected.connect(self._insert_variable)
@@ -365,24 +382,48 @@ class CodeEditorMixin:
         button_layout.addWidget(self.template_btn)
 
 
-class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
-    """代码编辑器弹窗对话框"""
+class BaseCodeEditorDialog(MessageBoxBase):
+    """代码编辑器弹窗基类，提供编辑器、标题和按钮的基础布局。"""
+
+    def __init__(self, parent=None, title: str = "代码编辑器",
+                 placeholder: str = "", initial_code: str = ""):
+        super().__init__(parent)
+
+        self._title_layout = QHBoxLayout()
+        self.titleLabel = SubtitleLabel(gt(title))
+        self._title_layout.addWidget(self.titleLabel)
+        self._title_layout.addStretch()
+        self.viewLayout.addLayout(self._title_layout)
+
+        self.editor = CodeEditor(self)
+        if placeholder:
+            self.editor.setPlaceholderText(placeholder)
+        self.editor.setMinimumSize(600, 400)
+        if initial_code:
+            self.editor.setPlainText(initial_code)
+
+        # 子类需在 _setup_editor_layout 中设置高亮器和布局
+        self._setup_editor_layout()
+
+        self.viewLayout.addSpacing(16)
+        self.yesButton.setText(gt("确定"))
+        self.cancelButton.setText(gt("取消"))
+
+    def _setup_editor_layout(self) -> None:
+        """子类重写此方法来设置高亮器和编辑器布局。"""
+        self.viewLayout.addWidget(self.editor)
+
+    def get_text(self) -> str:
+        return self.editor.toPlainText()
+
+
+class JsonCodeEditorDialog(BaseCodeEditorDialog, JsonEditorMixin):
+    """JSON 代码编辑器弹窗对话框"""
 
     def __init__(self, parent=None, title: str = "代码编辑器", adapter=None):
-        super().__init__(parent)
         self.adapter = adapter
-
-        # 设置标题
-        self.titleLabel = SubtitleLabel(gt(title))
-        self.viewLayout.addWidget(self.titleLabel)
-
-        # 创建编辑器
-        self.editor = CodeEditor(self)
-        self.editor.setPlaceholderText(gt("请输入 JSON 格式的请求体"))
-        self.editor.setMinimumSize(600, 400)
-
-        # 添加语法高亮
-        self.highlighter = JsonHighlighter(self.editor.document())
+        super().__init__(parent=parent, title=title,
+                         placeholder=gt("请输入 JSON 格式的请求体"))
 
         # 初始化编辑器内容
         if self.adapter is not None:
@@ -398,12 +439,11 @@ class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
                     self.editor.setPlainText(value)
             else:
                 self.editor.setPlainText(value)
-
-        # 连接文本变化信号到适配器
-        if self.adapter is not None:
             self.editor.textChanged.connect(self._on_text_changed)
 
-        # 创建编辑器和按钮的水平布局
+    def _setup_editor_layout(self) -> None:
+        self.highlighter = JsonHighlighter(self.editor.document())
+
         editor_layout = QHBoxLayout()
         editor_layout.addWidget(self.editor)
 
@@ -418,7 +458,6 @@ class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
 
         # 创建模板按钮和菜单
         self._create_template_menu_and_button(button_layout)
-
         button_layout.addStretch()
 
         editor_layout.addLayout(button_layout)
@@ -426,26 +465,53 @@ class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
         # 创建编辑器容器
         editor_widget = QWidget()
         editor_widget.setLayout(editor_layout)
-
-        # 将编辑器容器添加到主布局
         self.viewLayout.addWidget(editor_widget)
-        self.viewLayout.addSpacing(16)
-
-        # 设置按钮文本
-        self.yesButton.setText(gt("确定"))
-        self.cancelButton.setText(gt("取消"))
-
-    def get_text(self) -> str:
-        """获取编辑器中的文本"""
-        return self.editor.toPlainText()
 
     def _on_text_changed(self):
-        """文本变化时更新适配器"""
         if self.adapter is not None:
             val = self.editor.toPlainText()
             # 将JSON紧凑化后写入后端
             compact_val = self._compact_json(val)
             self.adapter.set_value(compact_val)
+
+
+class PythonCodeEditorDialog(BaseCodeEditorDialog):
+    """Python 代码编辑器弹窗"""
+
+    def __init__(self, parent=None, title: str = "Python 脚本编辑器",
+                 initial_code: str = "", script_path: str = ""):
+        self._script_path = script_path
+        super().__init__(parent=parent, title=title,
+                         placeholder="# 输入 Python 脚本",
+                         initial_code=initial_code)
+        self.yesButton.setText(gt("保存"))
+        self.cancelButton.setText(gt("取消"))
+
+        if script_path:
+            from qfluentwidgets import PushButton
+            self.external_edit_btn = PushButton(FluentIcon.EDIT, '外部编辑')
+            self.external_edit_btn.clicked.connect(self._on_external_edit)
+            # 插入到最左侧，再加一个弹性空间把它推到左边
+            self.buttonLayout.insertWidget(0, self.external_edit_btn)
+            self.buttonLayout.insertStretch(1)
+
+    def _setup_editor_layout(self) -> None:
+        self.highlighter = PythonHighlighter(self.editor.document())
+        self.viewLayout.addWidget(self.editor)
+
+    def _on_external_edit(self) -> None:
+        if not self._script_path:
+            return
+        # 先将编辑器内容保存到磁盘
+        with open(self._script_path, 'w', encoding='utf-8') as f:
+            f.write(self.editor.toPlainText())
+        if QDesktopServices.openUrl(QUrl.fromLocalFile(self._script_path)):
+            self.reject()
+        else:
+            log.error('打开外部编辑器失败: %s', self._script_path)
+
+    def get_code(self) -> str:
+        return self.editor.toPlainText()
 
 
 class JsonHighlighter(QSyntaxHighlighter):
@@ -510,16 +576,110 @@ class JsonHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength(), format)
 
 
-class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
+class PythonHighlighter(QSyntaxHighlighter):
+    """Python 语法高亮器"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._current_theme_is_dark = isDarkTheme()
+        self.update_colors()
+
+    def update_colors(self):
+        """根据主题更新颜色"""
+        self.highlighting_rules = []
+
+        if isDarkTheme():
+            keyword_color = "#569cd6"
+            builtin_color = "#4ec9b0"
+            string_color = "#ce9178"
+            comment_color = "#6a9955"
+            number_color = "#b5cea8"
+            decorator_color = "#d7ba7d"
+        else:
+            keyword_color = "#0000ff"
+            builtin_color = "#267f99"
+            string_color = "#a31515"
+            comment_color = "#008000"
+            number_color = "#098658"
+            decorator_color = "#795e26"
+
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor(keyword_color))
+        keywords = [
+            'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
+            'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+            'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+            'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return',
+            'try', 'while', 'with', 'yield',
+        ]
+        for word in keywords:
+            self.highlighting_rules.append(
+                (QRegularExpression(f'\\b{word}\\b'), keyword_format)
+            )
+
+        builtin_format = QTextCharFormat()
+        builtin_format.setForeground(QColor(builtin_color))
+        builtins_list = [
+            'print', 'len', 'range', 'int', 'str', 'float', 'list', 'dict',
+            'set', 'tuple', 'bool', 'type', 'isinstance', 'open', 'input',
+            'map', 'filter', 'zip', 'enumerate', 'sorted', 'reversed',
+            'abs', 'max', 'min', 'sum', 'any', 'all', 'super', 'self',
+        ]
+        for word in builtins_list:
+            self.highlighting_rules.append(
+                (QRegularExpression(f'\\b{word}\\b'), builtin_format)
+            )
+
+        decorator_format = QTextCharFormat()
+        decorator_format.setForeground(QColor(decorator_color))
+        self.highlighting_rules.append(
+            (QRegularExpression(r'@\w+'), decorator_format)
+        )
+
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor(number_color))
+        self.highlighting_rules.append(
+            (QRegularExpression(r'\b-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?\b'), number_format)
+        )
+
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor(string_color))
+        self.highlighting_rules.append(
+            (QRegularExpression(r"'[^']*'"), string_format)
+        )
+        self.highlighting_rules.append(
+            (QRegularExpression(r'"[^"]*"'), string_format)
+        )
+
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor(comment_color))
+        self.highlighting_rules.append(
+            (QRegularExpression(r'#.*$'), comment_format)
+        )
+
+    def highlightBlock(self, text):
+        current_theme_is_dark = isDarkTheme()
+        if current_theme_is_dark != self._current_theme_is_dark:
+            self._current_theme_is_dark = current_theme_is_dark
+            self.update_colors()
+
+        for pattern, fmt in self.highlighting_rules:
+            it = pattern.globalMatch(text)
+            while it.hasNext():
+                match = it.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), fmt)
+
+
+class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, JsonEditorMixin):
     """ 带代码编辑器的设置卡片 """
 
     value_changed = Signal(str)
 
     def __init__(self,
-                 icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
+                 icon: str | QIcon | FluentIconBase, title: str, content: str | None = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 parent: Optional[QWidget] = None):
+                 parent=None):
 
         SettingCardBase.__init__(
             self,
@@ -532,7 +692,7 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
         )
         AdapterInitMixin.__init__(self)
 
-        self.parent_window = parent
+        self.parent_widget = parent
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)
@@ -606,8 +766,8 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
     def _pop_editor(self):
         """弹出代码编辑器窗口"""
         # 传递适配器给对话框，让对话框直接操作适配器
-        dialog = CodeEditorDialog(
-            parent=self.parent_window,
+        dialog = JsonCodeEditorDialog(
+            parent=self.window(),
             title="JSON 代码编辑器",
             adapter=self.adapter
         )

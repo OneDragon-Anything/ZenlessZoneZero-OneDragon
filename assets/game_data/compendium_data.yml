@@ -1,7 +1,4 @@
 - tab_name: "目标"
-  category_list:
-    - category_name: "绳匠传奇"
-    - category_name: "修者纪行"
 - tab_name: "日常"
 - tab_name: "训练"
   category_list:
@@ -19,6 +16,8 @@
               mission_name_display: "驱动盘经验"
         - mission_type_name: "代理人晋升"
           mission_list:
+            - mission_name: "锋御演练"
+              mission_name_display: "锋御"
             - mission_name: "命破演练"
               mission_name_display: "命破"
             - mission_name: "强攻演练"
@@ -33,6 +32,8 @@
               mission_name_display: "防护"
         - mission_type_name: "音擎改装"
           mission_list:
+            - mission_name: "锋御耦合试验"
+              mission_name_display: "锋御"
             - mission_name: "命破共鸣试验"
               mission_name_display: "命破"
             - mission_name: "强攻极片试验"
@@ -55,8 +56,12 @@
               mission_name_display: "冰属性"
             - mission_name: "电流测试"
               mission_name_display: "电属性"
+            - mission_name: "风切测试"
+              mission_name_display: "风属性"
             - mission_name: "共鸣测试"
               mission_name_display: "以太"
+            - mission_name: "琢光测试"
+              mission_name_display: "流明"
         - mission_type_name: "自定义模板"
           mission_list:
             - mission_name: "自定义卡组1"
@@ -65,10 +70,12 @@
             - mission_name: "自定义卡组4"
             - mission_name: "自定义卡组5"
         - mission_type_name: "代理人方案培养"
+          mission_type_name_display: "特训目标"
           mission_list:
             - mission_name: "代理人方案培养"
+              mission_name_display: "特训目标"
 
-    - category_name: "定期清剿"
+    - category_name: "区域巡防"
       mission_type_list:
         - mission_type_name: "怪兽与怪客"
           mission_type_name_display: "摇摆爵士 混沌重金属"
@@ -92,7 +99,16 @@
           mission_type_name_display: "云岿如我 山大王"
         - mission_type_name: "铁律与狂徒"
           mission_type_name_display: "拂晓生花 月光骑士颂"
+        - mission_type_name: "诡步与重壁"
+          mission_type_name_display: "沧浪行歌 流光咏叹"
+        - mission_type_name: "伏龙与战车"
+          mission_type_name_display: "雪兔梦游仙境 囚徒手记"
+        - mission_type_name: "机师与叛甲"
+          mission_type_name_display: "呼啸沙龙 拂晓行纪"
+        - mission_type_name: "迅脊与裂爪"
+          mission_type_name_display: "谶羽之誓 荆棘玫瑰"
         - mission_type_name: "代理人方案培养"
+          mission_type_name_display: "特训目标"
 
     - category_name: "专业挑战室"
       mission_type_list:
@@ -108,10 +124,13 @@
         - mission_type_name: "秽息蚀者·阿瓦鲁斯"
         - mission_type_name: "牲鬼·凶魁愚者"
         - mission_type_name: "秽蚀·狛野真斗"
+        - mission_type_name: "秽息行者·蝎骸"
+        - mission_type_name: "牲鬼·卫律使者"
+        - mission_type_name: "空域戒戍者"
+        - mission_type_name: "「征服者」"
         - mission_type_name: "代理人方案培养"
+          mission_type_name_display: "特训目标"
 
-- tab_name: "作战"
-  category_list:
     - category_name: "恶名狩猎"
       mission_type_list:
         - mission_type_name: "初生死路屠夫"
@@ -121,13 +140,29 @@
         - mission_type_name: "牲鬼·布林格"
         - mission_type_name: "秽息司祭"
         - mission_type_name: "彷徨猎手"
+        - mission_type_name: "魇缚者·叶释渊"
+          alias_list:
+            - "魇缚者·???"
+        - mission_type_name: "猎血清道夫"
+        - mission_type_name: "基塔布鲁"
+        - mission_type_name: "库萨里库"
         - mission_type_name: "代理人方案培养"
+          mission_type_name_display: "特训目标"
+
+    - category_name: "合成电池"
+
+- tab_name: "作战"
+  category_list:
+    - category_name: "周期征讨"
+      mission_type_list:
+        - mission_type_name: "迷失之地"
     - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"
           mission_list:
             - mission_name: "战线肃清"
             - mission_name: "特遣调查"
+            - mission_name: "矩阵行动"
         - mission_type_name: "断层之谜"
         - mission_type_name: "枯萎之都"
         - mission_type_name: "旧都列车"

@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: velina_3_2
+template_name: 角色状态-维琳娜-32
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 577, 100
+- 621, 101

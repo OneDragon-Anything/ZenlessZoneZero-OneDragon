@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: yeshunguang_qingming_3_2
+template_name: 角色状态-叶瞬光-青溟剑势红-32
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 579, 101
+- 582, 104
+- 589, 101
+- 591, 104
+- 598, 101
+- 601, 104
+- 608, 101
+- 610, 104
+- 618, 101
+- 620, 104
+- 627, 101
+- 630, 104

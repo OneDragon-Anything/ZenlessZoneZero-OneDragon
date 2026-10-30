@@ -55,8 +55,13 @@ class AdapterInitMixin:
             set_value(value, emit_signal=False)
             return
 
+        set_value = getattr(self, "set_value", None)
+        if callable(set_value):
+            set_value(value, emit_signal=False)
+            return
+
         raise NotImplementedError(
-            "使用 AdapterInitMixin 的类必须实现 setValue 方法，或重写 _set_value_from_adapter 方法。"
+            "使用 AdapterInitMixin 的类必须实现 setValue 或 set_value 方法，或重写 _set_value_from_adapter 方法。"
         )
 
     def _on_adapter_value_applied(self, value: Any) -> None:

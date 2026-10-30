@@ -1,16 +1,27 @@
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QThread, Signal
-from qfluentwidgets import FluentIcon, SettingCardGroup, VBoxLayout, PushButton, HyperlinkButton, InfoBar, InfoBarPosition
+from qfluentwidgets import (
+    FluentIcon,
+    HyperlinkButton,
+    InfoBar,
+    InfoBarPosition,
+    PushButton,
+    SettingCardGroup,
+    VBoxLayout,
+)
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.envs.env_config import RepositoryTypeEnum, GitMethodEnum, ProxyTypeEnum, PipSourceEnum, CpythonSourceEnum
+from one_dragon.envs.env_config import ProxyTypeEnum, ScreenshotMethodEnum
+from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
-from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class SettingEnvInterface(VerticalScrollInterface):
@@ -28,10 +39,15 @@ class SettingEnvInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
         content_layout = VBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        self.help_opt = HelpCard(
+            title='设置说明',
+            content='不清楚用途时建议保持默认，下载失败或无法截图时再按说明调整',
+        )
+        content_layout.addWidget(self.help_opt)
         content_layout.addWidget(self._init_basic_group())
-        content_layout.addWidget(self._init_code_group())
         content_layout.addWidget(self._init_python_group())
         content_layout.addWidget(self._init_web_group())
         content_layout.addWidget(self._init_key_group())
@@ -41,11 +57,26 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_basic_group(self) -> SettingCardGroup:
         basic_group = SettingCardGroup(gt('基础'))
 
+        self.screenshot_method_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CAMERA, title='截图方法',
+            options_enum=ScreenshotMethodEnum
+        )
+        self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        basic_group.addSettingCard(self.screenshot_method_opt)
+
         self.debug_opt = SwitchSettingCard(
             icon=FluentIcon.SEARCH, title='调试模式', content='正常无需开启'
         )
         self.debug_opt.value_changed.connect(lambda: self.ctx.init_async())
         basic_group.addSettingCard(self.debug_opt)
+
+        self.developer_mode_opt = SwitchSettingCard(
+            icon=FluentIcon.DEVELOPER_TOOLS,
+            title='开发者模式',
+            content='关闭后隐藏开发工具和实验功能，已有配置不会改变',
+        )
+        self.developer_mode_opt.value_changed.connect(self._on_developer_mode_changed)
+        basic_group.addSettingCard(self.developer_mode_opt)
 
         self.copy_screenshot_opt = SwitchSettingCard(
             icon=FluentIcon.CAMERA, title='复制截图到剪贴板',
@@ -53,53 +84,16 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         basic_group.addSettingCard(self.copy_screenshot_opt)
 
-        self.ocr_cache_opt = SwitchSettingCard(
-            icon=FluentIcon.SEARCH, title='OCR缓存模式', content='降低CPU占用(测试中)'
-        )
-        basic_group.addSettingCard(self.ocr_cache_opt)
-
         return basic_group
-
-    def _init_code_group(self) -> SettingCardGroup:
-        code_group = SettingCardGroup(gt('Git相关'))
-
-        self.repository_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
-            options_enum=RepositoryTypeEnum
-        )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
-        code_group.addSettingCard(self.repository_type_opt)
-
-        self.git_method_opt = ComboBoxSettingCard(
-            icon=FluentIcon.SYNC, title='拉取方式', content='不懂什么是ssh就选https',
-            options_enum=GitMethodEnum
-        )
-        self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
-        code_group.addSettingCard(self.git_method_opt)
-
-        self.force_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
-        )
-        code_group.addSettingCard(self.force_update_opt)
-
-        self.auto_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
-        )
-        code_group.addSettingCard(self.auto_update_opt)
-
-        return code_group
 
     def _init_python_group(self) -> SettingCardGroup:
         python_group = SettingCardGroup(gt('Python相关'))
 
-        self.cpython_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Python下载源', options_enum=CpythonSourceEnum)
-        self.cpython_build_choose_best_btn = PushButton(gt('自动测速选择'), self)
-        self.cpython_build_choose_best_btn.clicked.connect(self.on_cpython_build_choose_best_clicked)
-        self.cpython_source_opt.hBoxLayout.addWidget(self.cpython_build_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
-        self.cpython_source_opt.hBoxLayout.addSpacing(16)
-        python_group.addSettingCard(self.cpython_source_opt)
-
-        self.pip_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Pip源', options_enum=PipSourceEnum)
+        self.pip_source_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='Pip源',
+            options_list=self.ctx.repo_config.get_source_options('pip_source'),
+        )
         self.pip_choose_best_btn = PushButton(gt('自动测速选择'), self)
         self.pip_choose_best_btn.clicked.connect(self.on_pip_choose_best_clicked)
         self.pip_source_opt.hBoxLayout.addWidget(self.pip_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
@@ -120,7 +114,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.personal_proxy_input = TextSettingCard(
             icon=FluentIcon.WIFI, title='个人代理',
-            input_placeholder='http://127.0.0.1:8080'
+            input_placeholder='http://127.0.0.1:7890'
         )
         self.personal_proxy_input.value_changed.connect(lambda: self._on_proxy_changed())
         web_group.addSettingCard(self.personal_proxy_input)
@@ -178,28 +172,35 @@ class SettingEnvInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
 
+        self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
+        self.developer_mode_opt.init_with_adapter(
+            self.ctx.env_config.get_prop_adapter('developer_mode')
+        )
+        self.debug_opt.setVisible(self.ctx.env_config.developer_mode)
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
-        self.ocr_cache_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('ocr_cache'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))
         self.key_screenshot_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_screenshot'))
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
 
-        self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
-        self.git_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('git_method'))
-
-        self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
-        self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
         self.personal_proxy_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
         self.gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
-        self.auto_fetch_gh_proxy_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_fetch_gh_proxy_url'))
+        self.auto_fetch_gh_proxy_url_opt.init_with_adapter(
+            self.ctx.env_config.get_prop_adapter('auto_fetch_gh_proxy_url')
+        )
         self.update_proxy_ui()
+
+    def _on_developer_mode_changed(self, value: bool) -> None:
+        """通知主窗口更新开发者功能可见性。"""
+        window = self.window()
+        if hasattr(window, 'set_developer_mode'):
+            window.set_developer_mode(value)
+        self.debug_opt.setVisible(value)
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
         self.update_proxy_ui()
@@ -211,8 +212,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         :return:
         """
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_fetch_gh_proxy_url_clicked(self) -> None:
         self.ctx.gh_proxy_service.update_proxy_url()
@@ -249,25 +248,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self._pip_speed_thread.result_signal.connect(pip_result)
         self._pip_speed_thread.start()
 
-    def on_cpython_build_choose_best_clicked(self) -> None:
-        # 异步测速python-build镜像源，toast显示日志和结果
-        self._python_speed_thread = PythonSourceSpeedTestThread(self.ctx)
-        self._python_speed_thread.log_signal.connect(lambda label, ms: self._show_info_bar(
-            title=f"测速：{label}",
-            content=f"耗时 {ms}ms",
-            duration=2000
-        ))
-        def python_result(label, ms, value):
-            self.ctx.env_config.cpython_source = value
-            self.cpython_source_opt.setValue(value)
-            self._show_info_bar(
-                title="测速结果",
-                content=f"已选择最快的Python下载源：{label}（{ms}ms）",
-                duration=3000
-            )
-        self._python_speed_thread.result_signal.connect(python_result)
-        self._python_speed_thread.start()
-
     def update_proxy_ui(self) -> None:
         """
         更新代理设置的UI
@@ -294,21 +274,6 @@ class SpeedTestRunnerBase(QThread):
     def __init__(self, ctx: OneDragonContext, parent=None):
         self.ctx: OneDragonContext = ctx
         super().__init__(parent)
-
-
-class PythonSourceSpeedTestThread(SpeedTestRunnerBase):
-    def __init__(self, ctx, parent=None):
-        SpeedTestRunnerBase.__init__(self, ctx, parent)
-
-    def run(self):
-        result = self.ctx.python_service.choose_best_cpython_source()
-
-        if result:
-            best_label, best_ms = result
-            best_source_value = self.ctx.env_config.cpython_source
-            self.result_signal.emit(best_label, best_ms, best_source_value)
-        else:
-            self.result_signal.emit("Error", 9999, "")
 
 
 class PipSourceSpeedTestThread(SpeedTestRunnerBase):

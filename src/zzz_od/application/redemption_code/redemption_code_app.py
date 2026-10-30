@@ -4,6 +4,7 @@ from typing import List, Optional
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.redemption_code import redemption_code_const
 from zzz_od.application.redemption_code.redemption_code_run_record import (
@@ -16,16 +17,17 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class RedemptionCodeApp(ZApplication):
 
+    """兑换码:逐个输入并领取兑换码奖励。无消耗。"""
+
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        兑换码兑换
         """
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=redemption_code_const.APP_ID,
             op_name=redemption_code_const.APP_NAME,
-            need_notify=True,
         )
         self.run_record: Optional[RedemptionCodeRunRecord] = self.ctx.run_context.get_run_record(
             app_id=redemption_code_const.APP_ID,
@@ -81,12 +83,14 @@ class RedemptionCodeApp(ZApplication):
         time.sleep(1)
 
         self.ctx.controller.keyboard_controller.keyboard.type(self.unused_code_list[self.code_idx])
-        time.sleep(6)
+
+        time.sleep(6 if self.previous_node.name == '兑换后确认' else 1)
 
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='输入兑换码', status='兑换码兑换')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='兑换后确认')
     def confirm_code(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')
@@ -100,7 +104,6 @@ class RedemptionCodeApp(ZApplication):
     @node_from(from_name='输入兑换码', status='全部兑换完毕')
     @operation_node(name='返回大世界')
     def back(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

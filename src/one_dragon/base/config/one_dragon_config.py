@@ -1,9 +1,9 @@
 import os
 import shutil
 from enum import Enum
-from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.utils import os_utils
 
@@ -16,11 +16,12 @@ class RunInOneDragonApp(Enum):
 
 class OneDragonInstance:
 
-    def __init__(self, idx: int, name: str, active: bool, active_in_od: bool):
+    def __init__(self, idx: int, name: str, active: bool, active_in_od: bool, force_login_before_run: bool = False):
         self.idx: int = idx
         self.name: str = name
         self.active: bool = active
         self.active_in_od: bool = active_in_od
+        self.force_login_before_run: bool = force_login_before_run
 
 
 class AfterDoneOpEnum(Enum):
@@ -28,6 +29,8 @@ class AfterDoneOpEnum(Enum):
     NONE = ConfigItem('无')
     CLOSE_GAME = ConfigItem('关闭游戏')
     SHUTDOWN = ConfigItem('关机')
+    HIBERNATE = ConfigItem('休眠')
+    SLEEP = ConfigItem('睡眠')
 
 
 class InstanceRun(Enum):
@@ -39,12 +42,12 @@ class InstanceRun(Enum):
 class OneDragonConfig(YamlConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, 'one_dragon', backup_model_name='zzz_one_dragon')  # TODO 2025.12时可以删掉 backup_model_name
-        self.instance_list: List[OneDragonInstance] = []
-        self._temp_instance_indices: Optional[List[int]] = None
+        YamlConfig.__init__(self, 'one_dragon')
+        self.instance_list: list[OneDragonInstance] = []
+        self._temp_instance_indices: list[int] | None = None
         self._init_instance_list()
 
-    def set_temp_instance_indices(self, instance_indices: Optional[List[int]]):
+    def set_temp_instance_indices(self, instance_indices: list[int] | None):
         """设置临时实例索引列表"""
         self._temp_instance_indices = instance_indices
 
@@ -81,7 +84,7 @@ class OneDragonConfig(YamlConfig):
             if not existed:
                 break
 
-        new_instance = OneDragonInstance(idx, '%02d' % idx, first, True)
+        new_instance = OneDragonInstance(idx, f'{idx:02d}', first, True)
         self.instance_list.append(new_instance)
 
         dict_instance_list = self.dict_instance_list
@@ -137,7 +140,7 @@ class OneDragonConfig(YamlConfig):
             dict_instance_list.pop(idx)
         self.dict_instance_list = dict_instance_list
 
-        instance_dir = os_utils.get_path_under_work_dir('config', ('%02d' % instance_idx))
+        instance_dir = os_utils.get_path_under_work_dir('config', f'{instance_idx:02d}')
         if os.path.exists(instance_dir):
             shutil.rmtree(instance_dir)
 
@@ -145,15 +148,15 @@ class OneDragonConfig(YamlConfig):
         self._init_instance_list()
 
     @property
-    def dict_instance_list(self) -> List[dict]:
+    def dict_instance_list(self) -> list[dict]:
         return self.get('instance_list', [])
 
     @dict_instance_list.setter
-    def dict_instance_list(self, new_list: List[dict]):
+    def dict_instance_list(self, new_list: list[dict]):
         self.update('instance_list', new_list)
 
     @property
-    def current_active_instance(self) -> Optional[OneDragonInstance]:
+    def current_active_instance(self) -> OneDragonInstance | None:
         """
         获取当前激活使用的账号
         :return:
@@ -164,7 +167,42 @@ class OneDragonConfig(YamlConfig):
         return None
 
     @property
-    def instance_list_in_od(self) -> List[OneDragonInstance]:
+    def current_instance_force_login(self) -> bool:
+        instance = self.current_active_instance
+        return instance is not None and instance.force_login_before_run
+
+    @property
+    def current_instance_should_force_login(self) -> bool:
+        """
+        判断当前激活的实例在一条龙运行前是否需要强制重新登录。
+
+        国服 / B服 / 国际服 是三个不同的游戏客户端, 各自保留一套登录状态,
+        跨客户端类型的实例之间不会互相影响登录。
+        只有当一条龙中同客户端类型的实例多于一个时, 才需要强制登录
+        以保证登录的是该实例配置的账号。
+        """
+        instance = self.current_active_instance
+        if instance is None:
+            return False
+
+        if self.instance_run != InstanceRun.ALL.value.value:
+            return False
+
+        instance_list = self.instance_list_in_od
+        if len(instance_list) <= 1:
+            return False
+
+        return GameAccountConfig.has_multi_instance_same_client(instance.idx, [i.idx for i in instance_list])
+
+    def set_current_instance_force_login(self, new_value: bool) -> None:
+        instance = self.current_active_instance
+        if instance is None:
+            return
+        instance.force_login_before_run = new_value
+        self.dict_instance_list = [vars(instance) for instance in self.instance_list]
+
+    @property
+    def instance_list_in_od(self) -> list[OneDragonInstance]:
         """
         需要在一条龙中运行的实例列表
         如果设置了临时实例索引，则使用临时配置

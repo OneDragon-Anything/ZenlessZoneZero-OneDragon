@@ -1,22 +1,40 @@
-# coding: utf-8
 import os
-from typing import List, Dict, Type
 
-import cv2
 import numpy as np
 import yaml
 
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
 from one_dragon.base.cv_process.cv_step import CvStep
 from one_dragon.base.cv_process.steps import (
-    CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
-    CvMorphologyExStep, CvFindContoursStep, CvStepFilterByArea, CvStepFilterByArcLength,
-    CvStepFilterByRadius, CvContourPropertiesStep, CvMatchShapesStep, CvStepCropByTemplate, CvStepFilterByAspectRatio,
-    CvStepFilterByCentroidDistance, CvStepOcr, CvStepGrayscale, CvStepHistogramEqualization, CvStepThreshold,
-    CvStepCropByArea, CvStepCropToAnnulus, CvTemplateMatchingStep
+    CvContourPropertiesStep,
+    CvDilateStep,
+    CvErodeStep,
+    CvFindContoursStep,
+    CvMatchShapesStep,
+    CvMorphologyExStep,
+    CvStepCropByArea,
+    CvStepCropByTemplate,
+    CvStepCropToAnnulus,
+    CvStepFilterByArcLength,
+    CvStepFilterByArea,
+    CvStepFilterByAspectRatio,
+    CvStepFilterByCentroidDistance,
+    CvStepFilterByHSV,
+    CvStepFilterByRadius,
+    CvStepFilterByRGB,
+    CvStepGrayscale,
+    CvStepHistogramEqualization,
+    CvStepOcr,
+    CvStepThreshold,
+    CvTemplateMatchingStep,
+)
+from one_dragon.base.debug.debug_trace_bus import (
+    PerfTraceItem,
+    TimelineTraceItem,
+    VisionTraceItem,
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 
 
 class CvService:
@@ -33,11 +51,11 @@ class CvService:
         :param od_ctx: 总上下文
         """
         self.od_ctx: OneDragonContext = od_ctx
-        self.ocr = od_ctx.cv_ocr
+        self.ocr = od_ctx.ocr
         self.template_loader = od_ctx.template_loader
 
         # 可用的步骤类型
-        self.available_steps: Dict[str, Type[CvStep]] = {
+        self.available_steps: dict[str, type[CvStep]] = {
             '按区域裁剪': CvStepCropByArea,
             '按模板裁剪': CvStepCropByTemplate,
             '环形裁剪': CvStepCropToAnnulus,
@@ -82,9 +100,89 @@ class CvService:
             ctx.error_str = f"流水线 {pipeline_name} 加载失败"
             return ctx
 
-        return pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
+        result = pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
+        self._emit_debug_vision(pipeline_name, result)
+        return result
 
-    def get_pipeline_names(self) -> List[str]:
+    def _emit_debug_vision(self, pipeline_name: str, context: CvPipelineContext) -> None:
+        bus = self.od_ctx.debug_trace_bus
+        if not bus.enabled or context is None:
+            return
+
+        bus.add_perf(
+            PerfTraceItem(
+                metric="cv_pipeline_ms",
+                value=float(context.total_execution_time),
+                unit="ms",
+                meta={"pipeline": pipeline_name},
+            )
+        )
+        bus.add_timeline(
+            TimelineTraceItem(
+                category="vision",
+                title=f"cv:{pipeline_name}",
+                detail=f"{context.total_execution_time:.1f}ms",
+                level="DEBUG",
+            )
+        )
+
+        # 1) contours
+        contour_rects = context.get_absolute_rects()
+        for x1, y1, x2, y2 in contour_rects[:20]:
+            bus.add_vision(
+                VisionTraceItem(
+                    source="cv",
+                    label=f"{pipeline_name}:contour",
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2,
+                )
+            )
+
+        # 2) template/crop match result
+        if context.match_result is not None and context.match_result.max is not None:
+            best = context.match_result.max
+            bus.add_vision(
+                VisionTraceItem(
+                    source="cv",
+                    label=f"{pipeline_name}:match",
+                    x1=best.x + context.crop_offset[0],
+                    y1=best.y + context.crop_offset[1],
+                    x2=best.x + best.w + context.crop_offset[0],
+                    y2=best.y + best.h + context.crop_offset[1],
+                    score=best.confidence,
+                )
+            )
+
+        # 3) OCR from pipeline context
+        if context.ocr_result:
+            pushed = 0
+            for text, match_list in context.ocr_result.items():
+                if match_list is None:
+                    continue
+                for match in match_list.arr:
+                    if pushed >= 30:
+                        break
+                    label = str(text or "").strip()
+                    if len(label) > 28:
+                        label = label[:25] + "..."
+                    bus.add_vision(
+                        VisionTraceItem(
+                            source="cv",
+                            label=f"{pipeline_name}:{label}",
+                            x1=match.x + context.crop_offset[0],
+                            y1=match.y + context.crop_offset[1],
+                            x2=match.x + match.w + context.crop_offset[0],
+                            y2=match.y + match.h + context.crop_offset[1],
+                            score=match.confidence,
+                        )
+                    )
+                    pushed += 1
+                if pushed >= 30:
+                    break
+
+    def get_pipeline_names(self) -> list[str]:
         """
         获取所有已保存流水线的名称
         """
@@ -120,9 +218,9 @@ class CvService:
         if not os.path.exists(file_path):
             return None
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             try:
-                pipeline_data = yaml.safe_load(f)
+                pipeline_data = yaml_utils.safe_load(f)
             except yaml.YAMLError:
                 return None
 
@@ -164,7 +262,7 @@ class CvService:
         if os.path.exists(old_file_path) and not os.path.exists(new_file_path):
             os.rename(old_file_path, new_file_path)
 
-    def get_template_names(self) -> List[str]:
+    def get_template_names(self) -> list[str]:
         """
         获取所有模板轮廓的名称
         """

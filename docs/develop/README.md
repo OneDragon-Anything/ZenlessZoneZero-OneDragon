@@ -1,20 +1,34 @@
 # 开发指南
 
+> `docs/develop/` 的入口与索引。开发环境与流程见 §1–§3；各类专题文档按下索引查阅。
+
+## 文档索引
+
+- **开发环境与工具**：[快速开始](setup/quickstart.md) · [相关仓库](setup/repositories.md) · [AI 编码助手接入](setup/ai_coding.md)
+- **编码规范**：[agent_guidelines.md](spec/agent_guidelines.md)
+- **开发流程**：[端到端开发流程](development_workflow.md)
+- **架构设计**：[一条龙整体架构](one_dragon/one_dragon_architecture.md) · [集成启动器 RuntimeLauncher](one_dragon/runtime_launcher.md) · [Git 服务与代码源回退](one_dragon/modules/git_service.md) · [资源下载源与候选回退](one_dragon/modules/resource_download.md) · [项目工作目录](one_dragon/modules/work_directory.md) · [模块文档](one_dragon/modules/)
+- **开发指引**：[应用插件开发](guides/application_plugin_guide.md) · [应用设置界面](guides/application_setting_guide.md)
+- **游戏业务**：[自动战斗](zzz/auto_battle.md) · [进游戏](zzz/enter_game.md) · [转向与灵敏度](zzz/turn_sensitivity.md) · [功能模块](zzz/application/) · [迷失之地](zzz/application/lost_void/) · [后端服务层](zzz/backend/) · [截图存档](zzz/screenshot_archive.md)
+- **AI Harness 工程**：[总览与路线图](harness/README.md)
+- **设计文档**：[屏幕区域识别设计](screen_scope_design.md) · [屏幕区域推进](screen_scope_rollout.md)
+- **测试与画面**：[测试方法论](testing/) · [截图存档](zzz/screenshot_archive.md)
+
 ## 1.开发
 
 ### 1.1.开发环境
 
-项目使用 [uv](https://github.com/astral-sh/uv/releases/latest) 进行依赖管理，使用以下命令可安装对应环境。
-
-```shell
-uv sync --group dev
-```
-
-项目整体布局使用`src-layout`结构，源代码位于`src/`目录下。请自行在IDE中设置为`Sources Root`，或增加环境变量`PYTHONPATH=src`。
+见 [setup/quickstart.md](setup/quickstart.md)（从零把项目跑起来）。
 
 ### 1.2.代码规范
 
 参考 [agent_guidelines.md](spec/agent_guidelines.md)
+
+#### 1.2.1.多线程
+
+当前使用 onnxruntime-dml 在多线程下同时访问多个session是会出现各种意想不到的异常的，因此需要异步使用onnx session时，需统一使用 `gpu_executor.submit` 来提交，保证只有一个session被访问。
+
+另外，onnx session 的线程池默认会自旋等待，空闲时也占用 CPU。本项目都是间歇调用，统一在创建 session 时关闭自旋（见 `onnxocr/inference_engine.py`、`one_dragon/yolo/onnx_model_loader.py`）。
 
 ### 1.3.测试
 
@@ -30,6 +44,18 @@ uv sync --group dev
 
 Github Action 有完整的环境变量配置，会运行所有的测试用例。
 
+#### 1.3.2.运行测试
+
+```shell
+uv run --env-file .env pytest zzz-od-test/
+```
+
+> 测试方法论(测试基建 / FixtureController 流程测试 / 画面截图存档)见 [testing/](testing/)。
+
+### 常用业务文档
+
+- [转向与灵敏度配置](zzz/turn_sensitivity.md) - 说明 `turn_dx`、`gamepad_turn_speed`、前台/后台模式，以及锄大地、录像店营业、迷失之地、式舆防卫战各自的转向链路。
+
 ## 1.4.代码提交
 
 提交PR后
@@ -39,18 +65,63 @@ Github Action 有完整的环境变量配置，会运行所有的测试用例。
 
 ## 2.Vibe Coding
 
-### Agent指南
+- AI 编码工具（Claude Code / GitHub Copilot / Qwen / Gemini 等）的接入方式、MCP 与扩展配置见 [setup/ai_coding.md](setup/ai_coding.md)。
+- AI Coding Harness 工程的设计决策、skill 清单与 MCP 路线图见 [harness/](harness/README.md)。
 
-推荐使用 [agent_guidelines.md](spec/agent_guidelines.md) 指导Agent进行编程
+## 3.打包
 
-可以通过创建硬链接到各个编程工具所需位置
+进入 deploy 文件夹，运行 `build_full.bat` 可一键打包所有组件。
 
-- Qwen Coder - `New-Item -ItemType HardLink -Path "QWEN.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Lingma Rules - `New-Item -ItemType HardLink -Path ".lingma/rules/project_rule.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Gemini CLI - `New-Item -ItemType HardLink -Path "GEMINI.md" -Target "docs/develop/spec/agent_guidelines.md"`
-- Claude Code - `New-Item -ItemType HardLink -Path "CLAUDE.md" -Target "docs/develop/spec/agent_guidelines.md"`
+### 3.1.安装器
 
+生成spec文件并打包
 
-### 推荐MCP
+```shell
+uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/installer_logo.ico" --add-data "../config/project.yml;config" --add-data "../config/repository.yml;config" ../src/zzz_od/gui/zzz_installer.py -n "OneDragon-Installer"
+```
 
-- [context7](https://github.com/upstash/context7) - 查询各个库的文档。 
+使用spec打包
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
+```
+
+### 3.2.启动器（原始）
+
+使用 spec 打包。`project.yml` 和 `repository.yml` 会随启动器写入 `resources/config`；原始启动器创建环境上下文时显式开启包内配置优先，其他入口仍读取仓库配置。
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
+```
+
+启动器的 `--version` 固定按 UTF-8 输出：版本描述含中文，按系统本地编码输出时，英文、日文、韩文等系统的本地编码无法表示这些字符，启动器会直接报错退出。旧版启动器仍按系统本地编码输出，因此版本查询先捕获原始字节，再依次尝试 UTF-8 与本地编码；不能依赖父 Python 的默认文本编码，也不要求用户关闭全局 UTF-8 模式。该路径只解析 stdout，stderr 的编码不应影响版本识别。
+
+### 3.3.集成启动器（RuntimeLauncher）
+
+> 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)
+
+#### 架构概述
+
+集成启动器将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
+
+- **PyInstaller 目录模式**：`contents_directory='.runtime'`，运行时文件放在 `.runtime/` 子目录
+- **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
+- **源码加载**：借助 `hook_path_inject.py` 运行时钩子，将 `<exe_dir>/src` 注入 `sys.path`，其余模块从 `src/` 目录加载
+- **自动更新**：首次运行时自动克隆代码仓库；后续运行时根据 `auto_update_code` 配置自动拉取最新代码
+- **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部依赖清单，更新代码后如新增依赖不在清单中，提示用户更新启动器
+
+#### 打包命令
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
+```
+
+#### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `deploy/OneDragon-RuntimeLauncher.spec` | PyInstaller 打包配置 |
+| `deploy/hook_path_inject.py` | 运行时钩子，注入 `src/` 到 `sys.path` |
+| `deploy/generate_module_manifest.py` | 生成外部依赖清单 |
+| `deploy/module_manifest.py` | 自动生成的依赖清单（打包时生成） |
+| `src/zzz_od/win_exe/runtime_launcher.py` | 集成启动器入口 |

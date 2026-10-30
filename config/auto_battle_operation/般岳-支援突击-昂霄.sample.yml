@@ -1,0 +1,13 @@
+# 般岳-支援突击-昂霄
+# 支援突击后接追击，积攒嗔火
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2.0
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 5
+  - op_name: "等待秒数"
+    seconds: 1.0
+  - op_name: "清除状态"
+    state_list: ["自定义-动作不打断"]

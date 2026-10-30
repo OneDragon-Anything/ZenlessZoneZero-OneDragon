@@ -1,0 +1,12 @@
+# 般岳-普通攻击-峥嵘
+# 短按A，4段普攻
+# 用于积攒能量
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.15
+  - op_name: "按键-普通攻击"
+    post_delay: 0.15
+  - op_name: "按键-普通攻击"
+    post_delay: 0.15
+  - op_name: "按键-普通攻击"
+    post_delay: 0.2

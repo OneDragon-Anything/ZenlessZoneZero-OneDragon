@@ -3,18 +3,9 @@ handlers:
   - states: "[前台-爱丽丝]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-爱丽丝]"
     sub_handlers:
-      - states: "[自定义-异常-物理, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-电, 0, 99]| [自定义-异常-火, 0, 99]"
-        debug_name: "清除其他异常积蓄"
+      - states: "[自定义-终结技被强制释放, 0, 1]"
         operations:
-          - op_name: "清除状态"
-            state_list:
-              [
-                "自定义-异常-冰",
-                "自定义-异常-物理",
-                "自定义-异常-烈霜",
-                "自定义-异常-火",
-                "自定义-异常-电",
-              ]
+          - operation_template: "爱丽丝-终结技"
 
       # 支援
       - states: "[自定义-黄光切人, 0, 1]"
@@ -34,14 +25,14 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.3]"
+          - states: "[自定义-快速支援换人, 0, 0.1]"
             operations:
               - op_name: "等待秒数"
-                seconds: 0.5
+                seconds: 0.1
           - states: ""
             operations:
               - op_name: "等待秒数"
-                seconds: 0.3
+                seconds: 0.1
 
       - states: "[爱丽丝-剑仪]{300, 300}"
         interrupt_states: "[爱丽丝-剑仪]{0, 0}"
@@ -51,7 +42,7 @@ handlers:
       - states: "[自定义-爱丽丝-蓄力中, -5, 0]"
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       # 终结技时刻，需要注意出场第一秒可能识别错误
       - states: "[爱丽丝-终结技可用] & [爱丽丝-剑仪]{0, 100}"
@@ -63,6 +54,6 @@ handlers:
           - operation_template: "爱丽丝-强化特殊技"
 
       - states: ""
-        interrupt_states: "[爱丽丝-剑仪]{300, 300}"
+        interrupt_states: "[爱丽丝-剑仪]{300, 300} | [爱丽丝-特殊技可用] | ([爱丽丝-终结技可用] & [爱丽丝-剑仪]{0, 100})"
         operations:
           - operation_template: "爱丽丝-普通攻击"

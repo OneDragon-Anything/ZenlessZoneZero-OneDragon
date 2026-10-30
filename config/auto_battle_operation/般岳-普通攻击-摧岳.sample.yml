@@ -1,0 +1,9 @@
+# 般岳-普通攻击-摧岳（连续EX后终结）
+# 怒相状态下连续释放4个EX技能后的终结攻击
+# 比倾山伤害更高
+operations:
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 5
+  - op_name: "等待秒数"
+    seconds: 2.0

@@ -54,7 +54,7 @@ scenes:
     interval: 0.35
     handlers:
       # 速切之后 切换回强攻角色
-      - states: "[自定义-速切结束]"
+      - states: "[自定义-合轴时间]"
         sub_handlers:
           - states: "[后台-2-强攻]"
             operations:
@@ -63,7 +63,7 @@ scenes:
               - op_name: "等待秒数"
                 data: ["0.1"]
               - op_name: "清除状态"
-                data: ["自定义-速切结束"]
+                data: ["自定义-合轴时间"]
           - states: ""
             operations:
               - op_name: "按键-切换角色-下一个"
@@ -71,5 +71,5 @@ scenes:
               - op_name: "等待秒数"
                 data: ["0.1"]
               - op_name: "清除状态"
-                data: ["自定义-速切结束"]
+                data: ["自定义-合轴时间"]
       - state_template: "站场模板-全角色"

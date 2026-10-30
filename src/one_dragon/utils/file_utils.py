@@ -1,4 +1,24 @@
 import zipfile
+from pathlib import Path
+
+
+def find_src_dir(file_path: Path | str) -> Path | None:
+    """从文件路径中查找最后一个 'src' 目录
+
+    反向查找路径中最后一个名为 'src' 的目录，返回该目录的完整路径。
+
+    Args:
+        file_path: 文件或目录的路径
+
+    Returns:
+        Path | None: src 目录路径（含 src 本身），找不到返回 None
+    """
+    parts = Path(file_path).parts
+    try:
+        src_index = len(parts) - parts[::-1].index('src') - 1
+        return Path(*parts[:src_index + 1])
+    except ValueError:
+        return None
 
 
 def unzip_file(zip_file_path: str, unzip_dir_path: str) -> bool:

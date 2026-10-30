@@ -17,24 +17,19 @@ class ThemeEnum(Enum):
     DARK = ConfigItem('深色', 'Dark')
 
 
-class ThemeColorModeEnum(Enum):
-
-    AUTO = ConfigItem('自动', 'auto')
-    CUSTOM = ConfigItem('自定义', 'custom')
-
 
 class BackgroundTypeEnum(Enum):
 
-    OFFICIAL_STATIC = ConfigItem('官方静态背景', 'official_static')
     VERSION_POSTER = ConfigItem('版本海报', 'version_poster')
-    OFFICIAL_DYNAMIC = ConfigItem('官方动态背景', 'official_dynamic')
+    STATIC = ConfigItem('静态背景', 'static_background')
+    DYNAMIC = ConfigItem('动态背景', 'dynamic_background')
     NONE = ConfigItem('无', 'none')
 
 
 class CustomConfig(YamlConfig):
 
     def __init__(self):
-        super().__init__(module_name='custom')
+        YamlConfig.__init__(self, module_name='custom')
 
     @property
     def ui_language(self) -> str:
@@ -69,22 +64,6 @@ class CustomConfig(YamlConfig):
         self.update('theme', new_value)
 
     @property
-    def notice_card(self) -> bool:
-        """
-        是否启用公告
-        :return:
-        """
-        return self.get('notice_card', True)
-
-    @notice_card.setter
-    def notice_card(self, new_value: bool) -> None:
-        """
-        是否启用公告
-        :return:
-        """
-        self.update('notice_card', new_value)
-
-    @property
     def custom_banner(self) -> bool:
         """
         自定义主页背景
@@ -103,24 +82,13 @@ class CustomConfig(YamlConfig):
     @property
     def background_type(self) -> str:
         """
-        主页背景类型（官方静态/版本海报/官方动态/无）
+        主页背景类型（版本海报/静态背景/动态背景/无）
         """
-        return self.get('background_type', BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value)
+        return self.get('background_type', BackgroundTypeEnum.STATIC.value.value)
 
     @background_type.setter
     def background_type(self, new_value: str) -> None:
         self.update('background_type', new_value)
-
-    @property
-    def last_remote_banner_fetch_time(self) -> str:
-        """
-        上次获取远端主页背景的时间
-        """
-        return self.get('last_remote_banner_fetch_time', '')
-
-    @last_remote_banner_fetch_time.setter
-    def last_remote_banner_fetch_time(self, new_value: str) -> None:
-        self.update('last_remote_banner_fetch_time', new_value)
 
     @property
     def last_version_poster_fetch_time(self) -> str:
@@ -134,36 +102,35 @@ class CustomConfig(YamlConfig):
         self.update('last_version_poster_fetch_time', new_value)
 
     @property
-    def last_official_dynamic_fetch_time(self) -> str:
+    def last_static_background_fetch_time(self) -> str:
         """
-        上次获取官方动态的时间
+        上次获取静态背景的时间
         """
-        return self.get('last_official_dynamic_fetch_time', '')
+        return self.get('last_static_background_fetch_time', '')
 
-    @last_official_dynamic_fetch_time.setter
-    def last_official_dynamic_fetch_time(self, new_value: str) -> None:
-        self.update('last_official_dynamic_fetch_time', new_value)
-
-    @property
-    def theme_color_mode(self) -> str:
-        """
-        主题色模式
-        """
-        return self.get('theme_color_mode', ThemeColorModeEnum.AUTO.value.value)
-
-    @theme_color_mode.setter
-    def theme_color_mode(self, new_value: str) -> None:
-        """
-        主题色模式
-        """
-        self.update('theme_color_mode', new_value)
+    @last_static_background_fetch_time.setter
+    def last_static_background_fetch_time(self, new_value: str) -> None:
+        self.update('last_static_background_fetch_time', new_value)
 
     @property
-    def is_custom_theme_color(self) -> bool:
+    def last_dynamic_background_fetch_time(self) -> str:
         """
-        是否使用自定义主题色
+        上次获取动态背景的时间
         """
-        return self.theme_color_mode == ThemeColorModeEnum.CUSTOM.value.value
+        return self.get('last_dynamic_background_fetch_time', '')
+
+    @last_dynamic_background_fetch_time.setter
+    def last_dynamic_background_fetch_time(self, new_value: str) -> None:
+        self.update('last_dynamic_background_fetch_time', new_value)
+
+    @property
+    def custom_theme_color(self) -> bool:
+        """是否使用自定义主题色"""
+        return self.get('custom_theme_color', False)
+
+    @custom_theme_color.setter
+    def custom_theme_color(self, value: bool) -> None:
+        self.update('custom_theme_color', value)
 
     @property
     def theme_color_str(self) -> str:
@@ -195,31 +162,3 @@ class CustomConfig(YamlConfig):
         """
         color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
         self.update('global_theme_color', color_str)
-
-    @property
-    def theme_color_banner_path(self) -> str:
-        """
-        当前主题色对应的背景图片路径
-        """
-        return self.get('theme_color_banner_path', '')
-
-    @theme_color_banner_path.setter
-    def theme_color_banner_path(self, new_value: str) -> None:
-        """
-        当前主题色对应的背景图片路径
-        """
-        self.update('theme_color_banner_path', new_value)
-
-    @property
-    def theme_color_banner_mtime(self) -> float:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        return self.get('theme_color_banner_mtime', 0.0)
-
-    @theme_color_banner_mtime.setter
-    def theme_color_banner_mtime(self, new_value: float) -> None:
-        """
-        当前主题色对应的背景图片修改时间戳
-        """
-        self.update('theme_color_banner_mtime', new_value)

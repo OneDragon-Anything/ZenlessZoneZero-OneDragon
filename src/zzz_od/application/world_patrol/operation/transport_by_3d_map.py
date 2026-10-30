@@ -5,11 +5,15 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea, WorldPatrolLargeMapIcon
+from zzz_od.application.world_patrol.world_patrol_area import (
+    WorldPatrolArea,
+    WorldPatrolLargeMapIcon,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
@@ -40,22 +44,27 @@ class TransportBy3dMap(ZOperation):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='初始回到大世界')
-    @operation_node(name='打开地图')
+    @operation_node(name='打开3D地图')
     def open_map(self) -> OperationRoundResult:
-        current_screen = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['3D地图'])
+        current_screen = screen_utils.get_match_screen_name(self.ctx, self.last_screenshot, screen_name_list=['3D地图'])
         if current_screen == '3D地图':
+            self.ctx.screen_loader.update_current_screen_name(current_screen)
             return self.round_success()
 
         mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
         if mini_map.play_mask_found:
-            self.round_by_click_area('大世界', '小地图')
-            return self.round_wait(status='点击打开地图', wait=1)
+            # 动态裁剪只负责确认小地图已出现和维护裁剪缓存；小地图入口足够大，点击静态框中心仍可稳定打开3D地图
+            self.round_by_click_area('大世界', '小地图')  # 不要求命中实际小地图中心
+
+            return self.round_wait(status='点击打开3D地图', wait=1)
         else:
             return self.round_retry(status='未发现地图', wait=1)
 
+    @node_from(from_name='选择子区域', success=False)  # 区域有子区域但找不到 说明选择区域错误
+    @node_from(from_name='关闭区域信息弹窗')  # 搜索失败 → 关闭弹窗 → 重新选区域
     @node_from(from_name='初始回到大世界', status='3D地图')
-    @node_from(from_name='打开地图')
-    @operation_node(name='选择区域')
+    @node_from(from_name='打开3D地图')
+    @operation_node(name='选择区域', node_max_retry_times=20)
     def choose_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             target_area_name = self.target_area.area_name
@@ -66,43 +75,49 @@ class TransportBy3dMap(ZOperation):
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
 
         ocr_word_list = list(ocr_result_map.keys())
-        target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name, 'game'), ocr_word_list)
-        if target_word_idx is not None and target_word_idx >= 0:
+        target_cn = gt(target_area_name, 'game')
+
+        # 精确匹配优先 + 兜底模糊匹配（cutoff=0.8 避免相似名称误匹配，如"科研院旧址"与"港口工厂旧址"）
+        target_word_idx = str_utils.find_in_list_with_fuzzy(target_cn, ocr_word_list, cutoff=0.8)
+        if target_word_idx is not None:
             mrl = ocr_result_map.get(ocr_word_list[target_word_idx])
             if mrl.max is not None:
                 self.ctx.controller.click(mrl.max.center)
                 return self.round_success(wait=1)
 
+        # 精确匹配优先 + 兜底模糊匹配（目标不在屏幕内，判断滚动方向，不一致会导致列表反复上下滑动）
         order_cn_list = [i.area_name for i in self.ctx.world_patrol_service.area_list]
         is_target_after: bool = str_utils.is_target_after_ocr_list(
             target_cn=target_area_name,
             order_cn_list=order_cn_list,
             ocr_result_list=ocr_word_list,
+            cutoff=0.8,
         )
 
         start_point = area.center
         end_point = start_point + Point(0, 400 * (-1 if is_target_after else 1))
         self.ctx.controller.drag_to(start=start_point, end=end_point)
+        # 等待滚动动画稳定 避免动画中OCR识别到目标但点击位置偏移
         return self.round_retry(wait=1)
 
     @node_from(from_name='选择区域')
-    @operation_node(name='选择子区域', node_max_retry_times=6)
-    def choose_sub_area(self) -> OperationRoundResult:
+    @operation_node(name='展开子区域列表')
+    def expand_sub_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             return self.round_success(status='无需选择')
 
-        self.round_by_click_area('3D地图', '按钮-当前子区域',
-                                 success_wait=1)
+        return self.round_by_click_area('3D地图', '按钮-当前子区域')
 
-        self.screenshot()
+    @node_from(from_name='展开子区域列表')
+    @operation_node(name='选择子区域', node_max_retry_times=6)
+    def choose_sub_area(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click(
-            screen=self.last_screenshot,
-            target_cn=self.target_area.area_name,
-            area=self.ctx.screen_loader.get_area('3D地图', '区域-子区域列表'),
-            success_wait=1,
+            self.last_screenshot, self.target_area.area_name,
+            self.ctx.screen_loader.get_area('3D地图', '区域-子区域列表'),
             retry_wait=1,
         )
 
+    @node_from(from_name='展开子区域列表', status='无需选择')
     @node_from(from_name='选择子区域')
     @operation_node(name='打开筛选')
     def open_filter(self) -> OperationRoundResult:
@@ -122,10 +137,8 @@ class TransportBy3dMap(ZOperation):
             target_word = '传送'
 
         return self.round_by_ocr_and_click(
-            screen=self.last_screenshot,
-            target_cn=target_word,
-            area=self.ctx.screen_loader.get_area('3D地图', '区域-筛选选项'),
-            success_wait=1,
+            self.last_screenshot, target_word,
+            self.ctx.screen_loader.get_area('3D地图', '区域-筛选选项'),
             retry_wait=1,
         )
 
@@ -177,7 +190,7 @@ class TransportBy3dMap(ZOperation):
         return self.round_success()
 
     @node_from(from_name='初始化传送点搜索')
-    @operation_node(name='搜索传送点循环', node_max_retry_times=20)
+    @operation_node(name='搜索传送点循环', node_max_retry_times=8)
     def search_tp_icon_loop(self) -> OperationRoundResult:
         """
         传送点搜索主循环：
@@ -235,9 +248,10 @@ class TransportBy3dMap(ZOperation):
                 continue  # 尝试下一个图标
 
             # OCR识别传送点名称
+            transport_area = self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点')
             ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
                 self.last_screenshot,
-                rect=self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点').rect,
+                rect=transport_area.rect,
             )
 
             if len(ocr_result_list) == 0:
@@ -328,6 +342,13 @@ class TransportBy3dMap(ZOperation):
         log.debug(f'执行随机拖动：{direction}')
         self.ctx.controller.drag_to(start=start_point, end=end_point)
 
+    @node_from(from_name='搜索传送点循环', success=False)  # 搜索失败后关闭残留弹窗
+    @operation_node(name='关闭区域信息弹窗')
+    def close_area_info_popup(self) -> OperationRoundResult:
+        """搜索失败后关闭残留的传送点信息弹窗"""
+        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭')
+        return self.round_success()
+
     @node_from(from_name='搜索传送点循环')
     @operation_node(name='点击前往')
     def click_go(self) -> OperationRoundResult:
@@ -335,20 +356,28 @@ class TransportBy3dMap(ZOperation):
             self.last_screenshot,
             '3D地图', '按钮-前往',
             until_not_find_all=[('3D地图', '按钮-前往')],
-            success_wait=1,
             retry_wait=1,
         )
 
     @node_from(from_name='点击前往')
     @operation_node(name='等待画面加载')
     def back_at_last(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        # allow_battle=True: 传送落地即进入战斗时直接返回，由调用方(如锄大地)处理战斗
+        op = BackToNormalWorld(self.ctx, allow_battle=True)
+        op_result = op.execute()
+        if op_result.success and op_result.status in {'发现地图', '大世界-战斗'}:
+            # 这两个状态只说明已回到大世界或落地进战斗，未必已经识别出普通/勘域；
+            # 传送目标类型是已知的，先同步 screen 名，保证小地图缓存按正确大世界类型命中。
+            screen_name = '大世界-普通'
+            if self.target_area.is_hollow:
+                screen_name = '大世界-勘域'
+            self.ctx.screen_loader.update_current_screen_name(screen_name)
+        return self.round_by_op_result(op_result)
+
 
 def __debug():
     ctx = ZContext()
-    ctx.init_ocr()
-    ctx.init_by_config()
+    ctx.init()
     ctx.world_patrol_service.load_data()
 
     area = None

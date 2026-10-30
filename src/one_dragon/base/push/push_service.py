@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.notify_pool import NotifyPoolItem
 from one_dragon.base.push.channel.ai_botk import AiBotK
 from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.chronocat import Chronocat
@@ -23,13 +24,15 @@ from one_dragon.base.push.channel.push_deer import PushDeer
 from one_dragon.base.push.channel.push_me import PushMe
 from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.q_msg import QMsg
+from one_dragon.base.push.channel.qq_bot import QQBot
 from one_dragon.base.push.channel.server_chan import ServerChan
 from one_dragon.base.push.channel.smtp import Smtp
 from one_dragon.base.push.channel.synology_chat import SynologyChat
 from one_dragon.base.push.channel.telegram import Telegram
 from one_dragon.base.push.channel.we_plus_bot import WePlusBot
 from one_dragon.base.push.channel.webhook import Webhook
-from one_dragon.base.push.channel.work_weixin import WorkWeixin
+from one_dragon.base.push.channel.work_weixin_app import WorkWeixinApp
+from one_dragon.base.push.channel.work_weixin_bot import WorkWeixinBot
 from one_dragon.base.push.channel.wx_pusher import WxPusher
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
@@ -71,7 +74,9 @@ class PushService:
             self._add_channel(Webhook())
             self._add_channel(DingDingBot())
             self._add_channel(FeiShu())
-            self._add_channel(WorkWeixin())
+            self._add_channel(QQBot())
+            self._add_channel(WorkWeixinBot())
+            self._add_channel(WorkWeixinApp())
             self._add_channel(OneBot())
             self._add_channel(Bark())
             self._add_channel(ServerChan())
@@ -122,26 +127,23 @@ class PushService:
 
     def push(
         self,
+        title: str,
         content: str,
         image: MatLike | None = None,
-        title: str | None = None,
         channel_id: str | None = None,
     ) -> tuple[bool, str]:
         """
         推送消息
 
         Args:
+            title: 标题
             content: 内容
             image: 图片
-            title: 标题 未传入时使用 push_config.custom_push_title
             channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
 
         Returns:
             tuple[bool, str]: 是否成功、错误信息
         """
-        if title is None:
-            title = self.push_config.custom_push_title
-
         if not self.push_config.send_image:
             image = None
 
@@ -215,31 +217,119 @@ class PushService:
                 field_name=field.var_suffix,
                 default_value=field.default,
             )
-            config[field.var_suffix] = value
+            # 未配置的渠道字段可能来自 YAML/env 的 None；统一成字符串交给渠道校验。
+            config[field.var_suffix] = '' if value is None else str(value)
 
         return config
 
     def push_async(
         self,
+        title: str,
         content: str,
         image: MatLike | None = None,
-        title: str | None = None,
         channel_id: str | None = None,
     ) -> None:
         """
         异步推送消息
 
         Args:
+            title: 标题
             content: 内容
             image: 图片
-            title: 标题 未传入时使用 push_config.custom_push_title
             channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
         """
         future = self._executor.submit(
             self.push,
+            title,
             content,
             image,
+            channel_id,
+        )
+        future.add_done_callback(thread_utils.handle_future_result)
+
+    def push_merged(
+        self,
+        title: str,
+        items: list[NotifyPoolItem],
+        channel_id: str | None = None,
+    ) -> tuple[bool, str]:
+        """
+        推送合并消息
+
+        Args:
+            title: 标题
+            items: 消息列表
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+
+        Returns:
+            tuple[bool, str]: 是否成功、错误信息
+        """
+        if not self.push_config.send_image:
+            items = [NotifyPoolItem(content=item.content) for item in items]
+
+        any_ok: bool = False
+        err_msg: str = ''
+        if channel_id is None:
+            any_push = False
+            for cid, channel in self._id_2_channels.items():
+                channel_config = self.get_channel_config(cid)
+                ok, msg = channel.validate_config(channel_config)
+                if not ok:
+                    continue
+
+                any_push = True
+
+                ok, msg = channel.push_merged(
+                    config=channel_config,
+                    title=title,
+                    items=items,
+                    proxy_url=self.get_proxy(),
+                )
+                if not ok:
+                    log.error(f'合并推送失败: {cid} {msg}')
+                    err_msg += f'{cid} {msg}\n'
+                    continue
+
+                any_ok = True
+                log.info(f'合并推送成功: {cid}')
+
+            if not any_push:
+                return False, '没有可用的推送渠道'
+        else:
+            channel = self._id_2_channels.get(channel_id)
+            if channel is None:
+                return False, f'推送渠道不存在: {channel_id}'
+            channel_config = self.get_channel_config(channel_id)
+            ok, msg = channel.validate_config(channel_config)
+            if not ok:
+                return False, msg
+            any_ok, err_msg = channel.push_merged(
+                config=channel_config,
+                title=title,
+                items=items,
+                proxy_url=self.get_proxy(),
+            )
+
+        return any_ok, err_msg
+
+    def push_merged_async(
+        self,
+        title: str,
+        items: list[NotifyPoolItem],
+        channel_id: str | None = None,
+    ) -> None:
+        """
+        异步推送合并消息
+
+        Args:
+            title: 标题
+            items: 消息列表
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+        """
+        future = self._executor.submit(
+            self.push_merged,
             title,
+            items[:],
             channel_id,
         )
         future.add_done_callback(thread_utils.handle_future_result)
@@ -255,3 +345,9 @@ class PushService:
             return self.ctx.env_config.personal_proxy
 
         return None
+
+    def after_app_shutdown(self) -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        self._executor.shutdown(wait=True)

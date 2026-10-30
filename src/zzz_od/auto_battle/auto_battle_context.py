@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Optional, Union, Tuple
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
+from one_dragon.base.debug.debug_trace_bus import TimelineTraceItem
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
-from one_dragon.utils import cv2_utils, thread_utils, cal_utils, str_utils
+from one_dragon.utils import cal_utils, cv2_utils, gpu_executor, str_utils, thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
@@ -21,15 +23,19 @@ from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContex
 from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
-from zzz_od.auto_battle.auto_battle_state_record_service import AutoBattleStateRecordService
+from zzz_od.auto_battle.auto_battle_state_record_service import (
+    AutoBattleStateRecordService,
+)
 from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
-from zzz_od.game_data.agent import Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
 _battle_state_check_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
+
+BTN_BAN_CHECK_INTERVAL: float = 0.02  # 按键禁用的识别间隔秒
 
 
 class AutoBattleContext:
@@ -47,32 +53,44 @@ class AutoBattleContext:
         self._op_cache: dict[str, AutoBattleOperator] = {}  # 缓存自动战斗配置
 
         # 识别区域
-        self._check_distance_area: Optional[ScreenArea] = None
+        self._check_distance_area: ScreenArea | None = None
 
         # 识别锁 保证每种类型只有1实例在进行识别
         self._check_chain_lock = threading.Lock()
         self._check_quick_lock = threading.Lock()
+        self._check_switch_backup_lock = threading.Lock()
         self._check_end_lock = threading.Lock()
         self._check_distance_lock = threading.Lock()
 
         # 识别间隔
-        self._check_chain_interval: Union[float, list[float]] = 0
-        self._check_quick_interval: Union[float, list[float]] = 0
-        self._check_end_interval: Union[float, list[float]] = 5
-        self._check_distance_interval: Union[float, list[float]] = 5
+        self._check_chain_interval: float | list[float] = 0
+        self._check_quick_interval: float | list[float] = 0
+        self._check_switch_backup_interval: float | list[float] = 1
+        self._check_end_interval: float | list[float] = 5
+        self._check_distance_interval: float | list[float] = 5
 
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
         self._last_check_quick_time: float = 0
+        self._last_check_switch_backup_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
-        self.last_check_end_result: Optional[str] = None  # 最后一次识别的结束结果
+        self.last_check_end_result: str | None = None  # 最后一次识别的结束结果
         self.last_check_distance: float = -1  # 最后一次识别的距离
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
+
+        # 自动释放终结技开关
+        self.auto_ultimate_enabled: bool = True  # 是否在终结技可用时自动释放
+
+        # 按键禁用状态的首次识别时间 禁用期间不刷新 用于判断已经禁用了多久
+        self._btn_ban_first_time: dict[str, float] = {}
+        self._last_btn_ban_time: float = 0
+        self._last_btn_ban_result: dict[str, bool] = {}
 
     def init_auto_op(
         self,
@@ -111,6 +129,7 @@ class AutoBattleContext:
         # 识别间隔
         self._check_chain_interval = self.auto_op.check_chain_interval
         self._check_quick_interval = self.auto_op.check_quick_interval
+        self._check_switch_backup_interval = 1
         self._check_end_interval = self.auto_op.check_end_interval
         self._check_distance_interval = 5
 
@@ -124,17 +143,44 @@ class AutoBattleContext:
         开始自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+            self.auto_ultimate_enabled = True  # 默认每次开启自动战斗时 开启自动终结技
+
             self.init_battle_context()
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
 
     def resume_auto_battle(self) -> None:
         """
         恢复自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
+
+    def clear_all_states(self) -> None:
+        """
+        清空所有之前检测到的状态
+        """
+        # 获取当前策略实际使用的状态ID，而不是所有可能的状态
+        if self.auto_op is None:
+            return
+        usage_states = self.auto_op.usage_states
+
+        # 禁用状态重新计时 避免状态被重置后仍按旧时间判断
+        self._btn_ban_first_time = {}
+
+        # 遍历所有当前策略使用的状态，并将其重置为初始状态
+        log.info(f"正在清空 {len(usage_states)} 个状态...")
+        for state_id in usage_states:
+            recorder = self.state_record_service.get_state_recorder(state_id)
+            if recorder is not None:
+                recorder.reset_to_initial()
+        log.info("所有状态已重置为初始值。")
 
     def stop_auto_battle(self) -> None:
         """
@@ -158,14 +204,19 @@ class AutoBattleContext:
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
         self._last_check_quick_time: float = 0
+        self._last_check_switch_backup_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
-        self.last_check_end_result: Optional[str] = None  # 识别战斗结束的结果
+        self.last_check_end_result: str | None = None  # 识别战斗结束的结果
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
         self.last_check_distance = -1
+
+        # 新一场战斗 禁用状态重新计时
+        self._btn_ban_first_time = {}
 
     def init_screen_area(self) -> None:
         """
@@ -174,9 +225,12 @@ class AutoBattleContext:
         self._check_distance_area = self.ctx.screen_loader.get_area('战斗画面', '距离显示区域')
 
         self.area_btn_normal: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击')
-        self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
+        # 特殊攻击的禁用图标暂时不检测 要用时取消这行和 ban_check_list 里的注释
+        # self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
+        self.area_btn_switch_backup_mark: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援标记')
+        self.area_btn_switch_backup_gray: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援灰度区域')
 
         self.area_chain_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-1')
         self.area_chain_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-2')
@@ -194,7 +248,7 @@ class AutoBattleContext:
         self.dodge_context.after_app_shutdown()
         self.target_context.after_app_shutdown()
 
-    def dodge(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def dodge(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_DODGE.value + '-按下'
         elif release:
@@ -205,8 +259,9 @@ class AutoBattleContext:
         self.ctx.controller.dodge(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
+        self._emit_debug_action(e)
 
-    def switch_next(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def switch_next(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_SWITCH_NEXT.value + '-按下'
@@ -216,6 +271,10 @@ class AutoBattleContext:
         else:
             e = BattleStateEnum.BTN_SWITCH_NEXT.value
             update_agent = True
+
+        # 切换角色前先松开所有按键，避免按键冲突（系统只能同时按下3个按键）
+        if update_agent and not release:
+            self._release_keys()
 
         start_time = time.time()
         self.ctx.controller.switch_next(press=press, press_time=press_time, release=release)
@@ -228,8 +287,9 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
+        self._emit_debug_action(e)
 
-    def switch_prev(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def switch_prev(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_SWITCH_PREV.value + '-按下'
@@ -239,6 +299,10 @@ class AutoBattleContext:
         else:
             e = BattleStateEnum.BTN_SWITCH_PREV.value
             update_agent = True
+
+        # 切换角色前先松开所有按键，避免按键冲突（系统只能同时按下3个按键）
+        if update_agent and not release:
+            self._release_keys()
 
         start_time = time.time()
         self.ctx.controller.switch_prev(press=press, press_time=press_time, release=release)
@@ -251,8 +315,22 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
+        self._emit_debug_action(e)
 
-    def normal_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def switch_backup(self, press: bool = False, press_time: float | None = None, release: bool = False):
+        if press:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value + '-按下'
+        elif release:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value + '-松开'
+        else:
+            e = BattleStateEnum.BTN_SWITCH_BACKUP.value
+
+        self.ctx.controller.switch_backup(press=press, press_time=press_time, release=release)
+        finish_time = time.time()
+        self.state_record_service.update_state(StateRecord(e, finish_time))
+        self._emit_debug_action(e)
+
+    def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_SWITCH_NORMAL_ATTACK.value + '-按下'
         elif release:
@@ -263,8 +341,9 @@ class AutoBattleContext:
         self.ctx.controller.normal_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
+        self._emit_debug_action(e)
 
-    def special_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def special_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_SWITCH_SPECIAL_ATTACK.value + '-按下'
         elif release:
@@ -275,8 +354,9 @@ class AutoBattleContext:
         self.ctx.controller.special_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
+        self._emit_debug_action(e)
 
-    def ultimate(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def ultimate(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_ULTIMATE.value + '-按下'
         elif release:
@@ -287,8 +367,9 @@ class AutoBattleContext:
         self.ctx.controller.ultimate(press=press, press_time=press_time, release=release)
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
+        self._emit_debug_action(e)
 
-    def chain_left(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_left(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_CHAIN_LEFT.value + '-按下'
@@ -311,8 +392,9 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
+        self._emit_debug_action(e)
 
-    def chain_right(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_right(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_CHAIN_RIGHT.value + '-按下'
@@ -335,8 +417,22 @@ class AutoBattleContext:
             for i in agent_records:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
+        self._emit_debug_action(e)
 
-    def move_w(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def _emit_debug_action(self, action_name: str) -> None:
+        bus = self.ctx.debug_trace_bus
+        if not bus.enabled:
+            return
+        bus.add_timeline(
+            TimelineTraceItem(
+                category="action",
+                title="auto_battle",
+                detail=str(action_name),
+                level="INFO",
+            )
+        )
+
+    def move_w(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_W.value + '-按下'
         elif release:
@@ -348,7 +444,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_s(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_s(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_S.value + '-按下'
         elif release:
@@ -360,7 +456,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_a(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_a(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_A.value + '-按下'
         elif release:
@@ -372,7 +468,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_d(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_d(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_D.value + '-按下'
         elif release:
@@ -384,7 +480,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def lock(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def lock(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_LOCK.value + '-按下'
         elif release:
@@ -396,7 +492,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def chain_cancel(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_cancel(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_CHAIN_CANCEL.value + '-按下'
         elif release:
@@ -450,19 +546,46 @@ class AutoBattleContext:
         self.state_record_service.batch_update_states(state_records)
 
     def check_battle_state(
-            self, screen: MatLike, screenshot_time: float,
-            check_battle_end_normal_result: bool = False,
-            check_battle_end_hollow_result: bool = False,
-            check_battle_end_defense_result: bool = False,
-            check_distance: bool = False,
-            sync: bool = False
+        self,
+        screen: MatLike,
+        screenshot_time: float,
+        check_battle_end_normal_result: bool = False,
+        check_battle_end_hollow_result: bool = False,
+        check_battle_end_defense_result: bool = False,
+        check_distance: bool = False,
+        sync: bool = False
     ) -> bool:
         """
         识别战斗状态的总入口
         :return: 当前是否在战斗画面
         """
-        in_battle = self.is_normal_attack_btn_available(screen)
+        normal_attack_available: bool = self.is_normal_attack_btn_available(screen)
+
+        # 普通攻击和终结技各自判断 按钮禁用时中心显示灰白 X 只看圆心区域 外圈进度环不参与
+        # 禁用的按钮图标变了 模板匹配不到 不能当成离开战斗 否则战斗结束识别会被误触发
+        ban_check_list: list[tuple[str, ScreenArea, str]] = [
+            (BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value, self.area_btn_normal, 'btn_ban_normal_attack'),
+            # 特殊攻击的禁用图标暂时不检测 要用时取消下面的注释
+            # (BattleStateEnum.STATUS_SPECIAL_BAN.value, self.area_btn_special, 'btn_ban_special_attack'),
+            (BattleStateEnum.STATUS_ULTIMATE_BAN.value, self.area_btn_ultimate, 'btn_ban_ultimate'),
+        ]
+
+        ban_result: dict[str, bool] = self.check_btn_ban(screen, ban_check_list)
+        in_battle: bool = normal_attack_available or ban_result.get(BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value, False)
+
         self.last_check_in_battle = in_battle
+        if normal_attack_available:
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
+        else:
+            # 离开战斗(普攻按钮消失):立即清状态,不依赖默认时间窗口在战后自然失效,
+            # 避免战后残留的"按键可用"让 速切模板-通用 兜底继续发普攻(#2157)
+            self.state_record_service.update_state(
+                StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, is_clear=True))
+
+        ban_state_records = self._update_btn_ban_states(ban_result, screenshot_time)
+        if len(ban_state_records) > 0:
+            self.state_record_service.batch_update_states(ban_state_records)
 
         future_list: list[Future] = []
 
@@ -471,7 +594,10 @@ class AutoBattleContext:
             # 闪避相关
             audio_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
             future_list.append(audio_future)
-            future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+            if self.ctx.model_config.flash_classifier_gpu:
+                future_list.append(gpu_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+            else:
+                future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
 
             # 角色状态
             future_list.append(_battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
@@ -481,10 +607,14 @@ class AutoBattleContext:
 
             # 快速支援
             future_list.append(_battle_state_check_executor.submit(self.check_quick_assist, screen, screenshot_time))
+            future_list.append(_battle_state_check_executor.submit(self.check_switch_backup, screen, screenshot_time))
 
             # 距离
             if check_distance:
-                future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
+                if self.ctx.model_config.ocr_use_gpu:
+                    future_list.append(gpu_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
+                else:
+                    future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
         else:
             # 连携
             future_list.append(_battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
@@ -492,8 +622,13 @@ class AutoBattleContext:
             # 战斗结束
             check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
             if check_battle_end:
-                future_list.append(_battle_state_check_executor.submit(
-                    self._check_battle_end, screen, screenshot_time,
+                if self.ctx.model_config.ocr_use_gpu:
+                    executor = gpu_executor
+                else:
+                    executor = _battle_state_check_executor
+                future_list.append(executor.submit(
+                    self._check_battle_end,
+                    screen, screenshot_time,
                     check_battle_end_normal_result, check_battle_end_hollow_result, check_battle_end_defense_result
                 ))
 
@@ -535,10 +670,14 @@ class AutoBattleContext:
 
         possible_agents = self.agent_context.get_possible_agent_list()
 
-        result_agent_list: list[Optional[Agent]] = []
+        # 连携技角色识别
+        result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+
+        # 连携条检测（独立运行，结果在方法内部处理）
+        _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
 
         for future in future_list:
             try:
@@ -550,11 +689,13 @@ class AutoBattleContext:
                 result_agent_list.append(None)
 
         state_records: list[StateRecord] = []
+        chain_agent_names: set[str] = set()  # 连携技上的角色名称列表
         for i in range(len(result_agent_list)):
             if result_agent_list[i] is None:
                 continue
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_name}', screenshot_time))
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_type.value}', screenshot_time))
+            chain_agent_names.add(result_agent_list[i].agent_name)
 
         if len(state_records) > 0:
             # 有其中一个能识别时 另一个不能识别的就是邦布
@@ -566,7 +707,37 @@ class AutoBattleContext:
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.state_record_service.batch_update_states(state_records)
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: Optional[list[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
+            # 检查连携前台角色修正冷却（避免切人过程中重复检测导致误判）
+            if screenshot_time - self._last_chain_front_correction_time < 1.0:
+                return
+
+            # 记录本次检测时间，无论是否需要切换都进入冷却
+            self._last_chain_front_correction_time = screenshot_time
+
+            # 从状态记录系统获取当前前台角色（与UI显示保持一致）
+            front_agent_name = None
+            for agent_enum in AgentEnum:
+                agent_name = agent_enum.value.agent_name
+                state_name = f'前台-{agent_name}'
+                recorder = self.state_record_service.get_state_recorder(state_name)
+                if recorder is not None and recorder.last_record_time > 0:
+                    front_agent_name = agent_name
+                    break
+
+            # 检查前台角色是否在连携技列表中
+            if front_agent_name and front_agent_name in chain_agent_names:
+                # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
+                team_info = self.agent_context.team_info
+                if team_info.agent_list and len(team_info.agent_list) > 0:
+                    for i in range(1, len(team_info.agent_list)):
+                        back_agent = team_info.agent_list[i].agent
+                        if back_agent and back_agent.agent_name not in chain_agent_names:
+                            # 切换到这个后台角色
+                            log.info(f'前台角色 {front_agent_name} 在连携技中，切换到 {back_agent.agent_name}')
+                            self.switch_by_name(back_agent.agent_name)
+                            break
+
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -588,6 +759,35 @@ class AutoBattleContext:
                         return agent
 
         return None
+
+    def _check_chain_bar(self, screen: MatLike, screenshot_time: float) -> bool:
+        """
+        检测连携条的轮廓
+        :return: 是否检测到轮廓
+        """
+        try:
+            # 运行连携条的CV流水线
+            cv_result = self.ctx.cv_service.run_pipeline(
+                '战斗-连携条',
+                screen,
+                debug_mode=False,
+                start_time=screenshot_time,
+                timeout=1.0
+            )
+
+            # 检查是否有轮廓
+            if cv_result is not None and cv_result.is_success and len(cv_result.contours) > 0:
+                # 更新状态"连携技-准备"
+                self.state_record_service.update_state(
+                    StateRecord('连携技-准备', screenshot_time)
+                )
+                return True
+            else:
+                # 没有检测到轮廓，不更新状态
+                return False
+        except Exception:
+            log.error('检测连携条轮廓失败', exc_info=True)
+            return False
 
     def check_quick_assist(self, screen: MatLike, screenshot_time: float) -> None:
         """
@@ -620,7 +820,77 @@ class AutoBattleContext:
         finally:
             self._check_quick_lock.release()
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: Optional[list[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
+    def check_switch_backup(self, screen: MatLike, screenshot_time: float) -> None:
+        """
+        识别切换后援按键是否可用
+        """
+        if not self._check_switch_backup_lock.acquire(blocking=False):
+            return
+
+        try:
+            if screenshot_time - self._last_check_switch_backup_time < cal_utils.random_in_range(self._check_switch_backup_interval):
+                # 还没有达到识别间隔
+                return
+            self._last_check_switch_backup_time = screenshot_time
+
+            if self._is_switch_backup_ready(screen):
+                self.state_record_service.update_state(
+                    StateRecord(BattleStateEnum.STATUS_SWITCH_BACKUP_READY.value, screenshot_time)
+                )
+        except Exception:
+            log.error('识别切换后援失败', exc_info=True)
+        finally:
+            self._check_switch_backup_lock.release()
+
+    def _is_switch_backup_ready(self, screen: MatLike) -> bool:
+        """
+        通过后援按钮标记与灰度区域的颜色特征，判断当前是否可切换后援。
+        """
+        mark_part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup_mark.rect)
+        gray_part = cv2_utils.crop_image_only(screen, self.area_btn_switch_backup_gray.rect)
+
+        return self._is_switch_backup_mark_black(mark_part) and self._is_switch_backup_gray_area_colorful(gray_part)
+
+    @staticmethod
+    def _is_switch_backup_mark_black(part: MatLike) -> bool:
+        """
+        判断后援标记内部是否基本全黑。
+        """
+        if part is None or part.size == 0:
+            return False
+
+        hsv = cv2.cvtColor(part, cv2.COLOR_RGB2HSV)
+        saturation = hsv[:, :, 1]
+        value = hsv[:, :, 2]
+
+        black_mask = (saturation <= 10) & (value <= 20)
+        black_ratio = float(np.mean(black_mask))
+        return black_ratio >= 0.9
+
+    @staticmethod
+    def _is_switch_backup_gray_area_colorful(part: MatLike) -> bool:
+        """
+        判断后援按钮灰度区域是否已经明显变成彩色。
+        """
+        if part is None or part.size == 0:
+            return False
+
+        hsv = cv2.cvtColor(part, cv2.COLOR_RGB2HSV)
+        saturation = hsv[:, :, 1]
+        value = hsv[:, :, 2]
+
+        colorful_mask = (saturation >= 40) & (value >= 90)
+        gray_mask = (saturation <= 10) & (np.abs(value.astype(np.int16) - 150) <= 20)
+
+        colorful_ratio = float(np.mean(colorful_mask))
+        gray_ratio = float(np.mean(gray_mask))
+
+        if colorful_ratio < 0.5:
+            return False
+
+        return gray_ratio <= 0.2
+
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -729,7 +999,7 @@ class AutoBattleContext:
         finally:
             self._check_distance_lock.release()
 
-    def check_battle_distance(self, screen: MatLike, last_distance: Optional[float] = None) -> MatchResult:
+    def check_battle_distance(self, screen: MatLike, last_distance: float | None = None) -> MatchResult:
         """
         识别画面上显示的距离
         :param screen:
@@ -737,23 +1007,32 @@ class AutoBattleContext:
         :return:
         """
         area = self._check_distance_area
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+        )
 
-        distance: Optional[float] = None
-        mr: Optional[MatchResult] = None
-        for ocr_result, mrl in ocr_result_map.items():
-            last_idx = ocr_result.rfind('m')
+        distance: float | None = None
+        mr: MatchResult | None = None
+        for ocr_result in ocr_result_list:
+            ocr_word = ocr_result.data
+            last_idx = ocr_word.rfind('m')
             if last_idx == -1:
                 continue
-            pre_str = ocr_result[:last_idx]
+            pre_str = ocr_word[:last_idx]
             distance = str_utils.get_positive_float(pre_str, None)
             if distance is None:
                 continue
 
-            tmp_mr = mrl.max
-            tmp_mr.data = distance
-            tmp_mr.add_offset(area.left_top)
+            tmp_mr = MatchResult(
+                ocr_result.confidence,
+                ocr_result.x,
+                ocr_result.y,
+                ocr_result.w,
+                ocr_result.h,
+                data=distance
+            )
+
             # 极少数情况下会出现多个距离
             mid_x = self.ctx.project_config.screen_standard_width // 2
             if mr is None:
@@ -785,10 +1064,90 @@ class AutoBattleContext:
         :param screen:
         :return:
         """
-        part = cv2_utils.crop_image_only(screen, self.area_btn_normal.rect)
-        mrl = self.ctx.tm.match_template(part, 'battle', 'btn_normal_attack',
-                                         threshold=0.9)
+        mrl = self.ctx.tm.crop_and_match_template(
+            screen, self.area_btn_normal.rect, 'battle', 'btn_normal_attack',
+            threshold=0.9,
+        )
         return mrl.max is not None
+
+    def check_btn_ban(self, screen: MatLike,
+                      ban_check_list: list[tuple[str, ScreenArea, str]]) -> dict[str, bool]:
+        """
+        识别按键是否处于禁用态 禁用时按钮中心显示灰白 X
+        :param screen: 游戏画面
+        :param ban_check_list: 需要识别的 (状态名, 按钮区域, 模板ID) 列表
+        :return: 状态名 -> 是否禁用
+        """
+        now = time.time()
+        if now - self._last_btn_ban_time < BTN_BAN_CHECK_INTERVAL:
+            return self._last_btn_ban_result
+        self._last_btn_ban_time = now
+
+        future_list: list[Future] = []
+        for _, area, template_id in ban_check_list:
+            future_list.append(_battle_state_check_executor.submit(
+                self._match_btn_ban_gray, screen, area, template_id,
+            ))
+
+        result: dict[str, bool] = {}
+        for (state_name, _, _), future in zip(ban_check_list, future_list, strict=True):
+            try:
+                result[state_name] = future.result()
+            except Exception:
+                log.error('识别按键禁用状态失败 %s', state_name, exc_info=True)
+
+        self._last_btn_ban_result = result
+        return result
+
+    def _match_btn_ban_gray(self, screen: MatLike, area: ScreenArea, template_id: str) -> bool:
+        """
+        灰度识别按键禁用图标
+        禁用图标是灰白的 X 颜色不提供额外信息 灰度匹配比彩色快四倍 判定结果一致
+        :param screen: 游戏画面
+        :param area: 按钮区域
+        :param template_id: 禁用图标模板ID
+        :return: 是否命中禁用图标
+        """
+        part = cv2_utils.crop_image_only(screen, area.rect)
+        part_gray = cv2.cvtColor(part, cv2.COLOR_RGB2GRAY)
+        # 裁剪后的小图原点是 (0,0) 匹配前把区域左上角压进偏移 调试覆盖层才能把框画在真实位置
+        bus = self.ctx.tm.debug_trace_bus
+        if bus is not None:
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + area.rect.x1, parent_y + area.rect.y1)
+        try:
+            mrl = self.ctx.tm.match_template(part_gray, 'battle', template_id,
+                                             template_type='gray', threshold=0.9)
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
+        return mrl.max is not None
+
+    def _update_btn_ban_states(self, ban_result: dict[str, bool], screenshot_time: float) -> list[StateRecord]:
+        """
+        更新按键禁用状态
+        禁用与可用是两套独立信号 可以同时成立
+        本次没有识别的状态视为未禁用 会清掉禁用状态 这样禁用解除后能及时复位
+        禁用期间只记录首次识别到的时间 不刷新 因此可以用 [状态, 时间下限, 时间上限] 判断已经禁用了多久
+        :param ban_result: 状态名 -> 是否禁用
+        :param screenshot_time: 截图时间
+        :return: 需要投递的状态记录
+        """
+        state_records: list[StateRecord] = []
+        for state_name in [BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value,
+                           # 特殊攻击的禁用图标暂时不检测 要用时取消下面的注释
+                           # BattleStateEnum.STATUS_SPECIAL_BAN.value,
+                           BattleStateEnum.STATUS_ULTIMATE_BAN.value]:
+            if ban_result.get(state_name, False):
+                if state_name in self._btn_ban_first_time:
+                    continue  # 已经在禁用中 不刷新时间
+                self._btn_ban_first_time[state_name] = screenshot_time
+                state_records.append(StateRecord(state_name, screenshot_time))
+            elif state_name in self._btn_ban_first_time:
+                del self._btn_ban_first_time[state_name]
+                state_records.append(StateRecord(state_name, is_clear=True))
+
+        return state_records
 
     def start_context_async(self) -> None:
         """
@@ -805,17 +1164,25 @@ class AutoBattleContext:
         self.dodge_context.stop_context()
 
         log.info('松开所有按键')
-        self.dodge(release=True)
+        self._release_keys()
         self.switch_next(release=True)
         self.switch_prev(release=True)
-        self.normal_attack(release=True)
-        self.special_attack(release=True)
+        self.switch_backup(release=True)
+        self.lock(release=True)
         self.ultimate(release=True)
+        self.chain_cancel(release=True)
         self.chain_left(release=True)
         self.chain_right(release=True)
+
+    def _release_keys(self) -> None:
+        """
+        松开可能影响下一个角色的按键，避免按键冲突（系统只能同时按下3个按键）
+        :return:
+        """
+        self.dodge(release=True)
+        self.normal_attack(release=True)
+        self.special_attack(release=True)
         self.move_w(release=True)
         self.move_s(release=True)
         self.move_a(release=True)
         self.move_d(release=True)
-        self.lock(release=True)
-        self.chain_cancel(release=True)

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional
 from typing import TYPE_CHECKING
 
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
-
 from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -34,7 +32,7 @@ class ApplicationGroupManager:
         """
         return [DEFAULT_GROUP_ID]
 
-    def get_group_config(self, instance_idx: int, group_id: str) -> Optional[ApplicationGroupConfig]:
+    def get_group_config(self, instance_idx: int, group_id: str) -> ApplicationGroupConfig | None:
         """
         获取分组配置
 
@@ -68,6 +66,15 @@ class ApplicationGroupManager:
         """
         self._default_app_id_list = app_id_list
 
+    def set_one_dragon_app_enable(
+        self,
+        config: ApplicationGroupConfig,
+        app_id: str,
+        enabled: bool,
+    ) -> None:
+        """更新一条龙应用状态。"""
+        config.set_app_enable(app_id, enabled)
+
     def get_one_dragon_group_config(self, instance_idx: int) -> ApplicationGroupConfig:
         """
         获取默认应用组的配置
@@ -86,6 +93,9 @@ class ApplicationGroupManager:
         """
         config = ApplicationGroupConfig(instance_idx=instance_idx, group_id=DEFAULT_GROUP_ID)
         need_migration = not config.is_file_exists
+
+        # 运行时只加载默认组应用。update_full_app_list 会保留 YAML 中其他原始项，
+        # 但不会把 standalone、internal 或未注册应用放进一条龙运行列表。
         config.update_full_app_list(self._default_app_id_list)
 
         # 从旧的配置文件迁移过来 2026-09-21 可删除
@@ -98,3 +108,10 @@ class ApplicationGroupManager:
                 config.set_app_order(old_config.app_order)
 
         return config
+
+    def clear_config_cache(self) -> None:
+        """清除配置缓存
+
+        在刷新应用注册时调用，使配置重新加载。
+        """
+        self._config_cache.clear()

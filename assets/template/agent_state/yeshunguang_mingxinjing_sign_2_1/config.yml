@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: yeshunguang_mingxinjing_sign_2_1
+template_name: 角色状态-叶瞬光-明心镜-标志-21
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1665, 1002
+- 1676, 1003

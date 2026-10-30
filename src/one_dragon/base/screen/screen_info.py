@@ -1,88 +1,54 @@
-import cv2
-import os
-from cv2.typing import MatLike
-from typing import List, Optional
+from typing import Any
 
-from one_dragon.base.config.yaml_operator import YamlOperator
+import cv2
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.utils import os_utils, cv2_utils
 
 
-class ScreenInfo(YamlOperator):
+class ScreenInfo:
 
-    def __init__(self, screen_id: Optional[str] = None, create_new: bool = False):
-        self.old_screen_id: str = screen_id  # 旧的画面ID 用于保存时删掉旧文件
-        self.screen_id: str = screen_id  # 画面ID 用于加载文件
-        self.screen_name: str = ''  # 画面名称 用于显示
+    def __init__(self, data: dict[str, Any]):
+        self.old_screen_id: str = data.get('screen_id', '')  # 旧的画面ID 用于保存时删掉旧文件
+        self.screen_id: str = data.get('screen_id', '')  # 画面ID 用于加载文件
+        self.screen_name: str = data.get('screen_name', '')  # 画面名称 用于显示
+        self.app_id: str = data.get('app_id', '')  # 所属应用ID 空字符串表示全局 screen
 
-        self.screen_image: Optional[MatLike] = None
+        self.screen_image: MatLike | None = None
 
-        self.pc_alt: bool = False  # PC端点击是否需要使用ALT键
-        self.area_list: List[ScreenArea] = []  # 画面中包含的区域
+        self.pc_alt: bool = data.get('pc_alt', False)  # PC端点击是否需要使用ALT键
+        self.area_list: list[ScreenArea] = []  # 画面中包含的区域
 
-        if create_new:
-            YamlOperator.__init__(self)
-        else:
-            YamlOperator.__init__(self, self.get_yml_file_path())
-            self._init_from_data()
-
-    @staticmethod
-    def get_dir_path() -> str:
-        """
-        文件夹位置
-        :return:
-        """
-        return os_utils.get_path_under_work_dir('assets', 'game_data', 'screen_info')
-
-    def get_yml_file_path(self, old: bool = False) -> str:
-        """
-        配置文件位置
-        :param old: 是否取旧文件的路径
-        :return:
-        """
-        if old and self.old_screen_id is not None:
-            return os.path.join(self.get_dir_path(), f'{self.old_screen_id}.yml')
-        else:
-            return os.path.join(self.get_dir_path(), f'{self.screen_id}.yml')
-
-    def get_image_file_path(self) -> str:
-        """
-        图片位置
-        :return:
-        """
-        return os.path.join(self.get_dir_path(), f'{self.screen_id}.png')
-
-    def _init_from_data(self) -> None:
-        """
-        从文本中初始化
-        :return:
-        """
-        self.screen_name = self.get('screen_name', '')
-        screen_image_path = self.get_image_file_path()
-        if os.path.exists(screen_image_path):
-            self.screen_image = cv2_utils.read_image(screen_image_path)
-        self.pc_alt = self.get('pc_alt', False)
-
-        data_area_list = self.get('area_list', [])
+        data_area_list = data.get('area_list', [])
         for data_area in data_area_list:
             pc_rect = data_area.get('pc_rect')
             area = ScreenArea(
-                area_name=data_area.get('area_name'),
+                area_name=data_area.get('area_name', ''),
+                area_type=data_area.get('area_type'),
                 pc_rect=Rect(pc_rect[0], pc_rect[1], pc_rect[2], pc_rect[3]),
-                text=data_area.get('text'),
-                lcs_percent=data_area.get('lcs_percent'),
-                template_id=data_area.get('template_id'),
-                template_sub_dir=data_area.get('template_sub_dir'),
-                template_match_threshold=data_area.get('template_match_threshold'),
+                text=data_area.get('text', ''),
+                lcs_percent=(
+                    data_area.get('lcs_percent')
+                    if data_area.get('lcs_percent') is not None
+                    else 0.5
+                ),
+                template_id=data_area.get('template_id', ''),
+                template_sub_dir=data_area.get('template_sub_dir', ''),
+                template_match_threshold=(
+                    data_area.get('template_match_threshold')
+                    if data_area.get('template_match_threshold') is not None
+                    else 0.7
+                ),
                 color_range=data_area.get('color_range'),
                 pc_alt=self.pc_alt,
                 id_mark=data_area.get('id_mark', False),
-                goto_list=data_area.get('goto_list', [])
+                goto_list=data_area.get('goto_list', []),
+                gamepad_key=data_area.get('gamepad_key', None),
             )
             self.area_list.append(area)
 
-    def get_image_to_show(self, highlight_area_idx: Optional[int] = None) -> MatLike:
+    def get_image_to_show(self, highlight_area_idx: int | None = None) -> MatLike:
         """
         用于显示的图片
         :param highlight_area_idx: 高亮区域索引
@@ -136,31 +102,44 @@ class ScreenInfo(YamlOperator):
             return
         self.area_list.pop(idx)
 
-    def save(self):
-        """
-        保存 覆写了基类的方法
-        :return:
-        """
-        order_dict = dict()
-        order_dict['screen_id'] = self.screen_id
-        order_dict['screen_name'] = self.screen_name
-        order_dict['pc_alt'] = self.pc_alt
-        order_dict['area_list'] = [i.to_order_dict() for i in self.area_list]
+    def upsert_area(self, area: ScreenArea) -> str:
+        """按 area_name 插入或更新 area(存在则整体替换,否则追加)。
 
-        self.file_path = self.get_yml_file_path(old=False)  # screen_id 有修改 更新路径
-        self.data = order_dict
-        YamlOperator.save(self)
+        Args:
+            area: 要写入的区域;以 ``area_name`` 作为匹配键。
 
-        # screen_id 有修改 删除旧的文件
-        if self.old_screen_id is not None and len(self.old_screen_id) > 0 and self.old_screen_id != self.screen_id:
-            old_yml_file_path = self.get_yml_file_path(old=True)
-            if os.path.exists(old_yml_file_path):
-                os.remove(old_yml_file_path)
+        Returns:
+            ``'updated'`` 表示替换了既有同名 area;``'inserted'`` 表示新追加。
+        """
+        for idx, cur in enumerate(self.area_list):
+            if cur.area_name == area.area_name:
+                self.area_list[idx] = area
+                return 'updated'
+        self.area_list.append(area)
+        return 'inserted'
 
-    def delete(self):
+    def remove_area_by_name(self, area_name: str) -> bool:
+        """按 area_name 删除 area。
+
+        Args:
+            area_name: 区域名(同 screen 内唯一)。
+
+        Returns:
+            找到并删除返 ``True``;不存在返 ``False``。
         """
-        删除 覆写了基类的方法
-        :return:
-        """
-        self.file_path = self.get_yml_file_path(old=False)  # screen_id 有修改 更新路径
-        YamlOperator.delete(self)
+        for idx, cur in enumerate(self.area_list):
+            if cur.area_name == area_name:
+                self.area_list.pop(idx)
+                return True
+        return False
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        data['screen_id'] = self.screen_id
+        data['screen_name'] = self.screen_name
+        if self.app_id:
+            data['app_id'] = self.app_id
+        data['pc_alt'] = self.pc_alt
+        data['area_list'] = [area.to_dict() for area in self.area_list]
+
+        return data

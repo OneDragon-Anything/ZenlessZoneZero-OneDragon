@@ -5,7 +5,7 @@ class StateRecord:
 
     def __init__(self, state_name: str,
                  trigger_time: float = 0,
-                 value: Optional[int] = None, 
+                 value: Optional[int] = None,
                  value_to_add: Optional[int] = None,
                  trigger_time_add: Optional[float] = None,
                  is_clear: bool = False,):
@@ -62,6 +62,13 @@ class StateRecorder:
             # 原来没有出现过的话 就不重置
             return
         self.last_record_time = 0
+        self.last_value = None
+
+    def reset_to_initial(self) -> None:
+        """
+        重置状态到初始值，即从未触发过的状态
+        """
+        self.last_record_time = -1
         self.last_value = None
 
     def dispose(self) -> None:

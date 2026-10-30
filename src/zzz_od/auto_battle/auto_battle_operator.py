@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import os
 import time
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Optional, Tuple, Any, TYPE_CHECKING
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.loader import ConditionalOperatorLoader
 from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.conditional_operation.operator import ConditionalOperator
-from one_dragon.base.conditional_operation.state_recorder import StateRecorder
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.btn_lock import AtomicBtnLock
@@ -77,6 +77,10 @@ class AutoBattleOperator(ConditionalOperator):
         self.last_lock_time: float = 0  # 上一次锁定的时间
         self.last_turn_time: float = 0  # 上一次转动视角的时间
 
+        # 停止事件
+        self._stop_event = Event()
+        self._periodic_generation: int = 0  # 会话代际计数器
+
     def load_other_info(self, data: dict[str, Any]) -> None:
         """
         加载其他所需的信息
@@ -101,7 +105,7 @@ class AutoBattleOperator(ConditionalOperator):
         self.auto_lock_interval = data.get('auto_lock_interval', 1)
         self.auto_turn_interval = data.get('auto_turn_interval', 2)
 
-    def init_before_running(self) -> Tuple[bool, str]:
+    def init_before_running(self) -> tuple[bool, str]:
         """
         运行前进行初始化
         :return:
@@ -110,8 +114,8 @@ class AutoBattleOperator(ConditionalOperator):
             ConditionalOperator.init(self)
             log.info(f'自动战斗配置加载成功 {self.get_template_name()}')
             return True, ''
-        except Exception as e:
-            log.error('自动战斗初始化失败 共享配队文件请在群内提醒对应作者修复', exc_info=True)
+        except Exception:
+            log.error('自动战斗初始化失败 如果是共享配队文件请在群内提醒对应作者修复', exc_info=True)
             return False, '初始化失败'
 
     def get_atomic_op(self, op_def: OperationDef) -> AtomicOp:
@@ -136,12 +140,15 @@ class AutoBattleOperator(ConditionalOperator):
     def start_running_async(self) -> bool:
         success = ConditionalOperator.start_running_async(self)
         if success:
-            lock_f = _auto_battle_operator_executor.submit(self.operate_periodically)
+            self._periodic_generation += 1
+            self._stop_event.clear()
+            gen = self._periodic_generation
+            lock_f = _auto_battle_operator_executor.submit(self.operate_periodically, gen)
             lock_f.add_done_callback(thread_utils.handle_future_result)
 
         return success
 
-    def operate_periodically(self) -> None:
+    def operate_periodically(self, generation: int) -> None:
         """
         周期性完成动作
 
@@ -153,25 +160,38 @@ class AutoBattleOperator(ConditionalOperator):
             return
         lock_op = AtomicBtnLock(self.ctx)
         turn_op = AtomicTurn(self.ctx, 100)
-        while self.is_running:
+        while self.is_running and self._periodic_generation == generation:
             now = time.time()
 
             if not self.ctx.last_check_in_battle:  # 当前画面不是战斗画面 就不运行了
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
                 continue
 
             any_done: bool = False
+            if not self.is_running:
+                break
             if self.auto_lock_interval > 0 and now - self.last_lock_time > self.auto_lock_interval:
                 lock_op.execute()
                 self.last_lock_time = now
                 any_done = True
+            if not self.is_running:
+                break
             if self.auto_turn_interval > 0 and now - self.last_turn_time > self.auto_turn_interval:
                 turn_op.execute()
                 self.last_turn_time = now
                 any_done = True
 
             if not any_done:
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
+
+    def stop_running(self) -> None:
+        """
+        停止执行
+        """
+        self._stop_event.set()
+        ConditionalOperator.stop_running(self)
 
     @staticmethod
     def after_app_shutdown() -> None:

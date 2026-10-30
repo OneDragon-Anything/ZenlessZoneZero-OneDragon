@@ -2,20 +2,15 @@ import time
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import (
-    OperationRoundResult,
-    OperationRoundResultEnum,
-)
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
@@ -29,13 +24,13 @@ from zzz_od.application.notorious_hunt.notorious_hunt_config import (
 from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
     NotoriousHuntRunRecord,
 )
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
-from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
@@ -43,8 +38,9 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class NotoriousHunt(ZOperation):
 
-    STATUS_WITH_LEFT_TIMES: ClassVar[str] = '有剩余次数'
-    STATUS_NO_LEFT_TIMES: ClassVar[str] = '没有剩余次数'
+    STATUS_WITH_LEFT_TIMES: ClassVar[str] = '周期挑战有剩余次数'
+    STATUS_NO_LEFT_TIMES: ClassVar[str] = '周期挑战无剩余次数'
+    STATUS_BLOCKED_BY_LEFT_TIMES: ClassVar[str] = '周期挑战有剩余次数，本次跳过深度追猎'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
@@ -57,7 +53,7 @@ class NotoriousHunt(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
+            op_name='{} {}'.format(
                 gt('恶名狩猎', 'game'),
                 gt(plan.mission_type_name, 'game')
             )
@@ -83,10 +79,30 @@ class NotoriousHunt(ZOperation):
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
         self.can_run_times: int = -1
 
-        self.move_times: int = 0  # 移动次数
-        self.no_dis_times: int = 0  # 识别不到距离的次数
-        self.restart_times: int = 0  # 重新开始战斗次数
+    @operation_node(name='初始化加载', is_start_node=True)
+    def init_for_notorious_hunt(self) -> OperationRoundResult:
+        try:
+            self.ctx.lost_void.init_lost_void_det_model()
+        except Exception:
+            return self.round_fail('初始化失败')
+        return self.round_success()
 
+    def _match_mission_type(self, target_name: str, ocr_result: str) -> bool:
+        """
+        匹配任务类型名称（支持别名双向查找）
+        """
+        names = [target_name]
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
+        if hunt_category:
+            for mt in hunt_category.mission_type_list:
+                if mt.mission_type_name == target_name or target_name in mt.alias_list:
+                    names.append(mt.mission_type_name)
+                    names.extend(mt.alias_list)
+                    names = list(set(names))
+                    break
+        return any(str_utils.find_by_lcs(gt(n, 'game'), ocr_result, percent=0.5) for n in names)
+
+    @node_from(from_name='初始化加载')
     @operation_node(name='等待入口加载', node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
         r1 = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '当期剩余奖励次数')
@@ -102,15 +118,15 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='等待入口加载', status='按钮-街区')
     @operation_node(name='判断副本名称')
     def check_mission(self) -> OperationRoundResult:
-        if self.plan.mission_type_name == '代理人方案培养':
+        if self.plan.is_agent_plan:
         # 通过代理人进入则跳过重新选择副本
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         is_target_mission: bool = False  # 当前是否目标副本
-        for ocr_result in ocr_result_map.keys():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
+
+        for ocr_result in ocr_result_map:
+            if self._match_mission_type(self.plan.mission_type_name, ocr_result):
                 is_target_mission = True
                 break
 
@@ -124,24 +140,24 @@ class NotoriousHunt(ZOperation):
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('恶名狩猎', '副本名称列表')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
+
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
+            if self._match_mission_type(self.plan.mission_type_name, ocr_result):
                 to_click = mrl.max.center + area.left_top + Point(0, 100)
                 if self.ctx.controller.click(to_click):
                     return self.round_success(wait=2)
 
         # 未匹配时 判断该往哪边滑动
-        hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
         with_left: bool = False  # 当前识别有在目标左边的副本
         for mission_type in reversed(hunt_category.mission_type_list):
-            if mission_type.mission_type_name == self.plan.mission_type_name:
+            if self._match_mission_type(self.plan.mission_type_name, mission_type.mission_type_name):
                 break
 
             find: bool = False  # 当前画面有没有识别到 mission_type
-            for ocr_result, mrl in ocr_result_map.items():
+            for ocr_result, _ in ocr_result_map.items():
                 if str_utils.find_by_lcs(gt(mission_type.mission_type_name, 'game'), ocr_result, percent=0.5):
                     find = True
                     break
@@ -160,42 +176,37 @@ class NotoriousHunt(ZOperation):
 
     @node_from(from_name='判断副本名称')  # 当前副本符合 继续选择
     @node_from(from_name='选择副本')
-    @operation_node(name='选择深度追猎')
-    def choose_by_use_power(self):
-        result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON')
-        current_use_power = result.is_success  # 当前在深度追猎模式
+    @operation_node(name='抉择恶名狩猎', node_max_retry_times=10)
+    def decide_notorious_hunt(self) -> OperationRoundResult:
+        """
+        恶名狩猎周期挑战
 
-        if self.use_charge_power == current_use_power:
-            return self.round_success()
+        出现'深度追猎-信息'，说明周期挑战'剩余次数'已经用完，直接标记完成
+        通过识别剩余奖励次数决定本次可运行次数，周期挑战不用消耗体力
+        """
 
-        # 选择深度追猎之后的对话框
-        result = self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-确认')
+        if self.use_charge_power:
+            return self.round_success('深度追猎')
+
+        result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '深度追猎-信息')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
-
-        self.round_by_click_area('恶名狩猎', '按钮-深度追猎-ON')
-        return self.round_retry(wait=1)
-
-    @node_from(from_name='选择深度追猎')
-    @operation_node(name='识别可运行次数')
-    def check_can_run_times(self) -> OperationRoundResult:
-        if self.use_charge_power:  # 深度追猎
-            return self.round_success(NotoriousHunt.STATUS_WITH_LEFT_TIMES)
+            self.run_record.left_times = 0
+            return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
         else:
-            result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-无报酬模式')
-            if result.is_success:  # 可能是其他设备挑战了 没有剩余次数了
-                self.run_record.left_times = 0
-                return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
-
             area = self.ctx.screen_loader.get_area('恶名狩猎', '剩余次数')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
             ocr_result = self.ctx.ocr.run_ocr_single_line(part)
             left_times = str_utils.get_positive_digits(ocr_result, None)
             if left_times is None:  # 识别不到时 使用记录中的数量
+                if self.node_retry_times < self.node_max_retry_times:
+                    return self.round_retry('未识别到剩余次数', wait=0.5)
                 self.can_run_times = self.run_record.left_times
             else:
+                self.run_record.left_times = left_times
                 self.can_run_times = left_times
+
+            log.info('恶名狩猎剩余奖励次数 %s', self.can_run_times)
 
             # 运行次数上限是计划剩余次数
             need_run_times = self.plan.plan_times - self.plan.run_times
@@ -204,7 +215,35 @@ class NotoriousHunt(ZOperation):
 
             return self.round_success(NotoriousHunt.STATUS_WITH_LEFT_TIMES)
 
-    @node_from(from_name='识别可运行次数', status=STATUS_WITH_LEFT_TIMES)
+    @node_from(from_name='抉择恶名狩猎', status='深度追猎')
+    @operation_node(name='抉择深度追猎')
+    def decide_by_use_power(self) -> OperationRoundResult:
+        """
+        恶名狩猎深度追猎
+
+        出现'深度追猎-信息'，且点亮'深度追猎-ON'后，才可正式开始
+        区域对应文本"剩余奖励次数"会变成"电量消耗"，深度追猎需要消耗体力
+        """
+
+        # 尝试点亮"深度追猎-ON"之后的对话框
+        result = self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-确认')
+        if result.is_success:
+            return self.round_wait(result.status, wait=1)
+        result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '深度追猎-信息')
+        if result.is_success:
+            result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON')
+            if result.is_success:
+                return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
+            result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-无报酬模式')
+            if result.is_success:
+                self.round_by_click_area('恶名狩猎', '按钮-深度追猎-ON')
+                return self.round_wait(wait=1)
+            return self.round_retry(wait=1)
+
+        return self.round_success(NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
+
+    @node_from(from_name='抉择恶名狩猎', status=STATUS_WITH_LEFT_TIMES)
+    @node_from(from_name='抉择深度追猎', status=STATUS_NO_LEFT_TIMES)
     @operation_node(name='选择难度')
     def choose_level(self) -> OperationRoundResult:
         if self.plan.level == NotoriousHuntLevelEnum.DEFAULT.value.value:
@@ -229,11 +268,11 @@ class NotoriousHunt(ZOperation):
             return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='选择难度')
-    @node_from(from_name='恢复电量', status='恢复电量成功')
+    @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题-恢复电量')
         if result.is_success:
             return self.round_success(status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -256,8 +295,7 @@ class NotoriousHunt(ZOperation):
         if not self.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -286,8 +324,6 @@ class NotoriousHunt(ZOperation):
             team_list = self.ctx.team_config.team_list
             auto_battle = team_list[self.plan.predefined_team_idx].auto_battle
 
-        self.ctx.lost_void.init_lost_void_det_model()  # 借用迷失之地的模型来识别距离白点
-
         self.ctx.auto_battle_context.init_auto_op(
             sub_dir='auto_battle',
             op_name=auto_battle,
@@ -295,7 +331,6 @@ class NotoriousHunt(ZOperation):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @node_from(from_name='主动重新开始')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60, is_start_node=False)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
@@ -309,165 +344,12 @@ class NotoriousHunt(ZOperation):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='等待战斗画面加载')
-    @operation_node(name='移动靠近交互', node_max_retry_times=10)
-    def first_move(self) -> OperationRoundResult:
-        result = self._move_by_hint()
-        if result.is_success:
-            self.no_dis_times = 0
-        elif result.result == OperationRoundResultEnum.RETRY:
-            self.no_dis_times += 1
-        return result
+    @operation_node(name='战斗前移动')
+    def run_battle(self) -> OperationRoundResult:
+        op = NotoriousHuntMove(self.ctx, self.plan.notorious_hunt_buff_num)
+        return self.round_by_op_result(op.execute())
 
-    def _move_by_hint(self) -> OperationRoundResult:
-        """
-        根据画面显示的距离进行移动
-        出现交互的按钮时候就可以停止了
-        """
-        if self.move_times >= 10:
-            return self.round_fail()
-
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-        if result.is_success:
-            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            return self.round_success(status=result.status, wait=2)  # 按键后 等待一段时间选择鸣徽界面出现
-
-        det_result: DetectFrameResult = self.ctx.lost_void.detector.run(self.last_screenshot, label_list=['0001-距离'])
-        self.ctx.auto_battle_context.check_battle_distance(self.last_screenshot)
-        distance_pos = None
-        if len(det_result.results) > 0:
-            distance_pos = Point(det_result.results[0].center[0], det_result.results[0].center[1])
-
-        battle_result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '标识-BOSS血条')
-        if battle_result.is_success:
-            return self.round_success(battle_result.status)
-
-        if distance_pos is None:
-            return self.round_retry(wait=1)
-
-        current_distance = self.ctx.auto_battle_context.last_check_distance
-
-        turn_result = self.turn_to_target(distance_pos)
-        if turn_result:
-            return self.round_wait(wait=0.5)
-        else:
-            self.last_distance = current_distance
-            log.info(f'识别距离: {current_distance}')
-            press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
-            # 有可能识别错距离 设置一个最大的移动时间
-            press_time = min(press_time, 5)
-            if press_time > 0:
-                self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
-                self.move_times += 1
-                return self.round_wait(wait=0.5)
-            else:
-                return self.round_retry(status='识别距离失败', wait=1)
-
-    def turn_to_target(self, target: Point) -> bool:
-        """
-        根据目标的位置 进行转动
-        @param target: 目标位置
-        @return: 是否进行了转动
-        """
-        if target.x < 760:
-            self.ctx.controller.turn_by_distance(-100)
-            return True
-        elif target.x < 860:
-            self.ctx.controller.turn_by_distance(-50)
-            return True
-        elif target.x < 910:
-            self.ctx.controller.turn_by_distance(-25)
-            return True
-        elif target.x > 1160:
-            self.ctx.controller.turn_by_distance(+100)
-            return True
-        elif target.x > 1060:
-            self.ctx.controller.turn_by_distance(+50)
-            return True
-        elif target.x > 1010:
-            self.ctx.controller.turn_by_distance(+25)
-            return True
-        else:
-            return False
-
-    @node_from(from_name='移动靠近交互', status='按键-交互')
-    @operation_node(name='交互')
-    def move_and_interact(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-        if result.is_success:
-            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            time.sleep(2)
-            return self.round_retry()
-        else:
-            return self.round_success()
-
-    @node_from(from_name='交互')
-    @operation_node(name='选择')
-    def choose_buff(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
-        if result.is_success:
-            return self.round_success(self.plan.mission_type_name)
-
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-        if result.is_success:
-            return self.round_success(self.plan.mission_type_name)
-
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        choose_mr_list: list[MatchResult] = []
-
-        for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt('选择', 'game'), ocr_result, percent=1):
-                for mr in mrl:
-                    choose_mr_list.append(mr)
-
-        log.info('当前识别鸣徽选项数量 %d', len(choose_mr_list))
-
-        if len(choose_mr_list) == 0:
-            return self.round_retry('未识别到鸣徽选择', wait=1)
-
-        # 按横坐标从左往右排序
-        choose_mr_list.sort(key=lambda x: x.left_top.x)
-
-        to_choose_idx = self.plan.notorious_hunt_buff_num - 1
-        if to_choose_idx >= len(choose_mr_list):
-            to_choose_idx = 0
-
-        to_click = choose_mr_list[to_choose_idx].center
-        self.ctx.controller.click(to_click)
-
-        return self.round_wait(wait=1)
-
-    @node_from(from_name='选择')
-    @operation_node(name='选择后移动', node_max_retry_times=18)
-    def move_after_buff(self) -> OperationRoundResult:
-        """
-        选择buff后 向白色提示点移动
-        :return:
-        """
-        direction_arr = [
-            2, 3, 3, 2, 0, 1, 1, 0,  # 左右右左 前后后前 往四个方向都走一段试试
-            2, 0, 3, 3, 1, 1, 2, 2, 0, 3,  # 左上 右右 下下 左左 上右 在附近转一圈
-        ]
-        result = self._move_by_hint()
-        if result.result == OperationRoundResultEnum.RETRY:
-            # 识别不到白点 可能是有因为没吃到红心 在周围随机移动
-            direction = direction_arr[self.no_dis_times % len(direction_arr)]
-            if direction == 0:
-                self.ctx.controller.move_w(press=True, press_time=0.5, release=True)
-            elif direction == 1:
-                self.ctx.controller.move_s(press=True, press_time=0.5, release=True)
-            elif direction == 2:
-                self.ctx.controller.move_a(press=True, press_time=0.5, release=True)
-            elif direction == 3:
-                self.ctx.controller.move_d(press=True, press_time=0.5, release=True)
-            self.no_dis_times += 1
-        else:
-            self.no_dis_times = 0
-
-        return result
-
-    @node_from(from_name='移动靠近交互', status='标识-BOSS血条')
-    @node_from(from_name='选择', success=False)  # 2.1版本更新后 基本进不到选buff环节 加一个兜底
-    @node_from(from_name='选择后移动')
+    @node_from(from_name='战斗前移动')
     @node_from(from_name='战斗失败', status='战斗结果-倒带')
     @operation_node(name='开始自动战斗')
     def start_auto_op(self) -> OperationRoundResult:
@@ -513,7 +395,27 @@ class NotoriousHunt(ZOperation):
         else:
             return self.round_retry(result.status, wait=1)
 
+    @node_from(from_name='战斗前移动', success=False)
+    @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
+    @operation_node(name='退出战斗')
+    def exit_battle(self) -> OperationRoundResult:
+        self.ctx.auto_battle_context.stop_auto_battle()
+        op = ExitInBattle(self.ctx, '战斗-挑战结果-失败', '按钮-退出')
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='退出战斗')
+    @operation_node(name='点击挑战结果退出')
+    def click_result_exit(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(screen_name='战斗-挑战结果-失败', area_name='按钮-退出',
+                                                   until_not_find_all=[('战斗-挑战结果-失败', '按钮-退出')],
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            return self.round_fail(status=NotoriousHunt.STATUS_FIGHT_TIMEOUT)
+        else:
+            return self.round_retry(status=result.status, wait=1)
+
     @node_from(from_name='自动战斗')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
         self.can_run_times -= 1
@@ -531,7 +433,7 @@ class NotoriousHunt(ZOperation):
             try_next = self.plan.plan_times > self.plan.run_times
         else:
             try_next = self.can_run_times > 0
-        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next)
+        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next, is_agent_plan=self.plan.is_agent_plan)
         result = op.execute()
         if result.status == '战斗结果-完成' and self.can_run_times > 0:
             # 可能是其他设备挑战了 没有剩余次数了
@@ -559,66 +461,25 @@ class NotoriousHunt(ZOperation):
 
         return self.round_retry(result.status, wait=1)
 
-    @node_from(from_name='移动靠近交互', success=False)
-    @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
-    @operation_node(name='退出战斗')
-    def exit_battle(self) -> OperationRoundResult:
-        self.ctx.auto_battle_context.stop_auto_battle()
-        op = ExitInBattle(self.ctx, '战斗-挑战结果-失败', '按钮-退出')
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='退出战斗')
-    @operation_node(name='点击挑战结果退出')
-    def click_result_exit(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(screen_name='战斗-挑战结果-失败', area_name='按钮-退出',
-                                                   until_not_find_all=[('战斗-挑战结果-失败', '按钮-退出')],
-                                                   success_wait=1, retry_wait=1)
-        if result.is_success:
-            return self.round_fail(status=NotoriousHunt.STATUS_FIGHT_TIMEOUT)
-        else:
-            return self.round_retry(status=result.status, wait=1)
-
-    @node_from(from_name='选择后移动', success=False)
-    @operation_node(name='主动重新开始')
-    def restart_battle(self) -> OperationRoundResult:
-        """
-        吃不到红心的情况 重新开始
-        :return:
-        """
-        if self.restart_times == 0:
-            op = RestartInBattle(self.ctx)
-            op_result = op.execute()
-            self.restart_times += 1
-            return self.round_by_op_result(op_result)
-        else:
-            op = ExitInBattle(self.ctx)
-            op_result = op.execute()
-            if op_result.success:
-                return self.round_fail(status='无法开启战斗')
-            else:
-                return self.round_retry(op_result.status, wait=1)
-
     def handle_pause(self, e=None):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '自动战斗':
+            self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_charge():
-    """
-    测试电量识别
-    @return:
-    """
+    """测试剩余次数识别。"""
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('_1742622386361')
-    area = ctx.screen_loader.get_area('恶名狩猎', '文本-剩余电量')
+    screen = debug_utils.get_debug_image('_1774444468708')
+    area = ctx.screen_loader.get_area('恶名狩猎', '剩余次数')
     part = cv2_utils.crop_image_only(screen, area.rect)
     ocr_result = ctx.ocr.run_ocr_single_line(part)
-    print(ocr_result)
+    left_times = str_utils.get_positive_digits(ocr_result, None)
+    print(left_times)
 
 
 def __debug():
@@ -629,16 +490,13 @@ def __debug():
         ctx,
         ChargePlanItem(
             category_name='恶名狩猎',
-            mission_type_name='初生死路屠夫',
+            mission_type_name='猎血清道夫',
             level=NotoriousHuntLevelEnum.DEFAULT.value.value,
-            auto_battle_config='全配对通用',
-            predefined_team_idx=0,
+            auto_battle_config='全配队通用',
+            predefined_team_idx=-1,
         ),
-        use_charge_power=False)
-    op.can_run_times = 1
-    op.auto_op = None
-    op.init_auto_battle()
-
+        use_charge_power=False,
+    )
     op.execute()
 
 

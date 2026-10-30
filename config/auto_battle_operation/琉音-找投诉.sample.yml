@@ -1,0 +1,6 @@
+operations:
+  - op_name: "按键-切换角色"
+    agent_name: "琉音"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - operation_template: "琉音-石头剪刀布(连点特殊技)"

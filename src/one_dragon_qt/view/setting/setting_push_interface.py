@@ -1,32 +1,74 @@
+import contextlib
 import json
+from collections.abc import Callable
 
+import cv2
+import numpy as np
+from cv2.typing import MatLike
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition, SettingCard
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.push.curl_generator import CurlGenerator
+from one_dragon.base.push.push_channel_config import (
+    FieldTypeEnum,
+    PushChannelConfigField,
+)
 from one_dragon.base.push.push_config import PushProxy
 from one_dragon.base.push.push_email_services import PushEmailServices
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEditorSettingCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.key_value_setting_card import KeyValueSettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.code_editor_setting_card import (
+    CodeEditorSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
+    EditableComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
+from one_dragon_qt.widgets.setting_card.key_value_setting_card import (
+    KeyValueSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.qq_bot_bind_card import QQBotBindCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
+class PushTestRunner(QThread):
+    """后台发送测试推送 避免网络请求卡住界面线程。"""
+
+    # 不能用 finished 命名 会遮蔽 QThread 内置的线程结束信号
+    push_done = Signal(bool, str)
+
+    def __init__(self, push_func: Callable[[], tuple[bool, str]]) -> None:
+        super().__init__()
+        self._push_func: Callable[[], tuple[bool, str]] = push_func
+
+    def run(self) -> None:
+        try:
+            ok, msg = self._push_func()
+        except Exception as e:
+            ok, msg = False, f'测试推送失败: {e}'
+
+        self.push_done.emit(ok, msg)
+
+
 class SettingPushInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonContext, parent=None):
+    def __init__(self, ctx, parent=None):
 
         VerticalScrollInterface.__init__(
             self,
@@ -35,17 +77,26 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_text_cn='通知设置',
             nav_icon=FluentIcon.MESSAGE
         )
-        self.ctx: OneDragonContext = ctx
+        self.ctx = ctx
+        self._error_bar: InfoBar | None = None
+        self._info_bar: InfoBar | None = None
+        self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.custom_push_title = TextSettingCard(
+        self.help_opt = HelpCard(
+            title='设置说明',
+            content='配置运行通知的推送方式或渠道，所有已配置的渠道都会启用',
+        )
+        content_widget.add_widget(self.help_opt)
+
+        self.title_opt = TextSettingCard(
             icon=FluentIcon.MESSAGE,
             title='自定义通知标题',
             input_placeholder='一条龙运行通知'
         )
-        content_widget.add_widget(self.custom_push_title)
+        content_widget.add_widget(self.title_opt)
 
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
@@ -77,7 +128,7 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.test_notification_card)
 
-        # 通知方式选择
+        # 通知方式 — 手风琴组：下拉框作为头部，渠道配置项作为子卡片
         self.notification_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='通知方式',
@@ -87,20 +138,22 @@ class SettingPushInterface(VerticalScrollInterface):
             ]
         )
         self.notification_method_opt.value_changed.connect(self._update_notification_ui)
-        content_widget.add_widget(self.notification_method_opt)
 
+        channel_group = ExpandSettingCardGroup(icon=FluentIcon.MESSAGE, title='通知方式')
+        channel_group.addHeaderWidget(self.notification_method_opt.combo_box)
+        channel_group.setExpand(True)
+        content_widget.add_widget(channel_group)
+
+        # 预创建特殊卡片（稍后按渠道分配）
         self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
         self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
-
         self.unix_curl_btn = PushButton(text='Unix 风格')
         self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
-
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
-        content_widget.add_widget(self.curl_btn)
 
         email_services = PushEmailServices.load_services()
-        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services.keys()]
+        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services]
         self.email_service_opt = EditableComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='邮箱服务选择',
@@ -109,23 +162,39 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.email_service_opt.value_changed.connect(lambda idx, val: self._on_email_service_selected(val))
         self.email_service_opt.combo_box.setFixedWidth(320)
-        self.email_service_opt.combo_box.setCurrentIndex(-1)  # 设置为无选中状态
-        self.email_service_opt.setVisible(False)  # 默认隐藏，SMTP方式时显示
-        content_widget.add_widget(self.email_service_opt)
+        self.email_service_opt.combo_box.setCurrentIndex(-1)
+        self.email_service_opt.setVisible(False)
 
+        # QQ 官方机器人的接收方 openid 只能从机器人网关收到的事件里取，用绑定按钮自动回填
+        self.qq_bot_bind_card = QQBotBindCard(get_app_credentials=self._get_qq_bot_credentials)
+        self.qq_bot_bind_card.openid_bound.connect(self._on_qq_bot_openid_bound)
+        self.qq_bot_bind_card.bind_failed.connect(self._show_error_message)
+        self.qq_bot_bind_card.setVisible(False)
+
+        # 按渠道组织卡片
         self.push_channel_cards: dict[str, list] = {}
-        all_cards_widget = Column()
         for channel in self.ctx.push_service.channels:
-            channel_cards = []
+            channel_cards: list[QWidget] = []
+
+            if channel.channel_id == 'SMTP':
+                channel_cards.append(self.email_service_opt)
+                channel_group.addSettingCard(self.email_service_opt)
+            elif channel.channel_id == 'WEBHOOK':
+                channel_cards.append(self.curl_btn)
+                channel_group.addSettingCard(self.curl_btn)
 
             for field in channel.config_schema:
+                # QQ 官方机器人的绑定按钮放在接收方字段上方
+                if channel.channel_id == 'QQ_BOT' and field.var_suffix == 'OPENID':
+                    channel_cards.append(self.qq_bot_bind_card)
+                    channel_group.addSettingCard(self.qq_bot_bind_card)
+
                 card = self._create_card(channel.channel_id, field)
                 channel_cards.append(card)
-                all_cards_widget.add_widget(card)
+                channel_group.addSettingCard(card)
 
             self.push_channel_cards[channel.channel_id] = channel_cards
 
-        content_widget.add_widget(all_cards_widget)
         content_widget.add_stretch(1)
 
         return content_widget
@@ -211,35 +280,95 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message(str(e))
                 return
 
-        try:
-            ok, msg = self.ctx.push_service.push(
-                channel_id=test_method,
-                content=gt('这是一条测试消息'),
-            )
-            if not ok:
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向当前通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+        self._start_test_push(test_method, "已向当前通知方式发送测试消息")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        try:
-            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+        self._start_test_push(None, "已向所有已配置的通知方式发送测试消息")
+
+    def _start_test_push(self, channel_id: str | None, success_msg: str) -> None:
+        """
+        后台发送测试推送 避免网络请求卡住界面线程
+
+        推送期间禁用按钮 既提示正在发送 也避免连点堆积多次推送。
+
+        Args:
+            channel_id: 推送渠道ID 为空时使用所有通过配置校验的渠道
+            success_msg: 推送成功时的提示文案
+        """
+        # 上一次未结束时直接返回 覆盖字段会让仍在运行的线程被回收导致崩溃
+        if self._push_test_runner is not None and self._push_test_runner.isRunning():
+            return
+
+        # 先生成截图再禁用按钮 生成失败时按钮仍可点击 不会卡在禁用状态
+        image = self._get_test_screenshot()
+
+        self.test_current_btn.setDisabled(True)
+        self.test_all_btn.setDisabled(True)
+        self._clear_error_bar()
+        self._info_bar = InfoBar.info(
+            title='提示',
+            content="正在发送测试消息...",
+            orient=InfoBarPosition.TOP,
+            isClosable=True,
+            duration=-1,
+            parent=self
+        )
+
+        def push_test() -> tuple[bool, str]:
             ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                image=image,
+                channel_id=channel_id,
             )
-            if not ok:
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向所有已配置的通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+            # 单渠道成功时渠道也会回「推送成功」这类文案 只有全渠道的空 msg 才代表全部成功
+            return ok, ('' if ok and channel_id is not None else msg)
+
+        self._push_test_runner = PushTestRunner(push_func=push_test)
+        self._push_test_runner.push_done.connect(
+            lambda ok, msg: self._on_test_push_finished(ok, msg, success_msg)
+        )
+        self._push_test_runner.start()
+
+    def _on_test_push_finished(self, ok: bool, msg: str, success_msg: str) -> None:
+        """测试推送结束后的界面反馈"""
+        self.test_current_btn.setDisabled(False)
+        self.test_all_btn.setDisabled(False)
+
+        if self._info_bar is not None:
+            with contextlib.suppress(RuntimeError):
+                self._info_bar.close()
+            self._info_bar = None
+
+        # 部分渠道失败时 ok 仍为 True 错误信息通过 msg 带回来
+        if not ok or len(msg) > 0:
+            self._show_error_message(msg if msg else "测试推送失败")
+        else:
+            self._show_success_message(success_msg)
+
+    def _get_test_screenshot(self) -> MatLike | None:
+        """生成通知测试用标准色相图。"""
+        if not self.ctx.push_service.push_config.send_image:
+            return None
+
+        size = 600
+        center = size // 2
+        y, x = np.ogrid[:size, :size]
+        dx = x - center
+        dy = center - y
+        radius = np.sqrt(dx * dx + dy * dy)
+        angle = (np.arctan2(dy, dx) + 2 * np.pi) % (2 * np.pi)
+
+        hsv = np.zeros((size, size, 3), dtype=np.uint8)
+        hsv[:, :, 0] = (angle * 180 / np.pi / 2).astype(np.uint8)
+        hsv[:, :, 1] = np.clip(radius / (size / 2) * 255, 0, 255).astype(np.uint8)
+        hsv[:, :, 2] = 255
+
+        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        image[radius > center] = (45, 45, 45)
+        cv2.circle(image, (center, center), center - 2, (255, 255, 255), 2)
+        return image
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))
@@ -267,26 +396,39 @@ class SettingPushInterface(VerticalScrollInterface):
         """根据选择的通知方式更新界面"""
         selected_method = self.notification_method_opt.getValue()
 
-        # 隐藏所有卡片
         for method_name, method_cards in self.push_channel_cards.items():
             is_selected = (method_name == selected_method)
             for card in method_cards:
                 card.setVisible(is_selected)
 
-        # 特殊按钮
-        self.email_service_opt.setVisible(selected_method == "SMTP")
-        self.curl_btn.setVisible(selected_method == "WEBHOOK")
-
     def _set_proxy_input_visibility(self):
         """设置代理输入框的可见性"""
         self.proxy_input_opt.setVisible(self.proxy_opt.getValue() == PushProxy.PERSONAL.value.value)
+
+    def _get_qq_bot_credentials(self) -> tuple[str, str]:
+        """取 QQ 机器人配置里的 AppID 与 AppSecret"""
+        channel_config = self.ctx.push_service.get_channel_config('QQ_BOT')
+        return channel_config.get('APP_ID', ''), channel_config.get('CLIENT_SECRET', '')
+
+    def _on_qq_bot_openid_bound(self, is_group: bool, openid: str) -> None:
+        """绑定成功，写进配置并回填输入框"""
+        field_name = 'GROUP_OPENID' if is_group else 'OPENID'
+        self.ctx.push_service.push_config.update_channel_config_value('QQ_BOT', field_name, openid)
+
+        card: TextSettingCard | None = getattr(self, f'qq_bot_{field_name.lower()}_push_card', None)
+        if card is not None:
+            card.setValue(openid)
+            if card.adapter is not None:
+                card.adapter.set_value(openid)
+
+        self._show_success_message('绑定成功')
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
         config = self.ctx.push_service.push_config
 
-        self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
+        self.title_opt.init_with_adapter(get_prop_adapter(self.ctx.notify_config, 'title'))
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
         self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
         self.proxy_input_opt.init_with_adapter(get_prop_adapter(self.ctx.env_config, 'personal_proxy'))
@@ -349,15 +491,11 @@ class SettingPushInterface(VerticalScrollInterface):
             raise ValueError("URL、请求头或者请求体中必须包含 $content 变量")
 
         # 如果是JSON格式，验证JSON的合法性
-        if content_type == "application/json":
-            # 检查body模板是否为合法JSON
-            if not self._validate_json_format(body):
-                raise ValueError("请求体不是合法的JSON格式")
+        if content_type == "application/json" and not self._validate_json_format(body):
+            raise ValueError("请求体不是合法的JSON格式")
 
-        # 检查请求头是否为合法JSON
-        if headers and headers != "{}":
-            if not self._validate_json_format(headers):
-                raise ValueError("请求头不是合法的JSON格式")
+        if headers and headers != "{}" and not self._validate_json_format(headers):
+            raise ValueError("请求头不是合法的JSON格式")
 
     def _validate_json_format(self, json_str: str) -> bool:
         """验证JSON格式的合法性"""
@@ -367,8 +505,19 @@ class SettingPushInterface(VerticalScrollInterface):
         except (json.JSONDecodeError, TypeError):
             return False
 
+    def _clear_error_bar(self) -> None:
+        """关闭常驻的错误提示"""
+        if self._error_bar is None:
+            return
+
+        # 用户手动点掉后底层对象可能已被删除
+        with contextlib.suppress(RuntimeError):
+            self._error_bar.close()
+        self._error_bar = None
+
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
+        self._clear_error_bar()
         InfoBar.success(
             title='成功',
             content=message,
@@ -379,12 +528,13 @@ class SettingPushInterface(VerticalScrollInterface):
         )
 
     def _show_error_message(self, message: str):
-        """显示错误消息提示"""
-        InfoBar.error(
+        """显示错误消息提示，不自动消失，新的错误替换旧的"""
+        self._clear_error_bar()
+        self._error_bar = InfoBar.error(
             title='错误',
             content=message,
             orient=InfoBarPosition.TOP,
             isClosable=True,
-            duration=5000,
+            duration=-1,
             parent=self
         )

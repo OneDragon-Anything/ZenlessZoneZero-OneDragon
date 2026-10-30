@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: banyue_2_3_1
+template_name: 角色状态-般岳-山威-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 137, 132
+- 217, 134

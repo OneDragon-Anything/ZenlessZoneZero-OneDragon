@@ -1,0 +1,151 @@
+# AGENTS.md
+
+本文件是项目级 AI 编码协作入口，只保留会直接影响实现落点与提交流程的约束。
+详细规范与背景资料不要堆在这里，按需继续阅读：
+- 开发环境与打包：[docs/develop/README.md](docs/develop/README.md)
+- 详细编码规范：[docs/develop/spec/agent_guidelines.md](docs/develop/spec/agent_guidelines.md)
+- 一条龙整体架构：[docs/develop/one_dragon/one_dragon_architecture.md](docs/develop/one_dragon/one_dragon_architecture.md)
+- 应用插件开发指引：[docs/develop/guides/application_plugin_guide.md](docs/develop/guides/application_plugin_guide.md)
+- 应用设置界面开发指引：[docs/develop/guides/application_setting_guide.md](docs/develop/guides/application_setting_guide.md)
+
+## 项目概述
+
+- 项目：绝区零一条龙（ZenlessZoneZero-OneDragon），面向 Windows 的绝区零自动化工具。
+- 语言与环境：Python 3.11、uv、PySide6。
+- 代码布局：`src-layout`，源码在 `src/`，运行时配置在 `config/`，资源在 `assets/`，开发文档在 `docs/develop/`。
+- 运行基准：1080p；配置以 YAML 为主。
+- 所有测试统一在独立仓 `zzz-od-test/test/`(`.gitignore`,须 clone 到仓库根目录才能读/改;clone 见 [quickstart §②](docs/develop/setup/quickstart.md),测试规范见 [testing/](docs/develop/testing/README.md))。主仓不保留测试。AI 查测试用 `Read`/`grep` 显式指定 `zzz-od-test/`(默认搜索会跳过 .gitignore)。
+- 相关仓库全貌(测试仓 / yolo 训练仓 / 数据集 / 官网 blog)见 [相关仓库](docs/develop/setup/repositories.md);外部贡献者需 fork 后开发。
+
+## 常用命令
+
+```shell
+uv sync --group dev
+uv run --env-file .env src/zzz_od/gui/app.py
+uv run --env-file .env pytest zzz-od-test/
+uv run --env-file .env ruff check src/你修改的文件.py
+uv run --env-file .env ruff check --fix src/你修改的文件.py
+```
+
+- 只对自己修改的文件运行 `ruff check`。
+- 不要对整个 `src/` 目录运行 ruff，现有仓库尚未全面适配。
+- 优先使用 Windows PowerShell 可直接执行的命令。
+
+## 架构落点
+
+### 1. 核心分层
+
+- `src/one_dragon/`：通用基础框架、配置、环境、工具、YOLO 能力。
+- `src/one_dragon_qt/`：通用 Qt GUI 框架与公共组件。
+- `src/onnxocr/`：OCR 引擎。
+- `src/zzz_od/`：绝区零业务代码，包括 application、operation、context、gui、yolo 等。
+
+### 2. 功能开发优先路径
+
+- 新功能优先评估是否应做成 `Application`，放在 `src/zzz_od/application/`，并通过 `ApplicationFactory` 接入。
+- 不要直接把新流程硬塞进主线逻辑；先复用现有 Application、Operation、配置体系与界面组件。
+- 新的设置界面优先沿用现有 setting card、`YamlConfigAdapter`、`AdapterInitMixin` 等模式。
+
+### 3. 关键运行机制
+
+- `ZContext` 管理懒加载服务与配置；实例级配置变更要走 `reload_instance_config()` 对应机制。
+- 这里的 `Operation` 指框架里的基础操作单元；文档里提到的“流转 / flow”是由这些 `Operation` 节点组成的执行链。
+- 操作链基于 `ZOperation` / `Operation` 编排；状态流转沿用现有 round 系列接口与节点声明方式。
+- GPU/onnx session 的异步调用必须通过 `gpu_executor.submit`，不要并发直调多个 session。
+
+## 开发流程（端到端）
+
+**涉及游戏流程的改动(新功能 / debug / 修 bug)—— 先理解玩法 + 画面,再动手;知识缺失主动补档**:
+- 先读 gameplay(玩法机制)+ screen(画面)doc + screen_info + 相关代码,弄清「自动化当前走到哪个画面、按什么玩法逻辑走」。
+- 知识缺失 / 过期(没建档、doc 陈旧、screen_info 没该画面)→ 主动按 skill 补档(画面 `zzz-od-dev-screen-onboarding`、玩法 `zzz-od-dev-gameplay-onboarding`),别凭猜改。
+- 判据:改动碰自动化与游戏的交互 / 游戏机制 → 适用;纯代码改动(重构 / 性能 / UI / 基建)不适用。详细判据见 [development_workflow.md](docs/develop/development_workflow.md)。
+- 为什么:不理解就改 → 只覆盖一种情况、漏另一种 → 回归(battle_fail rect 教训)。
+
+游戏自动化功能的开发链路(涉及游戏流程的 bug 修复 / debug 也走这流程;纯代码改动不强制):
+
+1. **画面建档**(涉及新画面时):按 `zzz-od-dev-screen-onboarding` skill 截图 / 分析 / 建模 / 留档。功能知识按**四文档分工**(gameplay 玩法 / mechanics 通用机制 / screen 画面 / develop application 自动化,见 [doc_organization.md](docs/develop/harness/doc_organization.md))。
+2. **开发**:做成 `Application`(`ApplicationFactory` 接入)+ `Operation`,复用现有配置 / 界面模式(架构细则见上方「功能开发优先路径」)。
+3. **测试**:用留档截图在测试仓补流程测试(见 [testing/](docs/develop/testing/))。
+4. **提 PR**:assign **DoctorReid / ShadowLemoon**,按 `zzz-od-dev-pr-finishing` skill 走 review / resolve。
+5. **配套(按需)**:模型 → [yolo/dataset 仓](docs/develop/setup/repositories.md);使用说明 → blog(**用户可见变化**才更新)。
+
+## 开发硬约束
+
+- 所有函数签名、类成员变量都要有类型注解；使用 `list[str]`、`X | Y`。
+- 注释与 docstring 用中文，保持现有项目风格。
+- 禁止相对导入；仅类型注解使用 `TYPE_CHECKING` 导入。
+- `__init__.py` 默认不要暴露模块，除非已有明确模式或收到明确要求。
+- 构造函数显式声明参数，不要用 `**kwargs`。
+- 路径操作使用 `pathlib`，字符串格式化使用 f-string。
+- GUI 优先复用 `pyside6-fluent-widgets` 与现有项目组件，保持 Fluent Design。
+- 配置改动优先落到 YAML 与对应 `YamlConfig` 子类，不要随意散落硬编码配置。
+- 1080p 坐标属于项目既有前提，可以按现有模式硬编码，不要额外做分辨率适配设计。
+- **直白表述，禁自造黑话**：写文档 / skill / 代码注释 / 入口文件 / commit / PR 回复等**任何给人或 AI 读的文字**，用大白话。不造自造词、项目内部缩写、中英混杂的隐喻（反例：`load-bearing` / `bedrock` / `抓手` / `赋能` 这类）。行业通用术语可用，但**首次出现的项目术语给定义 + 例子**；一个词要解释半天别人才能懂，多半是自己还没想清 —— 先想清再换成大家都认的词。详见 [context_layering](docs/develop/harness/context_layering.md)。
+
+## 文档与测试要求
+
+- 修改代码后，同步更新对应的 `docs/develop/` 文档与 `zzz-od-test/` 测试。
+- 测试方法论（测试基建 / FixtureController 流程测试 / 画面截图存档）见 [docs/develop/testing/](docs/develop/testing/README.md)。
+- 若测试依赖截图或环境变量，按 [docs/develop/README.md](docs/develop/README.md) 中说明准备 `.env` 与测试仓。
+- 提交前至少验证自己改动直接影响的部分；若无法本地完成，要明确说明缺失前提。
+- 复杂功能、架构调整或新自动化流程，先补设计/说明文档，再继续实现。
+
+## 提交流程与协作边界
+
+- 默认不要主动执行 `git commit`、`git push`、`git reset`、删分支等版本控制操作，除非用户明确要求。
+- 测试改动在独立仓 `zzz-od-test` 提交:主仓 `git add zzz-od-test/...` 会被 `.gitignore` **静默跳过**(不报错但未加入)→ 须 `git -C zzz-od-test add test/ && git -C zzz-od-test commit` 单独提交,否则 PR 丢测试。
+- **两仓协同**(涉及测试仓改动时,主仓 + 测试仓配对;详见 [development_workflow.md](docs/develop/development_workflow.md) §4):
+  - **同分支**:测试仓建同名分支(`feat/xxx` ↔ `feat/xxx`),测试改动落测试仓,不进主仓。
+  - **配对提交**:主仓 commit + `git -C zzz-od-test commit` 同步推进,别只提交一仓。
+  - **同开关联 PR**:开主仓 PR 时同开测试仓 PR,PR 描述互相挂链接(**跨仓链接用 `OneDragon-Anything/<repo>#<N>` 或完整 URL,禁裸 `#N`** —— 裸 `#N` 会被 GitHub 识别成本仓而非目标仓);别让测试仓分支挂着改动却没开 PR(主仓合了才补测试仓 = 漏)。
+  - **合并顺序:测试仓先 → 主仓后**(主仓 main 的 test-check clone 测试仓 main,测试仓先合才稳)。
+- 如果用户明确要求切换分支，先 `stash` 当前改动，再切换。
+- **commit / PR 规范**(依据 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)):
+  - **单个迭代 commit**(开发过程,会被 squash 压掉):写清这步干嘛即可,不强制格式;建议带 type 前缀(`fix:` / `docs:` / `chore:` / `wip:`)方便扫,但不要求 scope / 长度 / body。判据:不看 diff 也能知道这步干了啥(✅ `fix: Y 坐标分母` ❌ `update`)。
+  - **PR title**:`type(scope): subject`(≤50、祈使句、无句号;type ∈ `feat / fix / docs / refactor / test / chore / perf / build / ci / style`,scope = 模块;PR 号不进 subject,squash 自动追加 `(#NNNN)`)—— = squash/merge commit 标题。
+  - **PR description**(开 PR 时作者写,= commit body):写:
+    - **为什么改**(why):解决什么问题 / 目标 + 非显然的决策(为什么这么做);1-3 句,不写实现细节(how 看代码)。
+    - **改动要点**(what):拆成两部分写,**一条改动对应「改前 → 改后」两段**:
+      - **改动前的情况**:只写被改动的那部分,旧的实现 / 表现 / 效果是什么。
+      - **改动后的提升**:只写本 PR 合并后的最终结果,新的实现 / 提升是什么。
+    - 写法:分行、动宾简短,只说实质改动,不展开 how;不写开发过程中的尝试、版本对比、参考过什么(读者不知道你中途换过几版,这类内容进不了 PR)。
+    - **测试情况**:写清是否经过测试。测过就附测试过程 —— 用什么环境 / 数据、跑了什么、结果如何;有截图就贴截图(PR 正文可直接上传图片)。没测就明说没测、缺什么前提。
+    - **是否建议 reviewer 亲自测试**:建议的,写明要复现什么、怎么测;不需要的说明理由(如纯文档 / 配置 / 注释改动)。
+    - **关联**:`Closes #N`(本仓 issue)/ 测试仓 PR 用 `OneDragon-Anything/zzz-od-test#N`(跨仓全名,禁裸 `#N`)。
+  - **merge 时**:commit message = PR title + description(取整段 desc)。作者按上面写好就直接 merge;不符合规范时(贡献者没按规范写、缺 why 等),合并者 merge 时编辑 commit message(网页 squash 框)按规范编写 —— why + 改动要点 + 关联。commit message 不写「测试情况」「是否建议 reviewer 亲自测试」:这两项只在 PR 评审期有用,合并后没人再从 commit 历史里读,缺了也不算不合规范。
+  - **rebase / 直推**(无 merge commit,不进 squash/merge):靠 commit 本身规范。
+- Review 关注逻辑错误、运行时崩溃、死循环、资源泄漏；不要为风格问题大改现有代码。
+- 提交 PR 后，review comment 需要逐条回复或修正。
+
+## 自维护指南（改 AI 入口文件）
+
+`AGENTS.md` / `.claude/CLAUDE.md` / `.github/copilot-instructions.md` 是 **AI 入口文件**（每次会话完整进 context）。改它们时按 [entry_files.md](docs/develop/harness/entry_files.md)：
+- **只放指令，不掺元信息**：入口只写给 AI 的指令（做什么）；维护注释 / TODO / 变更说明 → commit / docs，不进入口。
+- **只留每次会话总要看的**：逐条问「删了会出错吗」，不会错就砍（入口要精简，不是知识库）；特定任务流程转 skill / 指针。
+- **一处维护**：`AGENTS.md` 是源，其他入口（CLAUDE.md 等）`@import` 引入，不复制。
+- **共享先确认**：入口文件团队共享，改前问用户，不静默重写。
+- **入口文件尤甚**：入口文件每次进 context，更要守上面「开发硬约束」里的「直白表述」规则；术语怎么分层定义见 [context_layering](docs/develop/harness/context_layering.md) / [entry_files](docs/develop/harness/entry_files.md)。
+
+## 改/建 skill
+
+**创建 / 修改任何 skill 前，先触发 `zzz-od-dev-skill-guide`**（即使你正在另一个 skill 的流程里，如改 `zzz-od-dev-screen-onboarding` 时 —— 改 skill = 触发 skill-guide，不论当前在哪个流程）。它的 4 条硬规范里两条最易漏、现普遍未遵循：
+- **同步该 skill 的 `design.md`（若有）**：改重要决策时，在该 skill 的 `design.md` 记「为什么这么定」（不只改 SKILL.md），避免后续不知道原意改坏。**这是项目 `zzz-od-dev-*` skill 的约定**（`zzz-od-dev-skill-guide` 规范 1），第三方 / `superpowers:*` skill 无此约定 → **先看 skill 目录有没有 design.md，有就更新**。⚠️ skill **本体在根 `skills/<name>/`**（项目源、稳定）；各 AI 工具用各自方式加载（可能映射 / 链接到别处，那是工具特定的加载路径）→ **查 / 改 skill 文件到本体（根 `skills/`），别查工具的加载映射路径**（映射不一定是真文件，搜索会漏）。
+- **SKILL.md 写方法论，不写跟外部代码强相关的具体内容**（函数名 / 测试 API / 具体代码路径 / 行号）—— 易变，外部代码改了 skill 没跟上会误导；**但 runtime 资产路径（docs/game、screen_info 等 skill 读写的操作对象）+ skill 目录内自带工具 + 框架地基级接口名（skill 要搜 / 要调的接口，如 `@operation_node` 装饰器；判据见 `zzz-od-dev-skill-guide` 规范3）可引**；具体例子 / 踩坑进 design.md。
+
+## 产出前先判断：信息放哪、写什么
+
+写 doc / skill 前（以及信息重复、边界不清时），先判断放哪层、写什么，别盲目堆：
+- **方法 → skill，具体 → doc**：方法 = 怎么做（建档流程 / 判据 / 排查思路）；具体 = 是什么（键位 / 坐标 / 游戏机制）。详见 [doc_organization](docs/develop/harness/doc_organization.md) + [context_layering](docs/develop/harness/context_layering.md)。
+- **玩法 vs 自动化 分开**：玩法机制（玩家视角：目标 / 循环 / 资源）和自动化实现（脚本流程 / config / 节点编排）是两个维度，各进各的 doc、互引不混写。
+- **不重复（单一源）**：同一事实只留一处；复述 → 引用；多 doc 共有的共性 → 抽到上一层 doc（如通用机制抽进 `mechanics/`）。
+- **分不清 / 不确定 → 问用户，或把判据写进对应方法论 skill**（别含混带过）。
+
+## 深入阅读
+
+只在当前任务确实需要时继续看这些文档：
+- AI 协作 harness（知识分层 / 上下文工程）：[harness/README.md](docs/develop/harness/README.md)
+- 框架与模块架构：`docs/develop/one_dragon/`、`docs/develop/one_dragon/modules/`
+- 游戏业务与专项设计：`docs/develop/zzz/`
+- 游戏知识库（给智能体理解游戏）：`docs/game/`（画面描述 `screens/` + 玩法 `gameplay/`）
+- 后端服务 / MCP 对外能力：`docs/develop/zzz/backend/`（入口 README；开发 MCP tool 前先看 design-principles）
+- 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`

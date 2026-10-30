@@ -1,19 +1,20 @@
-from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
     AutoBattleApp,
 )
+from zzz_od.application.battle_assistant.battle_assistant_input_mode import (
+    apply_battle_assistant_input_mode,
+)
 from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 
 
 class DodgeAssistantApp(ZApplication):
+
+    """闪避助手:辅助工具,战斗中自动闪避。非玩法、无独立消耗。"""
 
     def __init__(self, ctx: ZContext):
         """
@@ -23,7 +24,7 @@ class DodgeAssistantApp(ZApplication):
             self,
             ctx=ctx,
             app_id=dodge_assistant_const.APP_ID,
-            op_name=gt(dodge_assistant_const.APP_NAME),
+            op_name=dodge_assistant_const.APP_NAME,
         )
 
     def handle_init(self) -> None:
@@ -39,19 +40,8 @@ class DodgeAssistantApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.NONE.value.value:
-            self.ctx.controller.enable_keyboard()
-            return self.round_success(status='无需手柄')
-        elif not pc_button_utils.is_vgamepad_installed():
-            self.ctx.controller.enable_keyboard()
-            return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.XBOX.value.value:
-            self.ctx.controller.enable_xbox()
-            self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.DS4.value.value:
-            self.ctx.controller.enable_ds4()
-            self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
-        return self.round_success(status='已安装虚拟手柄依赖')
+        success, status = apply_battle_assistant_input_mode(self.ctx)
+        return self.round_success(status=status) if success else self.round_fail(status=status)
 
     @node_from(from_name='手柄检测')
     @operation_node(name='加载自动战斗指令')
@@ -91,4 +81,5 @@ class DodgeAssistantApp(ZApplication):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '闪避判断':
+            self.ctx.auto_battle_context.resume_auto_battle()

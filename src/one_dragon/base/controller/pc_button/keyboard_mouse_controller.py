@@ -1,7 +1,6 @@
 import time
 
 from pynput import keyboard, mouse
-from typing import Optional
 
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
@@ -13,6 +12,7 @@ class KeyboardMouseController(PcButtonController):
         PcButtonController.__init__(self)
         self.keyboard = keyboard.Controller()
         self.mouse = mouse.Controller()
+        self._pressed_keys: set[str] = set()  # 当前按下的键
 
     def tap(self, key: str) -> None:
         """
@@ -25,7 +25,7 @@ class KeyboardMouseController(PcButtonController):
         else:
             self.keyboard.tap(pc_button_utils.get_keyboard_button(key))
 
-    def press(self, key: str, press_time: Optional[float] = None) -> None:
+    def press(self, key: str, press_time: float | None = None) -> None:
         """
         :param key: 按键
         :param press_time: 持续按键时间
@@ -37,6 +37,8 @@ class KeyboardMouseController(PcButtonController):
             self.mouse.press(real_key)
         else:
             self.keyboard.press(real_key)
+        if press_time is None:
+            self._pressed_keys.add(key)
 
         if press_time is not None:
             time.sleep(press_time)
@@ -47,11 +49,18 @@ class KeyboardMouseController(PcButtonController):
                 self.keyboard.release(real_key)
 
     def release(self, key: str) -> None:
+        if key not in self._pressed_keys:
+            return
+        self._pressed_keys.discard(key)
         is_mouse = pc_button_utils.is_mouse_button(key)
         if is_mouse:
             self.mouse.release(pc_button_utils.get_mouse_button(key))
         else:
             self.keyboard.release(pc_button_utils.get_keyboard_button(key))
+
+    def reset(self) -> None:
+        for key in list(self._pressed_keys):
+            self.release(key)
 
 
 if __name__ == '__main__':

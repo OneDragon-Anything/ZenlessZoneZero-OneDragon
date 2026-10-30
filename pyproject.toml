@@ -4,31 +4,45 @@ version = "2.0.0"
 description = "绝区零 一条龙 | 全自动 | 自动闪避 | 自动每日 | 自动空洞 | 支持手柄"
 requires-python = ">=3.11.9,<3.12"
 dependencies = [
-    "pyside6==6.8.0.2",
-    "pyside6-fluent-widgets==1.7.0",
-    "pyyaml==6.0.1",
-    "opencv-python==4.10.0.84",
+    "pyside6==6.11.1",
+    "pyside6-fluent-widgets==1.11.2",
+    "pyyaml==6.0.3",
+    "numpy==2.4.6",
+    "opencv-python==4.13.0.92",
     "pyautogui==0.9.54",
-    "pynput==1.7.7",
-    "onnxruntime-directml==1.18.0",
-    "mss==9.0.1",
-    "shapely==2.0.4",
-    "pyclipper==1.3.0.post5",
-    "soundcard==0.4.3",
-    "librosa==0.10.2.post1",
-    "vgamepad==0.1.0",
-    "gensim==4.3.3",
+    "pynput==1.8.1",
+    "onnxruntime-directml==1.24.4",
+    "shapely==2.1.2",
+    "pyclipper==1.4.0",
+    "soundcard==0.4.6",
+    "librosa==0.11.0",
+    "gensim==4.4.0",
+    "pygit2==1.19.3",
+    "psutil==7.2.2",
+    # pywin32>=312 的 wheel 不再内置 mfc140u.dll，未装 VC++ 2015-2022 Redistributable (x64) 的机器
+    # import win32ui 会闪退（issue #2428）；锁 <312 沿用 311（自带 pythonwin/mfc140u.dll）。等上游 build 313 修复后放开。
+    "pywin32<312",
+    "websocket-client==1.9.2",
 ]
 
 [dependency-groups]
 dev = [
     "colorama==0.4.6",
-    "matplotlib==3.10.3",
+    "matplotlib==3.11.0",
     "polib==1.2.0",
-    "pyinstaller==6.7.0",
+    "pre-commit==4.6.0",
+    "pyinstaller==6.21.0",
     "pytest>=8.4.1",
-    "pytest-asyncio>=1.1.0",
-    "ruff==0.12.10",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.18",
+    "pyuac==0.0.3",
+    "mcp>=2.0.0,<3",
+    "uvicorn>=0.30.0",
+    "pyright>=1.1.411",
+]
+
+gamepad = [
+    "vgamepad==0.1.0",
 ]
 
 [tool.uv]
@@ -39,6 +53,10 @@ default-groups = []
 
 # Ruff configuration
 [tool.ruff]
+extend-exclude = [
+    "deploy/module_manifest.py",
+]
+
 # Same as Black.
 line-length = 88
 indent-width = 4
@@ -62,11 +80,12 @@ select = [
 ignore = ["RUF001", "RUF003"]
 extend-ignore = [
     "E501",   # line too long - already handled by black style
+    "C901",   # method too complex - need refactor
+    "SIM102", # nested if statements - maybe more clear to seperate conditions
 ]
 
 [tool.ruff.format]
-# Like Black, use double quotes for strings.
-quote-style = "double"
+quote-style = "single"
 
 # Like Black, indent with spaces, rather than tabs.
 indent-style = "space"
@@ -76,3 +95,24 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+# Pyright 配置：供 Claude Code 的 LSP 工具使用（经 `uv run pyright-langserver` 启动，
+# 见 .claude/settings.json 的 lspServers；必须走 uv 方式，勿启用官方全局 pyright 插件）。
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    ".debug",
+    ".install",
+    "zzz-od-test",
+]
+extraPaths = ["src"]  # src-layout + package=false：让 pyright 去 src/ 解析 one_dragon/zzz_od 等导入（同 PYTHONPATH=src 的根因）
+# TODO(type-check): typeCheckingMode 暂 off——只用导航（定义/引用/符号），不刷类型诊断。
+#   现有代码尚未 type-clean，后续随改造逐步提升 → basic → standard。
+typeCheckingMode = "off"
+
+# Pytest 配置：src-layout + package=false，让 pytest 自动把 src/ 加入 sys.path
+# (取代 CI 的 PYTHONPATH=src env 和测试文件里手动的 sys.path.insert)
+[tool.pytest.ini_options]
+pythonpath = ["src"]

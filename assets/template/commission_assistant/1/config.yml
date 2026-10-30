@@ -1,0 +1,8 @@
+sub_dir: commission_assistant
+template_id: '1'
+template_name: '1'
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 535, 515
+- 595, 565

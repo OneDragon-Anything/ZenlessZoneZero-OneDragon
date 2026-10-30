@@ -10,4 +10,4 @@ handlers:
     operations:
       - operation_template: "双反-下一个"
       - op_name: "设置状态"
-        data: ["自定义-黄光切人"]
+        state: "自定义-黄光切人"

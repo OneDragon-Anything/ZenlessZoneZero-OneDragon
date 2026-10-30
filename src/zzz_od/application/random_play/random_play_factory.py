@@ -6,6 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.random_play import random_play_const
 from zzz_od.application.random_play.random_play_app import RandomPlayApp
 from zzz_od.application.random_play.random_play_config import RandomPlayConfig
 from zzz_od.application.random_play.random_play_run_record import (
@@ -19,11 +20,7 @@ if TYPE_CHECKING:
 class RandomPlayFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id="random_play",
-            app_name="录像店营业"
-        )
+        ApplicationFactory.__init__(self, random_play_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

@@ -1,0 +1,7 @@
+# 般岳-快速支援-磐岩
+# 快速支援后可接追击
+operations:
+  - op_name: "按键-快速支援"
+    post_delay: 0.1
+  - op_name: "等待秒数"
+    seconds: 0.5

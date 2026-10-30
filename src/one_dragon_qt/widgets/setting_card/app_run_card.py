@@ -1,10 +1,12 @@
-from typing import Optional
+from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
+    Action,
     FluentIcon,
     FluentThemeColor,
+    RoundMenu,
     SwitchButton,
     TransparentToolButton,
 )
@@ -14,31 +16,50 @@ from one_dragon.base.operation.application.application_group_config import (
 )
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.draggable_list import DraggableListItem
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
 
 
-class AppRunCard(MultiPushSettingCard):
+class AppRunCard(DraggableListItem):
 
-    move_up = Signal(str)
+    move_top = Signal(str)  # 置顶功能，用于拖拽不能处理滚动的场景
     run = Signal(str)
     switched = Signal(str, bool)
+    setting_clicked = Signal(str)
+    notify_clicked = Signal(str)
 
     def __init__(
         self,
         app: ApplicationGroupConfigItem,
-        run_record: Optional[AppRunRecord] = None,
+        index: int = 0,
+        run_record: AppRunRecord | None = None,
         switch_on: bool = False,
-        parent: Optional[QWidget] = None
+        parent: QWidget | None = None,
+        enable_opacity_effect: bool = True,
     ):
         self.app: ApplicationGroupConfigItem = app
-        self.run_record: Optional[AppRunRecord] = run_record
+        self.run_record: AppRunRecord | None = run_record
 
-        self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
+        self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
+        self.setting_btn.setToolTip(gt('应用设置'))
+        self.setting_btn.clicked.connect(self._on_setting_clicked)
+
+        self.more_btn = TransparentToolButton(FluentIcon.MORE, None)
+        self.more_btn.setToolTip(gt('更多'))
+        self.more_btn.clicked.connect(self._show_more_menu)
+
+        self.more_menu = RoundMenu()
+        self.notify_action = Action(FluentIcon.MESSAGE, gt('通知设置'), self.more_menu)
+        self.notify_action.triggered.connect(lambda _checked=False: self._on_notify_clicked())
+        self.move_top_action = Action(FluentIcon.PIN, gt('移到顶部'), self.more_menu)
+        self.move_top_action.triggered.connect(lambda _checked=False: self._on_move_top_clicked())
+        self.more_menu.addAction(self.notify_action)
+        self.more_menu.addAction(self.move_top_action)
 
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
+        self.run_btn.setToolTip(gt('运行'))
         self.run_btn.clicked.connect(self._on_run_clicked)
 
         self.switch_btn = SwitchButton()
@@ -47,12 +68,22 @@ class AppRunCard(MultiPushSettingCard):
         self.switch_btn.setChecked(switch_on)
         self.switch_btn.checkedChanged.connect(self._on_switch_changed)
 
-        MultiPushSettingCard.__init__(
-            self,
-            btn_list=[self.move_up_btn, self.run_btn, self.switch_btn],
+        # 创建 MultiPushSettingCard 作为 content_widget
+        content_widget = MultiPushSettingCard(
+            btn_list=[self.setting_btn, self.more_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
+        )
+
+        # 调用 DraggableListItem 的 __init__
+        DraggableListItem.__init__(
+            self,
+            data=app,
+            index=index,
+            content_widget=content_widget,
+            parent=parent,
+            enable_opacity_effect=enable_opacity_effect
         )
 
     def update_display(self) -> None:
@@ -60,16 +91,12 @@ class AppRunCard(MultiPushSettingCard):
         更新显示的状态
         :return:
         """
-        self.setTitle(self.app.app_name)
+        title = gt(self.app.app_name)
+        self.content_widget.setTitle(title)
         if self.run_record is None:
-            self.setContent('')
+            self.content_widget.setContent('')
         else:
-            self.setContent(
-                '%s %s' % (
-                    gt('上次运行'),
-                    self.run_record.run_time
-                )
-            )
+            self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
 
             status = self.run_record.run_status_under_now
             if status == AppRunRecord.STATUS_SUCCESS:
@@ -80,14 +107,21 @@ class AppRunCard(MultiPushSettingCard):
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             else:
                 icon = FluentIcon.INFO
-            self.iconLabel.setIcon(icon)
+            self.content_widget.iconLabel.setIcon(icon)
 
-    def _on_move_up_clicked(self) -> None:
+    def _on_move_top_clicked(self) -> None:
         """
-        向上移动运行顺序
+        置顶运行顺序（用于拖拽不能处理滚动的场景）
         :return:
         """
-        self.move_up.emit(self.app.app_id)
+        self.move_top.emit(self.app.app_id)
+
+    def _show_more_menu(self) -> None:
+        """
+        显示低频操作菜单。
+        """
+        pos = self.more_btn.mapToGlobal(self.more_btn.rect().bottomLeft())
+        self.more_menu.popup(pos)
 
     def _on_run_clicked(self) -> None:
         """
@@ -106,8 +140,8 @@ class AppRunCard(MultiPushSettingCard):
     def set_app(
         self,
         app: ApplicationGroupConfigItem,
-        run_record: Optional[AppRunRecord] = None,
-    ):
+        run_record: AppRunRecord | None = None,
+    ) -> None:
         """
         更新对应的app
         :param app:
@@ -118,10 +152,31 @@ class AppRunCard(MultiPushSettingCard):
         self.update_display()
 
     def setDisabled(self, arg__1: bool) -> None:
-        MultiPushSettingCard.setDisabled(self, arg__1)
-        self.move_up_btn.setDisabled(arg__1)
+        self.content_widget.setDisabled(arg__1)
+        self.setting_btn.setDisabled(arg__1)
+        self.more_btn.setDisabled(arg__1)
+        self.notify_action.setEnabled(not arg__1)
+        self.move_top_action.setEnabled(not arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
     def set_switch_on(self, on: bool) -> None:
         self.switch_btn.setChecked(on)
+
+    def set_notify_visible(self, visible: bool) -> None:
+        """
+        设置通知菜单项是否可见。
+        """
+        self.notify_action.setVisible(visible)
+
+    def _on_setting_clicked(self) -> None:
+        """
+        点击设置按钮
+        """
+        self.setting_clicked.emit(self.app.app_id)
+
+    def _on_notify_clicked(self) -> None:
+        """
+        点击通知设置按钮
+        """
+        self.notify_clicked.emit(self.app.app_id)

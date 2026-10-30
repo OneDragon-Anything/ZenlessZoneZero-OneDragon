@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
 from threading import Lock
-from typing import List, Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.utils import thread_utils
@@ -22,12 +21,12 @@ class OperationExecutor:
         """
         指令执行器 用于管理如何执行/终止一串指令
         """
-        self.op_list: List[AtomicOp] = op_list
+        self.op_list: list[AtomicOp] = op_list
         self.trigger_time: float = trigger_time  # 触发时间
 
         self.running: bool = False
-        self._current_op: Optional[AtomicOp] = None  # 当前执行的指令
-        self._async_ops: List[AtomicOp] = []  # 执行过异步操作
+        self._current_op: AtomicOp | None = None  # 当前执行的指令
+        self._async_ops: list[AtomicOp] = []  # 执行过异步操作
         self._op_lock: Lock = Lock()  # 操作锁 用于保证stop里的一定是最后执行的op
 
     def run_async(self) -> Future:
@@ -56,10 +55,17 @@ class OperationExecutor:
                 future: Future = _od_op_task_executor.submit(self._current_op.execute)
                 future.add_done_callback(thread_utils.handle_future_result)
 
-            try:
-                future.result()
-            except Exception:
-                log.error('指令执行出错', exc_info=True)
+            # 使用短超时循环等待，以便能响应 stop()
+            while not future.done():
+                if not self.running:
+                    break
+                try:
+                    future.result(timeout=0.05)
+                except TimeoutError:
+                    continue
+                except Exception:
+                    log.error('指令执行出错', exc_info=True)
+                    break
 
             with self._op_lock:
                 if not self.running:

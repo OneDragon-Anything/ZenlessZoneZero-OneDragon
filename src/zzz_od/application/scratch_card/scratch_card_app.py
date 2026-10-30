@@ -2,22 +2,26 @@ import time
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.scratch_card import scratch_card_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class ScratchCardApp(ZApplication):
 
+    """刮刮卡:每日签到刮刮卡玩法(与卦象集录/吼吼饼铺共享每日一次,三选一)。无消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='scratch_card',
-            op_name=gt('刮刮卡'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=scratch_card_const.APP_ID,
+            op_name=scratch_card_const.APP_NAME,
         )
 
     @operation_node(name='传送', is_start_node=True)
@@ -32,7 +36,8 @@ class ScratchCardApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx, check_once=True)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_success(result.status)
 
@@ -46,12 +51,11 @@ class ScratchCardApp(ZApplication):
         :return:
         """
         self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        time.sleep(1)
 
+        time.sleep(1) # 防止交互无效 issue #2405 #2395 #2328
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-        time.sleep(3)
 
-        return self.round_success()
+        return self.round_success(wait=3)
 
     @node_from(from_name='等待加载', status='刮刮卡')
     @node_from(from_name='移动交互')
@@ -99,7 +103,7 @@ class ScratchCardApp(ZApplication):
             return self.round_retry(status=result.status, wait=1)
 
         areas = [
-            self.ctx.screen_loader.get_area('报刊亭', '刮层-%d' % i)
+            self.ctx.screen_loader.get_area('报刊亭', f'刮层-{i}')
             for i in range(1, 4)
         ]
 
@@ -113,16 +117,16 @@ class ScratchCardApp(ZApplication):
 
     @node_from(from_name='点击刮刮卡', status='按钮-同类型确认')
     @node_from(from_name='刮刮')
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = ScratchCardApp(ctx)
     app.execute()
 

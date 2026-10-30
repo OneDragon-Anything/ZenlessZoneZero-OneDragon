@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: yeshunguang_mingxinjing_3_1
+template_name: 角色状态-叶瞬光-明心镜-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 380, 73
+- 562, 74

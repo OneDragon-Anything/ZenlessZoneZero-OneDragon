@@ -1,0 +1,5 @@
+branch:
+  - buttons:
+      - name: 触发上传
+        description: 上传Release
+        event: web_trigger_release

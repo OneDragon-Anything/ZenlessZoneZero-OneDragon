@@ -1,6 +1,6 @@
 sub_dir: normal_world_investigation
 template_id: squad
-template_name: 勘域编队
+template_name: 勘域-编队
 template_shape: quadrilateral
 auto_mask: true
 point_list:

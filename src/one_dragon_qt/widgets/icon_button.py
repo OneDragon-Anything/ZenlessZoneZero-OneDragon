@@ -1,36 +1,35 @@
 from PySide6.QtCore import QEvent
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
-    TeachingTip,
-    TransparentToolButton,
-    TeachingTipTailPosition,
     FluentIconBase,
+    TeachingTipTailPosition,
+    TransparentToolButton,
 )
 from qfluentwidgets.common.overload import singledispatchmethod
-from typing import Optional, Union
+
+from one_dragon_qt.widgets.teaching_tip import TeachingTip
 
 
 class IconButton(TransparentToolButton):
     """包含下拉框的自定义设置卡片类。"""
 
     @singledispatchmethod
-    def __init__(self, parent: QWidget = None):
+    def __init__(self, parent=None):
         TransparentToolButton.__init__(self, parent)
 
-        self._tooltip: Optional[TeachingTip] = None
+        self._tooltip: TeachingTip | None = None
 
     @__init__.register
-    def _(self, icon: Union[str, QIcon, FluentIconBase], parent: QWidget = None):
+    def _(self, icon: str | QIcon | FluentIconBase, parent=None):
         self.__init__(parent)
         self.setIcon(icon)
 
     @__init__.register
-    def _(self, icon: Union[str, QIcon, FluentIconBase],
+    def _(self, icon: str | QIcon | FluentIconBase,
           isTooltip: bool,
           tip_title: str,
           tip_content: str,
-          parent: QWidget = None):
+          parent=None):
         self.__init__(parent)
         self.setIcon(icon)
 
@@ -41,16 +40,17 @@ class IconButton(TransparentToolButton):
         self.tip_title: str = tip_title
         self.tip_content: str = tip_content
 
-    def eventFilter(self, obj, event: QEvent) -> bool:
+    def eventFilter(self, watched, event: QEvent) -> bool:
         """处理鼠标事件。"""
         if event.type() == QEvent.Type.Enter:
             self._show_tooltip()
         elif event.type() == QEvent.Type.Leave:
             self._hide_tooltip()
-        return super().eventFilter(obj, event)
+        return super().eventFilter(watched, event)
 
     def _show_tooltip(self) -> None:
         """显示工具提示。"""
+        self._hide_tooltip()  # 先关闭已有的 tip
         self._tooltip = TeachingTip.create(
             target=self,
             title=self.tip_title,
@@ -71,9 +71,11 @@ class IconButton(TransparentToolButton):
 
     def _hide_tooltip(self) -> None:
         """隐藏工具提示。"""
-        if self._tooltip:
-            self._tooltip.close()
-            self._tooltip = None
+        # 先置 None 防止 close() 触发事件时重入
+        tip = self._tooltip
+        self._tooltip = None
+        if tip is not None:
+            tip.close()
 
     def __hash__(self):
         return id(self)

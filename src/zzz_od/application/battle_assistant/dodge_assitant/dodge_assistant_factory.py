@@ -31,11 +31,7 @@ class DodgeAssistantFactory(ApplicationFactory):
         Args:
             ctx: 绝区零游戏上下文，提供游戏状态和操作接口
         """
-        ApplicationFactory.__init__(
-            self,
-            app_id=dodge_assistant_const.APP_ID,
-            app_name=dodge_assistant_const.APP_NAME,
-        )
+        ApplicationFactory.__init__(self, dodge_assistant_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

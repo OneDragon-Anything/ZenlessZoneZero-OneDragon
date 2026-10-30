@@ -19,7 +19,7 @@ class OperationDef:
 
         # 按键特有的属性
         self.btn_way: str | None = data.get("way")  # 按键方式
-        self.btn_press: float = data.get("press", 0)  # 按键持续时间(秒)
+        self.btn_press: float | None = data.get("press")  # 按键持续时间(秒)
         self.btn_repeat_times: int = data.get("repeat", 1)  # 按键重复次数
 
         # 等待秒数

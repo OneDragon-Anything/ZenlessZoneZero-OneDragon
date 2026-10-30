@@ -5,9 +5,9 @@ handlers:
     operations:
       - op_name: "按键-切换角色-上一个"
       - op_name: "设置状态"
-        data: ["自定义-黄光切人"]
+        state: "自定义-黄光切人"
   - states: "[后台-1-击破]"
     operations:
       - op_name: "按键-切换角色-下一个"
       - op_name: "设置状态"
-        data: ["自定义-黄光切人"]
+        state: "自定义-黄光切人"

@@ -1,3 +1,5 @@
+import sys
+
 from one_dragon.launcher.application_launcher import ApplicationLauncher
 from zzz_od.context.zzz_context import ZContext
 
@@ -12,6 +14,12 @@ class ZApplicationLauncher(ApplicationLauncher):
         return ZContext()
 
 
-if __name__ == '__main__':
+def main(args: list[str] | None = None) -> None:
+    if args is not None:
+        sys.argv = [sys.argv[0]] + args
     launcher = ZApplicationLauncher()
     launcher.run()
+
+
+if __name__ == '__main__':
+    main()

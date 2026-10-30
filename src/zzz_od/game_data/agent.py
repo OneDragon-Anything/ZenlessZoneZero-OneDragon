@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional, List, Union, Tuple
 
 from cv2.typing import MatLike
 
@@ -14,6 +13,7 @@ class AgentTypeEnum(Enum):
     DEFENSE = '防护'
     ANOMALY = '异常'
     RUPTURE = '命破'
+    ARMORER = '锋御'
     UNKNOWN = '未知'
 
     @classmethod
@@ -31,6 +31,8 @@ class DmgTypeEnum(Enum):
     PHYSICAL = '物理属性'
     FIRE = '火属性'
     ICE = '冰属性'
+    WIND = '风属性'
+    LUMIFLUX = '流明属性'
     UNKNOWN = '未知'
 
     @classmethod
@@ -66,15 +68,15 @@ class RareTypeEnum(Enum):
 
 class AgentStateCheckWay(Enum):
 
-    COLOR_RANGE_CONNECT: int = 1  # 根据颜色 在特定范围里匹配找连通块的数量
-    BACKGROUND_GRAY_RANGE_LENGTH: int = 2  # 根据背景的灰度颜色 在特定范围里反推横条的长度
-    COLOR_RANGE_EXIST: int = 3  # 根据颜色 在特定范围里匹配是否出现
-    FOREGROUND_COLOR_RANGE_LENGTH: int = 4  # 根据前景颜色 在特定范围里计算横条的长度
-    FOREGROUND_GRAY_RANGE_LENGTH: int = 5  # 根据前景的灰度颜色 在特定范围里计算横条的长度
-    TEMPLATE_FOUND: int = 6  # 根据模板识别是否存在
-    TEMPLATE_NOT_FOUND: int = 7  # 根据模板识别不存在
-    COLOR_CHANNEL_MAX_RANGE_EXIST: int = 8  # 根据颜色通道的最大值 在特定范围里匹配是否出现
-    COLOR_CHANNEL_EQUAL_RANGE_CONNECT: int = 9  # 在特定范围里匹配找三色相等的像素点数量
+    COLOR_RANGE_CONNECT = 1  # 根据颜色 在特定范围里匹配找连通块的数量
+    BACKGROUND_GRAY_RANGE_LENGTH = 2  # 根据背景的灰度颜色 在特定范围里反推横条的长度
+    COLOR_RANGE_EXIST = 3  # 根据颜色 在特定范围里匹配是否出现
+    FOREGROUND_COLOR_RANGE_LENGTH = 4  # 根据前景颜色 在特定范围里计算横条的长度
+    FOREGROUND_GRAY_RANGE_LENGTH = 5  # 根据前景的灰度颜色 在特定范围里计算横条的长度
+    TEMPLATE_FOUND = 6  # 根据模板识别是否存在
+    TEMPLATE_NOT_FOUND = 7  # 根据模板识别不存在
+    COLOR_CHANNEL_MAX_RANGE_EXIST = 8  # 根据颜色通道的最大值 在特定范围里匹配是否出现
+    COLOR_CHANNEL_EQUAL_RANGE_CONNECT = 9  # 在特定范围里匹配找三色相等的像素点数量
 
 
 class AgentStateDef:
@@ -82,33 +84,34 @@ class AgentStateDef:
     def __init__(self, state_name: str,
                  check_way: AgentStateCheckWay,
                  template_id: str,
-                 lower_color: Union[MatLike, Tuple, int] = None,
-                 upper_color: Union[MatLike, Tuple, int] = None,
-                 hsv_color: Union[MatLike, Tuple, int] = None,
-                 hsv_color_diff: Union[MatLike, Tuple, int] = None,
-                 connect_cnt: Optional[int] = None,
-                 split_color_range: Optional[List[Union[MatLike, int]]] = None,
+                 lower_color: MatLike | tuple | int = None,
+                 upper_color: MatLike | tuple | int = None,
+                 hsv_color: MatLike | tuple | int = None,
+                 hsv_color_diff: MatLike | tuple | int = None,
+                 connect_cnt: int | None = None,
+                 split_color_range: list[MatLike | int] | None = None,
                  max_length: int = 100,
-                 min_value_trigger_state: Optional[int] = None,
-                 template_threshold: Optional[float] = None,
+                 min_value_trigger_state: int | None = None,
+                 template_threshold: float | None = None,
+                 clear_on_zero: bool = False,  # 新增属性，当检测值为0时，是否清除状态
                  ):
         self.state_name: str = state_name
         self.template_id: str = template_id
         self.check_way: AgentStateCheckWay = check_way
 
         # 需要匹配的颜色范围RGB
-        self.lower_color: Union[MatLike, int] = lower_color
-        self.upper_color: Union[MatLike, int] = upper_color
+        self.lower_color: MatLike | int = lower_color
+        self.upper_color: MatLike | int = upper_color
 
         # 需要匹配的颜色范围HVS
-        self.hsv_color: Union[MatLike, int] = hsv_color
-        self.hsv_color_diff: Union[MatLike, int] = hsv_color_diff
+        self.hsv_color: MatLike | int = hsv_color
+        self.hsv_color_diff: MatLike | int = hsv_color_diff
 
         # 匹配用于分割的颜色范围 类似能量条的中间有空白时使用
-        self.split_color_range: Optional[List[Union[MatLike, int]]] = split_color_range
+        self.split_color_range: list[MatLike | int] | None = split_color_range
 
         # 判断连通块时 所需的最小像素点数量
-        self.connect_cnt: Optional[int] = connect_cnt
+        self.connect_cnt: int | None = connect_cnt
 
         # 判断长度时 用于调整最大长度 例如能量最大值是120
         self.max_length: int = max_length
@@ -182,10 +185,14 @@ class CommonAgentStateEnum(Enum):
                                    lower_color=(140, 30, 30), upper_color=(160, 50, 50), template_id='life_deduction_2_1',
                                    min_value_trigger_state=1)
 
-    GUARD_BREAK = AgentStateDef('格挡破碎', AgentStateCheckWay.COLOR_CHANNEL_EQUAL_RANGE_CONNECT,
-                              template_id='guard_break', min_value_trigger_state=1,  # 只在检测到时触发
+    GUARD_BREAK = AgentStateDef('格挡-破碎', AgentStateCheckWay.COLOR_CHANNEL_EQUAL_RANGE_CONNECT,
+                              template_id='guard_break', min_value_trigger_state=0,
                               lower_color=0, upper_color=255, connect_cnt=10000)  # 需要足够多的面积保证不会误判
 
+    SWITCH_BAN = AgentStateDef('切人-冷却', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                              template_id='switch_ban', min_value_trigger_state=0,
+                              hsv_color=(45, 35, 85), hsv_color_diff=(45, 50, 93),
+                              connect_cnt=2000)
 
 
 class Agent:
@@ -195,7 +202,7 @@ class Agent:
                  agent_type: AgentTypeEnum,
                  dmg_type: DmgTypeEnum,
                  template_id_list: list[str],
-                 state_list: Optional[List[AgentStateDef]] = None,
+                 state_list: list[AgentStateDef] | None = None,
                  ):
         """
         代理人
@@ -211,7 +218,7 @@ class Agent:
         self.dmg_type: DmgTypeEnum = dmg_type  # 伤害类型
 
         self.template_id_list: list[str] = template_id_list  # 代理人的头像模板ID列表
-        self.state_list: List[AgentStateDef] = state_list  # 可能有的状态
+        self.state_list: list[AgentStateDef] = state_list  # 可能有的状态
 
     @property
     def agent_type_str(self) -> str:
@@ -228,9 +235,13 @@ class AgentEnum(Enum):
     ELLEN = Agent('ellen', '艾莲', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ICE, ['ellen', 'ellen_on_campus'],
                   state_list=[AgentStateDef('艾莲-急冻充能', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                             template_id='ellen', lower_color=(200, 245, 250), upper_color=(255, 255, 255), connect_cnt=2)])
-    GRACE = Agent('grace', '格莉丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['grace'])
+    GRACE = Agent('grace', '格莉丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['grace'],
+                      state_list=[AgentStateDef('格莉丝-电能', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                                template_id='grace',
+                                                hsv_color=(0, 255, 255), hsv_color_diff=(20, 255, 50),
+                                                connect_cnt=2)])
     KOLEDA = Agent('koleda', '珂蕾妲', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['koleda'])
-    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy'])
+    LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy', 'lucy_princess_on_holiday'])
     LYCAON = Agent('lycaon', '莱卡恩', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ICE, ['lycaon'])
     NEKOMATA = Agent('nekomata', '猫又', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['nekomata'])
     NICOLE = Agent('nicole', '妮可', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['nicole', 'nicole_cunning_cutie'],)
@@ -249,9 +260,9 @@ class AgentEnum(Enum):
                      state_list=[AgentStateDef('青衣-电压', AgentStateCheckWay.BACKGROUND_GRAY_RANGE_LENGTH,
                                                template_id='qingyi', lower_color=0, upper_color=70)])
 
-    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe'],
+    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe', 'jane_doe_nocturne_of_light'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
-                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
+                                               template_id='jane_attack', hsv_color=(0, 255, 255), hsv_color_diff=(10, 100, 150), connect_cnt=5),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                template_id='jane_red', lower_color=(200, 20, 20), upper_color=(255, 255, 255), connect_cnt=10)
                                  ])
@@ -263,8 +274,10 @@ class AgentEnum(Enum):
     CAESAR_KING = Agent('caesar_king', '凯撒', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL, ['caesar_king'])
 
     BURNICE_WHITE = Agent('burnice_white', '柏妮思', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['burnice_white'],
-                          state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.BACKGROUND_GRAY_RANGE_LENGTH,
-                                                    'burnice_white',  lower_color=0, upper_color=70)
+                          state_list=[AgentStateDef('柏妮思-燃点', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                    template_id='burnice_white',
+                                                    hsv_color=(20, 255, 255), hsv_color_diff=(20, 200, 100),
+                                                    max_length=100)
                                       ])
 
     YANAGI = Agent('yanagi', '柳', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['yanagi'])
@@ -273,7 +286,7 @@ class AgentEnum(Enum):
                                               'lighter', lower_color=0, upper_color=50)])
 
     ASABA_HARUMASA = Agent('asaba_harumasa', '悠真', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['asaba_harumasa'])
-    HOSHIMI_MIYABI = Agent('hoshimi_miyabi', '雅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['hoshimi_miyabi'],
+    HOSHIMI_MIYABI = Agent('hoshimi_miyabi', '雅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['hoshimi_miyabi', 'hoshimi_miyabi_dignified_blossom'],
                            state_list=[AgentStateDef('雅-落霜', AgentStateCheckWay.COLOR_RANGE_CONNECT,'hoshimi_miyabi',
                                                      hsv_color=(90,255,255), hsv_color_diff=(60,255,50), connect_cnt=5)])
 
@@ -322,15 +335,16 @@ class AgentEnum(Enum):
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 140, 255), hsv_color_diff=(20, 100, 50),
+                                     hsv_color=(30, 0, 245), hsv_color_diff=(15, 245, 255),
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 255, 255), hsv_color_diff=(20, 175, 50),
+                                     hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
 
-    PANYINHU = Agent('panyinhu', '潘引壶', RareTypeEnum.A, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL, ['panyinhu'])
+    PANYINHU = Agent('panyinhu', '潘引壶', RareTypeEnum.A, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL,
+                     ['panyinhu', 'panyinhu_culinary_jewel'])
 
     JU_FUFU = Agent('ju_fufu', '橘福福', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['ju_fufu'],
                     state_list=[
@@ -375,7 +389,7 @@ class AgentEnum(Enum):
                     state_list=[
                         AgentStateDef('卢西娅-梦境值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='lucia',
-                                      hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
+                                      hsv_color=(133, 69, 255), hsv_color_diff=(17,97,0),
                                       max_length=100)
                     ])
 
@@ -394,3 +408,186 @@ class AgentEnum(Enum):
                                     hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
                                     max_length=85)
                         ])
+
+    DIALYN = Agent('dialyn', '琉音', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.PHYSICAL, ['dialyn'],
+                   state_list=[
+                       AgentStateDef('琉音-客诉', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                     template_id='dialyn_cc',
+                                    hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                    connect_cnt=6),
+                       AgentStateDef('琉音-好评', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='dialyn_pr',
+                                     hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                     max_length=120)
+                   ])
+
+    BANYUE = Agent('banyue', '般岳', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['banyue'],
+                   state_list=[
+                       AgentStateDef('般岳-嗔火', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='banyue_1',
+                                     hsv_color=(23, 136, 177), hsv_color_diff=(7, 153, 156),
+                                     max_length=120),
+                       AgentStateDef('般岳-山威', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                     template_id='banyue_2',
+                                     hsv_color=(10, 102, 130), hsv_color_diff=(10, 205, 244),
+                                     connect_cnt=5)
+                   ])
+
+    ZHAO = Agent('zhao', '照', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.ICE, ['zhao'],
+                 state_list=[
+                     AgentStateDef('照-霜寒值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                   template_id='zhao',
+                                   hsv_color=(60,255,255), hsv_color_diff=(50, 255, 255),
+                                   max_length=100)
+                 ])
+
+    SUNNA = Agent(
+        "sunna",
+        "千夏",
+        RareTypeEnum.S,
+        AgentTypeEnum.SUPPORT,
+        DmgTypeEnum.PHYSICAL,
+        ["sunna", "sunna_afternoon_tea_break", "sunna_delusions_in_business"],
+    )
+
+    YESHUNGUANG = Agent(
+        "yeshunguang",
+        "叶瞬光",
+        RareTypeEnum.S,
+        AgentTypeEnum.ATTACK,
+        DmgTypeEnum.PHYSICAL,
+        ["yeshunguang", "yeshunguang_touch_of_dawnlight"],
+        state_list=[
+            AgentStateDef(
+                "叶瞬光-明心境",
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id="yeshunguang_mingxinjing",
+                hsv_color=(113, 75, 255),
+                hsv_color_diff=(10, 75, 50),
+                max_length=120,
+            ),
+            AgentStateDef(
+                "叶瞬光-常态",
+                AgentStateCheckWay.TEMPLATE_FOUND,
+                template_id="yeshunguang_normal",
+                template_threshold=0.7,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-红",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(10, 10, 10),
+                connect_cnt=2,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-白",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming_ex",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(0, 0, 0),
+                connect_cnt=10,
+            ),
+        ],
+    )
+
+    ARIA = Agent('aria', '爱芮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['aria', 'aria_discordant_note', 'aria_cuteness_loading'],
+                 state_list=[AgentStateDef('爱芮-应援能量', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                           template_id='aria_cheer_energy',
+                                           hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
+                                           connect_cnt=2)])
+
+    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse', 'nangongyu_heartfelt_support'],
+                      state_list=[
+                          AgentStateDef('南宫羽-重拍', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                        template_id='nangongyu',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=100)
+                      ])
+
+    CISSIA = Agent('cissia', '希希芙', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['cissia'],
+                   state_list=[])
+
+    PROMEIA = Agent('promeia', '普罗米娅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['promeia'],
+                    state_list=[AgentStateDef('普罗米娅-霜刑', AgentStateCheckWay.COLOR_RANGE_CONNECT, 'promeia_ss',
+                                              hsv_color=(0,255,255), hsv_color_diff=(90, 255, 50), connect_cnt=2)])
+
+    VELINA = Agent('velina', '维琳娜', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.WIND, ['velina', 'velina_shade_of_leisure'],
+                    state_list=[AgentStateDef('维琳娜-风华', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH, 'velina',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=135)
+                      ])
+
+    PYROIS_WISE = Agent('pyrois_wise', '佩洛伊斯', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ETHER,
+                        ['pyrois_wise'],
+                        state_list=[AgentStateDef('佩洛伊斯-日珥', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                  template_id='pyrois_wise',
+                                                  hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                  max_length=60)])
+
+    STARLIGHT_BILLY_KID = Agent('starlight_billy_kid', '星辉比利', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL,
+                                ['starlight_billy_kid'],
+                                state_list=[AgentStateDef('星辉比利-决心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                                          template_id='starlight_billy_kid',
+                                                          hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                                          max_length=120)])
+
+    NORMA = Agent('norma', '诺姆', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['norma'],
+                  state_list=[AgentStateDef('诺姆-预热', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                            template_id='norma',
+                                            hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                            max_length=100)])
+
+    REMIELLE = Agent(
+        'remielle',
+        '蕾米埃尔',
+        RareTypeEnum.S,
+        AgentTypeEnum.ANOMALY,
+        DmgTypeEnum.LUMIFLUX,
+        ['remielle', 'remielle_dark', 'remielle_dark_veil', 'remielle_seashade'],
+        state_list=[
+            AgentStateDef(
+                '蕾米埃尔-浮晖',
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id='remielle_floating_radiance',
+                hsv_color=(143, 140, 174),
+                hsv_color_diff=(7, 37, 81),
+                max_length=100,
+            ),
+            AgentStateDef(
+                '蕾米埃尔-虚曜',
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id='remielle_voidflare',
+                hsv_color=(150, 73, 222),
+                hsv_color_diff=(1, 62, 34),
+                connect_cnt=1,
+            ),
+        ],
+    )
+
+    SIGRID = Agent('sigrid', '希格莉德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ICE,
+                   ['sigrid', 'sigrid_majestic_wavechaser'],
+                   state_list=[AgentStateDef('希格莉德-巡空枪势', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                                             template_id='sigrid_sky_patrol',
+                                             hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
+                                             connect_cnt=1)])
+
+    CLARET = Agent('claret', '克拉蕾', RareTypeEnum.S, AgentTypeEnum.ARMORER, DmgTypeEnum.ELECTRIC, ['claret'],
+                   state_list=[
+                       AgentStateDef('克拉蕾-猩红铭刻', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='claret',
+                                     lower_color=(150, 0, 0), upper_color=(255, 90, 50),
+                                     max_length=100, min_value_trigger_state=5),
+                   ])
+
+    ROXY = Agent('roxy', '洛克茜', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.WIND, ['roxy'])
+
+    PHOENIX = Agent('phoenix', '菲欧妮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['phoenix', 'phoenix_daydream_complex', 'phoenix_the_illness_called_life'],
+                    state_list=[AgentStateDef('菲欧妮-燔焰', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                              template_id='phoenix',
+                                              hsv_color=(4, 128, 255), hsv_color_diff=(9, 128, 55),
+                                              max_length=120),
+                                AgentStateDef('菲欧妮-升变', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                              template_id='phoenix_pp',
+                                              hsv_color=(10, 128, 255), hsv_color_diff=(10, 128, 20),
+                                              connect_cnt=4)])

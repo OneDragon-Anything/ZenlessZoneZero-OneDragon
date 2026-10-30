@@ -1,0 +1,9 @@
+# 般岳-闪避-叫阵（挑衅）
+# 闪避后按普攻进行挑衅，吸引敌人攻击
+operations:
+  - op_name: "按键-闪避"
+    post_delay: 0.1
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+  - op_name: "等待秒数"
+    seconds: 1.0

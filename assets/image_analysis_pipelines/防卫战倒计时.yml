@@ -1,0 +1,27 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 战斗画面
+    area_name: 式舆防卫战-倒计时
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 0
+    - 0
+    - 255
+    hsv_diff:
+    - 90
+    - 255
+    - 200
+- step: 腐蚀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0

@@ -1,13 +1,4 @@
-import os
-from typing import List
-
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.basic_model_config import BasicModelConfig
-from one_dragon.base.web.common_downloader import CommonDownloaderParam
-from one_dragon.utils import yolo_config_utils
-
-_GITHUB_MODEL_DOWNLOAD_URL = 'https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
-_GITEE_MODEL_DOWNLOAD_URL = 'https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
 
 _DEFAULT_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250921'
 _BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
@@ -15,9 +6,8 @@ _BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
 _DEFAULT_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-0126'
 _BACKUP_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-1130'
 
-_DEFAULT_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250921'
-_BACKUP_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250622'
-
+_DEFAULT_LOST_VOID_DET = 'yolov26n-736-lost-void-det-20260630'
+_BACKUP_LOST_VOID_DET = 'yolov8n-736-lost-void-det-20250921'
 
 class ModelConfig(BasicModelConfig):
 
@@ -43,7 +33,7 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def flash_classifier_gpu(self) -> bool:
-        return self.get('flash_classifier_gpu', True)
+        return self.get('flash_classifier_gpu', False)
 
     @flash_classifier_gpu.setter
     def flash_classifier_gpu(self, new_value: bool) -> None:
@@ -71,7 +61,7 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def hollow_zero_event_gpu(self) -> bool:
-        return self.get('hollow_zero_event_gpu', True)
+        return self.get('hollow_zero_event_gpu', False)
 
     @hollow_zero_event_gpu.setter
     def hollow_zero_event_gpu(self, new_value: bool) -> None:
@@ -99,114 +89,8 @@ class ModelConfig(BasicModelConfig):
 
     @property
     def lost_void_det_gpu(self) -> bool:
-        return self.get('lost_void_det_gpu', True)
+        return self.get('lost_void_det_gpu', False)
 
     @lost_void_det_gpu.setter
     def lost_void_det_gpu(self, new_value: bool) -> None:
         self.update('lost_void_det_gpu', new_value)
-
-    def using_old_model(self) -> bool:
-        """
-        是否在使用旧模型
-        :return:
-        """
-        return (self.flash_classifier != _DEFAULT_FLASH_CLASSIFIER
-                or self.hollow_zero_event != _DEFAULT_HOLLOW_ZERO_EVENT
-                or self.lost_void_det != _DEFAULT_LOST_VOID_DET
-                )
-
-def get_flash_classifier_opts() -> List[ConfigItem]:
-    """
-    获取闪光模型的选项
-    :return:
-    """
-    models_list = yolo_config_utils.get_available_models('flash_classifier')
-    if _DEFAULT_FLASH_CLASSIFIER not in models_list:
-        models_list.append(_DEFAULT_FLASH_CLASSIFIER)
-
-    config_list: list[ConfigItem] = []
-    for model in models_list:
-        model_dir = yolo_config_utils.get_model_dir('flash_classifier', model)
-        zip_file_name: str = f'{model}.zip'
-        param = CommonDownloaderParam(
-            save_file_path=model_dir,
-            save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            check_existed_list=[
-                os.path.join(model_dir, 'model.onnx'),
-                os.path.join(model_dir, 'labels.csv'),
-            ],
-        )
-        config_list.append(
-            ConfigItem(
-                label=model,
-                value=param,
-            )
-        )
-
-    return config_list
-
-def get_hollow_zero_event_opts() -> List[ConfigItem]:
-    """
-    获取空洞模型的选项
-    :return:
-    """
-    models_list = yolo_config_utils.get_available_models('hollow_zero_event')
-    if _DEFAULT_HOLLOW_ZERO_EVENT not in models_list:
-        models_list.append(_DEFAULT_HOLLOW_ZERO_EVENT)
-
-    config_list: list[ConfigItem] = []
-    for model in models_list:
-        model_dir = yolo_config_utils.get_model_dir('hollow_zero_event', model)
-        zip_file_name: str = f'{model}.zip'
-        param = CommonDownloaderParam(
-            save_file_path=model_dir,
-            save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            check_existed_list=[
-                os.path.join(model_dir, 'model.onnx'),
-                os.path.join(model_dir, 'labels.csv'),
-            ],
-        )
-        config_list.append(
-            ConfigItem(
-                label=model,
-                value=param,
-            )
-        )
-
-    return config_list
-
-def get_lost_void_det_opts() -> List[ConfigItem]:
-    """
-    获取迷失之地识别模型的选项
-    :return:
-    """
-    models_list = yolo_config_utils.get_available_models('lost_void_det')
-    if _DEFAULT_LOST_VOID_DET not in models_list:
-        models_list.append(_DEFAULT_LOST_VOID_DET)
-
-    config_list: list[ConfigItem] = []
-    for model in models_list:
-        model_dir = yolo_config_utils.get_model_dir('lost_void_det', model)
-        zip_file_name: str = f'{model}.zip'
-        param = CommonDownloaderParam(
-            save_file_path=model_dir,
-            save_file_name=zip_file_name,
-            github_release_download_url=f'{_GITHUB_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            gitee_release_download_url=f'{_GITEE_MODEL_DOWNLOAD_URL}/{zip_file_name}',
-            check_existed_list=[
-                os.path.join(model_dir, 'model.onnx'),
-                os.path.join(model_dir, 'labels.csv'),
-            ],
-        )
-        config_list.append(
-            ConfigItem(
-                label=model,
-                value=param,
-            )
-        )
-
-    return config_list

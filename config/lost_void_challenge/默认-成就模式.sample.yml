@@ -1,0 +1,23 @@
+auto_battle: 全配队通用
+region_type_priority:
+- 战斗-武备
+- 战斗-鸣徽
+- 挑战-无伤
+- 邦布商店
+- 挚交会谈
+- 战斗-道中危机
+- 战斗-终结之役
+- 战斗-硬币
+- 挑战-限时
+artifact_priority:
+- 无详情 获得鸣徽
+artifact_priority_2:
+- 终结
+- 绝境
+- 通用
+buy_only_priority_2: 3
+period_buff_no: 第一个
+investigation_strategy: 攻其不备战略
+chase_new_mode: true
+artifact_priority_new: true
+store_blood: true

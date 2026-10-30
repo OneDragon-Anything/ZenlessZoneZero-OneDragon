@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: dialyn_cc_3_3
+template_name: 角色状态-琉音-客诉-33
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 810, 98
+- 813, 101

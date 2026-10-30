@@ -3,8 +3,10 @@ from typing import ClassVar
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
+from one_dragon.utils import str_utils
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import (
+    LostVoidChooseCommon,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -22,16 +24,15 @@ class LostVoidLottery(ZOperation):
     def click_start(self) -> OperationRoundResult:
         # 识别剩余次数
         area = self.ctx.screen_loader.get_area('迷失之地-抽奖机', '文本-剩余次数')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, area.rect)
         if len(ocr_result_map) == 0:
             return self.round_success(LostVoidLottery.STATUS_NO_TIMES_LEFT)
 
         is_valid = False
-        for ocr_result in ocr_result_map.keys():
+        for ocr_result in ocr_result_map:
             digit = str_utils.get_positive_digits(ocr_result, err=0)
-            if digit > 0:
+            if digit is not None and digit > 0:
                 is_valid = True
                 break
 

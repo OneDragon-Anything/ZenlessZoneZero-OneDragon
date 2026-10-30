@@ -1,5 +1,6 @@
 screen_id: fishing
 screen_name: 钓鱼
+app_id: commission_assistant
 pc_alt: false
 area_list:
 - area_name: 指令文本区域

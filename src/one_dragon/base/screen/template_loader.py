@@ -50,7 +50,7 @@ class TemplateLoader:
         :param only_mask:
         :return: 模板图片
         """
-        if not is_template_existed(sub_dir, template_id, need_raw=not only_mask):
+        if not is_template_existed(sub_dir, template_id, need_raw=False):
             return None
         template: TemplateInfo = TemplateInfo(sub_dir, template_id)
 

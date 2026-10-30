@@ -1,6 +1,10 @@
 import uuid
+from dataclasses import dataclass, field, fields
 from enum import Enum
-from typing import List, Optional
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -9,7 +13,6 @@ from zzz_od.application.charge_plan import charge_plan_const
 
 
 class CardNumEnum(Enum):
-
     DEFAULT = ConfigItem('默认数量')
     NUM_1 = ConfigItem('1张卡片', '1')
     NUM_2 = ConfigItem('2张卡片', '2')
@@ -19,52 +22,71 @@ class CardNumEnum(Enum):
 
 
 class RestoreChargeEnum(Enum):
-
     NONE = ConfigItem('不使用')
     BACKUP_ONLY = ConfigItem('使用储蓄电量')
     ETHER_ONLY = ConfigItem('使用以太电池')
     BOTH = ConfigItem('同时使用储蓄电量和以太电池')
 
 
+@dataclass
 class ChargePlanItem:
+    tab_name: str = '训练'
+    category_name: str = '实战模拟室'
+    mission_type_name: str = '基础材料'
+    mission_name: str | None = '调查专项'
+    level: str = '默认等级'
+    auto_battle_config: str = '全配队通用'
+    run_times: int = 0
+    plan_times: int = 1
+    card_num: str = CardNumEnum.DEFAULT.value.value  # 实战模拟室的卡片数量
+    predefined_team_idx: int = -1  # 预备配队下标 -1为使用当前配队
+    notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
+    plan_id: str | None = None  # 计划的唯一标识符
+    skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
 
-    def __init__(
-            self,
-            tab_name: str = '训练',
-            category_name: str = '实战模拟室',
-            mission_type_name: str = '基础材料',
-            mission_name: str = '调查专项',
-            level: str = '默认等级',
-            auto_battle_config: str = '全配队通用',
-            run_times: int = 0,
-            plan_times: int = 1,
-            card_num: str = CardNumEnum.DEFAULT.value.value,
-            predefined_team_idx: int = -1,
-            notorious_hunt_buff_num: int = 1,
-            plan_id: Optional[str] = None,
-    ):
-        self.tab_name: str = tab_name
-        self.category_name: str = category_name
-        self.mission_type_name: str = mission_type_name
-        self.mission_name: str = mission_name
-        self.level: str = level
-        self.auto_battle_config: str = auto_battle_config
-        self.run_times: int = run_times
-        self.plan_times: int = plan_times
-        self.card_num: str = card_num  # 实战模拟室的卡片数量
+    def __post_init__(self) -> None:
+        if self.plan_id is None:
+            self.plan_id = str(uuid.uuid4())
 
-        self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
-        self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
-        self.plan_id: str = plan_id if plan_id else str(uuid.uuid4())  # 计划的唯一标识符
+    @property
+    def is_agent_plan(self) -> bool:
+        return self.mission_type_name == '代理人方案培养'
 
     @property
     def uid(self) -> str:
-        return '%s_%s_%s_%s' % (
-            self.tab_name if self.tab_name is not None else '',
-            self.category_name if self.category_name is not None else '',
-            self.mission_type_name if self.mission_type_name is not None else '',
-            self.mission_name if self.mission_name is not None else '',
-        )
+        tab_name = self.tab_name or ''
+        category_name = self.category_name or ''
+        mission_type_name = self.mission_type_name or ''
+        mission_name = self.mission_name or ''
+        return f'{tab_name}_{category_name}_{mission_type_name}_{mission_name}'
+
+    @property
+    def estimated_charge_power(self) -> int:
+        # 进本前只做体力预估；未知类型交给副本内流程再检查真实消耗
+        if self.category_name == '实战模拟室':
+            if self.card_num == CardNumEnum.DEFAULT.value.value:
+                return 20
+            return int(self.card_num) * 20
+        if self.category_name == '区域巡防':
+            return 60
+        if self.category_name == '专业挑战室':
+            return 40
+        if self.category_name == '恶名狩猎':
+            return 60
+        if self.category_name == '合成电池':
+            return 60
+        return 0  # 未知类型，在副本内检查
+
+    def to_dict(self) -> dict[str, str | int | None]:
+        return {
+            item.name: getattr(self, item.name)
+            for item in fields(self)
+            if item.metadata.get('persist', True)
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ChargePlanItem':
+        return cls(**data)
 
 
 class ChargePlanConfig(ApplicationConfig):
@@ -77,48 +99,39 @@ class ChargePlanConfig(ApplicationConfig):
             app_id=charge_plan_const.APP_ID,
         )
 
-        self.plan_list: List[ChargePlanItem] = []
+        self.plan_list: list[ChargePlanItem] = []
 
         for plan_item in self.data.get('plan_list', []):
             self.plan_list.append(ChargePlanItem(**plan_item))
 
+        # TODO 迁移旧副本名 2026-12 删除
+        self._migrate_legacy_mission_type_names()
+
+    # 资源表改名后，已保存计划仍可能带着旧的合法名称。
+    _LEGACY_MISSION_TYPE_NAMES: ClassVar[dict[str, str]] = {
+        '迅雷与裂爪': '迅脊与裂爪',
+    }
+
+    def _migrate_legacy_mission_type_names(self) -> None:
+        """把已保存计划中的旧副本名称改成当前名称并写回。"""
+        modified = False
+        for plan in self.plan_list:
+            new_name = self._LEGACY_MISSION_TYPE_NAMES.get(plan.mission_type_name)
+            if new_name is None:
+                continue
+            plan.mission_type_name = new_name
+            modified = True
+        if modified:
+            self.save()
+
     def save(self):
         plan_list = []
 
-        new_history_list = []
-
         for plan_item in self.plan_list:
-            plan_data = {
-                'tab_name': plan_item.tab_name,
-                'category_name': plan_item.category_name,
-                'mission_type_name': plan_item.mission_type_name,
-                'mission_name': plan_item.mission_name,
-                'auto_battle_config': plan_item.auto_battle_config,
-                'run_times': plan_item.run_times,
-                'plan_times': plan_item.plan_times,
-                'card_num': plan_item.card_num,
-                'predefined_team_idx': plan_item.predefined_team_idx,
-                'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
-                'plan_id': plan_item.plan_id,
-            }
-
-            new_history_list.append(plan_data.copy())
+            plan_data = plan_item.to_dict()
             plan_list.append(plan_data)
 
-        old_history_list = self.history_list
-        for old_history_data in old_history_list:
-            old_history = ChargePlanItem(**old_history_data)
-            with_new = False
-            for plan in self.plan_list:
-                if self._is_same_plan(plan, old_history):
-                    with_new = True
-                    break
-
-            if not with_new:
-                new_history_list.append(old_history_data)
-
         self.data['plan_list'] = plan_list
-        self.data['history_list'] = new_history_list
 
         YamlConfig.save(self)
 
@@ -160,32 +173,67 @@ class ChargePlanConfig(ApplicationConfig):
 
     def reset_plans(self) -> None:
         """
-        根据运行次数 重置运行计划
-        :return:
+        根据运行次数重置运行计划。
+        普通计划按整轮扣减，已跳过的代理人计划在进入下一轮时清零。
         """
         if len(self.plan_list) == 0:
             return
 
-        while True:
-            all_finish: bool = True
-            for plan in self.plan_list:
-                if plan.run_times < plan.plan_times:
-                    all_finish = False
+        eligible = [p for p in self.plan_list if not (p.skipped and p.is_agent_plan) and p.plan_times > 0]
+        skipped_agent_plans = [p for p in self.plan_list if p.skipped and p.is_agent_plan]
+        modified = False
 
-            if not all_finish:
-                break
+        if eligible:
+            while True:
+                if any(p.run_times < p.plan_times for p in eligible):
+                    break
 
-            for plan in self.plan_list:
-                plan.run_times -= plan.plan_times
+                for plan in eligible:
+                    plan.run_times -= plan.plan_times
+                modified = True
 
+            if not modified:
+                return
+
+        for plan in skipped_agent_plans:
+            if plan.run_times == 0:
+                continue
+            plan.run_times = 0
+            modified = True
+
+        if modified:
             self.save()
 
-    def get_next_plan(self, last_tried_plan: Optional[ChargePlanItem] = None) -> Optional[ChargePlanItem]:
+    def try_reset_plan_times_by_dt(self, current_dt: str) -> bool:
         """
-        获取下一个未完成的计划任务。
+        按游戏刷新日清零已运行次数
+
+        Args:
+            current_dt: 当前游戏刷新日
+
+        Returns:
+            是否执行了清零
+        """
+        if not self.daily_reset_plan_times:
+            return False
+        if self.last_daily_reset_dt == current_dt:
+            return False
+
+        for plan in self.plan_list:
+            plan.run_times = 0
+        self.update('last_daily_reset_dt', current_dt, save=False)
+        self.save()
+        return True
+
+    def get_next_plan(
+        self, last_tried_plan: ChargePlanItem | None = None
+    ) -> ChargePlanItem | None:
+        """
+        获取下一个未完成的计划任务（跳过 skipped 的计划）。
         如果提供了 last_tried_plan，则从该任务之后开始查找。
         如果未提供，则从列表的开头查找第一个未完成任务。
-        不再在此方法内调用 reset_plans，重置逻辑由调用方（ChargePlanApp）管理。
+        Args:
+            last_tried_plan: 上次尝试的计划
         """
         if len(self.plan_list) == 0:
             return None
@@ -211,6 +259,8 @@ class ChargePlanConfig(ApplicationConfig):
         # 3. 从指定位置开始遍历查找符合条件的计划
         for i in range(start_index, len(self.plan_list)):
             plan = self.plan_list[i]
+            if plan.skipped:
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
@@ -219,18 +269,17 @@ class ChargePlanConfig(ApplicationConfig):
 
     def all_plan_finished(self) -> bool:
         """
-        是否全部计划已完成
-        :return:
+        是否全部计划已完成（跳过已标记跳过的代理人计划）
         """
         if self.plan_list is None:
             return True
 
         for plan in self.plan_list:
+            if plan.skipped and plan.is_agent_plan:
+                continue
             if plan.run_times < plan.plan_times:
                 return False
-
         return True
-
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """
@@ -254,30 +303,17 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
-    def _is_same_plan(self, x: ChargePlanItem, y: ChargePlanItem) -> bool:
+    def _is_same_plan(
+        self, x: ChargePlanItem, y: ChargePlanItem, compare_plan_id: bool = True
+    ) -> bool:
         if x is None or y is None:
             return False
 
         # 如果两个计划都有ID，直接比较ID
-        if hasattr(x, 'plan_id') and hasattr(y, 'plan_id') and x.plan_id and y.plan_id:
+        if compare_plan_id and x.plan_id and y.plan_id:
             return x.plan_id == y.plan_id
 
-        # 向后兼容：如果没有ID，使用原有的比较方式
-        return (x.tab_name == y.tab_name
-                and x.category_name == y.category_name
-                and x.mission_type_name == y.mission_type_name
-                and x.mission_name == y.mission_name)
-
-    @property
-    def history_list(self) -> dict:
-        return self.get('history_list', [])
-
-    def get_history_by_uid(self, plan: ChargePlanItem) -> Optional[ChargePlanItem]:
-        history_list = self.history_list
-        for history_data in history_list:
-            history = ChargePlanItem(**history_data)
-            if self._is_same_plan(history, plan):
-                return history
+        return x == y
 
     @property
     def loop(self) -> bool:
@@ -288,6 +324,22 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('loop', new_value)
 
     @property
+    def daily_reset_plan_times(self) -> bool:
+        return self.get('daily_reset_plan_times', False)
+
+    @daily_reset_plan_times.setter
+    def daily_reset_plan_times(self, new_value: bool) -> None:
+        self.update('daily_reset_plan_times', new_value)
+
+    @property
+    def last_daily_reset_dt(self) -> str:
+        return self.get('last_daily_reset_dt', '')
+
+    @last_daily_reset_dt.setter
+    def last_daily_reset_dt(self, new_value: str) -> None:
+        self.update('last_daily_reset_dt', new_value)
+
+    @property
     def skip_plan(self) -> bool:
         return self.get('skip_plan', False)
 
@@ -296,12 +348,21 @@ class ChargePlanConfig(ApplicationConfig):
         self.update('skip_plan', new_value)
 
     @property
-    def use_coupon(self) -> bool:
-        return self.get('use_coupon', False)
+    def double_reward(self) -> bool:
+        return self.get('double_reward', False)
 
-    @use_coupon.setter
-    def use_coupon(self, new_value: bool) -> None:
-        self.update('use_coupon', new_value)
+    @double_reward.setter
+    def double_reward(self, new_value: bool) -> None:
+        self.update('double_reward', new_value)
+
+    @property
+    def combat_simulation_double_reward_config(self) -> ChargePlanItem:
+        data = self.get('combat_simulation_double_reward_config', {})
+        return ChargePlanItem.from_dict(data)
+
+    @combat_simulation_double_reward_config.setter
+    def combat_simulation_double_reward_config(self, new_value: ChargePlanItem) -> None:
+        self.update('combat_simulation_double_reward_config', new_value.to_dict())
 
     @property
     def restore_charge(self) -> str:
@@ -314,3 +375,30 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    # 运行态/身份字段(set_config 拒绝;详见 spec v5 _RO_FIELDS)
+    _RO_FIELDS: ClassVar[set[str]] = {'plan_id', 'last_daily_reset_dt', 'skip_plan'}
+
+    @classmethod
+    def validate_item(cls, ctx: 'ZContext', item: 'ChargePlanItem') -> str | None:
+        """校验 plan item 业务合法性:category / mission_type / mission_name 在 compendium 合法。
+
+        合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
+        """
+        categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
+        if item.category_name not in categories:
+            return f'category {item.category_name} 不合法(合法: {categories})'
+        mission_types = [m.value for m in ctx.compendium_service.get_charge_plan_mission_type_list(item.category_name)]
+        if mission_types:
+            # category 有 mission_type(常规副本):必须合法
+            if item.mission_type_name not in mission_types:
+                return f'mission_type {item.mission_type_name} 不合法(合法: {mission_types})'
+        elif item.mission_type_name:
+            # category 无 mission_type(合成电池等):必须为空
+            return f'{item.category_name} 无 mission_type,mission_type_name 应为空(当前: {item.mission_type_name})'
+        missions = [m.value for m in ctx.compendium_service.get_charge_plan_mission_list(item.category_name, item.mission_type_name)] if mission_types else []
+        if missions and item.mission_name is None:
+            return f'mission_name 必填(合法: {missions})'
+        if item.mission_name is not None and item.mission_name not in missions:
+            return f'mission {item.mission_name} 不合法(合法: {missions})'
+        return None

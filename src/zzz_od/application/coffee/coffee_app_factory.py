@@ -6,6 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.coffee.coffee_app import CoffeeApp
 from zzz_od.application.coffee.coffee_config import CoffeeConfig
 from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
@@ -17,11 +18,7 @@ if TYPE_CHECKING:
 class CoffeeAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id="coffee",
-            app_name="咖啡店"
-        )
+        ApplicationFactory.__init__(self, coffee_app_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

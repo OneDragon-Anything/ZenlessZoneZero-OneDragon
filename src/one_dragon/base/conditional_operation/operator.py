@@ -3,7 +3,6 @@ from abc import abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import cached_property
 from threading import Lock
-from typing import Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.execution_info import ExecutionInfo
@@ -13,8 +12,16 @@ from one_dragon.base.conditional_operation.operation_executor import (
     OperationExecutor,
 )
 from one_dragon.base.conditional_operation.scene import Scene
-from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+from one_dragon.base.conditional_operation.state_cal_tree import StateCalNode
+from one_dragon.base.conditional_operation.state_record_service import (
+    StateRecordService,
+)
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    DecisionTraceItem,
+    TimelineTraceItem,
+)
 from one_dragon.thread.atomic_int import AtomicInt
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
@@ -52,7 +59,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.current_execution_info: ExecutionInfo | None = None  # 当前的执行信息
         self.running_executor: OperationExecutor | None = None  # 正在运行的任务
         self.running_executor_cnt: AtomicInt = AtomicInt()  # 统计有
-        
+
         self._inited: bool = False
         self._task_lock: Lock = Lock()
 
@@ -137,7 +144,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 continue
 
             # log.debug('开始等待新的主循环')
-            to_sleep: Optional[float] = None
+            to_sleep: float | None = None
 
             # 上锁后确保运行状态不会被篡改
             with self._task_lock:
@@ -155,6 +162,12 @@ class ConditionalOperator(ConditionalOperatorLoader):
                     if new_execution_info is not None:
                         log.debug(f'当前场景 主循环 当前条件 {new_execution_info.expr_display}')
                         new_execution_info.priority = self.normal_scene.priority
+                        self._emit_debug_decision(
+                            trigger="主循环",
+                            expression=new_execution_info.expr_display,
+                            status="MATCHED",
+                            execution_info=new_execution_info,
+                        )
 
                         self.current_execution_info = new_execution_info
                         self.running_executor = OperationExecutor(
@@ -204,9 +217,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             if self.running_executor is not None:
                 old_priority = self.current_execution_info.priority
                 new_priority = new_execution_info.priority
-                if old_priority is None:  # 当前运行场景可随意打断
-                    can_interrupt = True
-                elif new_priority is not None and new_priority > old_priority:  # 新触发场景优先级更高
+                if old_priority is None or new_priority is not None and new_priority > old_priority:  # 当前运行场景可随意打断
                     can_interrupt = True
             else:
                 can_interrupt = True
@@ -220,6 +231,12 @@ class ConditionalOperator(ConditionalOperatorLoader):
             self._stop_running_task()
 
             log.debug(f'当前场景 {state_name} 当前条件 {new_execution_info.expr_display}')
+            self._emit_debug_decision(
+                trigger=state_name,
+                expression=new_execution_info.expr_display,
+                status="TRIGGERED",
+                execution_info=new_execution_info,
+            )
 
             new_execution_info.trigger = state_name
             self.current_execution_info = new_execution_info
@@ -293,8 +310,8 @@ class ConditionalOperator(ConditionalOperatorLoader):
         if not self.is_running:
             return
 
-        top_priority_scene: Optional[Scene] = None
-        top_priority_state: Optional[str] = None
+        top_priority_scene: Scene | None = None
+        top_priority_state: str | None = None
 
         for state_record in state_records:
             state_name = state_record.state_name
@@ -310,9 +327,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 continue
 
             replace = False
-            if top_priority_scene is None:
-                replace = True
-            elif top_priority_scene.priority is None:  # 可随意打断
+            if top_priority_scene is None or top_priority_scene.priority is None:
                 replace = True
             elif scene.priority is None:  # 可随意打断
                 pass
@@ -331,14 +346,107 @@ class ConditionalOperator(ConditionalOperatorLoader):
             # 没有场景需要触发 看是否需要打断当前操作
             with self._task_lock:
                 interrupt: bool = False
+                snapshot: list[str] = []
                 if (self.running_executor is not None and self.running_executor.running
                         and self.current_execution_info.interrupt_cal_tree is not None):
                     now = time.time()
                     if self.current_execution_info.interrupt_cal_tree.in_time_range(now):
                         interrupt = True
-                        log.debug('复合中断条件满足，执行中断')
+                        snapshot = self._state_snapshot(self.current_execution_info.interrupt_cal_tree, now)
+                        log.debug('复合中断条件满足，执行中断\n%s', '\n'.join(snapshot))
                 if interrupt:
                     self._stop_running_task()
+                    self._emit_debug_timeline(
+                        category="decision",
+                        title="触发中断",
+                        detail=' ; '.join(snapshot),
+                        level="WARNING",
+                    )
+
+    @staticmethod
+    def _state_snapshot(cal_tree: StateCalNode, now: float) -> list[str]:
+        """
+        把中断条件涉及的状态当前值与距今时间列出来 每行一个状态
+        :param cal_tree: 中断条件树
+        :param now: 当前时间
+        :return: 形如 [蕾米埃尔-虚曜]  v=1  t=0.02s 的行
+        """
+        lines: list[str] = []
+        for recorder in cal_tree.usage_recorders:
+            value = '-' if recorder.last_value is None else recorder.last_value
+            if recorder.last_record_time == -1:
+                time_desc = '-'
+            else:
+                time_desc = f'{now - recorder.last_record_time:.2f}s'
+            lines.append(f'[{recorder.state_name}]  v={value}  t={time_desc}')
+        return lines
+
+    def _emit_debug_decision(
+        self,
+        trigger: str,
+        expression: str,
+        status: str,
+        execution_info: ExecutionInfo,
+    ) -> None:
+        bus = self._get_debug_trace_bus()
+        if bus is None or not bus.enabled:
+            return
+
+        op_name = self._op_list_summary(execution_info)
+        bus.add_decision(
+            DecisionTraceItem(
+                source=self.__class__.__name__,
+                trigger=trigger,
+                expression=expression,
+                operation=op_name,
+                status=status,
+            )
+        )
+        bus.add_timeline(
+            TimelineTraceItem(
+                category="decision",
+                title=trigger,
+                detail=f"{expression} -> {op_name} [{status}]",
+                level="INFO",
+            )
+        )
+
+    def _emit_debug_timeline(
+        self,
+        category: str,
+        title: str,
+        detail: str,
+        level: str,
+    ) -> None:
+        bus = self._get_debug_trace_bus()
+        if bus is None or not bus.enabled:
+            return
+        bus.add_timeline(
+            TimelineTraceItem(
+                category=category,
+                title=title,
+                detail=detail,
+                level=level,
+            )
+        )
+
+    @staticmethod
+    def _op_list_summary(execution_info: ExecutionInfo) -> str:
+        names = [getattr(op, "op_name", "-") for op in execution_info.op_list[:3]]
+        if len(execution_info.op_list) > 3:
+            names.append("...")
+        return " | ".join(str(i) for i in names) if names else "-"
+
+    def _get_debug_trace_bus(self) -> DebugTraceBus | None:
+        """从当前或嵌套上下文获取调试 trace 总线。"""
+        owner = getattr(self, "ctx", None)
+        if owner is not None:
+            if hasattr(owner, "debug_trace_bus"):
+                return owner.debug_trace_bus
+            nested = getattr(owner, "ctx", None)
+            if nested is not None and hasattr(nested, "debug_trace_bus"):
+                return nested.debug_trace_bus
+        return None
 
     @staticmethod
     def after_app_shutdown() -> None:

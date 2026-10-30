@@ -1,0 +1,78 @@
+'# 项目贡献者信息': ''
+'# 此文件包含项目的所有贡献者信息，用于滚动字幕显示': ''
+'# 更新时间': '2026-01-17 18:51:53'
+'# 项目核心贡献者（来自GitHub）': ''
+core_contributors:
+- name: DoctorReid
+  contributions: 652 contributions
+- name: ShadowLemoon
+  contributions: 259 contributions
+- name: kawayiYokami
+  contributions: 110 contributions
+- name: yokuminto
+  contributions: 59 contributions
+- name: Paper-white
+  contributions: 47 contributions
+- name: Usagi-wusaqi
+  contributions: 36 contributions
+- name: A-nony-mous
+  contributions: 34 contributions
+- name: idk500
+  contributions: 27 contributions
+- name: zeromike
+  contributions: 21 contributions
+'# 近期贡献者（最后10个commiter，合并显示）': ''
+recent_contributors:
+- name: 近期贡献者
+  members:
+  - ShadowLemoon
+  - kawayiYokami
+  - invalid-email-address
+  - DoctorReid
+  - Usagi-wusaqi
+  contributions: 最近5次提交
+'# 文档组贡献者（来自官网/官方文档）': ''
+documentation_contributors:
+- name: DoctorReid
+  contributions: 75 contributions
+- name: Usagi-wusaqi
+  contributions: 9 contributions
+- name: Paper-white
+  contributions: 9 contributions
+- name: ShadowLemoon
+  contributions: 5 contributions
+- name: shihuai924
+  contributions: 4 contributions
+- name: idk500
+  contributions: 4 contributions
+- name: A-nony-mous
+  contributions: 2 contributions
+'# 社区维护者（来自QQ频道，合并显示）': ''
+community_maintainers:
+- name: 社区维护者
+  members:
+  - Roy
+  - 乌萨奇
+  - Theresa Apocalypse
+  - 自然
+  - 食坏
+  - 顾北然
+  contributions: QQ频道作者
+'# 其他贡献者（手动添加）': ''
+other_contributors:
+- name: 模范好市民🏅
+  members:
+  - (#_#)
+  - Theresa Apocalypse
+  - YU4106
+  - 顾北然
+- name: 测试先锋队🚀
+  members:
+  - 自然
+- name: 空洞观察员📚
+  members:
+  - 乌萨奇
+  - 自然
+  - 吴是发生
+  - 红豆泥
+  - 茶峒

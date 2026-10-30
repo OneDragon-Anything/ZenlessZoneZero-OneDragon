@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from one_dragon.base.operation.context_event_bus import ContextEventBus
+from one_dragon.base.operation.notify_pool import NotifyPool
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
-    from one_dragon.base.operation.one_dragon_context import OneDragonContext
     from one_dragon.base.operation.application.application_config import (
         ApplicationConfig,
     )
@@ -20,6 +22,26 @@ if TYPE_CHECKING:
     )
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+
+class RunFinishReason(StrEnum):
+    """应用结束原因。"""
+
+    COMPLETED = "COMPLETED"  # 正常完成
+    STOPPED = "STOPPED"  # 用户、流程或程序停止
+    FAILED = "FAILED"  # 执行失败或运行异常
+    NOT_STARTED = "NOT_STARTED"  # 初始化失败、超时或未取得运行权
+
+
+@dataclass(slots=True)
+class ApplicationRunResult:
+    """应用运行结果。"""
+
+    finish_reason: RunFinishReason
+    app_id: str
+    instance_idx: int | None
+    group_id: str | None
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -50,6 +72,8 @@ class ApplicationRunContext:
 
     Attributes:
         _application_factory_map: 应用工厂映射表，存储app_id到工厂的对应关系
+        default_group_apps: 默认进入一条龙列表的应用ID列表
+        standalone_apps: 允许用户在通用应用列表中选择的应用ID列表
         _run_state: 当前运行状态
         _executor: 线程池执行器，用于异步运行应用
         current_app_id: 当前运行的应用ID
@@ -75,36 +99,80 @@ class ApplicationRunContext:
             thread_name_prefix="one_dragon_app_run_context", max_workers=1
         )
         self.event_bus: ContextEventBus = ContextEventBus()
-        self.default_group_apps: list = []  # 默认应用组的应用ID列表
+        self.default_group_apps: list[str] = []  # 默认进入一条龙列表的应用ID列表
+        self.standalone_apps: list[str] = []  # 允许在通用应用列表中选择的应用ID列表
 
         # 当前运行的应用
-        self.current_app_id: Optional[str] = None
-        self.current_instance_idx: Optional[int] = None
-        self.current_group_id: Optional[str] = None
+        self.current_app_id: str | None = None
+        self.current_instance_idx: int | None = None
+        self.current_group_id: str | None = None
+        self.current_application: Application | None = None
+        self.last_run_result: ApplicationRunResult | None = None
+        # 同步运行应用的最近一次结果，供 backend 运行槽固化终态使用。
+        self.last_application_result: OperationResult | None = None
+
+        # 通知池，应用开始时清空重用
+        self.notify_pool: NotifyPool = NotifyPool()
 
     def registry_application(
         self,
         factory: ApplicationFactory | list[ApplicationFactory],
-        default_group: bool = False,
-    ):
+    ) -> None:
         """
         注册应用工厂。
 
         将应用工厂或工厂列表注册到上下文中，后续可以通过app_id创建对应的应用实例。
+        同时按工厂的 default_group 和 internal_app 维护两个派生列表。
 
         Args:
             factory: 应用工厂实例或工厂列表
-            default_group: 应用是否属于默认应用组，默认为False
         """
-        if isinstance(factory, list):
-            for f in factory:
-                self._application_factory_map[f.app_id] = f
-                if default_group:
-                    self.default_group_apps.append(f.app_id)
-        else:
-            self._application_factory_map[factory.app_id] = factory
-            if default_group:
-                self.default_group_apps.append(factory.app_id)
+        factory_list = factory if isinstance(factory, list) else [factory]
+        for f in factory_list:
+            self._application_factory_map[f.app_id] = f
+            if f.internal_app:
+                continue
+            self.standalone_apps.append(f.app_id)
+            if f.default_group:
+                self.default_group_apps.append(f.app_id)
+
+    def clear_applications(self) -> None:
+        """清空所有已注册的应用工厂
+
+        在刷新应用注册前调用，清空现有的注册信息。
+        """
+        self._application_factory_map.clear()
+        self.default_group_apps.clear()
+        self.standalone_apps.clear()
+
+    def clear_application_cache(self) -> None:
+        """清理已注册应用工厂缓存的配置和运行记录。
+
+        外置 backend server 与 GUI 是不同进程；GUI 保存 YAML 后，本进程内
+        已缓存的 ApplicationConfig / AppRunRecord 不会自动刷新，运行前通过
+        这里清理缓存，让后续读取落到最新配置。
+        """
+        for factory in self._application_factory_map.values():
+            factory.clear_cache()
+
+    @property
+    def notify_app_map(self) -> dict[str, str]:
+        """返回需要通知的应用字典: {app_id: app_name}。
+
+        说明:
+            1. 通过工厂的 need_notify 标记判断是否需要通知。
+            2. 若应用没有设置 app_name，则使用 app_id 作为值兜底。
+
+        Returns:
+            dict[str,str]: need_notify 为 True 的应用映射，按 app_id 排序。
+        """
+        tmp: list[tuple[str, str]] = []
+        for app_id, factory in self._application_factory_map.items():
+            if factory.need_notify:
+                app_name = factory.app_name or app_id
+                tmp.append((app_id, app_name))
+
+        return dict(sorted(tmp, key=lambda x: x[0]))
 
     def is_app_registered(self, app_id: str) -> bool:
         """
@@ -117,6 +185,32 @@ class ApplicationRunContext:
             bool: 应用是否已注册
         """
         return app_id in self._application_factory_map
+
+    def is_app_internal(self, app_id: str) -> bool:
+        """检查应用是否只能由代码固定入口调用。
+
+        未注册应用返回 False，调用方可用 `is_app_registered` 单独区分。
+        """
+        factory = self._application_factory_map.get(app_id)
+        return factory.internal_app if factory else False
+
+    def is_app_standalone_available(self, app_id: str) -> bool:
+        """检查应用是否允许通过通用应用列表选择。"""
+        factory = self._application_factory_map.get(app_id)
+        return factory is not None and not factory.internal_app
+
+    def is_app_need_notify(self, app_id: str) -> bool:
+        """
+        检查应用是否需要通知。
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            bool: 应用是否需要通知，如果应用未注册则返回False
+        """
+        factory = self._application_factory_map.get(app_id)
+        return factory.need_notify if factory else False
 
     def get_application(
         self, app_id: str, instance_idx: int, group_id: str
@@ -156,9 +250,9 @@ class ApplicationRunContext:
 
     def get_config(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
-        group_id: Optional[str] = None,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+        group_id: str | None = None,
     ) -> CONFIG:
         """
         获取配置实例。
@@ -194,9 +288,9 @@ class ApplicationRunContext:
 
     def get_run_record(
         self,
-        app_id: Optional[str] = None,
-        instance_idx: Optional[int] = None,
-    ) -> RECORD:
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+    ) -> RECORD | None:
         """
         获取运行记录实例。
 
@@ -207,10 +301,10 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标 为空时使用当前运行的
 
         Returns:
-            AppRunRecord: 运行记录对象
+            AppRunRecord | None: 运行记录对象；应用没有记录时返回 None
 
         Raises:
-            Exception: 如果子类应用无需配置(ApplicationFactory.create_run_record未实现)时，调用本方法会抛出异常
+            Exception: 应用未注册、参数为空或运行记录创建失败时抛出异常
         """
         if app_id is None:
             app_id = self.current_app_id
@@ -256,6 +350,43 @@ class ApplicationRunContext:
         """
         return self._run_state == ApplicationRunContextStateEnum.PAUSE
 
+    def _create_run_result(
+        self,
+        finish_reason: RunFinishReason,
+        app_id: str | None = None,
+        instance_idx: int | None = None,
+        group_id: str | None = None,
+    ) -> ApplicationRunResult:
+        """创建运行结果对象。"""
+        return ApplicationRunResult(
+            finish_reason=finish_reason,
+            app_id=(self.current_app_id if app_id is None else app_id) or "",
+            instance_idx=self.current_instance_idx if instance_idx is None else instance_idx,
+            group_id=self.current_group_id if group_id is None else group_id,
+        )
+
+    def _finish_running(
+        self,
+        result: ApplicationRunResult,
+        dispatch_event: bool = True,
+    ) -> ApplicationRunResult:
+        """统一收口运行结束逻辑。"""
+        if self.is_context_stop:
+            if self.last_run_result is None:
+                self.last_run_result = result
+            return self.last_run_result
+
+        self.last_run_result = result
+        if self.is_context_running:
+            self.switch_context_pause_and_run()
+
+        self._run_state = ApplicationRunContextStateEnum.STOP
+        if dispatch_event:
+            self.event_bus.dispatch_event(
+                ApplicationRunContextStateEventEnum.STOP, result
+            )
+        return result
+
     def start_running(self) -> bool:
         """
         开始运行。
@@ -274,29 +405,25 @@ class ApplicationRunContext:
             return False
 
         if self.ctx.controller.init_before_context_run():
+            self.last_run_result = None
             self._run_state = ApplicationRunContextStateEnum.RUNNING
             self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.START, self._run_state
             )
             return True
         else:
+            log.error("运行前初始化失败")
             return False
 
-    def stop_running(self):
+    def stop_running(self) -> ApplicationRunResult:
         """
         停止运行。
 
         将上下文状态设置为停止，如果正在运行则先暂停，然后发送停止事件。
+        已经停止时返回首次收口结果，不重复发送停止事件或覆盖结束原因。
         """
-        if self.is_context_stop:
-            return
-        if self.is_context_running:  # 先触发暂停 让执行中的指令停止
-            self.switch_context_pause_and_run()
-        self._run_state = ApplicationRunContextStateEnum.STOP
-        log.info("停止运行")
-        self.event_bus.dispatch_event(
-            ApplicationRunContextStateEventEnum.STOP, self._run_state
-        )
+        result = self._create_run_result(RunFinishReason.STOPPED)
+        return self._finish_running(result)
 
     def switch_context_pause_and_run(self):
         """
@@ -334,7 +461,7 @@ class ApplicationRunContext:
         instance_idx: int,
         group_id: str,
         init_timeout: int = 60,
-    ) -> bool:
+    ) -> ApplicationRunResult:
         """
         同步运行指定的应用。
 
@@ -347,44 +474,74 @@ class ApplicationRunContext:
             init_timeout: 等待初始化的超时时间(秒)
 
         Returns:
-            bool: 是否成功启动运行（不关心运行结果）
+            ApplicationRunResult: 应用运行结束结果。
         """
         start_time = time.time()
         while not self.ctx.ready_for_application:
             now = time.time()
             if now - start_time >= init_timeout:
-                log.error("等待应用 {} 初始化超时", app_id)
-                return False
+                log.error("等待应用 %s 初始化超时", app_id)
+                return self._create_run_result(
+                    RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
+                )
 
             time.sleep(1)
 
         if not self.is_app_registered(app_id):
-            log.error("应用 {} 未注册", app_id)
-            return False
+            log.error("应用 %s 未注册", app_id)
+            return self._create_run_result(
+                RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
+            )
 
         if not self.start_running():
-            return False
+            return self._create_run_result(
+                RunFinishReason.NOT_STARTED, app_id, instance_idx, group_id
+            )
 
-        app = self.get_application(app_id, instance_idx, group_id)
-        if app is None:
-            log.error("应用 {} 未注册", app_id)
-            return False
+        self.last_application_result = None
+        try:
+            app = self.get_application(app_id, instance_idx, group_id)
+        except Exception:
+            log.error("创建应用 %s 失败", app_id, exc_info=True)
+            return self._finish_running(
+                self._create_run_result(
+                    RunFinishReason.FAILED, app_id, instance_idx, group_id
+                )
+            )
 
+        finish_reason: RunFinishReason
         try:
             self.current_app_id = app_id
             self.current_instance_idx = instance_idx
             self.current_group_id = group_id
+            self.current_application = app
 
-            op_result = app.execute()
-        except Exception:
-            log.error("运行应用 {} 失败", app_id)
+            self.last_application_result = app.execute()
+            finish_reason = (
+                RunFinishReason.COMPLETED
+                if self.last_application_result.success
+                else RunFinishReason.FAILED
+            )
+        except Exception as e:
+            finish_reason = RunFinishReason.FAILED
+            log.error("运行应用 %s 失败", app_id, exc_info=True)
+            # 异常时固化失败终态，避免 last_application_result 留 None 被误判为成功。
+            self.last_application_result = OperationResult(
+                success=False, status=f'执行异常: {e}'
+            )
         finally:
-            self.stop_running()
+            if self.last_run_result is None:
+                run_result = self._finish_running(
+                    self._create_run_result(finish_reason)
+                )
+            else:
+                run_result = self.last_run_result
             self.current_app_id = None
             self.current_instance_idx = None
             self.current_group_id = None
+            self.current_application = None
 
-        return True
+        return run_result
 
     def run_application_async(
         self,
@@ -425,10 +582,20 @@ class ApplicationRunContext:
         Args:
             instance_idx: 账号实例下标
         """
-        for app_id in self._application_factory_map.keys():
-            try:
-                run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+        for app_id in self._application_factory_map:
+            run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+            if run_record is not None:
                 run_record.check_and_update_status()
-            except Exception:
-                # 部分应用没有运行记录 跳过即可
-                pass
+
+    def after_app_shutdown(self) -> None:
+        """
+        整个脚本运行结束后的清理
+
+        关闭应用运行上下文，包括停止当前运行任务、清除运行状态。
+        """
+        # 首先停止当前运行的应用，清除运行状态
+        if not self.is_context_stop:
+            self.stop_running()
+
+        # 关闭执行器
+        self._executor.shutdown(wait=False, cancel_futures=True)

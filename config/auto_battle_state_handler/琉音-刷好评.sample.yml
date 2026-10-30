@@ -1,0 +1,6 @@
+template_name: "琉音-刷好评"
+handlers:
+  - states: "![前台-琉音] & [后台-琉音] & ![自定义-失衡时间, -10, 12]"
+    debug_name: "并非连携时间"
+    sub_handlers:
+      - state_template: "琉音-好评套路"

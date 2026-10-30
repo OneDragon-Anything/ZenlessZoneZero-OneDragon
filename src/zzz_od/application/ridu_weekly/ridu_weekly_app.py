@@ -2,8 +2,8 @@ from cv2.typing import MatLike
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.ridu_weekly import ridu_weekly_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -12,13 +12,14 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class RiduWeeklyApp(ZApplication):
 
+    """丽都周纪:领取周纪的积分/奖励。周限、无体力消耗。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=ridu_weekly_const.APP_ID,
-            op_name=gt(ridu_weekly_const.APP_NAME),
-            need_notify=True,
+            op_name=ridu_weekly_const.APP_NAME,
         )
 
     @operation_node(name='返回大世界', is_start_node=True)
@@ -51,11 +52,12 @@ class RiduWeeklyApp(ZApplication):
                                                  color_range=[(250, 250, 250), (255, 255, 255)])
 
             if result.is_success:
-                return self.round_wait(result.status, wait=1)
+                return self.round_wait(result.status, wait=0.5)
 
-        return self.round_retry(result.status, wait=1)
+        return self.round_retry(result.status, wait=0.5)
 
     @node_from(from_name='领取积分', success=False)  # 没有100积分之后
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='领取奖励')
     def confirm_schedule(self) -> OperationRoundResult:
         return self.round_by_click_area('丽都周纪', '领取奖励',
@@ -64,7 +66,6 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='完成后返回')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

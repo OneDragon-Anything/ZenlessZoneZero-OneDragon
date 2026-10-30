@@ -1,16 +1,30 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton, PushButton
 import webbrowser
 
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QWidget
+from qfluentwidgets import (
+    FluentIcon,
+    PrimaryPushButton,
+    PushButton,
+    SettingCardGroup,
+    TitleLabel,
+)
+
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.envs.env_config import CpythonSourceEnum, EnvSourceEnum, ProxyTypeEnum, PipSourceEnum, RegionEnum, RepositoryTypeEnum
+from one_dragon.envs.env_config import ProxyTypeEnum
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
+from one_dragon_qt.widgets.resource_download_dialog import (
+    build_resource_source_options,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class SourceConfigInterface(VerticalScrollInterface):
@@ -48,7 +62,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         self.region_opt = ComboBoxSettingCard(
             icon=FluentIcon.GLOBE,
             title='地区选择',
-            options_enum=RegionEnum
+            options_list=self.ctx.repo_config.region_options
         )
         self.region_opt.value_changed.connect(self._on_region_changed)
 
@@ -79,38 +93,41 @@ class SourceConfigInterface(VerticalScrollInterface):
         # 源
         source_group = SettingCardGroup(gt('源'))
 
-        self.repository_type_opt = ComboBoxSettingCard(
+        self.repository_url_opt = ComboBoxSettingCard(
             icon=FluentIcon.CODE,
             title='代码仓库',
-            options_enum=RepositoryTypeEnum
+            content='自动模式优先使用上次成功源',
+            options_list=self.ctx.repo_config.repository_options,
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.repository_url_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
 
         self.env_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.CLOUD_DOWNLOAD,
             title='环境下载源',
-            options_enum=EnvSourceEnum
-        )
-
-        self.cpython_source_opt = ComboBoxSettingCard(
-            icon=FluentIcon.DOWNLOAD,
-            title='Python下载源',
-            options_enum=CpythonSourceEnum
+            options_list=self.ctx.repo_config.get_source_options('env_source'),
         )
 
         self.pip_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.APPLICATION,
             title='Pip源',
-            options_enum=PipSourceEnum
+            options_list=self.ctx.repo_config.get_source_options('pip_source'),
+        )
+
+        self.resource_source_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CLOUD,
+            title='资源下载源',
+            content='模型等资源的下载源 自动模式按系统语言推荐',
+            options_list=build_resource_source_options(self.ctx.env_config),
         )
 
         # 创建横向布局组件
-        first_row = HorizontalSettingCardGroup([self.repository_type_opt, self.cpython_source_opt])
+        first_row = HorizontalSettingCardGroup([self.repository_url_opt])
         second_row = HorizontalSettingCardGroup([self.env_source_opt, self.pip_source_opt])
 
         # 将横向布局组件添加到源组
         source_group.addSettingCard(first_row)
         source_group.addSettingCard(second_row)
+        source_group.addSettingCard(self.resource_source_opt)
         advanced_group.addSettingCard(source_group)
 
         # 网络代理设置
@@ -163,32 +180,23 @@ class SourceConfigInterface(VerticalScrollInterface):
 
         return links_widget
 
-    def _on_region_changed(self, index: int, value: str):
-        if index == 0:  # 中国 - Gitee
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITEE.value.value
-            self.ctx.env_config.env_source = EnvSourceEnum.GITEE.value.value
-            self.ctx.env_config.cpython_source = CpythonSourceEnum.GITEE.value.value
-            self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
-            self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-        elif index == 1:  # 中国 - GitHub 代理
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
-            self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
-            self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
-            self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
-            self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-        elif index == 2:  # 海外
-            self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
-            self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
-            self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
-            self.ctx.env_config.pip_source = PipSourceEnum.PYPI.value.value
-            self.ctx.env_config.proxy_type = ProxyTypeEnum.NONE.value.value
+    def _on_region_changed(self, _index: int, value: str):
+        region = self.ctx.repo_config.get_region_preset(value)
+        if region is None:
+            return
+
+        repository = self.ctx.repo_config.find_repository(region.repository_id)
+        if repository is not None:
+            self.ctx.env_config.repository_url = repository.url
+        for property_name, property_value in region.values.items():
+            self.ctx.env_config.update(property_name, property_value)
         self._init_config_values()
 
     def _init_config_values(self):
         """初始化配置值显示"""
-        self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
+        self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))
+        self.resource_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('resource_source'))
         self.env_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('env_source'))
-        self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.proxy_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('proxy_type'))
 
@@ -200,7 +208,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         if current_proxy_type == ProxyTypeEnum.PERSONAL.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
             self.proxy_url_input.titleLabel.setText(gt('个人代理地址'))
-            self.proxy_url_input.line_edit.setPlaceholderText('http://127.0.0.1:8080')
+            self.proxy_url_input.line_edit.setPlaceholderText('http://127.0.0.1:7890')
             self.proxy_url_input.setVisible(True)
         elif current_proxy_type == ProxyTypeEnum.GHPROXY.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
@@ -213,8 +221,6 @@ class SourceConfigInterface(VerticalScrollInterface):
     def _init_proxy(self):
         """初始化代理设置"""
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_interface_shown(self):
         VerticalScrollInterface.on_interface_shown(self)

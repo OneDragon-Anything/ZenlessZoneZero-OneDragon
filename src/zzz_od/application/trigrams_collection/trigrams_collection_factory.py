@@ -20,11 +20,7 @@ if TYPE_CHECKING:
 class TrigramsCollectionFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=trigrams_collection_const.APP_ID,
-            app_name=trigrams_collection_const.APP_NAME,
-        )
+        ApplicationFactory.__init__(self, trigrams_collection_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

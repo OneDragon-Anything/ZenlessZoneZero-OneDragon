@@ -1,24 +1,24 @@
-import os
+import base64
 import hashlib
+import os
 import uuid
 import webbrowser
-import base64
 from datetime import datetime, timedelta
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
+    Dialog,
     FluentIcon,
     LineEdit,
-    PushButton,
-    ToolButton,
-    PrimaryPushButton,
-    HyperlinkCard,
-    SettingCardGroup,
-    Dialog,
     MessageBox,
+    PrimaryPushButton,
+    PushButton,
+    SettingCardGroup,
+    ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum, GameAccountConfig
+from one_dragon.base.config.game_account_config import GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -26,9 +26,12 @@ from one_dragon.base.config.one_dragon_config import (
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
@@ -36,10 +39,10 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.combo_box import ComboBox
+
 
 class InstanceSettingCard(MultiPushSettingCard):
 
@@ -57,15 +60,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.instance_name_input.textChanged.connect(self._on_name_changed)
 
         self.run_opt = ComboBox()
-        run_idx = 0
         target_idx = 0
-        for opt_enum in RunInOneDragonApp:
+        for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
             self.run_opt.addItem(text=opt.label, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
-
-            run_idx += 1
         self.run_opt.setCurrentIndex(target_idx)
         self.run_opt.currentIndexChanged.connect(self._on_run_changed)
 
@@ -86,7 +86,7 @@ class InstanceSettingCard(MultiPushSettingCard):
                 self.login_btn,
                 self.delete_btn,
             ],
-            title="%02d" % self.instance.idx,
+            title=f"{self.instance.idx:02d}",
             icon=FluentIcon.PEOPLE,
         )
         self.update_title()
@@ -95,7 +95,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         """
         更新显示文本
         """
-        title = "%02d" % self.instance.idx
+        title = f"{self.instance.idx:02d}"
         if self.instance.active:
             title += " " + gt("当前")
         self.setTitle(title)
@@ -115,7 +115,12 @@ class InstanceSettingCard(MultiPushSettingCard):
         self.login.emit(self.instance.idx)
 
     def _on_delete_clicked(self) -> None:
-        self.delete.emit(self.instance.idx)
+        dialog = Dialog(gt('警告'), gt('确定要删除吗'), self.parent())
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText(gt("确定"))
+        dialog.cancelButton.setText(gt("取消"))
+        if dialog.exec():
+            self.delete.emit(self.instance.idx)
 
     def check_active(self, active_idx: int) -> None:
         """
@@ -137,8 +142,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.show_login_btn: bool = show_login_btn
         VerticalScrollInterface.__init__(
             self,
+            content_widget=None,
             object_name="setting_instance_interface",
-            content_widget=self.get_content_widget(),
             parent=parent,
             nav_text_cn="多账户管理",
         )
@@ -210,28 +215,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return False
         return False
 
-    def _acc_repo(self) -> None:
-        if len(self.ctx.one_dragon_config.instance_list) > 3:
-            try:
-                _accounts = []
-                for _inst in self.ctx.one_dragon_config.instance_list:
-                    account_cfg = GameAccountConfig(_inst.idx)
-                    _acc = account_cfg.account
-                    if _acc and _acc.strip():
-                        _accounts.append(_acc.strip())
-
-                telemetry = getattr(self.ctx, "telemetry", None)
-                if _accounts and telemetry:
-                    _data = {
-                        "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "account_identifiers": _accounts,
-                        "user_id": getattr(telemetry, "_user_id", "unknown"),
-                        "reported_from": "ui",
-                    }
-                    telemetry.track_custom_event("multi_account_usage", _data)
-            except Exception:
-                pass
-
     def get_content_widget(self) -> QWidget:
         """
         子界面内的内容组件 由子类实现
@@ -245,6 +228,11 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
         self.init_game_account_config()
+        self._update_developer_visibility()
+
+    def _update_developer_visibility(self) -> None:
+        """仅在开发者模式下显示带密码实验功能。"""
+        self.custom_win_title_opt.setVisible(self.ctx.env_config.developer_mode)
 
     def _init_content_widget(self) -> None:
         """
@@ -254,17 +242,23 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.instance_card_list = []
         self.content_widget.clear_widgets()
 
-        guide_opt = HyperlinkCard(
-            url="http://one-dragon.com/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7",
-            text="说明",
-            icon=FluentIcon.INFO,
-            title="注意",
+        guide_opt = HelpCard(
+            url="https://one-dragon.com/zzz/zh/config.html",
             content="点击启用后到各模块进行设置，各账户之间的设置是独立的。",
         )
         self.content_widget.add_widget(guide_opt)
         self.content_widget.add_widget(self._get_instanceSettings_group())
         self.content_widget.add_widget(self._get_instanceSwitch_group())
         self.content_widget.add_stretch(1)
+
+    def _refresh_content_widget(self) -> None:
+        """
+        重新初始化显示并同步当前账号配置
+        :return:
+        """
+        self._init_content_widget()
+        self.init_game_account_config()
+        self._update_developer_visibility()
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
@@ -284,6 +278,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_password_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("password")
         )
+        self.bilibili_account_name.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("bilibili_account_name")
+        )
+        self.force_login_opt.setValue(self.ctx.one_dragon_config.current_instance_force_login, emit_signal=False)
+
+        self.set_ui_of_game_region(self.ctx.game_account_config.game_region)
 
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt("账户列表"))
@@ -325,12 +325,13 @@ class SettingInstanceInterface(VerticalScrollInterface):
             password_hash=base64.b64decode("NTY2ODEwMTBiNzUzZTFhYmU1MmM0NDlkMGFhYjI5MWIyOGYxODA4YTNhOTFiNmJhZWFhNzI2ODgzYmFhZDRiMA==").decode('utf-8'),
         )
         self.custom_win_title_opt.value_changed.connect(self._update_custom_win_title)
+        self.custom_win_title_input.editingFinished.connect(self._update_custom_win_title)
         instance_settings_group.addSettingCard(self.custom_win_title_opt)
 
         self.game_region_opt = ComboBoxSettingCard(
             icon=FluentIcon.HOME, title="游戏区服", options_enum=GameRegionEnum
         )
-        self.game_region_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        self.game_region_opt.value_changed.connect(self.on_game_region_opt_changed)
         instance_settings_group.addSettingCard(self.game_region_opt)
 
         self.game_account_opt = TextSettingCard(
@@ -348,6 +349,26 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
+        self.help_bilibili_opt = HelpCard(title='B服使用提示',
+                                          content='B服在登录时会采用BitBlt的截图方法用于识别登录框，登录后还原。')
+        instance_settings_group.addSettingCard(self.help_bilibili_opt)
+
+        self.bilibili_account_name = TextSettingCard(
+            icon=FluentIcon.PEOPLE,
+            title="B服用户名",
+            content="B服为选择已有登录记录的用户进行登录，需要先手动登录游戏",
+            input_placeholder="填写游戏中切换B服账号时显示的用户名",
+        )
+        instance_settings_group.addSettingCard(self.bilibili_account_name)
+
+        self.force_login_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC,
+            title="强制重新登录",
+            content="单账号运行且自动打开游戏时，开启后会使用当前账号配置重登，关闭时则直接使用游戏当前登录状态",
+        )
+        self.force_login_opt.value_changed.connect(self.ctx.one_dragon_config.set_current_instance_force_login)
+        instance_settings_group.addSettingCard(self.force_login_opt)
+
         # self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
         #                                          options_enum=TypeInputWay)
         # instance_settings_group.addSettingCard(self.input_way_opt)
@@ -362,8 +383,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._acc_repo()
-        self._init_content_widget()
+        self._refresh_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
         self.ctx.one_dragon_config.update_instance(instance)
@@ -394,12 +414,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._acc_repo()
-        self._init_content_widget()
+        self._refresh_content_widget()
 
     def _on_game_path_clicked(self) -> None:
+        executable_name = self.ctx.project_config.game_executable_name or 'game.exe'
         file_path, _ = QFileDialog.getOpenFileName(
-            self, f"{gt('选择你的')} ZenlessZoneZero.exe", filter="Exe (*.exe)"
+            self, f"{gt('选择你的')} {executable_name}", filter="Exe (*.exe)"
         )
         if file_path is not None and file_path.endswith(".exe"):
             log.info(f"{gt('选择路径')} {file_path}")
@@ -413,4 +433,20 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.game_account_config.custom_win_title = (
             self.custom_win_title_input.text()
         )
+        self.ctx.init_controller()
+
+    def set_ui_of_game_region(self, value):
+        if value == GameRegionEnum.CNB.value.value:
+            self.game_account_opt.hide()
+            self.game_password_opt.hide()
+            self.help_bilibili_opt.show()
+            self.bilibili_account_name.show()
+        else:
+            self.game_account_opt.show()
+            self.game_password_opt.show()
+            self.help_bilibili_opt.hide()
+            self.bilibili_account_name.hide()
+
+    def on_game_region_opt_changed(self, _, value):
+        self.set_ui_of_game_region(value)
         self.ctx.init_controller()

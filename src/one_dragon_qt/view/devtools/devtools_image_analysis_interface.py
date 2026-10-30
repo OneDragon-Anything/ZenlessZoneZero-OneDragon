@@ -3,11 +3,32 @@ from functools import partial
 import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QApplication
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import (
-    ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
-    FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
-    ListWidget, SimpleCardWidget, SingleDirectionScrollArea
+    BodyLabel,
+    CheckBox,
+    ComboBox,
+    Dialog,
+    DoubleSpinBox,
+    FluentIcon,
+    InfoBar,
+    InfoBarPosition,
+    LineEdit,
+    ListWidget,
+    MessageBoxBase,
+    PlainTextEdit,
+    PushButton,
+    SimpleCardWidget,
+    SpinBox,
+    SubtitleLabel,
+    ToolButton,
 )
 
 from one_dragon.base.cv_process.cv_step import CvStep
@@ -16,6 +37,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.logic.image_analysis_logic import ImageAnalysisLogic
 from one_dragon_qt.widgets.color_channel_dialog import ColorChannelDialog
 from one_dragon_qt.widgets.color_tip import ColorTip
+from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
@@ -71,12 +93,14 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         self.open_btn.clicked.connect(self._on_open_image)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
         self.image_label.rect_selected.connect(self._on_image_rect_selected)
+        self.image_label.image_pasted.connect(self._on_image_pasted)
         self.del_btn.clicked.connect(self._on_delete_step)
         self.copy_btn.clicked.connect(self._on_copy_code_clicked)
         self.up_btn.clicked.connect(self._on_move_step_up)
         self.down_btn.clicked.connect(self._on_move_step_down)
         self.add_step_combo.currentIndexChanged.connect(self._on_add_step_by_combo)
         self.run_btn.clicked.connect(self._on_run_pipeline)
+        self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
         self.toggle_view_btn.clicked.connect(self._on_toggle_view)
         self.color_channel_btn.clicked.connect(self._on_color_channel_clicked)
         self.pipeline_list_widget.currentItemChanged.connect(self._on_pipeline_selection_changed)
@@ -114,7 +138,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         初始化左侧的控制面板 (容器B)，垂直布局
         """
         # 容器B，垂直布局
-        scroll_area = SingleDirectionScrollArea()
+        scroll_area = FastScrollArea()
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
@@ -139,8 +163,6 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         control_layout.addWidget(result_widget)
 
         scroll_area.setWidget(control_widget)
-        scroll_area.setWidgetResizable(True)
-
         return scroll_area
 
     def _init_display_panel(self) -> QWidget:
@@ -170,6 +192,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         layout.addStretch(1)
         self.open_btn = PushButton(text=gt('打开图片'), icon=FluentIcon.DOCUMENT)
         layout.addWidget(self.open_btn)
+        self.screenshot_btn = PushButton(text=gt('截图'), icon=FluentIcon.CAMERA)
+        layout.addWidget(self.screenshot_btn)
         self.toggle_view_btn = PushButton(text=gt('切换视图'))
         layout.addWidget(self.toggle_view_btn)
         self.run_btn = PushButton(text=gt('执行'), icon=FluentIcon.PLAY_SOLID)
@@ -342,7 +366,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         param_type = definition['type']
         label_text = definition.get('label', param_name)
-        tooltip_text = definition.get('tooltip', None)
+        tooltip_text = definition.get('tooltip')
 
         def _set_tooltip(widget: QWidget):
             if tooltip_text:
@@ -355,7 +379,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             component_labels = ['R', 'G', 'B'] if 'rgb' in param_name else ['H', 'S', 'V']
             current_value = step.params.get(param_name, definition.get('default', (0, 0, 0)))
 
-            if not isinstance(current_value, (list, tuple)):
+            if not isinstance(current_value, list | tuple):
                 current_value = definition.get('default', (0, 0, 0))
                 step.params[param_name] = current_value
 
@@ -650,15 +674,42 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         响应打开图片按钮
         """
         file_path, _ = QFileDialog.getOpenFileName(
-            self, gt('打开图片文件'), '', 'Image Files (*.png *.jpg *.bmp)'
+            self, gt('打开图片文件'), '', 'Image Files (*.png *.jpg *.jpeg *.bmp *.webp)'
         )
 
         if not file_path:
             return
 
-        if self.logic.load_image(file_path):
+        if self.logic.load_image_from_path(file_path):
             self._display_image(self.logic.get_display_image())
             self._update_toggle_button_text()
+
+    def _on_screenshot_clicked(self) -> None:
+        """
+        响应截图按钮
+        """
+        _, screen = self.ctx.controller.screenshot()
+        if screen is not None:
+            if self.logic.load_image_from_array(screen):
+                self._display_image(self.logic.get_display_image())
+                self._update_toggle_button_text()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """
+        通过拖放或粘贴加载图片后的回调
+        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        :return:
+        """
+        if isinstance(image_data, str):
+            # 文件路径，使用 logic 的加载方法
+            if self.logic.load_image_from_path(image_data):
+                self._display_image(self.logic.get_display_image())
+                self._update_toggle_button_text()
+        else:
+            # numpy 数组，直接设置到 context
+            if self.logic.load_image_from_array(image_data):
+                self._display_image(self.logic.get_display_image())
+                self._update_toggle_button_text()
 
     def _display_image(self, image_np: np.ndarray):
         """

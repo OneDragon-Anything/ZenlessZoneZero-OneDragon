@@ -31,7 +31,7 @@ class RegularProcurementPos:
 
 class SuibianTempleYumChaSin(ZOperation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, submit_only: bool = False):
         """
         随便观 - 饮茶仙
 
@@ -58,6 +58,8 @@ class SuibianTempleYumChaSin(ZOperation):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+        self.submit_only: bool = submit_only  # 只进行提交 不进行材料缺失的判断
+
         self.last_yum_cha_opt: str = ''  # 上一次饮茶仙的选项
         self.last_yum_cha_period: bool = False  # 饮茶仙是否点击过定期采购了
 
@@ -150,6 +152,9 @@ class SuibianTempleYumChaSin(ZOperation):
         """
         4. 遍历采办清单 选择其中一个
         """
+        if self.submit_only:
+            return self.round_success(status='跳过缺失材料判断')
+
         current_list = self.get_regular_procurement_pos(self.last_screenshot)
         for current_item in current_list:
             # 使用近似匹配 因为委托名称前的符合会被识别成随机文本
@@ -206,10 +211,11 @@ class SuibianTempleYumChaSin(ZOperation):
         """
         点击缺少的素材 (找红色的数字)
         """
+        cnt_area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             color_range=[[220, 70, 30], [230, 140, 110]],
-            rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量').rect,
+            rect=cnt_area.rect,
         )
         for ocr_result in ocr_result_list:
             digit = str_utils.get_positive_digits(ocr_result.data, err=None)
@@ -243,9 +249,10 @@ class SuibianTempleYumChaSin(ZOperation):
     @operation_node(name='前往制作')
     def goto_craft(self) -> OperationRoundResult:
         self.done_craft = False
+        name_area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料名称')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料名称').rect,
+            rect=name_area.rect,
         )
 
         # 记录已经处理的材料名称 后续可以减少相同材料的处理
@@ -332,6 +339,7 @@ class SuibianTempleYumChaSin(ZOperation):
 
     @node_from(from_name='定期采办提交', status='已达上限')
     @node_from(from_name='检查定期采办委托', success=False)
+    @node_from(from_name='检查定期采办委托', status='跳过缺失材料判断')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])

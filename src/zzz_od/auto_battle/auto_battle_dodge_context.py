@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import os
 import threading
-from concurrent.futures import ThreadPoolExecutor, Future
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
 from enum import Enum
-from typing import Optional, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import librosa
 import numpy as np
 from cv2.typing import MatLike
-from scipy.signal import correlate, butter, filtfilt
+from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
-from one_dragon.utils import cal_utils, yolo_config_utils
-from one_dragon.utils import thread_utils, os_utils
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
+from one_dragon.utils import cal_utils, os_utils, thread_utils, yolo_config_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.yolo.flash_classifier import FlashClassifier
@@ -32,9 +33,10 @@ class AudioRecorder:
     音频录制类，用于录制和处理音频数据。
     """
 
-    def __init__(self):
+    def __init__(self, error_callback: Callable[[RuntimeError], None] | None = None):
         self.running: bool = False  # 标记录制是否正在运行
         self._run_lock = threading.Lock()  # 用于线程安全的锁
+        self._error_callback: Callable[[RuntimeError], None] | None = error_callback
 
         self._sample_rate = 32000  # 采样率
         self._used_channel = 2  # 使用的音频通道数
@@ -77,26 +79,34 @@ class AudioRecorder:
         音频录制循环，持续录制音频数据。
         """
         # 这个在全局导入的话 会导致QT的选择文件无法使用
+        import warnings
+
         import soundcard as sc
         from soundcard.mediafoundation import SoundcardRuntimeWarning
-        import warnings
+
         warnings.filterwarnings('ignore', category=SoundcardRuntimeWarning)
 
-        _mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
-        _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+        try:
+            _mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
+            _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+            with _recorder as audio_recorder:
+                while self.running:
+                    stream_data = audio_recorder.record(numframes=self._chunk_size)
+                    if self._used_channel > 1:
+                        stream_data = librosa.to_mono(stream_data.T)
+                    else:
+                        stream_data = stream_data.T
 
-        with _recorder as audio_recorder:
-            while self.running:
-                stream_data = audio_recorder.record(numframes=self._chunk_size)
-                if self._used_channel > 1:
-                    stream_data = librosa.to_mono(stream_data.T)
-                else:
-                    stream_data = stream_data.T
-
-                with self._update_audio_lock:
-                    # 更新 latest_audio
-                    self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
-                    self.latest_audio[-len(stream_data):] = stream_data
+                    with self._update_audio_lock:
+                        # 更新 latest_audio
+                        self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
+                        self.latest_audio[-len(stream_data):] = stream_data
+        except RuntimeError as e:
+            log.warning('音频录制异常，已停止声音闪避识别', exc_info=True)
+            if self._error_callback is not None:
+                self._error_callback(e)
+        finally:
+            self.running = False
 
     def stop_running(self) -> None:
         """
@@ -129,16 +139,16 @@ class AutoBattleDodgeContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx  # 上下文对象
 
-        self._flash_model: Optional[FlashClassifier] = None  # 闪避分类器
-        self._audio_recorder: AudioRecorder = AudioRecorder()  # 音频录制器
-        self._audio_template: Optional[np.ndarray] = None  # 音频模板
+        self._flash_model: FlashClassifier | None = None  # 闪避分类器
+        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error)  # 音频录制器
+        self._audio_template: np.ndarray | None = None  # 音频模板
 
         # 识别锁，保证每种类型只有一个实例在进行识别
         self._check_dodge_flash_lock = threading.Lock()
         self._check_audio_lock = threading.Lock()
 
         # 识别间隔
-        self._check_dodge_interval: Union[float, List[float]] = 0
+        self._check_dodge_interval: float | list[float] = 0
         self._check_audio_interval: float = 0.02
 
         # 上一次识别的时间
@@ -148,6 +158,16 @@ class AutoBattleDodgeContext:
         # 音频事件去重时间间隔
         self._audio_event_interval: float = 0.1
         self._last_audio_event_time: float = 0
+
+    def _on_audio_record_error(self, error: RuntimeError) -> None:
+        """音频录制异常时通知当前运行界面。"""
+        self.ctx.dispatch_event(
+            ContextNotifyEvent.EVENT_ID,
+            ContextNotifyEvent.warning(
+                title='声音闪避已停用',
+                content=f'音频录制异常，请检查音频设备/独占模式/默认输出设备：{error}',
+            ),
+        )
 
     def init_auto_op(
             self,
@@ -159,9 +179,12 @@ class AutoBattleDodgeContext:
         self._check_dodge_interval = auto_op.check_dodge_interval
         self._check_audio_interval = 0.02
 
-        use_gpu = self.ctx.battle_assistant_config.use_gpu
+        use_gpu = self.ctx.model_config.flash_classifier_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
+                model_download_url=self.ctx.model_config.get_model_download_base_url(
+                    'flash_classifier',
+                ),
                 model_name=self.ctx.model_config.flash_classifier,
                 backup_model_name=self.ctx.model_config.flash_classifier_backup,
                 model_parent_dir_path=yolo_config_utils.get_model_category_dir('flash_classifier'),
@@ -200,7 +223,7 @@ class AutoBattleDodgeContext:
 
         log.info('加载声音模板完成')
 
-    def check_dodge_flash(self, screen: MatLike, screenshot_time: float, audio_future: Optional[Future[bool]] = None) -> bool:
+    def check_dodge_flash(self, screen: MatLike, screenshot_time: float, audio_future: Future[bool] | None = None) -> bool:
         """
         识别画面是否有闪光。
         :param screen: 屏幕截图
@@ -219,7 +242,7 @@ class AutoBattleDodgeContext:
             self._last_check_dodge_time = screenshot_time
 
             result = self._flash_model.run(screen)
-            state_name: Optional[str] = None
+            state_name: str | None = None
             if result.class_idx == 1:
                 state_name = YoloStateEventEnum.DODGE_RED.value
             elif result.class_idx == 2:

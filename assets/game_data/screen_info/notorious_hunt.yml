@@ -19,10 +19,10 @@ area_list:
 - area_name: 剩余次数
   id_mark: false
   pc_rect:
-  - 384
-  - 996
-  - 406
-  - 1025
+  - 1516
+  - 1018
+  - 1538
+  - 1043
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -341,6 +341,20 @@ area_list:
   lcs_percent: 0.5
   template_sub_dir: battle
   template_id: boss_life
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 深度追猎-信息
+  id_mark: false
+  pc_rect:
+  - 1480
+  - 675
+  - 1525
+  - 720
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: notorious_hunt
+  template_id: info
   template_match_threshold: 0.7
   color_range: null
   goto_list: []

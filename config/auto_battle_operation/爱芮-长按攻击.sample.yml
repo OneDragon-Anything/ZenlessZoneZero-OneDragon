@@ -1,0 +1,37 @@
+# 长按普攻：绝对音准，吸收应援能量，消耗2个可跳第三段
+# 蓄力期间抗打断+40%减伤+无敌，最长蓄力15秒
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 10
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1
+  - op_name: "按键-普通攻击-松开"

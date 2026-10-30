@@ -1,0 +1,8 @@
+sub_dir: compendium
+template_id: completed
+template_name: 快捷手册-日常奖励
+template_shape: circle
+auto_mask: true
+point_list:
+- 1567, 268
+- 1587, 268

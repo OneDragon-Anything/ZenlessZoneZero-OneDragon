@@ -1,12 +1,10 @@
-from typing import List
-
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.game_data.agent import DmgTypeEnum
 
 
 class ShiyuDefenseTeamConfig:
 
-    def __init__(self, team_idx: int, weakness_list: List[DmgTypeEnum], for_critical: bool = False):
+    def __init__(self, team_idx: int, weakness_list: list[DmgTypeEnum], for_critical: bool = False):
         """
         式舆防卫战的配队配置
         @param team_idx:
@@ -14,7 +12,7 @@ class ShiyuDefenseTeamConfig:
         """
         self.team_idx: int = team_idx
         self.for_critical: bool = for_critical  # 参与剧变节点
-        self.weakness_list: List[DmgTypeEnum] = weakness_list  # 应付弱点
+        self.weakness_list: list[DmgTypeEnum] = weakness_list  # 应付弱点
 
 
 class ShiyuDefenseConfig(ApplicationConfig):
@@ -27,7 +25,7 @@ class ShiyuDefenseConfig(ApplicationConfig):
             group_id=group_id,
         )
 
-        self.team_list: List[ShiyuDefenseTeamConfig] = []
+        self.team_list: list[ShiyuDefenseTeamConfig] = []
 
         self.init_team_list()
 

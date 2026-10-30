@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: remielle_floating_radiance_2_2
+template_name: 角色状态-蕾米埃尔-浮晖-22
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 618, 97
+- 659, 98

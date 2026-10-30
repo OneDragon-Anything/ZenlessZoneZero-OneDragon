@@ -3,17 +3,9 @@ handlers:
   - states: "[前台-简]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-简]"
     sub_handlers:
-      - states: "[自定义-异常-火, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-电, 0, 99]"
-        debug_name: "清除其他异常积蓄"
+      - states: "[自定义-终结技被强制释放, 0, 1]"
         operations:
-          - op_name: "清除状态"
-            state_list:
-              [
-                "自定义-异常-火",
-                "自定义-异常-冰",
-                "自定义-异常-烈霜",
-                "自定义-异常-电"
-              ]
+          - operation_template: "简-终结技"
 
       # 支援
       - states: "[自定义-黄光切人, 0, 1]"
@@ -21,8 +13,14 @@ handlers:
           - operation_template: "简-格挡攻击"
 
       - states: "[自定义-红光闪避, 0, 1]"
-        operations:
-          - operation_template: "简-闪A"
+        sub_handlers:
+          - states: "[自定义-简-萨霍夫跳合轴, -3, 0]"
+            debug_name: "萨霍夫跳中松开普攻"
+            operations:
+              - op_name: "按键-普通攻击-松开"
+          - states: ""
+            operations:
+              - operation_template: "简-闪A"
 
       # 连携
       - states: "[自定义-连携换人, 0, 0.5]"
@@ -30,31 +28,31 @@ handlers:
           - operation_template: "简-连携攻击"
 
       # 防呆
-      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+      - states: "([按键-切换角色-下一个, 0, 0.1]|[按键-切换角色-上一个, 0, 0.1])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.5]"
-            operations:
-              - op_name: "等待秒数"
-                seconds: 1.0
           - states: ""
             operations:
               - op_name: "等待秒数"
-                seconds: 0.3
-      # 终结技时刻，需要注意出场第一秒可能识别错误
-      - states: "[简-终结技可用] & !([按键-切换角色-下一个, 0, 1]|[按键-切换角色-上一个, 0, 1])"
+                seconds: 0.1
+
+      - states: "[简-终结技可用] & [自定义-失衡时间, 0, 10]"
         operations:
           - operation_template: "简-终结技"
 
-        # 当前狂热心流不足50%且萨霍夫可使用则使用萨霍夫
-      - states: "![简-狂热心流]{60, 101} & [简-萨霍夫跳]"
-        operations:
-          - operation_template: "简-长按A合轴"
-
       # 朴实无华
-      - states: "[简-特殊技可用]"
+      - states: "[简-特殊技可用] & [简-狂热心流]{40, 101}"
         operations:
           - operation_template: "简-强化特殊攻击"
+
+        # 当前狂热心流不足50%且萨霍夫可使用则使用萨霍夫
+      - states: "[简-狂热心流]{0, 50} & [简-萨霍夫跳]"
+        operations:
+          - operation_template: "简-萨霍夫跳合轴"
+
+      - states: "[简-终结技可用] & ![简-特殊技可用] & ![简-萨霍夫跳]"
+        operations:
+          - operation_template: "简-终结技"
 
       # 简6段a
       - states: ""

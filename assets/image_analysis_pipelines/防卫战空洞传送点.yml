@@ -1,0 +1,28 @@
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 125
+    - 200
+    - 100
+    hsv_diff:
+    - 10
+    - 80
+    - 50
+- step: 腐蚀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 5000
+    max_area: 99999
+    draw_contours: true

@@ -1,8 +1,8 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
     DriveDiscDismantleConfig,
@@ -17,13 +17,14 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class DriveDiscDismantleApp(ZApplication):
 
+    """驱动盘分解:按配置批量分解驱动盘。销毁道具(不可逆),务必核对配置。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=drive_disc_dismantle_const.APP_ID,
-            op_name=gt(drive_disc_dismantle_const.APP_NAME),
-            need_notify=True,
+            op_name=drive_disc_dismantle_const.APP_NAME,
         )
 
         self.config: DriveDiscDismantleConfig = self.ctx.run_context.get_config(
@@ -90,17 +91,33 @@ class DriveDiscDismantleApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击拆解确认')
+    @operation_node(name='确认获得')
+    def confirm_obtained(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(self.last_screenshot, '道具处理-获得', '按钮-确认',
+                                                 success_wait=1, retry_wait=1)
+
+    @node_from(from_name='确认获得')
+    @node_from(from_name='确认获得', success=False)
     @node_from(from_name='点击拆解确认', success=False)  # 可能没有需要拆解的
-    @operation_node(name='完成后返回')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
+    @operation_node(name='返回驱动仓库')  # issue #2701
+    def back_to_storage(self) -> OperationRoundResult:
+        result = self.round_by_find_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '标题-驱动盘拆解')
+        if not result.is_success:
+            return result
+        return self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回',
+                                                 success_wait=1, retry_wait=1)
+
+    @node_from(from_name='返回驱动仓库')
+    @operation_node(name='返回大世界')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = DriveDiscDismantleApp(ctx)
     app.execute()
 

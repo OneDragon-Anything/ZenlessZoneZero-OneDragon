@@ -1,0 +1,8 @@
+sub_dir: shiyu_defense
+template_id: critical_node
+template_name: 剧变节点5/5
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 539, 856
+- 631, 935

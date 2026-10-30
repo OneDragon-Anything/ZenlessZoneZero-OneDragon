@@ -1,0 +1,59 @@
+description: "首领专属交互：终结技被禁用期间按空格，禁用解除立即中断"
+
+# 用法：主脚本 scene 里用 triggers 触发「按键禁用-终结技」，handlers 里挂 state_template: "首领交互"
+# 具体是哪个首领，在本文件 handlers 里按 states 分支，新增首领在下面继续加分支
+
+handlers:
+  # 薇斯珀：按实测时间轴连按 5 次空格（按键-切换角色-下一个 默认绑定 space）
+  # 时间取自 20:17 那次实机录制：禁用开始后 2.646 / +1.460 / +1.294 / +1.706 / +1.812 秒
+  # 全部间隔用「等待秒数」，等待期间终结技禁用解除可立即中断
+  - states: "[首领-薇斯珀, 0, 999]"
+    interrupt_states: "![按键禁用-终结技, 0, 999]"
+    debug_name: "薇斯珀-首领交互"
+    operations:
+      - op_name: "等待秒数"
+        seconds: 2.846
+      - op_name: "按键-切换角色-下一个"
+      - op_name: "等待秒数"
+        seconds: 1.3
+      - op_name: "按键-切换角色-下一个"
+      - op_name: "等待秒数"
+        seconds: 1.3
+      - op_name: "按键-切换角色-下一个"
+      - op_name: "等待秒数"
+        seconds: 1.7
+      - op_name: "按键-切换角色-下一个"
+      - op_name: "等待秒数"
+        seconds: 1.8
+      - op_name: "按键-切换角色-下一个"
+      - op_name: "等待秒数"
+        seconds: 10
+
+  # 基塔布鲁：终结技被禁用后 3.5 秒闪避一次；普攻被禁用后每 1.2 秒切换一次，切 3 次
+  - states: "[首领-基塔布鲁, 0, 999]"
+    debug_name: "基塔布鲁-首领交互"
+    sub_handlers:
+      - states: "[按键禁用-普通攻击, 0, 999]"
+        interrupt_states: "![按键禁用-普通攻击, 0, 999]"
+        debug_name: "基塔布鲁-首领交互-切人"
+        operations:
+          - op_name: "等待秒数"
+            seconds: 0.8
+          - op_name: "按键-切换角色-下一个"
+          - op_name: "等待秒数"
+            seconds: 1.2
+          - op_name: "按键-切换角色-下一个"
+          - op_name: "等待秒数"
+            seconds: 1.4
+          - op_name: "按键-切换角色-下一个"
+          - op_name: "等待秒数"
+            seconds: 10
+      - states: "[按键禁用-终结技, 0, 999]"
+        interrupt_states: "[按键禁用-普通攻击, 0, 999]"
+        debug_name: "基塔布鲁-首领交互-闪避"
+        operations:
+          - op_name: "等待秒数"
+            seconds: 3.5
+          - op_name: "按键-闪避"
+          - op_name: "等待秒数"
+            seconds: 10

@@ -487,7 +487,9 @@ class WitheredDomainContext:
         result_agent_list: List[Optional[Agent]] = []
         future_list: List[Future] = []
 
-        for img in area_img:
+        for i in range(len(area_img)):
+            img = area_img[i]
+            rect = check_agent_area[i].rect
             future_list.append(_withered_domain_context_executor.submit(self._match_agent_in, img, possible_agents))
 
         any_not_none: bool = False

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.notify import notify_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -11,12 +11,14 @@ from zzz_od.context.zzz_context import ZContext
 
 class NotifyApp(ZApplication):
 
+    """通知服务:应用运行结果通知发送(非玩法,无消耗)。"""
+
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
             ctx,
             notify_const.APP_ID,
-            op_name=gt(notify_const.APP_NAME),
+            op_name=notify_const.APP_NAME,
             need_check_game_win=True,
         )
 
@@ -31,6 +33,7 @@ class NotifyApp(ZApplication):
         message = self.format_message()
 
         self.ctx.push_service.push(
+            title=self.ctx.notify_config.title,
             content=message,
             image=self.last_screenshot
         )
@@ -44,10 +47,11 @@ class NotifyApp(ZApplication):
     def format_message(self) -> str:
         success = []
         failure = []
+        charge_power_text = None
 
         group_config = self.ctx.app_group_manager.get_one_dragon_group_config(instance_idx=self.ctx.current_instance_idx)
         for app_config in group_config.app_list:
-            run_record = self.ctx.run_context.get_run_record(
+            run_record: AppRunRecord = self.ctx.run_context.get_run_record(
                 app_id=app_config.app_id,
                 instance_idx=self.ctx.current_instance_idx
             )
@@ -55,29 +59,37 @@ class NotifyApp(ZApplication):
                 continue
             if not self.is_within_time(run_record.run_time):
                 continue
+            if isinstance(run_record, ChargePlanRunRecord):
+                charge_power = run_record.get_estimated_charge_power()
+                if charge_power >= 0:
+                    charge_power_text = (
+                        f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
+                    )
             if run_record.run_status_under_now == AppRunRecord.STATUS_SUCCESS:
                 success.append(app_config.app_name)
             if run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
                 failure.append(app_config.app_name)
                 self.exist_failure = True
 
-        parts = [f"一条龙运行完成："]
+        parts = ["一条龙运行完成："]
+        if charge_power_text is not None:
+            parts.append(charge_power_text)
         has_failure = bool(failure)
         has_success = bool(success)
 
         if has_failure:
             parts.append(f"❌ 失败指令：{', '.join(failure)}")
         elif has_success:
-            parts.append(f"全部成功✅")
+            parts.append("全部成功✅")
 
         if has_success:
             parts.append(f"✅ 成功指令：{', '.join(success)}")
         elif not has_failure:
-            parts.append(f"全部失败❌")
+            parts.append("全部失败❌")
 
         return "\n".join(parts)
 
-    def is_within_time(self, time_str) -> bool:
+    def is_within_time(self, time_str: str) -> bool:
         end_time = datetime.now()
         try:
             # 解析输入的时间字符串，格式为月-日 时:分
@@ -97,11 +109,8 @@ class NotifyApp(ZApplication):
                 continue
 
         start_time = end_time - timedelta(hours=3)
-        for candidate in candidates:
-            # 检查候选时间是否在最近三小时内且不超过当前时间
-            if start_time <= candidate <= end_time:
-                return True
-        return False
+        # 检查候选时间是否在最近三小时内且不超过当前时间
+        return any(start_time <= candidate <= end_time for candidate in candidates)
 
 
 def __debug():

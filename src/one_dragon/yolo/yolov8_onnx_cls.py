@@ -122,7 +122,7 @@ class Yolov8Classifier(OnnxModelLoader):
         :param input_tensor: 输入模型的图片 RGB通道
         :return: onnx模型推理得到的结果
         """
-        outputs = self.session.run(self.output_names, {self.input_names[0]: input_tensor})
+        outputs = self.run_session(self.output_names, {self.input_names[0]: input_tensor})
         return outputs
 
     def process_output(self, output, context: RunContext) -> ClassificationResult:

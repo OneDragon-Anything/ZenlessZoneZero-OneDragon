@@ -4,12 +4,16 @@ from typing import ClassVar
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
-from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import WitheredDomainConfig
-from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
+    WitheredDomainConfig,
+)
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import (
+    WitheredDomainRunRecord,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
@@ -23,6 +27,8 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class WitheredDomainApp(ZApplication):
 
+    """枯萎之都:零号空洞-枯萎之都副本,周限 rogue 玩法(与迷失之地共享每周奖励次数)。消耗周次数、进入战斗、耗时较长。"""
+
     STATUS_IN_HOLLOW: ClassVar[str] = '在空洞内'
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
     STATUS_TIMES_FINISHED: ClassVar[str] = '已完成基本次数'
@@ -33,8 +39,7 @@ class WitheredDomainApp(ZApplication):
             self,
             ctx=ctx,
             app_id=withered_domain_const.APP_ID,
-            op_name=gt(withered_domain_const.APP_NAME),
-            need_notify=True,
+            op_name=withered_domain_const.APP_NAME,
         )
         self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
@@ -65,7 +70,7 @@ class WitheredDomainApp(ZApplication):
     @operation_node(name='初始画面识别', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
         event_name = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, set())
-
+        # 特殊兼容：已在副本内，接力运行（层信息忽略）
         if (event_name is not None
                 and event_name not in [
                     HollowZeroSpecialEvent.OLD_CAPITAL.value.event_name,  # 旧都失物是左上角的返回符合 有较多地方存在 不适合这里判断
@@ -74,30 +79,45 @@ class WitheredDomainApp(ZApplication):
             self.phase = -1
             return self.round_success(WitheredDomainApp.STATUS_IN_HOLLOW)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        screen_name, _ = self.check_screen_with_can_go(self.last_screenshot, '零号空洞-入口')
+        # 特殊兼容：在入口区域开始，接力运行
+        if screen_name == '零号空洞-入口':
+            return self.round_success('零号空洞-入口')
 
-        if result.is_success:
-            return self.round_success(result.status)
-        else:
-            return self.round_retry(result.status, wait=1)
+        # 未识别到画面；走快捷手册传送流程
+        can_go = self.check_current_can_go('快捷手册-作战')
+        if can_go:
+            return self.round_success('可前往快捷手册')
 
-    @node_from(from_name='初始画面识别', success=False)
-    @node_from(from_name='初始画面识别', status='信息')
-    @operation_node(name='传送')
+        return self.round_success('未识别初始画面', wait=1)
+
+    @node_from(from_name='初始画面识别', status='可前往快捷手册')
+    @node_from(from_name='初始画面识别', status='未识别初始画面')
+    @operation_node(name='前往零号空洞-入口')
     def tp(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,
                                    '作战',
-                                   '零号空洞',
-                                   '枯萎之都')
+                                   '周期征讨',
+                                   '迷失之地')
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='传送')
+    @node_from(from_name='前往零号空洞-入口')
+    @node_from(from_name='初始画面识别', status='零号空洞-入口')
     @node_from(from_name='自动运行')
-    @operation_node(name='等待入口加载', node_max_retry_times=20)
-    def wait_entry_loading(self) -> OperationRoundResult:
-        return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
+    @operation_node(name='前往枯萎之都-入口', node_max_retry_times=20)
+    def choose_withered_domain_entry(self) -> OperationRoundResult:
+        """前往枯萎之都入口"""
+        entry_result = self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区')
+        if entry_result.is_success:
+            return self.round_success('已进入枯萎之都-入口')
 
-    @node_from(from_name='等待入口加载')
+        result = self.round_by_ocr_and_click(self.last_screenshot, '枯萎之都')
+        if result.is_success:
+            return self.round_retry('尝试进入枯萎之都-入口', wait=1)
+
+        return self.round_retry(result.status, wait=1)
+
+    @node_from(from_name='前往枯萎之都-入口')
     @operation_node(name='选择副本类型')
     def choose_mission_type(self) -> OperationRoundResult:
         if (self.run_record.is_finished_by_week()
@@ -169,16 +189,16 @@ class WitheredDomainApp(ZApplication):
         return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
 
     @node_from(from_name='完成后等待加载')
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='完成')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     op = WitheredDomainApp(ctx)
     op.execute()
 

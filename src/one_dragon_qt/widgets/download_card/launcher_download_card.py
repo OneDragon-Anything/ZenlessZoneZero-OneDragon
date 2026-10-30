@@ -1,8 +1,6 @@
-import os
 from contextlib import suppress
-from packaging import version
-from pathlib import Path
 
+from packaging import version
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
@@ -10,16 +8,16 @@ from qfluentwidgets import FluentIcon, FluentThemeColor
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
-from one_dragon.envs.env_config import DEFAULT_ENV_PATH
-from one_dragon.utils import app_utils, os_utils
+from one_dragon.envs.update_service import LauncherType, UpdateService
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.download_queue_service import (
+    ResourceDownloadTask,
+    ResourceDownloadTaskState,
+)
 from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
-
-LAUNCHER_EXE_NAME = 'OneDragon-Launcher.exe'
-LAUNCHER_BACKUP_NAME = LAUNCHER_EXE_NAME + '.bak'
 
 
 class LauncherVersionChecker(QThread):
@@ -34,75 +32,73 @@ class LauncherVersionChecker(QThread):
     """
     check_finished = Signal(str, str, str)
 
-    def __init__(self, ctx: OneDragonEnvContext):
+    def __init__(self, update_service: UpdateService, launcher_type: LauncherType) -> None:
         super().__init__()
-        self.ctx = ctx
+        self.update_service: UpdateService = update_service
+        self.launcher_type: LauncherType = launcher_type
 
-    def run(self):
-        # 检查当前版本
-        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
-        if launcher_path.exists():
-            current_version = app_utils.get_launcher_version()
-        else:
-            current_version = ""
-
-        # 检查最新版本
-        latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
-
-        self.check_finished.emit(
-            current_version,
-            latest_stable,
-            latest_beta,
-        )
+    def run(self) -> None:
+        try:
+            current_version, latest_stable, latest_beta = (
+                self.update_service.get_launcher_version_info(self.launcher_type)
+            )
+        except Exception:
+            # 检查失败也要发出信号 否则界面会永远停在检查中且按钮不可用
+            log.error('获取启动器版本信息失败', exc_info=True)
+            current_version, latest_stable, latest_beta = '', '', ''
+        self.check_finished.emit(current_version, latest_stable, latest_beta)
 
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
 
-    def __init__(self, ctx: OneDragonEnvContext):
+    def __init__(self, ctx: OneDragonEnvContext) -> None:
         self.ctx: OneDragonEnvContext = ctx
-        self.version_checker = LauncherVersionChecker(ctx)
+        # 只处理当前正在运行的启动器类型 另一种类型不提供下载入口
+        self._launcher_type: LauncherType = (
+            ctx.update_service.detect_running_launcher_type() or 'launcher'
+        )
+        self.version_checker = LauncherVersionChecker(ctx.update_service, self._launcher_type)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.target_version = "latest"
         self.current_version: str | None = None
         self.latest_stable: str | None = None
         self.latest_beta: str | None = None
 
+        launcher_title = (
+            gt('集成启动器')
+            if self._launcher_type == 'runtime'
+            else gt('原始启动器')
+        )
         ZipDownloaderSettingCard.__init__(
             self,
             ctx=ctx,
             icon=FluentIcon.INFO,
-            title=gt('启动器'),
+            title=launcher_title,
             content=gt('检查中...'),
         )
 
-        # 设置下拉框选项：稳定版和测试版
+        # 通道选项：稳定版 / 测试版
         self.set_options_by_list([
             ConfigItem('稳定版', 'stable'),
             ConfigItem('测试版', 'beta')
         ])
 
-    def _get_downloader_param(self, _idx = None) -> CommonDownloaderParam:
-        """
-        动态生成下载器参数
-        :return: CommonDownloaderParam
-        """
-        zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
-        launcher_path = os.path.join(os_utils.get_work_dir(), LAUNCHER_EXE_NAME)
-
-        base = (
-            'latest/download'
-            if self.target_version == 'latest'
-            else f'download/{self.target_version}'
+    def _get_downloader_param(self, _idx: int | None = None) -> CommonDownloaderParam:
+        return self.ctx.update_service.get_launcher_download_param(
+            self._launcher_type,
+            self.target_version,
         )
-        download_url = f'{self.ctx.project_config.github_homepage}/releases/{base}/{zip_file_name}'
 
-        return CommonDownloaderParam(
-            save_file_path=DEFAULT_ENV_PATH,
-            save_file_name=zip_file_name,
-            github_release_download_url=download_url,
-            check_existed_list=[launcher_path],
-            unzip_dir_path=os_utils.get_work_dir()
-        )
+    def _on_queue_task_changed(self, task: ResourceDownloadTask) -> None:
+        """启动器更新成功后重新读取已安装版本。"""
+        if (
+            task.task_key == self._queue_task_key
+            and task.state == ResourceDownloadTaskState.SUCCEEDED
+        ):
+            self.current_version = None
+            self.latest_stable = None
+            self.latest_beta = None
+        super()._on_queue_task_changed(task)
 
     def _on_version_check_finished(self, current_version: str, latest_stable: str, latest_beta: str) -> None:
         """
@@ -137,12 +133,18 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 根据下拉框选择的通道决定目标版本
         selected_channel = self.combo_box.currentData()
         if selected_channel == 'stable':
-            # 稳定版通道
-            self.target_version = self.latest_stable or 'latest'
+            # 稳定版通道 远端标签获取失败时保持当前已安装版本
+            self.target_version = self.latest_stable or self.current_version or 'latest'
         else:
-            # 测试版通道：优先测试版，其次稳定版，最后兜底
-            self.target_version = self.latest_beta or self.latest_stable or 'latest'
+            # 测试版通道：优先测试版，其次稳定版，再保持当前版本
+            self.target_version = (
+                self.latest_beta
+                or self.latest_stable
+                or self.current_version
+                or 'latest'
+            )
 
+        self._refresh_queue_task_key()
         self._update_downloader_and_runner()
 
         # 更新UI显示
@@ -177,6 +179,11 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         重写父类方法以实现启动器特有的逻辑
         :return:
         """
+        if self.download_queue is not None and self._apply_queue_display_state():
+            self.combo_box.setEnabled(True)
+            self.cancel_btn.setVisible(False)
+            return
+
         # 检查是否正在下载
         is_running = self.download_runner is not None and self.download_runner.isRunning()
 
@@ -259,98 +266,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 设置为稳定版（包括未安装、未检查或稳定版的情况）
             self.combo_box.setCurrentIndex(0)
 
-    def _on_download_click(self) -> None:
-        """
-        下载前的准备工作：备份旧启动器文件并删除遗留文件
-        :return:
-        """
-        # 备份需要更新的启动器文件
-        self._swap_launcher_and_backup(backup=True)
-
-        # 删除旧版本遗留的文件
-        self._delete_legacy_files()
-
-        # 调用父类方法执行下载
-        ZipDownloaderSettingCard._on_download_click(self)
-
-    def _swap_launcher_and_backup(self, backup: bool) -> None:
-        """
-        在启动器文件和备份文件之间进行交换
-        :param backup: True=备份，False=回滚
-        """
-        work_dir = Path(os_utils.get_work_dir())
-        launcher_path = work_dir / LAUNCHER_EXE_NAME
-        backup_path = work_dir / LAUNCHER_BACKUP_NAME
-        src, dst, action = (
-            (launcher_path, backup_path, '备份')
-            if backup else
-            (backup_path, launcher_path, '回滚')
-        )
-
-        if not src.exists():
-            return  # 没有可操作文件，直接返回
-
-        try:
-            # 仅在备份时需要清理旧备份
-            if backup and dst.exists():
-                dst.unlink()
-            os.replace(str(src), str(dst))
-            log.info(f'{action}文件: {src.name} -> {dst.name}')
-        except Exception as e:
-            log.error(f'{action}文件失败 {src.name}: {e}')
-
-    def _delete_legacy_files(self) -> None:
-        """
-        删除旧版本遗留的文件
-        :return:
-        """
-        work_dir = os_utils.get_work_dir()
-        legacy_files = [
-            'OneDragon Installer.exe',
-            'OneDragon Launcher.exe',
-            'OneDragon Scheduler.exe'
-        ]
-
-        for legacy_file in legacy_files:
-            legacy_path = Path(work_dir) / legacy_file
-            if legacy_path.exists():
-                try:
-                    legacy_path.unlink()
-                    log.info(f'删除旧版本遗留文件: {legacy_file}')
-                except Exception as e:
-                    log.error(f'删除旧版本遗留文件失败 {legacy_file}: {e}')
-
-    def _cleanup_backup_launcher(self) -> None:
-        """
-        删除备份的启动器文件
-        :return:
-        """
-        work_dir = os_utils.get_work_dir()
-        backup_path = Path(work_dir) / LAUNCHER_BACKUP_NAME
-
-        if backup_path.exists():
-            try:
-                backup_path.unlink()
-                log.info(f'删除备份文件: {LAUNCHER_BACKUP_NAME}')
-            except Exception as e:
-                log.error(f'删除备份文件失败 {LAUNCHER_BACKUP_NAME}: {e}')
-
     def _on_download_finish(self, success: bool, message: str) -> None:
-        """
-        下载完成后处理备份：成功则删除备份，失败则回滚
-        :param success: 是否成功
-        :param message: 消息
-        :return:
-        """
-        if success:
-            # 下载成功，删除备份文件
-            self._cleanup_backup_launcher()
-
-            # 使用后台线程更新版本号
-            if not self.version_checker.isRunning():
-                self.version_checker.start()
-        else:
-            # 下载失败，回滚到备份文件
-            self._swap_launcher_and_backup(backup=False)
+        """下载完成后重新检查版本。"""
+        if success and not self.version_checker.isRunning():
+            self.version_checker.start()
 
         ZipDownloaderSettingCard._on_download_finish(self, success, message)

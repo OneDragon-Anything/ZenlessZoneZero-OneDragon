@@ -1,0 +1,60 @@
+idx: 5
+op_list:
+- data:
+  - '1225'
+  - '660'
+  op_type: move
+- data:
+  - '1225'
+  - '727'
+  op_type: move
+- data:
+  - '1200'
+  - '752'
+  op_type: move
+- data:
+  - '1199'
+  - '776'
+  op_type: move
+- data:
+  - '1208'
+  - '857'
+  op_type: move
+- data:
+  - '1203'
+  - '930'
+  op_type: move
+- data:
+  - '1199'
+  - '994'
+  op_type: move
+- data:
+  - '1198'
+  - '1028'
+  op_type: move
+- data:
+  - '1204'
+  - '1150'
+  op_type: move
+- data:
+  - '1203'
+  - '1182'
+  op_type: move
+- data:
+  - '1198'
+  - '1227'
+  op_type: move
+- data:
+  - '1145'
+  - '1224'
+  op_type: move
+- data:
+  - '1118'
+  - '1232'
+  op_type: move
+- data:
+  - '1038'
+  - '1218'
+  op_type: move
+tp_area_id: former_research_center
+tp_name: 一楼广场

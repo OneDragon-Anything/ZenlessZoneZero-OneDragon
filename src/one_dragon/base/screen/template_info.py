@@ -594,9 +594,15 @@ def is_template_existed(sub_dir: str, template_id: str, need_raw: bool = True, n
     template_dir = get_template_dir_path(sub_dir, template_id)
     if not os.path.exists(template_dir) or not os.path.isdir(template_dir):
         return False
-    if need_raw and not os.path.exists(os.path.join(template_dir, TEMPLATE_RAW_FILE_NAME)):
+    # raw.png / mask.png / config.yml 三者至少有一个
+    has_raw = os.path.exists(os.path.join(template_dir, TEMPLATE_RAW_FILE_NAME))
+    has_mask = os.path.exists(os.path.join(template_dir, TEMPLATE_MASK_FILE_NAME))
+    has_config = os.path.exists(os.path.join(template_dir, TEMPLATE_CONFIG_FILE_NAME))
+    if not has_raw and not has_mask and not has_config:
         return False
-    if need_config and not os.path.exists(os.path.join(template_dir, TEMPLATE_CONFIG_FILE_NAME)):
+    if need_raw and not has_raw:
+        return False
+    if need_config and not has_config:
         return False
     return True
 

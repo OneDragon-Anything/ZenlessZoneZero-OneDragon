@@ -4,11 +4,10 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon.utils import os_utils
+from one_dragon.envs.repo_config import RepoConfig
+from one_dragon.utils import i18_utils, os_utils
 
 DEFAULT_ENV_PATH = os_utils.get_path_under_work_dir('.install')
-DEFAULT_GIT_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'MinGit')  # 默认的git文件夹路径
-DEFAULT_GIT_PATH = os.path.join(DEFAULT_GIT_DIR_PATH, 'cmd', 'git.exe')  # 默认的git.exe文件路径
 DEFAULT_UV_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'uv')  # 默认的uv文件夹路径
 DEFAULT_UV_PATH = os.path.join(DEFAULT_UV_DIR_PATH, 'uv.exe')  # 默认的uv.exe文件路径
 DEFAULT_PYTHON_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'python')  # 默认的python文件夹路径
@@ -26,70 +25,25 @@ class ProxyTypeEnum(Enum):
     GHPROXY = ConfigItem('GitHub 代理', 'ghproxy')
 
 
-class RepositoryTypeEnum(Enum):
+class GitRemoteEnum(Enum):
 
-    GITHUB = ConfigItem('GitHub')
-    GITEE = ConfigItem('Gitee')
-
-
-class RegionEnum(Enum):
-
-    CHINA_GITEE = ConfigItem('中国 - Gitee', 'china_gitee')
-    CHINA_GHPROXY = ConfigItem('中国 - GitHub 代理', 'china_ghproxy')
-    OVERSEA = ConfigItem('海外', 'oversea')
+    ORIGIN = ConfigItem('origin')
+    UPSTREAM = ConfigItem('upstream')
 
 
-class GitMethodEnum(Enum):
+class ScreenshotMethodEnum(Enum):
 
-    HTTPS = ConfigItem('https')
-    SSH = ConfigItem('ssh')
-
-
-class PipSourceEnum(Enum):
-
-    PYPI = ConfigItem('官方', 'https://pypi.org/simple')
-    TSING_HUA = ConfigItem('清华大学', 'https://pypi.tuna.tsinghua.edu.cn/simple')
-    ALIBABA = ConfigItem('阿里云', 'https://mirrors.aliyun.com/pypi/simple')
-
-
-class GitBranchEnum(Enum):
-
-    MAIN = ConfigItem('主分支', 'main', desc='选择后请点击同步最新代码')
-    TEST = ConfigItem('测试分支', 'test', desc='选择后请点击同步最新代码')
-
-
-class CpythonSourceEnum(Enum):
-
-    GITHUB = ConfigItem('GitHub', 'https://github.com/astral-sh/python-build-standalone/releases/download')
-    GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/python-build-standalone/releases/download')
-
-
-class EnvSourceEnum(Enum):
-
-    GITHUB = ConfigItem('GitHub', 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download')
-    GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
+    AUTO = ConfigItem('自动', 'auto')
+    PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
+    BITBLT = ConfigItem('BitBlt', 'bitblt')
+    PIL = ConfigItem('PIL', 'pil')
 
 
 class EnvConfig(YamlConfig):
 
-    def __init__(self):
+    def __init__(self, repo_config: RepoConfig) -> None:
         YamlConfig.__init__(self, module_name='env')
-
-    @property
-    def git_path(self) -> str:
-        """
-        :return: git的路径
-        """
-        return self.get('git_path', '')
-
-    @git_path.setter
-    def git_path(self, new_value: str) -> None:
-        """
-        更新 git的路径 正常不需要调用
-        :param new_value:
-        :return:
-        """
-        self.update('git_path', new_value)
+        self.repo_config: RepoConfig = repo_config
 
     @property
     def uv_path(self) -> str:
@@ -135,7 +89,7 @@ class EnvConfig(YamlConfig):
         代理类型
         :return:
         """
-        return self.get('proxy_type', ProxyTypeEnum.GHPROXY.value.value)
+        return self.get('proxy_type', ProxyTypeEnum.NONE.value.value)
 
     @proxy_type.setter
     def proxy_type(self, new_value: str) -> None:
@@ -170,32 +124,84 @@ class EnvConfig(YamlConfig):
         self.update('personal_proxy', new_value)
 
     @property
-    def repository_type(self) -> str:
-        """
-        仓库类型 GitHub / Gitee
-        :return:
-        """
-        return self.get('repository_type', RepositoryTypeEnum.GITEE.value.value)
+    def repository_url(self) -> str:
+        """代码源选择，自动模式由 GitService 记录并优先使用上次成功源。"""
+        value = self.get('repository_url', RepoConfig.AUTO_REPOSITORY_VALUE)
+        return value if isinstance(value, str) and value else RepoConfig.AUTO_REPOSITORY_VALUE
 
-    @repository_type.setter
-    def repository_type(self, new_value: str) -> None:
-        """
-        仓库类型 GitHub / Gitee
-        :return:
-        """
-        self.update('repository_type', new_value)
+    @repository_url.setter
+    def repository_url(self, new_value: str) -> None:
+        """更新代码源选择。"""
+        self.update('repository_url', new_value)
 
     @property
-    def git_method(self) -> str:
-        """
-        git使用https还是ssh
-        :return:
-        """
-        return self.get('git_method', GitMethodEnum.HTTPS.value.value)
+    def last_repository_url(self) -> str:
+        """最近一次成功 fetch 使用的原始仓库 URL。"""
+        return self.get('last_repository_url', '')
 
-    @git_method.setter
-    def git_method(self, new_value: str) -> None:
-        self.update('git_method', new_value)
+    @last_repository_url.setter
+    def last_repository_url(self, new_value: str) -> None:
+        """记录最近一次成功 fetch 使用的原始仓库 URL。"""
+        self.update('last_repository_url', new_value)
+
+    @property
+    def resource_source(self) -> str:
+        """资源release下载源选择 自动模式按 上次成功源>语言推荐>其余源 的顺序尝试。"""
+        value = self.get('resource_source', RepoConfig.AUTO_RESOURCE_SOURCE_VALUE)
+        return value if isinstance(value, str) and value else RepoConfig.AUTO_RESOURCE_SOURCE_VALUE
+
+    @resource_source.setter
+    def resource_source(self, new_value: str) -> None:
+        """更新资源release下载源选择。"""
+        self.update('resource_source', new_value)
+
+    @property
+    def last_resource_source(self) -> str:
+        """最近一次资源下载成功使用的源 ID。"""
+        return self.get('last_resource_source', '')
+
+    @last_resource_source.setter
+    def last_resource_source(self, new_value: str) -> None:
+        """记录最近一次资源下载成功使用的源 ID。"""
+        self.update('last_resource_source', new_value)
+
+    def get_resource_source_order(self) -> list[str]:
+        """获取资源下载的候选源顺序 用户指定>上次成功>语言推荐>其余。"""
+        return self.repo_config.get_resource_source_candidates(
+            user_choice=self.resource_source,
+            last_success=self.last_resource_source,
+            language=i18_utils.get_default_lang(),
+        )
+
+    def mark_resource_source_success(self, source_id: str) -> None:
+        """记录本次资源下载成功使用的源。"""
+        self.last_resource_source = source_id
+
+    @property
+    def is_resource_source_auto(self) -> bool:
+        """是否由下载器自动选择资源源。"""
+        return self.resource_source == RepoConfig.AUTO_RESOURCE_SOURCE_VALUE
+
+    def mark_resource_source_failure(self, source_id: str) -> None:
+        """自动模式下使已经失效的上次成功源不再保持首选。"""
+        if (
+            self.is_resource_source_auto
+            and self.last_resource_source == source_id
+        ):
+            self.last_resource_source = ''
+
+    def get_recommended_resource_source(self) -> str | None:
+        """获取按当前语言推荐的资源下载源 ID。"""
+        return self.repo_config.get_recommended_resource_source(i18_utils.get_default_lang())
+
+    @property
+    def resource_download_no_confirm(self) -> bool:
+        """自动下载资源前是否不再弹窗确认。"""
+        return self.get('resource_download_no_confirm', False)
+
+    @resource_download_no_confirm.setter
+    def resource_download_no_confirm(self, new_value: bool) -> None:
+        self.update('resource_download_no_confirm', new_value)
 
     @property
     def force_update(self) -> bool:
@@ -214,32 +220,16 @@ class EnvConfig(YamlConfig):
         self.update('force_update', new_value)
 
     @property
-    def auto_update(self) -> bool:
+    def auto_update_code(self) -> bool:
         """
         自动更新
         :return:
         """
-        return self.get('auto_update', True)
+        return self.get('auto_update_code', True)
 
-    @auto_update.setter
-    def auto_update(self, new_value: bool) -> None:
-        self.update('auto_update', new_value)
-
-    @property
-    def cpython_source(self) -> str:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        return self.get('cpython_source', CpythonSourceEnum.GITEE.value.value)
-
-    @cpython_source.setter
-    def cpython_source(self, new_value: str) -> None:
-        """
-        cpython-build-standalone 源
-        :return:
-        """
-        self.update('cpython_source', new_value)
+    @auto_update_code.setter
+    def auto_update_code(self, new_value: bool) -> None:
+        self.update('auto_update_code', new_value)
 
     @property
     def pip_source(self) -> str:
@@ -247,7 +237,7 @@ class EnvConfig(YamlConfig):
         pip源
         :return:
         """
-        return self.get('pip_source', PipSourceEnum.ALIBABA.value.value)
+        return self.get('pip_source', self.repo_config.get_source_default('pip_source'))
 
     @pip_source.setter
     def pip_source(self, new_value: str) -> None:
@@ -263,7 +253,7 @@ class EnvConfig(YamlConfig):
         环境下载源
         :return:
         """
-        return self.get('env_source', EnvSourceEnum.GITEE.value.value)
+        return self.get('env_source', self.repo_config.get_source_default('env_source'))
 
     @env_source.setter
     def env_source(self, new_value: str) -> None:
@@ -282,12 +272,28 @@ class EnvConfig(YamlConfig):
         return urllib.parse.urlparse(self.pip_source).netloc
 
     @property
+    def git_remote(self) -> str:
+        """
+        远程
+        :return:
+        """
+        return self.get('git_remote', GitRemoteEnum.ORIGIN.value.value)
+
+    @git_remote.setter
+    def git_remote(self, new_value: str) -> None:
+        """
+        远程
+        :return:
+        """
+        self.update('git_remote', new_value)
+
+    @property
     def git_branch(self) -> str:
         """
         分支
         :return:
         """
-        return self.get('git_branch', GitBranchEnum.MAIN.value.value)
+        return self.get('git_branch', self.repo_config.primary_branch)
 
     @git_branch.setter
     def git_branch(self, new_value: str) -> None:
@@ -368,6 +374,16 @@ class EnvConfig(YamlConfig):
         self.update('is_debug', new_value)
 
     @property
+    def developer_mode(self) -> bool:
+        """是否显示开发者和实验功能入口。"""
+        return self.get('developer_mode', False)
+
+    @developer_mode.setter
+    def developer_mode(self, new_value: bool) -> None:
+        """更新开发者模式可见性配置。"""
+        self.update('developer_mode', new_value)
+
+    @property
     def copy_screenshot(self) -> bool:
         """
         截图后是否复制到剪贴板
@@ -382,6 +398,17 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('copy_screenshot', new_value)
+
+    @property
+    def screenshot_method(self) -> str:
+        """
+        截图方法
+        """
+        return self.get('screenshot_method', ScreenshotMethodEnum.AUTO.value.value)
+
+    @screenshot_method.setter
+    def screenshot_method(self, new_value: str) -> None:
+        self.update('screenshot_method', new_value)
 
     @property
     def key_start_running(self) -> str:
@@ -467,15 +494,3 @@ class EnvConfig(YamlConfig):
         else:
             os.environ['HTTP_PROXY'] = ""
             os.environ['HTTPS_PROXY'] = ""
-
-    @property
-    def ocr_cache(self) -> bool:
-        """
-        Returns:
-            是否启用OCR缓存
-        """
-        return self.get('ocr_cache', False)
-
-    @ocr_cache.setter
-    def ocr_cache(self, new_value: bool) -> None:
-        self.update('ocr_cache', new_value, save=True)

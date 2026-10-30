@@ -18,11 +18,7 @@ if TYPE_CHECKING:
 class ChargePlanAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=charge_plan_const.APP_ID,
-            app_name=charge_plan_const.APP_NAME,
-        )
+        ApplicationFactory.__init__(self, charge_plan_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

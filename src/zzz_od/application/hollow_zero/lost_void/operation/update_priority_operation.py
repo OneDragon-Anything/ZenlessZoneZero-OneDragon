@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -14,24 +13,52 @@ class UpdatePriorityOperation(ZOperation):
     def __init__(self, ctx: ZContext):
         super().__init__(ctx, op_name='更新动态优先级')
 
-    @operation_node(name='打开菜单', is_start_node=True)
-    def open_menu(self) -> OperationRoundResult:
+    @staticmethod
+    def _extract_priority_category_from_text(text: str) -> str | None:
         """
-        点击TAB按钮打开菜单
+        从藏品名称文本中提取动态优先级分类。
+        规则：形如 [a:b]xxx / 【a:b】xxx / [a：b]xxx 时，取 a 作为优先级分类。
+        例如：[防护：斗盾]霸气驰援 -> 防护
         """
-        return self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB',
-                                                 success_wait=1, retry_wait=1)
+        if len(text) == 0:
+            return None
 
-    @node_from(from_name='打开菜单')
-    @operation_node(name='切换到藏品')
-    def switch_to_collections(self) -> OperationRoundResult:
-        """
-        点击藏品标签页
-        """
-        return self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品',
-                                                 success_wait=1, retry_wait=1)
+        match = re.search(r'[\[【]\s*([^:\]】：]+)\s*[:：]', text)
+        if match is None:
+            return None
 
-    @node_from(from_name='切换到藏品')
+        category = match.group(1).strip()
+        return category if len(category) > 0 else None
+
+    def _append_dynamic_priorities(self, new_priorities: list[str]) -> None:
+        """
+        增量更新动态优先级。
+        已识别到的优先级需要保留，避免后续页面可见内容变少时把旧结果覆盖掉。
+        """
+        merged_priorities = self.ctx.lost_void.dynamic_priority_list.copy()
+        for priority in new_priorities:
+            if priority in merged_priorities:
+                continue
+            merged_priorities.append(priority)
+
+        self.ctx.lost_void.dynamic_priority_list = merged_priorities
+
+    @operation_node(name='进入藏品页面')
+    def enter_collections(self) -> OperationRoundResult:
+        # 1: 打开菜单
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
+
+        # 2: 切换到藏品页
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品')
+        if result.is_success:
+            return self.round_success(status=result.status, wait=1)
+
+        # 失败了就让框架从打开菜单开始重试整个节点 因为有可能会出现菜单按钮点到了但实际没打开的情况
+        return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='进入藏品页面')
     @operation_node(name='识别并存储优先级')
     def recognize_and_store(self) -> OperationRoundResult:
         """
@@ -42,8 +69,7 @@ class UpdatePriorityOperation(ZOperation):
         pipeline_result = self.ctx.cv_service.run_pipeline('迷失之地-藏品类型识别', self.last_screenshot)
 
         if not pipeline_result.ocr_result:
-            log.info("流水线未识别到任何藏品，动态优先级设置为空")
-            self.ctx.lost_void.dynamic_priority_list = []
+            log.info('流水线未识别到任何藏品，保留现有动态优先级')
             return self.round_success("未发现需优先的藏品")
 
         all_match_results_with_text = []
@@ -62,12 +88,12 @@ class UpdatePriorityOperation(ZOperation):
                 level_blocks.append(block)
 
         if not level_blocks:
-            log.info("未识别到任何等级1或等级2的藏品")
-            self.ctx.lost_void.dynamic_priority_list = []
+            log.info('未识别到任何等级1或等级2的藏品，保留现有动态优先级')
             return self.round_success("未发现需优先的藏品")
 
         # 3. 为每个“等级X”找到其上方的藏品名称
-        new_priorities = set()
+        # 使用列表保持 OCR 遍历的空间顺序，避免 set 导致的顺序不稳定
+        new_priorities: list[str] = []
         for level_block in level_blocks:
             best_candidate = None
             min_distance = float('inf')
@@ -91,17 +117,17 @@ class UpdatePriorityOperation(ZOperation):
                     best_candidate = potential_name_block
 
             if best_candidate:
-                # 4. 匹配并提取category
-                artifact = self.ctx.lost_void.match_artifact_by_ocr_full(best_candidate.text)
-                # 5. 判断是否为“武备”
-                if artifact and artifact.is_gear:
-                    log.info(f"发现低等级【武备】: {artifact.display_name}，添加优先级: {artifact.category}")
-                    new_priorities.add(artifact.category)
-                elif artifact:
-                    log.debug(f"发现低等级【非武备】藏品: {artifact.display_name}，已忽略")
+                # 4. 直接按 [a:b] 中的 a 提取动态优先级分类
+                priority_category = self._extract_priority_category_from_text(best_candidate.text)
+                if priority_category is not None:
+                    log.info(f'发现低等级藏品: {best_candidate.text}，添加优先级: {priority_category}')
+                    if priority_category not in new_priorities:
+                        new_priorities.append(priority_category)
+                else:
+                    log.debug(f'低等级藏品未能提取优先级: {best_candidate.text}')
 
         # 6. 存储最终结果
-        self.ctx.lost_void.dynamic_priority_list = list(new_priorities)
+        self._append_dynamic_priorities(new_priorities)
         log.debug(f"动态优先级列表已更新: {self.ctx.lost_void.dynamic_priority_list}")
         return self.round_success("动态优先级存储成功")
 
@@ -114,3 +140,16 @@ class UpdatePriorityOperation(ZOperation):
         return self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='返回按钮',
                                                  success_wait=1, retry_wait=1,
                                                  until_not_find_all=[('迷失之地-藏品面板', '返回按钮')])
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.lost_void.init_before_run()
+    ctx.run_context.start_running()
+    op = UpdatePriorityOperation(ctx)
+    op.execute()
+    ctx.run_context.stop_running()
+
+
+if __name__ == '__main__':
+    __debug()

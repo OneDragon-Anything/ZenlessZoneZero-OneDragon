@@ -9,7 +9,9 @@ from zzz_od.application.devtools.screenshot_helper import screenshot_helper_cons
 from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app import (
     ScreenshotHelperApp,
 )
-from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
+from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import (
+    ScreenshotHelperConfig,
+)
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -18,11 +20,7 @@ if TYPE_CHECKING:
 class ScreenshotHelperAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=screenshot_helper_const.APP_ID,
-            app_name=screenshot_helper_const.APP_NAME,
-        )
+        ApplicationFactory.__init__(self, screenshot_helper_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
