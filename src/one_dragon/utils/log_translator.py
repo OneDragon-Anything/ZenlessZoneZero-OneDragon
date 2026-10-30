@@ -83,6 +83,7 @@ def translate_log_text(text: str) -> str:
         return _translate_body(text)
 
 def _translate_body(body: str) -> str:
+    """翻译日志正文 依次尝试 gettext 整句翻译、正则模板替换、关键词替换"""
     # 1. Try i18n gettext lookup first if available
     try:
         from one_dragon.utils import i18_utils

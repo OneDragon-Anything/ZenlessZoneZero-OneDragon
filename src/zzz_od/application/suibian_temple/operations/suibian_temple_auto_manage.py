@@ -22,6 +22,7 @@ class SuibianTempleAutoManage(ZOperation):
 
     @operation_node(name='检查并停止托管', is_start_node=True)
     def check_and_stop_hosting(self) -> OperationRoundResult:
+        """检查托管状态 依次点击停止托管、领取收益等按钮 直到出现 开始托管"""
         target_cn_list = [
             '停止托管',
             '开始托管',

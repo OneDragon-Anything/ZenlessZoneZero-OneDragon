@@ -35,6 +35,7 @@ class GamepadActionKeyCard(MultiPushSettingCard, AdapterInitMixin):
         margins: Margins = Margins(16, 16, 0, 16),
         parent: QWidget = None,
     ) -> None:
+        """初始化手柄动作按键卡片 包含修饰键与按键两个下拉框"""
         self.modifier_combo = ComboBox()
         self.modifier_combo.addItem(gt('无'), userData='')
         for item in modifier_enum:

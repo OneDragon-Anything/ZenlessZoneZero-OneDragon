@@ -826,6 +826,7 @@ class OverlayManager(QObject):
         return items
 
     def _latest_dodge_state_text(self) -> str:
+        """返回最近 2 秒内最新触发的闪避识别状态名称 没有时返回 -"""
         candidates = ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
         latest_name = "-"
         latest_time = 0.0

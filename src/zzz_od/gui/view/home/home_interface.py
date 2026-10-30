@@ -560,6 +560,7 @@ class HomeInterface(BaseInterface):
         bar.show()
 
     def _refresh_ready_state(self) -> None:
+        """执行运行前检查 并刷新启动按钮的图标和文本"""
         issues = check_pre_flight(self.ctx)
         self._ready = len(issues) == 0
         self._apply_button_icon()

@@ -77,6 +77,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         return self.app_run_list
 
     def get_widget_at_top(self) -> QWidget:
+        """构建顶部的运行设置区域"""
         top = Column()
 
         run_group = SettingCardGroup(gt('运行设置'))

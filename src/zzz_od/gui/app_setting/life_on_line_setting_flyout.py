@@ -41,6 +41,7 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
         layout.addWidget(self.team_opt)
 
     def init_config(self) -> None:
+        """加载当前实例的配置与运行记录 并刷新界面"""
         config = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,

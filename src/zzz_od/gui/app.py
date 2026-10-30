@@ -46,6 +46,7 @@ try:
             self.ctx = ctx
 
         def run(self):
+            """获取启动器版本、代码版本与启动器类型 并通过 get 信号返回"""
             launcher_version = app_utils.get_launcher_version()
             code_version = self.ctx.git_service.get_current_version()
 

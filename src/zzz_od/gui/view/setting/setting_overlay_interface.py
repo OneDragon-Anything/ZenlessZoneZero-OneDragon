@@ -307,6 +307,7 @@ class SettingOverlayInterface(VerticalScrollInterface):
         return group
 
     def _init_perf_group(self) -> SettingCardGroup:
+        """构建性能指标设置分组 每个指标一个开关"""
         group = SettingCardGroup(gt("性能指标"))
         self.perf_metric_cards: dict[str, SwitchSettingCard] = {}
         for title, metric_key in self._PERF_CORE_METRICS:

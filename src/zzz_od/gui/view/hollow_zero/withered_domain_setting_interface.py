@@ -162,6 +162,7 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.extra_exit_opt.init_with_adapter(get_prop_adapter(self.config, 'extra_exit'))
 
     def _update_run_record_display(self) -> None:
+        """刷新运行记录文本"""
         if self.run_record.period_reward_complete:
             content = '已完成刷取周期性奖励 如错误可重置'
         elif self.run_record.no_eval_point:

@@ -52,6 +52,7 @@ class InstanceSettingCard(MultiPushSettingCard):
     delete = Signal(int)
 
     def __init__(self, instance: OneDragonInstance):
+        """初始化实例设置卡片的名称、运行方式与操作按钮"""
         self.instance: OneDragonInstance = instance
 
         self.instance_name_input = LineEdit()

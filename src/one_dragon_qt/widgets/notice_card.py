@@ -486,6 +486,7 @@ class NoticeCard(SimpleCardWidget):
                 })
 
     def setup_ui(self):
+        """构建公告卡片界面 左侧为 Banner"""
         # 创建左右布局容器
         content_widget = QWidget()
         h_layout = QHBoxLayout(content_widget)

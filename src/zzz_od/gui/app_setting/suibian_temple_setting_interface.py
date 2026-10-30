@@ -44,6 +44,7 @@ class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.config: SuibianTempleConfig | None = None
 
     def get_content_widget(self) -> QWidget:
+        """构建随便观设置页面内容"""
         content_widget = Column()
 
         self.auto_manage_switch = SwitchSettingCard(

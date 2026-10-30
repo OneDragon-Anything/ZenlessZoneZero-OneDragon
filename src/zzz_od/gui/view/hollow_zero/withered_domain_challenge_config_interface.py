@@ -388,6 +388,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         self._update_pathfinding_input_display()
 
     def _update_error_message(self, msg: str) -> None:
+        """显示错误信息 内容为空时隐藏"""
         if msg is None or len(msg) == 0:
             self.error_message.setVisible(False)
         else:

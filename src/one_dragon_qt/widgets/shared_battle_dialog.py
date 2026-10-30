@@ -48,6 +48,7 @@ class SharedConfigDialog(FramelessDialog):
         self.load_local_configs()  # 加载本地配置文件
 
     def init_ui(self):
+        """构建在线配置弹窗界面 包含搜索栏和配置表格"""
         self.widget = SimpleCardWidget()
         layout = QVBoxLayout(self.widget)
 

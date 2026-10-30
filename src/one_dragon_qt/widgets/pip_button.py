@@ -10,6 +10,7 @@ class PipButton(NavigationToggleButton):
     """画中画导航按钮，封装画中画模式的全部开关逻辑。"""
 
     def __init__(self, ctx: OneDragonContext, parent=None) -> None:
+        """初始化画中画按钮 配置为开启时自动恢复画中画"""
         self.ctx = ctx
         self._manager: PipModeManager | None = None
 

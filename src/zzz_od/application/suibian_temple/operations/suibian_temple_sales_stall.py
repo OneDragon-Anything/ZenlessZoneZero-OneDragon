@@ -33,6 +33,7 @@ class SuibianTempleSalesStall(ZOperation):
 
     @operation_node(name='前往售卖铺', is_start_node=True)
     def goto_sales_stall(self) -> OperationRoundResult:
+        """前往售卖铺画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-售卖铺'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)

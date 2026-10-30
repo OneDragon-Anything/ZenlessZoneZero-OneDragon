@@ -151,6 +151,7 @@ class LostVoidSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.weekly_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'weekly_plan_times'))
 
     def _update_run_record_display(self) -> None:
+        """刷新运行记录文本 并按额外任务显示或隐藏每周计划次数"""
         if self.run_record.bounty_commission_complete:
             content = '已完成悬赏委托 如错误可重置'
         elif self.run_record.period_reward_complete:

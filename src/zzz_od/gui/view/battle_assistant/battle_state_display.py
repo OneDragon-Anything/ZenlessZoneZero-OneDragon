@@ -194,6 +194,7 @@ class BattleStateDisplay(QWidget):
 class TaskDisplay(TableWidget):
 
     def __init__(self, ctx: ZContext, parent=None):
+        """初始化自动战斗任务信息表格"""
         TableWidget.__init__(self, parent=parent)
 
         self.ctx: ZContext = ctx
@@ -239,6 +240,7 @@ class TaskDisplay(TableWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
+        """刷新表格中的触发器、条件集与持续时间 自动战斗未运行时显示 /"""
         auto_op = self.ctx.auto_battle_context.auto_op
         if auto_op is None or not auto_op.is_running:
             data = [

@@ -43,6 +43,7 @@ class SuibianTempleCraft(ZOperation):
 
     @operation_node(name='前往制造', is_start_node=True)
     def goto_craft(self) -> OperationRoundResult:
+        """前往制造坊画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-制造坊'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)

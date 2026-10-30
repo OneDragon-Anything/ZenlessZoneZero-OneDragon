@@ -339,6 +339,7 @@ class BattleAssistantInterface(AppRunInterface):
         w.exec()
 
     def _on_background_mode_changed(self, value: bool) -> None:
+        """切换后台模式 未安装虚拟手柄驱动时还原开关并提示"""
         if value and not pc_button_utils.is_vgamepad_installed():
             self.background_mode_opt.setValue(False, emit_signal=False)
             if self.background_mode_opt.adapter is not None:

@@ -568,6 +568,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.update_plan_list_display()
 
     def _on_remove_all_completed_clicked(self) -> None:
+        """确认后删除所有已完成的体力计划 删除前先备份"""
         dialog = Dialog(gt('警告'), gt('是否删除所有已完成的体力计划？'), self)
         dialog.setTitleBarVisible(False)
         dialog.yesButton.setText(gt('确定'))
@@ -582,6 +583,7 @@ class ChargePlanInterface(VerticalScrollInterface, GroupIdMixin):
         self.update_plan_list_display()
 
     def _on_remove_all_clicked(self) -> None:
+        """确认后删除所有体力计划 删除前先备份"""
         dialog = Dialog(gt('警告'), gt('是否删除所有体力计划？'), self)
         dialog.setTitleBarVisible(False)
         dialog.yesButton.setText(gt('确定'))

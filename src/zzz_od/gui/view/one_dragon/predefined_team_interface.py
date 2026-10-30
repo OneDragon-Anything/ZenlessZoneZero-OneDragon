@@ -103,6 +103,7 @@ class TeamSettingCard(SettingCardBase):
         v_layout.addLayout(row2)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
+        """用编队信息初始化卡片 编队名称保持游戏内原文 不翻译"""
         self.team_info = team
 
         if not self.only_agents:

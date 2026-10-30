@@ -21,6 +21,7 @@ class LikeInterface(VerticalScrollInterface):
         self.ctx: OneDragonEnvContext = ctx
 
     def get_content_widget(self) -> QWidget:
+        """构建页面内容"""
         # 主容器
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)

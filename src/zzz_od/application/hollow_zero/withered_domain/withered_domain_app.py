@@ -62,6 +62,7 @@ class WitheredDomainApp(ZApplication):
         self.phase: int = 1
 
     def handle_init(self):
+        """运行前初始化 从配置解析副本名称与副本类型 未配置时使用 枯败花圃-核心"""
         self.ctx.withered_domain.init_before_run()
         mission_name = self.config.mission_name if self.config is not None else None
         if not mission_name:
@@ -127,6 +128,7 @@ class WitheredDomainApp(ZApplication):
     @node_from(from_name='前往枯萎之都-入口')
     @operation_node(name='选择副本类型')
     def choose_mission_type(self) -> OperationRoundResult:
+        """选择副本类型 已完成本周或本日次数时直接结束 出现 下一步 时进入下一步节点"""
         if (self.run_record.is_finished_by_week()
             or self.run_record.is_finished_by_day()):
             return self.round_success(WitheredDomainApp.STATUS_TIMES_FINISHED)
@@ -143,6 +145,7 @@ class WitheredDomainApp(ZApplication):
     @node_from(from_name='选择副本类型')
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
+        """按配置的副本名称及其备选名称选择副本"""
         area = self.ctx.screen_loader.get_area('零号空洞-入口', '副本列表')
         target_list = [self.mission_name]
         if '-' in self.mission_name:

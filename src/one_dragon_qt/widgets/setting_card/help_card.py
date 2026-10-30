@@ -9,6 +9,7 @@ class HelpCard(HyperlinkCard):
                  title: str = '使用说明',
                  content: str = '先看说明 再使用与提问',
                  parent=None):
+        """初始化帮助卡片 没有链接时隐藏跳转按钮"""
         super().__init__(url, gt(text), FluentIcon.HELP, gt(title), gt(content), parent)
         self.setFixedHeight(50)
         if not url:

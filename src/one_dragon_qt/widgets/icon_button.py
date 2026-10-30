@@ -22,6 +22,7 @@ class IconButton(TransparentToolButton):
 
     @__init__.register
     def _(self, icon: str | QIcon | FluentIconBase, parent=None):
+        """使用图标和工具提示文本初始化按钮"""
         self.__init__(parent)
         self.setIcon(icon)
 

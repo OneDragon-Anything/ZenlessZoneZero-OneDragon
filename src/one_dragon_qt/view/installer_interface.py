@@ -44,6 +44,7 @@ _COMPLETED_KEYWORDS = ['已安装', '已同步', '已配置', '代码已同步',
 
 
 def _contains_any(message: str, keywords: list[str]) -> bool:
+    """判断消息是否包含任一关键词的原文或译文"""
     return any(keyword in message or gt(keyword) in message for keyword in keywords)
 
 
@@ -256,6 +257,7 @@ class InstallStepWidget(QWidget):
             self.update_status_from_cards()
 
     def update_status_from_cards(self):
+        """根据各安装卡片的状态文本 更新当前步骤的完成状态与提示"""
         if not self.install_cards:
             return
 

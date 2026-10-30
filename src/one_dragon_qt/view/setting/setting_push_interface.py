@@ -58,6 +58,7 @@ class PushTestRunner(QThread):
         self._push_func: Callable[[], tuple[bool, str]] = push_func
 
     def run(self) -> None:
+        """执行测试推送 并通过 push_done 信号返回结果"""
         try:
             ok, msg = self._push_func()
         except Exception as e:
@@ -83,6 +84,7 @@ class SettingPushInterface(VerticalScrollInterface):
         self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
+        """构建推送设置页面内容"""
         content_widget = Column()
 
         self.help_opt = HelpCard(

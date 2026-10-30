@@ -36,6 +36,7 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                  tooltip: Optional[str] = None,
                  parent=None
                  ):
+        """初始化可编辑下拉框设置卡片 选项可来自枚举或列表"""
 
         SettingCardBase.__init__(
             self,

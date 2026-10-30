@@ -74,6 +74,7 @@ class PluginCard(MultiPushSettingCard):
         on_open_homepage: Callable[[PluginInfo], None],
         parent: QWidget | None = None,
     ) -> None:
+        """初始化插件卡片 有主页链接时显示主页按钮"""
         self.plugin_info: PluginInfo = plugin_info
         self.on_delete_callback: Callable[[PluginInfo], None] = on_delete
         self.on_open_homepage_callback: Callable[[PluginInfo], None] = on_open_homepage

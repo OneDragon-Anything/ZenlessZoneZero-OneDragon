@@ -341,6 +341,7 @@ class ResizablePanel(QFrame):
         self.appearance_changed.emit(self._panel_name, self._font_size, self._panel_opacity)
 
     def _sync_toolbar_state(self) -> None:
+        """按当前的编辑、停靠、字号等状态刷新工具栏文本与按钮"""
         if hasattr(self, "_status_label"):
             mode_text = "EDIT" if self._edit_mode else "PASS"
             dock_text = "FREE" if self._free_mode else "LOCK"

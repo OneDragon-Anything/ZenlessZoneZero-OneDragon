@@ -480,6 +480,7 @@ class PythonCodeEditorDialog(BaseCodeEditorDialog):
 
     def __init__(self, parent=None, title: str = "Python 脚本编辑器",
                  initial_code: str = "", script_path: str = ""):
+        """初始化 Python 脚本编辑弹窗 传入脚本路径时增加外部编辑按钮"""
         self._script_path = script_path
         super().__init__(parent=parent, title=title,
                          placeholder=gt("# 输入 Python 脚本"),

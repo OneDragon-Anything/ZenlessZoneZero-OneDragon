@@ -19,6 +19,7 @@ def detect_language():
 
 
 def _init_default_lang() -> str:
+    """从 custom.yml 读取默认界面语言 未配置或读取失败时按系统语言决定"""
     try:
         custom_path = os.path.join(os_utils.get_work_dir(), 'config', 'custom.yml')
         if not os.path.exists(custom_path):
@@ -38,6 +39,7 @@ def _init_default_lang() -> str:
 
 
 def _init_default_game_lang() -> str:
+    """从 game_account.yml 读取默认游戏语言 未配置或读取失败时使用中文"""
     try:
         work_dir = os_utils.get_work_dir()
         account_path = os.path.join(work_dir, 'config', '01', 'game_account.yml')
@@ -88,6 +90,7 @@ def get_translations(model: str, lang: str):
 
 
 def gt(msg: str | None, model: str = 'ui', lang: str | None = None) -> str:
+    """翻译文本 model 为 game / ocr 时使用游戏语言 其余使用界面语言 lang 可指定语言"""
     if msg is None or len(msg) == 0:
         return ''
     if lang is None:
