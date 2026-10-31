@@ -319,8 +319,6 @@ class ChoosePredefinedTeam(ZOperation):
                 team_slot_rect,
             )
             if selected_button_mr is None:
-                screenshot_file = self.save_screenshot(prefix='no_select')
-                log.error('当前编队未找到SELECT 相关截图保存至 %s', screenshot_file)
                 return self.round_fail(f'当前编队未找到SELECT {target_team.name}')
             log.info('预备编队取消预选:队伍:%s', target_team.name)
             self.ctx.controller.click(selected_button_mr.center)
