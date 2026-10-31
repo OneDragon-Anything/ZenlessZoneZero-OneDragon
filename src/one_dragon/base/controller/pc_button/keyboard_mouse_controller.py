@@ -5,6 +5,7 @@ from pynput import keyboard, mouse
 
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
+from one_dragon.utils.log_utils import log
 
 
 class KeyboardMouseController(PcButtonController):
@@ -35,14 +36,20 @@ class KeyboardMouseController(PcButtonController):
         """
         is_mouse = pc_button_utils.is_mouse_button(key)
         real_key = pc_button_utils.get_mouse_button(key) if is_mouse else pc_button_utils.get_keyboard_button(key)
-        if press_time is None:
-            # 先记账再发键：发键那几微秒里别的线程来 release 也不会漏掉
-            with self._pressed_lock:
+        if not is_mouse and isinstance(real_key, str) and len(real_key) != 1:
+            # 键名不认识时取键那步不会报错，会原样返回字符串；再往下发就会抛异常，
+            # 而账本已经脏了。这里先拦掉，别让无效键进账本。
+            log.error('无效的按键名 %r，未按下', key)
+            return
+        with self._pressed_lock:
+            # 记账与发键在同一把锁里：reset() 取快照时不会漏掉正在按下的键。
+            # 只包这两件事，press_time 的 sleep 留在锁外，否则长按会堵住整个通道。
+            if press_time is None:
                 self._pressed_keys.add(key)
-        if is_mouse:
-            self.mouse.press(real_key)
-        else:
-            self.keyboard.press(real_key)
+            if is_mouse:
+                self.mouse.press(real_key)
+            else:
+                self.keyboard.press(real_key)
 
         if press_time is not None:
             time.sleep(press_time)
@@ -71,7 +78,11 @@ class KeyboardMouseController(PcButtonController):
         with self._pressed_lock:
             keys = list(self._pressed_keys)
         for key in keys:
-            self.release(key)
+            try:
+                self.release(key)
+            except Exception:
+                # 一个键松不掉不能连累其余键，否则收尾清理会整批失败。
+                log.error('松开按键 %r 失败', key, exc_info=True)
 
 
 if __name__ == '__main__':
