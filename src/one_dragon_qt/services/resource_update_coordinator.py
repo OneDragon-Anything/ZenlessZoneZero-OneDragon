@@ -15,6 +15,7 @@ from one_dragon.base.operation.context_download_request_event import (
 )
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.envs.update_service import LauncherType
+from one_dragon.launcher.launcher_type import detect_running_launcher_type
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.download_queue_service import (
@@ -374,7 +375,7 @@ class ResourceUpdateCoordinator(QObject):
     def _build_launcher_specs(self) -> list[ResourceDownloadSpec]:
         """构造当前已安装启动器的更新下载项。"""
         update_service = self.ctx.update_service
-        launcher_type = update_service.detect_running_launcher_type() or 'launcher'
+        launcher_type = detect_running_launcher_type() or 'launcher'
         current, stable, beta = update_service.get_launcher_version_info(launcher_type)
         target = update_service.get_launcher_target_version(current, stable, beta)
         if not target or current == target:
