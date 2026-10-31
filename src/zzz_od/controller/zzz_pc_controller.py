@@ -31,14 +31,18 @@ class ZPcController(PcControllerBase):
         self.is_moving: bool = False  # 是否正在移动
 
     def sync_game_config(self, game_config: GameConfig) -> None:
-        """切换实例后同步控制器持有的账号级配置"""
+        """切换实例后同步控制器持有的账号级配置
+
+        这里只同步配置，不激活游戏窗口：
+        切换实例可能只是界面上的选择操作，此时把游戏窗口弹到前台会抢走当前的焦点。
+        激活窗口由运行开始时（init_before_context_run）和打开游戏的操作负责。
+        """
         self.game_config = game_config
 
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
             self.enable_foreground_mode()
-            self.active_window()
 
     def init_before_context_run(self) -> bool:
         """运行前根据配置启用后台/前台模式"""
