@@ -85,6 +85,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
+        self._btn_listener_lock: threading.Lock = threading.Lock()
         self._btn_listener_started: bool = False
         self._btn_listener_closed: bool = False
 
@@ -591,21 +592,24 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         启动按键监听器 可以重复调用
         已经启动或关闭流程开始后 不会再启动
         """
-        if self._btn_listener_started or self._btn_listener_closed:
-            return
-
-        self.btn_listener.start()
-        self._btn_listener_started = True
+        with self._btn_listener_lock:
+            if self._btn_listener_closed:
+                return
+            if not self._btn_listener_started:
+                self.btn_listener.start()
+                self._btn_listener_started = True
+            self.ready_for_application = True
 
     def _stop_btn_listener(self) -> None:
         """
         停止按键监听器 可以重复调用
         """
-        if self._btn_listener_closed:
-            return
-
-        self._btn_listener_closed = True
-        self.btn_listener.stop()
+        with self._btn_listener_lock:
+            self.ready_for_application = False
+            if self._btn_listener_closed:
+                return
+            self._btn_listener_closed = True
+            self.btn_listener.stop()
 
     def after_app_shutdown(self) -> None:
         """
