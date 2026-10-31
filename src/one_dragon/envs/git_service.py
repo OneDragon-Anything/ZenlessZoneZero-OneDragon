@@ -659,6 +659,14 @@ class GitService:
 
     def _get_repository_candidates(self) -> list[tuple[RepositoryItem, str]]:
         """按用户选择、上次成功源和 YAML 声明顺序生成候选列表。"""
+        custom_url = self.env_config.custom_repository_url.strip()
+        if custom_url:
+            # 自定义代码源时只使用该地址，不回退其它源，避免静默切换更新通道
+            custom_repository = RepositoryItem(
+                repository_id='custom', label='自定义', url=custom_url, use_proxy=False,
+            )
+            return [(custom_repository, custom_url)]
+
         repository_url = self.env_config.repository_url
         preferred_repository = self._find_repository(repository_url)
         if preferred_repository is None and repository_url != RepoConfig.AUTO_REPOSITORY_VALUE:
