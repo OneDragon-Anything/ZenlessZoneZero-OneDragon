@@ -1,0 +1,113 @@
+{
+  "frames": [
+    {
+      "file": "video_store_hud.webp",
+      "source_id": "V01",
+      "source_frame": "V01_00087.200.png",
+      "timestamp": "00:01:27.200",
+      "source_frame_sha256": "1d95e49d15b71f6a0feed0b1748f170c9e9e3d6dbfe062ca1d4a15411a6043ae",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "south_station_hud.webp",
+      "source_id": "V13",
+      "source_frame": "V13_00047.000.png",
+      "timestamp": "00:00:47.000",
+      "source_frame_sha256": "771c52d18a0e385217368480416c02c98e979948345ddff1d13e12911cb29e7b",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "construction_hud.webp",
+      "source_id": "V02",
+      "source_frame": "V02_00288.500.png",
+      "timestamp": "00:04:48.500",
+      "source_frame_sha256": "e57ba3378622b468e05f23cc75c61ef8197c10dcb746047810c3863bc647d316",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "worksite_station_hud.webp",
+      "source_id": "V01",
+      "source_frame": "V01_00293.000.png",
+      "timestamp": "00:04:53.000",
+      "source_frame_sha256": "3632b14f1813720cee09e7a8752c190d6808d323cf0215e0066490e86f034d5c",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "south_corridor_map.webp",
+      "source_id": "V01",
+      "source_frame": "V01_00258.200.png",
+      "timestamp": "00:04:18.200",
+      "source_frame_sha256": "83a4104b9d4d4cdfc7e6e6b979480150920c8f3183ad1812ebd6563edcef3a1d",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "south_corridor_hud.webp",
+      "source_id": "V01",
+      "source_frame": "V01_00259.000.png",
+      "timestamp": "00:04:19.000",
+      "source_frame_sha256": "2d17565e4a4e452f8ae622ca3bc43b40b578d54b4c18dfda9dbff213724ed47b",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "south_corridor_after.webp",
+      "source_id": "V01",
+      "source_frame": "V01_00261.000.png",
+      "timestamp": "00:04:21.000",
+      "source_frame_sha256": "2a16be50cc2fefca2fac0290455a9492c030c7a0555490f02c213114a5caf2aa",
+      "redacted_rect": [
+        1780,
+        1050,
+        1920,
+        1080
+      ]
+    }
+  ],
+  "map_manifest_sha256": "2773cf89b4c3e766a811b269a1becdb16ea528dbab30e7e6e383f776d8e4985b",
+  "base_map_sha256": "53885b4e9e37580f2782ddabbb0f809b17d08b7ce58bdc984bdf95849d531941",
+  "source_video_names": {
+    "V01": "20261027-bagel-after-dupchest-rollback-full/run02/record.mp4",
+    "V02": "20261027-bagel-after-dupchest-rollback-full/run03/record.mp4",
+    "V13": "20261027-bagel-run03/record.mp4"
+  },
+  "screen_size": [
+    1920,
+    1080
+  ],
+  "minimap_rect": [
+    1533,
+    206,
+    1734,
+    407
+  ],
+  "webp_quality": 90
+}

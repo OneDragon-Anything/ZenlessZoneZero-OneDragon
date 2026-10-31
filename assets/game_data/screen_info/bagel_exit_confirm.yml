@@ -1,0 +1,22 @@
+screen_id: bagel_exit_confirm
+screen_name: 贝果-退出确认
+app_id: bagel
+pc_alt: false
+area_list:
+- area_name: 提示
+  pc_rect:
+  - 695
+  - 525
+  - 1225
+  - 575
+  id_mark: true
+  text: 仅保留安全箱内物资
+  lcs_percent: 0.9
+- area_name: 确认
+  pc_rect:
+  - 977
+  - 615
+  - 1250
+  - 685
+  text: 确认
+  lcs_percent: 0.9

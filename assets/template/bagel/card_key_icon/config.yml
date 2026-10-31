@@ -1,0 +1,8 @@
+sub_dir: bagel
+template_id: card_key_icon
+template_name: 贝果-刷卡处图标
+template_shape: circle
+auto_mask: true
+point_list:
+- 1362, 594
+- 1336, 594

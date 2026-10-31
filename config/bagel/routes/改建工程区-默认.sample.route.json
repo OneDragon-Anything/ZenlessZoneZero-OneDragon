@@ -1,0 +1,88 @@
+{
+ "version": 2,
+ "route_id": "改建工程区-默认",
+ "name": "改建工程区-默认",
+ "spawn_id": "janus_construction",
+ "started_at": "2026-10-25T23:14:34+08:00",
+ "ended_at": "2026-10-25T23:16:03+08:00",
+ "points": [
+  {
+   "x": 606,
+   "y": 52,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 614,
+   "y": 122,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 676,
+   "y": 121,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 679,
+   "y": 101,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 788,
+   "y": 106,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 874,
+   "y": 143,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 865,
+   "y": 337,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 845,
+   "y": 330,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 837,
+   "y": 330,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "box"
+  },
+  {
+   "x": 907,
+   "y": 329,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 921,
+   "y": 358,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 931,
+   "y": 358,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 947,
+   "y": 358,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "electronic_safe"
+  }
+ ]
+}

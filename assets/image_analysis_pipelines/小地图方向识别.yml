@@ -1,0 +1,18 @@
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 24
+    - 255
+    - 255
+    hsv_diff:
+    - 10
+    - 200
+    - 160
+- step: 腐蚀
+  params:
+    kernel_size: 1
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 1
+    iterations: 1

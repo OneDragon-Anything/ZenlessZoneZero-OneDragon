@@ -1,0 +1,58 @@
+{
+ "version": 2,
+ "route_id": "录像店-默认",
+ "name": "录像店-默认",
+ "spawn_id": "janus_video_store",
+ "started_at": "2026-10-25T23:34:41+08:00",
+ "ended_at": "2026-10-25T23:35:16+08:00",
+ "points": [
+  {
+   "x": 830,
+   "y": 351,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 867,
+   "y": 334,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 842,
+   "y": 331,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 837,
+   "y": 331,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "box"
+  },
+  {
+   "x": 906,
+   "y": 331,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 925,
+   "y": 357,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 935,
+   "y": 358,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "beacon"
+  },
+  {
+   "x": 947,
+   "y": 358,
+   "layer": "雅努斯幻境/Custom",
+   "kind": "electronic_safe"
+  }
+ ]
+}

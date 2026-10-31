@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>贝果路线编辑器</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; }
+  body { display: flex; background: #eef1f6; color: #202a36; font-size: 14px; }
+  button, input, select { font: inherit; }
+  button {
+    border: 1px solid #cfd8e3; background: #fff; color: #304359; border-radius: 6px;
+    padding: 5px 11px; cursor: pointer; white-space: nowrap;
+  }
+  button:hover { background: #eef4fd; border-color: #94b5d8; }
+  button:disabled { color: #a7b0bb; border-color: #d8dfe8; background: #f2f5f9; cursor: default; }
+  button.primary { background: #2b6cb0; border-color: #2b6cb0; color: #fff; }
+  button.primary:hover { background: #245d99; }
+  button.primary:disabled { background: #9db7d4; border-color: #9db7d4; color: #fff; }
+  button.danger { color: #b83838; border-color: #e3b8b8; }
+  button.danger:hover { background: #fdeceb; }
+  button.small { padding: 2px 8px; font-size: 12px; }
+  input, select { border: 1px solid #cfd8e3; border-radius: 5px; background: #fff; color: #202020; padding: 4px 6px; }
+
+  #left { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+  #mapTabs { display: flex; gap: 8px; align-items: center; padding: 10px 14px; background: #e9eef6; border-bottom: 1px solid #cfd8e3; }
+  .mapTab { padding: 5px 16px; border-radius: 16px; font-size: 14px; }
+  .mapTab.active { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+  .map-tools { margin-left: auto; display: flex; gap: 5px; }
+  #canvasWrap { flex: 1 1 auto; position: relative; overflow: hidden; background: #e6eaf2; cursor: grab; }
+  #canvasWrap.dragging { cursor: grabbing; }
+  canvas { display: block; image-rendering: pixelated; }
+  #hud {
+    flex: 0 0 auto; padding: 6px 14px; border-top: 1px solid #cfd8e3;
+    background: #e9eef6; color: #47525f; font-size: 13px; line-height: 1.8;
+    pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  #right { flex: 0 0 460px; display: flex; flex-direction: column; border-left: 1px solid #cfd8e3; background: #f7f9fc; min-height: 0; }
+  .section { display: flex; flex-direction: column; min-height: 0; }
+  #routeSection { flex: 0 0 42%; border-bottom: 1px solid #cfd8e3; }
+  #detailSection { flex: 1 1 auto; }
+  .sectionHead {
+    padding: 10px 14px; font-size: 15px; font-weight: 600; background: #e9eef6;
+    border-bottom: 1px solid #cfd8e3; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .hint { font-weight: 400; font-size: 13px; color: #6b7684; }
+  #routeList, #detailList { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .empty { padding: 18px 14px; color: #6b7684; font-size: 14px; line-height: 1.7; }
+
+  .group-head { display: flex; gap: 8px; align-items: center; padding: 9px 14px; background: #f0f4f9; border-bottom: 1px solid #dce5f0; cursor: pointer; }
+  .group-head:hover { background: #e7effa; }
+  .group-head.active { background: #dceafd; }
+  .group-head .count { margin-left: auto; color: #6f839b; font-size: 12px; }
+  .group-head .problem { color: #b83838; font-size: 12px; }
+  .spawnNumber { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #afc0d4; border-radius: 4px; font-size: 11px; color: #59718e; background: #fff; flex: none; }
+  .coord-hint { font-size: 12px; color: #6b7684; font-variant-numeric: tabular-nums; }
+  .group-route { display: flex; align-items: center; gap: 7px; padding: 8px 14px 8px 42px; border-bottom: 1px solid #e5ecf4; cursor: pointer; background: #fff; }
+  .group-route:hover { background: #f3f8ff; }
+  .group-route.active { background: #edf5ff; box-shadow: inset 3px 0 #2b6cb0; }
+  .group-route .routeName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-empty { padding: 8px 14px 8px 42px; color: #8190a3; font-size: 13px; background: #fff; border-bottom: 1px solid #e5ecf4; }
+  .badge { font-size: 11px; border-radius: 4px; line-height: 18px; padding: 0 5px; border: 1px solid #bfd2e7; background: #edf4fc; color: #446d9a; flex: none; }
+  .badge.custom { background: #eef8f3; color: #397a5c; border-color: #b8d9c7; }
+  .switch { display: flex; align-items: center; cursor: pointer; flex: none; }
+  .switch input { width: 30px; height: 16px; appearance: none; padding: 0; position: relative; border-radius: 20px; background: #b3bfce; cursor: pointer; border: 0; margin: 0; }
+  .switch input:before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch input:checked { background: #2b6cb0; }
+  .switch input:checked:before { left: 16px; }
+  .switch input:disabled { opacity: .5; cursor: default; }
+
+  .route-summary { display: flex; align-items: center; gap: 9px; padding: 9px 14px; border-bottom: 1px solid #dce4ee; background: #fff; }
+  .route-summary strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .route-summary .sub { font-size: 12px; color: #657b95; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-bottom: 1px solid #e9eef6; cursor: pointer; }
+  .row:hover { background: #f3f8ff; }
+  .row.selected { background: #dceafd; box-shadow: inset 3px 0 #2b6cb0; }
+  .row .dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+  .row .order { flex: 0 0 26px; color: #6b7684; font-size: 13px; text-align: right; }
+  .row .kind-label { flex: 1 1 auto; font-size: 14px; }
+  .row select { flex: 1 1 auto; min-width: 0; font-size: 14px; padding: 2px 4px; }
+  .row .coord { flex: 0 0 auto; color: #47525f; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .first-mark { font-size: 11px; color: #a07425; margin-left: 4px; }
+  .node-form { padding: 10px 14px; border-top: 1px solid #cfd8e3; background: #f0f5fb; display: flex; flex-direction: column; gap: 8px; }
+  .node-form .line { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #47525f; }
+  .node-form input[type=number] { width: 80px; }
+  .node-form .elevOption { flex: 1 1 auto; min-width: 0; }
+  .save-bar { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 8px 14px; border-top: 1px solid #dce4ee; background: #f7f9fc; }
+  .save-bar span { font-size: 13px; color: #778ba4; margin-right: auto; }
+  .save-bar span.dirty { color: #a16e16; }
+
+  #pointMenu {
+    position: fixed; z-index: 20; display: none; min-width: 168px; padding: 6px;
+    background: #fff; border: 1px solid #cfd8e3; border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(20, 40, 70, 0.18);
+  }
+  #pointMenu .item { padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  #pointMenu .item:hover { background: #eef4fd; }
+  #pointMenu .item.danger { color: #c0392b; }
+  #pointMenu .item.danger:hover { background: #fdeceb; }
+  #pointMenu .item.disabled { color: #a7b0bb; cursor: default; }
+  #pointMenu .item.disabled:hover { background: transparent; }
+  #pointMenu .sep { height: 1px; margin: 5px 3px; background: #e9eef6; }
+
+  .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: #182a435c; display: flex; align-items: center; justify-content: center; }
+  .modal-backdrop[hidden] { display: none; }
+  .modal { width: 480px; max-height: 86vh; overflow: auto; background: #fff; border: 1px solid #c8d5e5; border-radius: 10px; box-shadow: 0 18px 70px #1b345344; padding: 22px 24px; }
+  .modal.wide { width: 900px; }
+  .modal h2 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+  .modal p { font-size: 13px; color: #5f738c; line-height: 1.8; margin: 0; }
+  .modal label.field { display: block; font-size: 13px; color: #445c79; margin-top: 16px; }
+  .modal label.field input, .modal label.field select { display: block; width: 100%; margin-top: 6px; padding: 8px; }
+  .modal label.check { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: 13px; color: #445c79; }
+  .modal .note { padding: 10px 12px; font-size: 13px; background: #fff9eb; border: 1px solid #eadcb6; color: #8a6d2c; border-radius: 5px; margin-top: 14px; line-height: 1.7; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .form-error { color: #bb4545; min-height: 18px; font-size: 13px; margin-top: 8px; }
+  .manager-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+  .manager-tools { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; font-size: 13px; color: #6b7684; }
+  .manager-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .manager-table th { padding: 8px; text-align: left; background: #eef3f9; color: #70869e; font-weight: 500; white-space: nowrap; }
+  .manager-table td { padding: 8px; border-bottom: 1px solid #e0e7f0; vertical-align: middle; }
+  .manager-table td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .manager-table .actions { display: flex; gap: 5px; }
+  .toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #fff; border: 1px solid #b6cce5; color: #285b94; border-radius: 7px; padding: 9px 16px; z-index: 60; box-shadow: 0 6px 22px #24436a25; max-width: 680px; font-size: 13px; }
+  .toast.error { color: #b83838; border-color: #e3b8b8; }
+  .toast[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div id="left">
+  <div id="mapTabs"></div>
+  <div id="canvasWrap"><canvas id="map"></canvas></div>
+  <div id="hud">载入中…</div>
+</div>
+<div id="right">
+  <div class="section" id="routeSection">
+    <div class="sectionHead"><span>出生点与路线</span><span class="hint" id="routeCount"></span></div>
+    <div id="routeList"></div>
+  </div>
+  <div class="section" id="detailSection">
+    <div class="sectionHead"><span>路线内容</span><span class="hint" id="detailHint"></span></div>
+    <div id="routeSummary"></div>
+    <div id="detailList"></div>
+    <div id="nodeForm"></div>
+    <div class="save-bar"><span id="saveStatus"></span><button id="saveButton" class="primary" disabled>保存</button></div>
+  </div>
+</div>
+<div id="pointMenu"></div>
+<div id="modalBackdrop" class="modal-backdrop" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+// 每类点一个固定色相，浅底上取深一档保证对比度。
+// 电子=橙、机械=紫、普通箱=绿，是用户指定的语义色，不要随意换。
+// 其余三类按色相环尽量拉开：途径点深蓝、门青蓝、电梯玫红，
+// 任意两类的色相至少差 41 度，肉眼可辨。
+const KIND_COLORS = {
+  beacon: '#2233b4',
+  electronic_safe: '#d97400',
+  mechanical_safe: '#8b3fc4',
+  box: '#1f8a4c',
+  door: '#238495',
+  elevator: '#bc2f5e'
+};
+const KIND_LABELS = {
+  beacon: '途径点',
+  electronic_safe: '电子保险箱',
+  mechanical_safe: '机械保险箱',
+  box: '普通箱子',
+  door: '门',
+  elevator: '电梯'
+};
+
+// 网页只负责显示和收集操作；路线文件与开启选择都由 Python 校验后写入。
+const state = {
+  layers: [],
+  byName: {},
+  images: {},
+  maps: {},
+  activeMap: null,
+  spawns: [],
+  routes: [],
+  activeSpawnId: null,
+  selectedKey: null,
+  // 自定义路线的节点草稿：修改先进草稿，保存成功后才算已保存。
+  draft: null,
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+  autoFit: true,
+  dragging: false,
+  dragStart: null,
+  recording: false,
+  livePoints: [],
+  livePosition: null,
+  trial: false,
+  dragPoint: -1,
+  dragMoved: false,
+  insertAfter: -1,
+  mouseMap: null,
+  selectedPoint: -1,
+  manageFilter: 'all'
+};
+
+const POINT_HIT_RADIUS = 12;
+// 点选点位的命中半径（屏幕像素）。
+
+const LINE_HIT_RADIUS = 7;
+// 点选连线的命中半径（屏幕像素）。
+
+const SPAWN_HIT_RADIUS = 14;
+// 点选出生点标记的命中半径（屏幕像素）。
+
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+const hud = document.getElementById('hud');
+
+let bridge = null;
+new QWebChannel(qt.webChannelTransport, (channel) => {
+  bridge = channel.objects.bagelBridge;
+});
+
+// ---------- 与 Python 通信 ----------
+
+let nextRequestId = 1;
+const pendingRequests = {};
+
+// 发一条命令给 Python，结果由 onResult 回传。
+function call(cmd, payload) {
+  return new Promise((resolve) => {
+    if (!bridge) {
+      notify('编辑器通道未就绪，请重启编辑器再试。', true);
+      resolve({ ok: false, message: '通道未就绪', data: null });
+      return;
+    }
+    const id = nextRequestId++;
+    pendingRequests[id] = resolve;
+    bridge.send(cmd, JSON.stringify(Object.assign({ request_id: id }, payload || {})));
+  });
+}
+
+let toastTimer = null;
+function notify(text, error) {
+  const el = document.getElementById('toast');
+  el.textContent = text;
+  el.classList.toggle('error', !!error);
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+// ---------- 数据查询 ----------
+
+function routeKey(route) { return route.source + ':' + route.route_id; }
+function routeByKey(key) { return state.routes.find(r => routeKey(r) === key) || null; }
+function getSpawn(id) { return state.spawns.find(s => s.spawn_id === id) || null; }
+function spawnsOnMap(mid) { return state.spawns.filter(s => s.map_id === mid); }
+function routesForSpawn(id) { return state.routes.filter(r => r.spawn_id === id); }
+function activeRouteOf(id) { return routesForSpawn(id).find(r => r.active) || null; }
+function savedRoute() { return state.selectedKey ? routeByKey(state.selectedKey) : null; }
+
+// 当前显示的路线：自定义路线显示草稿，默认路线显示已保存数据。
+function shownRoute() {
+  const saved = savedRoute();
+  if (!saved) return null;
+  if (state.draft && state.draft.key === routeKey(saved)) {
+    return Object.assign({}, saved, { points: state.draft.points });
+  }
+  return saved;
+}
+
+function isCustom(route) { return !!route && route.source === 'custom'; }
+
+function busyReason() {
+  if (state.recording) return '正在录制，请先停止录制';
+  if (state.trial) return '正在试跑，请等试跑结束';
+  return '';
+}
+
+function canEdit() {
+  return isCustom(savedRoute()) && !busyReason();
+}
+
+function hasUnsavedEdits() {
+  const saved = savedRoute();
+  if (!isCustom(saved) || !state.draft || state.draft.key !== routeKey(saved)) return false;
+  return JSON.stringify(state.draft.points) !== JSON.stringify(saved.points);
+}
+
+function resetDraft() {
+  const saved = savedRoute();
+  state.draft = isCustom(saved) ? { key: routeKey(saved), points: clone(saved.points) } : null;
+}
+
+function nextName(base) {
+  const names = new Set(state.routes.map(r => r.name));
+  if (!names.has(base)) return base;
+  let index = 2;
+  while (names.has(base + index)) index += 1;
+  return base + index;
+}
+
+// ---------- 未保存修改的保护 ----------
+
+// 有未保存的节点修改时，先让用户选择保存、放弃或取消，再执行 next。
+function guardUnsaved(next) {
+  if (!hasUnsavedEdits()) { next(); return; }
+  const route = savedRoute();
+  showModal(
+    '<h2>有未保存的修改</h2><p>「' + escapeHtml(route.name) + '」的节点修改还没有保存。</p>'
+    + '<div class="modal-actions"><button id="draftCancel">取消</button>'
+    + '<button id="draftDiscard">不保存</button>'
+    + '<button class="primary" id="draftSave">保存并继续</button></div>'
+  );
+  document.getElementById('draftCancel').onclick = closeModal;
+  document.getElementById('draftDiscard').onclick = () => {
+    closeModal();
+    resetDraft();
+    state.selectedPoint = -1;
+    renderAll();
+    next();
+  };
+  document.getElementById('draftSave').onclick = async () => {
+    closeModal();
+    if (await saveDraft()) next();
+  };
+}
+
+async function saveDraft() {
+  const saved = savedRoute();
+  if (!canEdit() || !state.draft || !hasUnsavedEdits()) return true;
+  const result = await call('save', { route_id: saved.route_id, points: state.draft.points });
+  if (!result.ok) return false;
+  resetDraft();
+  renderAll();
+  return true;
+}
+
+// ---------- 选择 ----------
+
+function selectSpawn(id, focus) {
+  const spawn = getSpawn(id);
+  if (!spawn) return;
+  const route = activeRouteOf(id) || routesForSpawn(id)[0] || null;
+  const mapChanged = state.activeMap !== spawn.map_id;
+  state.activeMap = spawn.map_id;
+  state.activeSpawnId = id;
+  state.selectedKey = route ? routeKey(route) : null;
+  state.selectedPoint = -1;
+  state.insertAfter = -1;
+  resetDraft();
+  renderAll();
+  if (mapChanged || focus) focusRoute();
+}
+
+function selectRoute(key) {
+  const route = routeByKey(key);
+  if (!route) return;
+  const spawn = getSpawn(route.spawn_id);
+  const mapChanged = spawn && state.activeMap !== spawn.map_id;
+  if (spawn) state.activeMap = spawn.map_id;
+  state.activeSpawnId = route.spawn_id;
+  state.selectedKey = key;
+  state.selectedPoint = -1;
+  state.insertAfter = -1;
+  resetDraft();
+  renderAll();
+  focusRoute();
+  if (mapChanged) renderMapTabs();
+}
+
+function selectMap(mid) {
+  if (!state.maps[mid] || state.activeMap === mid) return;
+  if (state.recording) { notify('录制中不能切换地图'); return; }
+  guardUnsaved(() => {
+    state.activeMap = mid;
+    const first = spawnsOnMap(mid)[0];
+    state.activeSpawnId = first ? first.spawn_id : null;
+    const route = first ? (activeRouteOf(first.spawn_id) || routesForSpawn(first.spawn_id)[0]) : null;
+    state.selectedKey = route ? routeKey(route) : null;
+    state.selectedPoint = -1;
+    state.insertAfter = -1;
+    resetDraft();
+    state.autoFit = true;
+    fitMap();
+    renderAll();
+  });
+}
+
+// ---------- 地图 ----------
+
+function layerKey(layer) { return layer.map_id + '/' + layer.name; }
+
+function resizeCanvas() {
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (state.autoFit && state.activeMap) fitMap();
+  draw();
+}
+
+function loadImage(layer) {
+  const key = layerKey(layer);
+  if (state.images[key]) return Promise.resolve(state.images[key]);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => { state.images[key] = img; resolve(img); };
+    img.onerror = () => { state.images[key] = null; resolve(null); };
+    img.src = 'assets/game_data/map_locator/' + layer.image;
+  });
+}
+
+// 把同一张地图的所有分块按 origin 贴到一块离屏画布上，得到完整大地图。
+// 底图是高通纹理（深灰线 + 透明底），直接叠起来会黑成一片，
+// 这里把有像素的部分反相成浅底深线，透明区留成浅灰底。
+function buildMapComposites() {
+  const groups = {};
+  state.layers.forEach(l => {
+    if (!groups[l.map_id]) groups[l.map_id] = [];
+    groups[l.map_id].push(l);
+  });
+  state.maps = {};
+  Object.keys(groups).forEach(mid => {
+    const items = groups[mid];
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    items.forEach(l => {
+      const img = state.images[layerKey(l)];
+      if (!img) return;
+      x0 = Math.min(x0, l.origin[0]);
+      y0 = Math.min(y0, l.origin[1]);
+      x1 = Math.max(x1, l.origin[0] + img.width);
+      y1 = Math.max(y1, l.origin[1] + img.height);
+    });
+    if (!isFinite(x0)) return;
+    const c = document.createElement('canvas');
+    c.width = x1 - x0;
+    c.height = y1 - y0;
+    const cc = c.getContext('2d');
+    cc.imageSmoothingEnabled = false;
+    items.forEach(l => {
+      const img = state.images[layerKey(l)];
+      if (!img) return;
+      cc.drawImage(img, l.origin[0] - x0, l.origin[1] - y0);
+    });
+    invertToLight(cc, c.width, c.height);
+    state.maps[mid] = { mapId: mid, x0, y0, x1, y1, canvas: c, layers: items };
+  });
+}
+
+// 反相成浅底深线：透明像素填浅灰，不透明像素按亮度反相。
+function invertToLight(cc, width, height) {
+  if (!width || !height) return;
+  const data = cc.getImageData(0, 0, width, height);
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] === 0) {
+      px[i] = 238; px[i + 1] = 241; px[i + 2] = 246; px[i + 3] = 255;
+      continue;
+    }
+    const v = px[i];
+    px[i] = 255 - v;
+    px[i + 1] = 255 - v;
+    px[i + 2] = 255 - v;
+    px[i + 3] = 255;
+  }
+  cc.putImageData(data, 0, 0);
+}
+
+let mapsReady = false;
+
+async function boot() {
+  const resp = await fetch('assets/game_data/map_locator/layers.json');
+  const data = await resp.json();
+  state.layers = data.layers;
+  state.byName = {};
+  data.layers.forEach(l => { state.byName[layerKey(l)] = l; });
+  await Promise.all(state.layers.map(l => loadImage(l)));
+  buildMapComposites();
+  mapsReady = true;
+  if (!state.activeMap || !state.maps[state.activeMap]) {
+    state.activeMap = state.maps['雅努斯幻境'] ? '雅努斯幻境' : Object.keys(state.maps)[0] || null;
+  }
+  state.autoFit = true;
+  fitMap();
+  renderAll();
+  focusRoute();
+}
+
+function renderMapTabs() {
+  const box = document.getElementById('mapTabs');
+  box.innerHTML = '';
+  Object.keys(state.maps).forEach(mid => {
+    const el = document.createElement('button');
+    el.className = 'mapTab' + (mid === state.activeMap ? ' active' : '');
+    el.textContent = mid;
+    el.onclick = () => selectMap(mid);
+    box.appendChild(el);
+  });
+  const tools = document.createElement('div');
+  tools.className = 'map-tools';
+  [['−', '缩小', () => zoomMap(1 / 1.25)], ['＋', '放大', () => zoomMap(1.25)],
+    ['适应', '显示整张地图', () => { state.autoFit = true; fitMap(); draw(); }],
+    ['看路线', '缩放到当前路线', () => focusRoute()]].forEach(([text, title, fn]) => {
+    const b = document.createElement('button');
+    b.className = 'small';
+    b.textContent = text;
+    b.title = title;
+    b.onclick = fn;
+    tools.appendChild(b);
+  });
+  box.appendChild(tools);
+}
+
+function fitMap() {
+  const m = state.maps[state.activeMap];
+  const rect = wrap.getBoundingClientRect();
+  if (!m || !rect.width || !rect.height) return;
+  const pad = 24;
+  const w = m.x1 - m.x0;
+  const h = m.y1 - m.y0;
+  state.scale = Math.min((rect.width - pad * 2) / w, (rect.height - pad * 2) / h, 4);
+  state.offsetX = (rect.width - w * state.scale) / 2;
+  state.offsetY = (rect.height - h * state.scale) / 2;
+}
+
+// 把全局坐标范围缩放到视野中间。
+function frameBounds(x0, y0, x1, y1, pad) {
+  const m = state.maps[state.activeMap];
+  const rect = wrap.getBoundingClientRect();
+  if (!m || !rect.width || !rect.height) return;
+  const width = Math.max(x1 - x0, 150);
+  const height = Math.max(y1 - y0, 150);
+  state.scale = Math.min((rect.width - pad * 2) / width, (rect.height - pad * 2) / height, 3.5);
+  state.offsetX = rect.width / 2 - ((x0 + x1) / 2 - m.x0) * state.scale;
+  state.offsetY = rect.height / 2 - ((y0 + y1) / 2 - m.y0) * state.scale;
+  state.autoFit = false;
+  draw();
+}
+
+function focusRoute() {
+  const route = shownRoute();
+  const pts = route ? route.points.filter(p => onActiveMap(p.layer)) : [];
+  if (pts.length) {
+    frameBounds(
+      Math.min(...pts.map(p => p.x)) - 25, Math.min(...pts.map(p => p.y)) - 25,
+      Math.max(...pts.map(p => p.x)) + 25, Math.max(...pts.map(p => p.y)) + 25, 70
+    );
+    return;
+  }
+  const spawn = getSpawn(state.activeSpawnId);
+  if (spawn && spawn.map_id === state.activeMap) {
+    frameBounds(spawn.x - 120, spawn.y - 90, spawn.x + 120, spawn.y + 90, 48);
+    return;
+  }
+  state.autoFit = true;
+  fitMap();
+  draw();
+}
+
+function zoomMap(factor) {
+  const rect = wrap.getBoundingClientRect();
+  const x = rect.width / 2, y = rect.height / 2;
+  const bx = (x - state.offsetX) / state.scale;
+  const by = (y - state.offsetY) / state.scale;
+  state.scale = Math.min(Math.max(state.scale * factor, 0.05), 12);
+  state.offsetX = x - bx * state.scale;
+  state.offsetY = y - by * state.scale;
+  state.autoFit = false;
+  draw();
+}
+
+// ---------- 右上：出生点与路线 ----------
+
+function renderRouteList() {
+  const list = document.getElementById('routeList');
+  const spawns = spawnsOnMap(state.activeMap);
+  const routes = state.routes.filter(r => spawns.some(s => s.spawn_id === r.spawn_id));
+  document.getElementById('routeCount').textContent = spawns.length + ' 个出生点 · '
+    + routes.length + ' 条路线 · ' + spawns.filter(s => activeRouteOf(s.spawn_id)).length + ' 个已开启';
+  if (!spawns.length) {
+    list.innerHTML = '<div class="empty">这张地图暂无已登记出生点，也没有路线。</div>';
+    return;
+  }
+  list.innerHTML = '';
+  spawns.forEach((s, i) => {
+    const head = document.createElement('div');
+    const expanded = s.spawn_id === state.activeSpawnId;
+    head.className = 'group-head' + (expanded ? ' active' : '');
+    const owned = routesForSpawn(s.spawn_id);
+    head.innerHTML = '<span class="spawnNumber">' + (i + 1) + '</span><strong>' + escapeHtml(s.name) + '</strong>'
+      + '<span class="coord-hint">(' + s.x + ', ' + s.y + ')</span>'
+      + (s.problem ? '<span class="problem" title="' + escapeHtml(s.problem) + '">选择无效</span>' : '')
+      + '<span class="count">' + owned.length + ' 条路线 ' + (expanded ? '▾' : '▸') + '</span>';
+    const add = document.createElement('button');
+    add.className = 'small';
+    add.textContent = '＋';
+    add.title = '在这个出生点新增路线';
+    add.onclick = (ev) => { ev.stopPropagation(); openCreateRoute(s.spawn_id); };
+    head.appendChild(add);
+    head.onclick = () => {
+      if (expanded) return;
+      guardUnsaved(() => selectSpawn(s.spawn_id, true));
+    };
+    list.appendChild(head);
+    if (!expanded) return;
+    if (!owned.length) {
+      const empty = document.createElement('div');
+      empty.className = 'group-empty';
+      empty.textContent = '暂无路线，抽到这个出生点时退出重开。';
+      list.appendChild(empty);
+      return;
+    }
+    owned.forEach(r => list.appendChild(routeRow(r)));
+  });
+}
+
+function routeRow(r) {
+  const key = routeKey(r);
+  const el = document.createElement('div');
+  el.className = 'group-route' + (key === state.selectedKey ? ' active' : '');
+  el.innerHTML = '<span class="routeName" title="' + escapeHtml(r.name) + '">' + escapeHtml(r.name) + '</span>'
+    + '<span class="badge' + (isCustom(r) ? ' custom' : '') + '">' + (isCustom(r) ? '自定义' : '默认') + '</span>';
+  el.onclick = () => {
+    if (key === state.selectedKey) return;
+    guardUnsaved(() => selectRoute(key));
+  };
+  const toggle = document.createElement('label');
+  toggle.className = 'switch';
+  toggle.title = r.active ? '正式运行使用这条路线；点击关闭' : '点击开启，正式运行使用这条路线';
+  toggle.innerHTML = '<input type="checkbox"' + (r.active ? ' checked' : '') + '>';
+  toggle.onclick = (ev) => ev.stopPropagation();
+  const box = toggle.querySelector('input');
+  box.onchange = () => {
+    box.checked = r.active;
+    requestToggle(key, !r.active);
+  };
+  el.appendChild(toggle);
+  const copy = document.createElement('button');
+  copy.className = 'small';
+  copy.textContent = '复制';
+  copy.onclick = (ev) => { ev.stopPropagation(); openCopyRoute(key); };
+  el.appendChild(copy);
+  const test = document.createElement('button');
+  test.className = 'small';
+  test.textContent = '试跑';
+  test.onclick = (ev) => { ev.stopPropagation(); openTrial(key); };
+  el.appendChild(test);
+  return el;
+}
+
+// ---------- 开启、复制、新增、录制、管理 ----------
+
+function requestToggle(key, enabled) {
+  const route = routeByKey(key);
+  if (!route) return;
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    const spawn = getSpawn(route.spawn_id);
+    if (!enabled) {
+      call('activate', { spawn_id: route.spawn_id, ref: null });
+      return;
+    }
+    const current = activeRouteOf(route.spawn_id);
+    if (!current) {
+      call('activate', { spawn_id: route.spawn_id, ref: { source: route.source, route_id: route.route_id } });
+      return;
+    }
+    showModal(
+      '<h2>切换开启的路线？</h2><p>' + escapeHtml(spawn ? spawn.name : route.spawn_id) + '当前开启「'
+      + escapeHtml(current.name) + '」。切换后改为「' + escapeHtml(route.name) + '」，原路线关闭。</p>'
+      + '<div class="modal-actions"><button id="switchCancel">取消</button>'
+      + '<button class="primary" id="switchConfirm">切换</button></div>'
+    );
+    document.getElementById('switchCancel').onclick = closeModal;
+    document.getElementById('switchConfirm').onclick = () => {
+      closeModal();
+      call('activate', { spawn_id: route.spawn_id, ref: { source: route.source, route_id: route.route_id } });
+    };
+  });
+}
+
+function spawnOptions(selectedId) {
+  return spawnsOnMap(state.activeMap).map(s => '<option value="' + s.spawn_id + '"'
+    + (s.spawn_id === selectedId ? ' selected' : '') + '>' + escapeHtml(s.name) + ' (' + s.x + ', ' + s.y + ') · 已有 '
+    + routesForSpawn(s.spawn_id).length + ' 条路线</option>').join('');
+}
+
+function routeForm(title, intro, spawnId, nameValue, actionText, onSubmit, extraNote) {
+  showModal(
+    '<h2>' + title + '</h2><p>' + intro + '</p>'
+    + '<label class="field">路线名称<input id="formName" maxlength="40" value="' + escapeHtml(nameValue) + '"></label>'
+    + '<label class="field">绑定出生点<select id="formSpawn">' + spawnOptions(spawnId) + '</select></label>'
+    + '<label class="check"><input id="formActivate" type="checkbox">完成后开启；同出生点原来开启的路线会关闭</label>'
+    + (extraNote ? '<div class="note">' + extraNote + '</div>' : '')
+    + '<div id="formError" class="form-error"></div>'
+    + '<div class="modal-actions"><button id="formCancel">取消</button>'
+    + '<button class="primary" id="formSubmit">' + actionText + '</button></div>'
+  );
+  document.getElementById('formCancel').onclick = closeModal;
+  const submit = async () => {
+    const name = document.getElementById('formName').value.trim();
+    const spawnId = document.getElementById('formSpawn').value;
+    const error = document.getElementById('formError');
+    if (!name) { error.textContent = '请输入路线名称'; return; }
+    if (state.routes.some(r => r.name === name)) { error.textContent = '已经有同名路线'; return; }
+    if (!getSpawn(spawnId)) { error.textContent = '请选择出生点'; return; }
+    const result = await onSubmit(name, spawnId, document.getElementById('formActivate').checked);
+    if (result.ok) closeModal(); else error.textContent = result.message || '操作失败';
+  };
+  document.getElementById('formSubmit').onclick = submit;
+  document.getElementById('formName').onkeydown = (ev) => { if (ev.key === 'Enter') submit(); };
+  document.getElementById('formName').focus();
+}
+
+function openCreateRoute(spawnId) {
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    const spawn = getSpawn(spawnId || state.activeSpawnId) || spawnsOnMap(state.activeMap)[0];
+    if (!spawn) { notify('当前地图暂无出生点，不能新增路线'); return; }
+    routeForm('新增路线', '创建一条自定义路线，首点放在出生点坐标，之后在地图上添加和编辑节点。',
+      spawn.spawn_id, nextName(spawn.name + '-自定义'), '创建路线', async (name, id, activate) => {
+        const result = await call('create', { name, spawn_id: id, activate });
+        if (result.ok && result.data) selectRoute(routeKey(result.data));
+        return result;
+      });
+  });
+}
+
+function openRecordDialog() {
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    const spawn = getSpawn(state.activeSpawnId) || spawnsOnMap(state.activeMap)[0];
+    if (!spawn) { notify('当前地图暂无出生点，不能录制'); return; }
+    routeForm('录制路线', '录制前先选定出生点。停止录制后保存为绑定该出生点的自定义路线。',
+      spawn.spawn_id, nextName(spawn.name + '-录制'), '开始录制', async (name, id, activate) => (
+        call('record', { name, spawn_id: id, activate })
+      ), '首个点必须在出生点 100 像素内按 1 打途径点，其他首点会被拒绝。');
+  });
+}
+
+function openCopyRoute(key) {
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  const source = routeByKey(key);
+  if (!source) return;
+  guardUnsaved(() => {
+    const base = source.name.replace(/-默认$/, '') + '-副本';
+    showModal(
+      '<h2>复制路线</h2><p>复制「' + escapeHtml(source.name) + '」的全部节点，生成一条自定义路线。'
+      + '副本绑定同一个出生点，初始关闭，不影响原路线。</p>'
+      + '<label class="field">新路线名称<input id="copyName" maxlength="40" value="' + escapeHtml(nextName(base)) + '"></label>'
+      + '<div id="copyError" class="form-error"></div>'
+      + '<div class="modal-actions"><button id="copyCancel">取消</button><button class="primary" id="copySubmit">复制</button></div>'
+    );
+    document.getElementById('copyCancel').onclick = closeModal;
+    document.getElementById('copySubmit').onclick = async () => {
+      const name = document.getElementById('copyName').value.trim();
+      const error = document.getElementById('copyError');
+      if (!name) { error.textContent = '请输入路线名称'; return; }
+      if (state.routes.some(r => r.name === name)) { error.textContent = '已经有同名路线'; return; }
+      const result = await call('copy', { ref: { source: source.source, route_id: source.route_id }, name });
+      if (!result.ok) { error.textContent = result.message || '复制失败'; return; }
+      closeModal();
+      if (result.data) selectRoute(routeKey(result.data));
+    };
+  });
+}
+
+function openRename(key) {
+  const route = routeByKey(key);
+  if (!isCustom(route)) return;
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    showModal(
+      '<h2>修改路线名称</h2><p>只改显示名称，路线仍绑定原出生点，开启状态不变。</p>'
+      + '<label class="field">路线名称<input id="renameName" maxlength="40" value="' + escapeHtml(route.name) + '"></label>'
+      + '<div id="renameError" class="form-error"></div>'
+      + '<div class="modal-actions"><button id="renameCancel">取消</button><button class="primary" id="renameSubmit">保存名称</button></div>'
+    );
+    document.getElementById('renameCancel').onclick = () => { closeModal(); openManage(); };
+    document.getElementById('renameSubmit').onclick = async () => {
+      const name = document.getElementById('renameName').value.trim();
+      const error = document.getElementById('renameError');
+      if (!name) { error.textContent = '请输入路线名称'; return; }
+      if (state.routes.some(r => r.name === name && routeKey(r) !== key)) { error.textContent = '已经有同名路线'; return; }
+      const result = await call('rename', { route_id: route.route_id, name });
+      if (!result.ok) { error.textContent = result.message || '改名失败'; return; }
+      openManage();
+    };
+  });
+}
+
+function openDelete(key) {
+  const route = routeByKey(key);
+  if (!isCustom(route)) return;
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    showModal(
+      '<h2>删除自定义路线？</h2><p>删除「' + escapeHtml(route.name) + '」后文件会被移除。'
+      + (route.active ? '它当前处于开启状态，删除后该出生点不开启任何路线，不会自动开启其他路线。' : '其他路线保持原状。')
+      + '</p><div class="modal-actions"><button id="deleteCancel">取消</button>'
+      + '<button class="danger" id="deleteConfirm">删除路线</button></div>'
+    );
+    document.getElementById('deleteCancel').onclick = () => { closeModal(); openManage(); };
+    document.getElementById('deleteConfirm').onclick = async () => {
+      const result = await call('delete', { route_id: route.route_id });
+      if (result.ok) openManage(); else closeModal();
+    };
+  });
+}
+
+function openTrial(key) {
+  const route = routeByKey(key);
+  if (!route) return;
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    const spawn = getSpawn(route.spawn_id);
+    showModal(
+      '<h2>试跑「' + escapeHtml(route.name) + '」？</h2>'
+      + '<p>绑定出生点：' + escapeHtml(spawn ? spawn.name : route.spawn_id)
+      + (spawn ? ' (' + spawn.x + ', ' + spawn.y + ')' : '') + ' · ' + route.points.length + ' 个节点</p>'
+      + '<div class="note">先让角色站在该出生点附近（' + (spawn ? spawn.radius : 100) + ' 像素内），确认后切到游戏，按已保存的节点走一遍。'
+      + '试跑只执行这一条路线，不改变正式运行的开启选择；关闭的路线也可以试跑。</div>'
+      + '<div class="modal-actions"><button id="trialCancel">取消</button><button class="primary" id="trialConfirm">开始试跑</button></div>'
+    );
+    document.getElementById('trialCancel').onclick = closeModal;
+    document.getElementById('trialConfirm').onclick = () => {
+      closeModal();
+      call('test', { ref: { source: route.source, route_id: route.route_id } });
+    };
+  });
+}
+
+function openManage() {
+  const reason = busyReason();
+  if (reason) { notify(reason); return; }
+  guardUnsaved(() => {
+    const rows = state.routes.filter(r => state.manageFilter === 'all' || r.spawn_id === state.manageFilter);
+    showModal(
+      '<div class="manager-head"><div><h2>路线管理</h2><p>' + state.routes.length
+      + ' 条路线 · 每个出生点最多开启一条</p></div><div class="actions"><button id="manageCreate" class="primary">＋ 新增路线</button> '
+      + '<button id="manageRecord">录制路线</button></div></div>'
+      + '<div class="manager-tools"><span>出生点</span><select id="manageFilter"><option value="all">全部出生点</option>'
+      + state.spawns.map(s => '<option value="' + s.spawn_id + '"' + (state.manageFilter === s.spawn_id ? ' selected' : '')
+        + '>' + escapeHtml(s.name) + '</option>').join('') + '</select></div>'
+      + '<table class="manager-table"><thead><tr><th>路线名称</th><th>来源</th><th>出生点</th><th>节点</th><th>开启</th><th>操作</th></tr></thead><tbody>'
+      + (rows.length ? rows.map((r, i) => {
+        const spawn = getSpawn(r.spawn_id);
+        return '<tr><td class="name" title="' + escapeHtml(r.name) + '">' + escapeHtml(r.name) + '</td>'
+          + '<td><span class="badge' + (isCustom(r) ? ' custom' : '') + '">' + (isCustom(r) ? '自定义' : '默认') + '</span></td>'
+          + '<td>' + escapeHtml(spawn ? spawn.name : r.spawn_id) + '</td><td>' + r.points.length + '</td>'
+          + '<td><label class="switch"><input type="checkbox" data-toggle="' + i + '"' + (r.active ? ' checked' : '') + '></label></td>'
+          + '<td><div class="actions"><button class="small" data-act="view" data-i="' + i + '">' + (isCustom(r) ? '编辑' : '查看') + '</button>'
+          + '<button class="small" data-act="trial" data-i="' + i + '">试跑</button>'
+          + '<button class="small" data-act="copy" data-i="' + i + '">复制</button>'
+          + (isCustom(r) ? '<button class="small" data-act="rename" data-i="' + i + '">改名</button>'
+            + '<button class="small danger" data-act="delete" data-i="' + i + '">删除</button>' : '')
+          + '</div></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="hint">没有路线</td></tr>')
+      + '</tbody></table><div class="modal-actions"><button id="manageClose">关闭</button></div>',
+      true
+    );
+    document.getElementById('manageClose').onclick = closeModal;
+    document.getElementById('manageCreate').onclick = () => { closeModal(); openCreateRoute(); };
+    document.getElementById('manageRecord').onclick = () => { closeModal(); openRecordDialog(); };
+    document.getElementById('manageFilter').onchange = (ev) => { state.manageFilter = ev.target.value; openManage(); };
+    document.querySelectorAll('#modal [data-toggle]').forEach(box => {
+      box.onchange = () => {
+        const r = rows[Number(box.dataset.toggle)];
+        box.checked = r.active;
+        closeModal();
+        requestToggle(routeKey(r), !r.active);
+      };
+    });
+    document.querySelectorAll('#modal [data-act]').forEach(btn => {
+      btn.onclick = () => {
+        const r = rows[Number(btn.dataset.i)];
+        const key = routeKey(r);
+        const act = btn.dataset.act;
+        if (act === 'view') { closeModal(); selectRoute(key); }
+        else if (act === 'trial') { closeModal(); openTrial(key); }
+        else if (act === 'copy') { closeModal(); openCopyRoute(key); }
+        else if (act === 'rename') openRename(key);
+        else if (act === 'delete') openDelete(key);
+      };
+    });
+  });
+}
+
+function showModal(html, wide) {
+  const modal = document.getElementById('modal');
+  modal.classList.toggle('wide', !!wide);
+  modal.innerHTML = html;
+  document.getElementById('modalBackdrop').hidden = false;
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').hidden = true;
+  document.getElementById('modal').innerHTML = '';
+}
+
+function modalOpen() { return !document.getElementById('modalBackdrop').hidden; }
+
+// ---------- 右下：路线内容 ----------
+
+function renderDetail() {
+  const route = shownRoute();
+  const summary = document.getElementById('routeSummary');
+  const box = document.getElementById('detailList');
+  const hint = document.getElementById('detailHint');
+  const form = document.getElementById('nodeForm');
+  form.innerHTML = '';
+  if (state.recording) {
+    summary.innerHTML = '';
+    hint.textContent = state.livePoints.length + ' 点';
+    box.innerHTML = '<div class="empty">正在录制路线，停止后保存。</div>';
+    renderSaveBar();
+    return;
+  }
+  if (!route) {
+    summary.innerHTML = '';
+    hint.textContent = '';
+    const spawn = getSpawn(state.activeSpawnId);
+    box.innerHTML = '<div class="empty">' + (spawn && spawn.map_id === state.activeMap
+      ? escapeHtml(spawn.name) + '暂无路线。可以新增、录制或复制路线。'
+      : spawnsOnMap(state.activeMap).length ? '选择一个出生点查看路线。' : '这张地图暂无已登记出生点。') + '</div>';
+    renderSaveBar();
+    return;
+  }
+  const editable = canEdit();
+  const spawn = getSpawn(route.spawn_id);
+  hint.textContent = route.points.length + ' 个节点';
+  summary.innerHTML = '<div class="route-summary"><strong title="' + escapeHtml(route.name) + '">' + escapeHtml(route.name)
+    + '</strong><span class="sub">' + escapeHtml(spawn ? spawn.name : route.spawn_id) + '</span>'
+    + '<span class="badge' + (isCustom(route) ? ' custom' : '') + '">' + (isCustom(route) ? '自定义' : '默认 · 只读') + '</span>'
+    + (editable ? '<button class="small" id="addNode">＋ 添加节点</button>' : '') + '</div>';
+  if (editable) document.getElementById('addNode').onclick = () => {
+    startInsert(state.selectedPoint >= 0 ? state.selectedPoint : route.points.length - 1);
+  };
+  box.innerHTML = '';
+  route.points.forEach((d, index) => {
+    const row = document.createElement('div');
+    row.className = 'row' + (index === state.selectedPoint ? ' selected' : '');
+    row.onclick = () => { state.selectedPoint = index; renderDetail(); draw(); };
+    const order = document.createElement('span');
+    order.className = 'order';
+    order.textContent = index + 1;
+    row.appendChild(order);
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = KIND_COLORS[d.kind] || '#888';
+    row.appendChild(dot);
+    // 首点必须是出生点附近的途径点，类型不可改。
+    if (editable && index > 0) {
+      const sel = document.createElement('select');
+      Object.keys(KIND_LABELS).forEach(kind => {
+        const opt = document.createElement('option');
+        opt.value = kind;
+        opt.textContent = KIND_LABELS[kind];
+        if (kind === d.kind) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onclick = (ev) => ev.stopPropagation();
+      sel.onchange = () => {
+        const p = state.draft.points[index];
+        p.kind = sel.value;
+        if (p.kind === 'elevator') {
+          if (p.elevator_option === undefined) p.elevator_option = '';
+          if (!p.elevator_exit) p.elevator_exit = 'forward';
+        } else {
+          delete p.elevator_option;
+          delete p.elevator_exit;
+        }
+        state.selectedPoint = index;
+        afterEdit();
+      };
+      row.appendChild(sel);
+    } else {
+      const label = document.createElement('span');
+      label.className = 'kind-label';
+      label.innerHTML = escapeHtml(KIND_LABELS[d.kind] || d.kind) + (index === 0 ? '<span class="first-mark">起点</span>' : '');
+      row.appendChild(label);
+    }
+    const coord = document.createElement('span');
+    coord.className = 'coord';
+    coord.textContent = '(' + d.x.toFixed(0) + ', ' + d.y.toFixed(0) + ')';
+    row.appendChild(coord);
+    if (editable) {
+      const locate = document.createElement('button');
+      locate.className = 'small';
+      locate.textContent = '定位';
+      locate.title = '切到游戏定位一次，把这一点的坐标换成角色当前位置';
+      locate.onclick = (ev) => { ev.stopPropagation(); call('locate', { index }); };
+      row.appendChild(locate);
+    }
+    box.appendChild(row);
+  });
+  if (editable && state.selectedPoint >= 0 && route.points[state.selectedPoint]) renderNodeForm(route);
+  renderSaveBar();
+}
+
+function renderNodeForm(route) {
+  const index = state.selectedPoint;
+  const p = route.points[index];
+  const form = document.getElementById('nodeForm');
+  form.innerHTML = '<div class="line"><span>节点 ' + (index + 1) + '</span>'
+    + '<label>X <input id="pointX" type="number" value="' + p.x + '"></label>'
+    + '<label>Y <input id="pointY" type="number" value="' + p.y + '"></label>'
+    + '<button class="small" id="pointApply">应用坐标</button>'
+    + (index > 0 ? '<button class="small danger" id="pointDelete">删除节点</button>' : '') + '</div>'
+    + (p.kind === 'elevator' ? '<div class="line"><input class="elevOption" id="elevOption" placeholder="楼层文字，留空表示不选" value="'
+      + escapeHtml(p.elevator_option || '') + '"><select id="elevExit"><option value="forward"'
+      + (p.elevator_exit !== 'backward' ? ' selected' : '') + '>出梯向前</option><option value="backward"'
+      + (p.elevator_exit === 'backward' ? ' selected' : '') + '>出梯向后</option></select></div>' : '');
+  document.getElementById('pointApply').onclick = () => {
+    const x = Number(document.getElementById('pointX').value);
+    const y = Number(document.getElementById('pointY').value);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) { notify('请填写有效的节点坐标', true); return; }
+    state.draft.points[index].x = Math.round(x);
+    state.draft.points[index].y = Math.round(y);
+    afterEdit();
+  };
+  const del = document.getElementById('pointDelete');
+  if (del) del.onclick = () => deletePoint(index);
+  if (p.kind === 'elevator') {
+    document.getElementById('elevOption').onchange = (ev) => {
+      state.draft.points[index].elevator_option = ev.target.value.trim();
+      afterEdit();
+    };
+    document.getElementById('elevExit').onchange = (ev) => {
+      state.draft.points[index].elevator_exit = ev.target.value;
+      afterEdit();
+    };
+  }
+}
+
+function renderSaveBar() {
+  const status = document.getElementById('saveStatus');
+  const button = document.getElementById('saveButton');
+  const route = savedRoute();
+  const dirty = hasUnsavedEdits();
+  button.disabled = !canEdit() || !dirty;
+  status.classList.toggle('dirty', dirty);
+  if (!route) status.textContent = '';
+  else if (!isCustom(route)) status.textContent = '默认路线只读，复制后再修改';
+  else status.textContent = dirty ? '未保存（Ctrl+S 保存）' : '已保存';
+}
+
+// 草稿变更后的统一刷新；不写盘。
+function afterEdit() {
+  renderRouteList();
+  renderDetail();
+  draw();
+}
+
+function renderAll() {
+  if (mapsReady) renderMapTabs();
+  renderRouteList();
+  renderDetail();
+  draw();
+}
+
+// ---------- 地图坐标与编辑 ----------
+
+function toScreen(x, y) {
+  return [state.offsetX + x * state.scale, state.offsetY + y * state.scale];
+}
+
+// 全局坐标 → 当前大地图画布坐标
+function toMapCanvas(x, y) {
+  const m = state.maps[state.activeMap];
+  if (!m) return null;
+  return [x - m.x0, y - m.y0];
+}
+
+// 屏幕坐标 → 全局坐标，取整并夹到底图范围内。
+// 必须取整：定位返回的是整数像素，点坐标若带小数，
+// 距离会出现 0.5px 这种值，到达判定就永远对不上。
+function toGlobal(sx, sy) {
+  const m = state.maps[state.activeMap];
+  if (!m) return null;
+  const x = (sx - state.offsetX) / state.scale + m.x0;
+  const y = (sy - state.offsetY) / state.scale + m.y0;
+  return [
+    Math.round(Math.min(Math.max(x, m.x0), m.x1)),
+    Math.round(Math.min(Math.max(y, m.y0), m.y1))
+  ];
+}
+
+function globalToScreen(x, y) {
+  const c = toMapCanvas(x, y);
+  return c ? toScreen(c[0], c[1]) : null;
+}
+
+function onActiveMap(layerName) {
+  const layer = state.byName[layerName];
+  return !!layer && layer.map_id === state.activeMap;
+}
+
+function localMouse(e) {
+  const rect = wrap.getBoundingClientRect();
+  return [e.clientX - rect.left, e.clientY - rect.top];
+}
+
+function visibleRoutePoints() {
+  const route = shownRoute();
+  const out = [];
+  if (!route) return out;
+  route.points.forEach((p, index) => {
+    if (!onActiveMap(p.layer)) return;
+    const s = globalToScreen(p.x, p.y);
+    if (s) out.push({ index: index, p: p, s: s });
+  });
+  return out;
+}
+
+function hitPoint(mx, my) {
+  let best = -1;
+  let bestDist = POINT_HIT_RADIUS;
+  visibleRoutePoints().forEach(it => {
+    const d = Math.hypot(it.s[0] - mx, it.s[1] - my);
+    if (d <= bestDist) { bestDist = d; best = it.index; }
+  });
+  return best;
+}
+
+function hitSpawn(mx, my) {
+  let best = null;
+  let bestDist = SPAWN_HIT_RADIUS;
+  spawnsOnMap(state.activeMap).forEach(s => {
+    const xy = globalToScreen(s.x, s.y);
+    if (!xy) return;
+    const d = Math.hypot(xy[0] - mx, xy[1] - my);
+    if (d <= bestDist) { bestDist = d; best = s; }
+  });
+  return best;
+}
+
+// 命中相邻两点之间的连线，返回插到哪一对之间以及落点全局坐标
+function hitSegment(mx, my) {
+  const route = shownRoute();
+  if (!route) return null;
+  let best = null;
+  let bestDist = LINE_HIT_RADIUS;
+  for (let i = 1; i < route.points.length; i++) {
+    const a = route.points[i - 1];
+    const b = route.points[i];
+    if (a.layer !== b.layer || !onActiveMap(a.layer)) continue;
+    const sa = globalToScreen(a.x, a.y);
+    const sb = globalToScreen(b.x, b.y);
+    if (!sa || !sb) continue;
+    const vx = sb[0] - sa[0];
+    const vy = sb[1] - sa[1];
+    const len2 = vx * vx + vy * vy;
+    if (!len2) continue;
+    let t = ((mx - sa[0]) * vx + (my - sa[1]) * vy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = sa[0] + vx * t;
+    const py = sa[1] + vy * t;
+    const d = Math.hypot(px - mx, py - my);
+    if (d > bestDist) continue;
+    bestDist = d;
+    best = { index: i - 1, x: Math.round(a.x + (b.x - a.x) * t), y: Math.round(a.y + (b.y - a.y) * t) };
+  }
+  return best;
+}
+
+// 在第 index 点后面插一个途径点，沿用同一点的分层；只改草稿。
+function insertPointAfter(index, gx, gy) {
+  if (!canEdit()) return -1;
+  const ref = state.draft.points[index];
+  if (!ref) return -1;
+  state.draft.points.splice(index + 1, 0, { x: gx, y: gy, layer: ref.layer, kind: 'beacon' });
+  return index + 1;
+}
+
+// 起点不能删：路线必须从出生点附近的途径点开始。
+function deletePoint(index) {
+  if (!canEdit() || index <= 0 || index >= state.draft.points.length) return;
+  state.draft.points.splice(index, 1);
+  state.selectedPoint = -1;
+  afterEdit();
+}
+
+function startInsert(index) {
+  if (!canEdit()) return;
+  state.insertAfter = index;
+  draw();
+}
+
+function cancelInsert() {
+  if (state.insertAfter < 0) return;
+  state.insertAfter = -1;
+  draw();
+}
+
+const pointMenu = document.getElementById('pointMenu');
+
+function hidePointMenu() { pointMenu.style.display = 'none'; }
+
+function showPointMenu(index, clientX, clientY) {
+  if (!canEdit()) return;
+  pointMenu.innerHTML = '';
+  const del = document.createElement('div');
+  del.className = 'item danger' + (index === 0 ? ' disabled' : '');
+  del.textContent = index === 0 ? '起点不能删除' : '删除这个点';
+  del.onclick = () => { if (index === 0) return; hidePointMenu(); deletePoint(index); };
+  pointMenu.appendChild(del);
+  const sep = document.createElement('div');
+  sep.className = 'sep';
+  pointMenu.appendChild(sep);
+  const add = document.createElement('div');
+  add.className = 'item';
+  add.textContent = '在这后面加一个点';
+  add.onclick = () => { hidePointMenu(); startInsert(index); };
+  pointMenu.appendChild(add);
+  pointMenu.style.display = 'block';
+  pointMenu.style.left = Math.min(clientX, window.innerWidth - 180) + 'px';
+  pointMenu.style.top = Math.min(clientY, window.innerHeight - 90) + 'px';
+}
+
+function drawSpawns() {
+  const rect = wrap.getBoundingClientRect();
+  spawnsOnMap(state.activeMap).forEach(s => {
+    const xy = globalToScreen(s.x, s.y);
+    if (!xy) return;
+    const [x, y] = xy;
+    const active = s.spawn_id === state.activeSpawnId;
+    // 识别半径：只给当前出生点画，避免满图圆圈。
+    if (active) {
+      ctx.beginPath();
+      ctx.arc(x, y, s.radius * state.scale, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(159, 123, 36, 0.45)';
+      ctx.setLineDash([5, 4]);
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = active ? '#d6b356' : '#fff';
+    ctx.strokeStyle = active ? '#9f7b24' : '#9c8650';
+    ctx.lineWidth = active ? 2 : 1.5;
+    ctx.fillRect(-7, -7, 14, 14);
+    ctx.strokeRect(-7, -7, 14, 14);
+    ctx.restore();
+    ctx.save();
+    ctx.font = '12px "Microsoft YaHei UI", sans-serif';
+    const w = ctx.measureText(s.name).width + 16;
+    const lx = Math.min(rect.width - w - 6, Math.max(6, x - w / 2));
+    const ly = y + 14;
+    ctx.fillStyle = active ? '#fff4d4' : 'rgba(255, 255, 255, 0.93)';
+    ctx.strokeStyle = active ? '#cfb36b' : '#bfd0e4';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(lx, ly, w, 22);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = active ? '#8e6a20' : '#4e6887';
+    ctx.fillText(s.name, lx + 8, ly + 15);
+    ctx.restore();
+  });
+}
+
+function draw() {
+  const rect = wrap.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.fillStyle = '#e6eaf2';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+
+  const m = state.maps[state.activeMap];
+  if (!m) return;
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(m.canvas, state.offsetX, state.offsetY,
+    m.canvas.width * state.scale, m.canvas.height * state.scale);
+
+  drawSpawns();
+
+  const route = state.recording ? null : shownRoute();
+  if (route) {
+    const pts = route.points
+      .map((p, i) => ({ p, order: i + 1 }))
+      .filter(it => onActiveMap(it.p.layer));
+    // 同层的相邻点连成折线；跨层的相邻点断开，避免把上下楼连成一条线。
+    ctx.strokeStyle = 'rgba(40, 90, 160, 0.7)';
+    ctx.lineWidth = 1.5;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (a.p.layer !== b.p.layer) continue;
+      const sa = globalToScreen(a.p.x, a.p.y);
+      const sb = globalToScreen(b.p.x, b.p.y);
+      if (!sa || !sb) continue;
+      ctx.beginPath();
+      ctx.moveTo(sa[0], sa[1]);
+      ctx.lineTo(sb[0], sb[1]);
+      ctx.stroke();
+    }
+    pts.forEach(it => {
+      const s = globalToScreen(it.p.x, it.p.y);
+      if (!s) return;
+      if (it.order - 1 === state.selectedPoint) {
+        ctx.beginPath();
+        ctx.arc(s[0], s[1], 12, 0, Math.PI * 2);
+        ctx.strokeStyle = '#e23b3b';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(s[0], s[1], 7, 0, Math.PI * 2);
+      ctx.fillStyle = KIND_COLORS[it.p.kind] || '#888';
+      ctx.fill();
+      ctx.fillStyle = '#123';
+      ctx.font = '13px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText(String(it.order), s[0] + 10, s[1] - 8);
+    });
+  }
+
+  // 插入模式：从锚点拉一条跟着鼠标走的虚线，提示下一个点会落在哪
+  if (state.insertAfter >= 0 && route && state.mouseMap) {
+    const anchor = route.points[state.insertAfter];
+    if (anchor && onActiveMap(anchor.layer)) {
+      const sa = globalToScreen(anchor.x, anchor.y);
+      const mp = globalToScreen(state.mouseMap[0], state.mouseMap[1]);
+      if (sa && mp) {
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(sa[0], sa[1]);
+        ctx.lineTo(mp[0], mp[1]);
+        ctx.strokeStyle = 'rgba(226, 59, 59, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(mp[0], mp[1], 4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(226, 59, 59, 0.85)';
+        ctx.fill();
+      }
+    }
+  }
+
+  // 录制态的临时图形只在录制中画：停止后即使状态没清干净也不留残影。
+  if (state.recording) {
+    state.livePoints.forEach((p, i) => {
+      if (!onActiveMap(p.layer)) return;
+      const s = globalToScreen(p.x, p.y);
+      if (!s) return;
+      const prev = i > 0 ? state.livePoints[i - 1] : null;
+      if (prev && prev.layer === p.layer) {
+        const ps = globalToScreen(prev.x, prev.y);
+        if (ps) {
+          ctx.beginPath();
+          ctx.moveTo(ps[0], ps[1]);
+          ctx.lineTo(s[0], s[1]);
+          ctx.strokeStyle = 'rgba(40, 90, 160, 0.85)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath();
+      ctx.arc(s[0], s[1], 7, 0, Math.PI * 2);
+      ctx.strokeStyle = KIND_COLORS[p.kind] || '#888';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = '#123';
+      ctx.font = '13px "Microsoft YaHei UI", sans-serif';
+      ctx.fillText(String(i + 1), s[0] + 10, s[1] - 8);
+    });
+    // 最后一个点到角色当前位置的引导线，跟着角色移动。
+    if (state.livePoints.length && state.livePosition) {
+      const last = state.livePoints[state.livePoints.length - 1];
+      if (onActiveMap(last.layer)) {
+        const ls = globalToScreen(last.x, last.y);
+        const ps = toScreen(state.livePosition[0], state.livePosition[1]);
+        if (ls) {
+          ctx.save();
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(ls[0], ls[1]);
+          ctx.lineTo(ps[0], ps[1]);
+          ctx.strokeStyle = 'rgba(226, 59, 59, 0.8)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+    if (state.livePosition) {
+      const s = toScreen(state.livePosition[0], state.livePosition[1]);
+      ctx.beginPath();
+      ctx.arc(s[0], s[1], 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#e23b3b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  const spawn = getSpawn(state.activeSpawnId);
+  if (state.recording) {
+    hud.textContent = '录制中 · 1 途径点 2 电子箱 3 机械箱 4 普通箱 5 门 6 电梯 · 退格 删上一个点';
+  } else if (state.insertAfter >= 0) {
+    hud.textContent = '插入模式 · 点击地图落下第 ' + (state.insertAfter + 2) + ' 点（途径点） · Esc 取消';
+  } else {
+    const mode = !route ? '未选择路线'
+      : canEdit() ? '拖点移动 · 点连线插点 · 点节点弹菜单'
+        : isCustom(route) ? busyReason() : '默认路线只读';
+    hud.textContent = state.activeMap + (spawn && spawn.map_id === state.activeMap ? ' · 出生点 ' + spawn.name : '')
+      + ' · ' + mode + ' · 滚轮缩放 / 空白处拖动';
+  }
+}
+
+wrap.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  const [mx, my] = localMouse(e);
+  hidePointMenu();
+
+  if (canEdit()) {
+    // 插入模式：点地图落点，不进入拖动
+    if (state.insertAfter >= 0) {
+      const g = toGlobal(mx, my);
+      if (g) {
+        const at = insertPointAfter(state.insertAfter, g[0], g[1]);
+        state.insertAfter = -1;
+        state.selectedPoint = at;
+        afterEdit();
+      }
+      return;
+    }
+    const hit = hitPoint(mx, my);
+    if (hit >= 0) {
+      state.dragPoint = hit;
+      state.dragMoved = false;
+      state.selectedPoint = hit;
+      draw();
+      return;
+    }
+    // 点在线上就插一个途径点，不然就是平移底图
+    const seg = hitSegment(mx, my);
+    if (seg) {
+      const at = insertPointAfter(seg.index, seg.x, seg.y);
+      state.selectedPoint = at;
+      afterEdit();
+      return;
+    }
+  } else if (!state.recording) {
+    const hit = hitPoint(mx, my);
+    if (hit >= 0) {
+      state.selectedPoint = hit;
+      renderDetail();
+      draw();
+      return;
+    }
+  }
+
+  if (!state.recording) {
+    const spawn = hitSpawn(mx, my);
+    if (spawn && spawn.spawn_id !== state.activeSpawnId) {
+      guardUnsaved(() => selectSpawn(spawn.spawn_id));
+      return;
+    }
+  }
+
+  state.dragging = true;
+  state.dragStart = [e.clientX - state.offsetX, e.clientY - state.offsetY];
+  wrap.classList.add('dragging');
+});
+
+wrap.addEventListener('mousemove', (e) => {
+  const [mx, my] = localMouse(e);
+
+  if (state.dragPoint >= 0 && canEdit()) {
+    const g = toGlobal(mx, my);
+    const p = g ? state.draft.points[state.dragPoint] : null;
+    if (p) {
+      p.x = g[0];
+      p.y = g[1];
+      state.dragMoved = true;
+      draw();
+    }
+    return;
+  }
+
+  if (state.insertAfter >= 0) {
+    state.mouseMap = toGlobal(mx, my);
+    draw();
+    return;
+  }
+
+  if (state.dragging) return;
+
+  if (canEdit() && hitPoint(mx, my) >= 0) { wrap.style.cursor = 'move'; return; }
+  if (canEdit() && hitSegment(mx, my)) { wrap.style.cursor = 'copy'; return; }
+  if (!state.recording && hitSpawn(mx, my)) { wrap.style.cursor = 'pointer'; return; }
+  wrap.style.cursor = '';
+});
+
+// 松开事件挂在 window 上：拖点时鼠标可能已经移出画布，
+// 挂在画布上会收不到 mouseup，点位就一直跟着鼠标走。
+window.addEventListener('mouseup', (e) => {
+  if (state.dragPoint >= 0) {
+    const index = state.dragPoint;
+    const moved = state.dragMoved;
+    state.dragPoint = -1;
+    state.dragMoved = false;
+    if (moved) {
+      afterEdit();
+    } else if (e.button === 0) {
+      renderDetail();
+      showPointMenu(index, e.clientX, e.clientY);
+    }
+    return;
+  }
+  if (state.dragging) {
+    state.dragging = false;
+    wrap.classList.remove('dragging');
+    wrap.style.cursor = '';
+  }
+});
+
+// 点在菜单外面就收起菜单
+window.addEventListener('mousedown', (e) => {
+  if (!pointMenu.contains(e.target)) hidePointMenu();
+}, true);
+
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    if (!modalOpen()) saveDraft();
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (modalOpen()) { closeModal(); return; }
+    cancelInsert();
+    hidePointMenu();
+  }
+});
+
+wrap.addEventListener('mouseleave', () => {
+  if (state.insertAfter >= 0) {
+    state.mouseMap = null;
+    draw();
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!state.dragging) return;
+  state.offsetX = e.clientX - state.dragStart[0];
+  state.offsetY = e.clientY - state.dragStart[1];
+  draw();
+});
+
+wrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = wrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const before = [(mx - state.offsetX) / state.scale, (my - state.offsetY) / state.scale];
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  state.scale = Math.min(Math.max(state.scale * factor, 0.05), 12);
+  state.autoFit = false;
+  state.offsetX = mx - before[0] * state.scale;
+  state.offsetY = my - before[1] * state.scale;
+  draw();
+}, { passive: false });
+
+window.addEventListener('resize', resizeCanvas);
+document.getElementById('saveButton').onclick = () => saveDraft();
+
+// ---------- 供 Python 侧调用 ----------
+window.bagelEditor = {
+  // 推送全部出生点与路线；保住当前选择和未保存的草稿。
+  setData(data) {
+    state.spawns = data.spawns || [];
+    state.routes = data.routes || [];
+    const keptDraft = state.draft;
+    if (!state.activeSpawnId || !getSpawn(state.activeSpawnId)) {
+      const first = state.spawns.find(s => s.map_id === state.activeMap) || state.spawns[0];
+      state.activeSpawnId = first ? first.spawn_id : null;
+      if (first && !state.activeMap) state.activeMap = first.map_id;
+    }
+    if (!state.selectedKey || !routeByKey(state.selectedKey)) {
+      const route = state.activeSpawnId
+        ? (activeRouteOf(state.activeSpawnId) || routesForSpawn(state.activeSpawnId)[0]) : null;
+      state.selectedKey = route ? routeKey(route) : null;
+      state.selectedPoint = -1;
+      resetDraft();
+    } else if (keptDraft && keptDraft.key === state.selectedKey) {
+      state.draft = keptDraft;
+    } else {
+      resetDraft();
+    }
+    renderAll();
+  },
+  onResult(requestId, ok, message, data) {
+    const resolve = pendingRequests[requestId];
+    delete pendingRequests[requestId];
+    if (message) notify(message, !ok);
+    if (resolve) resolve({ ok, message, data });
+  },
+  setBusy(busy) {
+    state.trial = !!busy.trial;
+    cancelInsert();
+    renderAll();
+  },
+  isDirty() { return hasUnsavedEdits(); },
+  // 关闭编辑器前由 Python 调用：有未保存修改时让用户选择。
+  requestClose() {
+    closeModal();
+    guardUnsaved(() => call('close', {}));
+    return true;
+  },
+  openCreate() { openCreateRoute(); },
+  openRecord() { openRecordDialog(); },
+  openManage() { openManage(); },
+  startRecording(name) {
+    state.recording = true;
+    state.livePoints = [];
+    state.insertAfter = -1;
+    hidePointMenu();
+    notify('开始录制「' + name + '」');
+    renderAll();
+  },
+  stopRecording(select) {
+    // 录制态必须连同点与角色位置一起清掉：draw() 只看 livePoints
+    // 非空就画，残留下来会在图上留一圈点不掉的「死点」。
+    state.recording = false;
+    state.livePoints = [];
+    state.livePosition = null;
+    if (select && routeByKey(routeKey(select))) selectRoute(routeKey(select));
+    else renderAll();
+  },
+  addPoint(point) {
+    state.livePoints.push(point);
+    const layer = state.byName[point.layer];
+    if (layer && state.activeMap !== layer.map_id) { state.activeMap = layer.map_id; renderMapTabs(); }
+    renderDetail();
+    draw();
+  },
+  popPoint() {
+    state.livePoints.pop();
+    renderDetail();
+    draw();
+  },
+  setPosition(layerName, localXY) {
+    const layer = layerName ? state.byName[layerName] : null;
+    if (!layer || !localXY) { state.livePosition = null; draw(); return; }
+    if (state.activeMap !== layer.map_id) { state.activeMap = layer.map_id; renderAll(); }
+    state.livePosition = toMapCanvas(localXY[0] + layer.origin[0], localXY[1] + layer.origin[1]);
+    draw();
+  },
+  // 用定位结果替换第 index 个点的坐标：只改草稿，保存后才写入文件。
+  setPointPosition(index, layerName, globalXY) {
+    if (!canEdit() || !state.draft || index < 0 || index >= state.draft.points.length || !globalXY) return;
+    const p = state.draft.points[index];
+    p.x = Math.round(globalXY[0]);
+    p.y = Math.round(globalXY[1]);
+    if (layerName && state.byName[layerName]) p.layer = layerName;
+    state.selectedPoint = index;
+    afterEdit();
+    notify('第 ' + (index + 1) + ' 点已定位到 (' + p.x + ', ' + p.y + ')，保存后生效');
+  }
+};
+
+resizeCanvas();
+boot();
+</script>
+</body>
+</html>

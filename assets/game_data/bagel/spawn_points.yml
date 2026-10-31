@@ -1,0 +1,83 @@
+# 贝果计划已登记的出生点。
+# 坐标是分层底图的全局坐标，来源见 docs/game/screens/image/bagel_spawn_points/README.md。
+# radius：识别半径（地图像素），定位结果与出生点距离不超过它才算命中。
+# initial_route：首次安装且没有旧路线数据时默认开启的默认路线标识；null 表示不开启。
+version: 1
+spawn_points:
+  - id: janus_video_store
+    name: 录像店
+    layer: 雅努斯幻境/Custom
+    x: 822
+    y: 348
+    radius: 100
+    initial_route: 录像店-默认
+  - id: janus_worksite_station
+    name: 白鸽工地站
+    layer: 雅努斯幻境/Custom
+    x: 341
+    y: 432
+    radius: 100
+    initial_route: 白鸽工地站-默认
+  - id: janus_south_station
+    name: 六昏街南站
+    layer: 雅努斯幻境/Custom
+    x: 1002
+    y: 466
+    radius: 100
+    initial_route: 六昏街南站-默认
+  - id: janus_construction
+    name: 改建工程区
+    layer: 雅努斯幻境/Custom
+    x: 602
+    y: 30
+    radius: 100
+    initial_route: null
+  - id: janus_worksite_depths
+    name: 工地深处
+    layer: 雅努斯幻境/Custom
+    x: 255
+    y: 829
+    radius: 100
+    initial_route: null
+  - id: windworn_highway_low
+    name: 风蚀公路_低
+    layer: 城郊幻境/Custom3
+    x: 145
+    y: 513
+    radius: 100
+    initial_route: null
+  - id: windworn_highway_high
+    name: 风蚀公路_高
+    layer: 城郊幻境/Custom3
+    x: 35
+    y: 520
+    radius: 100
+    initial_route: null
+  - id: bahamut_warehouse_north
+    name: 巴哈姆特仓库_北
+    layer: 城郊幻境/05_1_0
+    x: 1145
+    y: 577
+    radius: 100
+    initial_route: null
+  - id: bahamut_warehouse_east
+    name: 巴哈姆特仓库_东
+    layer: 城郊幻境/05_1_0
+    x: 1240
+    y: 759
+    radius: 100
+    initial_route: null
+  - id: bunless_bae_town_east
+    name: 野人镇_东
+    layer: 城郊幻境/Custom4
+    x: 904
+    y: 303
+    radius: 100
+    initial_route: null
+  - id: bunless_bae_town_west
+    name: 野人镇_西
+    layer: 城郊幻境/Custom4
+    x: 610
+    y: 421
+    radius: 100
+    initial_route: null

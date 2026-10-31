@@ -1,0 +1,8 @@
+sub_dir: bagel
+template_id: interact_icon
+template_name: 贝果-交互图标
+template_shape: circle
+auto_mask: true
+point_list:
+- 1362, 594
+- 1336, 594

@@ -1,0 +1,8 @@
+sub_dir: bagel
+template_id: interact_key_f
+template_name: 贝果-交互提示F键
+template_shape: circle
+auto_mask: true
+point_list:
+- 1295, 604
+- 1277, 604

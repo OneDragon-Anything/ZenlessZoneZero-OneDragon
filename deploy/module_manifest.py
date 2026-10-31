@@ -1,6 +1,11 @@
 # AUTO-GENERATED — DO NOT EDIT
 import sys
 if not getattr(sys, 'frozen', False):
+    import PySide6.QtGui
+    import PySide6.QtWebChannel
+    import PySide6.QtWebEngineCore
+    import PySide6.QtWebEngineWidgets
+    import PySide6.QtWidgets
     import argparse
     import ast
     import atexit
@@ -86,12 +91,12 @@ if not getattr(sys, 'frozen', False):
     from collections.abc import Callable, Iterable, Iterator, Sequence
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
-    from contextlib import suppress
+    from contextlib import contextmanager, suppress
     from copy import deepcopy
     from ctypes import wintypes
     from ctypes.wintypes import DWORD, HANDLE, RECT, SHORT, UINT, WCHAR, WORD
     from cv2.typing import MatLike
-    from dataclasses import dataclass, field, fields
+    from dataclasses import asdict, dataclass, field, fields, replace
     from datetime import datetime, timedelta
     from email.header import Header
     from email.mime.image import MIMEImage
@@ -100,11 +105,12 @@ if not getattr(sys, 'frozen', False):
     from email.utils import formataddr
     from enum import Enum, IntEnum, StrEnum
     from functools import cached_property, lru_cache, partial, wraps
+    from html import escape
     from importlib import metadata
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from math import isfinite
+    from math import atan2, cos, degrees, floor, hypot, isfinite, radians, sin
     from packaging import version
     from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
@@ -120,6 +126,7 @@ if not getattr(sys, 'frozen', False):
     from qfluentwidgets.components.navigation.pivot import PivotItem
     from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
     from qfluentwidgets.components.settings.setting_card import SettingIconWidget
+    from qfluentwidgets.components.widgets.card_widget import CardSeparator
     from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
     from qfluentwidgets.components.widgets.teaching_tip import TeachTipBubble, TeachingTipManager
     from qfluentwidgets.window.stacked_widget import StackedWidget
@@ -131,9 +138,9 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from threading import Event, Lock
+    from threading import Event, Lock, RLock
     from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urljoin, urlparse
-    from uuid import uuid4
+    from uuid import NAMESPACE_URL, uuid4, uuid5
     from yaml import CSafeLoader, SafeLoader

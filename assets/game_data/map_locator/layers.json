@@ -1,0 +1,203 @@
+{
+  "version": 1,
+  "layers": [
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom2_2",
+      "image": "layers/janus/Custom2_2.png",
+      "origin": [
+        773,
+        403
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom2_1",
+      "image": "layers/janus/Custom2_1.png",
+      "origin": [
+        924,
+        288
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom1_2",
+      "image": "layers/janus/Custom1_2.png",
+      "origin": [
+        591,
+        415
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom1_1",
+      "image": "layers/janus/Custom1_1.png",
+      "origin": [
+        578,
+        414
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom3_1",
+      "image": "layers/janus/Custom3_1.png",
+      "origin": [
+        233,
+        408
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom3_2",
+      "image": "layers/janus/Custom3_2.png",
+      "origin": [
+        187,
+        416
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom",
+      "image": "layers/janus/Custom.png",
+      "origin": [
+        0,
+        0
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom4_3",
+      "image": "layers/janus/Custom4_3.png",
+      "origin": [
+        229,
+        1329
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom4_1",
+      "image": "layers/janus/Custom4_1.png",
+      "origin": [
+        66,
+        1173
+      ]
+    },
+    {
+      "map_id": "雅努斯幻境",
+      "name": "Custom4_2",
+      "image": "layers/janus/Custom4_2.png",
+      "origin": [
+        212,
+        1325
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom2",
+      "image": "layers/suburb/Custom2.png",
+      "origin": [
+        548,
+        582
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "05_1_1",
+      "image": "layers/suburb/05_1_1.png",
+      "origin": [
+        289,
+        624
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom2_2",
+      "image": "layers/suburb/Custom2_2.png",
+      "origin": [
+        577,
+        598
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom1_1",
+      "image": "layers/suburb/Custom1_1.png",
+      "origin": [
+        1086,
+        644
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "05_1_0",
+      "image": "layers/suburb/05_1_0.png",
+      "origin": [
+        817,
+        519
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "03_1_0",
+      "image": "layers/suburb/03_1_0.png",
+      "origin": [
+        1056,
+        493
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom1_2",
+      "image": "layers/suburb/Custom1_2.png",
+      "origin": [
+        1086,
+        644
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "04_1_0",
+      "image": "layers/suburb/04_1_0.png",
+      "origin": [
+        426,
+        401
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "04_1",
+      "image": "layers/suburb/04_1.png",
+      "origin": [
+        428,
+        407
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom3",
+      "image": "layers/suburb/Custom3.png",
+      "origin": [
+        0,
+        176
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom3_1",
+      "image": "layers/suburb/Custom3_1.png",
+      "origin": [
+        77,
+        293
+      ]
+    },
+    {
+      "map_id": "城郊幻境",
+      "name": "Custom4",
+      "image": "layers/suburb/Custom4.png",
+      "origin": [
+        570,
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+[
+  {
+    "frame": "video_store_hud.webp",
+    "hits": [
+      {
+        "layer": "雅努斯幻境/Custom",
+        "score": 0.5468,
+        "center": [
+          822,
+          348
+        ],
+        "origin": [
+          0,
+          0
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_1",
+        "score": 0.1303,
+        "center": [
+          58,
+          1183
+        ],
+        "origin": [
+          66,
+          1173
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_2",
+        "score": 0.1226,
+        "center": [
+          202,
+          1342
+        ],
+        "origin": [
+          212,
+          1325
+        ]
+      }
+    ]
+  },
+  {
+    "frame": "south_station_hud.webp",
+    "hits": [
+      {
+        "layer": "雅努斯幻境/Custom",
+        "score": 0.4839,
+        "center": [
+          1002,
+          466
+        ],
+        "origin": [
+          0,
+          0
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_2",
+        "score": 0.1143,
+        "center": [
+          290,
+          1400
+        ],
+        "origin": [
+          212,
+          1325
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom3_1",
+        "score": 0.1082,
+        "center": [
+          315,
+          487
+        ],
+        "origin": [
+          233,
+          408
+        ]
+      }
+    ]
+  },
+  {
+    "frame": "south_corridor_hud.webp",
+    "hits": [
+      {
+        "layer": "雅努斯幻境/Custom",
+        "score": 0.3723,
+        "center": [
+          255,
+          829
+        ],
+        "origin": [
+          0,
+          0
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_2",
+        "score": 0.1268,
+        "center": [
+          299,
+          1388
+        ],
+        "origin": [
+          212,
+          1325
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_1",
+        "score": 0.125,
+        "center": [
+          157,
+          1348
+        ],
+        "origin": [
+          66,
+          1173
+        ]
+      }
+    ]
+  },
+  {
+    "frame": "worksite_station_hud.webp",
+    "hits": [
+      {
+        "layer": "雅努斯幻境/Custom",
+        "score": 0.5439,
+        "center": [
+          341,
+          432
+        ],
+        "origin": [
+          0,
+          0
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom3_2",
+        "score": 0.1756,
+        "center": [
+          226,
+          413
+        ],
+        "origin": [
+          187,
+          416
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom4_1",
+        "score": 0.1401,
+        "center": [
+          128,
+          1421
+        ],
+        "origin": [
+          66,
+          1173
+        ]
+      }
+    ]
+  },
+  {
+    "frame": "construction_hud.webp",
+    "hits": [
+      {
+        "layer": "雅努斯幻境/Custom",
+        "score": 0.5636,
+        "center": [
+          602,
+          30
+        ],
+        "origin": [
+          0,
+          0
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom1_2",
+        "score": 0.1628,
+        "center": [
+          639,
+          437
+        ],
+        "origin": [
+          591,
+          415
+        ]
+      },
+      {
+        "layer": "雅努斯幻境/Custom3_2",
+        "score": 0.1519,
+        "center": [
+          237,
+          440
+        ],
+        "origin": [
+          187,
+          416
+        ]
+      }
+    ]
+  }
+]
