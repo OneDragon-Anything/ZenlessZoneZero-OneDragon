@@ -13,6 +13,7 @@ from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRu
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.battle.battle_loading import apply_battle_loading_wait
 from zzz_od.operation.hdd.enter_hdd_mission import EnterHddMission
 from zzz_od.operation.key_sim_runner import KeySimRunner
 from zzz_od.operation.transport import Transport
@@ -85,9 +86,11 @@ class LifeOnLineApp(ZApplication):
     @node_from(from_name='进入副本')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
+        """沿用半秒轮询识别战斗画面，并应用当前实例的加载等待额度。"""
         self.chosen_team = True
-        return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击',
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击',
                                        retry_wait=0.5)
+        return apply_battle_loading_wait(self, result)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='模拟按键')
