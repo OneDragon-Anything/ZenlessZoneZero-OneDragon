@@ -1,3 +1,4 @@
+import threading
 import time
 
 from pynput import keyboard, mouse
@@ -13,6 +14,7 @@ class KeyboardMouseController(PcButtonController):
         self.keyboard = keyboard.Controller()
         self.mouse = mouse.Controller()
         self._pressed_keys: set[str] = set()  # 当前按下的键
+        self._pressed_lock: threading.Lock = threading.Lock()  # 多个线程会同时按同一个键
 
     def tap(self, key: str) -> None:
         """
@@ -33,12 +35,14 @@ class KeyboardMouseController(PcButtonController):
         """
         is_mouse = pc_button_utils.is_mouse_button(key)
         real_key = pc_button_utils.get_mouse_button(key) if is_mouse else pc_button_utils.get_keyboard_button(key)
+        if press_time is None:
+            # 先记账再发键：发键那几微秒里别的线程来 release 也不会漏掉
+            with self._pressed_lock:
+                self._pressed_keys.add(key)
         if is_mouse:
             self.mouse.press(real_key)
         else:
             self.keyboard.press(real_key)
-        if press_time is None:
-            self._pressed_keys.add(key)
 
         if press_time is not None:
             time.sleep(press_time)
@@ -49,9 +53,14 @@ class KeyboardMouseController(PcButtonController):
                 self.keyboard.release(real_key)
 
     def release(self, key: str) -> None:
-        if key not in self._pressed_keys:
-            return
-        self._pressed_keys.discard(key)
+        """松开按键。账本只记状态，不再当门禁。
+
+        不管账本里有没有这条键都发 key-up：多发的 key-up 无害，漏发会让按键
+        一直卡在按下状态。多个线程同时按同一个键、或者进程中断时，账本和真实
+        键态会错开，按账本判断就永远松不掉。
+        """
+        with self._pressed_lock:
+            self._pressed_keys.discard(key)
         is_mouse = pc_button_utils.is_mouse_button(key)
         if is_mouse:
             self.mouse.release(pc_button_utils.get_mouse_button(key))
@@ -59,7 +68,9 @@ class KeyboardMouseController(PcButtonController):
             self.keyboard.release(pc_button_utils.get_keyboard_button(key))
 
     def reset(self) -> None:
-        for key in list(self._pressed_keys):
+        with self._pressed_lock:
+            keys = list(self._pressed_keys)
+        for key in keys:
             self.release(key)
 
 
