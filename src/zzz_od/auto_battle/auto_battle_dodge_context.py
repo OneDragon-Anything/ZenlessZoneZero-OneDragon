@@ -33,10 +33,15 @@ class AudioRecorder:
     音频录制类，用于录制和处理音频数据。
     """
 
-    def __init__(self, error_callback: Callable[[RuntimeError], None] | None = None):
+    def __init__(
+            self,
+            error_callback: Callable[[RuntimeError], None] | None = None,
+            hwnd_getter: Callable[[], int | None] | None = None,
+    ):
         self.running: bool = False  # 标记录制是否正在运行
         self._run_lock = threading.Lock()  # 用于线程安全的锁
         self._error_callback: Callable[[RuntimeError], None] | None = error_callback
+        self._hwnd_getter: Callable[[], int | None] | None = hwnd_getter  # 获取游戏窗口句柄，用于按进程录制
 
         self._sample_rate = 32000  # 采样率
         self._used_channel = 2  # 使用的音频通道数
@@ -77,6 +82,58 @@ class AudioRecorder:
     def _record_loop(self) -> None:
         """
         音频录制循环，持续录制音频数据。
+        优先只录制游戏进程的声音，不可用时回退到录制默认输出设备。
+        """
+        try:
+            if not self._record_process_loop():
+                self._record_device_loop()
+        except RuntimeError as e:
+            log.warning('音频录制异常，已停止声音闪避识别', exc_info=True)
+            if self._error_callback is not None:
+                self._error_callback(e)
+        finally:
+            self.running = False
+
+    def _record_process_loop(self) -> bool:
+        """
+        通过游戏窗口句柄找到游戏进程，只录制该进程（含子进程）的声音。
+        :return: 是否使用了按进程录制。返回 False 时应回退到录制输出设备
+        """
+        from one_dragon.utils.process_audio_capture import (
+            ProcessAudioCapture,
+            ProcessAudioCaptureError,
+            get_pid_by_hwnd,
+            is_process_audio_capture_supported,
+        )
+
+        if not is_process_audio_capture_supported():
+            log.info('当前系统不支持按进程录制音频，改为录制默认输出设备')
+            return False
+
+        hwnd = self._hwnd_getter() if self._hwnd_getter is not None else None
+        pid = get_pid_by_hwnd(hwnd)
+        if pid is None:
+            log.info('未找到游戏窗口所属进程，改为录制默认输出设备')
+            return False
+
+        capture = ProcessAudioCapture(pid, self._sample_rate, self._used_channel)
+        try:
+            capture.open()
+        except ProcessAudioCaptureError:
+            log.warning('按进程录制音频失败，改为录制默认输出设备', exc_info=True)
+            return False
+
+        log.info(f'开始录制游戏进程音频 pid={pid}')
+        with capture:
+            while self.running:
+                stream_data = capture.read(timeout_ms=100)
+                if stream_data.shape[0] > 0:
+                    self._push_audio(stream_data.mean(axis=1))
+        return True
+
+    def _record_device_loop(self) -> None:
+        """
+        录制默认输出设备的声音（会混入其他程序的声音）。
         """
         # 这个在全局导入的话 会导致QT的选择文件无法使用
         import warnings
@@ -86,36 +143,38 @@ class AudioRecorder:
 
         warnings.filterwarnings('ignore', category=SoundcardRuntimeWarning)
 
-        try:
-            # 按 WASAPI id 精确匹配默认扬声器的 loopback 设备（录制系统输出声音）。
-            # 不能用名字匹配（soundcard 的 _match_device 会做子串/模糊匹配，可能错落到真实麦克风）
-            default_speaker = sc.default_speaker()
-            _mic = None
-            for mic in sc.all_microphones(include_loopback=True):
-                if mic.isloopback and mic.id == default_speaker.id:
-                    _mic = mic
-                    break
-            if _mic is None:
-                raise RuntimeError(f'未找到默认扬声器 [{default_speaker.name}] 的 loopback 设备')
-            _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
-            with _recorder as audio_recorder:
-                while self.running:
-                    stream_data = audio_recorder.record(numframes=self._chunk_size)
-                    if self._used_channel > 1:
-                        stream_data = librosa.to_mono(stream_data.T)
-                    else:
-                        stream_data = stream_data.T
+        # 按 WASAPI id 精确匹配默认扬声器的 loopback 设备（录制系统输出声音）。
+        # 不能用名字匹配（soundcard 的 _match_device 会做子串/模糊匹配，可能错落到真实麦克风）
+        default_speaker = sc.default_speaker()
+        _mic = None
+        for mic in sc.all_microphones(include_loopback=True):
+            if mic.isloopback and mic.id == default_speaker.id:
+                _mic = mic
+                break
+        if _mic is None:
+            raise RuntimeError(f'未找到默认扬声器 [{default_speaker.name}] 的 loopback 设备')
+        _recorder = _mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+        with _recorder as audio_recorder:
+            while self.running:
+                stream_data = audio_recorder.record(numframes=self._chunk_size)
+                if self._used_channel > 1:
+                    stream_data = librosa.to_mono(stream_data.T)
+                else:
+                    stream_data = stream_data.T
+                self._push_audio(stream_data)
 
-                    with self._update_audio_lock:
-                        # 更新 latest_audio
-                        self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
-                        self.latest_audio[-len(stream_data):] = stream_data
-        except RuntimeError as e:
-            log.warning('音频录制异常，已停止声音闪避识别', exc_info=True)
-            if self._error_callback is not None:
-                self._error_callback(e)
-        finally:
-            self.running = False
+    def _push_audio(self, stream_data: np.ndarray) -> None:
+        """
+        把新录到的单声道数据追加到 latest_audio 末尾，丢弃最旧的部分。
+        :param stream_data: 单声道音频数据
+        """
+        with self._update_audio_lock:
+            buffer_len = len(self.latest_audio)
+            data_len = min(len(stream_data), buffer_len)
+            if data_len == 0:
+                return
+            self.latest_audio[:-data_len] = self.latest_audio[data_len:]
+            self.latest_audio[-data_len:] = stream_data[-data_len:]
 
     def stop_running(self) -> None:
         """
@@ -149,7 +208,7 @@ class AutoBattleDodgeContext:
         self.ctx: ZContext = ctx  # 上下文对象
 
         self._flash_model: FlashClassifier | None = None  # 闪避分类器
-        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error)  # 音频录制器
+        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error, self._get_game_hwnd)  # 音频录制器
         self._audio_template: np.ndarray | None = None  # 音频模板
 
         # 识别锁，保证每种类型只有一个实例在进行识别
@@ -167,6 +226,13 @@ class AutoBattleDodgeContext:
         # 音频事件去重时间间隔
         self._audio_event_interval: float = 0.1
         self._last_audio_event_time: float = 0
+
+    def _get_game_hwnd(self) -> int | None:
+        """获取游戏窗口句柄，用于按进程录制音频。"""
+        controller = self.ctx.controller
+        if controller is None or controller.game_win is None:
+            return None
+        return controller.game_win.get_hwnd()
 
     def _on_audio_record_error(self, error: RuntimeError) -> None:
         """音频录制异常时通知当前运行界面。"""
