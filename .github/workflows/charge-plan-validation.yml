@@ -57,15 +57,11 @@ jobs:
           ref: ${{ steps.test-ref.outputs.sha }}
           path: zzz-od-test
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.14'
-
       - name: Install uv and locked dependencies
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
-          uv sync --locked --group dev --python 3.11.14
+          uv sync --locked --group dev --python 3.11.14 --managed-python
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run regression tests and lint
@@ -107,14 +103,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.14'
       - name: Install locked dependencies
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
-          uv sync --locked --group dev --python 3.11.14
+          uv sync --locked --group dev --python 3.11.14 --managed-python
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build runtime candidate
         shell: pwsh
@@ -155,7 +148,7 @@ jobs:
             Select-Object Hash | ConvertTo-Json | Set-Content -LiteralPath "$candidateDir/runtime-sha256.json" -Encoding utf8
           @(
             '这是 CI 验证候选，尚未完成人工验收。',
-            '请解压到独立目录，保留 .git、src 和 _internal，再运行 OneDragon-RuntimeLauncher.exe。',
+            '请解压到独立目录，保留 .git、src 和 .runtime，再运行 OneDragon-RuntimeLauncher.exe。',
             '自动代码更新已关闭。验收期间不要点击同步代码或切换分支，以免离开 candidate.json 指定版本。',
             '根据人工验收表检查四类副本；本包没有用户账号、游戏配置或密钥。'
           ) | Set-Content -LiteralPath "$candidateDir/验收说明.txt" -Encoding utf8
