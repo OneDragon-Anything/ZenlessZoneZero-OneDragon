@@ -23,6 +23,7 @@ from one_dragon_qt.services.download_queue_service import (
     ResourceDownloadTask,
     ResourceDownloadTaskState,
 )
+from one_dragon_qt.services.plugin_update_provider import PluginUpdateProvider
 from one_dragon_qt.widgets.resource_download_dialog import ResourceUpdateDialog
 
 if TYPE_CHECKING:
@@ -106,6 +107,14 @@ class ResourceUpdateCoordinator(QObject):
                 check_id='project_models',
                 check_update=self.ctx.model_config.needs_model_download,
                 build_specs=self._build_model_specs,
+            )
+        )
+        self._plugin_updates = PluginUpdateProvider(self.ctx, self.window, self)
+        self._register_check(
+            _ResourceCheck(
+                check_id='plugins',
+                check_update=self._plugin_updates.check_update,
+                build_specs=self._plugin_updates.build_specs,
             )
         )
 
@@ -198,40 +207,50 @@ class ResourceUpdateCoordinator(QObject):
             if spec.resource_type != 'ocr'
         )
 
-        selected_specs: list[ResourceDownloadSpec]
+        # 第三方插件未经审查，单独成一个弹窗，且不受免确认设置影响
+        official_specs = [spec for spec in specs if spec.resource_type != 'plugin']
+        plugin_specs = [spec for spec in specs if spec.resource_type == 'plugin']
+        if official_specs:
+            self._confirm_and_enqueue_official(official_specs, included_ocr_request)
+        if plugin_specs:
+            dialog = ResourceUpdateDialog(
+                self.ctx,
+                self.queue,
+                plugin_specs,
+                title='发现插件更新',
+                parent=self.window,
+            )
+            if dialog.exec():
+                self._enqueue_selected_specs(dialog.selected_specs(), None, False)
+
+        self._update_dialog_open = False
+        self._reset_pending_updates()
+        self._schedule_update_dialog()
+
+    def _confirm_and_enqueue_official(
+        self,
+        specs: list[ResourceDownloadSpec],
+        ocr_request: ContextDownloadRequestEvent | None,
+    ) -> None:
+        """官方资源按免确认设置直接入队，或弹窗让用户勾选后入队。"""
+        selected_specs = specs
         remember_choice = False
-        if self.ctx.env_config.resource_download_no_confirm:
-            selected_specs = specs
-        else:
+        if not self.ctx.env_config.resource_download_no_confirm:
             dialog = ResourceUpdateDialog(
                 self.ctx,
                 self.queue,
                 specs,
                 title='发现可下载资源',
-                show_remember=included_ocr_request is not None,
+                show_remember=ocr_request is not None,
                 parent=self.window,
             )
             if not dialog.exec():
-                if included_ocr_request is not None:
-                    self._respond_ocr_request(
-                        included_ocr_request,
-                        False,
-                        False,
-                    )
-                self._update_dialog_open = False
-                self._reset_pending_updates()
+                if ocr_request is not None:
+                    self._respond_ocr_request(ocr_request, False, False)
                 return
             selected_specs = dialog.selected_specs()
             remember_choice = dialog.remember_choice
-
-        self._enqueue_selected_specs(
-            selected_specs,
-            included_ocr_request,
-            remember_choice,
-        )
-        self._update_dialog_open = False
-        self._reset_pending_updates()
-        self._schedule_update_dialog()
+        self._enqueue_selected_specs(selected_specs, ocr_request, remember_choice)
 
     def _build_pending_specs(
         self,
