@@ -5,7 +5,6 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
-import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
@@ -27,6 +26,9 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
@@ -86,7 +88,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self.btn_listener.start()
+        self._btn_listener_started: bool = False
+        self._btn_listener_closed: bool = False
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -198,14 +201,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         使用工厂管理器自动扫描和注册应用工厂。
         """
-        # 发现并注册应用
-        non_default_factories, default_factories = self.factory_manager.discover_factories()
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        # 发现并注册应用，入口列表由 ApplicationRunContext 按工厂元数据派生
+        factories = self.factory_manager.discover_factories()
+        if factories:
+            self.run_context.registry_application(factories)
 
     def _load_plugin_screens(self) -> None:
         """加载插件的 screen_info
@@ -234,13 +233,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.run_context.clear_applications()
 
         # 重新发现并注册
-        non_default_factories, default_factories = self.factory_manager.discover_factories(reload_modules=True)
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        factories = self.factory_manager.discover_factories(reload_modules=True)
+        if factories:
+            self.run_context.registry_application(factories)
 
         # 重新加载插件 screen
         self.screen_loader.reload()
@@ -256,7 +251,29 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if 'notify_config' in self.__dict__:
             del self.__dict__['notify_config']
 
+        self._sync_current_application_after_refresh()
+
+        # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
+        self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
+
         log.info("应用注册刷新完成")
+
+    def _sync_current_application_after_refresh(self) -> None:
+        """刷新后校验当前运行应用，避免继续引用已移除的注册。"""
+        run_context = self.run_context
+        current_app_id = run_context.current_app_id
+        if current_app_id is None:
+            return
+
+        if run_context.is_app_registered(current_app_id):
+            return
+
+        if not run_context.is_context_stop:
+            run_context.stop_running()
+        run_context.current_app_id = None
+        run_context.current_group_id = None
+        run_context.current_instance_idx = None
+        run_context.current_application = None
 
     #------------------- 以下是 初始化相关 -------------------#
 
@@ -292,9 +309,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_for_application()
 
-            self.ready_for_application = True
-
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.ready_for_application = True
 
             self.push_service.init_push_channels()
 
@@ -303,6 +320,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+
+            self._start_btn_listener()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -415,6 +434,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @staticmethod
     def _compose_overlay_patched_image(base_image, overlay_rgba):
+        import cv2
+
         if base_image is None or overlay_rgba is None:
             return None
         if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
@@ -490,7 +511,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        ocr_model_name = self._decide_ocr_model_name()
+        ocr_model_name = self.model_config.ocr
 
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
@@ -571,18 +592,33 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """自动模式下清除已经失效的上次成功源。"""
         self.env_config.mark_resource_source_failure(source_id)
 
-    def _decide_ocr_model_name(self) -> str:
+    def _start_btn_listener(self) -> None:
         """
-        决定本次初始化使用的 OCR 模型名 默认使用配置里的模型名 子类可按项目需要覆写
+        启动按键监听器 可以重复调用
+        已经启动或关闭流程开始后 不会再启动
         """
-        return self.model_config.ocr
+        if self._btn_listener_started or self._btn_listener_closed:
+            return
+
+        self.btn_listener.start()
+        self._btn_listener_started = True
+
+    def _stop_btn_listener(self) -> None:
+        """
+        停止按键监听器 可以重复调用
+        """
+        if self._btn_listener_closed:
+            return
+
+        self._btn_listener_closed = True
+        self.btn_listener.stop()
 
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
-        self.btn_listener.stop()
+        self._stop_btn_listener()
         if self.controller is not None:
             self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()

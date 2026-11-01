@@ -19,7 +19,7 @@ artifact_priority:
 - 终结
 - 绝境
 - 通用
-buy_only_priority: 1
+buy_only_priority_2: 3
 period_buff_no: 第一个
 artifact_priority_2:
 - ！！！！  配  置  说  明  ！！！！

@@ -1,6 +1,6 @@
 ---
 name: zzz-od-dev-plugin
-description: 绝区零一条龙新增内置应用与第三方插件指南，覆盖工厂、常量、运行记录、设置界面和 screen_info 接入
+description: 当要新增或修改绝区零一条龙的内置应用、第三方应用插件或插件接入配置时使用。
 version: 1.0.0
 author: OneDragon-Anything
 tags: [zzz, one-dragon, application, plugin, development]
@@ -27,7 +27,7 @@ src/zzz_od/application/my_app/
 ├── my_app_const.py
 ├── my_app_factory.py
 ├── my_app.py
-└── my_app_run_record.py        # 需要运行记录时添加
+└── my_app_run_record.py        # 需要自定义运行周期、进度或完成判定时添加
 ```
 
 ### 第三方插件
@@ -38,7 +38,7 @@ plugins/my_plugin/
 ├── my_plugin_const.py
 ├── my_plugin_factory.py
 ├── my_plugin.py
-└── my_plugin_run_record.py     # 需要运行记录时添加
+└── my_plugin_run_record.py     # 需要自定义运行周期、进度或完成判定时添加
 ```
 
 ## 2. const 文件
@@ -50,6 +50,9 @@ APP_ID = 'my_plugin'
 APP_NAME = '我的插件'
 DEFAULT_GROUP = True
 NEED_NOTIFY = True
+
+# 只允许代码中的固定入口调用时才声明
+# INTERNAL_APP = True
 ```
 
 字段含义：
@@ -58,8 +61,19 @@ NEED_NOTIFY = True
 |---|---|
 | `APP_ID` | 全局唯一应用 ID，重复会被拒绝 |
 | `APP_NAME` | GUI 展示名称 |
-| `DEFAULT_GROUP` | `True` 进入一条龙默认运行列表；`False` 作为独立工具 |
+| `DEFAULT_GROUP` | 是否默认进入一条龙列表 |
+| `INTERNAL_APP` | 可选；`True` 表示只允许代码中的固定入口调用，省略时为 `False` |
 | `NEED_NOTIFY` | 是否需要通知能力 |
+
+先按入口需求选择合法组合：
+
+| `DEFAULT_GROUP` | `INTERNAL_APP` | 入口范围 |
+|:---:|:---:|---|
+| `True` | `False` | 默认进入一条龙，也允许从通用独立应用入口选择 |
+| `False` | `False` | 不进入一条龙，只允许从通用独立应用入口选择 |
+| `False` | `True` | 不进入通用列表，只允许固定入口调用 |
+
+不得同时设为 `True`，否则工厂加载失败。先按入口需求选择字段，再按是否进入一条龙使用默认每日记录；非一条龙应用有业务记录需求时单独实现。
 
 第三方插件可额外提供 GUI 元数据：
 
@@ -140,7 +154,11 @@ class MyPluginFactory(ApplicationFactory):
         return MyPlugin(self.ctx)
 ```
 
-如果应用需要运行记录，再实现 `create_run_record`。
+`DEFAULT_GROUP=True` 时，不要为普通每日状态实现 `create_run_record()`。父工厂会自动创建基础 `AppRunRecord`，并从当前上下文读取区服刷新时间偏移。
+
+`DEFAULT_GROUP=False` 时，默认返回 `None`。不要为了表示“没有记录”抛出异常；只有应用确实需要记录时才覆盖 `create_run_record()`。
+
+只有需要不同重置周期、业务进度或自定义完成判定时，才实现自定义记录并覆盖 `create_run_record()`：
 
 ```python
 from one_dragon.base.operation.application_run_record import AppRunRecord
@@ -155,7 +173,9 @@ from .my_plugin_run_record import MyPluginRunRecord
 
 如果应用需要配置，再实现 `create_config` 并返回 `ApplicationConfig` 子类。
 
-## 5. 运行记录
+## 5. 自定义运行记录
+
+先确认基础每日记录无法表达需求，再新增自定义记录：
 
 ```python
 from one_dragon.base.operation.application_run_record import AppRunRecord
@@ -176,11 +196,7 @@ class MyPluginRunRecord(AppRunRecord):
 
 ## 6. 设置界面
 
-需要设置入口时，新增 `*_app_setting.py`，模式参考：
-
-- `src/zzz_od/application/coffee/coffee_app_setting.py`
-- `src/zzz_od/application/suibian_temple/suibian_temple_app_setting.py`
-- `docs/develop/guides/application_setting_guide.md`
+需要设置入口时，新增 `*_app_setting.py`。先搜索现有设置界面的通用模式，复用项目已有的设置卡片、配置适配器和入口注册方式，不要自建第二套扫描逻辑。
 
 设置界面扫描器会复用已发现的插件信息，不需要自己全盘扫描。
 
@@ -209,9 +225,7 @@ area_list:
 
 ## 8. 发现与刷新规则
 
-扫描入口：`src/one_dragon/base/operation/application/application_factory_manager.py`
-
-规则：
+遵守以下规则：
 
 - 扫描所有 `_factory.py`。
 - 同一目录存在多个 `_factory.py` 或多个 `_const.py` 时，该目录跳过。

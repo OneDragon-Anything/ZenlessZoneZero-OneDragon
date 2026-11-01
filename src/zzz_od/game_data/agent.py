@@ -550,16 +550,16 @@ class AgentEnum(Enum):
                 '蕾米埃尔-浮晖',
                 AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                 template_id='remielle_floating_radiance',
-                hsv_color=(150, 255, 255),
-                hsv_color_diff=(30, 255, 200),
+                hsv_color=(143, 140, 174),
+                hsv_color_diff=(7, 37, 81),
                 max_length=100,
             ),
             AgentStateDef(
                 '蕾米埃尔-虚曜',
                 AgentStateCheckWay.COLOR_RANGE_CONNECT,
                 template_id='remielle_voidflare',
-                hsv_color=(150, 255, 255),
-                hsv_color_diff=(30, 255, 200),
+                hsv_color=(150, 73, 222),
+                hsv_color_diff=(1, 62, 34),
                 connect_cnt=1,
             ),
         ],
@@ -579,3 +579,15 @@ class AgentEnum(Enum):
                                      lower_color=(150, 0, 0), upper_color=(255, 90, 50),
                                      max_length=100, min_value_trigger_state=5),
                    ])
+
+    ROXY = Agent('roxy', '洛克茜', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.WIND, ['roxy'])
+
+    PHOENIX = Agent('phoenix', '菲欧妮', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.FIRE, ['phoenix', 'phoenix_daydream_complex', 'phoenix_the_illness_called_life'],
+                    state_list=[AgentStateDef('菲欧妮-燔焰', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                              template_id='phoenix',
+                                              hsv_color=(4, 128, 255), hsv_color_diff=(9, 128, 55),
+                                              max_length=120),
+                                AgentStateDef('菲欧妮-升变', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                              template_id='phoenix_pp',
+                                              hsv_color=(10, 128, 255), hsv_color_diff=(10, 128, 20),
+                                              connect_cnt=4)])

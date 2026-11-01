@@ -146,6 +146,9 @@ class OnnxModelLoader:
         if "DmlExecutionProvider" in providers:
             session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
             session_options.enable_mem_pattern = False
+        # 关闭线程池自旋：ORT 默认线程空闲时忙等不睡，会持续占用 CPU 并拖慢推理
+        session_options.add_session_config_entry('session.intra_op.allow_spinning', '0')
+        session_options.add_session_config_entry('session.inter_op.allow_spinning', '0')
 
         log.info('开始创建ONNX Runtime会话 %s providers=%s', onnx_path, providers)
         self.session = gpu_executor.create_onnx_session(

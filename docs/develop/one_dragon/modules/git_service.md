@@ -124,6 +124,10 @@ checkout 目标本地分支
 同步工作区
 ```
 
+GitService 只负责从目标提交读取清单、调用兼容性检查，并在修改工作区前决定是否停止。冻结环境识别、打包清单读取、导入解析与新增依赖探测由独立的 `one_dragon.envs.runtime_compatibility` 模块负责。
+
+清单内容变化不直接表示不兼容：仅新增导入无法由当前冻结运行时满足，或变化后的清单无法可靠解析时，才阻止更新；具体规则与检查边界见 [模块清单机制](../runtime_launcher.md#模块清单机制)。
+
 模块清单不兼容时会在 checkout 前返回 `GitSyncStatus.RUNTIME_INCOMPATIBLE`，以避免旧版 RuntimeLauncher 切换到无法加载的新代码。此时 fetch 可能已经成功，`refs/remotes/<git_remote>/<git_branch>` 也可能已经存在，但当前工作区和 `HEAD` 不会被切换。该状态不表示 Git 仓库损坏，不会触发仓库重建。
 
 首次初始化仓库时，集成启动器会把内置正式版本号作为 tag 传入，例如 `v2.4.6`。GitService 只拉取对应的 `refs/tags/v2.4.6`，将 lightweight 或 annotated tag peel 到 commit，再用该 commit 建立 `refs/remotes/<git_remote>/<git_branch>`；后续仍按普通本地分支 checkout，因此不会进入 detached HEAD。tag 对应构建当前 `.runtime` 时的源码提交，不再重复执行模块清单检查。
