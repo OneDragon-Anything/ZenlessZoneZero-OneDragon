@@ -207,20 +207,28 @@ class ResourceUpdateCoordinator(QObject):
             if spec.resource_type != 'ocr'
         )
 
-        selected_specs: list[ResourceDownloadSpec]
         remember_choice = False
-        if self.ctx.env_config.resource_download_no_confirm:
-            selected_specs = specs
-        else:
+        # 免确认只对官方资源生效：第三方插件未经审查，更新必须由用户确认
+        no_confirm = self.ctx.env_config.resource_download_no_confirm
+        auto_specs = [
+            spec for spec in specs
+            if no_confirm and spec.resource_type != 'plugin'
+        ]
+        confirm_specs = [spec for spec in specs if spec not in auto_specs]
+        selected_specs = list(auto_specs)
+        if confirm_specs:
             dialog = ResourceUpdateDialog(
                 self.ctx,
                 self.queue,
-                specs,
+                confirm_specs,
                 title='发现可下载资源',
-                show_remember=included_ocr_request is not None,
+                show_remember=included_ocr_request is not None and not auto_specs,
                 parent=self.window,
             )
-            if not dialog.exec():
+            if dialog.exec():
+                selected_specs.extend(dialog.selected_specs())
+                remember_choice = dialog.remember_choice
+            elif not auto_specs:
                 if included_ocr_request is not None:
                     self._respond_ocr_request(
                         included_ocr_request,
@@ -230,8 +238,6 @@ class ResourceUpdateCoordinator(QObject):
                 self._update_dialog_open = False
                 self._reset_pending_updates()
                 return
-            selected_specs = dialog.selected_specs()
-            remember_choice = dialog.remember_choice
 
         self._enqueue_selected_specs(
             selected_specs,

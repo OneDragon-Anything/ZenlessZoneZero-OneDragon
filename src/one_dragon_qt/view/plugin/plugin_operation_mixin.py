@@ -386,7 +386,7 @@ class PluginOperationMixin:
                 status_text += gt('，可更新到 v{version}').format(version=update_version)
                 actions.append((ACTION_UPDATE, gt('更新到 v{version}').format(version=update_version)))
                 actions.append((ACTION_IGNORE, gt('跳过此版本')))
-            actions.append(self._mute_action(entry))
+            actions.append(self._mute_action(plugin_info))
             actions.append((ACTION_UNSUBSCRIBE, gt('取消订阅')))
         elif plugin_info is not None:
             status_text = gt('已安装 · 未从商店订阅')
@@ -420,9 +420,15 @@ class PluginOperationMixin:
         )
         self._show_detail(data, partial(self._on_detail_action, entry, plugin_info))
 
-    def _mute_action(self, entry: MarketPlugin) -> tuple[str, str]:
+    def subscription_registry_id(self, plugin_info: PluginInfo) -> str:
+        """已安装插件在订阅记录里的市场条目 id，没有订阅记录时返回空字符串。"""
+        package_dir = self.get_plugin_package_dir(plugin_info)
+        dir_name = package_dir.name if package_dir is not None else ''
+        return self.subscription_config.find_registry_id(plugin_info.app_id, dir_name) or ''
+
+    def _mute_action(self, plugin_info: PluginInfo) -> tuple[str, str]:
         """单插件更新提示开关对应的详情页按钮。"""
-        if self.subscription_config.is_update_muted(entry.plugin_id):
+        if self.subscription_config.is_update_muted(self.subscription_registry_id(plugin_info)):
             return ACTION_UNMUTE_UPDATE, gt('恢复更新提示')
         return ACTION_MUTE_UPDATE, gt('不再提示此插件的更新')
 
@@ -441,7 +447,7 @@ class PluginOperationMixin:
                 actions.append((ACTION_UPDATE, gt('更新到 v{version}').format(version=update_version)))
                 actions.append((ACTION_IGNORE, gt('跳过此版本')))
             if entry is not None:
-                actions.append(self._mute_action(entry))
+                actions.append(self._mute_action(plugin_info))
             actions.append((ACTION_UNSUBSCRIBE, gt('取消订阅')))
             if entry is None:
                 status_text = gt('已订阅 · 商店暂无此插件')
@@ -516,15 +522,18 @@ class PluginOperationMixin:
                 duration=2500,
                 parent=self._as_widget(),
             )
-        elif action in (ACTION_MUTE_UPDATE, ACTION_UNMUTE_UPDATE) and entry is not None:
+        elif action in (ACTION_MUTE_UPDATE, ACTION_UNMUTE_UPDATE) and plugin_info is not None:
             muted = action == ACTION_MUTE_UPDATE
-            self.subscription_config.set_update_muted(entry.plugin_id, muted)
+            registry_id = self.subscription_registry_id(plugin_info)
+            if not registry_id or not self.subscription_config.set_update_muted(registry_id, muted):
+                self._show_error(gt('设置失败'), gt('找不到该插件的订阅记录'))
+                return
             InfoBar.success(
                 title=gt('已关闭更新提示') if muted else gt('已恢复更新提示'),
                 content=(
                     gt('{name} 的更新不再在启动时弹窗提示，卡片上仍会显示可更新')
                     if muted else gt('{name} 的更新会在启动时提示')
-                ).format(name=entry.name),
+                ).format(name=plugin_info.app_name),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,

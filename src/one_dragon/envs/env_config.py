@@ -210,6 +210,11 @@ class EnvConfig(YamlConfig):
 
     @plugin_update_notify.setter
     def plugin_update_notify(self, new_value: bool) -> None:
+        """设置启动时是否提示插件更新。
+
+        Args:
+            new_value: True 表示在统一弹窗里提示插件更新，False 表示不提示。
+        """
         self.update('plugin_update_notify', new_value)
 
     @property

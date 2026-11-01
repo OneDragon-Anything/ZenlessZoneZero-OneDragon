@@ -41,6 +41,7 @@ class PluginUpdateProvider(PluginOperationMixin, QObject):
         """没有控件可切换。"""
 
     def _as_widget(self) -> QWidget:
+        """插件安装结果的界面回调没有自己的页面，统一返回主窗口。"""
         return self._window
 
     def check_update(self) -> bool:
@@ -48,16 +49,24 @@ class PluginUpdateProvider(PluginOperationMixin, QObject):
         if not self.ctx.env_config.plugin_update_notify:
             self._pending = []
             return False
+        subscribed = [
+            plugin_info
+            for plugin_info in self.ctx.factory_manager.third_party_plugins
+            if self.is_subscribed(plugin_info)
+        ]
+        if not subscribed:
+            self._pending = []
+            return False
         snapshot = self.market_service.load()
         self._market_snapshot = snapshot
         pending: list[tuple[MarketPlugin, PluginInfo]] = []
-        for plugin_info in self.ctx.factory_manager.third_party_plugins:
-            if not self.is_subscribed(plugin_info):
+        for plugin_info in subscribed:
+            if self.subscription_config.is_update_muted(
+                self.subscription_registry_id(plugin_info)
+            ):
                 continue
             entry = self.find_market_entry(plugin_info)
             if entry is None or not self.pending_update_version(plugin_info, entry):
-                continue
-            if self.subscription_config.is_update_muted(entry.plugin_id):
                 continue
             pending.append((entry, plugin_info))
         self._pending = pending

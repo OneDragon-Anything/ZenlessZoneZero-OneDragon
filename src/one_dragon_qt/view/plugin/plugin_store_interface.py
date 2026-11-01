@@ -258,6 +258,11 @@ class PluginStoreInterface(PluginOperationMixin, VerticalScrollInterface):
         self.update_paging()
 
     def _on_notify_changed(self, _state: int) -> None:
+        """把复选框状态写入全局的插件更新提示设置。
+
+        Args:
+            _state: 复选框状态，实际取值以控件当前勾选为准。
+        """
         self.ctx.env_config.plugin_update_notify = self.notify_check.isChecked()
 
     def _on_search_changed(self, text: str) -> None:
