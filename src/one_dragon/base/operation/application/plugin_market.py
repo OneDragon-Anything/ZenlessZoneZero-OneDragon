@@ -15,12 +15,26 @@ from pathlib import Path
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
-MARKET_URL = 'https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json'
-"""插件市场索引地址。
+_market_urls: dict[str, str] | None = None
 
-数据仓（OneDragon-Anyone/plugin-data）提供审核配置，构建产物发布到
-plugin-data 站点的 api/v1/ 下；旧地址 plugin-registry/plugins.json 已废弃。
-"""
+
+def get_market_urls() -> dict[str, str]:
+    """各下载源的市场索引地址，取自 repository.yml（发布期配置，首次读取后复用）。"""
+    global _market_urls
+    if _market_urls is None:
+        # 延迟导入：envs 里的下载服务依赖本模块，放在顶部会形成循环引用
+        from one_dragon.envs.repo_config import RepoConfig
+
+        _market_urls = dict(RepoConfig().plugin_market_urls)
+    return dict(_market_urls)
+
+
+def get_market_site_root() -> str:
+    """商店站点根目录，由 github 源的索引地址按 /api/ 截断推导，封面等静态资源按它拼地址。"""
+    url = get_market_urls().get('github', '')
+    root = url.split('/api/', 1)[0] if '/api/' in url else url.rsplit('/', 1)[0]
+    return root + '/' if root else ''
+
 
 CACHE_TTL_SECONDS = 600
 """市场数据的本地缓存有效期，过期后重新拉取。"""
@@ -38,6 +52,8 @@ class MarketRelease:
     download_url: str
     sha256: str
     changelog_html: str
+    sources: dict[str, str]
+    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时为空。"""
 
 
 @dataclass(frozen=True)
@@ -93,6 +109,13 @@ class MarketSnapshot:
         return None
 
 
+def _parse_sources(raw: object) -> dict[str, str]:
+    """解析索引里的多源地址表，只保留字符串值。"""
+    if not isinstance(raw, dict):
+        return {}
+    return {str(key): url for key, url in raw.items() if isinstance(url, str) and url}
+
+
 def _parse_release(raw: dict) -> MarketRelease | None:
     version = str(raw.get('version') or '').strip()
     if not version:
@@ -103,6 +126,7 @@ def _parse_release(raw: dict) -> MarketRelease | None:
         download_url=str(raw.get('downloadUrl') or ''),
         sha256=str(raw.get('sha256') or ''),
         changelog_html=str(raw.get('changelogHtml') or ''),
+        sources=_parse_sources(raw.get('sources')),
     )
 
 
@@ -215,12 +239,18 @@ class PluginMarketService:
 
     def _download(self) -> list[MarketPlugin]:
         # 延迟导入，避免模块加载期就引入网络依赖
-        from one_dragon.utils import http_utils
+        from one_dragon.base.web.common_downloader import (
+            download_with_resource_settings,
+        )
 
         target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
-        ok = http_utils.download_file(
-            MARKET_URL,
-            str(target),
+        urls = get_market_urls()
+        if not urls:
+            raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
+        ok = download_with_resource_settings(
+            urls,
+            str(target.parent),
+            target.name,
             min_bytes_per_second=MIN_BYTES_PER_SECOND,
         )
         if not ok or not target.exists():
@@ -287,6 +317,7 @@ def _release_to_raw(release: MarketRelease | None) -> dict | None:
         'downloadUrl': release.download_url,
         'sha256': release.sha256,
         'changelogHtml': release.changelog_html,
+        'sources': release.sources,
     }
 
 

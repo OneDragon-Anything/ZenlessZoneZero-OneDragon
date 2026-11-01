@@ -10,6 +10,47 @@ GITHUB_SOURCE_ID: str = 'github'
 AUTO_FALLBACK_MIN_BYTES_PER_SECOND: float = 100 * 1024
 
 
+def download_with_resource_settings(
+        download_urls: dict[str, str],
+        save_file_path: str,
+        save_file_name: str,
+        min_bytes_per_second: float | None = None,
+) -> bool:
+    """按「资源」页的下载源顺序与代理设置下载一个文件。
+
+    给不经过下载队列的场景使用（市场索引、插件封面）。索引的 github 源与封面
+    都在 Pages 域名上，ghproxy 代理不了这类地址（实测会超时），所以统一不套。
+
+    Args:
+        download_urls: 源ID到地址的映射，只有一项时即为固定单源。
+        save_file_path: 保存目录。
+        save_file_name: 保存文件名。
+        min_bytes_per_second: 最低持续速度 低于该值中止下载
+
+    Returns:
+        bool: 是否下载成功
+    """
+    # 延迟导入：envs 里的下载服务依赖本模块，放在顶部会形成循环引用
+    from one_dragon.envs.env_config import EnvConfig
+    from one_dragon.envs.repo_config import RepoConfig
+
+    env_config = EnvConfig(RepoConfig())
+    downloader = CommonDownloader(
+        CommonDownloaderParam(
+            save_file_path=save_file_path,
+            save_file_name=save_file_name,
+            download_urls=download_urls,
+        )
+    )
+    return downloader.download(
+        source_order=env_config.get_resource_source_order(),
+        proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
+        skip_if_existed=False,
+        min_bytes_per_second=min_bytes_per_second,
+        fallback_on_slow=env_config.is_resource_source_auto,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ResourceDownloadProgress:
     """资源下载的结构化进度。"""
@@ -76,12 +117,13 @@ class CommonDownloader:
             on_source_success: Callable[[str], None] | None = None,
             on_source_failure: Callable[[str], None] | None = None,
             fallback_on_slow: bool = False,
+            min_bytes_per_second: float | None = None,
             ) -> bool:
         """
         按候选源顺序依次尝试下载 直到成功
 
         Args:
-            source_order: 候选源ID顺序 None或与下载地址无交集时使用参数中的地址顺序
+            source_order: 候选源ID顺序 优先级从高到低；没列到的源排到最后兜底
             proxy_url: 个人代理地址
             ghproxy_url: ghproxy 代理地址 只对 github 源生效
             skip_if_existed: 文件已存在时是否跳过下载
@@ -91,6 +133,7 @@ class CommonDownloader:
             on_source_success: 某个源下载成功后的回调 入参为源ID
             on_source_failure: 某个源下载失败后的回调 入参为源ID
             fallback_on_slow: 是否在候选源持续低速时尝试下一个源
+            min_bytes_per_second: 最低持续速度 低于该值中止下载
 
         Returns:
             bool: 是否下载成功
@@ -101,8 +144,8 @@ class CommonDownloader:
         candidates: list[str] = []
         if source_order is not None:
             candidates = [i for i in source_order if i in self.param.download_urls]
-        if len(candidates) == 0:
-            candidates = list(self.param.download_urls.keys())
+        # 候选顺序没提的源排到最后兜底 例如索引给的自建地址
+        candidates += [i for i in self.param.download_urls if i not in candidates]
 
         if len(candidates) == 0:
             log.error('没有可用的下载源')
@@ -134,7 +177,7 @@ class CommonDownloader:
                 min_bytes_per_second=(
                     AUTO_FALLBACK_MIN_BYTES_PER_SECOND
                     if fallback_on_slow and index < len(candidates) - 1
-                    else None
+                    else min_bytes_per_second
                 ),
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,

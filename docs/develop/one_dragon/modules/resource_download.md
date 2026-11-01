@@ -26,6 +26,9 @@ resource_download:
       ...
     yolo:             # OneDragon-YOLO（识别模型）
       ...
+  plugin_market:      # 插件市场索引 plugins.json 在各源上的完整文件地址
+    github: "https://.../plugins.json"
+    cnb: "https://.../plugins.json"
   models:             # 项目识别模型声明
     detector:
       label: 目标识别
@@ -40,6 +43,7 @@ resource_download:
 
 - `repos` 存 release 根路径（以 `/releases` 结尾）。附件地址由 `RepoConfig.get_resource_asset_urls(repo_key, tag, file_name)` 拼装：`tag` 非空时为 `{root}/download/{tag}/{file}`，为空时为 `{root}/latest/download/{file}`。GitHub 与 cnb 的路径结构一致（cnb 规范路径带 `/-/`，且同样支持 `latest/download`）。
 - 某个仓库缺少某个源时，候选回退会自动跳过该源。
+- `plugin_market` 存插件市场索引 `plugins.json` 在各源上的完整文件地址（不是 release 根路径），插件商店按同样的候选顺序挑选；客户端封面图仍按 `github` 那一条推导站点根目录。未配置时插件商店拉不到索引，只能用本地缓存。
 - 该段整体可选；未配置的项目回退到各构造点自带的下载地址。
 
 ## 源选择与自动模式
