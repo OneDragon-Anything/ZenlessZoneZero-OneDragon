@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: phoenix_pp_3_1
+template_name: 角色状态-菲欧妮-升变-31
+template_shape: circle
+auto_mask: true
+point_list:
+- 212, 125
+- 218, 125

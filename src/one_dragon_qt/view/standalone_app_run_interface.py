@@ -93,9 +93,9 @@ class StandaloneRunInterface(SplitAppRunInterface):
     # ── 应用列表管理 ──
 
     def _get_all_apps(self) -> dict[str, str]:
-        """获取所有已注册的默认组应用 {app_id: app_name}"""
+        """获取允许通过通用应用列表选择的应用 {app_id: app_name}"""
         result: dict[str, str] = {}
-        for app_id in self.ctx.run_context.default_group_apps:
+        for app_id in self.ctx.run_context.standalone_apps:
             name = self.ctx.run_context.get_application_name(app_id)
             result[app_id] = name or app_id
         return result
@@ -122,7 +122,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
         if target:
             self.app_list_widget.select_app(target)
         self.app_id = target or ''
-        self.ctx.standalone_app_config.active_app_id = target or ''
+        self.ctx.standalone_app_config.active_app_id = self.app_id
 
     # ── 事件处理 ──
 
@@ -130,11 +130,27 @@ class StandaloneRunInterface(SplitAppRunInterface):
         self.app_id = app_id
         self.ctx.standalone_app_config.active_app_id = app_id
 
+    def _save_visible_app_list(self, visible_app_ids: list[str]) -> None:
+        """更新可见应用顺序，同时保留配置中被过滤的原始 ID。"""
+        config = self.ctx.standalone_app_config
+        selectable_app_ids = set(self._get_all_apps())
+        visible_iter = iter(visible_app_ids)
+        merged_app_ids: list[str] = []
+        for saved_app_id in config.app_list:
+            if saved_app_id not in selectable_app_ids:
+                merged_app_ids.append(saved_app_id)
+                continue
+            visible_app_id = next(visible_iter, None)
+            if visible_app_id is not None:
+                merged_app_ids.append(visible_app_id)
+        merged_app_ids.extend(visible_iter)
+        config.app_list = merged_app_ids
+
     def _on_app_removed(self, app_id: str) -> None:
-        self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
+        self._save_visible_app_list(self.app_list_widget.app_ids)
 
     def _on_app_order_changed(self, app_ids: list[str]) -> None:
-        self.ctx.standalone_app_config.app_list = app_ids
+        self._save_visible_app_list(app_ids)
 
     def _on_add_app_clicked(self) -> None:
         all_apps = self._get_all_apps()
@@ -150,7 +166,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             for app_id in selected_ids:
                 self.app_list_widget.add_app(app_id, all_apps[app_id])
             self._update_setting_btn_visibility()
-            self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
+            self._save_visible_app_list(self.app_list_widget.app_ids)
 
     def _on_app_setting_clicked(self, app_id: str) -> None:
         window = self.window()

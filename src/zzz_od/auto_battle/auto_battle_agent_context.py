@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 _battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
+
+_AGENT_LIST_DIFF_SECONDS: float = 30.0  # 名单持续对不上这个时长就重新全量识别 太短会在换人换位的过渡期反复全量
+
 _agent_state_check_method: dict[AgentStateCheckWay, Callable] = {
     AgentStateCheckWay.COLOR_RANGE_CONNECT: agent_state_checker.check_cnt_by_color_range,
     AgentStateCheckWay.COLOR_RANGE_EXIST: agent_state_checker.check_exist_by_color_range,
@@ -51,8 +54,8 @@ class TeamInfo:
         self.agent_list: List[AgentInfo] = []
 
         self.should_check_all_agents: bool = agent_names is None  # 是否应该检查所有角色
-        self.check_agent_same_times: int = 0  # 识别角色的相同次数
-        self.check_agent_diff_times: int = 0  # 识别角色的不同次数
+        self.agent_list_diff_since: float = 0  # 名单开始持续不一致的时间 0 表示还没开始计
+        self.agent_count_max: int = 0  # 全量识别期间认到过的最多人数 用来识别残缺结果
         self.update_agent_lock = threading.Lock()
         self.agent_update_time: float = 0  # 识别角色的更新时间
 
@@ -80,30 +83,38 @@ class TeamInfo:
         """
         with self.update_agent_lock:
 
+            same_as_confirmed: bool = self.is_same_agent_list(current_agent_list)
+
             if self.should_check_all_agents:
-                if self.is_same_agent_list(current_agent_list):
-                    self.check_agent_diff_times = 0
-                    self.check_agent_same_times += 1
+                current_count: int = len(current_agent_list)
+                if current_count > self.agent_count_max:
+                    # 认出了更多位子 说明之前的结果更不完整 以这次为准
+                    self.agent_count_max = current_count
+                if current_count < self.agent_count_max:
+                    # 比认出过的最多人数还少 说明这次有后台位子没配上
+                    # 拿这种残缺名单当基准 全量会提前结束 之后只查这几位 后台就再也认不出来
+                    return False
 
-                    if self.check_agent_same_times >= 5:  # 连续5次一致时 就不验证了
-                        self.should_check_all_agents = False
-                        log.debug("停止识别新角色")
-                else:
-                    self.check_agent_diff_times += 1
-                    self.check_agent_same_times = 0
+                if same_as_confirmed:
+                    # 名单跟已确认的一致 说明认准了 直接退出全量
+                    self.should_check_all_agents = False
+                    log.debug("停止识别新角色")
             else:
-                if not self.is_same_agent_list(current_agent_list):
-                    self.check_agent_diff_times += 1
-                    self.check_agent_same_times = 0
-
-                    if self.check_agent_diff_times >= 250:  # 0.02秒1次 大概5s不一致就重新识别 除了减员情况外基本不可能出现
-                        self.should_check_all_agents = True
-                        log.debug("重新识别新角色")
+                if not same_as_confirmed:
+                    if self.agent_list_diff_since == 0:
+                        # 名单刚开始对不上 从这一轮开始计时
+                        self.agent_list_diff_since = update_time
+                    else:
+                        diff_seconds = update_time - self.agent_list_diff_since
+                        if diff_seconds >= _AGENT_LIST_DIFF_SECONDS:
+                            self.should_check_all_agents = True
+                            self.agent_list_diff_since = 0
+                            self.agent_count_max = 0
+                            log.warning('代理人名单持续 %.1f 秒对不上，下一次识别重新全量识别所有角色', diff_seconds)
                 else:
-                    self.check_agent_diff_times = 0
-                    self.check_agent_same_times += 0
+                    self.agent_list_diff_since = 0
 
-            if not self.should_check_all_agents and not self.is_same_agent_list(current_agent_list):
+            if not self.should_check_all_agents and not same_as_confirmed:
                 # 如果已经确定角色列表了 那识别出来的应该是一样的
                 # 不一样的话 就不更新了
                 return False
@@ -167,8 +178,8 @@ class TeamInfo:
         """
         with self.update_agent_lock:
             self.should_check_all_agents = True
-            self.check_agent_same_times = 0
-            self.check_agent_diff_times = 0
+            self.agent_list_diff_since = 0
+            self.agent_count_max = 0
 
     def switch_next_agent(self, update_time: float) -> bool:
         """

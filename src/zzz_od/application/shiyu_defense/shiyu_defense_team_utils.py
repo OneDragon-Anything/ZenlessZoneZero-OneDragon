@@ -2,375 +2,359 @@ import difflib
 
 from cv2.typing import MatLike
 
-from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.shiyu_defense import shiyu_defense_const
-from zzz_od.application.shiyu_defense.shiyu_defense_config import (
-    ShiyuDefenseConfig,
-    ShiyuDefenseTeamConfig,
-)
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import DmgTypeEnum
+from zzz_od.game_data.agent import Agent, AgentEnum, AgentTypeEnum, DmgTypeEnum
 
 
 class DefensePhaseTeamInfo:
 
-    def __init__(self,
-                 phase_weakness: list[DmgTypeEnum], phase_resistance: list[DmgTypeEnum]):
-        """
-        每阶段的队伍信息
-        @param phase_weakness: 弱点
-        @param phase_resistance: 抗性
-        """
+    def __init__(
+        self,
+        phase_weakness: list[DmgTypeEnum],
+        phase_resistance: list[DmgTypeEnum],
+    ):
         self.phase_weakness: list[DmgTypeEnum] = phase_weakness
         self.phase_resistance: list[DmgTypeEnum] = phase_resistance
-        self.team_idx: int = -1  # 最终使用的队伍下标
-
-        self.same_as_weakness: int = 0  # 是否与弱点一致
-        self.same_as_resistance: int = 0  # 是否与抗性一致
-
-    def cal_score(self, defense_team_config: ShiyuDefenseTeamConfig | None) -> None:
-        """
-        计算得分
-        @param defense_team_config: 预备编队 设置的对应弱点
-        @return:
-        """
-        if defense_team_config is None:
-            # 非法的下标 用最差的评分
-            self.same_as_weakness = 0
-            self.same_as_resistance = 1
-            return
-
-        target_weakness_list = defense_team_config.weakness_list
-        for target_weakness in target_weakness_list:
-            if target_weakness in self.phase_weakness:
-                self.same_as_weakness = 1
-            if target_weakness in self.phase_resistance:
-                self.same_as_resistance = 1
-
-    @property
-    def score(self) -> int:
-        return self.same_as_weakness - self.same_as_resistance
+        self.team_idx: int = -1
+        self.score: float = 0
+        self.is_completed: bool = False
 
 
 class DefenseTeamSearcher:
 
-    def __init__(self, ctx: ZContext, team_list: list[DefensePhaseTeamInfo]):
-        """
-        队伍搜索器
-        @param ctx: 上下文
-        @param team_list: 初始化的队伍 用于提供属性
-        """
+    # 虚狩代理人,配队评分给 1.2 倍加权。
+    # 列表硬编码,游戏新增虚狩角色需手动补。概念见 docs/game/gameplay/combat.md「虚狩」。
+    VOID_HUNTER_AGENT_ID_LIST: list[str] = [
+        'yixuan',
+        'hoshimi_miyabi',
+        'yeshunguang',
+        'remielle',
+    ]
+    VOID_HUNTER_SCORE_MULTIPLIER: float = 1.2
+
+    def __init__(
+        self,
+        ctx: ZContext,
+        target_list: list[DefensePhaseTeamInfo],
+        candidate_team_idx_list: list[int],
+    ):
         self.ctx: ZContext = ctx
-
-        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
-            app_id=shiyu_defense_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
-        )
-
-        self.team_list: list[DefensePhaseTeamInfo] = team_list
+        self.target_list: list[DefensePhaseTeamInfo] = target_list
+        self.candidate_team_list: list[PredefinedTeamInfo] = [
+            team
+            for team_idx in candidate_team_idx_list
+            if (team := self.ctx.team_config.get_team_by_idx(team_idx)) is not None
+        ]
         self.best_team_list: list[DefensePhaseTeamInfo] = []
-
-        self.phase_cnt: int = len(team_list)  # 阶段数量
-        self.predefined_team_list: list[PredefinedTeamInfo] = self.ctx.team_config.team_list  # 预备编队
-        self.defense_team_config: dict[int, ShiyuDefenseTeamConfig] = {}
-
-        for team in self.predefined_team_list:
-            self.defense_team_config[team.idx] = self.config.get_config_by_team_idx(team.idx)
-
-        self.chosen_idx: set = set()
+        self.best_score: float = -1
+        self.chosen_team_idx_set: set[int] = set()
+        self.chosen_agent_id_set: set[str] = set()
 
     def search(self) -> list[DefensePhaseTeamInfo]:
-        """
-        搜索 返回最佳配队
-        @return:
-        """
-        self.chosen_idx = set()
-        self.dfs(0)
+        self._search_target(0)
         return self.best_team_list
 
-    def dfs(self, phase_idx: int):
-        """
-        递归搜索
-        @param phase_idx: 阶段下标
-        @return:
-        """
-        if phase_idx >= self.phase_cnt:
-            self.compare_and_save_best()
+    def _search_target(self, target_idx: int) -> None:
+        if target_idx >= len(self.target_list):
+            self._save_best()
             return
 
-        if self.no_way_better(phase_idx):
-            # 剪枝
+        target = self.target_list[target_idx]
+        for team in self.candidate_team_list:
+            if team.idx in self.chosen_team_idx_set:
+                continue
+
+            agent_id_set = self._get_agent_id_set(team)
+            if len(agent_id_set & self.chosen_agent_id_set) > 0:
+                continue
+
+            self.chosen_team_idx_set.add(team.idx)
+            self.chosen_agent_id_set.update(agent_id_set)
+            target.team_idx = team.idx
+            target.score = self._calc_team_score(team, target)
+
+            self._search_target(target_idx + 1)
+
+            target.team_idx = -1
+            target.score = 0
+            self.chosen_team_idx_set.remove(team.idx)
+            self.chosen_agent_id_set.difference_update(agent_id_set)
+
+    def _save_best(self) -> None:
+        total_score = sum(target.score for target in self.target_list)
+        if len(self.best_team_list) > 0 and total_score <= self.best_score:
             return
 
-        current_phase_team = self.team_list[phase_idx]
+        self.best_score = total_score
+        self.best_team_list = []
+        for target in self.target_list:
+            result = DefensePhaseTeamInfo(target.phase_weakness, target.phase_resistance)
+            result.team_idx = target.team_idx
+            result.score = target.score
+            self.best_team_list.append(result)
 
-        weakness_idx_list: list[int] = []
-        resistance_idx_list: list[int] = []
-        normal_idx_list: list[int] = []
+    def _calc_team_score(
+        self,
+        team: PredefinedTeamInfo,
+        target: DefensePhaseTeamInfo,
+    ) -> float:
+        agent_list = self._get_agents(team)
+        output_score_list: list[float] = []
+        aligned_agent_count = 0
 
-        for predefined_team in self.predefined_team_list:
-            # 之前已经选过了
-            if predefined_team.idx in self.chosen_idx:
+        for agent in agent_list:
+            if agent.agent_type in [AgentTypeEnum.ATTACK, AgentTypeEnum.RUPTURE]:
+                output_score_list.append(
+                    self._get_agent_score(agent, target, is_anomaly=False)
+                )
+            elif agent.agent_type == AgentTypeEnum.ANOMALY:
+                if agent.dmg_type in [DmgTypeEnum.WIND, DmgTypeEnum.LUMIFLUX]:
+                    continue
+                output_score_list.append(
+                    self._get_agent_score(agent, target, is_anomaly=True)
+                )
+            elif agent.agent_type in [
+                AgentTypeEnum.STUN,
+                AgentTypeEnum.SUPPORT,
+                AgentTypeEnum.DEFENSE,
+            ]:
+                aligned_agent_count += 1
+
+        # 染色分支:风 / 流明异常角色不按自身属性评分,而是取队内其他异常角色的属性契合度
+        # (靠队友其他异常「染色」触发紊流)。详见 docs/game/gameplay/combat.md「染色」。
+        for agent in agent_list:
+            if agent.agent_type != AgentTypeEnum.ANOMALY:
+                continue
+            if agent.dmg_type not in [DmgTypeEnum.WIND, DmgTypeEnum.LUMIFLUX]:
                 continue
 
-            defense_team_config = self.defense_team_config.get(predefined_team.idx, None)
-            if defense_team_config is None or not defense_team_config.for_critical:
-                continue
+            dye_score_list = []
+            for other_agent in agent_list:
+                if other_agent.agent_id == agent.agent_id:
+                    continue
+                if other_agent.agent_type != AgentTypeEnum.ANOMALY:
+                    continue
+                if (
+                    agent.dmg_type == DmgTypeEnum.WIND
+                    and other_agent.dmg_type == DmgTypeEnum.LUMIFLUX
+                ):
+                    # 流明可变属性:与风队友组队时流明算风伤(非异色),无法触发风乱流,故风异常排除流明队友
+                    continue
+                dye_score_list.append(
+                    self._get_dmg_type_score(
+                        other_agent.dmg_type,
+                        target,
+                        is_anomaly=True,
+                    )
+                )
 
-            sames_weakness: bool = False
-            sames_resistance: bool = False
-            for dmg_type in defense_team_config.weakness_list:
-                if dmg_type in current_phase_team.phase_weakness:
-                    sames_weakness = True
-                elif dmg_type in current_phase_team.phase_resistance:
-                    sames_resistance = True
+            output_score_list.append(
+                self._apply_void_hunter_multiplier(
+                    agent,
+                    max(dye_score_list, default=1),
+                )
+            )
 
-            if sames_weakness:
-                weakness_idx_list.append(predefined_team.idx)
-            elif sames_resistance:
-                resistance_idx_list.append(predefined_team.idx)
-            else:
-                normal_idx_list.append(predefined_team.idx)
+        if len(output_score_list) == 0:
+            return 0
 
-        # 优先考虑弱点 迫不得已再选逆抗性
-        candidate_idx_list = weakness_idx_list + normal_idx_list + resistance_idx_list
-        for idx in candidate_idx_list:
-            new_team = self.predefined_team_list[idx]
-            conflict: bool = False  # 是否与现有配队有代理人冲突
-            for old_idx in self.chosen_idx:
-                if self.is_team_conflict(new_team, self.predefined_team_list[old_idx]):
-                    conflict = True
-                    break
+        return sum(output_score_list) + max(output_score_list) * aligned_agent_count
 
-            if conflict:
-                continue
+    def _get_agents(self, team: PredefinedTeamInfo) -> list[Agent]:
+        agent_map = {agent.value.agent_id: agent.value for agent in AgentEnum}
+        return [
+            agent_map[agent_id]
+            for agent_id in team.agent_id_list
+            if agent_id in agent_map
+        ]
 
-            self.chosen_idx.add(idx)
-            current_phase_team.team_idx = idx
+    def _get_agent_id_set(self, team: PredefinedTeamInfo) -> set[str]:
+        return {agent_id for agent_id in team.agent_id_list if agent_id != 'unknown'}
 
-            defense_team_config = self.defense_team_config.get(idx, None)
-            current_phase_team.cal_score(defense_team_config)
+    def _get_agent_score(
+        self,
+        agent: Agent,
+        target: DefensePhaseTeamInfo,
+        is_anomaly: bool,
+    ) -> float:
+        score = self._get_dmg_type_score(agent.dmg_type, target, is_anomaly)
+        return self._apply_void_hunter_multiplier(agent, score)
 
-            self.dfs(phase_idx + 1)
+    def _apply_void_hunter_multiplier(
+        self,
+        agent: Agent,
+        score: float,
+    ) -> float:
+        if agent.agent_id in self.VOID_HUNTER_AGENT_ID_LIST:
+            return score * self.VOID_HUNTER_SCORE_MULTIPLIER
+        return score
 
-            self.chosen_idx.remove(idx)
-            current_phase_team.team_idx = -1
-
-    def compare_and_save_best(self) -> bool:
-        """
-        对比当前结果和最佳结果 并保存
-        @return: 是否保存到最佳结果
-        """
-        new_score: int = 0
-        for team in self.team_list:
-            new_score += team.score
-
-        old_score: int = 0
-        for team in self.best_team_list:
-            old_score += team.score
-
-        if len(self.best_team_list) == 0 or new_score > old_score:
-            self.best_team_list = []
-            for team in self.team_list:
-                new_team = DefensePhaseTeamInfo(team.phase_weakness, team.phase_resistance)
-                new_team.team_idx = team.team_idx
-                new_team.same_as_weakness = team.same_as_weakness
-                new_team.same_as_resistance = team.same_as_resistance
-                self.best_team_list.append(new_team)
-            return True
-        else:
-            return False
-
-    def no_way_better(self, next_phase_idx: int) -> bool:
-        """
-        当前搜索是否无可能更优
-        @param next_phase_idx: 下一个搜索的阶段下标
-        @return:
-        """
-        # 剩余还有多少个阶段没选
-        phase_left = self.phase_cnt - next_phase_idx
-
-        new_score: int = 0
-        for team in self.team_list:
-            new_score += team.score
-
-        old_score: int = 0
-        for team in self.best_team_list:
-            old_score += team.score
-
-        # 剩余阶段都符合弱点拿1分 依然不能比现在更高分
-        return new_score + phase_left <= old_score
-
-    def is_team_conflict(self, team_1: PredefinedTeamInfo, team_2: PredefinedTeamInfo) -> bool:
-        """
-        两队的代理人是否冲突
-        @param team_1:
-        @param team_2:
-        @return:
-        """
-        team_1_id_set = {i for i in team_1.agent_id_list if i != 'unknown'}
-        team_2_id_set = {i for i in team_2.agent_id_list if i != 'unknown'}
-        return len(team_1_id_set & team_2_id_set) > 0
+    def _get_dmg_type_score(
+        self,
+        dmg_type: DmgTypeEnum,
+        target: DefensePhaseTeamInfo,
+        is_anomaly: bool,
+    ) -> float:
+        """按属性对弱点 / 抗性的契合度给分(评分权重,非伤害倍率,仅用于排序选队)。"""
+        if dmg_type in target.phase_weakness:
+            return 1.69 if is_anomaly else 1.3
+        if dmg_type in target.phase_resistance:
+            return 0.49 if is_anomaly else 0.7
+        return 1
 
 
-def calc_teams(
+def select_teams(
+    ctx: ZContext,
+    target_list: list[DefensePhaseTeamInfo],
+    candidate_team_idx_list: list[int],
+) -> list[DefensePhaseTeamInfo]:
+    """
+    为一至三个目标选择总分最高且互不冲突的预备编队
+    """
+    searcher = DefenseTeamSearcher(ctx, target_list, candidate_team_idx_list)
+    return searcher.search()
+
+
+def get_team_targets(
     ctx: ZContext,
     screen: MatLike,
     phase_cnt: int = 2,
     type_cnt: int = 2,
-    screen_name: str = '式舆防卫战'
+    screen_name: str = '式舆防卫战',
 ) -> list[DefensePhaseTeamInfo]:
     """
-    计算配队
-    @param ctx: 上下文
-    @param screen: 游戏画面
-    @param phase_cnt: 阶段数量
-    @param type_cnt: 属性数量
-    @param screen_name: 屏幕模板名称
-    @return:
+    识别普通节点的弱点和抗性
     """
-    # 先识别弱点和数量
-    team_list = []
+    target_list: list[DefensePhaseTeamInfo] = []
 
     for phase_idx in range(phase_cnt):
-        weakness_list = []
-        resistance_list = []
+        weakness_list: list[DmgTypeEnum] = []
+        resistance_list: list[DmgTypeEnum] = []
         for type_idx in range(type_cnt):
-            area = ctx.screen_loader.get_area(screen_name, f'弱点-{phase_idx + 1}-{type_idx + 1}')
-            weakness_list.append(check_type_by_area(ctx, screen, area))
+            weakness_area = ctx.screen_loader.get_area(
+                screen_name,
+                f'弱点-{phase_idx + 1}-{type_idx + 1}',
+            )
+            weakness_list.append(check_type_by_area(ctx, screen, weakness_area))
 
-            area = ctx.screen_loader.get_area(screen_name, f'抗性-{phase_idx + 1}-{type_idx + 1}')
-            resistance_list.append(check_type_by_area(ctx, screen, area))
+            resistance_area = ctx.screen_loader.get_area(
+                screen_name,
+                f'抗性-{phase_idx + 1}-{type_idx + 1}',
+            )
+            resistance_list.append(check_type_by_area(ctx, screen, resistance_area))
 
-        team = DefensePhaseTeamInfo(weakness_list, resistance_list)
-        team_list.append(team)
+        target_list.append(DefensePhaseTeamInfo(weakness_list, resistance_list))
 
-    searcher = DefenseTeamSearcher(ctx, team_list)
-    return searcher.search()
+    return target_list
 
 
-def calc_teams_for_multi_room(
+def get_team_targets_for_multi_room(
     ctx: ZContext,
     screen: MatLike,
     screen_template: str,
     room_count: int,
 ) -> list[DefensePhaseTeamInfo]:
     """
-    计算多间模式节点的最佳编队
-    对每间房间右半区域 OCR，按 y 坐标分组弱点(上)和抗性(下)
+    识别多间模式每间房的弱点和抗性
     """
-    team_list = []
+    target_list: list[DefensePhaseTeamInfo] = []
     room_names = ['第一间', '第二间', '第三间']
 
     for room_idx in range(room_count):
         room_name = room_names[room_idx]
-        area = ctx.screen_loader.get_area(screen_template, room_name)
-        ocr_result = ctx.ocr.crop_and_run_ocr(screen, area.rect)
-
-        # 检查得分：OCR 结果为 "0" 或空（识别不到也算0分）才打
-        all_text = ' '.join(ocr_result.keys()).strip()
-        has_unfinished = all_text == '0' or all_text == ''
-        if not has_unfinished:
-            team_info = DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
-                                              [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN])
-            team_info.team_idx = -1  # 标记跳过
-            team_list.append(team_info)
+        room_area = ctx.screen_loader.get_area(screen_template, room_name)
+        room_ocr_result = ctx.ocr.crop_and_run_ocr(screen, room_area.rect)
+        all_text = ' '.join(room_ocr_result.keys()).strip()
+        if all_text != '0' and all_text != '':
+            completed_target = DefensePhaseTeamInfo(
+                [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+            )
+            completed_target.is_completed = True
+            target_list.append(completed_target)
             continue
 
-        # 属性识别：用"第一间属性"等区域
-        attr_name = f'{room_name}属性'
-        area = ctx.screen_loader.get_area(screen_template, attr_name)
-        if area is None:
-            # 没有属性区域，保留未知属性，不标记已完成跳过
-            team_info = DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
-                                              [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN])
-            team_info.team_idx = 0  # 保持待配队占位，不标记跳过
-            team_list.append(team_info)
+        attribute_area = ctx.screen_loader.get_area(screen_template, f'{room_name}属性')
+        if attribute_area is None:
+            target_list.append(
+                DefensePhaseTeamInfo(
+                    [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                    [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                )
+            )
             continue
-        ocr_result = ctx.ocr.crop_and_run_ocr(screen, area.rect)
 
-        # 收集所有包含"属性"的文本及 y 坐标
-        items: list[tuple[int, str]] = []
-        boundary_y: int | None = None
-        for text, match_list in ocr_result.items():
+        attribute_ocr_result = ctx.ocr.crop_and_run_ocr(screen, attribute_area.rect)
+        item_list: list[tuple[int, str]] = []
+        resistance_boundary_y: int | None = None
+        for text, match_list in attribute_ocr_result.items():
             if '强敌抗性' in text:
                 for match in match_list:
-                    boundary_y = match.y
+                    resistance_boundary_y = match.y
             elif '属性' in text:
                 for match in match_list:
-                    items.append((match.y, text))
+                    item_list.append((match.y, text))
 
-        if len(items) == 0 or boundary_y is None:
-            # 属性识别失败，保留未知属性，不标记已完成跳过
-            team_list.append(DefensePhaseTeamInfo([DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
-                                                  [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN]))
+        if len(item_list) == 0 or resistance_boundary_y is None:
+            target_list.append(
+                DefensePhaseTeamInfo(
+                    [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                    [DmgTypeEnum.UNKNOWN, DmgTypeEnum.UNKNOWN],
+                )
+            )
             continue
 
-        weakness_texts = [t for y, t in items if y < boundary_y]
-        resistance_texts = [t for y, t in items if y >= boundary_y]
+        weakness_text_list = [text for y, text in item_list if y < resistance_boundary_y]
+        resistance_text_list = [text for y, text in item_list if y >= resistance_boundary_y]
+        weakness_list = _extract_dmg_types(weakness_text_list)
+        resistance_list = _extract_dmg_types(resistance_text_list)
 
-        weakness_list = _extract_dmg_types(weakness_texts)
-        resistance_list = _extract_dmg_types(resistance_texts)
-
-        # 补齐到2个
         while len(weakness_list) < 2:
             weakness_list.append(DmgTypeEnum.UNKNOWN)
         while len(resistance_list) < 2:
             resistance_list.append(DmgTypeEnum.UNKNOWN)
 
-        team_list.append(DefensePhaseTeamInfo(weakness_list[:2], resistance_list[:2]))
-        team_list[-1].team_idx = 0  # 标记待配队，searcher 会覆盖
+        target_list.append(DefensePhaseTeamInfo(weakness_list[:2], resistance_list[:2]))
 
-    # 只传需要配队的房间给搜索器，跳过已通关（team_idx == -1）的房间
-    scored_indices = [i for i, t in enumerate(team_list) if t.team_idx != -1]
-    scored_teams = [team_list[i] for i in scored_indices]
-    if len(scored_teams) > 0:
-        searcher = DefenseTeamSearcher(ctx, scored_teams)
-        search_result = searcher.search()
-        for orig_idx, result_team in zip(scored_indices, search_result):
-            team_list[orig_idx] = result_team
-    return team_list
+    return target_list
 
 
-def _extract_dmg_types(texts: list[str]) -> list[DmgTypeEnum]:
+def _extract_dmg_types(text_list: list[str]) -> list[DmgTypeEnum]:
     """
     从 OCR 文本列表中提取伤害类型
     """
     result: list[DmgTypeEnum] = []
-    full_text = ' '.join(texts)
+    full_text = ' '.join(text_list)
 
-    type_list = [i for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
-    target_list = [gt(i.value, 'game') for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+    dmg_type_list = [dmg_type for dmg_type in DmgTypeEnum if dmg_type != DmgTypeEnum.UNKNOWN]
+    target_text_list = [gt(dmg_type.value, 'game') for dmg_type in dmg_type_list]
 
-    for target in target_list:
-        if target in full_text:
-            idx = target_list.index(target)
-            result.append(type_list[idx])
+    for target_text in target_text_list:
+        if target_text in full_text:
+            result.append(dmg_type_list[target_text_list.index(target_text)])
 
     return result
 
 
-def check_type_by_area(ctx: ZContext, screen: MatLike, area: ScreenArea) -> DmgTypeEnum:
+def check_type_by_area(
+    ctx: ZContext,
+    screen: MatLike,
+    area: ScreenArea,
+) -> DmgTypeEnum:
     """
     识别一个属性
-    @param ctx: 上下文
-    @param screen: 游戏画面
-    @param area: 识别区域
-    @return:
     """
     ocr_map = ctx.ocr.crop_and_run_ocr(screen, area.rect)
 
-    type_list = [i for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
-    target_list = [gt(i.value, 'game') for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+    dmg_type_list = [dmg_type for dmg_type in DmgTypeEnum if dmg_type != DmgTypeEnum.UNKNOWN]
+    target_text_list = [gt(dmg_type.value, 'game') for dmg_type in dmg_type_list]
 
     for ocr_result in ocr_map:
-        match_results = difflib.get_close_matches(ocr_result, target_list, n=1)
-        if match_results is not None and len(match_results) > 0:
-            idx = target_list.index(match_results[0])
-            return type_list[idx]
+        match_result_list = difflib.get_close_matches(ocr_result, target_text_list, n=1)
+        if len(match_result_list) > 0:
+            return dmg_type_list[target_text_list.index(match_result_list[0])]
 
     return DmgTypeEnum.UNKNOWN

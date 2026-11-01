@@ -30,13 +30,14 @@ class OcrMatcher:
 
     def init_model(
             self,
-            download_by_github: bool = True,
-            download_by_gitee: bool = False,
-            download_by_mirror_chan: bool = False,
+            source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Callable[[float, str], None] | None = None
+            progress_callback: Callable[[float, str], None] | None = None,
+            on_source_success: Callable[[str], None] | None = None,
+            on_source_failure: Callable[[str], None] | None = None,
+            fallback_on_slow: bool = False,
     ) -> bool:
         raise NotImplementedError('由具体的OCR实现提供')
 
@@ -98,9 +99,10 @@ class OcrMatcher:
         """
         from one_dragon.utils import cv2_utils
         part = cv2_utils.crop_image_only(image, rect)
-        bus = getattr(self, 'overlay_debug_bus', None)
+        bus = getattr(self, 'debug_trace_bus', None)
         if bus is not None:
-            bus.set_crop_offset(rect.x1, rect.y1)
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + rect.x1, parent_y + rect.y1)
         try:
             result = self.run_ocr(part, threshold, merge_line_distance)
         finally:

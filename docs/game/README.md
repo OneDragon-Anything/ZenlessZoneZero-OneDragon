@@ -7,6 +7,7 @@
 
 - `screens/` — 画面描述(1 md ↔ 1 画面,对齐 `assets/game_data/screen_info/<name>.yml`)
 - `gameplay/` — 玩法(跨画面机制/系统)
+- `mechanics/` — 通用机制(不属于某个具体玩法,例如传送、按键禁用)
 
 ## 记录规范
 

@@ -55,7 +55,7 @@ server 给「**事实**」,智能体做「**决策 + 通用理解**」。server 
 ### P3. 操作 vs 观察分离
 操作类 tool 改状态(进游戏 / 停止 / reload / 改配置),观察类只读(窗口 / 截图 / 运行态)。副作用两种标注:
 - **docstring** 文字说明(给智能体读);
-- **MCP tool annotations**(`ToolAnnotations(readOnlyHint=...)` 等,**字段名 camelCase**(mcp sdk 与 JSON 线一致;⚠️ 用 snake_case 会被 pydantic 当 extra 忽略、静默失效);机器可读,官方推荐)。
+- **MCP tool annotations**(`ToolAnnotations(read_only_hint=...)` 等,Python 使用 snake_case;序列化到 MCP JSON 时 SDK 自动转成 `readOnlyHint` 等 camelCase 字段;机器可读,官方推荐)。
 
 具体怎么标(分类判据 + 代码写法)见 [mcp-implementation.md](mcp-implementation.md) 第 1 节。
 
