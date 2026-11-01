@@ -39,6 +39,8 @@ ACTION_UNSUBSCRIBE = 'unsubscribe'
 ACTION_UNINSTALL = 'uninstall'
 ACTION_UPDATE = 'update'
 ACTION_IGNORE = 'ignore'
+ACTION_MUTE_UPDATE = 'mute_update'
+ACTION_UNMUTE_UPDATE = 'unmute_update'
 
 DIALOG_WIDTH = 720
 DIALOG_HEIGHT = 560

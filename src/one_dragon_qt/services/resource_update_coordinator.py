@@ -23,6 +23,7 @@ from one_dragon_qt.services.download_queue_service import (
     ResourceDownloadTask,
     ResourceDownloadTaskState,
 )
+from one_dragon_qt.services.plugin_update_provider import PluginUpdateProvider
 from one_dragon_qt.widgets.resource_download_dialog import ResourceUpdateDialog
 
 if TYPE_CHECKING:
@@ -106,6 +107,14 @@ class ResourceUpdateCoordinator(QObject):
                 check_id='project_models',
                 check_update=self.ctx.model_config.needs_model_download,
                 build_specs=self._build_model_specs,
+            )
+        )
+        self._plugin_updates = PluginUpdateProvider(self.ctx, self.window, self)
+        self._register_check(
+            _ResourceCheck(
+                check_id='plugins',
+                check_update=self._plugin_updates.check_update,
+                build_specs=self._plugin_updates.build_specs,
             )
         )
 
