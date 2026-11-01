@@ -512,13 +512,35 @@ class PluginOperationMixin:
     # ------------------------------------------------------------------
 
     def subscribe(self, entry: MarketPlugin) -> None:
-        """订阅一个市场条目：把插件包放进统一下载队列，下完再安装。"""
+        """订阅一个市场条目：先让用户确认第三方插件风险，再放进统一下载队列，下完再安装。"""
+        if not self._confirm_third_party_risk(entry):
+            return
         self._enqueue_plugin_download(
             entry,
             overwrite=False,
             action_name=gt('订阅'),
             current_version='',
         )
+
+    def _confirm_third_party_risk(self, entry: MarketPlugin) -> bool:
+        """订阅前的风险确认。商店里的第三方插件没有经过官方审查。
+
+        Returns:
+            用户确认继续返回 True。
+        """
+        msg_box = MessageBox(
+            gt('第三方插件风险提示'),
+            gt(
+                '"{name}" 是第三方作者发布的插件，未经过官方审查。\n'
+                '插件会以与本程序相同的权限运行，可以读写本机文件、访问网络，'
+                '存在恶意代码、隐私泄露或损坏系统的风险。\n'
+                '请只订阅你信任的作者发布的插件，确定要继续吗？'
+            ).format(name=entry.name),
+            self._as_widget().window(),
+        )
+        msg_box.yesButton.setText(gt('我已了解风险，继续订阅'))
+        msg_box.cancelButton.setText(gt('取消'))
+        return bool(msg_box.exec())
 
     def update_plugin(self, entry: MarketPlugin, plugin_info: PluginInfo) -> None:
         """把已安装插件更新到市场最新版本，下载走统一队列。"""
