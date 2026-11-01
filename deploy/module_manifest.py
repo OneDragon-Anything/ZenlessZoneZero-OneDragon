@@ -103,8 +103,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from math import gcd
-    from math import isfinite
+    from math import gcd, isfinite
     from packaging import version
     from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
@@ -134,9 +133,6 @@ if not getattr(sys, 'frozen', False):
     from shapely.geometry import Polygon
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
-    from types import ModuleType
-    from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Sequence, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
-    from urllib.parse import urlencode, urlparse
     from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urljoin, urlparse
