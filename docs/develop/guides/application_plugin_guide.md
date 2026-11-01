@@ -104,16 +104,18 @@ PLUGIN_DESCRIPTION = "插件功能描述"
   "id": "my_plugin",
   "name": "我的插件",
   "version": "1.0.0",
-  "cover": "assets/cover.png"
+  "cover": "assets/cover.webp"
 }
 ```
 
 要求与约定：
 
 - `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
-- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 格式必须是 WebP，`png` / `jpg` 会被校验拒绝。
+- 尺寸至少 600×376，宽高比 16:10（卡片 300×188 的两倍），偏差不超过 3%。卡片按逻辑像素 300×188 布局，高分屏下会放大到物理像素，封面只给一倍大小会发虚。
+- 单张不超过 512 KiB。
 - 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
-- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.png`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
+- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.webp`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
 - 插件商店里的每个版本都必须带 `sha256`。客户端下载后校验，没有校验值或校验不通过都不会安装。
 
 ### 工厂类
@@ -143,6 +145,35 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
+- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`（含 `plugin.json`）
+  - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
+  - 仓库布局下插件目录名必须等于 `APP_ID`；`plugin.json` 里写了 `id` 的话也必须等于 `APP_ID`，否则加载失败
+  - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
+
+### 插件数据目录
+
+插件需要持久化数据（缓存、用户数据、路由文件等）时，统一使用插件数据目录，不要写到插件目录或 `config/` 里：
+
+- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(APP_ID)`，目录不存在时自动创建）
+- 数据目录是 `plugin_data/<APP_ID>/`，与插件代码装在哪里无关，扁平布局和仓库布局之间挪动不会丢数据
+- 本机 `APP_ID` 必须唯一，重复的插件只会加载先扫描到的那个，所以不同插件不会共用数据目录
+- `plugin_data/` 与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
+
+```python
+import json
+
+class MyPluginFactory(ApplicationFactory):
+    def __init__(self, ctx: ZContext) -> None:
+        super().__init__(my_plugin_const)
+        self.ctx = ctx
+
+    def load_routes(self) -> list[dict]:
+        """读取插件保存的路线数据。"""
+        data_file = self.data_dir / 'routes.json'
+        if not data_file.exists():
+            return []
+        return json.loads(data_file.read_text(encoding='utf-8'))
+```
 
 ---
 

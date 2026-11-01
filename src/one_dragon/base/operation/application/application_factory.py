@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING
 
@@ -82,6 +83,21 @@ class ApplicationFactory:
         self.priority: int | None = priority
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
+
+    @property
+    def data_dir(self) -> Path:
+        """插件数据目录 plugin_data/<APP_ID>/（不存在时自动创建）。
+
+        与插件代码装在哪里无关，插件更新覆盖代码目录时不会影响这里的数据，
+        插件内用 `self.data_dir` 存数据。
+
+        Returns:
+            插件数据目录路径
+
+        Raises:
+            ValueError: APP_ID 不能用作目录名时抛出
+        """
+        return self.ctx.get_plugin_data_dir(self.app_id)
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """

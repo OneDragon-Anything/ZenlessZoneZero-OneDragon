@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QEnterEvent,
@@ -18,6 +18,7 @@ from PySide6.QtGui import (
     QMouseEvent,
     QPainter,
     QPainterPath,
+    QPaintEvent,
     QPixmap,
     QRadialGradient,
     QResizeEvent,
@@ -27,6 +28,7 @@ from qfluentwidgets import (
     CaptionLabel,
     FlowLayout,
     FluentIcon,
+    ImageLabel,
     StrongBodyLabel,
     TransparentToolButton,
     setCustomStyleSheet,
@@ -61,6 +63,69 @@ def cover_colors(seed: str) -> tuple[QColor, QColor]:
     )
 
 
+class _CardOverlay(QWidget):
+    """卡片封面之上的遮罩：底部渐变压住文字、悬停高亮与描边。
+
+    封面交给组件库的 ImageLabel 绘制，父控件的 paintEvent 会被它盖住，
+    所以这些覆盖层单独放一个透明控件，叠在封面之上、文字之下。
+    封面本身的明暗由插件发布者决定，这里不再整卡压暗。
+    """
+
+    def __init__(self, parent: QWidget) -> None:
+        """初始化遮罩层。
+
+        Args:
+            parent: 遮罩所属的卡片控件，遮罩始终与卡片等大并叠在封面之上。
+        """
+        super().__init__(parent)
+        self.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._hover: bool = False
+
+    def set_hover(self, hover: bool) -> None:
+        """同步悬停状态。"""
+        if self._hover == hover:
+            return
+        self._hover = hover
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """绘制封面之上的覆盖层。
+
+        先按圆角裁切，再画底部由透明到深色的渐变，让压在上面的白色文字
+        在浅色封面上也能看清；悬停时叠一层白色高亮，最后描一圈圆角边框。
+
+        Args:
+            event: Qt 绘制事件，本方法按控件自身尺寸重绘，不读取事件内容。
+        """
+        painter = QPainter(self)
+        painter.setRenderHints(QPainter.RenderHint.Antialiasing)
+
+        rect = QRectF(0, 0, self.width(), self.height())
+        path = QPainterPath()
+        path.addRoundedRect(rect, CORNER_RADIUS, CORNER_RADIUS)
+        painter.setClipPath(path)
+
+        shade = QLinearGradient(QPointF(0, rect.height() * 0.38), QPointF(0, rect.height()))
+        shade.setColorAt(0.0, QColor(0, 0, 0, 0))
+        shade.setColorAt(1.0, QColor(0, 0, 0, 200))
+        painter.fillRect(rect, shade)
+
+        if self._hover and self.isEnabled():
+            painter.fillRect(rect, QColor(255, 255, 255, 14))
+
+        painter.setClipping(False)
+        border_alpha = 90 if self._hover and self.isEnabled() else 28
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QColor(255, 255, 255, border_alpha))
+        painter.drawRoundedRect(
+            QRectF(0.5, 0.5, rect.width() - 1, rect.height() - 1),
+            CORNER_RADIUS,
+            CORNER_RADIUS,
+        )
+        painter.end()
+
+
 class PluginCard(QWidget):
     """一个插件的卡片，整块是封面。"""
 
@@ -80,12 +145,9 @@ class PluginCard(QWidget):
         super().__init__(parent)
         self._on_click: Callable[[], None] | None = on_click
         self._seed: str = seed
-        self._hover: bool = False
         self._pressed: bool = False
         self._badge_kind: str = badge_kind
         self._cover: QPixmap | None = cover
-        self._scaled_cover: QPixmap | None = None
-        self._scaled_size: QSize = QSize()
         self._key: str = ''
         self._top_color, self._bottom_color = cover_colors(seed or title)
         self._initial: str = self._initial_of(title)
@@ -93,6 +155,18 @@ class PluginCard(QWidget):
         self.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+
+        # 封面交给组件库的 ImageLabel：它按屏幕像素比缩放，高分屏下不发虚
+        self.cover_label: ImageLabel = ImageLabel(self)
+        self.cover_label.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        self.cover_label.setBorderRadius(
+            CORNER_RADIUS, CORNER_RADIUS, CORNER_RADIUS, CORNER_RADIUS
+        )
+        self.cover_label.move(0, 0)
+        self.cover_label.hide()
+
+        self.overlay: _CardOverlay = _CardOverlay(self)
+        self.overlay.move(0, 0)
 
         self.badge_label: CaptionLabel = CaptionLabel(self)
         self.badge_label.setVisible(False)
@@ -140,6 +214,8 @@ class PluginCard(QWidget):
 
         if badge_text:
             self.set_badge(badge_text, badge_kind)
+
+        self.set_cover(cover)
 
     # ------------------------------------------------------------------
     # 外部接口
@@ -227,30 +303,85 @@ class PluginCard(QWidget):
         )
 
     def set_cover(self, cover: QPixmap | None) -> None:
-        """设置封面位图；传 None 时回退到按插件标识生成的渐变封面。"""
+        """设置封面位图；传 None 时回退到按插件标识生成的渐变封面。
+
+        Args:
+            cover: 原始封面位图。这里保存原图，屏幕像素比变化时按新比例重裁。
+        """
         self._cover = cover
-        self._scaled_cover = None
+        if cover is not None and not cover.isNull():
+            self._refresh_cover_pixmap()
+        else:
+            self.cover_label.hide()
         self.update()
 
-    def _get_scaled_cover(self) -> QPixmap:
-        """取缩放到当前卡片尺寸的封面，尺寸没变时复用上次的结果。
+    def _refresh_cover_pixmap(self) -> None:
+        """按当前设备像素比重裁原始封面并交给 cover_label。
 
-        调用方需保证 `self._cover` 不为空。
+        重裁始终基于 set_cover 保存的原始位图，反复跨屏也不会逐次缩放劣化。
+        拿不到原始位图或位图尺寸为 0 时直接跳过，保持现有显示。
         """
-        if self._scaled_cover is None or self._scaled_size != self.size():
-            self._scaled_cover = self._cover.scaled(
-                self.size(),
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            self._scaled_size = self.size()
-        return self._scaled_cover
+        cover = self._cover
+        if cover is None or cover.isNull():
+            return
+        if cover.width() <= 0 or cover.height() <= 0:
+            return
+        self.cover_label.setImage(self._fit_cover(cover))
+        # ImageLabel.setImage 会把标签改成图片像素尺寸，这里压回卡片大小
+        self.cover_label.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        self.cover_label.show()
+
+    def event(self, event: QEvent) -> bool:
+        """屏幕像素比变化时重新裁切封面。
+
+        这里选 QEvent.Type.DevicePixelRatioChange，而不是监听窗口的
+        screenChanged：该事件由 Qt 直接投递给受影响的控件，不用等
+        windowHandle() 建好，也不用管窗口重建后重连信号；本环境
+        PySide6 6.11.1 支持该事件（Qt 6.6 起提供）。
+
+        Args:
+            event: Qt 事件对象。
+
+        Returns:
+            是否已处理该事件；这里始终交回父类处理。
+        """
+        if event.type() == QEvent.Type.DevicePixelRatioChange:
+            # 事件到达时控件的 devicePixelRatioF() 已经是新值，重裁即可清晰
+            self._refresh_cover_pixmap()
+        return super().event(event)
+
+    def _fit_cover(self, cover: QPixmap) -> QPixmap:
+        """按卡片比例居中裁切封面。
+
+        ImageLabel 会把图片拉伸铺满标签，所以要先裁成卡片比例，否则不同
+        比例的封面会被压变形。裁切按屏幕像素比做，避免二次缩放发虚。
+        """
+        ratio = self.devicePixelRatioF()
+        target = QSize(int(CARD_WIDTH * ratio), int(CARD_HEIGHT * ratio))
+        scaled = cover.scaled(
+            target,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        x = max(0, (scaled.width() - target.width()) // 2)
+        y = max(0, (scaled.height() - target.height()) // 2)
+        cropped = scaled.copy(x, y, target.width(), target.height())
+        cropped.setDevicePixelRatio(ratio)
+        return cropped
 
     # ------------------------------------------------------------------
     # 绘制
     # ------------------------------------------------------------------
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """没有封面时画按插件标识配色的渐变底；有封面时整块交给 ImageLabel。
+
+        Args:
+            event: Qt 绘制事件，本方法按控件自身尺寸重绘，不读取事件内容。
+        """
+        if self._cover is not None and not self._cover.isNull():
+            return
+
         painter = QPainter(self)
         painter.setRenderHints(
             QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing
@@ -261,58 +392,28 @@ class PluginCard(QWidget):
         path.addRoundedRect(rect, CORNER_RADIUS, CORNER_RADIUS)
         painter.setClipPath(path)
 
-        if self._cover is not None and not self._cover.isNull():
-            scaled = self._get_scaled_cover()
-            source_x = max(0, (scaled.width() - self.width()) // 2)
-            source_y = max(0, (scaled.height() - self.height()) // 2)
-            painter.drawPixmap(
-                QRectF(0, 0, rect.width(), rect.height()),
-                scaled,
-                QRectF(source_x, source_y, rect.width(), rect.height()),
-            )
-            # 封面自带的亮度不可控，压一层薄暗让底部文字始终可读
-            painter.fillRect(rect, QColor(0, 0, 0, 40))
-        else:
-            gradient = QLinearGradient(QPointF(0, 0), QPointF(rect.width(), rect.height()))
-            gradient.setColorAt(0.0, self._top_color)
-            gradient.setColorAt(1.0, self._bottom_color)
-            painter.fillRect(rect, gradient)
+        gradient = QLinearGradient(QPointF(0, 0), QPointF(rect.width(), rect.height()))
+        gradient.setColorAt(0.0, self._top_color)
+        gradient.setColorAt(1.0, self._bottom_color)
+        painter.fillRect(rect, gradient)
 
-            glow = QRadialGradient(
-                QPointF(rect.width() * 0.72, rect.height() * 0.24),
-                rect.width() * 0.62,
-            )
-            glow.setColorAt(0.0, QColor(255, 255, 255, 46))
-            glow.setColorAt(1.0, QColor(255, 255, 255, 0))
-            painter.fillRect(rect, glow)
+        glow = QRadialGradient(
+            QPointF(rect.width() * 0.72, rect.height() * 0.24),
+            rect.width() * 0.62,
+        )
+        glow.setColorAt(0.0, QColor(255, 255, 255, 46))
+        glow.setColorAt(1.0, QColor(255, 255, 255, 0))
+        painter.fillRect(rect, glow)
 
-            initial_font = QFont(self.font())
-            initial_font.setPointSize(46)
-            initial_font.setBold(True)
-            painter.setFont(initial_font)
-            painter.setPen(QColor(255, 255, 255, 26))
-            painter.drawText(
-                QRectF(0, 6, rect.width() - 20, rect.height()),
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop,
-                self._initial,
-            )
-
-        shade = QLinearGradient(QPointF(0, rect.height() * 0.38), QPointF(0, rect.height()))
-        shade.setColorAt(0.0, QColor(0, 0, 0, 0))
-        shade.setColorAt(1.0, QColor(0, 0, 0, 200))
-        painter.fillRect(rect, shade)
-
-        if self._hover and self.isEnabled():
-            painter.fillRect(rect, QColor(255, 255, 255, 14))
-
-        painter.setClipping(False)
-        border_alpha = 90 if self._hover and self.isEnabled() else 28
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QColor(255, 255, 255, border_alpha))
-        painter.drawRoundedRect(
-            QRectF(0.5, 0.5, rect.width() - 1, rect.height() - 1),
-            CORNER_RADIUS,
-            CORNER_RADIUS,
+        initial_font = QFont(self.font())
+        initial_font.setPointSize(46)
+        initial_font.setBold(True)
+        painter.setFont(initial_font)
+        painter.setPen(QColor(255, 255, 255, 26))
+        painter.drawText(
+            QRectF(0, 6, rect.width() - 20, rect.height()),
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop,
+            self._initial,
         )
         painter.end()
 
@@ -321,13 +422,11 @@ class PluginCard(QWidget):
     # ------------------------------------------------------------------
 
     def enterEvent(self, event: QEnterEvent) -> None:
-        self._hover = True
-        self.update()
+        self.overlay.set_hover(True)
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
-        self._hover = False
-        self.update()
+        self.overlay.set_hover(False)
         super().leaveEvent(event)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
