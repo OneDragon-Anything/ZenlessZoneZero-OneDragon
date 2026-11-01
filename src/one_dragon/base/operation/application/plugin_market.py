@@ -15,11 +15,25 @@ from pathlib import Path
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
-MARKET_URLS: dict[str, str] = {
-    'github': 'https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json',
-    'cnb': 'https://cnb.cool/OneDragon-Anyone/plugin-mirror/-/git/raw/main/plugins.json',
-}
-"""插件市场索引在各下载源上的地址，数据仓构建时另有一份镜像到 CNB 的 plugin-mirror。"""
+_market_urls: dict[str, str] | None = None
+
+
+def get_market_urls() -> dict[str, str]:
+    """各下载源的市场索引地址，取自 repository.yml（发布期配置，首次读取后复用）。"""
+    global _market_urls
+    if _market_urls is None:
+        # 延迟导入：envs 里的下载服务依赖本模块，放在顶部会形成循环引用
+        from one_dragon.envs.repo_config import RepoConfig
+
+        _market_urls = dict(RepoConfig().plugin_market_urls)
+    return dict(_market_urls)
+
+
+def get_market_site_root() -> str:
+    """商店站点根目录，由 github 源的索引地址按 /api/ 截断推导，封面等静态资源按它拼地址。"""
+    url = get_market_urls().get('github', '')
+    return url.split('/api/', 1)[0] + '/' if url else ''
+
 
 CACHE_TTL_SECONDS = 600
 """市场数据的本地缓存有效期，过期后重新拉取。"""
@@ -229,8 +243,11 @@ class PluginMarketService:
         )
 
         target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
+        urls = get_market_urls()
+        if not urls:
+            raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
         ok = download_with_resource_settings(
-            MARKET_URLS,
+            urls,
             str(target.parent),
             target.name,
             min_bytes_per_second=MIN_BYTES_PER_SECOND,

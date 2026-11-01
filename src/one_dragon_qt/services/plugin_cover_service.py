@@ -18,7 +18,7 @@ from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal
 from PySide6.QtGui import QImage, QImageReader, QPixmap
 
 from one_dragon.base.operation.application.plugin_info import PluginInfo
-from one_dragon.base.operation.application.plugin_market import MARKET_URLS
+from one_dragon.base.operation.application.plugin_market import get_market_site_root
 from one_dragon.base.web.common_downloader import (
     GITHUB_SOURCE_ID,
     download_with_resource_settings,
@@ -28,9 +28,6 @@ from one_dragon.utils.log_utils import log
 
 MAX_COVER_BYTES = 4 * 1024 * 1024
 """单张封面允许的最大体积，超过则放弃使用。"""
-
-MARKET_SITE_ROOT = MARKET_URLS['github'].split('/api/', 1)[0] + '/'
-"""插件商店站点根目录，例如 https://onedragon-anyone.github.io/plugin-data/。"""
 
 
 def resolve_cover_url(raw_url: str) -> str:
@@ -50,7 +47,7 @@ def resolve_cover_url(raw_url: str) -> str:
         return ''
     if urlparse(value).scheme:
         return value
-    return urljoin(MARKET_SITE_ROOT, value.lstrip('/'))
+    return urljoin(get_market_site_root(), value.lstrip('/'))
 
 
 def _read_image(path: Path) -> QImage | None:

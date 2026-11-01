@@ -88,6 +88,9 @@ resource_download:
       github: "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases"
       cnb: "https://cnb.cool/OneDragon-Anything/OneDragon-YOLO/-/releases"
       gitee: "https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases"
+  plugin_market:
+    github: "https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json"
+    cnb: "https://cnb.cool/OneDragon-Anyone/plugin-mirror/-/git/raw/main/plugins.json"
   models:
     flash_classifier:
       label: 闪光识别

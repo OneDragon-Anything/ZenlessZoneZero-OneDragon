@@ -578,10 +578,9 @@ class PluginOperationMixin:
 
         archive_name = self._plugin_archive_name(entry)
         save_dir = os_utils.get_path_under_work_dir('config', 'temp', 'plugin_downloads')
-        # 索引按下载源给出地址；不指定 source_order，交给下载队列按「资源」页的设置挑选
-        download_urls = release.sources or {
-            self._plugin_download_source(release.download_url): release.download_url
-        }
+        # 索引给的源可能不全 补上规范地址；不选源顺序 交给下载队列按「资源」页的设置挑选
+        download_urls = dict(release.sources)
+        download_urls.setdefault(self._plugin_download_source(release.download_url), release.download_url)
         spec = ResourceDownloadSpec(
             resource_id=f'plugin:{entry.plugin_id}',
             resource_type='plugin',
@@ -638,10 +637,12 @@ class PluginOperationMixin:
 
     @staticmethod
     def _plugin_download_source(download_url: str) -> str:
-        """GitHub 地址走统一源的代理规则，其他地址按直链下载。"""
+        """按地址兜底判断下载源；源 ID 必须与资源下载同源，否则会把上次成功源记成不存在的源。"""
         lowered = download_url.casefold()
         if 'github.com/' in lowered or 'githubusercontent.com' in lowered:
             return GITHUB_SOURCE_ID
+        if 'cnb.cool/' in lowered:
+            return 'cnb'
         return 'direct'
 
     @staticmethod

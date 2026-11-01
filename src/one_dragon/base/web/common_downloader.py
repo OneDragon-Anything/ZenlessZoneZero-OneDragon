@@ -18,8 +18,8 @@ def download_with_resource_settings(
 ) -> bool:
     """按「资源」页的下载源顺序与代理设置下载一个文件。
 
-    给不经过下载队列的场景使用（市场索引、插件封面）。这两处地址都在
-    Pages 域名下，ghproxy 代理不了，所以统一不套 ghproxy。
+    给不经过下载队列的场景使用（市场索引、插件封面）。索引的 github 源与封面
+    都在 Pages 域名上，ghproxy 代理不了这类地址（实测会超时），所以统一不套。
 
     Args:
         download_urls: 源ID到地址的映射，只有一项时即为固定单源。
