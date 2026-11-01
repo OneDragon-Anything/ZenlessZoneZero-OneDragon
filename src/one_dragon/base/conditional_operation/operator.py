@@ -372,7 +372,13 @@ class ConditionalOperator(ConditionalOperatorLoader):
         :return: 形如 [蕾米埃尔-虚曜]  v=1  t=0.02s 的行
         """
         lines: list[str] = []
+        shown_states: set[str] = set()
         for recorder in cal_tree.usage_recorders:
+            # 同一个状态会被父级和子级的中断条件各引用一次 按状态名去重 只保留一行
+            if recorder.state_name in shown_states:
+                continue
+            shown_states.add(recorder.state_name)
+
             value = '-' if recorder.last_value is None else recorder.last_value
             if recorder.last_record_time == -1:
                 time_desc = '-'

@@ -11,26 +11,61 @@
 "scenes":
 - "handlers":
   - "debug_name": "薇斯珀-首领交互"
-    "interrupt_states": "![按键禁用-终结技, 0, 999]"
-    "operations":
-    - "op_name": "等待秒数"
-      "seconds": 2.846
-    - "op_name": "按键-切换角色-下一个"
-    - "op_name": "等待秒数"
-      "seconds": 1.3
-    - "op_name": "按键-切换角色-下一个"
-    - "op_name": "等待秒数"
-      "seconds": 1.3
-    - "op_name": "按键-切换角色-下一个"
-    - "op_name": "等待秒数"
-      "seconds": 1.7
-    - "op_name": "按键-切换角色-下一个"
-    - "op_name": "等待秒数"
-      "seconds": 1.8
-    - "op_name": "按键-切换角色-下一个"
-    - "op_name": "等待秒数"
-      "seconds": 10
     "states": "[首领-薇斯珀, 0, 999]"
+    "sub_handlers":
+    - "debug_name": "薇斯珀-首领交互-切人-第二套"
+      "interrupt_states": "![按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 1.2
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.4
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.8
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.4
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 2.3
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 10
+      "states": "[按键禁用-普通攻击, 0, 999] & [自定义-薇斯珀-第一套已打完, 0, 180]"
+    - "debug_name": "薇斯珀-首领交互-切人-第一套"
+      "interrupt_states": "![按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.6
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.4
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.6
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.8
+      - "op_name": "设置状态"
+        "state": "自定义-薇斯珀-第一套已打完"
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 10
+      "states": "[按键禁用-普通攻击, 0, 999] & ![自定义-薇斯珀-第一套已打完, 0, 180]"
+    - "debug_name": "薇斯珀-首领交互-闪避"
+      "interrupt_states": "[按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 3.5
+      - "op_name": "按键-闪避"
+      - "op_name": "等待秒数"
+        "seconds": 0.2
+      - "op_name": "按键-闪避"
+      - "op_name": "等待秒数"
+        "seconds": 3
+      "states": "[按键禁用-终结技, 0, 999]"
   - "debug_name": "基塔布鲁-首领交互"
     "states": "[首领-基塔布鲁, 0, 999]"
     "sub_handlers":
@@ -53,10 +88,13 @@
       "interrupt_states": "[按键禁用-普通攻击, 0, 999]"
       "operations":
       - "op_name": "等待秒数"
-        "seconds": 3.5
+        "seconds": 3
       - "op_name": "按键-闪避"
       - "op_name": "等待秒数"
-        "seconds": 10
+        "seconds": 0.2
+      - "op_name": "按键-闪避"
+      - "op_name": "等待秒数"
+        "seconds": 3
       "states": "[按键禁用-终结技, 0, 999]"
   "interval": 0.01
   "priority": 100
@@ -601,6 +639,92 @@
         - "op_name": "清除状态"
           "state": "按键可用-连携技"
         "states": "[前台-爱芮]"
+      - "states": "[连携技-1-蕾米埃尔] & ([连携技-2-蕾米埃尔] | [连携技-2-邦布])"
+        "sub_handlers":
+        - "debug_name": "跳过连携"
+          "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-连携跳过"
+          - "op_name": "设置状态"
+            "state": "自定义-失衡时间"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "设置状态"
+            "state": "自定义-失衡时间"
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "设置状态"
+            "state": "自定义-连携取消"
+          - "op_name": "清除状态"
+            "state": "按键可用-连携技"
+          "states": ""
+      - "states": "[连携技-2-蕾米埃尔] & [连携技-1-邦布]"
+        "sub_handlers":
+        - "debug_name": "跳过连携"
+          "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-连携跳过"
+          - "op_name": "设置状态"
+            "state": "自定义-失衡时间"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "设置状态"
+            "state": "自定义-失衡时间"
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-连携技-取消-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "设置状态"
+            "state": "自定义-连携取消"
+          - "op_name": "清除状态"
+            "state": "按键可用-连携技"
+          "states": ""
+      - "debug_name": "蕾米埃尔连携-选右"
+        "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "设置状态"
+          "seconds_add": -0.5
+          "state": "自定义-失衡时间"
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-无视闪光"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-蕾米埃尔]"
+      - "debug_name": "蕾米埃尔连携-选左"
+        "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "设置状态"
+          "seconds_add": -0.5
+          "state": "自定义-失衡时间"
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-无视闪光"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-蕾米埃尔]"
       - "states": "[前台-仪玄]"
         "sub_handlers":
         - "debug_name": "跳过连携"
@@ -10935,13 +11059,10 @@
             - "自定义-动作不打断"
             - "自定义-无视闪光"
           - "op_name": "设置状态"
-            "seconds_add": -1
+            "seconds_add": -3.5
             "state": "自定义-失衡时间"
-          - "op_name": "设置状态"
-            "seconds": 2
-            "state": "自定义-动作不打断"
           - "op_name": "等待秒数"
-            "seconds": 2
+            "seconds": 5.5
           "states": "[自定义-连携换人, 0, 0.5]"
         - "debug_name": "普通切人：设置保护并等待"
           "operations":
@@ -10995,9 +11116,9 @@
             "state_list":
             - "自定义-动作不打断"
             - "自定义-无视闪光"
-          - "op_name": "按键-特殊攻击-松开"
           - "op_name": "等待秒数"
             "seconds": 0.02
+          - "op_name": "按键-特殊攻击-松开"
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
@@ -11010,17 +11131,6 @@
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
-          - "op_name": "按键-普通攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-普通攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-普通攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "按键-普通攻击-松开"
-          - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 10
           "states": "[蕾米埃尔-虚曜]{3,3}"
@@ -11032,6 +11142,10 @@
             "state_list":
             - "自定义-动作不打断"
             - "自定义-无视闪光"
+          - "op_name": "按键-闪避"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-闪避"
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
@@ -11043,7 +11157,7 @@
             "seconds": 0.5
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-松开"
           - "op_name": "按键-切换角色-下一个"
           "states": "[蕾米埃尔-浮晖]{100,100}"
@@ -12563,6 +12677,7 @@
             "state": "自定义-动作不打断"
           "states": "[维琳娜-风华]{85,135}"
         - "debug_name": "低风华强化特殊技合轴"
+          "interrupt_states": "[维琳娜-风华]{85,135}"
           "operations":
           - "op_name": "设置状态"
             "seconds": 1.5
@@ -12577,12 +12692,13 @@
             "repeat": 5
           - "op_name": "设置状态"
             "state": "自定义-合轴时间"
-          "states": "[维琳娜-特殊技可用] & [维琳娜-风华]{0,84}"
+          "states": "[维琳娜-特殊技可用]"
         - "debug_name": "普通攻击"
+          "interrupt_states": "[维琳娜-特殊技可用] | [维琳娜-风华]{85,135}"
           "operations":
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
-            "repeat": 10
+            "repeat": 3
           - "op_name": "设置状态"
             "state": "自定义-合轴时间"
           "states": ""
@@ -13665,7 +13781,8 @@
               - "op_name": "清除状态"
                 "state": "自定义-动作不打断"
               "states": "[维琳娜-风华]{85,135}"
-            - "debug_name": "维琳娜低风华合轴切入"
+            - "debug_name": "低风华强化特殊技合轴"
+              "interrupt_states": "[维琳娜-风华]{85,135}"
               "operations":
               - "agent_name": "维琳娜"
                 "op_name": "按键-切换角色"
@@ -13682,7 +13799,7 @@
                 "repeat": 5
               - "op_name": "设置状态"
                 "state": "自定义-合轴时间"
-              "states": "[维琳娜-风华]{0,84} & [维琳娜-特殊技可用]"
+              "states": "[维琳娜-特殊技可用]"
           - "debug_name": "雅能量豆数切入"
             "operations":
             - "agent_name": "雅"
@@ -22268,13 +22385,10 @@
           - "自定义-动作不打断"
           - "自定义-无视闪光"
         - "op_name": "设置状态"
-          "seconds_add": -1
+          "seconds_add": -3.5
           "state": "自定义-失衡时间"
-        - "op_name": "设置状态"
-          "seconds": 2
-          "state": "自定义-动作不打断"
         - "op_name": "等待秒数"
-          "seconds": 2
+          "seconds": 5.5
         "states": "[自定义-连携换人, 0, 0.5]"
       - "debug_name": "普通切人：设置保护并等待"
         "operations":
@@ -22328,9 +22442,9 @@
           "state_list":
           - "自定义-动作不打断"
           - "自定义-无视闪光"
-        - "op_name": "按键-特殊攻击-松开"
         - "op_name": "等待秒数"
           "seconds": 0.02
+        - "op_name": "按键-特殊攻击-松开"
         - "op_name": "按键-普通攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 0.5
@@ -22343,17 +22457,6 @@
         - "op_name": "按键-普通攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 0.5
-        - "op_name": "按键-普通攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-普通攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-普通攻击-按下"
-        - "op_name": "等待秒数"
-          "seconds": 0.5
-        - "op_name": "按键-普通攻击-松开"
-        - "op_name": "按键-特殊攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 10
         "states": "[蕾米埃尔-虚曜]{3,3}"
@@ -22365,6 +22468,10 @@
           "state_list":
           - "自定义-动作不打断"
           - "自定义-无视闪光"
+        - "op_name": "按键-闪避"
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "按键-闪避"
         - "op_name": "按键-特殊攻击-按下"
         - "op_name": "等待秒数"
           "seconds": 0.5
@@ -22376,7 +22483,7 @@
           "seconds": 0.5
         - "op_name": "按键-特殊攻击-按下"
         - "op_name": "等待秒数"
-          "seconds": 0.5
+          "seconds": 1
         - "op_name": "按键-特殊攻击-松开"
         - "op_name": "按键-切换角色-下一个"
         "states": "[蕾米埃尔-浮晖]{100,100}"
@@ -23896,6 +24003,7 @@
           "state": "自定义-动作不打断"
         "states": "[维琳娜-风华]{85,135}"
       - "debug_name": "低风华强化特殊技合轴"
+        "interrupt_states": "[维琳娜-风华]{85,135}"
         "operations":
         - "op_name": "设置状态"
           "seconds": 1.5
@@ -23910,12 +24018,13 @@
           "repeat": 5
         - "op_name": "设置状态"
           "state": "自定义-合轴时间"
-        "states": "[维琳娜-特殊技可用] & [维琳娜-风华]{0,84}"
+        "states": "[维琳娜-特殊技可用]"
       - "debug_name": "普通攻击"
+        "interrupt_states": "[维琳娜-特殊技可用] | [维琳娜-风华]{85,135}"
         "operations":
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 10
+          "repeat": 3
         - "op_name": "设置状态"
           "state": "自定义-合轴时间"
         "states": ""

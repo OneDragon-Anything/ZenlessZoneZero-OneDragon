@@ -589,6 +589,12 @@ class AutoBattleContext:
 
         future_list: list[Future] = []
 
+        # 终结技被禁用说明进入了首领封招阶段 这段交互对时间极度敏感 脚本慢 0.1 秒以上就格挡不到
+        # 期间角色无法攻击 其他识别都没有意义 继续跑只会占住线程池和 GPU 把下一帧的普攻禁用检测推后
+        # 所以只保留普攻可用和两个禁用状态的识别与写回 战斗结束检测在 else 分支 不受这里影响
+        if in_battle and ban_result.get(BattleStateEnum.STATUS_ULTIMATE_BAN.value, False):
+            return in_battle
+
         # 统一提交检测任务
         if in_battle:
             # 闪避相关
