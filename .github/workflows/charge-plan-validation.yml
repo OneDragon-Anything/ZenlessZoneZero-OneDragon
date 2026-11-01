@@ -1,0 +1,167 @@
+name: Charge Plan Validation
+
+on:
+  push:
+    branches: ['codex/charge-plan-validation-*']
+  workflow_dispatch:
+    inputs:
+      test_ref:
+        description: '配套测试仓的分支或完整 SHA；留空使用当前同名分支'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: charge-plan-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      test_sha: ${{ steps.test-ref.outputs.sha }}
+    env:
+      PYTHONPATH: src
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Resolve paired test commit
+        id: test-ref
+        shell: pwsh
+        env:
+          TEST_REPOSITORY: ${{ github.repository_owner }}/zzz-od-test
+          TEST_REF: ${{ inputs.test_ref || github.ref_name }}
+        run: |
+          if ($env:TEST_REF -match '^[0-9a-fA-F]{40}$') {
+            $testSha = $env:TEST_REF
+          } else {
+            git check-ref-format "refs/heads/$env:TEST_REF"
+            if ($LASTEXITCODE -ne 0) { throw '非法测试分支名' }
+            $remote = git ls-remote --exit-code "https://github.com/$env:TEST_REPOSITORY.git" "refs/heads/$env:TEST_REF"
+            if ($LASTEXITCODE -ne 0 -or -not $remote) { throw '配套测试分支不存在，禁止回退 main' }
+            $testSha = ($remote -split '\s+')[0]
+          }
+          if ($testSha -notmatch '^[0-9a-fA-F]{40}$') { throw '无效的测试提交' }
+          "sha=$testSha" | Add-Content -LiteralPath $env:GITHUB_OUTPUT
+
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/zzz-od-test
+          ref: ${{ steps.test-ref.outputs.sha }}
+          path: zzz-od-test
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.14'
+
+      - name: Install uv and locked dependencies
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+          uv sync --locked --group dev --python 3.11.14
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run regression tests and lint
+        shell: pwsh
+        run: ./tools/ci/validate_charge_plan.ps1
+
+      - name: Verify generated resources
+        shell: pwsh
+        run: |
+          uv run --group dev --no-sync python src/one_dragon/devtools/compile_po.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --group dev --no-sync python src/zzz_od/auto_battle/build_utils.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --group dev --no-sync python deploy/generate_module_manifest.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code --ignore-cr-at-eol -- config/auto_battle assets/text/output deploy/module_manifest.py
+          if ($LASTEXITCODE -ne 0) { throw '生成资源与提交不一致' }
+          $newFiles = git ls-files --others --exclude-standard -- config/auto_battle assets/text/output deploy/module_manifest.py
+          if ($newFiles) { throw "生成资源遗漏：$newFiles" }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: charge-plan-validation
+          path: |
+            .install/charge-plan-validation/junit.xml
+            .install/charge-plan-validation/versions.json
+          include-hidden-files: true
+          if-no-files-found: error
+
+  build:
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: src
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.14'
+      - name: Install locked dependencies
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+          uv sync --locked --group dev --python 3.11.14
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build runtime candidate
+        shell: pwsh
+        run: |
+          Push-Location deploy
+          try {
+            uv run --group dev --no-sync pyinstaller --noconfirm --clean OneDragon-RuntimeLauncher.spec
+            if ($LASTEXITCODE -ne 0) { throw 'RuntimeLauncher 构建失败' }
+          } finally { Pop-Location }
+          # 候选包建立独立的浅克隆，只包含已验证提交；不复制 checkout 的认证配置。
+          $candidateDir = 'deploy/dist/OneDragon-RuntimeLauncher'
+          git -C $candidateDir init
+          if ($LASTEXITCODE -ne 0) { throw '候选仓初始化失败' }
+          git -C $candidateDir fetch --depth=1 $env:GITHUB_WORKSPACE $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw '候选源码复制失败' }
+          git -C $candidateDir checkout -b validation-candidate FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) { throw '候选提交检出失败' }
+          git -C $candidateDir remote add origin 'https://github.com/${{ github.repository }}.git'
+          if ($LASTEXITCODE -ne 0) { throw '候选来源记录失败' }
+          # 本地分支存在且关闭自动更新，启动器不会把候选换回 main。
+          @('auto_update_code: false', 'custom_git_branch: true', 'git_branch: validation-candidate') |
+            Set-Content -LiteralPath "$candidateDir/config/env.yml" -Encoding utf8
+      - name: Verify version command and record candidate
+        shell: pwsh
+        env:
+          TEST_SHA: ${{ needs.validate.outputs.test_sha }}
+        run: |
+          $candidateDir = 'deploy/dist/OneDragon-RuntimeLauncher'
+          & "$candidateDir/OneDragon-RuntimeLauncher.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw '运行包版本命令失败' }
+          @{
+            main_sha = '${{ github.sha }}'
+            test_sha = $env:TEST_SHA
+            run_url = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            status = 'CI 验证候选，等待用户人工验收；不是正式发布'
+          } | ConvertTo-Json | Set-Content -LiteralPath "$candidateDir/candidate.json" -Encoding utf8
+          Get-FileHash -LiteralPath "$candidateDir/OneDragon-RuntimeLauncher.exe" -Algorithm SHA256 |
+            Select-Object Hash | ConvertTo-Json | Set-Content -LiteralPath "$candidateDir/runtime-sha256.json" -Encoding utf8
+          @(
+            '这是 CI 验证候选，尚未完成人工验收。',
+            '请解压到独立目录，保留 .git、src 和 _internal，再运行 OneDragon-RuntimeLauncher.exe。',
+            '自动代码更新已关闭。验收期间不要点击同步代码或切换分支，以免离开 candidate.json 指定版本。',
+            '根据人工验收表检查四类副本；本包没有用户账号、游戏配置或密钥。'
+          ) | Set-Content -LiteralPath "$candidateDir/验收说明.txt" -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: charge-plan-runtime-candidate
+          path: deploy/dist/OneDragon-RuntimeLauncher/
+          include-hidden-files: true
+          if-no-files-found: error

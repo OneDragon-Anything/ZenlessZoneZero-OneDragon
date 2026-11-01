@@ -176,7 +176,7 @@ class AreaPatrol(ZOperation):
         return self.round_success()
 
     @node_from(from_name='向前移动准备战斗')
-    @operation_node(name='自动战斗', mute=True, timeout_seconds=601)  # 600秒在方法内处理，让配置值600优先
+    @operation_node(name='自动战斗', mute=True)
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
@@ -186,6 +186,13 @@ class AreaPatrol(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
+        # 本轮识别可能刚得到结算结果，优先处理，避免超过时限后误退出。
+        last_result = self.ctx.auto_battle_context.last_check_end_result
+        if last_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=last_result)
+
+        # 两种超时在同一节点内判断，避免框架先超时而漏掉换队请求。
         elapsed = 0 if self._current_node_start_time is None else time.time() - self._current_node_start_time
         if (
             in_battle
@@ -195,7 +202,7 @@ class AreaPatrol(ZOperation):
             self._switch_team_requested = True
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_fail(status=Operation.STATUS_TIMEOUT)
-        if in_battle and elapsed >= 600:
+        if elapsed >= 600:
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_fail(status=Operation.STATUS_TIMEOUT)
 
