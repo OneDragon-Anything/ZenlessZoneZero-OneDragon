@@ -34,6 +34,7 @@ config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
 config/pip.yml
+config/agent_template_generator.yml
 config/push.yml
 config/redemption_codes.yml
 config/[0-9]*/
@@ -59,6 +60,9 @@ assets/ui/static_background.webp
 assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
+config/plugin_market_cache.json
+config/plugin_subscription.yml
+config/temp/
 
 # 执行文件
 *.exe

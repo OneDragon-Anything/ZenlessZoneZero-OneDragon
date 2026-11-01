@@ -1,0 +1,93 @@
+name: Runtime Compatibility
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check-runtime-compatibility:
+    if: ${{ github.repository_owner == 'OneDragon-Anything' }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install checker dependency
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check PyYAML
+
+      - name: Check latest RuntimeLauncher
+        id: check
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python tools/ci/check_runtime_compatibility.py --work-dir "$env:RUNNER_TEMP\runtime-compatibility"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "exit_code=$LASTEXITCODE"
+          exit 0
+
+      - name: Open compatibility issue
+        if: steps.check.outputs.exit_code == '2'
+        uses: actions/github-script@v7
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMPATIBILITY_NOTIFY_USER: ${{ vars.COMPATIBILITY_NOTIFY_USER }}
+        with:
+          script: |
+            const marker = '<!-- runtime-compatibility-check -->';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find((issue) => (issue.body || '').includes(marker));
+            const notifyUser = process.env.COMPATIBILITY_NOTIFY_USER || '';
+            if (!/^@?[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(notifyUser)) {
+              core.setFailed('仓库变量 COMPATIBILITY_NOTIFY_USER 缺失或不是有效 GitHub 用户名');
+              return;
+            }
+            const mention = notifyUser.startsWith('@') ? notifyUser : `@${notifyUser}`;
+            const body = [
+              marker,
+              `${mention} 当前 main 的新增导入无法由最新正式版 RuntimeLauncher 加载。`,
+              '',
+              `- 提交：${process.env.COMMIT_SHA}`,
+              `- 检查记录：${process.env.RUN_URL}`,
+              '',
+              '请更新集成启动器，或移除当前运行时不存在的新增导入。',
+            ].join('\n');
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title: '当前代码不兼容最新 RuntimeLauncher',
+                body,
+              });
+            }
+            core.setFailed('当前代码不兼容最新 RuntimeLauncher');
+
+      - name: Fail on checker error
+        if: steps.check.outputs.exit_code != '0' && steps.check.outputs.exit_code != '2'
+        shell: pwsh
+        run: exit 1

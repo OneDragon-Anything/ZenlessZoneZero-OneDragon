@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -79,20 +80,22 @@ class ApplicationFactoryManager:
     def discover_factories(
         self,
         reload_modules: bool = False
-    ) -> tuple[list[ApplicationFactory], list[ApplicationFactory]]:
+    ) -> list[ApplicationFactory]:
         """发现所有应用工厂
 
         扫描所有插件目录，自动发现并加载应用工厂类。
+
+        返回列表中默认组应用排在前面，并按 PRIORITY 排序，
+        决定一条龙列表的默认顺序；其余应用按发现顺序追加。
 
         Args:
             reload_modules: 是否重新加载已加载的模块
 
         Returns:
-            tuple[list[ApplicationFactory], list[ApplicationFactory]]:
-                (非默认组工厂列表, 默认组工厂列表)
+            list[ApplicationFactory]: 全部工厂列表，包含固定入口应用
         """
-        non_default_factories: list[ApplicationFactory] = []
         default_factories: list[ApplicationFactory] = []
+        other_factories: list[ApplicationFactory] = []
 
         # 清空旧的插件信息
         self._plugin_infos.clear()
@@ -101,9 +104,11 @@ class ApplicationFactoryManager:
         for plugin_dir, source in self._plugin_dirs:
             if not plugin_dir.is_dir():
                 continue
-            non_default, default = self._scan_directory(plugin_dir, reload_modules, source)
-            non_default_factories.extend(non_default)
-            default_factories.extend(default)
+            for factory in self._scan_directory(plugin_dir, reload_modules, source):
+                if factory.default_group:
+                    default_factories.append(factory)
+                else:
+                    other_factories.append(factory)
 
         default_factories.sort(
             key=lambda factory: (
@@ -113,19 +118,21 @@ class ApplicationFactoryManager:
             )
         )
 
+        internal_count = sum(1 for factory in other_factories if factory.internal_app)
         log.info(
-            f"发现 {len(non_default_factories)} 个非默认组应用, "
-            f"{len(default_factories)} 个默认组应用, "
+            f"发现 {len(default_factories)} 个默认组应用, "
+            f"{len(other_factories) - internal_count} 个独立应用, "
+            f"{internal_count} 个固定入口应用, "
             f"{len(self._scan_failures)} 个失败"
         )
-        return non_default_factories, default_factories
+        return default_factories + other_factories
 
     def _scan_directory(
         self,
         directory: Path,
         reload_modules: bool = False,
         source: PluginSource = PluginSource.BUILTIN
-    ) -> tuple[list[ApplicationFactory], list[ApplicationFactory]]:
+    ) -> list[ApplicationFactory]:
         """扫描目录中的工厂模块
 
         Args:
@@ -134,15 +141,58 @@ class ApplicationFactoryManager:
             source: 插件来源
 
         Returns:
-            tuple: (非默认组工厂列表, 默认组工厂列表)
+            list[ApplicationFactory]: 该目录下加载成功的工厂列表
         """
-        non_default_factories: list[ApplicationFactory] = []
-        default_factories: list[ApplicationFactory] = []
+        factories: list[ApplicationFactory] = []
 
-        # 一次性扫描所有 .py 文件，按后缀分组
+        # 内置应用递归扫描；第三方插件只扫描每个真实插件根的第一层。
+        if source == PluginSource.THIRD_PARTY:
+            python_files: list[Path] = []
+            if directory.is_dir():
+                try:
+                    directory_resolved = directory.resolve(strict=True)
+                    plugin_dirs = sorted(
+                        directory.iterdir(),
+                        key=lambda path: (path.name.casefold(), path.name),
+                    )
+                except (OSError, RuntimeError) as e:
+                    self._scan_failures.append(
+                        (directory, f"{type(e).__name__}: {e}")
+                    )
+                    return factories
+
+                for plugin_dir in plugin_dirs:
+                    try:
+                        if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
+                        plugin_dir_resolved = plugin_dir.resolve(strict=True)
+                        if plugin_dir_resolved != directory_resolved / plugin_dir.name:
+                            continue
+                        python_files_in_plugin = sorted(
+                            plugin_dir.glob("*.py"),
+                            key=lambda path: (path.name.casefold(), path.name),
+                        )
+                    except (OSError, RuntimeError) as e:
+                        self._scan_failures.append(
+                            (plugin_dir, f"{type(e).__name__}: {e}")
+                        )
+                        continue
+
+                    for python_file in python_files_in_plugin:
+                        if python_file.is_symlink():
+                            continue
+                        try:
+                            python_file_resolved = python_file.resolve(strict=True)
+                        except (OSError, RuntimeError):
+                            continue
+                        if python_file_resolved != plugin_dir_resolved / python_file.name:
+                            continue
+                        python_files.append(python_file)
+        else:
+            python_files = list(directory.rglob("*.py"))
         factory_files: list[Path] = []
         const_files: list[Path] = []
-        for f in directory.rglob("*.py"):
+        for f in python_files:
             if f.stem.endswith(self._factory_module_suffix):
                 factory_files.append(f)
             elif f.stem.endswith(self._const_module_suffix):
@@ -170,22 +220,18 @@ class ApplicationFactoryManager:
             if factory_file.parent in conflict_dirs:
                 continue
             try:
-                result = self._load_factory_from_file(factory_file, reload_modules, source, directory)
-                if result is None:
+                factory = self._load_factory_from_file(factory_file, reload_modules, source, directory)
+                if factory is None:
                     self._scan_failures.append((factory_file, "No ApplicationFactory subclass found"))
                     continue
 
-                factory, is_default = result
-                if is_default:
-                    default_factories.append(factory)
-                else:
-                    non_default_factories.append(factory)
+                factories.append(factory)
             except Exception as e:
                 error_msg = f"{type(e).__name__}: {str(e)}"
                 self._scan_failures.append((factory_file, error_msg))
                 log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
-        return non_default_factories, default_factories
+        return factories
 
     def _load_factory_from_file(
         self,
@@ -193,7 +239,7 @@ class ApplicationFactoryManager:
         reload_modules: bool = False,
         source: PluginSource = PluginSource.BUILTIN,
         base_dir: Path | None = None
-    ) -> tuple[ApplicationFactory, bool] | None:
+    ) -> ApplicationFactory | None:
         """从文件加载工厂类
 
         每个工厂模块应只包含一个 ApplicationFactory 子类。
@@ -207,8 +253,7 @@ class ApplicationFactoryManager:
             base_dir: 扫描根目录（由 _scan_directory 传入）
 
         Returns:
-            tuple[ApplicationFactory, bool] | None:
-                (工厂实例, 是否默认组)，未找到工厂类则返回 None
+            ApplicationFactory | None: 工厂实例，未找到工厂类则返回 None
 
         Raises:
             ImportError: 模块导入失败
@@ -251,11 +296,9 @@ class ApplicationFactoryManager:
             module = import_module_from_file(factory_file, module_name, module_root)
 
         # 5. 查找并实例化工厂类（每个模块最多一个）
-        factory_result = self._find_factory_in_module(
+        return self._find_factory_in_module(
             module, module_name, factory_file, source
         )
-
-        return factory_result
 
     def _get_unload_prefix(
         self,
@@ -305,7 +348,7 @@ class ApplicationFactoryManager:
         module_name: str,
         factory_file: Path,
         source: PluginSource
-    ) -> tuple[ApplicationFactory, bool] | None:
+    ) -> ApplicationFactory | None:
         """在模块中查找工厂类
 
         每个工厂模块应只包含一个 ApplicationFactory 子类。
@@ -318,7 +361,7 @@ class ApplicationFactoryManager:
             source: 插件来源
 
         Returns:
-            tuple | None: (工厂实例, 是否默认组)，未找到工厂类则返回 None
+            ApplicationFactory | None: 工厂实例，未找到工厂类则返回 None
 
         Raises:
             Exception: 工厂实例化或元数据读取失败
@@ -333,12 +376,14 @@ class ApplicationFactoryManager:
                 and attr.__module__ == module_name
             ):
                 factory = attr(self.ctx)
-                is_default = factory.default_group
                 self._register_plugin_metadata(
                     factory, factory_file, module_name, source
                 )
-                log.debug(f"加载工厂: {attr_name} (default_group={is_default})")
-                return factory, is_default
+                log.debug(
+                    f"加载工厂: {attr_name} "
+                    f"(default_group={factory.default_group}, internal_app={factory.internal_app})"
+                )
+                return factory
 
         return None
 
@@ -368,6 +413,7 @@ class ApplicationFactoryManager:
             app_id=factory.app_id,
             app_name=factory.app_name,
             default_group=factory.default_group,
+            internal_app=factory.internal_app,
             source=source,
             plugin_dir=factory_file.parent,
             factory_module=factory_module_name,
@@ -411,8 +457,56 @@ class ApplicationFactoryManager:
         plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
         plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
+        # 读取封面：插件包内的 plugin.json 声明，缺失时界面用默认封面
+        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent)
+
+        # 校验 KEY_SIM_DIR：必须是相对目录名，防止插件从 plugin_dir 外加载脚本
+        key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
+        if not isinstance(key_sim_dir, str):
+            raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是字符串")
+        key_sim_path = Path(key_sim_dir)
+        # anchor 非空代表带盘符或盘根前缀（如 C:outside、\outside），拼接时会逃出 plugin_dir
+        if key_sim_path.is_absolute() or key_sim_path.anchor != '' or '..' in key_sim_path.parts:
+            raise ImportError(f"插件 {factory.app_id} 的 KEY_SIM_DIR 必须是相对路径")
+        plugin_info.key_sim_dir = key_sim_dir
 
         # 注册到插件信息表（同时作为后续重复检测的依据）
         self._plugin_infos[plugin_info.app_id] = plugin_info
 
         return plugin_info
+
+    @staticmethod
+    def _resolve_cover_path(plugin_dir: Path) -> Path | None:
+        """从插件包内的 plugin.json 读取封面图路径。
+
+        封面属于可选信息，未声明、格式损坏、路径越界或文件不存在都按「没有封面」
+        处理，由界面回退到默认封面，不打断插件加载。
+
+        Args:
+            plugin_dir: 插件根目录。
+
+        Returns:
+            封面图的绝对路径；不可用时返回 None。
+        """
+        manifest_file = plugin_dir / 'plugin.json'
+        if not manifest_file.is_file():
+            return None
+
+        try:
+            manifest = json.loads(manifest_file.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(manifest, dict):
+            return None
+
+        raw_path = str(manifest.get('cover') or '').strip()
+        if not raw_path or Path(raw_path).is_absolute():
+            return None
+
+        root = plugin_dir.resolve(strict=False)
+        cover = (root / raw_path).resolve(strict=False)
+        if not cover.is_relative_to(root):
+            return None
+        if not cover.is_file():
+            return None
+        return cover

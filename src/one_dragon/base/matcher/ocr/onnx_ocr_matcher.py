@@ -23,8 +23,9 @@ from one_dragon.utils import os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
-DEFAULT_OCR_MODEL_NAME: str = 'ppocrv5'
+DEFAULT_OCR_MODEL_NAME: str = 'ppocrv6'
 PPOCRV6_MODEL_NAME: str = 'ppocrv6'
+DEPRECATED_OCR_MODEL_NAMES: frozenset[str] = frozenset({'ppocrv5'})
 
 # OneDragon-Env 仓库各源的 release 下载地址
 OCR_DOWNLOAD_URLS: dict[str, str] = {

@@ -116,7 +116,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
             content_widget=None,
             object_name='resource_management_interface',
             parent=parent,
-            nav_text_cn='资源管理', nav_icon=FluentIcon.SYNC
+            nav_text_cn='资源',
         )
 
         self.fetch_total_runner = FetchTotalRunner(ctx.git_service.fetch_total_commit)

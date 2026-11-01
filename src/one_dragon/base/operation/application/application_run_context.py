@@ -72,6 +72,8 @@ class ApplicationRunContext:
 
     Attributes:
         _application_factory_map: 应用工厂映射表，存储app_id到工厂的对应关系
+        default_group_apps: 默认进入一条龙列表的应用ID列表
+        standalone_apps: 允许用户在通用应用列表中选择的应用ID列表
         _run_state: 当前运行状态
         _executor: 线程池执行器，用于异步运行应用
         current_app_id: 当前运行的应用ID
@@ -97,7 +99,8 @@ class ApplicationRunContext:
             thread_name_prefix="one_dragon_app_run_context", max_workers=1
         )
         self.event_bus: ContextEventBus = ContextEventBus()
-        self.default_group_apps: list = []  # 默认应用组的应用ID列表
+        self.default_group_apps: list[str] = []  # 默认进入一条龙列表的应用ID列表
+        self.standalone_apps: list[str] = []  # 允许在通用应用列表中选择的应用ID列表
 
         # 当前运行的应用
         self.current_app_id: str | None = None
@@ -114,26 +117,24 @@ class ApplicationRunContext:
     def registry_application(
         self,
         factory: ApplicationFactory | list[ApplicationFactory],
-        default_group: bool = False,
-    ):
+    ) -> None:
         """
         注册应用工厂。
 
         将应用工厂或工厂列表注册到上下文中，后续可以通过app_id创建对应的应用实例。
+        同时按工厂的 default_group 和 internal_app 维护两个派生列表。
 
         Args:
             factory: 应用工厂实例或工厂列表
-            default_group: 应用是否属于默认应用组，默认为False
         """
-        if isinstance(factory, list):
-            for f in factory:
-                self._application_factory_map[f.app_id] = f
-                if default_group:
-                    self.default_group_apps.append(f.app_id)
-        else:
-            self._application_factory_map[factory.app_id] = factory
-            if default_group:
-                self.default_group_apps.append(factory.app_id)
+        factory_list = factory if isinstance(factory, list) else [factory]
+        for f in factory_list:
+            self._application_factory_map[f.app_id] = f
+            if f.internal_app:
+                continue
+            self.standalone_apps.append(f.app_id)
+            if f.default_group:
+                self.default_group_apps.append(f.app_id)
 
     def clear_applications(self) -> None:
         """清空所有已注册的应用工厂
@@ -142,6 +143,7 @@ class ApplicationRunContext:
         """
         self._application_factory_map.clear()
         self.default_group_apps.clear()
+        self.standalone_apps.clear()
 
     def clear_application_cache(self) -> None:
         """清理已注册应用工厂缓存的配置和运行记录。
@@ -183,6 +185,19 @@ class ApplicationRunContext:
             bool: 应用是否已注册
         """
         return app_id in self._application_factory_map
+
+    def is_app_internal(self, app_id: str) -> bool:
+        """检查应用是否只能由代码固定入口调用。
+
+        未注册应用返回 False，调用方可用 `is_app_registered` 单独区分。
+        """
+        factory = self._application_factory_map.get(app_id)
+        return factory.internal_app if factory else False
+
+    def is_app_standalone_available(self, app_id: str) -> bool:
+        """检查应用是否允许通过通用应用列表选择。"""
+        factory = self._application_factory_map.get(app_id)
+        return factory is not None and not factory.internal_app
 
     def is_app_need_notify(self, app_id: str) -> bool:
         """
@@ -275,7 +290,7 @@ class ApplicationRunContext:
         self,
         app_id: str | None = None,
         instance_idx: int | None = None,
-    ) -> RECORD:
+    ) -> RECORD | None:
         """
         获取运行记录实例。
 
@@ -286,10 +301,10 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标 为空时使用当前运行的
 
         Returns:
-            AppRunRecord: 运行记录对象
+            AppRunRecord | None: 运行记录对象；应用没有记录时返回 None
 
         Raises:
-            Exception: 如果子类应用无需配置(ApplicationFactory.create_run_record未实现)时，调用本方法会抛出异常
+            Exception: 应用未注册、参数为空或运行记录创建失败时抛出异常
         """
         if app_id is None:
             app_id = self.current_app_id
@@ -568,12 +583,9 @@ class ApplicationRunContext:
             instance_idx: 账号实例下标
         """
         for app_id in self._application_factory_map:
-            try:
-                run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+            run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+            if run_record is not None:
                 run_record.check_and_update_status()
-            except Exception:
-                # 部分应用没有运行记录 跳过即可
-                pass
 
     def after_app_shutdown(self) -> None:
         """

@@ -28,6 +28,8 @@
 
 当前使用 onnxruntime-dml 在多线程下同时访问多个session是会出现各种意想不到的异常的，因此需要异步使用onnx session时，需统一使用 `gpu_executor.submit` 来提交，保证只有一个session被访问。
 
+另外，onnx session 的线程池默认会自旋等待，空闲时也占用 CPU。本项目都是间歇调用，统一在创建 session 时关闭自旋（见 `onnxocr/inference_engine.py`、`one_dragon/yolo/onnx_model_loader.py`）。
+
 ### 1.3.测试
 
 由于部分测试代码需要游戏截图，防止仓库过大，测试相关代码存放在另一个仓库中，见 [zzz-od-test](https://github.com/OneDragon-Anything/zzz-od-test)
@@ -92,6 +94,8 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
 
+启动器的 `--version` 固定按 UTF-8 输出：版本描述含中文，按系统本地编码输出时，英文、日文、韩文等系统的本地编码无法表示这些字符，启动器会直接报错退出。旧版启动器仍按系统本地编码输出，因此版本查询先捕获原始字节，再依次尝试 UTF-8 与本地编码；不能依赖父 Python 的默认文本编码，也不要求用户关闭全局 UTF-8 模式。该路径只解析 stdout，stderr 的编码不应影响版本识别。
+
 ### 3.3.集成启动器（RuntimeLauncher）
 
 > 详细设计文档见 [runtime_launcher.md](one_dragon/runtime_launcher.md)
@@ -104,7 +108,7 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 - **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
 - **源码加载**：借助 `hook_path_inject.py` 运行时钩子，将 `<exe_dir>/src` 注入 `sys.path`，其余模块从 `src/` 目录加载
 - **自动更新**：首次运行时自动克隆代码仓库；后续运行时根据 `auto_update_code` 配置自动拉取最新代码
-- **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部依赖清单，更新代码后如新增依赖不在清单中，提示用户更新启动器
+- **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部导入，代码更新时只检查新增导入能否由当前运行时满足；已打包的间接依赖和已有库中的导入名称可直接复用，实际缺失或加载失败才提示更新启动器。详细边界见 [模块清单机制](one_dragon/runtime_launcher.md#模块清单机制)
 
 #### 打包命令
 

@@ -39,6 +39,25 @@
 
 PC 控制器默认按窗口标题查找游戏窗口。业务层遇到多个同名窗口时，可以自行完成候选筛选，再通过 `set_window_hwnd()` 传入已经确认的窗口句柄。框架把句柄写进窗口对象和缓存，不根据截图内容判断候选是否有效。`set_window_hwnd()` 不修改窗口标题。`init_win()` 在缓存句柄仍存在、并且实际标题与配置标题一致时直接复用，不重新枚举。句柄失效、实际标题不匹配，或调用 `refresh_win()` 时，才清空缓存并按原标题重新查找。
 
+### 拖拽时序
+
+`drag_to(end, start=None, duration=0.5, *, timing=None)` 提供前后台共用的拖拽接口。`DragTiming`（`one_dragon.base.controller.drag_timing`）表示按下等待（`press_wait`）、移动时间（`move_duration`）和松开前等待（`release_wait`）；各字段以秒为单位，必须是有限的非负数。传入 `timing` 后忽略 `duration`，移动时间仍至少为 0.1 秒。前台底层函数 `drag_mouse` 使用相同参数。
+
+不传 `timing` 时，`PcControllerBase` 使用以下默认时序：
+
+| 模式 | 按下等待 | 移动时间 | 松开前等待 |
+|------|----------|----------|------------|
+| 前台 | 不等待 | `max(duration - 0.2, 0.1)` | 0.2 秒 |
+| 后台 | 0.02 秒，不计入 `duration` | `max(duration - 0.2, 0.1)` | 0.2 秒 |
+
+默认值只覆盖不关心时序的通用拖拽。需要更长按下等待或终点等待的场景在自己的调用点显式传入 `timing`，例如预备编队选择和预备编队角色识别：
+
+```python
+TEAM_DRAG_TIMING: DragTiming = DragTiming(press_wait=0.6, move_duration=0.3, release_wait=1.0)
+```
+
+因此 #2599 引入的全局 0.6 秒按下等待和 1.0 秒终点等待不再作为公共默认值，未传 `timing` 的拖拽调用点都回到上表时序。上述时间不包含模式切换、输入调用和节点额外等待。
+
 ## 应用系统
 
 ### ApplicationFactoryManager
@@ -81,9 +100,8 @@ PC 控制器默认按窗口标题查找游戏窗口。业务层遇到多个同�
 
 ### 一条龙结束后动作
 
-一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机等收尾动作。
-GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
-通用运行上下文只返回运行结果，不感知关闭游戏或关机；单项应用运行也不会触发一条龙的结束后动作。
+一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机、休眠、睡眠等收尾动作。
+GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作（`--close-game`、`--shutdown`、`--hibernate`、`--sleep`）。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
 `STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
 
 ## 核心流程
