@@ -1,0 +1,12 @@
+sub_dir: target_state
+template_id: boss_kita
+template_name: 首领头像-基塔布鲁
+template_shape: polygon
+auto_mask: true
+point_list:
+- 1723, 52
+- 1711, 77
+- 1753, 77
+- 1747, 98
+- 1817, 99
+- 1837, 52

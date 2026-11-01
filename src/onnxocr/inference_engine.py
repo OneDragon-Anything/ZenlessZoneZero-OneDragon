@@ -144,6 +144,9 @@ def _default_session_options() -> SessionOptions:
     opts = SessionOptions()
     opts.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
     opts.enable_mem_pattern = True
+    # 关闭线程池自旋：ORT 默认线程空闲时忙等不睡，会持续占用 CPU 并拖慢推理
+    opts.add_session_config_entry('session.intra_op.allow_spinning', '0')
+    opts.add_session_config_entry('session.inter_op.allow_spinning', '0')
     return opts
 
 

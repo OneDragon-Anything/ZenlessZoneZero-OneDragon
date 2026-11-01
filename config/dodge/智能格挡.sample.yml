@@ -14,6 +14,7 @@ scenes:
         - state_template: "支援攻击模板-命破"  # 命破好像也不错
         - state_template: "支援攻击模板-防护"  # 防护一般格挡性能优越
         - state_template: "支援攻击模板-异常"  # 异常一般格挡上异常效率也不错
+        - state_template: "支援攻击模板-锋御"  # 锋御反制支援寸铁不让是黄光角力反击
         - state_template: "支援攻击模板-下一个"  # 剩下的都不优秀了
   - triggers: ["闪避识别-红光", "闪避识别-声音"]
     interval: 0.5

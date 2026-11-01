@@ -1,7 +1,7 @@
 """后端服务入口：装配 backend + MCP + HTTP，由 uvicorn 运行。
 
 本模块把 Task 4（MCP 适配器）与 Task 5（HTTP ``/game/*`` 适配器）装配到同一个
-``FastMCP`` 实例上，并通过 ``streamable_http_app()`` 得到一个 Starlette app，
+``MCPServer`` 实例上，并通过 ``streamable_http_app()`` 得到一个 Starlette app，
 最终交给 uvicorn 在单进程内并行对外提供 MCP（``/mcp``）与 HTTP（``/game/*``）服务。
 """
 
@@ -25,7 +25,7 @@ DEFAULT_PORT = 23001
 
 
 def create_app(backend: ZzzBackendContext) -> "Starlette":
-    """装配应用：同一 FastMCP 同时挂 MCP tool 与 ``/game/*`` custom_route。
+    """装配应用：同一 MCPServer 同时挂 MCP tool 与 ``/game/*`` custom_route。
 
     先创建 MCP 服务器（注册 4 个 game 工具），再把 ``/game/*`` HTTP 端点挂到
     同一实例上，最后返回 ``streamable_http_app()`` 产生的 Starlette app。

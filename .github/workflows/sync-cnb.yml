@@ -3,13 +3,18 @@ name: Sync to CNB
 on:
   push:
   workflow_dispatch:
+  # build-test-branch 用 GITHUB_TOKEN 推 test 分支，这种 push 不会触发本工作流；
+  # 用 workflow_run 在测试分支重建完成后再补一次同步。
+  workflow_run:
+    workflows: ["Build Test Branch"]
+    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
   sync:
-    if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
+    if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - name: Push to CNB

@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import asdict
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -209,7 +209,7 @@ async def handle_game_run_operation(
     return JSONResponse({'result': msg})
 
 
-def register_service_routes(mcp: FastMCP, backend: ZzzBackendContext) -> None:
+def register_service_routes(mcp: MCPServer, backend: ZzzBackendContext) -> None:
     """注册应用运行服务端点。"""
     @mcp.custom_route("/health", methods=["GET"])
     async def _health(request: Request) -> Response:
