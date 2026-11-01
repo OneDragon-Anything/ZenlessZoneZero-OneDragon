@@ -61,6 +61,10 @@ class ApplicationFactory:
         Args:
             app_const: 应用常量模块
         """
+        # 常量模块所在目录：插件里就是插件根（plugin.json 那一层），
+        # 内置应用则落在 src 下，data_dir 会因此报错，而不是给出一个错误路径。
+        const_file: str | None = getattr(app_const, '__file__', None)
+        self.plugin_dir: Path | None = Path(const_file).parent if const_file else None
         self.app_id: str = app_const.APP_ID
         self.app_name: str = app_const.APP_NAME
         self.default_group: bool = app_const.DEFAULT_GROUP
@@ -88,13 +92,19 @@ class ApplicationFactory:
     def data_dir(self) -> Path:
         """插件数据目录（不存在时自动创建）。
 
-        位于工作目录下的 plugin_data/<app_id>/，与插件代码目录分离，
-        插件更新覆盖代码目录时不会影响这里的数据。插件内用 `self.data_dir` 存数据。
+        与插件代码目录结构一致：代码在 plugins/<仓库>/<插件>/，
+        数据在 plugin_data/<仓库>/<插件>/。插件更新覆盖代码目录时不会影响这里的数据，
+        插件内用 `self.data_dir` 存数据。
 
         Returns:
             插件数据目录路径
+
+        Raises:
+            ValueError: 应用没有对应的插件目录时抛出
         """
-        return self.ctx.get_plugin_data_dir(self.app_id)
+        if self.plugin_dir is None:
+            raise ValueError(f'应用 {self.app_id} 没有对应的插件目录，无法确定数据目录')
+        return self.ctx.get_plugin_data_dir(self.plugin_dir)
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """

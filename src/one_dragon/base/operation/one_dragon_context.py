@@ -136,6 +136,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 以下是 应用工厂相关 -------------------#
 
     @cached_property
+    def plugins_dir(self) -> Path | None:
+        """项目根目录下的 plugins 目录，所有外部插件的代码都放在它下面。
+
+        Returns:
+            插件代码根目录；项目下没有 plugins 目录时返回 None
+        """
+        cls_file = inspect.getfile(self.__class__)
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is None:
+            return None
+        plugins_dir = src_dir.parent / 'plugins'
+        return plugins_dir if plugins_dir.is_dir() else None
+
+    @cached_property
     def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """
         应用插件目录列表
@@ -163,26 +177,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if application_dir.is_dir():
             dirs.append((application_dir, PluginSource.BUILTIN))
 
-        # 计算项目根目录下的 plugins 目录（外部插件）
-        # 从 src 目录往上一级就是项目根目录
-        src_dir = file_utils.find_src_dir(cls_file)
-        if src_dir is not None:
-            project_root = src_dir.parent
-            plugins_dir = project_root / 'plugins'
-            if plugins_dir.is_dir():
-                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
-                # 插件仓库布局：plugins/<仓库>/<插件目录>/，只认两层，不再往下深入。
-                # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
-                # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
-                try:
-                    repo_dirs = sorted(plugins_dir.iterdir())
-                except OSError:
-                    repo_dirs = []
-                for repo_dir in repo_dirs:
-                    if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
-                        continue
-                    if _list_repo_plugin_dirs(repo_dir):
-                        dirs.append((repo_dir, PluginSource.THIRD_PARTY))
+        # 插件仓库布局：plugins/<仓库>/<插件目录>/，只认两层，不再往下深入。
+        # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
+        # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
+        plugins_dir = self.plugins_dir
+        if plugins_dir is not None:
+            dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+            try:
+                repo_dirs = sorted(plugins_dir.iterdir())
+            except OSError:
+                repo_dirs = []
+            for repo_dir in repo_dirs:
+                if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
+                    continue
+                if _list_repo_plugin_dirs(repo_dir):
+                    dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
 
@@ -191,24 +200,36 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """应用工厂管理器"""
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
 
-    def get_plugin_data_dir(self, app_id: str) -> Path:
+    def get_plugin_data_dir(self, plugin_dir: Path) -> Path:
         """获取插件数据目录（不存在时自动创建）。
 
-        统一放在工作目录下的 plugin_data/<app_id>/，与插件代码目录 plugins/ 分离，
-        插件更新不会碰到数据；该目录已在 .gitignore 中忽略，不入库。
+        目录结构与插件代码一一对应：插件代码放在 plugins/<仓库>/<插件>/，
+        数据就放在 plugin_data/<仓库>/<插件>/。插件更新覆盖代码目录时不会碰到
+        这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
 
         Args:
-            app_id: 插件应用 ID
+            plugin_dir: 插件根目录，即 plugin.json 所在的那一层
 
         Returns:
             插件数据目录路径
 
         Raises:
-            ValueError: app_id 为空时抛出
+            ValueError: 项目下没有 plugins 目录，或 plugin_dir 不在 plugins 目录之下
         """
-        if not app_id:
-            raise ValueError('app_id 不能为空')
-        return Path(os_utils.get_path_under_work_dir('plugin_data', app_id))
+        plugins_dir = self.plugins_dir
+        if plugins_dir is None:
+            raise ValueError('项目下没有 plugins 目录，无法确定插件数据目录')
+        # 不解析符号链接：插件目录本身可能是指向别处的目录联接，
+        # 解析后路径会跳出 plugins 目录，算不出镜像路径。
+        try:
+            relative = Path(plugin_dir).absolute().relative_to(Path(plugins_dir).absolute())
+        except ValueError as e:
+            raise ValueError(
+                f'{plugin_dir} 不在 plugins 目录之下，无法确定插件数据目录'
+            ) from e
+        if not relative.parts:
+            raise ValueError(f'{plugin_dir} 是 plugins 目录本身，不是一个插件')
+        return Path(os_utils.get_path_under_work_dir('plugin_data', *relative.parts))
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 

@@ -150,9 +150,11 @@ class MyPluginFactory(ApplicationFactory):
 
 插件需要持久化数据（缓存、用户数据、路由文件等）时，统一使用插件数据目录，不要写到插件目录或 `config/` 里：
 
-- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(APP_ID)`，目录不存在时自动创建）
-- 路径为工作目录下的 `plugin_data/<app_id>/`，与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
-- 插件之间数据互相隔离（按 app_id 分目录）
+- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(插件根目录)`，目录不存在时自动创建）
+- 目录结构与插件代码一一对应：代码在 `plugins/<仓库>/<插件>/`，数据就在 `plugin_data/<仓库>/<插件>/`
+- 插件代码直接在仓库根时（`plugins/<插件>/`），数据也对应为 `plugin_data/<插件>/`
+- `plugin_data/` 与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
+- 插件之间数据互相隔离
 
 ```python
 import json
