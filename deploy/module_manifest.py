@@ -24,7 +24,6 @@ if not getattr(sys, 'frozen', False):
     import inspect
     import io
     import json
-    import librosa
     import locale
     import logging
     import math
@@ -104,7 +103,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from math import isfinite
+    from math import gcd, isfinite
     from packaging import version
     from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
@@ -126,10 +125,12 @@ if not getattr(sys, 'frozen', False):
     from qframelesswindow import FramelessDialog
     from random import random
     from scipy import signal
-    from scipy.signal import butter, correlate, filtfilt
+    from scipy.fft import irfft, next_fast_len, rfft
+    from scipy.io import wavfile
+    from scipy.io.wavfile import WavFileWarning
+    from scipy.signal import butter, filtfilt, resample_poly
     from scipy.spatial import KDTree
     from shapely.geometry import Polygon
-    from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
     from types import ModuleType, TracebackType
