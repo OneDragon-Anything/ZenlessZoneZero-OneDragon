@@ -50,6 +50,31 @@ from one_dragon.utils import (
 from one_dragon.utils.log_utils import log
 
 
+def _list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
+    """列出目录下放着插件的子目录，只认一层。
+
+    插件商店要求插件代码放在仓库下的子目录里（``<仓库>/<id>/plugin.json``），
+    这样的目录同时也是一个扫描根：它下面那一层才是插件根。
+
+    Args:
+        repo_dir: 待检查的目录。
+
+    Returns:
+        含 plugin.json 的子目录列表，没有插件时为空列表。
+    """
+    try:
+        children = sorted(repo_dir.iterdir())
+    except OSError:
+        return []
+    return [
+        child
+        for child in children
+        if child.is_dir()
+        and not child.name.startswith('.')
+        and (child / 'plugin.json').is_file()
+    ]
+
+
 class ContextKeyboardEventEnum(Enum):
 
     PRESS = 'context_keyboard_press'
@@ -146,6 +171,18 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             plugins_dir = project_root / 'plugins'
             if plugins_dir.is_dir():
                 dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+                # 插件仓库布局：plugins/<仓库>/<插件目录>/，只认两层，不再往下深入。
+                # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
+                # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
+                try:
+                    repo_dirs = sorted(plugins_dir.iterdir())
+                except OSError:
+                    repo_dirs = []
+                for repo_dir in repo_dirs:
+                    if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
+                        continue
+                    if _list_repo_plugin_dirs(repo_dir):
+                        dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
 
