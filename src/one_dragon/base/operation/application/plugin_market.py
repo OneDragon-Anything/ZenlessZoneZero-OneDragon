@@ -32,7 +32,8 @@ def get_market_urls() -> dict[str, str]:
 def get_market_site_root() -> str:
     """商店站点根目录，由 github 源的索引地址按 /api/ 截断推导，封面等静态资源按它拼地址。"""
     url = get_market_urls().get('github', '')
-    return url.split('/api/', 1)[0] + '/' if url else ''
+    root = url.split('/api/', 1)[0] if '/api/' in url else url.rsplit('/', 1)[0]
+    return root + '/' if root else ''
 
 
 CACHE_TTL_SECONDS = 600

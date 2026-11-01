@@ -123,7 +123,7 @@ class CommonDownloader:
         按候选源顺序依次尝试下载 直到成功
 
         Args:
-            source_order: 候选源ID顺序 None或与下载地址无交集时使用参数中的地址顺序
+            source_order: 候选源ID顺序 优先级从高到低；没列到的源排到最后兜底
             proxy_url: 个人代理地址
             ghproxy_url: ghproxy 代理地址 只对 github 源生效
             skip_if_existed: 文件已存在时是否跳过下载
@@ -144,8 +144,8 @@ class CommonDownloader:
         candidates: list[str] = []
         if source_order is not None:
             candidates = [i for i in source_order if i in self.param.download_urls]
-        if len(candidates) == 0:
-            candidates = list(self.param.download_urls.keys())
+        # 候选顺序没提的源排到最后兜底 例如索引给的自建地址
+        candidates += [i for i in self.param.download_urls if i not in candidates]
 
         if len(candidates) == 0:
             log.error('没有可用的下载源')
