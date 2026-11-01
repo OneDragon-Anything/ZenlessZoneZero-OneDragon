@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QEnterEvent,
@@ -18,6 +18,7 @@ from PySide6.QtGui import (
     QMouseEvent,
     QPainter,
     QPainterPath,
+    QPaintEvent,
     QPixmap,
     QRadialGradient,
     QResizeEvent,
@@ -71,6 +72,11 @@ class _CardOverlay(QWidget):
     """
 
     def __init__(self, parent: QWidget) -> None:
+        """初始化遮罩层。
+
+        Args:
+            parent: 遮罩所属的卡片控件，遮罩始终与卡片等大并叠在封面之上。
+        """
         super().__init__(parent)
         self.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -83,7 +89,15 @@ class _CardOverlay(QWidget):
         self._hover = hover
         self.update()
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """绘制封面之上的覆盖层。
+
+        先按圆角裁切，再画底部由透明到深色的渐变，让压在上面的白色文字
+        在浅色封面上也能看清；悬停时叠一层白色高亮，最后描一圈圆角边框。
+
+        Args:
+            event: Qt 绘制事件，本方法按控件自身尺寸重绘，不读取事件内容。
+        """
         painter = QPainter(self)
         painter.setRenderHints(QPainter.RenderHint.Antialiasing)
 
@@ -289,17 +303,52 @@ class PluginCard(QWidget):
         )
 
     def set_cover(self, cover: QPixmap | None) -> None:
-        """设置封面位图；传 None 时回退到按插件标识生成的渐变封面。"""
+        """设置封面位图；传 None 时回退到按插件标识生成的渐变封面。
+
+        Args:
+            cover: 原始封面位图。这里保存原图，屏幕像素比变化时按新比例重裁。
+        """
         self._cover = cover
-        has_cover = cover is not None and not cover.isNull()
-        if has_cover:
-            self.cover_label.setImage(self._fit_cover(cover))
-            # setImage 会把标签改成图片尺寸，这里压回卡片大小
-            self.cover_label.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
-            self.cover_label.show()
+        if cover is not None and not cover.isNull():
+            self._refresh_cover_pixmap()
         else:
             self.cover_label.hide()
         self.update()
+
+    def _refresh_cover_pixmap(self) -> None:
+        """按当前设备像素比重裁原始封面并交给 cover_label。
+
+        重裁始终基于 set_cover 保存的原始位图，反复跨屏也不会逐次缩放劣化。
+        拿不到原始位图或位图尺寸为 0 时直接跳过，保持现有显示。
+        """
+        cover = self._cover
+        if cover is None or cover.isNull():
+            return
+        if cover.width() <= 0 or cover.height() <= 0:
+            return
+        self.cover_label.setImage(self._fit_cover(cover))
+        # ImageLabel.setImage 会把标签改成图片像素尺寸，这里压回卡片大小
+        self.cover_label.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        self.cover_label.show()
+
+    def event(self, event: QEvent) -> bool:
+        """屏幕像素比变化时重新裁切封面。
+
+        这里选 QEvent.Type.DevicePixelRatioChange，而不是监听窗口的
+        screenChanged：该事件由 Qt 直接投递给受影响的控件，不用等
+        windowHandle() 建好，也不用管窗口重建后重连信号；本环境
+        PySide6 6.11.1 支持该事件（Qt 6.6 起提供）。
+
+        Args:
+            event: Qt 事件对象。
+
+        Returns:
+            是否已处理该事件；这里始终交回父类处理。
+        """
+        if event.type() == QEvent.Type.DevicePixelRatioChange:
+            # 事件到达时控件的 devicePixelRatioF() 已经是新值，重裁即可清晰
+            self._refresh_cover_pixmap()
+        return super().event(event)
 
     def _fit_cover(self, cover: QPixmap) -> QPixmap:
         """按卡片比例居中裁切封面。
@@ -324,8 +373,12 @@ class PluginCard(QWidget):
     # 绘制
     # ------------------------------------------------------------------
 
-    def paintEvent(self, event) -> None:
-        """没有封面时画按插件标识配色的渐变底；有封面时整块交给 ImageLabel。"""
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """没有封面时画按插件标识配色的渐变底；有封面时整块交给 ImageLabel。
+
+        Args:
+            event: Qt 绘制事件，本方法按控件自身尺寸重绘，不读取事件内容。
+        """
         if self._cover is not None and not self._cover.isNull():
             return
 
