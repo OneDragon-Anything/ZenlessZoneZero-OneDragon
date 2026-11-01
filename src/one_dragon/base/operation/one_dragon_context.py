@@ -48,31 +48,7 @@ from one_dragon.utils import (
     thread_utils,
 )
 from one_dragon.utils.log_utils import log
-
-
-def _list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
-    """列出目录下放着插件的子目录，只认一层。
-
-    插件商店要求插件代码放在仓库下的子目录里（``<仓库>/<id>/plugin.json``），
-    这样的目录同时也是一个扫描根：它下面那一层才是插件根。
-
-    Args:
-        repo_dir: 待检查的目录。
-
-    Returns:
-        含 plugin.json 的子目录列表，没有插件时为空列表。
-    """
-    try:
-        children = sorted(repo_dir.iterdir())
-    except OSError:
-        return []
-    return [
-        child
-        for child in children
-        if child.is_dir()
-        and not child.name.startswith('.')
-        and (child / 'plugin.json').is_file()
-    ]
+from one_dragon.utils.plugin_module_loader import list_repo_plugin_dirs
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -190,7 +166,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             for repo_dir in repo_dirs:
                 if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
                     continue
-                if _list_repo_plugin_dirs(repo_dir):
+                if list_repo_plugin_dirs(repo_dir):
                     dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
@@ -200,36 +176,31 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """应用工厂管理器"""
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
 
-    def get_plugin_data_dir(self, plugin_dir: Path) -> Path:
+    def get_plugin_data_dir(self, app_id: str) -> Path:
         """获取插件数据目录（不存在时自动创建）。
 
-        目录结构与插件代码一一对应：插件代码放在 plugins/<仓库>/<插件>/，
-        数据就放在 plugin_data/<仓库>/<插件>/。插件更新覆盖代码目录时不会碰到
+        数据放在 plugin_data/<app_id>/，与插件代码装在哪里无关：APP_ID 在本机
+        是唯一的（重复的插件不会被加载），所以不同插件不会共用目录，
+        从扁平布局挪到仓库布局也不会丢数据。插件更新覆盖代码目录时不会碰到
         这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
 
         Args:
-            plugin_dir: 插件根目录，即 plugin.json 所在的那一层
+            app_id: 应用标识，即插件常量模块里的 APP_ID
 
         Returns:
             插件数据目录路径
 
         Raises:
-            ValueError: 项目下没有 plugins 目录，或 plugin_dir 不在 plugins 目录之下
+            ValueError: app_id 为空，或含路径分隔符、``..`` 等会逃出 plugin_data 的内容
         """
-        plugins_dir = self.plugins_dir
-        if plugins_dir is None:
-            raise ValueError('项目下没有 plugins 目录，无法确定插件数据目录')
-        # 不解析符号链接：插件目录本身可能是指向别处的目录联接，
-        # 解析后路径会跳出 plugins 目录，算不出镜像路径。
-        try:
-            relative = Path(plugin_dir).absolute().relative_to(Path(plugins_dir).absolute())
-        except ValueError as e:
-            raise ValueError(
-                f'{plugin_dir} 不在 plugins 目录之下，无法确定插件数据目录'
-            ) from e
-        if not relative.parts:
-            raise ValueError(f'{plugin_dir} 是 plugins 目录本身，不是一个插件')
-        return Path(os_utils.get_path_under_work_dir('plugin_data', *relative.parts))
+        if (
+            not isinstance(app_id, str)
+            or not app_id
+            or app_id in ('.', '..')
+            or any(c in app_id for c in '/\\:')
+        ):
+            raise ValueError(f'APP_ID 不能用作数据目录名: {app_id!r}')
+        return Path(os_utils.get_path_under_work_dir('plugin_data', app_id))
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 

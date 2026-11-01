@@ -145,16 +145,19 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
+- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`（含 `plugin.json`）
+  - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
+  - 仓库布局下插件目录名必须等于 `APP_ID`；`plugin.json` 里写了 `id` 的话也必须等于 `APP_ID`，否则加载失败
+  - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
 
 ### 插件数据目录
 
 插件需要持久化数据（缓存、用户数据、路由文件等）时，统一使用插件数据目录，不要写到插件目录或 `config/` 里：
 
-- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(插件根目录)`，目录不存在时自动创建）
-- 目录结构与插件代码一一对应：代码在 `plugins/<仓库>/<插件>/`，数据就在 `plugin_data/<仓库>/<插件>/`
-- 插件代码直接在仓库根时（`plugins/<插件>/`），数据也对应为 `plugin_data/<插件>/`
+- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(APP_ID)`，目录不存在时自动创建）
+- 数据目录是 `plugin_data/<APP_ID>/`，与插件代码装在哪里无关，扁平布局和仓库布局之间挪动不会丢数据
+- 本机 `APP_ID` 必须唯一，重复的插件只会加载先扫描到的那个，所以不同插件不会共用数据目录
 - `plugin_data/` 与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
-- 插件之间数据互相隔离
 
 ```python
 import json
