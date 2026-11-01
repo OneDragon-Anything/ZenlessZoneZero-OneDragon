@@ -155,15 +155,19 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
 
     def get_plugin_data_dir(self, app_id: str) -> Path:
-        """
-        获取插件数据目录（不存在时自动创建）
+        """获取插件数据目录（不存在时自动创建）。
 
         统一放在工作目录下的 plugin_data/<app_id>/，与插件代码目录 plugins/ 分离，
         插件更新不会碰到数据；该目录已在 .gitignore 中忽略，不入库。
 
-        :param app_id: 插件应用 ID
-        :return: 插件数据目录路径
-        :raises ValueError: app_id 为空时抛出
+        Args:
+            app_id: 插件应用 ID
+
+        Returns:
+            插件数据目录路径
+
+        Raises:
+            ValueError: app_id 为空时抛出
         """
         if not app_id:
             raise ValueError('app_id 不能为空')
