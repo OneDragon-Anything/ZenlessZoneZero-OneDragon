@@ -25,15 +25,18 @@ from one_dragon.utils.log_utils import log
 MAX_COVER_BYTES = 4 * 1024 * 1024
 """单张封面允许的最大体积，超过则放弃使用。"""
 
-MARKET_SITE_ROOT = f"{MARKET_URL.split('/api/', 1)[0]}/"
-"""插件商店站点根目录，例如 https://onedragon-anyone.github.io/plugin-data/。"""
+MARKET_BASE_URL = MARKET_URL.rsplit('/', 1)[0] + '/'
+"""插件市场索引所在目录，例如 https://onedragon-anyone.github.io/plugin-data/api/v1/。
+
+封面与 `plugins.json` 同目录存放，所以基准取索引目录，不能取站点根目录。
+"""
 
 
 def resolve_cover_url(raw_url: str) -> str:
     """把市场里的封面字段补成完整地址。
 
-    相对路径按插件商店站点根目录解析，开头带不带 `/` 结果相同，
-    例如 `covers/a.png` 与 `/covers/a.png` 都指向 `<站点根目录>/covers/a.png`。
+    相对路径按索引所在目录解析，开头带不带 `/` 结果相同，
+    例如 `covers/a.png` 与 `/covers/a.png` 都指向 `<索引目录>/covers/a.png`。
 
     Args:
         raw_url: plugins.json 中的原始值，可能是完整地址或相对站点根目录的路径。
@@ -46,7 +49,7 @@ def resolve_cover_url(raw_url: str) -> str:
         return ''
     if urlparse(value).scheme:
         return value
-    return urljoin(MARKET_SITE_ROOT, value.lstrip('/'))
+    return urljoin(MARKET_BASE_URL, value.lstrip('/'))
 
 
 def _read_image(path: Path) -> QImage | None:
