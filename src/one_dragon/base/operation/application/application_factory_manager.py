@@ -25,6 +25,7 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     ensure_sys_path,
     import_module_from_file,
+    list_repo_plugin_dirs,
     resolve_module_name,
 )
 
@@ -161,9 +162,23 @@ class ApplicationFactoryManager:
                     )
                     return factories
 
+                if self._is_repo_root(directory):
+                    # 仓库根：一个仓库只能有一个插件，其余目录（文档、测试等）不是插件
+                    repo_plugins = list_repo_plugin_dirs(directory)
+                    if len(repo_plugins) > 1:
+                        names = ', '.join(p.name for p in repo_plugins)
+                        error_msg = f"一个插件仓库只能有一个插件目录，实际有 {len(repo_plugins)} 个: {names}"
+                        self._scan_failures.append((directory, error_msg))
+                        log.warning(f"仓库 {directory} 已跳过: {error_msg}")
+                        return factories
+                    plugin_dirs = repo_plugins
+
                 for plugin_dir in plugin_dirs:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
+                        if self._is_repo_root(plugin_dir):
+                            # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
                             continue
                         plugin_dir_resolved = plugin_dir.resolve(strict=True)
                         if plugin_dir_resolved != directory_resolved / plugin_dir.name:
@@ -232,6 +247,22 @@ class ApplicationFactoryManager:
                 log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
         return factories
+
+    def _is_repo_root(self, directory: Path) -> bool:
+        """判断目录是否为插件仓库根（plugins/<仓库>）。
+
+        仓库根是自身和上一级都在第三方扫描根里的目录。
+
+        Args:
+            directory: 待判断的目录。
+
+        Returns:
+            是否为仓库根。
+        """
+        third_party_roots = {
+            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+        }
+        return directory in third_party_roots and directory.parent in third_party_roots
 
     def _load_factory_from_file(
         self,
@@ -448,8 +479,27 @@ class ApplicationFactoryManager:
             existing = self._plugin_infos[factory.app_id]
             raise ImportError(
                 f"重复的 APP_ID '{factory.app_id}'，"
-                f"当前模块 {const_module_name}，"
-                f"首次注册于 {existing.const_module}"
+                f"当前插件 {factory_file.parent}（模块 {const_module_name}），"
+                f"首次注册于 {existing.plugin_dir}（模块 {existing.const_module}）。"
+                f"请删除或停用其中一个"
+            )
+
+        # 身份只认常量模块的 APP_ID：plugin.json 里写了 id 就必须与之一致，
+        # 仓库布局下插件目录名也必须等于 APP_ID，这样本机重名的插件不可能共存
+        manifest_id = self._read_manifest_id(factory_file.parent)
+        if manifest_id is not None and manifest_id != factory.app_id:
+            raise ImportError(
+                f"插件 {factory_file.parent} 的 plugin.json id '{manifest_id}' "
+                f"与 APP_ID '{factory.app_id}' 不一致"
+            )
+        if (
+            source == PluginSource.THIRD_PARTY
+            and self._is_repo_root(factory_file.parent.parent)
+            and factory_file.parent.name != factory.app_id
+        ):
+            raise ImportError(
+                f"仓库布局下插件目录名 '{factory_file.parent.name}' "
+                f"必须等于 APP_ID '{factory.app_id}'"
             )
 
         # 读取可选的插件元数据
@@ -474,6 +524,27 @@ class ApplicationFactoryManager:
         self._plugin_infos[plugin_info.app_id] = plugin_info
 
         return plugin_info
+
+    @staticmethod
+    def _read_manifest_id(plugin_dir: Path) -> str | None:
+        """读取插件包内 plugin.json 的 id。
+
+        文件缺失、损坏或没有 id 都按「未声明」处理，返回 None。
+
+        Args:
+            plugin_dir: 插件根目录。
+
+        Returns:
+            plugin.json 里声明的 id；未声明时返回 None。
+        """
+        try:
+            manifest = json.loads((plugin_dir / 'plugin.json').read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(manifest, dict):
+            return None
+        manifest_id = manifest.get('id')
+        return manifest_id if isinstance(manifest_id, str) and manifest_id else None
 
     @staticmethod
     def _resolve_cover_path(plugin_dir: Path) -> Path | None:

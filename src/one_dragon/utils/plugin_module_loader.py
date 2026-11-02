@@ -44,6 +44,31 @@ def resolve_module_name(
     return module_name, module_root
 
 
+def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
+    """列出仓库目录下放着插件的子目录，只认一层。
+
+    插件仓库布局为 ``<仓库>/<id>/plugin.json``，仓库根放开发用的文件，
+    插件根是含 plugin.json 的那个子目录。
+
+    Args:
+        repo_dir: 待检查的目录。
+
+    Returns:
+        含 plugin.json 的子目录列表（按名称排序），没有插件时为空列表。
+    """
+    try:
+        children = sorted(repo_dir.iterdir())
+    except OSError:
+        return []
+    return [
+        child
+        for child in children
+        if child.is_dir()
+        and not child.name.startswith('.')
+        and (child / 'plugin.json').is_file()
+    ]
+
+
 def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> None:
     """确保目录在 sys.path 中（用于第三方插件）。
 
@@ -54,7 +79,8 @@ def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> Non
     dir_str = str(directory.resolve())
     if dir_str not in sys.path:
         if added_paths is None or dir_str not in added_paths:
-            sys.path.insert(0, dir_str)
+            # 追加到末尾：插件目录名不能遮蔽标准库和已安装的包
+            sys.path.append(dir_str)
             if added_paths is not None:
                 added_paths.add(dir_str)
 
