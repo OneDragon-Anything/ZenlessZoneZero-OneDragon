@@ -26,6 +26,9 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
@@ -249,6 +252,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             del self.__dict__['notify_config']
 
         self._sync_current_application_after_refresh()
+
+        # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
+        self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
 
         log.info("应用注册刷新完成")
 

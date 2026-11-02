@@ -13,6 +13,9 @@ from qfluentwidgets import (
     TeachingTipTailPosition,
 )
 
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
@@ -49,6 +52,7 @@ class MainAppWindowBase(AppWindowBase):
 
     context_notify_signal = Signal(object)
     context_download_request_signal = Signal(object)
+    context_app_setting_refresh_signal = Signal()
 
     def __init__(
         self,
@@ -97,6 +101,9 @@ class MainAppWindowBase(AppWindowBase):
 
         self.context_download_request_signal.connect(self._show_download_request_dialog)
         self.ctx.listen_event(ContextDownloadRequestEvent.EVENT_ID, self._emit_download_request)
+
+        self.context_app_setting_refresh_signal.connect(self._refresh_app_setting_entries)
+        self.ctx.listen_event(ContextAppSettingRefreshEvent.EVENT_ID, self._emit_app_setting_refresh)
 
     def create_sub_interface(self) -> None:
         # 导航栏返回按钮（最上方，在子界面之前添加）
@@ -225,6 +232,15 @@ class MainAppWindowBase(AppWindowBase):
         """将下载确认请求通过信号传递到主线程。"""
         if isinstance(event.data, ContextDownloadRequestEvent):
             self.context_download_request_signal.emit(event.data)
+
+    def _emit_app_setting_refresh(self, event: ContextEventItem) -> None:
+        """将应用设置重扫请求通过信号传递到主线程。"""
+        if isinstance(event.data, ContextAppSettingRefreshEvent):
+            self.context_app_setting_refresh_signal.emit()
+
+    def _refresh_app_setting_entries(self) -> None:
+        """在主线程重新扫描应用设置入口，刷新齿轮按钮显隐。"""
+        self.app_setting_manager.discover()
 
     def _show_download_request_dialog(self, event: ContextDownloadRequestEvent) -> None:
         """将后端资源下载请求交给框架协调器聚合处理。"""

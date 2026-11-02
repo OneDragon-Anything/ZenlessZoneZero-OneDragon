@@ -91,6 +91,31 @@ PLUGIN_VERSION = "1.0.0"
 PLUGIN_DESCRIPTION = "插件功能描述"
 ```
 
+### 工厂类必须实现的方法
+
+`create_application` 和 `create_config` 必须由插件实现，漏掉会在界面上暴露成异常。`create_run_record` 父类已经有默认实现：`DEFAULT_GROUP = True` 时返回按当前区服刷新时间每日重置的通用记录，否则返回 `None`。只有运行周期或完成判定和这个默认不同时才需要覆盖；覆盖后如果创建失败，异常会继续抛出，不会被改成通用记录。
+
+### 插件封面
+
+插件包根目录放一个 `plugin.json` 声明元数据，封面用其中的 `cover` 字段指向包内图片：
+
+```json
+{
+  "id": "my_plugin",
+  "name": "我的插件",
+  "version": "1.0.0",
+  "cover": "assets/cover.png"
+}
+```
+
+要求与约定：
+
+- `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
+- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
+- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.png`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
+- 插件商店里的每个版本都必须带 `sha256`。客户端下载后校验，没有校验值或校验不通过都不会安装。
+
 ### 工厂类
 
 ```python
@@ -123,7 +148,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ## 通过 GUI 导入插件
 
-1. 打开资源管理 → 插件管理
+1. 打开 插件 → 插件管理
 2. 点击“导入 ZIP”或“导入文件夹”
 3. 选择插件压缩包、单个插件目录或包含多个插件的集合目录
 4. 插件分别安装到 `plugins/<插件名>/` 并注册

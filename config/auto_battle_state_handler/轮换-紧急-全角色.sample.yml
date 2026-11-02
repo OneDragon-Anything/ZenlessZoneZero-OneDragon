@@ -266,8 +266,9 @@ handlers:
                         agent_name: "维琳娜"
                       - operation_template: "维琳娜-长按普攻"
 
-                  - states: "[维琳娜-风华]{0,84} & [维琳娜-特殊技可用]"
-                    debug_name: "维琳娜低风华合轴切入"
+                  - states: "[维琳娜-特殊技可用]"
+                    interrupt_states: "[维琳娜-风华]{85,135}"
+                    debug_name: "低风华强化特殊技合轴"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "维琳娜"
