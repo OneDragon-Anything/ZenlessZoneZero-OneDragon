@@ -37,6 +37,16 @@ from one_dragon_qt.widgets.install_card.venv_install_card import VenvInstallCard
 from one_dragon_qt.widgets.log_display_card import LogReceiver
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
+# 安装卡片状态文本中代表未完成/已完成的关键词（原文，匹配时会同时使用 gt 译文）
+_PENDING_KEYWORDS = ['未安装', '未同步', '未配置', '需更新', '未同步代码', '环境未同步，请点击默认安装更新',
+                     '未安装。可选择手动创建', '未安装。可选择你自己的 uv.exe', '未配置 UV']
+_COMPLETED_KEYWORDS = ['已安装', '已同步', '已配置', '代码已同步', '环境已同步']
+
+
+def _contains_any(message: str, keywords: list[str]) -> bool:
+    """判断消息是否包含任一关键词的原文或译文"""
+    return any(keyword in message or gt(keyword) in message for keyword in keywords)
+
 
 class ClickableStepCircle(QLabel):
     """可点击的步骤圆圈"""
@@ -247,6 +257,7 @@ class InstallStepWidget(QWidget):
             self.update_status_from_cards()
 
     def update_status_from_cards(self):
+        """根据各安装卡片的状态文本 更新当前步骤的完成状态与提示"""
         if not self.install_cards:
             return
 
@@ -258,11 +269,12 @@ class InstallStepWidget(QWidget):
                 continue
 
             message = card.contentLabel.text()
-            if any(keyword in message for keyword in ["已安装", "已同步", "已配置"]):
-                continue
-            elif any(keyword in message for keyword in ["未安装", "未同步", "未配置", "需更新"]):
+            # 内容已经过 gt 翻译，需同时匹配原文与译文；先判断未完成，避免 "Not Installed" 命中 "Installed"
+            if _contains_any(message, _PENDING_KEYWORDS):
                 all_completed = False
                 has_pending = True
+            elif _contains_any(message, _COMPLETED_KEYWORDS):
+                continue
             else:
                 all_completed = False
 

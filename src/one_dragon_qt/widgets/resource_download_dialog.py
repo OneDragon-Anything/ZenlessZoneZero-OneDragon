@@ -70,17 +70,17 @@ class ResourceUpdateDialog(MessageBoxBase):
                 ResourceDownloadTaskState.CANCELLED,
             )
             already_queued = existing is not None and not retryable
-            check = CheckBox(spec.title)
+            check = CheckBox(gt(spec.title))
             check.setChecked(not already_queued)
             check.setEnabled(not already_queued)
             check.stateChanged.connect(self._update_confirm_enabled)
-            version = f'{spec.current_version or "未安装"} → {spec.target_version}'
+            version = f'{spec.current_version or gt("未安装")} → {spec.target_version}'
             reason = (
                 gt('已在队列')
                 if already_queued
                 else gt('重新下载')
                 if retryable
-                else (spec.note or gt('缺失或有新版本'))
+                else (gt(spec.note) if spec.note else gt('缺失或有新版本'))
             )
             grid.addWidget(check, row, 0)
             detail = QWidget()
@@ -97,7 +97,7 @@ class ResourceUpdateDialog(MessageBoxBase):
         source_row.addWidget(BodyLabel(gt('下载源')))
         self.source_combo = ComboBox()
         for option in build_resource_source_options(ctx.env_config):
-            self.source_combo.addItem(option.label, userData=option.value)
+            self.source_combo.addItem(option.ui_text, userData=option.value)
         current_source = ctx.env_config.resource_source
         for index in range(self.source_combo.count()):
             if self.source_combo.itemData(index) == current_source:

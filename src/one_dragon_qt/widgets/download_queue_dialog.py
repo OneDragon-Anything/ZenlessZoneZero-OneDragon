@@ -90,8 +90,8 @@ class DownloadQueueItemWidget(QWidget):
         name_layout = QVBoxLayout(self.name_widget)
         name_layout.setContentsMargins(0, 0, 0, 0)
         name_layout.setSpacing(3)
-        self.title_label = StrongBodyLabel(task.spec.title)
-        self.title_label.setToolTip(task.spec.title)
+        self.title_label = StrongBodyLabel(gt(task.spec.title))
+        self.title_label.setToolTip(gt(task.spec.title))
         self.version_label = ElidedCaptionLabel(self._version_text())
         self.version_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
@@ -198,7 +198,7 @@ class DownloadQueueItemWidget(QWidget):
         parts: list[str] = []
         if progress.source_id:
             source = self.service.ctx.repo_config.get_resource_source(progress.source_id)
-            parts.append(source.label if source is not None else progress.source_id.upper())
+            parts.append(gt(source.label) if source is not None else progress.source_id.upper())
         if progress.downloaded_bytes:
             downloaded = format_byte_size(progress.downloaded_bytes)
             if progress.total_bytes:
@@ -223,7 +223,7 @@ class DownloadQueueItemWidget(QWidget):
         if self.task.state == ResourceDownloadTaskState.FAILED:
             message = self.task.error_message or self.task.progress.message
             if message:
-                return f'{gt("失败")} · {message}'
+                return f'{gt("失败")} · {gt(message)}'
             return gt('失败')
         return gt({
             ResourceDownloadTaskState.WAITING: '等待中',

@@ -103,17 +103,19 @@ class TeamSettingCard(SettingCardBase):
         v_layout.addLayout(row2)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
+        """用编队信息初始化卡片 编队名称保持游戏内原文 不翻译"""
         self.team_info = team
 
         if not self.only_agents:
             self.name_input.blockSignals(True)
+            # 编辑框内容会回写为编队名称 需与游戏内名称一致 不能翻译
             self.name_input.setText(self.team_info.name)
             self.name_input.blockSignals(False)
 
             self.auto_battle_btn.set_items(auto_battle_list, team.auto_battle)
 
-        agent_opts = ([ConfigItem(label='代理人', value='unknown')]
-                      + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
+        agent_opts = ([ConfigItem(label=gt('代理人'), value='unknown')]
+                      + [ConfigItem(label=gt(i.value.agent_name), value=i.value.agent_id) for i in AgentEnum])
 
         self.agent_1_btn.set_items(agent_opts, team.agent_id_list[0])
         self.agent_2_btn.set_items(agent_opts, team.agent_id_list[1])
@@ -184,8 +186,8 @@ class PredefinedTeamInterface(SplitAppRunInterface):
         top = Column()
         help_card = PushSettingCard(
             icon=FluentIcon.HELP,
-            title='预备编队识别',
-            text='使用说明',
+            title=gt('预备编队识别'),
+            text=gt('使用说明'),
         )
         help_card.clicked.connect(self._on_help_clicked)
         top.add_widget(help_card)
@@ -214,7 +216,7 @@ class PredefinedTeamInterface(SplitAppRunInterface):
             '点击「开始」后将自动打开游戏内预备编队页面，\n'
             '通过截图识别各编队中的代理人并填入左侧配置。'
         )
-        w = MessageBox(gt('使用说明'), content, self.window())
+        w = MessageBox(gt('使用说明'), gt(content), self.window())
         w.cancelButton.hide()
         w.yesButton.setText(gt('确认'))
         w.exec()

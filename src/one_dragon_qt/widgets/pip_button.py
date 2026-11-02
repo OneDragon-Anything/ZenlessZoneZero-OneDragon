@@ -1,5 +1,6 @@
 from qfluentwidgets import FluentIcon
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon_qt.services.pip.pip_mode_manager import PipModeManager
 from one_dragon_qt.widgets.navigation_button import NavigationToggleButton
@@ -9,16 +10,17 @@ class PipButton(NavigationToggleButton):
     """画中画导航按钮，封装画中画模式的全部开关逻辑。"""
 
     def __init__(self, ctx: OneDragonContext, parent=None) -> None:
+        """初始化画中画按钮 配置为开启时自动恢复画中画"""
         self.ctx = ctx
         self._manager: PipModeManager | None = None
 
         super().__init__(
             object_name='pip_button',
-            text='画中画',
+            text=gt('画中画'),
             icon_off=FluentIcon.PLAY,
             icon_on=FluentIcon.PLAY_SOLID,
-            tooltip_off='画中画已关闭，点击开启后游戏切到后台自动显示画中画',
-            tooltip_on='画中画已开启，游戏切到后台会自动显示，点击画中画切回游戏',
+            tooltip_off=gt('画中画已关闭，点击开启后游戏切到后台自动显示画中画'),
+            tooltip_on=gt('画中画已开启，游戏切到后台会自动显示，点击画中画切回游戏'),
             on_click=self._on_clicked,
             parent=parent,
         )

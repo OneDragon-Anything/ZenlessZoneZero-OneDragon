@@ -506,6 +506,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             if prop in self.__dict__:
                 del self.__dict__[prop]
 
+        try:
+            game_lang = self.game_account_config.game_language
+            if game_lang:
+                i18_utils.update_game_lang(game_lang)
+        except Exception:
+            pass
+
     def init_ocr(self) -> None:
         """
         初始化OCR
