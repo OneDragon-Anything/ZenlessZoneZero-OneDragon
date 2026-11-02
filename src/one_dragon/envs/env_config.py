@@ -145,6 +145,17 @@ class EnvConfig(YamlConfig):
         self.update('last_repository_url', new_value)
 
     @property
+    def custom_repository_url(self) -> str:
+        """自定义代码源地址，留空时使用代码源下拉的选择。"""
+        value = self.get('custom_repository_url', '')
+        return value if isinstance(value, str) else ''
+
+    @custom_repository_url.setter
+    def custom_repository_url(self, new_value: str) -> None:
+        """更新自定义代码源地址。"""
+        self.update('custom_repository_url', new_value)
+
+    @property
     def resource_source(self) -> str:
         """资源release下载源选择 自动模式按 上次成功源>语言推荐>其余源 的顺序尝试。"""
         value = self.get('resource_source', RepoConfig.AUTO_RESOURCE_SOURCE_VALUE)
