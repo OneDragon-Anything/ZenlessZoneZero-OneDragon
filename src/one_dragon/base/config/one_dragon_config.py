@@ -31,6 +31,7 @@ class AfterDoneOpEnum(Enum):
     SHUTDOWN = ConfigItem('关机')
     HIBERNATE = ConfigItem('休眠')
     SLEEP = ConfigItem('睡眠')
+    RUN_SCRIPT = ConfigItem('运行指定脚本')
 
 
 class InstanceRun(Enum):
@@ -227,3 +228,12 @@ class OneDragonConfig(YamlConfig):
     @after_done.setter
     def after_done(self, new_value: str):
         self.update('after_done', new_value)
+
+    @property
+    def after_done_script_path(self) -> str:
+        """结束后动作【运行指定脚本】的脚本路径 相对路径基于程序根目录"""
+        return self.get('after_done_script_path', 'bettergi.bat')
+
+    @after_done_script_path.setter
+    def after_done_script_path(self, new_value: str):
+        self.update('after_done_script_path', new_value)
