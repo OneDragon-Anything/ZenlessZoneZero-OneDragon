@@ -207,50 +207,42 @@ class ResourceUpdateCoordinator(QObject):
             if spec.resource_type != 'ocr'
         )
 
-        # 第三方插件未经审查，单独成一个弹窗，且不受免确认设置影响
-        official_specs = [spec for spec in specs if spec.resource_type != 'plugin']
-        plugin_specs = [spec for spec in specs if spec.resource_type == 'plugin']
-        if official_specs:
-            self._confirm_and_enqueue_official(official_specs, included_ocr_request)
-        if plugin_specs:
+        # 免确认的官方资源直接入队，不进弹窗；第三方插件未经审查，始终需要确认。
+        # 只要还有需要确认的项就弹一次统一弹窗，否则不弹。
+        no_confirm = self.ctx.env_config.resource_download_no_confirm
+        auto_specs = [
+            spec for spec in specs
+            if no_confirm and spec.resource_type != 'plugin'
+        ]
+        confirm_specs = [spec for spec in specs if spec not in auto_specs]
+        selected_specs = list(auto_specs)
+        remember_choice = False
+        if confirm_specs:
             dialog = ResourceUpdateDialog(
                 self.ctx,
                 self.queue,
-                plugin_specs,
-                title='发现插件更新',
+                confirm_specs,
+                title='发现可下载资源',
+                show_remember=(
+                    included_ocr_request is not None
+                    and any(spec.resource_type == 'ocr' for spec in confirm_specs)
+                ),
                 parent=self.window,
             )
             if dialog.exec():
-                self._enqueue_selected_specs(dialog.selected_specs(), None, False)
+                selected_specs.extend(dialog.selected_specs())
+                remember_choice = dialog.remember_choice
 
+        # 用户取消后没有选中项时，仍要结束等待中的 OCR 请求
+        if selected_specs or included_ocr_request is not None:
+            self._enqueue_selected_specs(
+                selected_specs,
+                included_ocr_request,
+                remember_choice,
+            )
         self._update_dialog_open = False
         self._reset_pending_updates()
         self._schedule_update_dialog()
-
-    def _confirm_and_enqueue_official(
-        self,
-        specs: list[ResourceDownloadSpec],
-        ocr_request: ContextDownloadRequestEvent | None,
-    ) -> None:
-        """官方资源按免确认设置直接入队，或弹窗让用户勾选后入队。"""
-        selected_specs = specs
-        remember_choice = False
-        if not self.ctx.env_config.resource_download_no_confirm:
-            dialog = ResourceUpdateDialog(
-                self.ctx,
-                self.queue,
-                specs,
-                title='发现可下载资源',
-                show_remember=ocr_request is not None,
-                parent=self.window,
-            )
-            if not dialog.exec():
-                if ocr_request is not None:
-                    self._respond_ocr_request(ocr_request, False, False)
-                return
-            selected_specs = dialog.selected_specs()
-            remember_choice = dialog.remember_choice
-        self._enqueue_selected_specs(selected_specs, ocr_request, remember_choice)
 
     def _build_pending_specs(
         self,
