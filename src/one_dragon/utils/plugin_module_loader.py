@@ -49,7 +49,8 @@ def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
 
     插件仓库布局为 ``<仓库>/<id>/``，仓库根放开发用的文件。判据与工厂加载一致：
     子目录第一层同时有 ``*_factory.py`` 和 ``*_const.py`` 才是插件根，
-    只有其中一个的目录（如 tests、scripts）不算。
+    只有其中一个的目录（如 tests、scripts）不算。目录自己第一层已经有工厂和常量文件时
+    是扁平插件，不是仓库，返回空列表。
 
     Args:
         repo_dir: 待检查的目录。
@@ -57,6 +58,8 @@ def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
     Returns:
         插件根子目录列表（按名称排序），没有插件时为空列表。
     """
+    if _has_factory_and_const(repo_dir):
+        return []
     try:
         children = sorted(repo_dir.iterdir())
     except OSError:
