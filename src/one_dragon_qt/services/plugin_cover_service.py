@@ -39,7 +39,7 @@ def resolve_cover_url(raw_url: str) -> str:
     例如 `covers/a.png` 与 `/covers/a.png` 都指向 `<索引目录>/covers/a.png`。
 
     Args:
-        raw_url: plugins.json 中的原始值，可能是完整地址或相对站点根目录的路径。
+        raw_url: plugins.json 中的原始值，可能是完整地址或相对索引所在目录的路径。
 
     Returns:
         可直接下载的完整 URL；空值返回空字符串。
