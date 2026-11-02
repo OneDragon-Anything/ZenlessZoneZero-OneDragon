@@ -51,8 +51,8 @@ class MyAppFactory(ApplicationFactory):
 ```
 
 **命名约定**:
-- 工厂文件必须以 `_factory.py` 结尾
-- 常量文件必须以 `_const.py` 结尾
+- 推荐使用固定文件名：工厂 `factory.py`、常量 `const.py`（应用实现放 `app.py`），不再需要猜前缀
+- 旧写法 `*_factory.py` / `*_const.py` 继续兼容，但不推荐新插件使用
 - 同一目录最多各一个
 
 完成后重启程序，系统会自动发现并注册你的应用。
@@ -66,8 +66,9 @@ class MyAppFactory(ApplicationFactory):
 ```
 plugins/my_plugin/
 ├── __init__.py              # 推荐添加
-├── my_plugin_const.py
-├── my_plugin_factory.py
+├── const.py                   # 推荐固定名；旧写法 my_plugin_const.py 仍兼容
+├── factory.py                 # 推荐固定名；旧写法 my_plugin_factory.py 仍兼容
+├── app.py                     # 应用实现
 └── my_plugin.py
 ```
 
@@ -104,16 +105,18 @@ PLUGIN_DESCRIPTION = "插件功能描述"
   "id": "my_plugin",
   "name": "我的插件",
   "version": "1.0.0",
-  "cover": "assets/cover.png"
+  "cover": "assets/cover.webp"
 }
 ```
 
 要求与约定：
 
 - `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
-- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 格式用 WebP 或 JPG。PNG 的体积是 WebP 的数倍，而卡片实际只有 300×188，用不到这个精度，不建议使用。
+- 尺寸至少 600×376，宽高比 16:10（卡片 300×188 的两倍），偏差不超过 3%。卡片按逻辑像素 300×188 布局，高分屏下会放大到物理像素，封面只给一倍大小会发虚。
+- 单张控制在 512 KiB 以内。压缩建议：WebP 用 `cwebp -q 82 原图.png -o cover.webp`，JPG 按质量 85 导出；想先比较两种格式的体积，可以用 Squoosh 这类在线工具压一份对比后选小的那个。
 - 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
-- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.png`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
+- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.webp`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
 - 插件商店里的每个版本都必须带 `sha256`。客户端下载后校验，没有校验值或校验不通过都不会安装。
 
 ### 工厂类
@@ -143,6 +146,11 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
+- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`
+  - 仓库里第一层同时有工厂文件（`factory.py`，旧写法 `*_factory.py`）和常量文件（`const.py`，旧写法 `*_const.py`）的子目录才是插件根；`plugin.json` 只是附加信息，不参与判定
+  - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
+  - 仓库布局下插件目录名必须等于 `APP_ID`，否则加载失败；`plugin.json` 的内容不参与校验，插件身份只以常量文件里的 `APP_ID` 为准
+  - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
 
 ---
 
@@ -155,7 +163,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ### ZIP 包结构
 
-一个可安装插件包必须在插件根目录直接放置一个主 `*_factory.py` 和一个 `*_const.py`：
+一个可安装插件包必须在插件根目录直接放置一个主工厂文件（推荐 `factory.py`，旧写法 `*_factory.py`）和一个常量文件（推荐 `const.py`，旧写法 `*_const.py`）：
 
 ```
 my_plugin.zip
@@ -339,6 +347,6 @@ class MyContext(OneDragonContext):
 2. **一模块一工厂**：每个 `_factory.py` 中只定义一个 `ApplicationFactory` 子类
 3. **const 字段**：必须定义 `APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`；`INTERNAL_APP` 可选，默认为 `False`
 4. **入口组合**：`DEFAULT_GROUP` 和 `INTERNAL_APP` 不能同时为 `True`
-5. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
+5. **同目录冲突**：同目录下多个工厂文件（`factory.py` / `*_factory.py`）或常量文件（`const.py` / `*_const.py`）时整个目录被跳过
 6. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
 7. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)

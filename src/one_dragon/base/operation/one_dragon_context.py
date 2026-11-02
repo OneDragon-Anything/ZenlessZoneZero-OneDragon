@@ -42,8 +42,15 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import (
+    debug_utils,
+    file_utils,
+    i18_utils,
+    log_utils,
+    thread_utils,
+)
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import list_repo_plugin_dirs
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -107,6 +114,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 以下是 应用工厂相关 -------------------#
 
     @cached_property
+    def plugins_dir(self) -> Path | None:
+        """项目根目录下的 plugins 目录，所有外部插件的代码都放在它下面。
+
+        Returns:
+            插件代码根目录；项目下没有 plugins 目录时返回 None
+        """
+        cls_file = inspect.getfile(self.__class__)
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is None:
+            return None
+        plugins_dir = src_dir.parent / 'plugins'
+        return plugins_dir if plugins_dir.is_dir() else None
+
+    @cached_property
     def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """
         应用插件目录列表
@@ -134,14 +155,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if application_dir.is_dir():
             dirs.append((application_dir, PluginSource.BUILTIN))
 
-        # 计算项目根目录下的 plugins 目录（外部插件）
-        # 从 src 目录往上一级就是项目根目录
-        src_dir = file_utils.find_src_dir(cls_file)
-        if src_dir is not None:
-            project_root = src_dir.parent
-            plugins_dir = project_root / 'plugins'
-            if plugins_dir.is_dir():
-                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+        # 插件仓库布局：plugins/<仓库>/<id>/，只认两层，不再往下深入。
+        # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
+        # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
+        plugins_dir = self.plugins_dir
+        if plugins_dir is not None:
+            dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+            try:
+                repo_dirs = sorted(plugins_dir.iterdir())
+            except OSError:
+                repo_dirs = []
+            for repo_dir in repo_dirs:
+                if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
+                    continue
+                if list_repo_plugin_dirs(repo_dir):
+                    dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
 
@@ -231,6 +259,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 清空现有注册
         self.run_context.clear_applications()
+
+        # 重新发现扫描根：启动后才 clone/创建的插件仓库目录，要在这里才会被扫到
+        for cached_name in ('plugins_dir', 'application_plugin_dirs'):
+            self.__dict__.pop(cached_name, None)
+        self.factory_manager.set_plugin_dirs(self.application_plugin_dirs)
 
         # 重新发现并注册
         factories = self.factory_manager.discover_factories(reload_modules=True)

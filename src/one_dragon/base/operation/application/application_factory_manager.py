@@ -25,6 +25,9 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     ensure_sys_path,
     import_module_from_file,
+    is_const_file,
+    is_factory_file,
+    list_repo_plugin_dirs,
     resolve_module_name,
 )
 
@@ -47,8 +50,6 @@ class ApplicationFactoryManager:
         """
         self.ctx: OneDragonContext = ctx
         self._plugin_dirs: list[tuple[Path, PluginSource]] = plugin_dirs
-        self._factory_module_suffix: str = "_factory"
-        self._const_module_suffix: str = "_const"
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
         self._scan_failures: list[tuple[Path, str]] = []  # 最近一次扫描的失败记录
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
@@ -57,6 +58,14 @@ class ApplicationFactoryManager:
     def plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """获取插件目录列表"""
         return self._plugin_dirs
+
+    def set_plugin_dirs(self, plugin_dirs: list[tuple[Path, PluginSource]]) -> None:
+        """更新扫描根列表，刷新注册时用来纳入新出现的插件仓库目录。
+
+        Args:
+            plugin_dirs: 新的插件目录列表，每项为 (path, source) 元组
+        """
+        self._plugin_dirs = plugin_dirs
 
     @property
     def plugin_infos(self) -> list[PluginInfo]:
@@ -161,9 +170,23 @@ class ApplicationFactoryManager:
                     )
                     return factories
 
+                if self._is_repo_root(directory):
+                    # 仓库根：一个仓库只能有一个插件，其余目录（文档、测试等）不是插件
+                    repo_plugins = list_repo_plugin_dirs(directory)
+                    if len(repo_plugins) > 1:
+                        names = ', '.join(p.name for p in repo_plugins)
+                        error_msg = f"一个插件仓库只能有一个插件目录，实际有 {len(repo_plugins)} 个: {names}"
+                        self._scan_failures.append((directory, error_msg))
+                        log.warning(f"仓库 {directory} 已跳过: {error_msg}")
+                        return factories
+                    plugin_dirs = repo_plugins
+
                 for plugin_dir in plugin_dirs:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
+                        if self._is_repo_root(plugin_dir):
+                            # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
                             continue
                         plugin_dir_resolved = plugin_dir.resolve(strict=True)
                         if plugin_dir_resolved != directory_resolved / plugin_dir.name:
@@ -193,9 +216,9 @@ class ApplicationFactoryManager:
         factory_files: list[Path] = []
         const_files: list[Path] = []
         for f in python_files:
-            if f.stem.endswith(self._factory_module_suffix):
+            if is_factory_file(f.name):
                 factory_files.append(f)
-            elif f.stem.endswith(self._const_module_suffix):
+            elif is_const_file(f.name):
                 const_files.append(f)
 
         # 检测同一目录下多个 factory 或 const 文件
@@ -232,6 +255,22 @@ class ApplicationFactoryManager:
                 log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
         return factories
+
+    def _is_repo_root(self, directory: Path) -> bool:
+        """判断目录是否为插件仓库根（plugins/<仓库>）。
+
+        仓库根是自身和上一级都在第三方扫描根里的目录。
+
+        Args:
+            directory: 待判断的目录。
+
+        Returns:
+            是否为仓库根。
+        """
+        third_party_roots = {
+            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+        }
+        return directory in third_party_roots and directory.parent in third_party_roots
 
     def _load_factory_from_file(
         self,
@@ -422,12 +461,12 @@ class ApplicationFactoryManager:
         # 查找 factory 同目录下的 const 文件
         const_file = None
         for f in factory_file.parent.iterdir():
-            if f.is_file() and f.suffix == '.py' and f.stem.endswith(self._const_module_suffix):
+            if f.is_file() and is_const_file(f.name):
                 const_file = f
                 break
 
         if const_file is None:
-            raise ImportError(f"插件 {factory.app_id} 缺少 *{self._const_module_suffix}.py 文件")
+            raise ImportError(f"插件 {factory.app_id} 缺少 const.py（或旧写法 *_const.py）文件")
 
         # 与 factory 相同的包前缀 + const 文件名
         package_prefix, _, _ = factory_module_name.rpartition('.')
@@ -448,8 +487,21 @@ class ApplicationFactoryManager:
             existing = self._plugin_infos[factory.app_id]
             raise ImportError(
                 f"重复的 APP_ID '{factory.app_id}'，"
-                f"当前模块 {const_module_name}，"
-                f"首次注册于 {existing.const_module}"
+                f"当前插件 {factory_file.parent}（模块 {const_module_name}），"
+                f"首次注册于 {existing.plugin_dir}（模块 {existing.const_module}）。"
+                f"请删除或停用其中一个"
+            )
+
+        # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
+        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
+        if (
+            source == PluginSource.THIRD_PARTY
+            and self._is_repo_root(factory_file.parent.parent)
+            and factory_file.parent.name != factory.app_id
+        ):
+            raise ImportError(
+                f"仓库布局下插件目录名 '{factory_file.parent.name}' "
+                f"必须等于 APP_ID '{factory.app_id}'"
             )
 
         # 读取可选的插件元数据

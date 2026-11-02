@@ -45,6 +45,7 @@ from one_dragon.base.web.common_downloader import (
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import find_git_repo
 from one_dragon_qt.services.download_queue_service import (
     DownloadQueueService,
     ResourceDownloadSpec,
@@ -545,6 +546,8 @@ class PluginOperationMixin:
     def update_plugin(self, entry: MarketPlugin, plugin_info: PluginInfo) -> None:
         """把已安装插件更新到市场最新版本，下载走统一队列。"""
         action_name = gt('更新')
+        if self._reject_repo_layout_plugin(plugin_info, action_name):
+            return
         package_dir = self.get_plugin_package_dir(plugin_info)
         if package_dir is not None and self.is_plugin_running(package_dir):
             self._show_error(
@@ -790,6 +793,43 @@ class PluginOperationMixin:
                 return plugin_info.app_id
         return ''
 
+    def _reject_repo_layout_plugin(self, plugin_info: PluginInfo, action_name: str) -> bool:
+        """仓库布局的插件（plugins/<仓库>/<插件>/）和带 git 仓库的插件不能由这里删除或覆盖。
+
+        卸载和更新都是按 plugins 下的顶层目录整体删除或替换，对仓库布局会连
+        仓库里的 .git 和未提交的开发文件一起处理掉，所以直接拒绝并提示手动处理。
+
+        Args:
+            plugin_info: 插件信息。
+            action_name: 操作名，用于提示文案。
+
+        Returns:
+            True 表示已拒绝并弹出提示，调用方应直接返回。
+        """
+        if plugin_info.plugin_dir is None:
+            return False
+        plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
+        plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
+        if not plugin_dir.is_relative_to(plugins_root) or plugin_dir == plugins_root:
+            return False
+        top_dir = plugins_root / plugin_dir.relative_to(plugins_root).parts[0]
+        git_dir = find_git_repo(top_dir)
+        if git_dir is not None:
+            self._show_error(
+                gt('无法{action}').format(action=action_name),
+                gt('该插件目录含 git 仓库，请用 git 管理：{path}').format(path=git_dir),
+            )
+            return True
+        if plugin_dir.parent == plugins_root:
+            return False
+        self._show_error(
+            gt('无法{action}').format(action=action_name),
+            gt('该插件位于源码仓库目录中，请在 plugins 目录里手动处理仓库：{path}').format(
+                path=plugin_dir.parent
+            ),
+        )
+        return True
+
     def unsubscribe(
         self,
         plugin_info: PluginInfo,
@@ -798,6 +838,8 @@ class PluginOperationMixin:
     ) -> None:
         """删除插件目录。订阅来的插件文案用取消订阅，本地安装用卸载。"""
         if self._import_busy:
+            return
+        if self._reject_repo_layout_plugin(plugin_info, gt('卸载')):
             return
 
         if subscribed is None:
