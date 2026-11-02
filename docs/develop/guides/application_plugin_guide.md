@@ -51,8 +51,8 @@ class MyAppFactory(ApplicationFactory):
 ```
 
 **命名约定**:
-- 工厂文件必须以 `_factory.py` 结尾
-- 常量文件必须以 `_const.py` 结尾
+- 推荐使用固定文件名：工厂 `factory.py`、常量 `const.py`（应用实现放 `app.py`），不再需要猜前缀
+- 旧写法 `*_factory.py` / `*_const.py` 继续兼容，但不推荐新插件使用
 - 同一目录最多各一个
 
 完成后重启程序，系统会自动发现并注册你的应用。
@@ -66,8 +66,9 @@ class MyAppFactory(ApplicationFactory):
 ```
 plugins/my_plugin/
 ├── __init__.py              # 推荐添加
-├── my_plugin_const.py
-├── my_plugin_factory.py
+├── const.py                   # 推荐固定名；旧写法 my_plugin_const.py 仍兼容
+├── factory.py                 # 推荐固定名；旧写法 my_plugin_factory.py 仍兼容
+├── app.py                     # 应用实现
 └── my_plugin.py
 ```
 
@@ -146,9 +147,9 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
 - ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`
-  - 仓库里第一层有 `plugin.json` 的子目录才是插件根（`plugin.json` 是插件的唯一标识文件）；有 `plugin.json` 却缺少工厂或常量文件时会明确报错
+  - 仓库里第一层同时有工厂文件（`factory.py`，旧写法 `*_factory.py`）和常量文件（`const.py`，旧写法 `*_const.py`）的子目录才是插件根；`plugin.json` 只是附加信息，不参与判定
   - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
-  - 仓库布局下插件目录名必须等于 `APP_ID`；`plugin.json` 里写了 `id` 的话也必须等于 `APP_ID`，否则加载失败
+  - 仓库布局下插件目录名必须等于 `APP_ID`，否则加载失败；`plugin.json` 的内容不参与校验，插件身份只以常量文件里的 `APP_ID` 为准
   - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
 
 ---
@@ -162,7 +163,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ### ZIP 包结构
 
-一个可安装插件包必须在插件根目录直接放置一个主 `*_factory.py` 和一个 `*_const.py`：
+一个可安装插件包必须在插件根目录直接放置一个主工厂文件（推荐 `factory.py`，旧写法 `*_factory.py`）和一个常量文件（推荐 `const.py`，旧写法 `*_const.py`）：
 
 ```
 my_plugin.zip
@@ -346,6 +347,6 @@ class MyContext(OneDragonContext):
 2. **一模块一工厂**：每个 `_factory.py` 中只定义一个 `ApplicationFactory` 子类
 3. **const 字段**：必须定义 `APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`；`INTERNAL_APP` 可选，默认为 `False`
 4. **入口组合**：`DEFAULT_GROUP` 和 `INTERNAL_APP` 不能同时为 `True`
-5. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
+5. **同目录冲突**：同目录下多个工厂文件（`factory.py` / `*_factory.py`）或常量文件（`const.py` / `*_const.py`）时整个目录被跳过
 6. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
 7. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)

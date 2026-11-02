@@ -44,11 +44,53 @@ def resolve_module_name(
     return module_name, module_root
 
 
+FACTORY_FILE_NAME = 'factory.py'
+CONST_FILE_NAME = 'const.py'
+
+
+def is_factory_file(file_name: str) -> bool:
+    """文件名是否为插件工厂文件。
+
+    推荐固定文件名 ``factory.py``；旧写法 ``*_factory.py`` 继续兼容，但不推荐。
+
+    Args:
+        file_name: 文件名（含 .py 后缀）。
+
+    Returns:
+        是否为工厂文件。
+    """
+    return file_name == FACTORY_FILE_NAME or file_name.endswith('_' + FACTORY_FILE_NAME)
+
+
+def is_const_file(file_name: str) -> bool:
+    """文件名是否为插件常量文件。
+
+    推荐固定文件名 ``const.py``；旧写法 ``*_const.py`` 继续兼容，但不推荐。
+
+    Args:
+        file_name: 文件名（含 .py 后缀）。
+
+    Returns:
+        是否为常量文件。
+    """
+    return file_name == CONST_FILE_NAME or file_name.endswith('_' + CONST_FILE_NAME)
+
+
+def has_factory_and_const(plugin_dir: Path) -> bool:
+    """目录第一层是否同时有工厂文件和常量文件。"""
+    try:
+        names = [f.name for f in plugin_dir.glob('*.py') if f.is_file()]
+    except OSError:
+        return False
+    return any(is_factory_file(n) for n in names) and any(is_const_file(n) for n in names)
+
+
 def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
     """列出仓库目录下放着插件的子目录，只认一层。
 
-    插件仓库布局为 ``<仓库>/<id>/plugin.json``，仓库根放开发用的文件。
-    plugin.json 是插件的唯一标识文件，子目录第一层有它才是插件根。
+    插件仓库布局为 ``<仓库>/<id>/``，仓库根放开发用的文件。子目录第一层同时有
+    工厂文件和常量文件（推荐 ``factory.py`` + ``const.py``，旧的 ``*_factory.py`` +
+    ``*_const.py`` 兼容）才是插件根。plugin.json 只是附加信息，不参与判定。
     目录自己第一层已经有工厂和常量文件时是扁平插件，不是仓库，返回空列表。
 
     Args:
@@ -68,19 +110,8 @@ def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
         for child in children
         if child.is_dir()
         and not child.name.startswith('.')
-        and (child / 'plugin.json').is_file()
+        and has_factory_and_const(child)
     ]
-
-
-def has_factory_and_const(plugin_dir: Path) -> bool:
-    """目录第一层是否同时有 ``*_factory.py`` 和 ``*_const.py`` 文件。"""
-    try:
-        names = [f.stem for f in plugin_dir.glob('*.py') if f.is_file()]
-    except OSError:
-        return False
-    return any(n.endswith('_factory') for n in names) and any(
-        n.endswith('_const') for n in names
-    )
 
 
 def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> None:
