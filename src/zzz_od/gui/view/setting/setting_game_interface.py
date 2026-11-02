@@ -30,11 +30,14 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
+    SpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
+    HDD_BATTLE_LOADING_TIMEOUT_MAX,
+    HDD_BATTLE_LOADING_TIMEOUT_MIN,
     GameKeyAction,
     GamepadActionEnum,
     GamepadTypeEnum,
@@ -79,6 +82,23 @@ class SettingGameInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.input_way_opt)
 
         basic_group.addSettingCard(self._get_background_mode_group())
+
+        self.hdd_mode_switch: SwitchSettingCard = SwitchSettingCard(
+            icon=FluentIcon.SETTING,
+            title='机械硬盘模式',
+            content='游戏装在机械硬盘、进入战斗经常加载超时时启用，仅延长战斗加载等待',
+        )
+        self.hdd_mode_switch.value_changed.connect(self._on_hdd_mode_changed)
+        basic_group.addSettingCard(self.hdd_mode_switch)
+        self.hdd_battle_loading_timeout_opt: SpinBoxSettingCard = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title='战斗加载等待上限（秒）',
+            content='仅在机械硬盘模式下生效，画面加载完成后立即继续',
+            minimum=HDD_BATTLE_LOADING_TIMEOUT_MIN,
+            maximum=HDD_BATTLE_LOADING_TIMEOUT_MAX,
+            step=30,
+        )
+        basic_group.addSettingCard(self.hdd_battle_loading_timeout_opt)
 
         self.hdr_btn_enable = PushButton(text=gt('启用 HDR'), icon=FluentIcon.SETTING, parent=self)
         self.hdr_btn_enable.clicked.connect(self._on_hdr_enable_clicked)
@@ -240,6 +260,12 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
 
+        self.hdd_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('hdd_mode'))
+        self.hdd_battle_loading_timeout_opt.init_with_adapter(
+            self.ctx.game_config.get_prop_adapter('hdd_battle_loading_timeout'),
+        )
+        self._on_hdd_mode_changed(self.ctx.game_config.hdd_mode)
+
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
         self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
@@ -266,6 +292,10 @@ class SettingGameInterface(VerticalScrollInterface):
         self.ds4_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_press_time'))
         for action, card in self._ds4_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_key_{action.value.value}'))
+
+    def _on_hdd_mode_changed(self, enabled: bool) -> None:
+        """机械硬盘模式关闭时，禁用仅供该模式使用的等待设置。"""
+        self.hdd_battle_loading_timeout_opt.setEnabled(enabled)
 
     def _toggle_gamepad_cards(self, index: int) -> None:
         """根据头部下拉框切换 Xbox/DS4 卡片可见性"""
