@@ -334,7 +334,11 @@ class ChargePlanApp(ZApplication):
 
         team_list = self.ctx.team_config.team_list
         old_team_idx = self.current_plan.predefined_team_idx
-        next_team_idx = 0 if old_team_idx == -1 else old_team_idx + 1
+        # 配置会补齐空槽位，只有已识别或手动配置代理人的队伍才参与换队。
+        next_team_idx: int | None = next((
+            idx for idx in range(max(0, old_team_idx + 1), len(team_list))
+            if any(agent_id and agent_id != 'unknown' for agent_id in team_list[idx].agent_id_list)
+        ), None)
 
         if old_team_idx == -1:
             old_team_name = '游戏内配队'
@@ -343,8 +347,8 @@ class ChargePlanApp(ZApplication):
         else:
             old_team_name = f'预备编队 {old_team_idx + 1}'
 
-        if next_team_idx >= len(team_list):
-            log.info('体力计划触发换队：%s；%s 后没有可用的后续预备编队', reason, old_team_name)
+        if next_team_idx is None:
+            log.info('体力计划触发换队：%s；%s 后没有已配置代理人的后续预备编队', reason, old_team_name)
             return False
 
         next_team_name = team_list[next_team_idx].name
