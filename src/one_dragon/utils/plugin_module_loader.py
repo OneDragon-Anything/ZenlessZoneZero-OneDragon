@@ -114,6 +114,31 @@ def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
     ]
 
 
+def find_git_repo(top_dir: Path) -> Path | None:
+    """找出 plugins 下顶层目录里带 .git 的 git 仓库目录。
+
+    顶层目录自己是仓库（扁平布局直接 clone），或它的直接子目录是仓库
+    （仓库布局 ``plugins/<仓库>/``，这里 top_dir 就是仓库根）都算。
+    商店安装、导入覆盖和删除都是整目录替换或删除，会连 .git 和未提交的文件一起处理掉，
+    所以带 git 仓库的插件要拒绝这些操作，改用 git 自己管理。
+
+    Args:
+        top_dir: plugins 下的顶层目录。
+
+    Returns:
+        带 .git 的目录；没有时返回 None。
+    """
+    try:
+        if (top_dir / '.git').exists():
+            return top_dir
+        for child in top_dir.iterdir():
+            if child.is_dir() and not child.is_symlink() and (child / '.git').exists():
+                return child
+    except OSError:
+        return None
+    return None
+
+
 def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> None:
     """确保目录在 sys.path 中（用于第三方插件）。
 

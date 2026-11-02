@@ -32,6 +32,7 @@ from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     FACTORY_FILE_NAME,
+    find_git_repo,
     is_const_file,
     is_factory_file,
 )
@@ -843,6 +844,11 @@ class PluginImportService:
                 raise ValueError("插件目标目录不能是符号链接")
             if not target_dir.is_dir():
                 raise ValueError("插件目标路径不是目录")
+            git_dir = find_git_repo(target_dir)
+            if git_dir is not None:
+                raise ValueError(
+                    f"插件目录含 git 仓库（{git_dir.name}），不能覆盖安装，请用 git 更新"
+                )
             backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
             target_dir.replace(backup_dir)
 
@@ -902,6 +908,14 @@ class PluginImportService:
                 success=False,
                 plugin_name=plugin_name,
                 message="只能删除插件目录",
+            )
+
+        git_dir = find_git_repo(plugin_dir_resolved)
+        if git_dir is not None:
+            return ImportResult(
+                success=False,
+                plugin_name=plugin_name,
+                message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
             )
 
         try:
