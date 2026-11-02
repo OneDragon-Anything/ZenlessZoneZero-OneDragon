@@ -137,7 +137,7 @@ class AppSettingManager(QObject):
     # ─── 扫描与注册 ──────────────────────────────────────
 
     def _discover_providers(self) -> None:
-        """扫描 factory_manager.plugin_infos 中的 *_app_setting.py 并注册。"""
+        """扫描 factory_manager.plugin_infos 中的 app_setting.py 与 *_app_setting.py 并注册。"""
         fm = self.ctx.factory_manager
         seen_app_ids: set[str] = set()
 
@@ -152,7 +152,10 @@ class AppSettingManager(QObject):
                 if (
                     not setting_file.is_file()
                     or setting_file.suffix != '.py'
-                    or not setting_file.stem.endswith(self._setting_module_suffix)
+                    or not (
+                        setting_file.stem == self._setting_module_suffix.lstrip('_')
+                        or setting_file.stem.endswith(self._setting_module_suffix)
+                    )
                 ):
                     continue
                 self._try_register_provider(setting_file, info.source, base_dir, seen_app_ids)
