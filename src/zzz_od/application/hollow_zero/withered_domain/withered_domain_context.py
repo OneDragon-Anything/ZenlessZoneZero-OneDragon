@@ -228,6 +228,13 @@ class WitheredDomainContext:
         """
         if target is None:
             return None
+        if target.entry.entry_name in ['门扉禁闭-财富', '门扉禁闭-善战', '门扉禁闭-侵蚀']:
+            # 关门时仍停在门前，点击相邻空白格不能开门，还会漏记门的尝试次数。
+            # 方向兜底也会经过这里，因此在此统一遵守原有访问次数上限。
+            if hollow_pathfinding.had_been_visited(target, self._visited_nodes):
+                return None
+            self.last_target_node = target
+            return target
         # 两次想要前往同一个节点
         if (self.last_target_node is not None
                 and hollow_map_utils.is_same_node(self.last_target_node, target)):
