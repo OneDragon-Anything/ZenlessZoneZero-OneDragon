@@ -104,16 +104,18 @@ PLUGIN_DESCRIPTION = "插件功能描述"
   "id": "my_plugin",
   "name": "我的插件",
   "version": "1.0.0",
-  "cover": "assets/cover.png"
+  "cover": "assets/cover.webp"
 }
 ```
 
 要求与约定：
 
 - `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
-- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 格式必须是 WebP，`png` / `jpg` 会被校验拒绝。
+- 尺寸至少 600×376，宽高比 16:10（卡片 300×188 的两倍），偏差不超过 3%。卡片按逻辑像素 300×188 布局，高分屏下会放大到物理像素，封面只给一倍大小会发虚。
+- 单张不超过 512 KiB。
 - 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
-- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.png`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
+- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.webp`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
 - 插件商店里的每个版本都必须带 `sha256`。客户端下载后校验，没有校验值或校验不通过都不会安装。
 
 ### 工厂类
