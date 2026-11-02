@@ -87,6 +87,14 @@ class PluginStoreInterface(PluginOperationMixin, VerticalScrollInterface):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
+        self.risk_label = CaptionLabel(
+            gt('商店中的第三方插件未经官方审查，订阅前请确认来源可信，风险自负'),
+            content,
+        )
+        self.risk_label.setTextColor('#c42b1c', '#ff99a4')
+        self.risk_label.setWordWrap(True)
+        layout.addWidget(self.risk_label)
+
         self.status_label = CaptionLabel(content)
         self.status_label.setTextColor('#8a8a8a', '#9a9a9a')
         self.status_label.setVisible(False)
