@@ -151,7 +151,7 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> MCPSe
             ``{'error': <原因>}``。
 
             判游戏是否在跑 / 窗口是否存在,看 ``is_win_valid``:**勿据 win_title 判断** ——
-            win_title 是 controller 缓存的预期标题(从配置来),游戏未启动时仍可能为该
+            win_title 是 controller 的首选候选标题，不一定是实际绑定标题；游戏未启动时仍可能为该
             预期常量、非 None;is_win_valid=False 才表示没找到匹配窗口。
         """
         try:
