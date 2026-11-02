@@ -145,7 +145,8 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
-- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`（含 `plugin.json`）
+- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`
+  - 仓库里第一层同时有 `*_factory.py` 和 `*_const.py` 的子目录才是插件根，`plugin.json` 不是必需的；只有其中一个文件的目录（如 `tests/`）不算
   - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
   - 仓库布局下插件目录名必须等于 `APP_ID`；`plugin.json` 里写了 `id` 的话也必须等于 `APP_ID`，否则加载失败
   - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个

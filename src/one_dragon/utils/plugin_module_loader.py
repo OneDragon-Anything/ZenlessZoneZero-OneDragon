@@ -47,14 +47,15 @@ def resolve_module_name(
 def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
     """列出仓库目录下放着插件的子目录，只认一层。
 
-    插件仓库布局为 ``<仓库>/<id>/plugin.json``，仓库根放开发用的文件，
-    插件根是含 plugin.json 的那个子目录。
+    插件仓库布局为 ``<仓库>/<id>/``，仓库根放开发用的文件。判据与工厂加载一致：
+    子目录第一层同时有 ``*_factory.py`` 和 ``*_const.py`` 才是插件根，
+    只有其中一个的目录（如 tests、scripts）不算。
 
     Args:
         repo_dir: 待检查的目录。
 
     Returns:
-        含 plugin.json 的子目录列表（按名称排序），没有插件时为空列表。
+        插件根子目录列表（按名称排序），没有插件时为空列表。
     """
     try:
         children = sorted(repo_dir.iterdir())
@@ -65,8 +66,19 @@ def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
         for child in children
         if child.is_dir()
         and not child.name.startswith('.')
-        and (child / 'plugin.json').is_file()
+        and _has_factory_and_const(child)
     ]
+
+
+def _has_factory_and_const(plugin_dir: Path) -> bool:
+    """目录第一层是否同时有 ``*_factory.py`` 和 ``*_const.py`` 文件。"""
+    try:
+        names = [f.stem for f in plugin_dir.glob('*.py') if f.is_file()]
+    except OSError:
+        return False
+    return any(n.endswith('_factory') for n in names) and any(
+        n.endswith('_const') for n in names
+    )
 
 
 def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> None:
