@@ -25,6 +25,8 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     ensure_sys_path,
     import_module_from_file,
+    is_const_file,
+    is_factory_file,
     list_repo_plugin_dirs,
     resolve_module_name,
 )
@@ -48,8 +50,6 @@ class ApplicationFactoryManager:
         """
         self.ctx: OneDragonContext = ctx
         self._plugin_dirs: list[tuple[Path, PluginSource]] = plugin_dirs
-        self._factory_module_suffix: str = "_factory"
-        self._const_module_suffix: str = "_const"
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
         self._scan_failures: list[tuple[Path, str]] = []  # 最近一次扫描的失败记录
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
@@ -58,6 +58,14 @@ class ApplicationFactoryManager:
     def plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """获取插件目录列表"""
         return self._plugin_dirs
+
+    def set_plugin_dirs(self, plugin_dirs: list[tuple[Path, PluginSource]]) -> None:
+        """更新扫描根列表，刷新注册时用来纳入新出现的插件仓库目录。
+
+        Args:
+            plugin_dirs: 新的插件目录列表，每项为 (path, source) 元组
+        """
+        self._plugin_dirs = plugin_dirs
 
     @property
     def plugin_infos(self) -> list[PluginInfo]:
@@ -208,9 +216,9 @@ class ApplicationFactoryManager:
         factory_files: list[Path] = []
         const_files: list[Path] = []
         for f in python_files:
-            if f.stem.endswith(self._factory_module_suffix):
+            if is_factory_file(f.name):
                 factory_files.append(f)
-            elif f.stem.endswith(self._const_module_suffix):
+            elif is_const_file(f.name):
                 const_files.append(f)
 
         # 检测同一目录下多个 factory 或 const 文件
@@ -453,12 +461,12 @@ class ApplicationFactoryManager:
         # 查找 factory 同目录下的 const 文件
         const_file = None
         for f in factory_file.parent.iterdir():
-            if f.is_file() and f.suffix == '.py' and f.stem.endswith(self._const_module_suffix):
+            if f.is_file() and is_const_file(f.name):
                 const_file = f
                 break
 
         if const_file is None:
-            raise ImportError(f"插件 {factory.app_id} 缺少 *{self._const_module_suffix}.py 文件")
+            raise ImportError(f"插件 {factory.app_id} 缺少 const.py（或旧写法 *_const.py）文件")
 
         # 与 factory 相同的包前缀 + const 文件名
         package_prefix, _, _ = factory_module_name.rpartition('.')
@@ -484,14 +492,8 @@ class ApplicationFactoryManager:
                 f"请删除或停用其中一个"
             )
 
-        # 身份只认常量模块的 APP_ID：plugin.json 里写了 id 就必须与之一致，
-        # 仓库布局下插件目录名也必须等于 APP_ID，这样本机重名的插件不可能共存
-        manifest_id = self._read_manifest_id(factory_file.parent)
-        if manifest_id is not None and manifest_id != factory.app_id:
-            raise ImportError(
-                f"插件 {factory_file.parent} 的 plugin.json id '{manifest_id}' "
-                f"与 APP_ID '{factory.app_id}' 不一致"
-            )
+        # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
+        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
         if (
             source == PluginSource.THIRD_PARTY
             and self._is_repo_root(factory_file.parent.parent)
@@ -524,27 +526,6 @@ class ApplicationFactoryManager:
         self._plugin_infos[plugin_info.app_id] = plugin_info
 
         return plugin_info
-
-    @staticmethod
-    def _read_manifest_id(plugin_dir: Path) -> str | None:
-        """读取插件包内 plugin.json 的 id。
-
-        文件缺失、损坏或没有 id 都按「未声明」处理，返回 None。
-
-        Args:
-            plugin_dir: 插件根目录。
-
-        Returns:
-            plugin.json 里声明的 id；未声明时返回 None。
-        """
-        try:
-            manifest = json.loads((plugin_dir / 'plugin.json').read_text(encoding='utf-8'))
-        except (OSError, ValueError):
-            return None
-        if not isinstance(manifest, dict):
-            return None
-        manifest_id = manifest.get('id')
-        return manifest_id if isinstance(manifest_id, str) and manifest_id else None
 
     @staticmethod
     def _resolve_cover_path(plugin_dir: Path) -> Path | None:

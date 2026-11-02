@@ -357,7 +357,9 @@ class PluginCard(QWidget):
         比例的封面会被压变形。裁切按屏幕像素比做，避免二次缩放发虚。
         """
         ratio = self.devicePixelRatioF()
-        target = QSize(int(CARD_WIDTH * ratio), int(CARD_HEIGHT * ratio))
+        # 用 round 而不是 int：125%、150% 这类非整数缩放下截断会让目标尺寸
+        # 比实际物理像素少 1，封面边缘会露出 1 像素底色。
+        target = QSize(round(CARD_WIDTH * ratio), round(CARD_HEIGHT * ratio))
         scaled = cover.scaled(
             target,
             Qt.AspectRatioMode.KeepAspectRatioByExpanding,
