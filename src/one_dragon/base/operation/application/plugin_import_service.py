@@ -828,30 +828,71 @@ class PluginImportService:
         return plugins_root / f".{plugin_dir_name}.tmp-{uuid4().hex}"
 
     def _replace_plugin_dir(self, staging_dir: Path, target_dir: Path, overwrite: bool) -> None:
-        """用已完成的临时目录替换目标目录，失败时恢复旧版本。"""
-        backup_dir: Path | None = None
-        if self._path_exists(target_dir):
-            if not overwrite:
-                raise FileExistsError(f"插件目录已存在: {target_dir.name}")
-            if target_dir.is_symlink():
-                raise ValueError("插件目标目录不能是符号链接")
-            if not target_dir.is_dir():
-                raise ValueError("插件目标路径不是目录")
-            backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
-            target_dir.replace(backup_dir)
+        """用已完成的临时目录替换目标目录，失败时恢复旧版本。
 
+        目标已存在且允许覆盖时，整目录替换：旧目录整体改名为备份，新目录改名到
+        目标位置。替换前把目标里的 .git 目录（插件自己是 git 仓库时存在）改名暂存，
+        替换完成后移回新目录，保留版本历史。
+        新装（目标不存在）时直接把临时目录改名到目标位置。
+        """
+        if not self._path_exists(target_dir):
+            staging_dir.replace(target_dir)
+            return
+
+        if not overwrite:
+            raise FileExistsError(f"插件目录已存在: {target_dir.name}")
+        if target_dir.is_symlink():
+            raise ValueError("插件目标目录不能是符号链接")
+        if not target_dir.is_dir():
+            raise ValueError("插件目标路径不是目录")
+
+        # .git 可能很大，用改名暂存而不是复制；
+        # worktree / submodule / --separate-git-dir 场景下 .git 是文件，同样保留
+        git_keep_dir: Path | None = None
+        backup_dir: Path | None = None
+        git_dir = target_dir / '.git'
         try:
+            if self._path_exists(git_dir) and not git_dir.is_symlink():
+                git_keep_dir = target_dir.with_name(f'.{target_dir.name}.git-keep-{uuid4().hex}')
+                git_dir.replace(git_keep_dir)
+
+            backup_dir = target_dir.with_name(f'.{target_dir.name}.backup-{uuid4().hex}')
+            target_dir.replace(backup_dir)
             staging_dir.replace(target_dir)
         except Exception:
-            if backup_dir is not None and self._path_exists(backup_dir) and not self._path_exists(target_dir):
-                backup_dir.replace(target_dir)
-            raise
-        else:
+            # 丢弃可能的半成品，把备份改名回原位，.git 移回旧目录，恢复到覆盖前状态
             if backup_dir is not None and self._path_exists(backup_dir):
-                try:
-                    self._remove_path(backup_dir)
-                except Exception as e:
-                    log.warning(f"清理插件备份目录失败: {backup_dir}, {e}")
+                if self._path_exists(target_dir):
+                    self._remove_path(target_dir)
+                backup_dir.replace(target_dir)
+            self._restore_git_keep_dir(git_keep_dir, target_dir)
+            raise
+
+        self._restore_git_keep_dir(git_keep_dir, target_dir)
+
+        if self._path_exists(backup_dir):
+            try:
+                self._remove_path(backup_dir)
+            except Exception as e:
+                log.warning(f'清理插件备份目录失败: {backup_dir}, {e}')
+
+    def _restore_git_keep_dir(self, git_keep_dir: Path | None, target_dir: Path) -> None:
+        """把暂存的 .git 目录移回插件目录；失败时告警并说明实际留在哪。"""
+        if git_keep_dir is None or not self._path_exists(git_keep_dir):
+            return
+
+        restored_path = target_dir / '.git'
+        try:
+            if self._path_exists(restored_path):
+                # 新版本自带 .git 时不覆盖，原样留在暂存路径
+                raise FileExistsError(f'新版本插件已包含 .git: {restored_path}')
+            target_dir.mkdir(parents=True, exist_ok=True)
+            git_keep_dir.replace(restored_path)
+        except Exception as e:
+            log.warning(
+                f'插件 .git 目录移回失败: {restored_path}, {e}; '
+                f'原 .git 目录暂存在 {git_keep_dir}，请手动移回或删除'
+            )
 
     def delete_plugin(self, plugin_dir: str | Path) -> ImportResult:
         """删除 plugins 根目录下的一个插件目录。"""
