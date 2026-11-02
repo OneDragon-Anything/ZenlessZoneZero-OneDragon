@@ -257,6 +257,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 清空现有注册
         self.run_context.clear_applications()
 
+        # 重新发现扫描根：启动后才 clone/创建的插件仓库目录，要在这里才会被扫到
+        for cached_name in ('plugins_dir', 'application_plugin_dirs'):
+            self.__dict__.pop(cached_name, None)
+        self.factory_manager.set_plugin_dirs(self.application_plugin_dirs)
+
         # 重新发现并注册
         factories = self.factory_manager.discover_factories(reload_modules=True)
         if factories:

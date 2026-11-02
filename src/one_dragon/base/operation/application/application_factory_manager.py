@@ -59,6 +59,14 @@ class ApplicationFactoryManager:
         """获取插件目录列表"""
         return self._plugin_dirs
 
+    def set_plugin_dirs(self, plugin_dirs: list[tuple[Path, PluginSource]]) -> None:
+        """更新扫描根列表，刷新注册时用来纳入新出现的插件仓库目录。
+
+        Args:
+            plugin_dirs: 新的插件目录列表，每项为 (path, source) 元组
+        """
+        self._plugin_dirs = plugin_dirs
+
     @property
     def plugin_infos(self) -> list[PluginInfo]:
         """获取所有已加载的插件信息"""
