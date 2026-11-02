@@ -36,6 +36,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choos
     LostVoidChooseGear,
 )
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_interact_target_const import (
+    MIXED_ENTRY_NAME,
     LostVoidInteractNPC,
     LostVoidInteractTarget,
     match_interact_target,
@@ -127,10 +128,12 @@ class LostVoidRunLevel(ZOperation):
         self.current_frame_in_battle: bool = True  # 当前帧画面在战斗
         self.last_det_time: float = 0  # 上一次进行识别的时间
         self.not_in_battle_times: int = 0  # 识别到不在战斗的次数
+        self.last_battle_log_time: float = 0  # 上一次输出战斗诊断日志的时间
         self.last_check_finish_time: float = 0  # 上一次识别结束的时间
         self.talk_opt_idx = 0  # 交互选择的选项
         self.reward_eval_found: bool = False  # 挑战结果中可以识别到业绩点
         self.reward_dn_found: bool = False  # 挑战结果中可以识别到丁尼
+        self.reward_result_checks: int = 0  # 奖励画面已稳定显示的核对次数
         self.click_challenge_confirm: bool = False  # 点击了挑战确认
         self.boss_pre_battle: bool = self.region_type == LostVoidRegionType.BOSS  # 终结之役正式开战前的交互阶段
 
@@ -611,6 +614,10 @@ class LostVoidRunLevel(ZOperation):
                         self.entry_door_block_times = 0
 
                 if current_interact_target is not None:
+                    if (current_interact_target.name == MIXED_ENTRY_NAME
+                            and self.interact_target is not None and self.interact_target.is_entry):
+                        # 混合入口的文本看不出区域类型 沿用寻路时识别的入口图标 用于推测下层类型
+                        current_interact_target.icon = self.interact_target.icon
                     self.interact_target = current_interact_target
                     self.locked_interact_target = current_interact_target
 
@@ -713,6 +720,10 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_fail(op_result.status)
 
+        # 要在尝试对话前判断 挑战结果的奖励数字会落在对话角色名称区域里 被当成对话一直点
+        if self.is_challenge_result(self.last_screenshot):
+            return self.round_success('迷失之地-挑战结果')
+
         # 尝试对话
         talk_result = self.try_talk(self.last_screenshot)
         if talk_result is not None:
@@ -732,10 +743,6 @@ class LostVoidRunLevel(ZOperation):
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
             return self.round_success('迷失之地-大世界')
 
-        result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '标题-挑战结果')
-        if result.is_success:
-            return self.round_success('迷失之地-挑战结果')
-
         # 有可能出现对话框需要确认 issue #1104
         # 这里偷懒了 复用了挑战对话框的按钮
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-大世界', '按钮-挑战-确认')
@@ -753,6 +760,22 @@ class LostVoidRunLevel(ZOperation):
 
         # 交互后 可能出现了后续的交互
         return self.round_retry(status='未知画面', wait_round_time=1)
+
+    def is_challenge_result(self, screen: MatLike) -> bool:
+        """
+        判断是否在挑战结果画面
+        顶部的关卡进度条可能盖住标题 标题识别不到时用「总计用时」兜底
+
+        Args:
+            screen: 游戏画面
+
+        Returns:
+            是否在挑战结果画面
+        """
+        for area_name in ['标题-挑战结果', '文本-总计用时']:
+            if self.round_by_find_area(screen, '迷失之地-挑战结果', area_name).is_success:
+                return True
+        return False
 
     def try_talk(self, screen: MatLike) -> OperationRoundResult | None:
         """
@@ -859,10 +882,7 @@ class LostVoidRunLevel(ZOperation):
         """
         completed_interact_target = self.locked_interact_target or self.interact_target
         in_normal_world = self.ctx.lost_void.in_normal_world(self.last_screenshot)
-        is_challenge_result = False
-        if not in_normal_world:
-            result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '标题-挑战结果')
-            is_challenge_result = result.is_success
+        is_challenge_result = not in_normal_world and self.is_challenge_result(self.last_screenshot)
 
         is_next_level = (not in_normal_world
                          and not is_challenge_result
@@ -1117,6 +1137,9 @@ class LostVoidRunLevel(ZOperation):
                 self.last_det_time = self.last_screenshot_time
                 not_in_battle = False
                 found_next_region_hint = False
+                det_flags: tuple[bool, bool, bool] = (False, False, False)  # 交互 距离 入口 的识别结果
+                hint_text_found: bool = False  # OCR 是否识别到 前往下一个区域
+                distance_found: float | None = None  # OCR 识别到的距离
 
                 # 尝试识别下层入口 (道中危机 和 终结之役 不需要识别)
                 if self.region_type not in [LostVoidRegionType.ELITE, LostVoidRegionType.BOSS]:
@@ -1128,6 +1151,7 @@ class LostVoidRunLevel(ZOperation):
                             run_time=self.last_screenshot_time,
                         )
                         with_interact, with_distance, with_entry = self.detector.is_frame_with_all(frame_result)
+                        det_flags = (with_interact, with_distance, with_entry)
                         if with_interact or with_distance or with_entry:
                             not_in_battle = True
                     except Exception as e:
@@ -1152,11 +1176,31 @@ class LostVoidRunLevel(ZOperation):
                     area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
                     found = screen_utils.find_by_ocr(self.ctx, self.last_screenshot, target_cn='前往下一个区域', area=area)
 
+                    hint_text_found = bool(found)
                     if found:
                         found_next_region_hint = True
                         not_in_battle = True
 
-                # "前往下一个区域" 单次命中即判脱战
+                # 怪清完后会出现指向下一处的白点 下面带「23.5m」这样的距离文字
+                # 战斗中镜头晃动 YOLO 很难连续 10 次高置信度认出白点 复杂区域打完第一个房间会一直打空气
+                # 改用 OCR 读距离文字 读到就算战斗结束 (道中危机 和 终结之役 打完是挑战结果画面 不需要)
+                if (not found_next_region_hint
+                        and self.region_type not in [LostVoidRegionType.ELITE, LostVoidRegionType.BOSS]
+                        and self.ctx.auto_battle_context.check_battle_distance(self.last_screenshot) is not None):
+                    distance_found = self.ctx.auto_battle_context.last_check_distance
+                    log.info(f'战斗中识别到距离 {distance_found}m 判定战斗结束')
+                    found_next_region_hint = True
+
+                # 每 2 秒输出一次识别情况 用于排查迟迟不脱战
+                if self.last_screenshot_time - self.last_battle_log_time >= 2:
+                    self.last_battle_log_time = self.last_screenshot_time
+                    log.debug(
+                        f'战斗诊断 区域={self.region_type.name} 脱战计数={self.not_in_battle_times} '
+                        f'本轮脱战={not_in_battle} 交互/距离/入口={det_flags} '
+                        f'下一区域提示={hint_text_found} 距离OCR={distance_found} 阵亡计数={self.agent_dead_times}'
+                    )
+
+                # "前往下一个区域" 或距离文字 单次命中即判脱战
                 if found_next_region_hint:
                     self.ctx.auto_battle_context.stop_auto_battle()
                     self.not_in_battle_times = 0
@@ -1196,7 +1240,10 @@ class LostVoidRunLevel(ZOperation):
                     area_name='按钮-挑战-确认',
                 )
 
-                if screen_name in not_in_battle_screen_name_list or interact_result.is_success or confirm_result.is_success:
+                if (screen_name in not_in_battle_screen_name_list
+                        or interact_result.is_success
+                        or confirm_result.is_success
+                        or self.is_challenge_result(self.last_screenshot)):  # 标题被进度条盖住时 画面匹配不到挑战结果
                     self.not_in_battle_times += 1
                 else:
                     self.not_in_battle_times = 0
@@ -1230,6 +1277,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='交互后处理', status='挑战结果-完成')
     @operation_node(name='挑战结果处理完成')
     def handle_challenge_result_finish(self) -> OperationRoundResult:
+        """在奖励和完成按钮已显示时核对多帧，避免过渡画面误判业绩点已满。"""
         # 由于有动画效果 这里需要识别很多轮 只要有一轮识别到就算有
         result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '奖励-零号业绩')
         if result.is_success:
@@ -1237,6 +1285,15 @@ class LostVoidRunLevel(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '奖励-丁尼')
         if result.is_success:
             self.reward_dn_found = True
+
+        if not self.reward_eval_found and self.reward_result_checks < 3:
+            finish = self.round_by_find_area(self.last_screenshot, '迷失之地-挑战结果', '按钮-完成')
+            if not self.is_challenge_result(self.last_screenshot) or not finish.is_success:
+                self.reward_result_checks = 0
+                return self.round_retry('未能确认完整的挑战结果画面', wait=0.5)
+            self.reward_result_checks += 1
+            if self.reward_result_checks < 3:
+                return self.round_wait('等待奖励显示稳定', wait=0.5)
 
         result = self.round_by_find_and_click_area(screen=self.last_screenshot, screen_name='迷失之地-挑战结果', area_name='按钮-完成',
                                                    until_not_find_all=[('迷失之地-挑战结果', '按钮-完成')],
