@@ -112,6 +112,8 @@ def configure_environment(ctx: OneDragonEnvContext, cwd):
     os.environ.update({
         'PYTHONPATH': os.path.join(cwd, "src"),
         'UV_DEFAULT_INDEX': ctx.env_config.pip_source,
+        # uv 构建 vgamepad 时默认会弹出 ViGEmBus 驱动安装程序，启动器中跳过
+        'VGAMEPAD_SKIP_VIGEMBUS_INSTALL': 'true',
     })
 
     for var in ['PYTHONPATH', 'UV_DEFAULT_INDEX']:

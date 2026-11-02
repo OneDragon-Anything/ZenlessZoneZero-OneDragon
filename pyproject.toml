@@ -23,6 +23,7 @@ dependencies = [
     # import win32ui 会闪退（issue #2428）；锁 <312 沿用 311（自带 pythonwin/mfc140u.dll）。等上游 build 313 修复后放开。
     "pywin32<312",
     "websocket-client==1.9.2",
+    "vgamepad==0.2.0",
 ]
 
 [dependency-groups]
@@ -39,10 +40,6 @@ dev = [
     "mcp>=2.0.0,<3",
     "uvicorn>=0.30.0",
     "pyright>=1.1.411",
-]
-
-gamepad = [
-    "vgamepad==0.1.0",
 ]
 
 [tool.uv]
