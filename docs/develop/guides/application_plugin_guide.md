@@ -150,31 +150,6 @@ class MyPluginFactory(ApplicationFactory):
   - 仓库布局下插件目录名必须等于 `APP_ID`；`plugin.json` 里写了 `id` 的话也必须等于 `APP_ID`，否则加载失败
   - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
 
-### 插件数据目录
-
-插件需要持久化数据（缓存、用户数据、路由文件等）时，统一使用插件数据目录，不要写到插件目录或 `config/` 里：
-
-- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(APP_ID)`，目录不存在时自动创建）
-- 数据目录是 `plugin_data/<APP_ID>/`，与插件代码装在哪里无关，扁平布局和仓库布局之间挪动不会丢数据
-- 本机 `APP_ID` 必须唯一，重复的插件只会加载先扫描到的那个，所以不同插件不会共用数据目录
-- `plugin_data/` 与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
-
-```python
-import json
-
-class MyPluginFactory(ApplicationFactory):
-    def __init__(self, ctx: ZContext) -> None:
-        super().__init__(my_plugin_const)
-        self.ctx = ctx
-
-    def load_routes(self) -> list[dict]:
-        """读取插件保存的路线数据。"""
-        data_file = self.data_dir / 'routes.json'
-        if not data_file.exists():
-            return []
-        return json.loads(data_file.read_text(encoding='utf-8'))
-```
-
 ---
 
 ## 通过 GUI 导入插件
