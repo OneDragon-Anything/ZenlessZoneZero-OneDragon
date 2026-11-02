@@ -11,6 +11,13 @@
   ```shell
   uv run --env-file .env pytest zzz-od-test/
   ```
+- 看分支覆盖率(`pyproject.toml` 已配 `[tool.coverage.run] branch = true`):
+  ```shell
+  uv run --env-file .env pytest zzz-od-test/ --cov --cov-report=term-missing:skip-covered
+  # 只看某个模块
+  uv run --env-file .env pytest zzz-od-test/test/one_dragon/utils --cov=one_dragon.utils.str_utils --cov-report=term-missing
+  ```
+  补测试时先看报告里 `Missing` 列出的未覆盖分支,只为这些分支补测试;已覆盖的分支不要再人工统计后重复编写。
 
 ## 2. 测试基建(`zzz-od-test/test/conftest.py`)
 
@@ -38,7 +45,7 @@
 对每个 `@operation_node` 节点,确定它的**分支**(= 可能返回的 status 集合)。节点有以下几种写法:
 
 - **显式字面量**:body 里有 `round_success/wait/retry/fail(status='xxx')` → 这些 `xxx` 是分支。
-- **薄包装**:`return self.round_by_X(...)`(body 无显式 status 字面量)→ 分支 = **helper 返回契约**。常见(查 `operation.py` 该方法确认):
+- **薄包装**:`return self.round_by_X(...)`(body 无显式 status 字面量)→ 分支 = **helper 返回契约**。helper 契约本身已在框架层 `zzz-od-test/test/one_dragon/base/operation/test_operation_round_helpers.py` 集中测过(`round_by_goto_screen` 的防抖分支 `screen_switch_debounce > 0` 除外;改 helper 时同步改它)。常见(查 `operation.py` 该方法确认):
   - `round_by_ocr_and_click_by_priority(targets)` → `round_success(status=匹配的 target)` / `round_retry('未匹配到目标文本')`
   - `round_by_find_and_click_area(screen, area)` → **无 until_**:点击成功 `round_success(area_name)` / 未找到·点击失败 `round_retry` / 区域未配置 `round_fail`;**带 until_**:点击成功先 `round_wait(area_name)`,下轮 until 满足 `round_success(area_name)`
   - `round_by_find_area(screen, area)` → `round_success(status=area_name)` / 未命中 `round_retry`
