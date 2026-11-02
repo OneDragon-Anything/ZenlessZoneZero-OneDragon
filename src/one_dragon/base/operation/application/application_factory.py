@@ -92,8 +92,8 @@ class ApplicationFactory:
     def data_dir(self) -> Path:
         """插件数据目录（不存在时自动创建）。
 
-        与插件代码目录结构一致：代码在 plugins/<仓库>/<插件>/，
-        数据在 plugin_data/<仓库>/<插件>/。插件更新覆盖代码目录时不会影响这里的数据，
+        与插件代码目录结构一致：代码在 plugins/<仓库>/<id>/，
+        数据在 plugin_data/<仓库>/<id>/。插件更新覆盖代码目录时不会影响这里的数据，
         插件内用 `self.data_dir` 存数据。
 
         Returns:

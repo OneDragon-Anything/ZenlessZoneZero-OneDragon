@@ -177,7 +177,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if application_dir.is_dir():
             dirs.append((application_dir, PluginSource.BUILTIN))
 
-        # 插件仓库布局：plugins/<仓库>/<插件目录>/，只认两层，不再往下深入。
+        # 插件仓库布局：plugins/<仓库>/<id>/，只认两层，不再往下深入。
         # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
         # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
         plugins_dir = self.plugins_dir
@@ -203,8 +203,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def get_plugin_data_dir(self, plugin_dir: Path) -> Path:
         """获取插件数据目录（不存在时自动创建）。
 
-        目录结构与插件代码一一对应：插件代码放在 plugins/<仓库>/<插件>/，
-        数据就放在 plugin_data/<仓库>/<插件>/。插件更新覆盖代码目录时不会碰到
+        目录结构与插件代码一一对应：插件代码放在 plugins/<仓库>/<id>/，
+        数据就放在 plugin_data/<仓库>/<id>/。插件更新覆盖代码目录时不会碰到
         这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
 
         Args:
