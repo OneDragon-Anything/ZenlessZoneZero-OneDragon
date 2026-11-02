@@ -47,6 +47,7 @@ from one_dragon.utils import (
     file_utils,
     i18_utils,
     log_utils,
+    os_utils,
     thread_utils,
 )
 from one_dragon.utils.log_utils import log
@@ -177,6 +178,32 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def factory_manager(self) -> ApplicationFactoryManager:
         """应用工厂管理器"""
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
+
+    def get_plugin_data_dir(self, app_id: str) -> Path:
+        """获取插件数据目录（不存在时自动创建）。
+
+        数据放在 plugin_data/<app_id>/，与插件代码装在哪里无关：APP_ID 在本机
+        是唯一的（重复的插件不会被加载），所以不同插件不会共用目录，
+        从扁平布局挪到仓库布局也不会丢数据。插件更新覆盖代码目录时不会碰到
+        这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
+
+        Args:
+            app_id: 应用标识，即插件常量模块里的 APP_ID
+
+        Returns:
+            插件数据目录路径
+
+        Raises:
+            ValueError: app_id 为空，或含路径分隔符、``..`` 等会逃出 plugin_data 的内容
+        """
+        if (
+            not isinstance(app_id, str)
+            or not app_id
+            or app_id in ('.', '..')
+            or any(c in app_id for c in '/\\:')
+        ):
+            raise ValueError(f'APP_ID 不能用作数据目录名: {app_id!r}')
+        return Path(os_utils.get_path_under_work_dir('plugin_data', app_id))
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 

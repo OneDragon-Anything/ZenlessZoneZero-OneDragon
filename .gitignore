@@ -83,6 +83,9 @@ notice_cache/
 plugins/*
 !plugins/README.md
 
+# 插件数据目录（ctx.get_plugin_data_dir / factory.data_dir）
+plugin_data/
+
 # 需自行下载的模型文件
 models/
 
