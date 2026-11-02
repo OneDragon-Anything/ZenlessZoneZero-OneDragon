@@ -65,14 +65,13 @@ class SuibianTemplePawnshop(ZOperation):
 
     @operation_node(name='前往德丰大押', is_start_node=True)
     def goto_pawnshop(self) -> OperationRoundResult:
-        """前往德丰大押画面"""
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-德丰大押'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
-            '德丰大押',
             '邻里街坊',
+            '德丰大押',
         ]
         ignore_cn_list: list[str] = [
         ]

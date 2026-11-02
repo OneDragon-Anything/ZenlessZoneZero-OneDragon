@@ -32,21 +32,11 @@ class WitheredDomainConfig(ApplicationConfig):
 
     @property
     def mission_name(self) -> str:
-        """副本名称 未配置时为 枯败花圃-核心"""
-        return self.get('mission_name', '枯败花圃-核心') or '枯败花圃-核心'
+        return self.get('mission_name', '旧都列车-内部')
 
     @mission_name.setter
     def mission_name(self, new_value: str):
         self.update('mission_name', new_value)
-
-    @property
-    def mission_type_name(self) -> str:
-        """副本类型名称 即副本名称中 - 之前的部分"""
-        name = self.mission_name
-        idx = name.find('-')
-        if idx != -1:
-            return name[:idx]
-        return name
 
     @property
     def challenge_config(self) -> str:

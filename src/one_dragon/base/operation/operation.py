@@ -539,9 +539,6 @@ class Operation(OperationBase):
         else:
             return self.round_fail('节点处理函数和指令都没有设置')
 
-        if not isinstance(current_round_result, OperationRoundResult):
-            return self.round_fail('节点处理函数未返回正确结果')
-
         # 自动保存启用了 save_status 的节点状态
         if self._current_node.save_status and current_round_result.result in (
             OperationRoundResultEnum.SUCCESS, OperationRoundResultEnum.FAIL
@@ -1286,11 +1283,8 @@ class Operation(OperationBase):
                 to_click = to_click + offset
 
             time.sleep(pre_delay)
-            click = self.ctx.controller.click(to_click)
-            if click:
-                return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
-            else:
-                return self.round_retry(f'点击 {match_word} 失败', wait=retry_wait, wait_round_time=retry_wait_round)
+            self.ctx.controller.click(to_click)
+            return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 
