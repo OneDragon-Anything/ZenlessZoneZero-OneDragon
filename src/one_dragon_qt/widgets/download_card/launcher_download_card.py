@@ -9,6 +9,7 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.update_service import LauncherType, UpdateService
+from one_dragon.launcher.launcher_type import detect_running_launcher_type
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.download_queue_service import (
@@ -55,7 +56,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.ctx: OneDragonEnvContext = ctx
         # 只处理当前正在运行的启动器类型 另一种类型不提供下载入口
         self._launcher_type: LauncherType = (
-            ctx.update_service.detect_running_launcher_type() or 'launcher'
+            detect_running_launcher_type() or 'launcher'
         )
         self.version_checker = LauncherVersionChecker(ctx.update_service, self._launcher_type)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
@@ -67,7 +68,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         launcher_title = (
             gt('集成启动器')
             if self._launcher_type == 'runtime'
-            else gt('原始启动器')
+            else gt('源码启动器')
         )
         ZipDownloaderSettingCard.__init__(
             self,
