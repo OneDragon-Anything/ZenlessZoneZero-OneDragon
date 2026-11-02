@@ -29,11 +29,13 @@ def get_market_urls() -> dict[str, str]:
     return dict(_market_urls)
 
 
-def get_market_site_root() -> str:
-    """商店站点根目录，由 github 源的索引地址按 /api/ 截断推导，封面等静态资源按它拼地址。"""
-    url = get_market_urls().get('github', '')
-    root = url.split('/api/', 1)[0] if '/api/' in url else url.rsplit('/', 1)[0]
-    return root + '/' if root else ''
+def get_market_roots() -> dict[str, str]:
+    """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
+    return {
+        source_id: url.rsplit('/', 1)[0] + '/'
+        for source_id, url in get_market_urls().items()
+        if '/' in url
+    }
 
 
 CACHE_TTL_SECONDS = 600

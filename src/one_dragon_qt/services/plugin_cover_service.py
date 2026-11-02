@@ -18,11 +18,8 @@ from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal
 from PySide6.QtGui import QImage, QImageReader, QPixmap
 
 from one_dragon.base.operation.application.plugin_info import PluginInfo
-from one_dragon.base.operation.application.plugin_market import get_market_site_root
-from one_dragon.base.web.common_downloader import (
-    GITHUB_SOURCE_ID,
-    download_with_resource_settings,
-)
+from one_dragon.base.operation.application.plugin_market import get_market_roots
+from one_dragon.base.web.common_downloader import download_with_resource_settings
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
@@ -30,24 +27,24 @@ MAX_COVER_BYTES = 4 * 1024 * 1024
 """单张封面允许的最大体积，超过则放弃使用。"""
 
 
-def resolve_cover_url(raw_url: str) -> str:
-    """把市场里的封面字段补成完整地址。
+def resolve_cover_urls(raw_url: str) -> dict[str, str]:
+    """把市场里的封面字段补成各源的完整地址。
 
-    相对路径按插件商店站点根目录解析，开头带不带 `/` 结果相同，
-    例如 `covers/a.png` 与 `/covers/a.png` 都指向 `<站点根目录>/covers/a.png`。
+    相对路径按各源索引所在目录解析，开头带不带 `/` 结果相同，
+    下载时按「资源」页的候选顺序挑选，哪个源有这张图就用哪个。
 
     Args:
-        raw_url: plugins.json 中的原始值，可能是完整地址或相对站点根目录的路径。
+        raw_url: plugins.json 中的原始值，可能是完整地址或相对索引目录的路径。
 
     Returns:
-        可直接下载的完整 URL；空值返回空字符串。
+        源ID到完整地址的映射；空值返回空字典。
     """
-    value = (raw_url or '').strip()
+    value = (raw_url or '').strip().lstrip('/')
     if not value:
-        return ''
+        return {}
     if urlparse(value).scheme:
-        return value
-    return urljoin(get_market_site_root(), value.lstrip('/'))
+        return {'direct': value}
+    return {source_id: urljoin(root, value) for source_id, root in get_market_roots().items()}
 
 
 def _read_image(path: Path) -> QImage | None:
@@ -80,10 +77,18 @@ def _load_pixmap(path: Path) -> QPixmap | None:
 class _DownloadTask(QRunnable):
     """后台下载一张封面到缓存目录。"""
 
-    def __init__(self, service: PluginCoverService, plugin_id: str, url: str, target: Path) -> None:
+    def __init__(
+        self,
+        service: PluginCoverService,
+        plugin_id: str,
+        urls: dict[str, str],
+        url: str,
+        target: Path,
+    ) -> None:
         super().__init__()
         self._service: PluginCoverService = service
         self._plugin_id: str = plugin_id
+        self._urls: dict[str, str] = urls
         self._url: str = url
         self._target: Path = target
 
@@ -93,7 +98,7 @@ class _DownloadTask(QRunnable):
         try:
             self._target.parent.mkdir(parents=True, exist_ok=True)
             ok = download_with_resource_settings(
-                {GITHUB_SOURCE_ID: self._url},
+                self._urls,
                 str(temp_path.parent),
                 temp_path.name,
             )
@@ -164,10 +169,11 @@ class PluginCoverService(QObject):
 
     def market_cover(self, plugin_id: str, cover_url: str) -> QPixmap | None:
         """市场条目的封面；缓存未命中时返回 None 并在后台下载。"""
-        url = resolve_cover_url(cover_url)
-        if not url:
+        urls = resolve_cover_urls(cover_url)
+        if not urls:
             return None
-
+        # 首选地址同时作为缓存文件与下载状态的键
+        url = next(iter(urls.values()))
         key = f'url:{url}'
         if key in self._memory:
             return self._memory[key]
@@ -180,7 +186,7 @@ class PluginCoverService(QObject):
             self._memory[key] = pixmap
             return pixmap
 
-        self._request(plugin_id, url, target)
+        self._request(plugin_id, urls, url, target)
         return None
 
     # ------------------------------------------------------------------
@@ -194,12 +200,12 @@ class PluginCoverService(QObject):
             suffix = '.img'
         return self._cache_dir / f'{digest}{suffix}'
 
-    def _request(self, plugin_id: str, url: str, target: Path) -> None:
-        # 按地址去重：多个条目共用同一张封面时不会并发写同一个缓存文件
+    def _request(self, plugin_id: str, urls: dict[str, str], url: str, target: Path) -> None:
+        # 按首选地址去重：多个条目共用同一张封面时不会并发写同一个缓存文件
         if url in self._downloading:
             return
         self._downloading.add(url)
-        self._pool.start(_DownloadTask(self, plugin_id, url, target))
+        self._pool.start(_DownloadTask(self, plugin_id, urls, url, target))
 
     def _on_download_finished(self, plugin_id: str, url: str, ok: bool) -> None:
         """下载结束后在 GUI 线程更新状态并通知界面。"""
