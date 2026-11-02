@@ -24,6 +24,7 @@ from one_dragon.base.operation.application.plugin_info import (
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     ensure_sys_path,
+    has_factory_and_const,
     import_module_from_file,
     list_repo_plugin_dirs,
     resolve_module_name,
@@ -179,6 +180,12 @@ class ApplicationFactoryManager:
                         self._scan_failures.append((directory, error_msg))
                         log.warning(f"仓库 {directory} 已跳过: {error_msg}")
                         return factories
+                    # 有 plugin.json 却没有可加载的工厂和常量文件：明确报错，不静默忽略
+                    for repo_plugin in repo_plugins:
+                        if not has_factory_and_const(repo_plugin):
+                            error_msg = "含 plugin.json 但缺少 *_factory.py 或 *_const.py"
+                            self._scan_failures.append((repo_plugin, error_msg))
+                            log.warning(f"插件目录 {repo_plugin} 加载失败: {error_msg}")
                     plugin_dirs = repo_plugins
 
                 for plugin_dir in plugin_dirs:
