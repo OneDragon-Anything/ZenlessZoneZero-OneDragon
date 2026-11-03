@@ -308,23 +308,31 @@ def _hide_non_commit_refs(repo: Repository, hidden_refs: list[tuple[str, Oid]]) 
             target_committish = False
         if target_committish:
             continue
+        # 先记录再删除：即使两步之间出现异常，记录也已存在可恢复；
+        # 删除失败时回退记录，保证 hidden_refs 只含真正被删除的引用
+        target: Oid = ref.target
+        hidden_refs.append((ref_name, target))
+        log.info(f'已临时隐藏非 commit 引用 {ref_name} 目标 {target}')
         try:
-            target: Oid = ref.target
             repo.references.delete(ref_name)
         except Exception:
             log.warning(f'隐藏非 commit 引用 {ref_name} 失败', exc_info=True)
+            hidden_refs.remove((ref_name, target))
             continue
-        hidden_refs.append((ref_name, target))
-        log.info(f'已临时隐藏非 commit 引用 {ref_name}')
 
 
 def _restore_hidden_refs(repo: Repository, hidden_refs: list[tuple[str, Oid]]) -> None:
     """恢复被临时删除的引用。"""
     for ref_name, target in hidden_refs:
         try:
+            if ref_name in repo.references:
+                # 导入窗口内被外部进程(如 Codex)重建的引用不覆盖 保留外部新值
+                log.warning(f'引用 {ref_name} 在导入期间已被重建 跳过恢复')
+                continue
             repo.references.create(ref_name, target, force=True)
         except Exception:
-            log.error(f'恢复引用 {ref_name} 失败', exc_info=True)
+            # 记录原目标 便于手动恢复: git update-ref <引用名> <目标>
+            log.error(f'恢复引用 {ref_name} 失败 原目标 {target}', exc_info=True)
 
 
 def _fetch_remote_worker(
