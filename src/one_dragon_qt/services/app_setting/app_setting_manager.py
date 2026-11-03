@@ -137,18 +137,14 @@ class AppSettingManager(QObject):
     # ─── 扫描与注册 ──────────────────────────────────────
 
     def _discover_providers(self) -> None:
-        """扫描 factory_manager.plugin_infos 中的 *_app_setting.py 并注册。"""
+        """扫描 factory_manager.plugin_infos 中的 app_setting.py 与 *_app_setting.py 并注册。"""
         fm = self.ctx.factory_manager
         seen_app_ids: set[str] = set()
-
-        base_dirs: dict[PluginSource, Path] = {}
-        for plugin_dir, source in fm.plugin_dirs:
-            base_dirs[source] = plugin_dir
 
         for info in fm.plugin_infos:
             if info.plugin_dir is None or not info.plugin_dir.is_dir():
                 continue
-            base_dir = base_dirs.get(info.source)
+            base_dir = self._module_root_for(info.plugin_dir, info.source, fm.plugin_dirs)
             if base_dir is None:
                 continue
 
@@ -156,12 +152,45 @@ class AppSettingManager(QObject):
                 if (
                     not setting_file.is_file()
                     or setting_file.suffix != '.py'
-                    or not setting_file.stem.endswith(self._setting_module_suffix)
+                    or not (
+                        setting_file.stem == self._setting_module_suffix.lstrip('_')
+                        or setting_file.stem.endswith(self._setting_module_suffix)
+                    )
                 ):
                     continue
                 self._try_register_provider(setting_file, info.source, base_dir, seen_app_ids)
 
         log.info(f"发现 {len(self._app_setting_map)} 个应用设置提供者")
+
+    @staticmethod
+    def _module_root_for(
+        plugin_dir: Path,
+        source: PluginSource,
+        plugin_dirs: list[tuple[Path, PluginSource]],
+    ) -> Path | None:
+        """找出插件所在的最具体扫描根，作为模块名解析的基准。
+
+        第三方插件可能来自多个扫描根（``plugins`` 与 ``plugins/<仓库>``），
+        必须取包含该插件目录的最深一层。取错层会让模块名多套一层包，
+        与工厂加载时的模块名对不上，同一个文件被导入成两个模块。
+
+        Args:
+            plugin_dir: 插件目录。
+            source: 插件来源。
+            plugin_dirs: 全部扫描根。
+
+        Returns:
+            匹配的扫描根，未命中时返回 None。
+        """
+        target = plugin_dir.resolve()
+        candidates = [
+            directory
+            for directory, dir_source in plugin_dirs
+            if dir_source == source and target.is_relative_to(directory.resolve())
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda path: len(path.parts))
 
     def _try_register_provider(
         self,
