@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -20,7 +21,6 @@ from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -661,9 +661,9 @@ class EnterGame(ZOperation):
         Returns:
             仍在加载时等待；识别到弹窗时处理；识别到大世界时结束。
         """
-        result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
-        if result.is_success:
-            return self.round_wait(result.status, wait=2)
+        loading_result = self.wait_loading_end()
+        if loading_result is not None:
+            return loading_result
 
         # 识别并点击弹窗
         interact_result = self.check_screen_to_interact(self.last_screenshot)
