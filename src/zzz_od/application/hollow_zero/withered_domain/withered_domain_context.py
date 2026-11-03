@@ -39,7 +39,7 @@ class WitheredDomainContext:
         self.ctx: ZContext = ctx
 
         # 识别线程池：本 context 是单例（ZContext 持有），线程池跟实例走
-        self._withered_domain_context_executor = ThreadPoolExecutor(thread_name_prefix='withered_domain_context_executor', max_workers=16)
+        self._withered_domain_context_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='withered_domain_context_executor', max_workers=16)
 
         self.challenge_config: Optional[HollowZeroChallengeConfig] = None
 

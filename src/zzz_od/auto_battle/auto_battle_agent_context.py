@@ -297,7 +297,7 @@ class AutoBattleAgentContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
         # 角色识别线程池：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
-        self._battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
+        self._battle_agent_context_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
         self.team_info: TeamInfo = TeamInfo()
 
         # 识别锁 保证每种类型只有1实例在进行识别

@@ -28,7 +28,7 @@ class AutoBattleTargetContext:
         """
         self.ctx: ZContext = ctx
         # 模块私有的独立线程池改为实例级：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
-        self._target_context_executor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
+        self._target_context_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
         self.checker: TargetStateChecker = TargetStateChecker(ctx)
 
         self._check_lock = threading.Lock()

@@ -147,7 +147,7 @@ class AutoBattleDodgeContext:
         self.ctx: ZContext = ctx  # 上下文对象
 
         # 闪避识别线程池：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
-        self._dodge_check_executor = ThreadPoolExecutor(thread_name_prefix='od_dodge_check', max_workers=16)
+        self._dodge_check_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_dodge_check', max_workers=16)
         self._flash_model: FlashClassifier | None = None  # 闪避分类器
         self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error,
                                                             executor=self._dodge_check_executor)  # 音频录制器

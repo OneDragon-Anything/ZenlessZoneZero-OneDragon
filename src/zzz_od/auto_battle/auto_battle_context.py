@@ -41,7 +41,7 @@ class AutoBattleContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
         # 战斗状态识别线程池：本 context 是单例（ZContext 持有），线程池跟实例走
-        self._battle_state_check_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
+        self._battle_state_check_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
         self.agent_context: AutoBattleAgentContext = AutoBattleAgentContext(self.ctx)
         self.dodge_context: AutoBattleDodgeContext = AutoBattleDodgeContext(self.ctx)
         self.custom_context: AutoBattleCustomContext = AutoBattleCustomContext(self.ctx)
