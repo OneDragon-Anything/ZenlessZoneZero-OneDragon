@@ -1,3 +1,4 @@
+import contextlib
 import time
 
 import cv2
@@ -575,7 +576,7 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         self.pos_label.setText(str(self.current_pos))
 
     def _on_h_move_clicked(self):
-        try:
+        with contextlib.suppress(Exception):
             dx = self.h_move_input.value()
 
             if self.mini_map_pos_mr is not None:
@@ -585,11 +586,9 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
 
             self._update_large_map_display()
             self._update_pos_display()
-        except Exception:
-            pass
 
     def _on_v_move_clicked(self):
-        try:
+        with contextlib.suppress(Exception):
             dy = self.v_move_input.value()
 
             if self.mini_map_pos_mr is not None:
@@ -599,8 +598,6 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
 
             self._update_large_map_display()
             self._update_pos_display()
-        except Exception:
-            pass
 
     def _load_chosen_large_map(self) -> None:
         """

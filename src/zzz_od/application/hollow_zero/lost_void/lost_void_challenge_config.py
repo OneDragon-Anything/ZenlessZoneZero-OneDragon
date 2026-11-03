@@ -1,3 +1,4 @@
+import contextlib
 import os
 from enum import Enum
 
@@ -325,11 +326,9 @@ def get_lost_void_challenge_new_name() -> str:
             continue
         if not config_name.startswith(prefix):
             continue
-        try:
+        with contextlib.suppress(Exception):
             idx = int(config_name[len(prefix):-4])
             if idx > max_idx:
                 max_idx = idx
-        except Exception:
-            pass
 
     return '%s%02d' % (prefix, max_idx + 1)
