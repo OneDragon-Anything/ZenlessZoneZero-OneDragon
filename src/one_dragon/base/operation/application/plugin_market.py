@@ -34,7 +34,6 @@ def get_market_roots() -> dict[str, str]:
     return {
         source_id: url.rsplit('/', 1)[0] + '/'
         for source_id, url in get_market_urls().items()
-        if '/' in url
     }
 
 
