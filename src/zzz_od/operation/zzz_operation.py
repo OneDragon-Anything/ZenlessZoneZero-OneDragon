@@ -32,8 +32,11 @@ class ZOperation(Operation):
         通用方法：判断当前画面是否还在加载界面（识别「加载中」画面的 NOW LOADING 文本）。
         供加载过渡后的节点调用，减轻每个节点自己识别加载画面的负担。
 
-        :param wait: 仍在加载时的等待秒数
-        :return: 仍在加载时返回等待轮结果（节点可直接 return）；加载已结束返回 None，
+        Args:
+            wait: 仍在加载时的等待秒数
+
+        Returns:
+            仍在加载时返回等待轮结果（节点可直接 return）；加载已结束返回 None，
             调用方继续自己的识别逻辑
         """
         result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
