@@ -45,7 +45,6 @@ from one_dragon.base.web.common_downloader import (
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.plugin_module_loader import find_git_repo
 from one_dragon_qt.services.download_queue_service import (
     DownloadQueueService,
     ResourceDownloadSpec,
@@ -558,6 +557,20 @@ class PluginOperationMixin:
             current_version='',
         )
 
+    def _confirm_overwrite_install(self, entry: MarketPlugin, existing_dir: Path) -> bool:
+        """安装前发现目录已存在时，立刻就问是否覆盖安装。"""
+        msg_box = MessageBox(
+            gt('插件已存在'),
+            gt('"{name}" 已经在 {path}。\n是否覆盖安装？').format(
+                name=entry.name,
+                path=existing_dir,
+            ),
+            self._as_widget().window(),
+        )
+        msg_box.yesButton.setText(gt('覆盖安装'))
+        msg_box.cancelButton.setText(gt('取消'))
+        return bool(msg_box.exec())
+
     def _confirm_third_party_risk(self, entry: MarketPlugin) -> bool:
         """订阅前的风险确认。商店里的第三方插件没有经过官方审查。
 
@@ -581,8 +594,6 @@ class PluginOperationMixin:
     def update_plugin(self, entry: MarketPlugin, plugin_info: PluginInfo) -> None:
         """把已安装插件更新到市场最新版本，下载走统一队列。"""
         action_name = gt('更新')
-        if self._reject_repo_layout_plugin(plugin_info, action_name):
-            return
         package_dir = self.get_plugin_package_dir(plugin_info)
         if package_dir is not None and self.is_plugin_running(package_dir):
             self._show_error(
@@ -758,21 +769,43 @@ class PluginOperationMixin:
             digest = self._sha256_of(archive)
             if digest.casefold() != release.sha256.casefold():
                 raise RuntimeError('插件包校验失败，文件可能已损坏')
-            if not _plugin_write_lock.acquire(timeout=120):
-                raise RuntimeError('有插件操作正在进行，请稍后再试')
-            try:
-                # 下载期间插件可能已被启动，覆盖前在写锁内再确认一次
-                if package_dir is not None and self.is_plugin_running(package_dir):
-                    raise RuntimeError(f'插件正在运行，请先停止后再{action_name}')
-                result = self.plugin_import_service.import_plugin(archive, overwrite=overwrite)
-            finally:
-                _plugin_write_lock.release()
-            if not result.success:
-                raise RuntimeError(result.message or '导入插件失败')
-        finally:
+            result = self._import_plugin_with_lock(
+                archive,
+                overwrite=overwrite,
+                package_dir=package_dir,
+                action_name=action_name,
+            )
+        except Exception:
             archive.unlink(missing_ok=True)
+            raise
 
         widget = self._as_widget()
+        if not result.success and result.legacy:
+            # 旧标准插件装不了，直接弹窗说明缺哪个文件
+            archive.unlink(missing_ok=True)
+            QTimer.singleShot(0, widget, partial(self._show_legacy_plugin_error, result.message))
+            return
+
+        if not result.success and result.plugin_dir is not None:
+            # 目录已存在：当场问是否覆盖安装
+            QTimer.singleShot(
+                0,
+                widget,
+                partial(
+                    self._confirm_overwrite_after_download,
+                    entry,
+                    action_name,
+                    archive,
+                    result,
+                    package_dir,
+                ),
+            )
+            return
+
+        archive.unlink(missing_ok=True)
+        if not result.success:
+            raise RuntimeError(result.message or '导入插件失败')
+
         QTimer.singleShot(
             0,
             widget,
@@ -782,6 +815,87 @@ class PluginOperationMixin:
                 action_name,
             ),
         )
+
+    def _import_plugin_unlocked(
+        self,
+        archive: Path,
+        overwrite: bool,
+        package_dir: Path | None,
+        action_name: str,
+    ) -> ImportResult:
+        """导入插件。调用方必须已经持有写锁。"""
+        # 下载期间插件可能已被启动，覆盖前再确认一次
+        if package_dir is not None and self.is_plugin_running(package_dir):
+            raise RuntimeError(f'插件正在运行，请先停止后再{action_name}')
+        return self.plugin_import_service.import_plugin(archive, overwrite=overwrite)
+
+    def _import_plugin_with_lock(
+        self,
+        archive: Path,
+        overwrite: bool,
+        package_dir: Path | None,
+        action_name: str,
+    ) -> ImportResult:
+        """下载线程里导入插件：自己取写锁。"""
+        if not _plugin_write_lock.acquire(timeout=120):
+            raise RuntimeError('有插件操作正在进行，请稍后再试')
+        try:
+            return self._import_plugin_unlocked(archive, overwrite, package_dir, action_name)
+        finally:
+            _plugin_write_lock.release()
+
+    def _confirm_overwrite_after_download(
+        self,
+        entry: MarketPlugin,
+        action_name: str,
+        archive: Path,
+        result: ImportResult,
+        package_dir: Path | None,
+    ) -> None:
+        """下载完发现目录已存在：当场问是否覆盖安装。"""
+        existing_dir = result.plugin_dir
+        if existing_dir is None:
+            archive.unlink(missing_ok=True)
+            return
+        if not self._confirm_overwrite_install(entry, existing_dir):
+            archive.unlink(missing_ok=True)
+            return
+
+        def task() -> ImportResult:
+            try:
+                # 任务槽已经持有写锁，这里不能再取一次
+                return self._import_plugin_unlocked(
+                    archive,
+                    overwrite=True,
+                    package_dir=existing_dir,
+                    action_name=action_name,
+                )
+            finally:
+                archive.unlink(missing_ok=True)
+
+        started = self._start_plugin_task(
+            task,
+            partial(self._finish_overwrite_after_download, entry, action_name, archive),
+        )
+        if not started:
+            # 任务没跑起来，task 里的 finally 不会执行，安装包要在这里清掉
+            archive.unlink(missing_ok=True)
+
+    def _show_legacy_plugin_error(self, message: str) -> None:
+        """旧标准插件装不了，说明缺哪个文件。"""
+        self._show_error(gt('无法安装'), message)
+
+    def _finish_overwrite_after_download(
+        self,
+        entry: MarketPlugin,
+        action_name: str,
+        archive: Path,
+        result: ImportResult,
+    ) -> None:
+        """覆盖安装结束后清理安装包、复位按钮并汇报结果。"""
+        archive.unlink(missing_ok=True)
+        self._finish_plugin_task()
+        self._handle_subscription_results([result], entry, action_name)
 
     @staticmethod
     def _sha256_of(path: Path) -> str:
@@ -829,13 +943,14 @@ class PluginOperationMixin:
         )
 
     def _find_package_dir_of_result(self, result: ImportResult) -> Path | None:
+        """导入结果对应的插件目录，用于写订阅记录。"""
         if result.plugin_dir is None:
             return None
         plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
         plugin_dir = result.plugin_dir.resolve(strict=False)
         if not plugin_dir.is_relative_to(plugins_root) or plugin_dir == plugins_root:
             return None
-        return plugins_root / plugin_dir.relative_to(plugins_root).parts[0]
+        return plugin_dir
 
     def _find_app_id_by_package(self, package_dir: Path | None) -> str:
         if package_dir is None:
@@ -846,43 +961,6 @@ class PluginOperationMixin:
                 return plugin_info.app_id
         return ''
 
-    def _reject_repo_layout_plugin(self, plugin_info: PluginInfo, action_name: str) -> bool:
-        """仓库布局的插件（plugins/<仓库>/<插件>/）和带 git 仓库的插件不能由这里删除或覆盖。
-
-        卸载和更新都是按 plugins 下的顶层目录整体删除或替换，对仓库布局会连
-        仓库里的 .git 和未提交的开发文件一起处理掉，所以直接拒绝并提示手动处理。
-
-        Args:
-            plugin_info: 插件信息。
-            action_name: 操作名，用于提示文案。
-
-        Returns:
-            True 表示已拒绝并弹出提示，调用方应直接返回。
-        """
-        if plugin_info.plugin_dir is None:
-            return False
-        plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
-        plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
-        if not plugin_dir.is_relative_to(plugins_root) or plugin_dir == plugins_root:
-            return False
-        top_dir = plugins_root / plugin_dir.relative_to(plugins_root).parts[0]
-        git_dir = find_git_repo(top_dir)
-        if git_dir is not None:
-            self._show_error(
-                gt('无法{action}').format(action=action_name),
-                gt('该插件目录含 git 仓库，请用 git 管理：{path}').format(path=git_dir),
-            )
-            return True
-        if plugin_dir.parent == plugins_root:
-            return False
-        self._show_error(
-            gt('无法{action}').format(action=action_name),
-            gt('该插件位于源码仓库目录中，请在 plugins 目录里手动处理仓库：{path}').format(
-                path=plugin_dir.parent
-            ),
-        )
-        return True
-
     def unsubscribe(
         self,
         plugin_info: PluginInfo,
@@ -891,8 +969,6 @@ class PluginOperationMixin:
     ) -> None:
         """删除插件目录。订阅来的插件文案用取消订阅，本地安装用卸载。"""
         if self._import_busy:
-            return
-        if self._reject_repo_layout_plugin(plugin_info, gt('卸载')):
             return
 
         if subscribed is None:
@@ -974,11 +1050,14 @@ class PluginOperationMixin:
         self,
         task: Callable[[], _T],
         on_finished: Callable[[_T], None],
-    ) -> None:
+    ) -> bool:
         """在后台线程执行一次插件操作。
 
         入口处的忙碌检查由各操作自己负责；这里只保证全局同时只有一个写任务，
         因为任务链（预览完接着导入）需要在 busy 尚未复位的回调里直接续跑。
+
+        Returns:
+            是否成功占用任务槽。返回 False 时任务没有执行，调用方要自己收拾现场。
         """
         runner = PluginImportRunner(task, self._as_widget())
         if not _claim_task_slot(runner):
@@ -990,7 +1069,7 @@ class PluginOperationMixin:
                 gt('有插件操作正在进行'),
                 gt('请等上一个插件操作完成后再试'),
             )
-            return
+            return False
 
         # 结果回调先释放占位，再交给业务处理：业务处理里可能马上要启动下一段任务
         runner.task_finished.connect(
@@ -1002,6 +1081,7 @@ class PluginOperationMixin:
         runner.finished.connect(runner.deleteLater)
         self._set_plugin_busy(True)
         runner.start()
+        return True
 
     def _ignore_version(self, entry: MarketPlugin, plugin_info: PluginInfo | None) -> None:
         """忽略某个市场版本。
@@ -1065,7 +1145,11 @@ class PluginOperationMixin:
     # ------------------------------------------------------------------
 
     def get_plugin_package_dir(self, plugin_info: PluginInfo) -> Path | None:
-        """获取插件所属的顶层插件目录。"""
+        """获取插件自己的目录。
+
+        扁平布局是 ``plugins/<插件>``，仓库布局是 ``plugins/<仓库>/<插件>``。
+        删除、覆盖、运行判断都只针对这一层，仓库目录本身不动。
+        """
         if plugin_info.plugin_dir is None:
             return None
 
@@ -1073,9 +1157,7 @@ class PluginOperationMixin:
         plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
         if plugin_dir == plugins_root or not plugin_dir.is_relative_to(plugins_root):
             return None
-
-        relative_path = plugin_dir.relative_to(plugins_root)
-        return plugins_root / relative_path.parts[0]
+        return plugin_dir
 
     def is_plugin_running(self, plugin_package_dir: Path) -> bool:
         """判断插件包中是否有应用正在运行。"""

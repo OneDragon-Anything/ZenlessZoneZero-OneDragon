@@ -43,6 +43,10 @@ if TYPE_CHECKING:
 _MAX_EXTRACT_SIZE: int = 512 * 1024 * 1024
 
 
+class LegacyPluginError(ValueError):
+    """插件使用的是旧标准命名，不能再安装。"""
+
+
 @dataclass
 class ImportResult:
     """导入操作结果
@@ -60,6 +64,8 @@ class ImportResult:
     message: str
     plugin_dir: Path | None = None
     new_version: str | None = None
+    legacy: bool = False
+    """插件使用旧标准命名，安装被拒绝。"""
 
 
 @dataclass
@@ -228,6 +234,15 @@ class PluginImportService:
                     self._import_zip_layout(zf, layout, overwrite)
                     for layout in layouts
                 ]
+        except LegacyPluginError as e:
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message=str(e),
+                    legacy=True,
+                )
+            ]
         except ValueError as e:
             return [
                 ImportResult(
@@ -446,6 +461,16 @@ class PluginImportService:
             if len(root_const_paths) > 1:
                 raise ValueError("无效的插件结构: 插件根目录不能包含多个常量文件（const.py / *_const.py）")
 
+            # 固定文件名是新标准；只剩旧后缀的是没跟上规范的旧插件，不能再安装
+            missing_files: list[str] = []
+            if root_factory_paths[0].name != 'factory.py':
+                missing_files.append('factory.py')
+            if root_const_paths[0].name != 'const.py':
+                missing_files.append('const.py')
+            if missing_files:
+                raise LegacyPluginError(
+                    f"插件缺乏 {'、'.join(missing_files)} 文件，请更新到最新规范"
+                )
             plugin_roots.append(factory_dir)
 
         return plugin_roots
@@ -519,6 +544,8 @@ class PluginImportService:
             const_file = self._find_primary_const_file(dir_path)
             self._validate_plugin_dir_name(plugin_name)
             self._validate_directory_symlinks(dir_path)
+        except LegacyPluginError as e:
+            return ImportResult(success=False, plugin_name=plugin_name, message=str(e), legacy=True)
         except (OSError, ValueError) as e:
             return ImportResult(success=False, plugin_name=plugin_name, message=str(e))
 
@@ -563,6 +590,8 @@ class PluginImportService:
                     for layout in layouts
                     if layout.plugin_dir_name.casefold() in requested_names
                 ]
+        except LegacyPluginError as e:
+            return [ImportResult(success=False, plugin_name=source_name, message=str(e), legacy=True)]
         except (OSError, ValueError) as e:
             return [ImportResult(success=False, plugin_name=source_name, message=str(e))]
 
