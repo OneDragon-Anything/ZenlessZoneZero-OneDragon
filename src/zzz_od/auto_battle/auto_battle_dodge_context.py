@@ -24,19 +24,17 @@ if TYPE_CHECKING:
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 
-# 创建一个线程池执行器，用于异步执行任务
-_dodge_check_executor = ThreadPoolExecutor(thread_name_prefix='od_dodge_check', max_workers=16)
-
-
 class AudioRecorder:
     """
     音频录制类，用于录制和处理音频数据。
     """
 
-    def __init__(self, error_callback: Callable[[RuntimeError], None] | None = None):
+    def __init__(self, error_callback: Callable[[RuntimeError], None] | None = None,
+                 executor: ThreadPoolExecutor | None = None):
         self.running: bool = False  # 标记录制是否正在运行
         self._run_lock = threading.Lock()  # 用于线程安全的锁
         self._error_callback: Callable[[RuntimeError], None] | None = error_callback
+        self._executor: ThreadPoolExecutor | None = executor  # 由持有方注入 生命周期跟持有实例走
 
         self._sample_rate = 32000  # 采样率
         self._used_channel = 2  # 使用的音频通道数
@@ -71,7 +69,7 @@ class AudioRecorder:
             self.running = True
 
         self.latest_audio = np.zeros(int(self._sample_rate // 2))  # 初始化音频数据缓冲区，长度为0.5秒
-        future = _dodge_check_executor.submit(self._record_loop)
+        future = self._executor.submit(self._record_loop)
         future.add_done_callback(thread_utils.handle_future_result)
 
     def _record_loop(self) -> None:
@@ -148,8 +146,11 @@ class AutoBattleDodgeContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx  # 上下文对象
 
+        # 闪避识别线程池：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
+        self._dodge_check_executor = ThreadPoolExecutor(thread_name_prefix='od_dodge_check', max_workers=16)
         self._flash_model: FlashClassifier | None = None  # 闪避分类器
-        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error)  # 音频录制器
+        self._audio_recorder: AudioRecorder = AudioRecorder(self._on_audio_record_error,
+                                                            executor=self._dodge_check_executor)  # 音频录制器
         self._audio_template: np.ndarray | None = None  # 音频模板
 
         # 识别锁，保证每种类型只有一个实例在进行识别
@@ -214,7 +215,7 @@ class AutoBattleDodgeContext:
         self._last_check_audio_time = 0
 
         # 异步加载音频模板
-        _dodge_check_executor.submit(self.init_audio_template)
+        self._dodge_check_executor.submit(self.init_audio_template)
 
     def init_audio_template(self) -> None:
         """
@@ -358,4 +359,4 @@ class AutoBattleDodgeContext:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         """
-        _dodge_check_executor.shutdown(wait=False, cancel_futures=True)
+        self._dodge_check_executor.shutdown(wait=False, cancel_futures=True)

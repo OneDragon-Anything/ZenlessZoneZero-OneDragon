@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
-_battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
-
 _AGENT_LIST_DIFF_SECONDS: float = 30.0  # 名单持续对不上这个时长就重新全量识别 太短会在换人换位的过渡期反复全量
 
 _agent_state_check_method: dict[AgentStateCheckWay, Callable] = {
@@ -298,6 +296,8 @@ class AutoBattleAgentContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+        # 角色识别线程池：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
+        self._battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
         self.team_info: TeamInfo = TeamInfo()
 
         # 识别锁 保证每种类型只有1实例在进行识别
@@ -452,7 +452,7 @@ class AutoBattleAgentContext:
 
         for i in range(4):
             if should_check[i]:
-                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents))
+                future_list.append(self._battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents))
             else:
                 future_list.append(None)
 
@@ -538,7 +538,7 @@ class AutoBattleAgentContext:
         """
         future_list: List[Future] = []
         for state in agent_state_list:
-            future_list.append(_battle_agent_context_executor.submit(self._check_agent_state, screen, screenshot_time, state))
+            future_list.append(self._battle_agent_context_executor.submit(self._check_agent_state, screen, screenshot_time, state))
 
         result_list: List[Optional[StateRecord]] = []
         for future in future_list:
@@ -929,7 +929,7 @@ class AutoBattleAgentContext:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         """
-        _battle_agent_context_executor.shutdown(wait=False, cancel_futures=True)
+        self._battle_agent_context_executor.shutdown(wait=False, cancel_futures=True)
 
 
 def _debug_check_agent_in_parallel():
