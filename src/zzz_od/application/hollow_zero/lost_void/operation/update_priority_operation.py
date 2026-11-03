@@ -1,8 +1,11 @@
 import re
+import time
+from pathlib import Path
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -10,8 +13,17 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class UpdatePriorityOperation(ZOperation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, plan_route: bool = False, route_blocked_type_list: list[str] | None = None):
+        """
+        :param plan_route: 打开菜单后是否用地图页规划路线 只在需要规划时传 True
+        :param route_blocked_type_list: 当前房间寻路会忽略的入口类型 规划时第一步不走这些门
+        """
         super().__init__(ctx, op_name='更新动态优先级')
+
+        self.plan_route: bool = plan_route
+        self.route_blocked_type_list: list[str] = route_blocked_type_list if route_blocked_type_list is not None else []
+
+        self.map_to_save: bool = False  # 刚打开菜单 当前画面是地图页 还没处理
 
     @staticmethod
     def _extract_priority_category_from_text(text: str) -> str | None:
@@ -48,7 +60,16 @@ class UpdatePriorityOperation(ZOperation):
         # 1: 打开菜单
         result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
         if result.is_success:
+            self.map_to_save = True
             return self.round_wait(status=result.status, wait=1)
+
+        # 菜单打开后默认是地图页 用来规划路线 debug 模式下保存截图供核对
+        if self.map_to_save and self.plan_route:
+            self.map_to_save = False
+            if self.ctx.env_config.is_debug:
+                map_dir = Path(os_utils.get_path_under_work_dir('.debug', 'lost_void_map'))
+                cv2_utils.save_image(self.last_screenshot, str(map_dir / f'map_{round(time.time() * 1000)}.jpg'))
+            self.ctx.lost_void.plan_route_by_map(self.last_screenshot, self.route_blocked_type_list)
 
         # 2: 切换到藏品页
         result = self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品')
