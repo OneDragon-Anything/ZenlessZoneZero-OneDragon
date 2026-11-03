@@ -52,6 +52,7 @@ class InstanceSettingCard(MultiPushSettingCard):
     delete = Signal(int)
 
     def __init__(self, instance: OneDragonInstance):
+        """初始化实例设置卡片的名称、运行方式与操作按钮"""
         self.instance: OneDragonInstance = instance
 
         self.instance_name_input = LineEdit()
@@ -63,7 +64,7 @@ class InstanceSettingCard(MultiPushSettingCard):
         target_idx = 0
         for run_idx, opt_enum in enumerate(RunInOneDragonApp):
             opt = opt_enum.value
-            self.run_opt.addItem(text=opt.label, userData=opt.value)
+            self.run_opt.addItem(text=opt.ui_text, userData=opt.value)
             if opt.value == self.instance.active_in_od:
                 target_idx = run_idx
         self.run_opt.setCurrentIndex(target_idx)

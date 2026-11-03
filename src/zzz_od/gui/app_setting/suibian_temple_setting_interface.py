@@ -3,6 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QLabel, QWidget
 from qfluentwidgets import FluentIcon
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
@@ -43,6 +44,7 @@ class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.config: SuibianTempleConfig | None = None
 
     def get_content_widget(self) -> QWidget:
+        """构建随便观设置页面内容"""
         content_widget = Column()
 
         self.auto_manage_switch = SwitchSettingCard(
@@ -124,11 +126,11 @@ class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
             icon=FluentIcon.VIDEO,
             title="邦巢-最低购买价格",
             btn_list=[
-                QLabel('游历'),
+                QLabel(gt('游历')),
                 self.boo_box_adventure_price,
-                QLabel('制造'),
+                QLabel(gt('制造')),
                 self.boo_box_craft_price,
-                QLabel('售卖'),
+                QLabel(gt('售卖')),
                 self.boo_box_sell_price,
             ]
         )
