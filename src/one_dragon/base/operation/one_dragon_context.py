@@ -636,7 +636,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             return True
 
         request = ContextDownloadRequestEvent(title=title, note=note)
-        self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request)
+        if not self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request):
+            # 事件总线已关闭（App 关闭阶段）无前端可应答 直接取消下载
+            log.warning('资源下载确认事件派发失败，已取消本次下载')
+            return False
         if not request.wait(timeout=300):
             log.warning('资源下载确认超时，已取消本次下载')
             return False
