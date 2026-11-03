@@ -23,6 +23,7 @@ from one_dragon_qt.services.download_queue_service import (
     ResourceDownloadTask,
     ResourceDownloadTaskState,
 )
+from one_dragon_qt.services.plugin_update_provider import PluginUpdateProvider
 from one_dragon_qt.widgets.resource_download_dialog import ResourceUpdateDialog
 
 if TYPE_CHECKING:
@@ -106,6 +107,14 @@ class ResourceUpdateCoordinator(QObject):
                 check_id='project_models',
                 check_update=self.ctx.model_config.needs_model_download,
                 build_specs=self._build_model_specs,
+            )
+        )
+        self._plugin_updates = PluginUpdateProvider(self.ctx, self.window, self)
+        self._register_check(
+            _ResourceCheck(
+                check_id='plugins',
+                check_update=self._plugin_updates.check_update,
+                build_specs=self._plugin_updates.build_specs,
             )
         )
 
@@ -198,37 +207,39 @@ class ResourceUpdateCoordinator(QObject):
             if spec.resource_type != 'ocr'
         )
 
-        selected_specs: list[ResourceDownloadSpec]
+        # 免确认的官方资源直接入队，不进弹窗；第三方插件未经审查，始终需要确认。
+        # 只要还有需要确认的项就弹一次统一弹窗，否则不弹。
+        no_confirm = self.ctx.env_config.resource_download_no_confirm
+        auto_specs = [
+            spec for spec in specs
+            if no_confirm and spec.resource_type != 'plugin'
+        ]
+        confirm_specs = [spec for spec in specs if spec not in auto_specs]
+        selected_specs = list(auto_specs)
         remember_choice = False
-        if self.ctx.env_config.resource_download_no_confirm:
-            selected_specs = specs
-        else:
+        if confirm_specs:
             dialog = ResourceUpdateDialog(
                 self.ctx,
                 self.queue,
-                specs,
+                confirm_specs,
                 title='发现可下载资源',
-                show_remember=included_ocr_request is not None,
+                show_remember=(
+                    included_ocr_request is not None
+                    and any(spec.resource_type == 'ocr' for spec in confirm_specs)
+                ),
                 parent=self.window,
             )
-            if not dialog.exec():
-                if included_ocr_request is not None:
-                    self._respond_ocr_request(
-                        included_ocr_request,
-                        False,
-                        False,
-                    )
-                self._update_dialog_open = False
-                self._reset_pending_updates()
-                return
-            selected_specs = dialog.selected_specs()
-            remember_choice = dialog.remember_choice
+            if dialog.exec():
+                selected_specs.extend(dialog.selected_specs())
+                remember_choice = dialog.remember_choice
 
-        self._enqueue_selected_specs(
-            selected_specs,
-            included_ocr_request,
-            remember_choice,
-        )
+        # 用户取消后没有选中项时，仍要结束等待中的 OCR 请求
+        if selected_specs or included_ocr_request is not None:
+            self._enqueue_selected_specs(
+                selected_specs,
+                included_ocr_request,
+                remember_choice,
+            )
         self._update_dialog_open = False
         self._reset_pending_updates()
         self._schedule_update_dialog()
