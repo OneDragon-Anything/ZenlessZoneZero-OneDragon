@@ -172,8 +172,8 @@ class PluginCoverService(QObject):
         urls = resolve_cover_urls(cover_url)
         if not urls:
             return None
-        # 首选地址同时作为缓存文件与下载状态的键
-        url = next(iter(urls.values()))
+        # 按源ID排序取第一个 同时作为缓存文件与下载状态的键 缓存不随配置里的源顺序漂移
+        url = urls[min(urls)]
         key = f'url:{url}'
         if key in self._memory:
             return self._memory[key]
