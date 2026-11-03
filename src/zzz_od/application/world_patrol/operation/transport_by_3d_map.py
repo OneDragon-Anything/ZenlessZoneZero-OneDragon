@@ -43,7 +43,8 @@ class TransportBy3dMap(ZOperation):
         current_screen = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['3D地图'])
         if current_screen == '3D地图':
             return self.round_success(status=current_screen)
-        op = BackToNormalWorld(self.ctx)
+        # 嵌套指令在本节点一轮内同步执行 操作级超时覆盖不到 单独设置超时
+        op = BackToNormalWorld(self.ctx, timeout_seconds=120)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='初始回到大世界')
@@ -366,7 +367,8 @@ class TransportBy3dMap(ZOperation):
     @operation_node(name='等待画面加载')
     def back_at_last(self) -> OperationRoundResult:
         # allow_battle=True: 传送落地即进入战斗时直接返回，由调用方(如锄大地)处理战斗
-        op = BackToNormalWorld(self.ctx, allow_battle=True)
+        # 嵌套指令在本节点一轮内同步执行 操作级超时覆盖不到 单独设置超时
+        op = BackToNormalWorld(self.ctx, allow_battle=True, timeout_seconds=120)
         op_result = op.execute()
         if op_result.success and op_result.status in {'发现地图', '大世界-战斗'}:
             # 这两个状态只说明已回到大世界或落地进战斗，未必已经识别出普通/勘域；
