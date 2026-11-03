@@ -39,6 +39,7 @@ dev = [
     "mcp>=2.0.0,<3",
     "uvicorn>=0.30.0",
     "pyright>=1.1.411",
+    "pytest-cov>=6.0",
 ]
 
 gamepad = [
@@ -116,3 +117,9 @@ typeCheckingMode = "off"
 # (取代 CI 的 PYTHONPATH=src env 和测试文件里手动的 sys.path.insert)
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+# 覆盖率配置：按分支统计，用于找出未覆盖的分支后再补测试
+# 用法：uv run --env-file .env pytest zzz-od-test/ --cov --cov-report=term-missing:skip-covered
+[tool.coverage.run]
+branch = true
+source = ["src"]
