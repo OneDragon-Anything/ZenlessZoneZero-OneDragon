@@ -28,6 +28,12 @@ class KeyboardMouseController(PcButtonController):
         else:
             self.keyboard.tap(pc_button_utils.get_keyboard_button(key))
 
+    @staticmethod
+    def _is_unknown_keyboard_key(real_key) -> bool:
+        """键名不认识时 get_keyboard_button 不会报错，会原样返回字符串（认识的返回 Key/KeyCode）；
+        再往下发会抛异常，所以 press / release 都先拦掉，别让无效键进账本。"""
+        return isinstance(real_key, str)
+
     def press(self, key: str, press_time: float | None = None) -> None:
         """
         :param key: 按键
@@ -36,9 +42,7 @@ class KeyboardMouseController(PcButtonController):
         """
         is_mouse = pc_button_utils.is_mouse_button(key)
         real_key = pc_button_utils.get_mouse_button(key) if is_mouse else pc_button_utils.get_keyboard_button(key)
-        if not is_mouse and isinstance(real_key, str) and len(real_key) != 1:
-            # 键名不认识时取键那步不会报错，会原样返回字符串；再往下发就会抛异常，
-            # 而账本已经脏了。这里先拦掉，别让无效键进账本。
+        if not is_mouse and self._is_unknown_keyboard_key(real_key):
             log.error('无效的按键名 %r，未按下', key)
             return
         with self._pressed_lock:
@@ -68,11 +72,14 @@ class KeyboardMouseController(PcButtonController):
         """
         with self._pressed_lock:
             self._pressed_keys.discard(key)
-        is_mouse = pc_button_utils.is_mouse_button(key)
-        if is_mouse:
+        if pc_button_utils.is_mouse_button(key):
             self.mouse.release(pc_button_utils.get_mouse_button(key))
-        else:
-            self.keyboard.release(pc_button_utils.get_keyboard_button(key))
+            return
+        real_key = pc_button_utils.get_keyboard_button(key)
+        if self._is_unknown_keyboard_key(real_key):
+            log.error('无效的按键名 %r，未松开', key)
+            return
+        self.keyboard.release(real_key)
 
     def reset(self) -> None:
         with self._pressed_lock:
