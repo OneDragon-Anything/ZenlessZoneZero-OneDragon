@@ -134,6 +134,6 @@ if not getattr(sys, 'frozen', False):
     from threading import Event, Lock
     from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
-    from urllib.parse import urlencode, urljoin, urlparse
+    from urllib.parse import urlencode, urljoin, urlparse, urlsplit
     from uuid import uuid4
     from yaml import CSafeLoader, SafeLoader

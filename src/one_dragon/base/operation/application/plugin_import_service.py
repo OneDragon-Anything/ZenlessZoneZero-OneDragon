@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import os
 import re
 import shutil
@@ -26,13 +27,14 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from types import TracebackType
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     FACTORY_FILE_NAME,
-    find_git_repo,
+    has_factory_and_const,
     is_const_file,
     is_factory_file,
 )
@@ -41,6 +43,12 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 _MAX_EXTRACT_SIZE: int = 512 * 1024 * 1024
+_MANIFEST_FILE_NAME: str = "plugin.json"
+_MANIFEST_READ_LIMIT: int = 64 * 1024
+
+
+class LegacyPluginError(ValueError):
+    """插件使用的是旧标准命名，不能再安装。"""
 
 
 @dataclass
@@ -60,6 +68,8 @@ class ImportResult:
     message: str
     plugin_dir: Path | None = None
     new_version: str | None = None
+    legacy: bool = False
+    """插件使用旧标准命名，安装被拒绝。"""
 
 
 @dataclass
@@ -86,6 +96,7 @@ class _ZipLayout:
     plugin_dir_name: str
     members: list[tuple[zipfile.ZipInfo, PurePosixPath]]
     preview_const_info: zipfile.ZipInfo
+    repo_dir_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -95,6 +106,7 @@ class _DirectoryLayout:
     plugin_dir_name: str
     source_dir: Path
     preview_const_path: Path
+    repo_dir_name: str | None = None
 
 
 class PluginImportService:
@@ -228,6 +240,15 @@ class PluginImportService:
                     self._import_zip_layout(zf, layout, overwrite)
                     for layout in layouts
                 ]
+        except LegacyPluginError as e:
+            return [
+                ImportResult(
+                    success=False,
+                    plugin_name=source_name,
+                    message=str(e),
+                    legacy=True,
+                )
+            ]
         except ValueError as e:
             return [
                 ImportResult(
@@ -264,7 +285,7 @@ class PluginImportService:
         plugin_name = layout.plugin_dir_name
         staging_dir: Path | None = None
         try:
-            target_dir = self._get_target_dir(plugin_name)
+            target_dir = self._get_target_dir(plugin_name, layout.repo_dir_name)
             if self._path_exists(target_dir) and not overwrite:
                 return ImportResult(
                     success=False,
@@ -277,6 +298,7 @@ class PluginImportService:
             self._extract_plugin(zf, staging_dir, layout)
             self._find_primary_const_file(staging_dir)
             self._replace_plugin_dir(staging_dir, target_dir, overwrite)
+            self._remove_flat_plugin_leftover(plugin_name, layout.repo_dir_name, target_dir)
 
             log.info(f"插件导入成功: {plugin_name}")
             return ImportResult(
@@ -370,11 +392,26 @@ class PluginImportService:
             )
             if plugin_root.parts:
                 plugin_dir_name = plugin_root.name
+                # 压缩包带仓库层时保留它：<仓库>/<APP_ID>/ ->
+                # plugins/<仓库>/<APP_ID>/，与插件商店的源码布局一致。
+                repo_dir_name = plugin_root.parts[0] if len(plugin_root.parts) >= 2 else None
+                if repo_dir_name is None:
+                    # 旧的一层包没有仓库目录，改从 plugin.json 的 homepage 取仓库名。
+                    repo_dir_name = self._repo_dir_name_from_manifest(
+                        self._read_zip_member_text(
+                            zf,
+                            archive_members,
+                            plugin_root / _MANIFEST_FILE_NAME,
+                        )
+                    )
             elif root_factory_path.name == FACTORY_FILE_NAME:
                 raise ValueError("无效的插件结构: factory.py 直接放在压缩包根目录时无法确定插件目录名，请放进子目录")
             else:
                 plugin_dir_name = root_factory_path.name.removesuffix("_factory.py")
+                repo_dir_name = None
             self._validate_plugin_dir_name(plugin_dir_name)
+            if repo_dir_name is not None:
+                self._validate_plugin_dir_name(repo_dir_name)
 
             preview_const_path = next(
                 path
@@ -402,11 +439,110 @@ class PluginImportService:
                     plugin_dir_name=plugin_dir_name,
                     members=members,
                     preview_const_info=preview_const_info,
+                    repo_dir_name=repo_dir_name,
                 )
             )
 
-        self._validate_unique_plugin_names([layout.plugin_dir_name for layout in layouts])
+        self._validate_unique_plugin_names([
+            self._layout_display_name(layout.plugin_dir_name, layout.repo_dir_name)
+            for layout in layouts
+        ])
         return layouts
+
+    def _read_zip_member_text(
+        self,
+        zf: zipfile.ZipFile,
+        archive_members: list[tuple[zipfile.ZipInfo, PurePosixPath]],
+        target: PurePosixPath,
+        max_bytes: int = _MANIFEST_READ_LIMIT,
+    ) -> str | None:
+        """读取 ZIP 中指定成员的文本内容，读不到时返回 None。"""
+        info = next((info for info, path in archive_members if path == target), None)
+        if info is None or info.is_dir() or info.file_size > max_bytes:
+            return None
+        try:
+            with zf.open(info) as raw:
+                return raw.read(max_bytes).decode("utf-8-sig")
+        except (OSError, UnicodeDecodeError):
+            return None
+
+    def _read_manifest_text(self, manifest_path: Path) -> str | None:
+        """读取插件目录里的 plugin.json 文本，读不到时返回 None。"""
+        try:
+            if not manifest_path.is_file() or manifest_path.stat().st_size > _MANIFEST_READ_LIMIT:
+                return None
+            return manifest_path.read_text(encoding="utf-8-sig")
+        except (OSError, UnicodeDecodeError):
+            return None
+
+    def _repo_dir_name_from_manifest(self, manifest_content: str | None) -> str | None:
+        """从 plugin.json 的 homepage 末段推导仓库目录名，取不到时返回 None。"""
+        if not manifest_content:
+            return None
+        try:
+            manifest = json.loads(manifest_content)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(manifest, dict):
+            return None
+        homepage = manifest.get("homepage")
+        if not isinstance(homepage, str):
+            return None
+        # 只认完整地址，取路径末段；查询串和片段不参与命名
+        try:
+            parts = urlsplit(homepage.strip())
+        except ValueError:
+            # 畸形地址（例如 https://[bad/repo）解析会抛错，按取不到处理
+            return None
+        if not parts.netloc:
+            return None
+        path = parts.path.rstrip("/")
+        repo_name = path.rsplit("/", 1)[-1].strip() if path else ""
+        if repo_name.endswith(".git"):
+            repo_name = repo_name.removesuffix(".git")
+        if not repo_name or repo_name[-1] in ". ":
+            return None
+        if any(ch in repo_name for ch in '<>:"|?*'):
+            return None
+        try:
+            self._validate_plugin_dir_name(repo_name)
+        except ValueError:
+            return None
+        return repo_name
+
+    def _remove_flat_plugin_leftover(
+        self,
+        plugin_dir_name: str,
+        repo_dir_name: str | None,
+        target_dir: Path,
+    ) -> None:
+        """清掉同一插件的扁平旧目录，避免同一个插件装出两份。
+
+        旧版本装到 ``plugins/<id>``，新版本装到 ``plugins/<仓库>/<id>``。
+        目标目录装好后，旧的扁平目录就成了重复副本，这里删掉它。
+
+        同名不等于是同一个插件：``plugins/<id>`` 里可能放着另一个仓库的同名插件。
+        只有两边清单写的是同一个仓库，才认定它是本插件的旧布局；确认不了就保留。
+        """
+        if repo_dir_name is None:
+            return
+        plugins_root = self._plugins_root()
+        flat_dir = plugins_root / plugin_dir_name
+        if flat_dir == target_dir or not flat_dir.is_dir() or flat_dir.is_symlink():
+            return
+        if not has_factory_and_const(flat_dir):
+            return
+        flat_repo_name = self._repo_dir_name_from_manifest(
+            self._read_manifest_text(flat_dir / _MANIFEST_FILE_NAME)
+        )
+        if flat_repo_name != repo_dir_name:
+            log.info(f"保留同名但来源不同的插件目录: {flat_dir}")
+            return
+        try:
+            self._remove_path(flat_dir)
+            log.info(f"已清理旧布局插件目录: {flat_dir}")
+        except Exception as e:
+            log.warning(f"清理旧布局插件目录失败: {flat_dir}, {e}")
 
     def _find_outermost_plugin_roots(
         self,
@@ -446,9 +582,24 @@ class PluginImportService:
             if len(root_const_paths) > 1:
                 raise ValueError("无效的插件结构: 插件根目录不能包含多个常量文件（const.py / *_const.py）")
 
+            # 固定文件名是新标准；只剩旧后缀的是没跟上规范的旧插件，不能再安装
+            missing_files: list[str] = []
+            if root_factory_paths[0].name != 'factory.py':
+                missing_files.append('factory.py')
+            if root_const_paths[0].name != 'const.py':
+                missing_files.append('const.py')
+            if missing_files:
+                raise LegacyPluginError(
+                    f"插件缺乏 {'、'.join(missing_files)} 文件，请更新到最新规范"
+                )
             plugin_roots.append(factory_dir)
 
         return plugin_roots
+
+    @staticmethod
+    def _layout_display_name(plugin_dir_name: str, repo_dir_name: str | None) -> str:
+        """插件在 plugins 下的相对路径表示，用于重名校验与日志。"""
+        return f"{repo_dir_name}/{plugin_dir_name}" if repo_dir_name else plugin_dir_name
 
     def _validate_unique_plugin_names(self, plugin_names: list[str]) -> None:
         """拒绝在 Windows 目标目录中会发生冲突的插件名。"""
@@ -563,6 +714,8 @@ class PluginImportService:
                     for layout in layouts
                     if layout.plugin_dir_name.casefold() in requested_names
                 ]
+        except LegacyPluginError as e:
+            return [ImportResult(success=False, plugin_name=source_name, message=str(e), legacy=True)]
         except (OSError, ValueError) as e:
             return [ImportResult(success=False, plugin_name=source_name, message=str(e))]
 
@@ -603,7 +756,7 @@ class PluginImportService:
         plugin_name = layout.plugin_dir_name
         staging_dir: Path | None = None
         try:
-            target_dir = self._get_target_dir(plugin_name)
+            target_dir = self._get_target_dir(plugin_name, layout.repo_dir_name)
             if self._path_exists(target_dir) and not overwrite:
                 return ImportResult(
                     success=False,
@@ -617,6 +770,7 @@ class PluginImportService:
             shutil.copytree(layout.source_dir, staging_dir)
             self._find_primary_const_file(staging_dir)
             self._replace_plugin_dir(staging_dir, target_dir, overwrite)
+            self._remove_flat_plugin_leftover(plugin_name, layout.repo_dir_name, target_dir)
             log.info(f"目录插件导入成功: {plugin_name}")
             return ImportResult(
                 success=True,
@@ -696,7 +850,16 @@ class PluginImportService:
                 else source_dir
             )
             plugin_dir_name = plugin_root.name if plugin_root.parts else source_dir.name
+            repo_dir_name = plugin_root.parts[0] if len(plugin_root.parts) >= 2 else None
+            if repo_dir_name is None:
+                # 旧的一层目录没有仓库层，改从 plugin.json 的 homepage 取仓库名。
+                manifest_path = plugin_source_dir / _MANIFEST_FILE_NAME
+                repo_dir_name = self._repo_dir_name_from_manifest(
+                    self._read_manifest_text(manifest_path)
+                )
             self._validate_plugin_dir_name(plugin_dir_name)
+            if repo_dir_name is not None:
+                self._validate_plugin_dir_name(repo_dir_name)
             preview_const_path = next(
                 path
                 for path in file_paths
@@ -707,10 +870,14 @@ class PluginImportService:
                     plugin_dir_name=plugin_dir_name,
                     source_dir=plugin_source_dir,
                     preview_const_path=source_dir.joinpath(*preview_const_path.parts),
+                    repo_dir_name=repo_dir_name,
                 )
             )
 
-        self._validate_unique_plugin_names([layout.plugin_dir_name for layout in layouts])
+        self._validate_unique_plugin_names([
+            self._layout_display_name(layout.plugin_dir_name, layout.repo_dir_name)
+            for layout in layouts
+        ])
         for layout in layouts:
             self._validate_directory_symlinks(layout.source_dir)
         return layouts
@@ -818,10 +985,24 @@ class PluginImportService:
         ):
             raise ValueError(f"无效的插件目录名: {plugin_dir_name}")
 
-    def _get_target_dir(self, plugin_dir_name: str) -> Path:
-        """返回安全的插件目标目录。"""
+    def _get_target_dir(self, plugin_dir_name: str, repo_dir_name: str | None = None) -> Path:
+        """返回安全的插件目标目录。
+
+        带仓库层时落到 ``plugins/<仓库>/<APP_ID>``，与插件商店的源码布局一致；
+        不带仓库层时落到 ``plugins/<APP_ID>``，兼容旧的一层安装包。
+        """
         self._validate_plugin_dir_name(plugin_dir_name)
-        target_dir = self._plugins_root() / plugin_dir_name
+        plugins_root = self._plugins_root()
+        if repo_dir_name is None:
+            target_dir = plugins_root / plugin_dir_name
+        else:
+            self._validate_plugin_dir_name(repo_dir_name)
+            repo_dir = plugins_root / repo_dir_name
+            if repo_dir.is_symlink():
+                raise ValueError("插件仓库目录不能是符号链接")
+            if repo_dir.exists() and not repo_dir.is_dir():
+                raise ValueError("插件仓库路径不是目录")
+            target_dir = repo_dir / plugin_dir_name
         if target_dir.is_symlink():
             raise ValueError("插件目标目录不能是符号链接")
         if target_dir.exists() and not target_dir.is_dir():
@@ -836,6 +1017,7 @@ class PluginImportService:
 
     def _replace_plugin_dir(self, staging_dir: Path, target_dir: Path, overwrite: bool) -> None:
         """用已完成的临时目录替换目标目录，失败时恢复旧版本。"""
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
         backup_dir: Path | None = None
         if self._path_exists(target_dir):
             if not overwrite:
@@ -844,11 +1026,6 @@ class PluginImportService:
                 raise ValueError("插件目标目录不能是符号链接")
             if not target_dir.is_dir():
                 raise ValueError("插件目标路径不是目录")
-            git_dir = find_git_repo(target_dir)
-            if git_dir is not None:
-                raise ValueError(
-                    f"插件目录含 git 仓库（{git_dir.name}），不能覆盖安装，请用 git 更新"
-                )
             backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
             target_dir.replace(backup_dir)
 
@@ -889,11 +1066,12 @@ class PluginImportService:
                 message="只能删除 plugins 目录下的插件",
             )
 
-        if plugin_dir_resolved.parent != plugins_root:
+        parent_dir = plugin_dir_resolved.parent
+        if parent_dir != plugins_root and parent_dir.parent != plugins_root:
             return ImportResult(
                 success=False,
                 plugin_name=plugin_name,
-                message="只能删除 plugins 目录下的顶层插件目录",
+                message="只能删除 plugins 目录下的插件目录",
             )
 
         if not plugin_dir_resolved.exists():
@@ -908,14 +1086,6 @@ class PluginImportService:
                 success=False,
                 plugin_name=plugin_name,
                 message="只能删除插件目录",
-            )
-
-        git_dir = find_git_repo(plugin_dir_resolved)
-        if git_dir is not None:
-            return ImportResult(
-                success=False,
-                plugin_name=plugin_name,
-                message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
             )
 
         try:
