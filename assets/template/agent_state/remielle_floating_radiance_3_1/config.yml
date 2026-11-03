@@ -4,5 +4,5 @@ template_name: 角色状态-蕾米埃尔-浮晖-31
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 142, 120
-- 212, 121
+- 143, 120
+- 211, 121
