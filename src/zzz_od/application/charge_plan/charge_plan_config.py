@@ -386,8 +386,13 @@ class ChargePlanConfig(ApplicationConfig):
 
         合法返 None,非法返原因(含合法值)。供 MCP config 工具写入前校验。
         """
-        if not 0 <= item.battle_timeout_seconds <= 600:
-            return f'battle_timeout_seconds 必须在 0..600 之间(当前: {item.battle_timeout_seconds})'
+        timeout_seconds = item.battle_timeout_seconds
+        if (
+            not isinstance(timeout_seconds, int)
+            or isinstance(timeout_seconds, bool)
+            or not 0 <= timeout_seconds <= 600
+        ):
+            return f'battle_timeout_seconds 必须为 0..600 之间的整数(当前: {timeout_seconds})'
 
         categories = [c.value for c in ctx.compendium_service.get_charge_plan_category_list()]
         if item.category_name not in categories:

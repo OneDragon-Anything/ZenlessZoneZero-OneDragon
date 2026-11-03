@@ -210,6 +210,7 @@ class ChargePlanCard(DraggableListItem):
         self.plan_times_input.blockSignals(False)
 
     def init_battle_timeout_input(self) -> None:
+        """按玩法分类显示时限控件和预设按钮，并回填已保存的秒数。"""
         preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
         self.battle_timeout_input.blockSignals(True)
         self.battle_timeout_input.setValue(self.plan.battle_timeout_seconds)
@@ -304,10 +305,16 @@ class ChargePlanCard(DraggableListItem):
         self._emit_value()
 
     def _on_battle_timeout_changed(self, value: int) -> None:
+        """更新换队时限并发出计划变更信号。
+
+        Args:
+            value: 换队时限，单位为秒，0 表示关闭。
+        """
         self.plan.battle_timeout_seconds = value
         self._emit_value()
 
     def _on_battle_timeout_preset_clicked(self) -> None:
+        """将换队时限设为当前玩法的 S 级预设值。"""
         preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
         if preset_seconds is not None:
             self.battle_timeout_input.setValue(preset_seconds)
@@ -430,6 +437,7 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         self.auto_battle_combo_box.setVisible(self.plan.predefined_team_idx == -1)
 
     def init_battle_timeout_input(self) -> None:
+        """按玩法分类显示时限控件和预设按钮，并回填已保存的秒数。"""
         preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
         self.battle_timeout_input.blockSignals(True)
         self.battle_timeout_input.setValue(self.plan.battle_timeout_seconds)
@@ -459,10 +467,16 @@ class DoubleRewardEventConfigCard(MultiLineSettingCard):
         self._emit_value()
 
     def _on_battle_timeout_changed(self, value: int) -> None:
+        """更新换队时限并发出计划变更信号。
+
+        Args:
+            value: 换队时限，单位为秒，0 表示关闭。
+        """
         self.plan.battle_timeout_seconds = value
         self._emit_value()
 
     def _on_battle_timeout_preset_clicked(self) -> None:
+        """将换队时限设为当前玩法的 S 级预设值。"""
         preset_seconds = charge_plan_const.S_RANK_BATTLE_TIMEOUT_SECONDS.get(self.plan.category_name)
         if preset_seconds is not None:
             self.battle_timeout_input.setValue(preset_seconds)
