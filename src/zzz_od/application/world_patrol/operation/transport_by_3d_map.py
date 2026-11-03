@@ -30,7 +30,10 @@ class TransportBy3dMap(ZOperation):
         """
         使用3D地图 传送指定的传送点
         """
-        ZOperation.__init__(self, ctx, op_name=gt('传送'))
+        # 整体超时兜底：点击小地图无效等异常画面会让 WAIT 分支无限循环（不计重试），
+        # 也可能陷入「选择区域↔选择子区域」往返（每个节点进入时重试次数会被清零），
+        # 必须由操作级超时统一终止，失败后由外层(运行路线)跳过或重试该路线
+        ZOperation.__init__(self, ctx, op_name=gt('传送'), timeout_seconds=300)
 
         self.target_area: WorldPatrolArea = area
         self.target_tp_name: str = tp_name
@@ -44,7 +47,7 @@ class TransportBy3dMap(ZOperation):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='初始回到大世界')
-    @operation_node(name='打开3D地图')
+    @operation_node(name='打开3D地图', timeout_seconds=60)
     def open_map(self) -> OperationRoundResult:
         current_screen = screen_utils.get_match_screen_name(self.ctx, self.last_screenshot, screen_name_list=['3D地图'])
         if current_screen == '3D地图':
