@@ -375,13 +375,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
-            # 只有配置了 ghproxy 代理且开启了自动获取时才探测代理线路
-            if self.env_config.is_gh_proxy and self.env_config.auto_fetch_gh_proxy_url:
-                self.gh_proxy_service.update_proxy_url()
-
             self.init_others()
 
             self._start_btn_listener()
+
+            # 逐条探测会发网络请求 放到界面可以响应之后再探
+            if self.env_config.is_gh_proxy and self.env_config.auto_fetch_gh_proxy_url:
+                self.gh_proxy_service.update_proxy_url()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:

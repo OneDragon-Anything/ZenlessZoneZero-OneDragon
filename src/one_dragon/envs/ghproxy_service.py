@@ -9,6 +9,8 @@ _PROBE_GITHUB_URL = 'https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDr
 """探测用的 GitHub 小文件，取到内容就认为线路可用。"""
 
 _PROBE_TIMEOUT_SECONDS = 8
+_PROBE_CONTENT_PREFIX = b'[project]'
+"""探测文件（pyproject.toml）开头的固定内容；挑战页是 HTML，对不上这个前缀。"""
 
 
 class GhProxyService:
@@ -77,7 +79,7 @@ class GhProxyService:
             proxy_url: 代理根地址，例如 `https://gh-proxy.com`。
 
         Returns:
-            能取到内容返回 True，非 200 或任何异常返回 False。
+            内容正常返回 True；非 200、返回 HTML 挑战页或任何异常返回 False。
         """
         probe_url = f'{proxy_url.rstrip("/")}/{_PROBE_GITHUB_URL}'
         try:
@@ -85,7 +87,10 @@ class GhProxyService:
             try:
                 if response.status_code != 200:
                     return False
-                return any(True for _ in response.iter_content(chunk_size=1024))
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        return chunk.lstrip().startswith(_PROBE_CONTENT_PREFIX)
+                return False
             finally:
                 response.close()
         except Exception:

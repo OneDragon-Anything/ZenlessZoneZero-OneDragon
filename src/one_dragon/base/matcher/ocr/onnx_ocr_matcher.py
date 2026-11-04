@@ -178,6 +178,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._model = None
         self._init_lock = threading.Lock()
         self._loading: bool = False
+        self._gh_proxy_service: GhProxyService | None = None
+        """首次显式初始化时传入的代理服务，后续懒加载沿用它。"""
 
     @staticmethod
     def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
@@ -229,12 +231,16 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 log.info('加载OCR模型完毕')
                 return True
 
+            # 懒加载时不一定再传一遍代理服务 记住显式传过的那份
+            if gh_proxy_service is not None:
+                self._gh_proxy_service = gh_proxy_service
+
             # 先检查模型文件和下载模型
             done: bool = self.download(
                 source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
-                gh_proxy_service=gh_proxy_service,
+                gh_proxy_service=self._gh_proxy_service,
                 skip_if_existed=skip_if_existed,
                 progress_callback=progress_callback,
                 on_source_success=on_source_success,

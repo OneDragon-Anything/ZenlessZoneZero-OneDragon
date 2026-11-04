@@ -1876,7 +1876,7 @@ class GitService:
 
         heads = None
         try:
-            for repository, repository_url in self._get_repository_candidates():
+            for repository, repository_url in self._get_fetch_candidates():
                 repository_name = self._get_repository_item(repository).ui_text
                 try:
                     remote = self._ensure_remote(repository_url)
@@ -1884,6 +1884,11 @@ class GitService:
                     with self._temporary_fetch_timeout():
                         heads = remote.list_heads(callbacks=callbacks, proxy=self._get_proxy_address())
                     log.info(f'标签查询使用代码源: {repository_name}')
+                    if self.env_config.is_gh_proxy:
+                        try:
+                            self.gh_proxy_service.remember_success_by_url(repository_url)
+                        except Exception:
+                            log.warning(f'记录 GitHub 代理线路失败 {repository_url}', exc_info=True)
                     break
                 except Exception:
                     log.warning(f'代码源 {repository_name} 获取标签失败，尝试下一个代码源', exc_info=True)
