@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -340,21 +341,34 @@ def scroll_area(
     ctx.controller.drag_to(start=start, end=end, duration=duration)
 
 
+# 识别失败日志里最多列出的接近匹配画面数；其余只报数量，避免一条日志把所有画面都刷出来
+_MAX_LISTED_SCREENS = 3
+
+
+@dataclass
+class _ScreenMatchDiag:
+    """画面识别失败的诊断结果。"""
+
+    near_miss_map: dict[str, list[str]] = field(default_factory=dict)  # 键为画面名，值为未命中的 id_mark 区域描述
+    candidate_total: int = 0  # 参与判断的候选画面数
+    skipped_no_id_mark: int = 0  # 没有可用画面标识(id_mark) 而无法判断的画面数
+
+
 def _match_screen_or_collect_failure(
     ctx: OneDragonContext,
     screen: MatLike,
     screen_info: ScreenInfo,
-    near_miss_map: dict[str, list[str]] | None,
+    diag: _ScreenMatchDiag | None,
     crop_first: bool = True,
 ) -> str | None:
     """
-    判断单个画面是否匹配；不匹配时把未命中的画面标识特征收集进 near_miss_map。
+    判断单个画面是否匹配；不匹配时把诊断信息收集进 diag。
 
     Args:
         ctx: 上下文
         screen: 游戏截图
         screen_info: 待判断的画面
-        near_miss_map: 可选的失败特征收集表。键为画面名，值为未命中的 id_mark 区域描述
+        diag: 可选的失败诊断收集器。记录未命中的 id_mark 区域、候选数量、无标识被跳过的数量
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
 
     Returns:
@@ -363,30 +377,50 @@ def _match_screen_or_collect_failure(
     matched, failed_marks = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
     if matched:
         return screen_info.screen_name
-    if near_miss_map is not None and failed_marks:
-        near_miss_map[screen_info.screen_name] = failed_marks
+    if diag is not None:
+        diag.candidate_total += 1
+        if failed_marks:
+            diag.near_miss_map[screen_info.screen_name] = failed_marks
+        else:
+            # 没有可用于判断的画面标识(id_mark) 单独计数, 否则日志只会说"没有接近匹配", 看不出真实原因
+            diag.skipped_no_id_mark += 1
     return None
 
 
-def _log_screen_match_failure(ctx: OneDragonContext, near_miss_map: dict[str, list[str]]) -> None:
+def _log_screen_match_failure(
+    ctx: OneDragonContext,
+    diag: _ScreenMatchDiag,
+    screen_name_list: list[str] | None = None,
+) -> None:
     """
     画面识别全部失败时，输出识别失败的日志，方便排查。
 
-    有接近匹配的画面（有画面标识 id_mark 但未命中）时，列出各自未命中的标识区域，
-    带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题；
-    完全没有接近匹配的画面（如候选画面没有 id_mark）时，只输出通用的识别失败日志，不静默。
+    有接近匹配的画面（有画面标识 id_mark 但未命中）时，按未命中标识数排序后列出前几个，
+    其余只报数量；带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题。
+    完全没有接近匹配的画面时，报出候选数量与"没有可用标识"的数量，不只给一句笼统结论。
 
     日志节流：同一失败详情只在首次出现时输出（识别成功后由调用方重置），
     避免导航等待循环每秒重复输出刷爆日志。
     """
-    if not near_miss_map:
-        detail = '未能识别当前画面，且没有接近匹配的画面'
-    else:
-        detail_list = '；'.join(
-            f'{screen_name}({", ".join(marks)})'
-            for screen_name, marks in near_miss_map.items()
+    scope = f'（限定候选 {len(screen_name_list)} 个）' if screen_name_list is not None else ''
+
+    if not diag.near_miss_map:
+        detail = (
+            f'未能识别当前画面{scope}：候选 {diag.candidate_total} 个，'
+            f'其中 {diag.skipped_no_id_mark} 个没有可用的画面标识(id_mark)'
         )
-        detail = f'未能识别当前画面，以下画面存在未命中的标识特征：{detail_list}'
+    else:
+        ordered = sorted(diag.near_miss_map.items(), key=lambda item: len(item[1]), reverse=True)
+        shown = '；'.join(
+            f'{screen_name}({", ".join(marks)})'
+            for screen_name, marks in ordered[:_MAX_LISTED_SCREENS]
+        )
+        detail = f'未能识别当前画面{scope}：{len(ordered)} 个画面接近匹配，{shown}'
+        rest = len(ordered) - _MAX_LISTED_SCREENS
+        if rest > 0:
+            detail += f'；…其余 {rest} 个画面未命中'
+        if diag.skipped_no_id_mark > 0:
+            detail += f'；另有 {diag.skipped_no_id_mark} 个画面没有可用的画面标识(id_mark)，未参与判断'
 
     screen_loader = ctx.screen_loader
     if screen_loader.last_screen_match_failure_detail == detail:
@@ -413,25 +447,25 @@ def get_match_screen_name(
     Returns:
         str | None: 画面名称
     """
-    near_miss_map: dict[str, list[str]] = {}
+    diag = _ScreenMatchDiag()
     target_name: str | None = None
     if screen_name_list is not None:
         for screen_info in ctx.screen_loader.screen_info_list:
             if screen_info.screen_name not in screen_name_list:
                 continue
             target_name = _match_screen_or_collect_failure(
-                ctx, screen, screen_info, near_miss_map, crop_first
+                ctx, screen, screen_info, diag, crop_first
             )
             if target_name is not None:
                 break
     elif ctx.screen_loader.current_screen_name is not None or ctx.screen_loader.last_screen_name is not None:
         target_name = get_match_screen_name_from_last(
-            ctx, screen, crop_first=crop_first, near_miss_map=near_miss_map
+            ctx, screen, crop_first=crop_first, diag=diag
         )
     else:
         for screen_info in ctx.screen_loader.active_screen_info_list:
             target_name = _match_screen_or_collect_failure(
-                ctx, screen, screen_info, near_miss_map, crop_first
+                ctx, screen, screen_info, diag, crop_first
             )
             if target_name is not None:
                 break
@@ -440,7 +474,7 @@ def get_match_screen_name(
         # 识别成功: 重置失败日志节流状态, 便于下次识别失败时重新输出诊断
         ctx.screen_loader.last_screen_match_failure_detail = None
         return target_name
-    _log_screen_match_failure(ctx, near_miss_map)
+    _log_screen_match_failure(ctx, diag, screen_name_list)
     return None
 
 
@@ -448,7 +482,7 @@ def get_match_screen_name_from_last(
     ctx: OneDragonContext,
     screen: MatLike,
     crop_first: bool = True,
-    near_miss_map: dict[str, list[str]] | None = None,
+    diag: _ScreenMatchDiag | None = None,
 ) -> str | None:
     """
     根据游戏截图 从上次记录的画面开始 匹配一个最合适的画面
@@ -456,7 +490,7 @@ def get_match_screen_name_from_last(
         ctx: 上下文
         screen: 游戏截图
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
-        near_miss_map: 可选的失败特征收集表，不匹配时把未命中的 id_mark 区域写入（供上层打日志）
+        diag: 可选的失败诊断收集器，不匹配时记录候选数量与未命中的 id_mark 区域（供上层打日志）
 
     Returns:
         str | None: 画面名称
@@ -495,7 +529,7 @@ def get_match_screen_name_from_last(
             continue
 
         target_name = _match_screen_or_collect_failure(
-            ctx, screen, screen_info, near_miss_map, crop_first
+            ctx, screen, screen_info, diag, crop_first
         )
         if target_name is not None:
             return target_name
@@ -512,7 +546,7 @@ def get_match_screen_name_from_last(
         if screen_info.screen_name in bfs_list:
             continue
         target_name = _match_screen_or_collect_failure(
-            ctx, screen, screen_info, near_miss_map, crop_first
+            ctx, screen, screen_info, diag, crop_first
         )
         if target_name is not None:
             return target_name
