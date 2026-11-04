@@ -72,6 +72,8 @@ class OpenGame(Operation):
         """
         self.ctx.controller.init_game_win()
         if not self.ctx.controller.is_game_window_ready:
+            # 窗口还没出现不算一次激活失败，计数归零，保证统计的是连续失败
+            self.activate_fail_times = 0
             return self.round_retry(wait=1)
 
         if self.ctx.controller.active_window():
@@ -82,6 +84,9 @@ class OpenGame(Operation):
 
         self.activate_fail_times += 1
         if self.activate_fail_times >= self.ACTIVE_WINDOW_MAX_FAIL_TIMES:
+            # 启动失败也要把 HDR 恢复回去，否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，
+            # 用户原本的 HDR 设置就再也回不来了
+            EnableAutoHDR(self.ctx).execute()
             return self.round_fail(
                 f'游戏窗口已打开但连续 {self.activate_fail_times} 次激活失败，'
                 '请检查是否有系统弹窗或其他窗口抢占前台'
