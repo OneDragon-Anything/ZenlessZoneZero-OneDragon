@@ -12,6 +12,7 @@ from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils import os_utils, cal_utils, cv2_utils
+from one_dragon.utils.log_utils import log
 
 TEMPLATE_RAW_FILE_NAME = 'raw.png'
 TEMPLATE_MASK_FILE_NAME = 'mask.png'
@@ -183,25 +184,33 @@ class TemplateInfo(YamlOperator):
         self.data = data
         YamlOperator.save(self)
 
-    def save_raw(self) -> None:
-        """
-        保存模板原图
-        :return:
+    def save_raw(self) -> bool:
+        """保存模板原图。
+
+        Returns:
+            写盘成功返回 True；抠不出原图或写盘失败返回 False。
         """
         self.make_template_dir()
         raw = self.get_template_raw_by_screen_point()
-        if raw is not None:
-            cv2_utils.save_image(raw, get_template_raw_path(self.sub_dir, self.template_id))
+        if raw is None:
+            log.warning(f'保存模板原图失败 抠不出原图 {self.sub_dir}/{self.template_id}')
+            return False
+        return cv2_utils.save_image(raw, get_template_raw_path(self.sub_dir, self.template_id))
 
-    def save_mask(self) -> None:
-        """
-        保存模板掩码
-        :return:
+    def save_mask(self) -> bool:
+        """保存模板掩码。
+
+        Returns:
+            写盘成功返回 True；未开启 auto_mask 不需要掩码也返回 True；写盘失败返回 False。
         """
         self.make_template_dir()
-        mask = self.get_template_mask_by_screen_point() if self.auto_mask else None
-        if mask is not None:
-            cv2_utils.save_image(mask, get_template_mask_path(self.sub_dir, self.template_id))
+        if not self.auto_mask:
+            return True
+        mask = self.get_template_mask_by_screen_point()
+        if mask is None:
+            log.warning(f'保存模板掩码失败 抠不出掩码 {self.sub_dir}/{self.template_id}')
+            return False
+        return cv2_utils.save_image(mask, get_template_mask_path(self.sub_dir, self.template_id))
 
     def delete(self) -> None:
         pass
