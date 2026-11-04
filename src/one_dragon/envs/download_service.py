@@ -75,8 +75,14 @@ class DownloadService:
 
                 success = self.download_env_file(file_name, str(zip_file_path), progress_callback)
                 if not success:
+                    # 下载失败也算一次尝试 和「解压失败」共用 retry_count
+                    if attempt < retry_count - 1:
+                        log.warning(f'下载失败 准备重试 {attempt + 1}/{retry_count}')
+                        continue
                     msg = gt('下载失败 请尝试更改网络代理')
                     log.error(msg)
+                    if progress_callback is not None:
+                        progress_callback(0, msg)
                     return False
 
             msg = f"{gt('正在解压')} {file_name}..."
