@@ -193,7 +193,6 @@ class PluginOperationMixin:
         self.plugin_import_service = PluginImportService(ctx)
         self.market_service = ctx.plugin_market_service
         self.subscription_config = ctx.plugin_subscription_config
-        self.cover_service = ctx.plugin_cover_service
         self._cards_by_key: dict[str, PluginCard] = {}
         self._cover_urls: dict[str, str] = {}
         self._market_snapshot: MarketSnapshot | None = None

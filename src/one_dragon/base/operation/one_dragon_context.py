@@ -224,12 +224,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return PluginSubscriptionConfig()
 
     @cached_property
-    def plugin_cover_service(self):
-        """插件封面服务，两个插件页共用同一份缓存。"""
-        from one_dragon_qt.services.plugin_cover_service import PluginCoverService
-        return PluginCoverService(self.env_config, self.plugin_market_service)
-
-    @cached_property
     def one_dragon_config(self):
         from one_dragon.base.config.one_dragon_config import OneDragonConfig
         return OneDragonConfig()
