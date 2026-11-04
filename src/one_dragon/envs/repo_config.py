@@ -4,6 +4,9 @@ from urllib.parse import urlparse
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 
+GH_PROXY_SOURCE_NAME = 'gh_proxy'
+"""config/repository.yml 中 GitHub 代理候选线路的下载源名。"""
+
 
 @dataclass(frozen=True)
 class RepositoryItem:
@@ -504,6 +507,11 @@ class RepoConfig(YamlConfig):
     def get_source_values(self, source_name: str) -> tuple[SourceOption, ...]:
         """获取指定下载源的测速选项。"""
         return self.sources.get(source_name, ())
+
+    @property
+    def gh_proxy_urls(self) -> tuple[str, ...]:
+        """获取内置的 GitHub 代理候选地址，按 YAML 声明顺序。"""
+        return tuple(option.value for option in self.sources.get(GH_PROXY_SOURCE_NAME, ()))
 
     @property
     def resource_source_options(self) -> list[ConfigItem]:

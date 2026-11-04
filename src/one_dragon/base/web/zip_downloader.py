@@ -7,6 +7,7 @@ from one_dragon.base.web.common_downloader import (
     CommonDownloaderParam,
     ResourceDownloadProgress,
 )
+from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.utils import file_utils
 from one_dragon.utils.log_utils import log
 
@@ -33,6 +34,7 @@ class ZipDownloader(CommonDownloader):
             source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
+            gh_proxy_service: GhProxyService | None = None,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None,
@@ -47,6 +49,7 @@ class ZipDownloader(CommonDownloader):
                 source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
+                gh_proxy_service=gh_proxy_service,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,

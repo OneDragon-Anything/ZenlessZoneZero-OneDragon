@@ -375,8 +375,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
-            # 只有在配置了 ghproxy 代理时才更新代理地址
-            if self.env_config.is_gh_proxy:
+            # 只有配置了 ghproxy 代理且开启了自动获取时才探测代理线路
+            if self.env_config.is_gh_proxy and self.env_config.auto_fetch_gh_proxy_url:
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
@@ -603,6 +603,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         success: bool = self.ocr.init_model(
             source_order=self.env_config.get_resource_source_order(),
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+            gh_proxy_service=self.gh_proxy_service if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
             on_source_success=self._on_resource_source_success,
             on_source_failure=self._on_resource_source_failure,

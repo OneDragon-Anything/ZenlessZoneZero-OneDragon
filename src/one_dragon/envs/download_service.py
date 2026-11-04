@@ -3,18 +3,34 @@ from collections.abc import Callable
 from pathlib import Path
 
 from one_dragon.envs.env_config import EnvConfig
+from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import file_utils, http_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
 class DownloadService:
-    """下载服务，统一处理各种文件下载"""
+    """下载服务，统一处理各种文件下载。"""
 
-    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
+    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig,
+                 repo_config: RepoConfig,
+                 gh_proxy_service: GhProxyService | None = None):
+        """创建下载服务。
+
+        Args:
+            project_config: 项目配置。
+            env_config: 环境配置。
+            repo_config: 仓库配置，提供内置的 GitHub 代理候选线路。
+            gh_proxy_service: 代理线路服务；不传时按配置自行创建。
+        """
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
+        self.repo_config: RepoConfig = repo_config
+        self.gh_proxy_service: GhProxyService = (
+            gh_proxy_service if gh_proxy_service is not None else GhProxyService(env_config, repo_config)
+        )
 
     def download_env_file(self, file_name: str, save_file_path: str,
                           progress_callback: Callable[[float, str], None] | None = None) -> bool:
@@ -30,19 +46,36 @@ class DownloadService:
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
                                progress_callback: Callable[[float, str], None] | None = None) -> bool:
+        """从指定URL下载文件。
+
+        GitHub 地址且启用了 ghproxy 时，按候选线路逐条尝试，每条只试一次，
+        成功的线路记录为下次首选。
+
+        Args:
+            download_url: 下载URL。
+            save_file_path: 保存路径，包含文件名。
+            progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
+
+        Returns:
+            是否下载成功。
         """
-        从指定URL下载文件
-        :param download_url: 下载URL
-        :param save_file_path: 保存路径，包含文件名
-        :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
-        :return: 是否下载成功
-        """
+        if 'github.com' in download_url and self.env_config.is_gh_proxy:
+            for proxy_url in self.gh_proxy_service.get_candidate_urls():
+                if http_utils.download_file(
+                    f'{proxy_url}/{download_url}',
+                    save_file_path,
+                    progress_callback=progress_callback,
+                ):
+                    self.gh_proxy_service.remember_success(proxy_url)
+                    log.info(f'GitHub 代理线路可用 {proxy_url}')
+                    return True
+                log.warning(f'GitHub 代理线路下载失败 换下一条 {proxy_url}')
+            log.error('所有 GitHub 代理线路都下载失败')
+            return False
+
         proxy = None
-        if 'github.com' in download_url:
-            if self.env_config.is_gh_proxy:
-                download_url = f'{self.env_config.gh_proxy_url}/{download_url}'
-            elif self.env_config.is_personal_proxy:
-                proxy = self.env_config.personal_proxy
+        if 'github.com' in download_url and self.env_config.is_personal_proxy:
+            proxy = self.env_config.personal_proxy
 
         return http_utils.download_file(download_url, save_file_path, proxy=proxy, progress_callback=progress_callback)
 

@@ -62,12 +62,33 @@ resource_download:
 
 `CommonDownloaderParam.download_urls` 为 `源ID → 下载地址` 的映射。`CommonDownloader.download(source_order=...)` 按候选顺序逐个尝试：
 
-- 只对 `github` 源拼接 ghproxy 前缀；
+- 只对 `github` 源拼接 ghproxy 前缀；启用了 `gh_proxy_service` 时，一个 `github` 源会按候选线路逐条尝试，每条只试一次；
 - 某源失败自动尝试下一个；用户取消（`progress_signal`）则立即终止不再回退；
 - 自动模式下，非最后候选源有 10 秒启动宽限；之后最近约 4 秒持续低于 100 KB/s 时按失败处理并尝试下一个源。最后一个候选源不限速，避免慢网络完全无法下载。手动选择下载源时不启用低速淘汰。
 - 成功后回调 `on_source_success(source_id)`，调用方以此写入 `last_resource_source`；自动模式中上次成功源失败或因持续低速被淘汰时，会先清除旧记录，后续源成功后再记录新源。
 - 同时提供结构化进度，包含来源、阶段、字节数、总量和实时速度；旧的百分比回调继续保留。
 - HTTP 下载先写同目录临时文件，成功后再替换目标文件；失败或取消会清理临时文件。
+
+## GitHub 代理线路
+
+`gh_proxy` 段声明内置的代理候选线路，按顺序尝试；社区线路随时可能失效，所以不依赖解析任何第三方页面：
+
+```yaml
+gh_proxy:
+  default: gh_proxy_com
+  options:
+    gh_proxy_com:
+      label: gh-proxy
+      value: "https://gh-proxy.com"
+    ghfast:
+      label: ghfast
+      value: "https://ghfast.top"
+```
+
+- 候选顺序：当前使用的 `gh_proxy_url` → 上次成功的 `last_gh_proxy_url` → `gh_proxy` 段的 YAML 顺序，重复地址只保留一次。
+- `GhProxyService.update_proxy_url()` 逐条探测，每条只探一次，第一条可用就写回 `gh_proxy_url` 和 `last_gh_proxy_url`；全部不可用时保留原地址。
+- 探测方式是请求 GitHub 上的一个小文件（`raw/main/pyproject.toml`），返回 200 且有内容即视为可用。
+- 下载或拉取过程中失败会立刻换下一条线路，成功的线路同样写回 `last_gh_proxy_url`，成为下次首选。代码同步（`GitService._get_fetch_candidates()`）对启用代理的代码源展开成「代码源 × 线路」，文件下载（`CommonDownloader`、`DownloadService`）对 `github` 源逐条尝试。
 
 ## 进程内下载队列
 

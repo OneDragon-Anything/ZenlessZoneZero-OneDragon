@@ -5,6 +5,7 @@ from cv2.typing import MatLike
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
+from one_dragon.envs.ghproxy_service import GhProxyService
 
 
 class OcrMatcher:
@@ -33,6 +34,7 @@ class OcrMatcher:
             source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
+            gh_proxy_service: GhProxyService | None = None,
             skip_if_existed: bool = True,
             progress_callback: Callable[[float, str], None] | None = None,
             on_source_success: Callable[[str], None] | None = None,
