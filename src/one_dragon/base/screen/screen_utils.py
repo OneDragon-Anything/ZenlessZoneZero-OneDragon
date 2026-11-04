@@ -343,13 +343,24 @@ def scroll_area(
 
 # 识别失败日志里最多列出的接近匹配画面数；其余只报数量，避免一条日志把所有画面都刷出来
 _MAX_LISTED_SCREENS = 3
+# 限定候选范围时，日志里最多列出的候选画面名数；其余用「等」概括
+_MAX_LISTED_SCOPE_NAMES = 5
+
+
+@dataclass(frozen=True)
+class _NearMiss:
+    """一个接近匹配的画面：未命中前已通过的标识越多，说明它越接近目标画面。"""
+
+    screen_name: str
+    passed_marks: int  # 未命中前已通过的画面标识数
+    failed_mark: str  # 首个未命中的标识区域描述（带 color_range 的文本区域会标注"颜色过滤"）
 
 
 @dataclass
 class _ScreenMatchDiag:
     """画面识别失败的诊断结果。"""
 
-    near_miss_map: dict[str, list[str]] = field(default_factory=dict)  # 键为画面名，值为未命中的 id_mark 区域描述
+    near_miss: list[_NearMiss] = field(default_factory=list)  # 有画面标识但未命中的画面
     candidate_total: int = 0  # 参与判断的候选画面数
     skipped_no_id_mark: int = 0  # 没有可用于匹配的画面标识而无法判断的画面数（没配 id_mark，或标识区域缺 text/template）
 
@@ -374,13 +385,13 @@ def _match_screen_or_collect_failure(
     Returns:
         str | None: 匹配成功时返回画面名，否则返回 None
     """
-    matched, failed_marks = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
+    matched, passed_marks, failed_mark = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
     if matched:
         return screen_info.screen_name
     if diag is not None:
         diag.candidate_total += 1
-        if failed_marks:
-            diag.near_miss_map[screen_info.screen_name] = failed_marks
+        if failed_mark is not None:
+            diag.near_miss.append(_NearMiss(screen_info.screen_name, passed_marks, failed_mark))
         else:
             # 没有可用于匹配的画面标识时单独计数, 否则日志只会说"没有接近匹配", 看不出真实原因
             diag.skipped_no_id_mark += 1
@@ -395,25 +406,30 @@ def _log_screen_match_failure(
     """
     画面识别全部失败时，输出识别失败的日志，方便排查。
 
-    有接近匹配的画面（有画面标识 id_mark 但未命中）时，按未命中标识数排序后列出前几个，
-    其余只报数量；带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题。
+    有接近匹配的画面（有画面标识 id_mark 但未命中）时，按"未命中前已通过的标识数"排序后列出前几个
+    （通过得越多越接近），其余只报数量；带颜色过滤（color_range）的文本区域会标注"颜色过滤"，
+    提示可能是颜色、分辨率或画面过时问题。
     完全没有接近匹配的画面时，报出候选数量与"没有可用于匹配的画面标识"的数量，不只给一句笼统结论。
 
     日志节流：同一失败详情只在首次出现时输出（识别成功后由调用方重置），
     避免导航等待循环每秒重复输出刷爆日志。
     """
-    scope = f'（限定候选 {len(screen_name_list)} 个）' if screen_name_list is not None else ''
+    scope = ''
+    if screen_name_list is not None:
+        # 带上画面名: 候选数相同但画面不同的两次失败, 日志文本要能区分(否则会被节流误吞)
+        listed = '、'.join(screen_name_list[:_MAX_LISTED_SCOPE_NAMES])
+        more = '等' if len(screen_name_list) > _MAX_LISTED_SCOPE_NAMES else ''
+        scope = f'（限定候选 {len(screen_name_list)} 个：{listed}{more}）'
 
-    if not diag.near_miss_map:
+    if not diag.near_miss:
         detail = (
             f'未能识别当前画面{scope}：候选 {diag.candidate_total} 个，'
             f'其中 {diag.skipped_no_id_mark} 个没有可用于匹配的画面标识'
         )
     else:
-        ordered = sorted(diag.near_miss_map.items(), key=lambda item: len(item[1]), reverse=True)
+        ordered = sorted(diag.near_miss, key=lambda item: item.passed_marks, reverse=True)
         shown = '；'.join(
-            f'{screen_name}({", ".join(marks)})'
-            for screen_name, marks in ordered[:_MAX_LISTED_SCREENS]
+            f'{item.screen_name}({item.failed_mark})' for item in ordered[:_MAX_LISTED_SCREENS]
         )
         detail = f'未能识别当前画面{scope}：{len(ordered)} 个画面接近匹配，{shown}'
         rest = len(ordered) - _MAX_LISTED_SCREENS
@@ -580,7 +596,7 @@ def is_target_screen(
         if screen_info is None:
             return False
 
-    matched, _ = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
+    matched, _, _ = _is_target_screen_detail(ctx, screen, screen_info, crop_first)
     return matched
 
 
@@ -589,9 +605,9 @@ def _is_target_screen_detail(
     screen: MatLike,
     screen_info: ScreenInfo,
     crop_first: bool = True,
-) -> tuple[bool, list[str]]:
+) -> tuple[bool, int, str | None]:
     """
-    判断是否目标画面，并返回首个未命中的画面标识(id_mark)区域描述，用于失败时打详细日志。
+    判断是否目标画面，并返回诊断信息：未命中前已通过的标识数、首个未命中的标识区域描述。
 
     Args:
         ctx: 上下文
@@ -600,32 +616,32 @@ def _is_target_screen_detail(
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
 
     Returns:
-        (是否目标画面, 首个未命中的 id_mark 区域名列表)。区域名带 color_range 时会标注"(颜色过滤)"。
+        (是否目标画面, 未命中前已通过的标识数, 首个未命中的标识区域描述或 None)。
+        通过数用于失败日志排序：通过得越多说明越接近匹配。区域描述带 color_range 的文本区域会标注"(颜色过滤)"。
         保持与旧逻辑一致的短路：首个未命中即停止识别后续标识，避免热路径全量 OCR/模板匹配。
     """
-    failed_marks: list[str] = []
     existed_id_mark: bool = False
-    fit_id_mark: bool = True
+    passed_marks: int = 0
     for screen_area in screen_info.area_list:
         if not screen_area.id_mark or not screen_area.can_match:
             continue
         existed_id_mark = True
 
         if find_area_in_screen(ctx, screen, screen_area, crop_first) != FindAreaResultEnum.TRUE:
-            fit_id_mark = False
-            failed_marks.append(_describe_failed_id_mark(screen_area))
             # 短路: 与旧 is_target_screen 一致, 首个未命中即停, 保证热路径识别性能
-            break
+            return False, passed_marks, _describe_failed_id_mark(screen_area)
+        passed_marks += 1
 
-    return existed_id_mark and fit_id_mark, failed_marks
+    return existed_id_mark, passed_marks, None
 
 
 def _describe_failed_id_mark(screen_area: ScreenArea) -> str:
     """
-    生成未命中的画面标识区域描述，带颜色过滤(color_range)时标注"颜色过滤"。
+    生成未命中的画面标识区域描述；仅文本区域会应用颜色过滤，带 color_range 时标注"颜色过滤"。
     """
     desc = screen_area.area_name
-    if screen_area.color_range:
+    # 模板区域匹配不使用 color_range，标注"颜色过滤"会把排查带偏
+    if screen_area.is_text_area and screen_area.color_range:
         desc += '(颜色过滤)'
     return desc
 
