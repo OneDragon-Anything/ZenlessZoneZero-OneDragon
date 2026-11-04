@@ -49,6 +49,10 @@ internal 是产品入口限制，不是底层权限。底层 `run_application()`
 
 对外部代码只使用框架地基级接口名和稳定的运行时资产位置。需要寻找实现模式时，要求在项目中搜索现有做法，不固化某个具体应用文件或行号，避免代码移动后 Skill 静默过期。
 
+### 5. 第三方插件的展示元数据读 plugin.json，const 只管身份和运行行为
+
+版本、作者、主页、简介原来写在 const 的 `PLUGIN_*` 里，同一份信息在商店用的 `plugin.json` 里又有一份，靠模板的生成脚本保持一致。现在客户端直接读 `plugin.json`，两个文件职责分开：const 管 `APP_ID` 等身份和运行行为，`plugin.json` 管展示元数据。这样每个信息只有一个来源，导入预览也不再用正则从 const 文本里取值。身份仍只认 const 的 `APP_ID`，不读 `plugin.json` 的 `id`。没有 `plugin.json` 的本地插件这些信息显示为空，不提示更新，不再回退读 const。
+
 ## 落点
 
 - Skill 本体位于 `skills/zzz-od-dev-plugin/`，由项目版本管理并供不同智能体工具复用。

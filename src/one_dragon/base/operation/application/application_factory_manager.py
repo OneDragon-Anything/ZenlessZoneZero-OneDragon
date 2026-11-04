@@ -13,7 +13,7 @@ import importlib
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
@@ -534,7 +534,7 @@ class ApplicationFactoryManager:
         return plugin_info
 
     @staticmethod
-    def _resolve_cover_path(plugin_dir: Path, manifest: dict | None) -> Path | None:
+    def _resolve_cover_path(plugin_dir: Path, manifest: dict[str, Any] | None) -> Path | None:
         """从 plugin.json 的内容取封面图路径。
 
         封面属于可选信息，未声明、路径越界或文件不存在都按「没有封面」
