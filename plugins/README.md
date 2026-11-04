@@ -98,6 +98,10 @@ plugins/                          # ← 添加到 sys.path
     └── plugin_c_factory.py
 ```
 
+## 发布到插件商店
+
+想让用户在插件管理页里订阅和更新，用官方模板仓库 [`plugin-template`](https://github.com/OneDragon-Anyone/plugin-template) 创建插件仓库，推送 tag 自动发布，再到商店网页提交一次即可上架。规则、`plugin.json` 字段和提交流程见 [应用开发指引：发布到插件商店](../docs/develop/guides/application_plugin_guide.md#发布到插件商店)。
+
 ## 开发指南
 
 ### 1. 创建插件目录

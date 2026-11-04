@@ -77,6 +77,8 @@ NEED_NOTIFY = True
 
 第三方插件的 GUI 元数据（`version`、`author.name`、`homepage`、`summary`）写在插件包根目录的 `plugin.json` 里，不写在常量文件里。
 
+要上架插件商店时，用官方模板仓库创建插件仓库，`plugin.json` 的必填字段、发版和提交流程见 `docs/develop/guides/application_plugin_guide.md` 的「发布到插件商店」。
+
 ## 3. Application 类
 
 应用继承 `ZApplication`，状态机写法与普通 `ZOperation` 一致。
