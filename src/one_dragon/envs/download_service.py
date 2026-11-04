@@ -24,8 +24,13 @@ class DownloadService:
         """
         if source != self.env_config.env_source:
             log.warning('环境下载源 %s 不可用，本次改用 %s', self.env_config.env_source, source)
-        if self.env_config.last_env_source != source:
+        if self.env_config.last_env_source == source:
+            return
+        try:
             self.env_config.last_env_source = source
+        except OSError:
+            # 配置写不进去只影响下次优先试哪个源，不能把已经下载好的文件判成失败
+            log.warning('记录上次成功的环境下载源失败，本次下载结果不受影响', exc_info=True)
 
     def _download_env_file_from(self, source: str, file_name: str, save_file_path: str,
                                 progress_callback: Callable[[float, str], None] | None) -> bool:

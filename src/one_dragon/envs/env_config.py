@@ -284,6 +284,11 @@ class EnvConfig(YamlConfig):
 
     @last_env_source.setter
     def last_env_source(self, new_value: str) -> None:
+        """记录最近一次成功使用的环境下载源地址。
+
+        Args:
+            new_value: 本次下载成功使用的源地址。
+        """
         self.update('last_env_source', new_value)
 
     def get_env_source_candidates(self) -> list[str]:
