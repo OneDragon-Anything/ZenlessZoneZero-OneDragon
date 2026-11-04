@@ -128,3 +128,21 @@ init_ocr 发现模型缺失
 ## 开发者模式
 
 `developer_mode` 只控制界面可见性，不改变 `is_debug` 的运行行为。五秒内连续点击标题栏“代码版本”七次可开启；开启后显示开发工具、调试开关、代码高级项和现有带密码实验项。密码校验仍然有效。开发者模式由框架主窗口统一刷新，脚本环境页通过配置适配器修改状态后也会立即更新所有入口。脚本环境页提供关闭入口，关闭不会改动已保存的调试、主题、背景或窗口标题配置。
+
+## 环境包下载源回退
+
+环境包（`OneDragon-Environment.zip`）和 Python（`cpython-*.zip`）都走 `DownloadService.download_env_file()`，用的是 `env_source` 这一组下载源：
+
+- 候选顺序：当前选择 > 上次成功（`last_env_source`） > `repository.yml` 其余源，顺序与代码源回退一致；
+- 每次只尝试一个源，失败立刻换下一个，全部失败才报错；
+- 成功的源写入 `last_env_source`，下次优先尝试；用户选择的 `env_source` 不覆盖；
+- 与资源下载的区别：资源下载按资源 ID 生成地址，环境包是 `{env_source}/{project_name}/{file_name}` 的固定路径。
+
+调用链（uv、Python、环境压缩包三个入口共用同一段回退逻辑）：
+
+```text
+PythonService.install_default_uv        （uv-x86_64-pc-windows-msvc.zip）
+PythonService.install_standalone_python （cpython-{版本}.zip）
+  └─ DownloadService.download_and_extract_env_file
+       └─ DownloadService.download_env_file   ← 候选源回退在这里
+```

@@ -19,14 +19,27 @@ class DownloadService:
     def download_env_file(self, file_name: str, save_file_path: str,
                           progress_callback: Callable[[float, str], None] | None = None) -> bool:
         """
-        下载环境文件
+        下载环境文件。
+
+        当前配置的源优先，失败后按候选顺序逐个换源，全部失败才返回失败；
+        下载成功的源记到 last_env_source，下次优先尝试，不改写用户选择的 env_source。
+
         :param file_name: 要下载的文件名
         :param save_file_path: 保存路径，包含文件名
         :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
         :return: 是否下载成功
         """
-        download_url = f'{self.env_config.env_source}/{self.project_config.project_name}/{file_name}'
-        return self.download_file_from_url(download_url, save_file_path, progress_callback)
+        for source in self.env_config.get_env_source_candidates():
+            download_url = f'{source}/{self.project_config.project_name}/{file_name}'
+            if self.download_file_from_url(download_url, save_file_path, progress_callback):
+                if source != self.env_config.env_source:
+                    log.warning('环境下载源 %s 不可用，本次改用 %s', self.env_config.env_source, source)
+                if self.env_config.last_env_source != source:
+                    self.env_config.last_env_source = source
+                return True
+            log.warning('从 %s 下载 %s 失败，继续尝试下一个下载源', source, file_name)
+        log.error('所有环境下载源均无法下载 %s', file_name)
+        return False
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
                                progress_callback: Callable[[float, str], None] | None = None) -> bool:
@@ -75,7 +88,7 @@ class DownloadService:
 
                 success = self.download_env_file(file_name, str(zip_file_path), progress_callback)
                 if not success:
-                    msg = gt('下载失败 请尝试更改网络代理')
+                    msg = gt('所有下载源均下载失败 请检查网络或代理')
                     log.error(msg)
                     return False
 
