@@ -18,36 +18,14 @@ from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, Signal
 from PySide6.QtGui import QImage, QImageReader, QPixmap
 
 from one_dragon.base.operation.application.plugin_info import PluginInfo
-from one_dragon.base.operation.application.plugin_market import get_market_roots
+from one_dragon.base.operation.application.plugin_market import PluginMarketService
 from one_dragon.base.web.common_downloader import download_with_resource_settings
 from one_dragon.envs.env_config import EnvConfig
-from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
 MAX_COVER_BYTES = 4 * 1024 * 1024
 """单张封面允许的最大体积，超过则放弃使用。"""
-
-
-def resolve_cover_urls(raw_url: str, repo_config: RepoConfig) -> dict[str, str]:
-    """把市场里的封面字段补成各源的完整地址。
-
-    相对路径按各源索引所在目录解析，开头带不带 `/` 结果相同，
-    下载时按「资源」页的候选顺序挑选，哪个源有这张图就用哪个。
-
-    Args:
-        raw_url: plugins.json 中的原始值，可能是完整地址或相对索引目录的路径。
-        repo_config: 提供各源索引地址的仓库配置。
-
-    Returns:
-        源ID到完整地址的映射；空值返回空字典。
-    """
-    value = (raw_url or '').strip().lstrip('/')
-    if not value:
-        return {}
-    if urlparse(value).scheme:
-        return {'direct': value}
-    return {source_id: urljoin(root, value) for source_id, root in get_market_roots(repo_config).items()}
 
 
 def _read_image(path: Path) -> QImage | None:
@@ -132,9 +110,10 @@ class PluginCoverService(QObject):
     _download_finished = Signal(str, str, bool)
     """下载线程结束，参数为插件标识、地址、是否成功。仅内部使用。"""
 
-    def __init__(self, env_config: EnvConfig) -> None:
+    def __init__(self, env_config: EnvConfig, market_service: PluginMarketService) -> None:
         super().__init__()
         self.env_config: EnvConfig = env_config
+        self._market_service: PluginMarketService = market_service
         self._cache_dir: Path = Path(os_utils.get_path_under_work_dir('config', 'temp', 'plugin_covers'))
         self._memory: dict[str, QPixmap | None] = {}
         self._failed: set[str] = set()
@@ -172,9 +151,31 @@ class PluginCoverService(QObject):
         """清空下载失败记录，让之前失败的封面在下次显示时重新下载。"""
         self._failed.clear()
 
+    def resolve_cover_urls(self, raw_url: str) -> dict[str, str]:
+        """把市场里的封面字段补成各源的完整地址。
+
+        相对路径按各源索引所在目录解析，开头带不带 `/` 结果相同，
+        下载时按「资源」页的候选顺序挑选，哪个源有这张图就用哪个。
+
+        Args:
+            raw_url: plugins.json 中的原始值，可能是完整地址或相对索引目录的路径。
+
+        Returns:
+            源ID到完整地址的映射；空值返回空字典。
+        """
+        value = (raw_url or '').strip().lstrip('/')
+        if not value:
+            return {}
+        if urlparse(value).scheme:
+            return {'direct': value}
+        return {
+            source_id: urljoin(root, value)
+            for source_id, root in self._market_service.index_roots().items()
+        }
+
     def market_cover(self, plugin_id: str, cover_url: str) -> QPixmap | None:
         """市场条目的封面；缓存未命中时返回 None 并在后台下载。"""
-        urls = resolve_cover_urls(cover_url, self.env_config.repo_config)
+        urls = self.resolve_cover_urls(cover_url)
         if not urls:
             return None
         # 按源ID排序取第一个 同时作为缓存文件与下载状态的键 缓存不随配置里的源顺序漂移

@@ -13,18 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from one_dragon.envs.env_config import EnvConfig
-from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-
-
-def get_market_roots(repo_config: RepoConfig) -> dict[str, str]:
-    """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
-    return {
-        source_id: url.rsplit('/', 1)[0] + '/'
-        for source_id, url in repo_config.plugin_market_urls.items()
-    }
-
 
 CACHE_TTL_SECONDS = 600
 """市场数据的本地缓存有效期，过期后重新拉取。"""
@@ -188,6 +178,13 @@ class PluginMarketService:
     @property
     def cache_path(self) -> Path:
         return self._cache_path
+
+    def index_roots(self) -> dict[str, str]:
+        """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
+        return {
+            source_id: url.rsplit('/', 1)[0] + '/'
+            for source_id, url in self._env_config.repo_config.plugin_market_urls.items()
+        }
 
     def load(self, force: bool = False) -> MarketSnapshot:
         """读取市场数据，优先使用未过期的本地缓存。
