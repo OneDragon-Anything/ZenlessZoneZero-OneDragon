@@ -368,15 +368,16 @@ def _save_screenshot(image: 'MatLike') -> str:
         保存后的截图文件绝对路径。
 
     Raises:
-        RuntimeError: ``cv2.imwrite`` 写盘失败时抛出。
+        RuntimeError: 写盘失败时抛出。
     """
-    import cv2
+    from one_dragon.utils import cv2_utils
 
     screenshot_dir = Path(os_utils.get_path_under_work_dir('.debug', 'zzz_od_mcp', 'screenshot'))
     screenshot_dir.mkdir(parents=True, exist_ok=True)
     img_path = screenshot_dir / f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
-    bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    if not cv2.imwrite(str(img_path), bgr_image):
+    # cv2_utils.save_image 用 imencode + tofile，安装目录含中文时也能写盘（cv2.imwrite 会失败）
+    cv2_utils.save_image(image, str(img_path))
+    if not img_path.exists():
         raise RuntimeError(f'截图写盘失败: {img_path}')
     return str(img_path)
 
