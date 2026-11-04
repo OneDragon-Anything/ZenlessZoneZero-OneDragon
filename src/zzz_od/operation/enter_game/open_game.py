@@ -78,17 +78,23 @@ class OpenGame(Operation):
 
         if self.ctx.controller.active_window():
             self.activate_fail_times = 0
-            hdr_op = EnableAutoHDR(self.ctx)
-            hdr_op.execute()
+            if not EnableAutoHDR(self.ctx).execute().is_success:
+                # 窗口已经起来了，HDR 没恢复不影响本次启动，但必须记日志：
+                # 否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，用户原设置就丢了
+                log.error('激活窗口后恢复 HDR 设置失败，请到游戏里确认 HDR 设置是否正确')
             return self.round_success()
 
         self.activate_fail_times += 1
         if self.activate_fail_times >= self.ACTIVE_WINDOW_MAX_FAIL_TIMES:
             # 启动失败也要把 HDR 恢复回去，否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，
             # 用户原本的 HDR 设置就再也回不来了
-            EnableAutoHDR(self.ctx).execute()
-            return self.round_fail(
+            hdr_restored = EnableAutoHDR(self.ctx).execute().is_success
+            msg = (
                 f'游戏窗口已打开但连续 {self.activate_fail_times} 次激活失败，'
                 '请检查是否有系统弹窗或其他窗口抢占前台'
             )
+            if not hdr_restored:
+                log.error('恢复 HDR 设置失败，请手动到游戏里确认 HDR 设置')
+                msg += '；自动恢复 HDR 设置也失败了，请手动确认游戏内的 HDR 设置'
+            return self.round_fail(msg)
         return self.round_retry(wait=1)
