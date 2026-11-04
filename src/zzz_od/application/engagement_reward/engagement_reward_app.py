@@ -32,11 +32,10 @@ class EngagementRewardApp(ZApplication):
         )
         self.claim_retry_times: int = 0  # 领取失败后回到点击奖励的全局重试次数
 
-    def handle_init(self) -> None:
-        self.claim_retry_times = 0
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
+        self.claim_retry_times = 0  # 每次执行从头开始，重试次数清零
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -46,7 +45,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_by_goto_screen(screen_name='快捷手册-日常')
 
     @node_from(from_name='快捷手册-日常')
-    @node_from(from_name='查看奖励结果', success=False, status=STATUS_CLAIM_RETRY, ignore_status=False)
+    @node_from(from_name='查看奖励结果', success=False, status=STATUS_CLAIM_RETRY)
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '今日最大活跃度', success_wait=1, retry_wait=1)
@@ -71,7 +70,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_fail(self.STATUS_CLAIM_RETRY)
 
     @node_from(from_name='查看奖励结果')
-    @node_from(from_name='查看奖励结果', success=False, status=STATUS_CLAIM_RETRY_EXHAUSTED, ignore_status=False)
+    @node_from(from_name='查看奖励结果', success=False, status=STATUS_CLAIM_RETRY_EXHAUSTED)
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
