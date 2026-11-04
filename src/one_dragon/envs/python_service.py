@@ -53,7 +53,7 @@ class PythonService:
         if success:
             return True, gt('安装 UV 成功')
         else:
-            return False, gt('安装 UV 失败')
+            return False, gt('安装 UV 失败 请检查网络或代理，或到「设置」更改环境下载源')
 
     def install_standalone_python(self, progress_callback: Callable[[float, str], None] | None) -> bool:
         """
@@ -288,7 +288,7 @@ class PythonService:
             shutil.rmtree(DEFAULT_VENV_DIR_PATH)
 
         if not self.install_standalone_python(progress_callback):
-            return False, gt('安装 Python 失败 请尝试到「设置」更改 Python 下载源')
+            return False, gt('安装 Python 失败 请检查网络或代理，或到「设置」更改 Python 下载源')
 
         if not self.uv_create_venv(progress_callback):
             return False, gt('创建环境失败')

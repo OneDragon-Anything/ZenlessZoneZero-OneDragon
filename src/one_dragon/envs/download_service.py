@@ -103,7 +103,7 @@ class DownloadService:
             extract_dir: 解压目标目录。
             progress_callback: 进度回调。
             clean_temp: 是否清理临时文件，默认清理。
-            retry_count: 同一个源上解压失败后的重试次数，默认 2 次。
+            retry_count: 每个源的总尝试次数（含首次），默认 2 次。
 
         Returns:
             是否成功。
