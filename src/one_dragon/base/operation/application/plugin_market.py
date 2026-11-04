@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
@@ -22,9 +23,6 @@ def get_market_urls() -> dict[str, str]:
     """各下载源的市场索引地址，取自 repository.yml（发布期配置，首次读取后复用）。"""
     global _market_urls
     if _market_urls is None:
-        # 延迟导入：envs 里的下载服务依赖本模块，放在顶部会形成循环引用
-        from one_dragon.envs.repo_config import RepoConfig
-
         _market_urls = dict(RepoConfig().plugin_market_urls)
     return dict(_market_urls)
 

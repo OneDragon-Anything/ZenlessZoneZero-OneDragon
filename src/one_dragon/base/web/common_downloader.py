@@ -2,6 +2,8 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from one_dragon.envs.env_config import EnvConfig
+from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import http_utils
 from one_dragon.utils.log_utils import log
 
@@ -30,10 +32,6 @@ def download_with_resource_settings(
     Returns:
         bool: 是否下载成功
     """
-    # 延迟导入：envs 里的下载服务依赖本模块，放在顶部会形成循环引用
-    from one_dragon.envs.env_config import EnvConfig
-    from one_dragon.envs.repo_config import RepoConfig
-
     env_config = EnvConfig(RepoConfig())
     downloader = CommonDownloader(
         CommonDownloaderParam(
