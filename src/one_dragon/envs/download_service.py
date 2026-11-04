@@ -100,6 +100,8 @@ class DownloadService:
         temp_path.mkdir(parents=True, exist_ok=True)
 
         for attempt in range(retry_count):
+            # 每次尝试只标记本次下载实际用上的线路
+            self._last_gh_proxy_url = None
             zip_file_path = temp_path / file_name
 
             # 如果文件不存在，下载它

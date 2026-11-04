@@ -33,8 +33,8 @@ class GhProxyService:
     def get_candidate_urls(self) -> list[str]:
         """按「当前使用 → 上次成功 → 内置顺序」返回去重后的代理地址。
 
-        本次运行中被标记不可用的线路会排到后面；全部都不可用时仍按原顺序返回，
-        避免把线路过滤没了。
+        本次运行中被标记不可用的线路排到后面，但不会被移除，免得剩下的线路也
+        失败时没有退路。
 
         Returns:
             代理根地址列表，例如 `['https://gh-proxy.com', 'https://ghfast.top']`。
@@ -49,8 +49,7 @@ class GhProxyService:
             if not normalized or normalized in candidates:
                 continue
             candidates.append(normalized)
-        usable = [url for url in candidates if url not in self._failed_urls]
-        return usable if usable else candidates
+        return sorted(candidates, key=lambda url: url in self._failed_urls)
 
     def update_proxy_url(self) -> bool:
         """逐条探测候选线路，把第一条可用的写回配置。

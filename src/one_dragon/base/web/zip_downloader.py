@@ -71,6 +71,11 @@ class ZipDownloader(CommonDownloader):
             if unzip_result:
                 break
             else:  # 可能压缩包下载不完整 解压不成功 重新下载
+                # 这条线路返回的压缩包是坏的 重试时排到候选后面
+                if gh_proxy_service is not None and self._last_gh_proxy_url is not None:
+                    gh_proxy_service.mark_failed(self._last_gh_proxy_url)
+                    log.warning(f'代理线路下载到的压缩包损坏 本次运行排后 {self._last_gh_proxy_url}')
+                    self._last_gh_proxy_url = None
                 log.warning('疑似压缩包损毁 重新下载')
                 continue
 

@@ -67,6 +67,8 @@ class CommonDownloader:
             param (CommonDownloaderParam): 下载参数
         """
         self.param: CommonDownloaderParam = param
+        self._last_gh_proxy_url: str | None = None
+        """本次下载实际用上的代理线路，解压失败时用来把它排到候选后面。"""
 
     def download(
             self,
@@ -174,7 +176,7 @@ class CommonDownloader:
 
                 if success:
                     if gh_proxy_service is not None and source_id == GITHUB_SOURCE_ID:
-                        gh_proxy_service.remember_success_by_url(download_url)
+                        self._last_gh_proxy_url = gh_proxy_service.remember_success_by_url(download_url)
                     source_success = True
                     break
 
