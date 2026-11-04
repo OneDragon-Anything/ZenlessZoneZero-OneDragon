@@ -12,6 +12,12 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from one_dragon.base.web.common_downloader import (
+    DIRECT_SOURCE_ID,
+    GITHUB_SOURCE_ID,
+    CommonDownloader,
+    CommonDownloaderParam,
+)
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
@@ -33,7 +39,7 @@ class MarketRelease:
     sha256: str
     changelog_html: str
     sources: dict[str, str]
-    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时为空。"""
+    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时，由 downloadUrl 反推补成一项。"""
 
 
 @dataclass(frozen=True)
@@ -96,17 +102,32 @@ def _parse_sources(raw: object) -> dict[str, str]:
     return {str(key): url for key, url in raw.items() if isinstance(url, str) and url}
 
 
+def _infer_source_id(download_url: str) -> str:
+    """按地址域名判断它属于哪个下载源；源 ID 必须与资源下载同源，否则会记成不存在的源。"""
+    lowered = download_url.casefold()
+    if 'github.com/' in lowered or 'githubusercontent.com/' in lowered:
+        return GITHUB_SOURCE_ID
+    if 'cnb.cool/' in lowered:
+        return 'cnb'
+    return DIRECT_SOURCE_ID
+
+
 def _parse_release(raw: dict) -> MarketRelease | None:
     version = str(raw.get('version') or '').strip()
     if not version:
         return None
+    download_url = str(raw.get('downloadUrl') or '')
+    sources = _parse_sources(raw.get('sources'))
+    if download_url:
+        # 旧索引、旧缓存、镜像缺源：缺哪个源就用 downloadUrl 反推出来的那个补上，已有的不动
+        sources.setdefault(_infer_source_id(download_url), download_url)
     return MarketRelease(
         version=version,
         published_at=str(raw.get('publishedAt') or ''),
-        download_url=str(raw.get('downloadUrl') or ''),
+        download_url=download_url,
         sha256=str(raw.get('sha256') or ''),
         changelog_html=str(raw.get('changelogHtml') or ''),
-        sources=_parse_sources(raw.get('sources')),
+        sources=sources,
     )
 
 
@@ -226,21 +247,24 @@ class PluginMarketService:
         return snapshot
 
     def _download(self) -> list[MarketPlugin]:
-        # 延迟导入，避免模块加载期就引入网络依赖
-        from one_dragon.base.web.common_downloader import (
-            download_with_resource_settings,
-        )
-
         target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
         urls = dict(self._env_config.repo_config.plugin_market_urls)
         if not urls:
             raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
-        ok = download_with_resource_settings(
-            self._env_config,
-            urls,
-            str(target.parent),
-            target.name,
+        settings = self._env_config.get_resource_download_settings()
+        # 不传 ghproxy 与成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
+        ok = CommonDownloader(
+            CommonDownloaderParam(
+                save_file_path=str(target.parent),
+                save_file_name=target.name,
+                download_urls=urls,
+            )
+        ).download(
+            source_order=settings.source_order,
+            proxy_url=settings.proxy_url,
+            skip_if_existed=False,
             min_bytes_per_second=MIN_BYTES_PER_SECOND,
+            fallback_on_slow=settings.fallback_on_slow,
         )
         if not ok or not target.exists():
             raise RuntimeError('插件市场数据下载失败')

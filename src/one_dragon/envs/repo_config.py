@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils.log_utils import log
 
 
 @dataclass(frozen=True)
@@ -388,10 +389,15 @@ class RepoConfig(YamlConfig):
         return repos
 
     def _load_plugin_market_urls(self) -> dict[str, str]:
+        """插件市场是可选功能：这里配置写错只让市场不可用，不能拖垮整个应用启动。"""
         raw_urls = self._get_resource_download_config().get('plugin_market', {})
-        if not isinstance(raw_urls, dict):
-            raise ValueError('resource_download.plugin_market 必须是映射')
-        return self._load_source_urls(raw_urls, '插件市场索引')
+        try:
+            if not isinstance(raw_urls, dict):
+                raise ValueError('resource_download.plugin_market 必须是映射')
+            return self._load_source_urls(raw_urls, '插件市场索引')
+        except ValueError as exc:
+            log.error(f'插件市场索引配置无效，已忽略: {exc}')
+            return {}
 
     def _load_source_urls(self, raw_urls: dict[str, object], field_name: str) -> dict[str, str]:
         """解析「下载源 ID 到地址」的映射，校验源 ID 与 HTTPS 链接。"""

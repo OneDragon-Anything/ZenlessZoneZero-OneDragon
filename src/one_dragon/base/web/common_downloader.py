@@ -2,51 +2,14 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from one_dragon.envs.env_config import EnvConfig
 from one_dragon.utils import http_utils
 from one_dragon.utils.log_utils import log
 
 # 使用 ghproxy 代理的源
 GITHUB_SOURCE_ID: str = 'github'
+DIRECT_SOURCE_ID: str = 'direct'
+"""不属于任何已配置下载源的地址（索引里的自建地址、完整封面链接），排在候选末尾兜底。"""
 AUTO_FALLBACK_MIN_BYTES_PER_SECOND: float = 100 * 1024
-
-
-def download_with_resource_settings(
-        env_config: EnvConfig,
-        download_urls: dict[str, str],
-        save_file_path: str,
-        save_file_name: str,
-        min_bytes_per_second: float | None = None,
-) -> bool:
-    """按「资源」页的下载源顺序与代理设置下载一个文件。
-
-    给不经过下载队列的场景使用（市场索引、插件封面）。索引的 github 源与封面
-    都在 Pages 域名上，代理站点处理不了这类地址（实测返回 403），所以统一不套。
-
-    Args:
-        env_config: 环境配置，提供资源源顺序与个人代理设置。
-        download_urls: 源ID到地址的映射，只有一项时即为固定单源。
-        save_file_path: 保存目录。
-        save_file_name: 保存文件名。
-        min_bytes_per_second: 最低持续速度 低于该值中止下载
-
-    Returns:
-        bool: 是否下载成功
-    """
-    downloader = CommonDownloader(
-        CommonDownloaderParam(
-            save_file_path=save_file_path,
-            save_file_name=save_file_name,
-            download_urls=download_urls,
-        )
-    )
-    return downloader.download(
-        source_order=env_config.get_resource_source_order(),
-        proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
-        skip_if_existed=False,
-        min_bytes_per_second=min_bytes_per_second,
-        fallback_on_slow=env_config.is_resource_source_auto,
-    )
 
 
 @dataclass(frozen=True, slots=True)

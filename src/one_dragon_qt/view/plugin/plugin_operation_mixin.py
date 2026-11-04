@@ -34,7 +34,6 @@ from one_dragon.base.operation.application.plugin_market import (
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import (
-    GITHUB_SOURCE_ID,
     CommonDownloader,
     CommonDownloaderParam,
 )
@@ -604,16 +603,15 @@ class PluginOperationMixin:
             (规格, 错误文案)。无法构造时规格为 None。
         """
         release = entry.latest
-        if release is None or not release.download_url:
+        if release is None or not release.sources:
             return None, gt('该插件没有可下载的版本')
         if not release.sha256:
             return None, gt('该插件没有提供校验值，无法确认安装包未被篡改')
 
         archive_name = self._plugin_archive_name(entry)
         save_dir = os_utils.get_path_under_work_dir('config', 'temp', 'plugin_downloads')
-        # 索引给的源可能不全 补上规范地址；不选源顺序 交给下载队列按「资源」页的设置挑选
+        # 不指定源顺序，交给下载队列按「资源」页的设置挑选
         download_urls = dict(release.sources)
-        download_urls.setdefault(self._plugin_download_source(release.download_url), release.download_url)
         spec = ResourceDownloadSpec(
             resource_id=f'plugin:{entry.plugin_id}',
             resource_type='plugin',
@@ -704,16 +702,6 @@ class PluginOperationMixin:
         show_tip = getattr(window, 'show_download_queue_added_tip', None)
         if callable(show_tip):
             show_tip(title)
-
-    @staticmethod
-    def _plugin_download_source(download_url: str) -> str:
-        """按地址兜底判断下载源；源 ID 必须与资源下载同源，否则会把上次成功源记成不存在的源。"""
-        lowered = download_url.casefold()
-        if 'github.com/' in lowered or 'githubusercontent.com' in lowered:
-            return GITHUB_SOURCE_ID
-        if 'cnb.cool/' in lowered:
-            return 'cnb'
-        return 'direct'
 
     @staticmethod
     def _plugin_archive_name(entry: MarketPlugin) -> str:

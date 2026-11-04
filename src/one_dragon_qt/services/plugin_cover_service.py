@@ -19,8 +19,12 @@ from PySide6.QtGui import QImage, QImageReader, QPixmap
 
 from one_dragon.base.operation.application.plugin_info import PluginInfo
 from one_dragon.base.operation.application.plugin_market import PluginMarketService
-from one_dragon.base.web.common_downloader import download_with_resource_settings
-from one_dragon.envs.env_config import EnvConfig
+from one_dragon.base.web.common_downloader import (
+    DIRECT_SOURCE_ID,
+    CommonDownloader,
+    CommonDownloaderParam,
+)
+from one_dragon.envs.env_config import EnvConfig, ResourceDownloadSettings
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
@@ -63,26 +67,36 @@ class _DownloadTask(QRunnable):
         service: PluginCoverService,
         plugin_id: str,
         urls: dict[str, str],
-        url: str,
+        key: str,
         target: Path,
+        settings: ResourceDownloadSettings,
     ) -> None:
         super().__init__()
         self._service: PluginCoverService = service
         self._plugin_id: str = plugin_id
         self._urls: dict[str, str] = urls
-        self._url: str = url
+        self._key: str = key
         self._target: Path = target
+        self._settings: ResourceDownloadSettings = settings
+        """在 GUI 线程里取好的下载设置，后台线程不再去读配置对象。"""
 
     def run(self) -> None:
         ok = False
         temp_path = self._target.with_suffix(self._target.suffix + '.part')
         try:
             self._target.parent.mkdir(parents=True, exist_ok=True)
-            ok = download_with_resource_settings(
-                self._service.env_config,
-                self._urls,
-                str(temp_path.parent),
-                temp_path.name,
+            # 不传 ghproxy 与成功/失败回调：代理站点处理不了这类域名，封面也不该影响自动选源
+            ok = CommonDownloader(
+                CommonDownloaderParam(
+                    save_file_path=str(temp_path.parent),
+                    save_file_name=temp_path.name,
+                    download_urls=self._urls,
+                )
+            ).download(
+                source_order=self._settings.source_order,
+                proxy_url=self._settings.proxy_url,
+                skip_if_existed=False,
+                fallback_on_slow=self._settings.fallback_on_slow,
             )
             if ok and temp_path.stat().st_size > MAX_COVER_BYTES:
                 ok = False
@@ -92,13 +106,13 @@ class _DownloadTask(QRunnable):
             if ok:
                 temp_path.replace(self._target)
         except Exception as exc:  # noqa: BLE001 - 封面失败只是回退默认图，不影响界面
-            log.debug(f'下载插件封面失败 {self._url}: {exc}')
+            log.debug(f'下载插件封面失败 {self._key}: {exc}')
             ok = False
         finally:
             if not ok:
                 temp_path.unlink(missing_ok=True)
             # 经信号排队回到 GUI 线程，下载状态只在 GUI 线程里改
-            self._service._download_finished.emit(self._plugin_id, self._url, ok)
+            self._service._download_finished.emit(self._plugin_id, self._key, ok)
 
 
 class PluginCoverService(QObject):
@@ -112,7 +126,7 @@ class PluginCoverService(QObject):
 
     def __init__(self, env_config: EnvConfig, market_service: PluginMarketService) -> None:
         super().__init__()
-        self.env_config: EnvConfig = env_config
+        self._env_config: EnvConfig = env_config
         self._market_service: PluginMarketService = market_service
         self._cache_dir: Path = Path(os_utils.get_path_under_work_dir('config', 'temp', 'plugin_covers'))
         self._memory: dict[str, QPixmap | None] = {}
@@ -151,6 +165,11 @@ class PluginCoverService(QObject):
         """清空下载失败记录，让之前失败的封面在下次显示时重新下载。"""
         self._failed.clear()
 
+    @staticmethod
+    def _normalize_cover(raw_url: str) -> str:
+        """封面字段归一化：去空白，相对路径开头带不带 `/` 结果相同。"""
+        return (raw_url or '').strip().lstrip('/')
+
     def resolve_cover_urls(self, raw_url: str) -> dict[str, str]:
         """把市场里的封面字段补成各源的完整地址。
 
@@ -163,11 +182,11 @@ class PluginCoverService(QObject):
         Returns:
             源ID到完整地址的映射；空值返回空字典。
         """
-        value = (raw_url or '').strip().lstrip('/')
+        value = self._normalize_cover(raw_url)
         if not value:
             return {}
         if urlparse(value).scheme:
-            return {'direct': value}
+            return {DIRECT_SOURCE_ID: value}
         return {
             source_id: urljoin(root, value)
             for source_id, root in self._market_service.index_roots().items()
@@ -178,8 +197,8 @@ class PluginCoverService(QObject):
         urls = self.resolve_cover_urls(cover_url)
         if not urls:
             return None
-        # 按源ID排序取第一个 同时作为缓存文件与下载状态的键 缓存不随配置里的源顺序漂移
-        url = urls[min(urls)]
+        # 归一化后的封面字段同时作为缓存文件与下载状态的键：同一张图不论从哪个源下载都命中同一份缓存
+        url = self._normalize_cover(cover_url)
         key = f'url:{url}'
         if key in self._memory:
             return self._memory[key]
@@ -192,7 +211,7 @@ class PluginCoverService(QObject):
             self._memory[key] = pixmap
             return pixmap
 
-        self._request(plugin_id, urls, url, target)
+        self._request(plugin_id, urls, url, target, self._env_config.get_resource_download_settings())
         return None
 
     # ------------------------------------------------------------------
@@ -206,12 +225,19 @@ class PluginCoverService(QObject):
             suffix = '.img'
         return self._cache_dir / f'{digest}{suffix}'
 
-    def _request(self, plugin_id: str, urls: dict[str, str], url: str, target: Path) -> None:
-        # 按首选地址去重：多个条目共用同一张封面时不会并发写同一个缓存文件
+    def _request(
+        self,
+        plugin_id: str,
+        urls: dict[str, str],
+        url: str,
+        target: Path,
+        settings: ResourceDownloadSettings,
+    ) -> None:
+        # 按归一化后的封面字段去重：多个条目共用同一张封面时不会并发写同一个缓存文件
         if url in self._downloading:
             return
         self._downloading.add(url)
-        self._pool.start(_DownloadTask(self, plugin_id, urls, url, target))
+        self._pool.start(_DownloadTask(self, plugin_id, urls, url, target, settings))
 
     def _on_download_finished(self, plugin_id: str, url: str, ok: bool) -> None:
         """下载结束后在 GUI 线程更新状态并通知界面。"""
