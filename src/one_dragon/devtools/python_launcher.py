@@ -82,8 +82,11 @@ def collect_path_problems(path: str) -> list[str]:
     只做提示，不据此退出：这几项都不是启动的硬前提，出问题的是个别功能，
     用户按提示迁移安装目录即可。
 
-    :param path: 待检查的目录绝对路径。
-    :return: 问题描述列表；空列表表示没有已知问题。
+    Args:
+        path: 待检查的目录绝对路径。
+
+    Returns:
+        问题描述列表；空列表表示没有已知问题。
     """
     problems: list[str] = []
     if not path.isascii():

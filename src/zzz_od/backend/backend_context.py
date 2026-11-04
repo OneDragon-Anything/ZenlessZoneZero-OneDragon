@@ -376,8 +376,8 @@ def _save_screenshot(image: 'MatLike') -> str:
     screenshot_dir.mkdir(parents=True, exist_ok=True)
     img_path = screenshot_dir / f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.png"
     # cv2_utils.save_image 用 imencode + tofile，安装目录含中文时也能写盘（cv2.imwrite 会失败）
-    cv2_utils.save_image(image, str(img_path))
-    if not img_path.exists():
+    # 用返回值判断：写一半失败时文件可能已经创建，只看 exists 会把损坏的截图返给调用方
+    if not cv2_utils.save_image(image, str(img_path)):
         raise RuntimeError(f'截图写盘失败: {img_path}')
     return str(img_path)
 
