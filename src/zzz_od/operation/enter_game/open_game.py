@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 from one_dragon.base.operation.operation import Operation
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -20,8 +21,25 @@ class OpenGame(Operation):
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
         self.activate_fail_times: int = 0
+        self.hdr_restored: bool = False
+        """本次操作里是否已经确认恢复过 HDR，避免结束时重复恢复"""
         Operation.__init__(self, ctx, op_name=gt('打开游戏'),
                            need_check_game_win=False)
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        """操作结束时兜底恢复 HDR。
+
+        窗口就绪和未就绪交替出现时，连续激活失败计数到不了上限，60 次重试耗尽的失败路径
+        不会经过 wait_game 里的恢复逻辑，所以这里再兜一次。
+
+        Args:
+            result: 操作的最终结果。
+        """
+        if not result.success and not self.hdr_restored:
+            log.info('打开游戏失败，恢复 HDR 设置')
+            if not EnableAutoHDR(self.ctx).execute().success:
+                log.error('恢复 HDR 设置失败，请到「设置 - 游戏基础 - 切换 HDR 状态」点「启用 HDR」')
+        Operation.after_operation_done(self, result)
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
@@ -78,7 +96,9 @@ class OpenGame(Operation):
 
         if self.ctx.controller.active_window():
             self.activate_fail_times = 0
-            if not EnableAutoHDR(self.ctx).execute().is_success:
+            if EnableAutoHDR(self.ctx).execute().success:
+                self.hdr_restored = True
+            else:
                 # 窗口已经起来了，HDR 没恢复不影响本次启动，但必须记日志：
                 # 否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，用户原设置就丢了
                 log.error('激活窗口后恢复 HDR 设置失败，请到「设置 - 游戏基础 - 切换 HDR 状态」点「启用 HDR」，'
@@ -89,7 +109,8 @@ class OpenGame(Operation):
         if self.activate_fail_times >= self.ACTIVE_WINDOW_MAX_FAIL_TIMES:
             # 启动失败也要把 HDR 恢复回去，否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，
             # 用户原本的 HDR 设置就再也回不来了
-            hdr_restored = EnableAutoHDR(self.ctx).execute().is_success
+            hdr_restored = EnableAutoHDR(self.ctx).execute().success
+            self.hdr_restored = hdr_restored
             msg = (
                 f'游戏窗口已打开但连续 {self.activate_fail_times} 次激活失败，'
                 '请检查是否有系统弹窗或其他窗口抢占前台'
