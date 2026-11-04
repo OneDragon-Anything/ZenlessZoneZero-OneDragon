@@ -21,3 +21,5 @@ investigation_strategy: 攻其不备战略
 chase_new_mode: true
 artifact_priority_new: true
 store_blood: true
+choose_team_by_priority: false
+predefined_team_idx: -1
