@@ -66,6 +66,7 @@ class ShiyuDefenseApp(ZApplication):
 
         # 多间模式相关
         self.current_room_idx: int = 0
+        self.current_room_team_idx: int = -1
         self.room_teams: list[DefensePhaseTeamInfo] = []
 
     @operation_node(name='传送', is_start_node=True)
@@ -105,10 +106,18 @@ class ShiyuDefenseApp(ZApplication):
                 current = int(digits[0])
                 total = int(digits[-1])
                 log.info('剧变节点进度 %d/%d', current, total)
-                self.config.critical_max_node_idx = total
-                next_idx = current + 1
-                if next_idx > total:
-                    return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
+                # 防御 OCR 误读:进度不可能 total<current(总防线数不会小于已挑战到的防线);
+                # 不合理时回退 run_record,避免误判已完成(实测见过 OCR 读成 2/1)。
+                if total < current:
+                    log.info('剧变节点进度 OCR 异常 %s,回退 run_record', progress_text)
+                    next_idx = self.run_record.next_node_idx()
+                    if next_idx is None:
+                        return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
+                else:
+                    self.config.critical_max_node_idx = total
+                    next_idx = current + 1
+                    if next_idx > total:
+                        return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
             elif len(digits) == 1:
                 # 只有一个数字，可能是 "5"，说明已完成
                 total = int(digits[0])
@@ -131,28 +140,27 @@ class ShiyuDefenseApp(ZApplication):
             self.current_room_idx = 0
             self.room_teams = []
             result1 = self.round_by_find_and_click_area(
-                self.last_screenshot, '式舆防卫战', '节点-05'
+                self.last_screenshot,
+                '式舆防卫战',
+                '节点-05',
             )
             if result1.is_success:
                 return self.round_success(result1.status, wait=1)
             return self.round_retry(result1.status, wait=1)
 
-        # 普通节点
         result1 = self.round_by_find_and_click_area(
-            self.last_screenshot, '式舆防卫战',
-            ('节点-%02d' % next_idx)
+            self.last_screenshot,
+            '式舆防卫战',
+            f'节点-{next_idx:02d}',
         )
-
         if result1.is_success:
             return self.round_wait(result1.status, wait=1)
 
-        # 点击直到下一步出现
         result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '下一步')
         if result.is_success:
             log.info('当前节点 %d', self.current_node_idx)
             return self.round_success(result.status, wait=1)
 
-        # 模板匹配失败，尝试滑动节点区域找目标节点
         area = self.ctx.screen_loader.get_area('式舆防卫战', '节点区域')
         start_point = area.rect.center
         end_point = start_point + Point(-300, 0)
@@ -191,49 +199,57 @@ class ShiyuDefenseApp(ZApplication):
                 self.round_by_click_area('式舆防卫战-三间选择', '重置全部', success_wait=1)
                 return self.round_retry('已重置', wait=1)
 
-            # 多间模式
-            self.room_teams = shiyu_defense_team_utils.calc_teams_for_multi_room(
-                self.ctx, self.last_screenshot, '式舆防卫战-三间选择', len(ROOM_NAMES)
+            self.room_teams = shiyu_defense_team_utils.get_team_targets_for_multi_room(
+                self.ctx,
+                self.last_screenshot,
+                '式舆防卫战-三间选择',
+                len(ROOM_NAMES),
             )
             for idx, team in enumerate(self.room_teams):
-                predefined_team = self.ctx.team_config.get_team_by_idx(team.team_idx)
-                log.info('%s 弱点:%s 抗性:%s 配队:%s',
-                         ROOM_NAMES[idx], [i.value for i in team.phase_weakness],
-                         [i.value for i in team.phase_resistance],
-                         predefined_team.name if predefined_team else '无')
+                log.info(
+                    '%s 弱点:%s 抗性:%s',
+                    ROOM_NAMES[idx],
+                    [dmg_type.value for dmg_type in team.phase_weakness],
+                    [dmg_type.value for dmg_type in team.phase_resistance],
+                )
 
-            if len(self.room_teams) < len(ROOM_NAMES):
-                return self.round_retry('配队计算失败 请检查配置', wait=1)
-            for idx, team in enumerate(self.room_teams):
-                if team.team_idx < 0:
-                    continue
-                if self.ctx.team_config.get_team_by_idx(team.team_idx) is None:
-                    return self.round_retry(f'{ROOM_NAMES[idx]}未找到编队', wait=1)
             return self.round_success('多间模式')
 
-        # 普通节点
-        self.phase_team_list = shiyu_defense_team_utils.calc_teams(self.ctx, self.last_screenshot)
+        self.phase_team_list = shiyu_defense_team_utils.get_team_targets(
+            self.ctx,
+            self.last_screenshot,
+        )
 
         for idx, team in enumerate(self.phase_team_list):
-            predefined_team = self.ctx.team_config.get_team_by_idx(team.team_idx)
-            log.info('阶段 %d', idx)
-            log.info('弱点: %s', [i.value for i in team.phase_weakness])
-            log.info('抗性: %s', [i.value for i in team.phase_resistance])
-            log.info('配队: %s', predefined_team.name)
-            log.info('自动战斗: %s', predefined_team.auto_battle)
+            log.info('阶段 %d', idx + 1)
+            log.info('弱点: %s', [dmg_type.value for dmg_type in team.phase_weakness])
+            log.info('抗性: %s', [dmg_type.value for dmg_type in team.phase_resistance])
 
-        if len(self.phase_team_list) < 2:
-            return self.round_retry('当前配置计算配队未足够多阶段 请检查配置', wait=1)
-
-        return self.round_by_click_area('式舆防卫战', '角色头像',
-                                        success_wait=1, retry_wait=1)
+        return self.round_by_click_area(
+            '式舆防卫战',
+            '角色头像',
+            success_wait=1,
+            retry_wait=1,
+        )
 
     @node_from(from_name='识别弱点并计算配队', status='角色头像')
     @operation_node(name='选择配队')
     def choose_team(self) -> OperationRoundResult:
-        target_team_idx_list = [i.team_idx for i in self.phase_team_list]
-        op = ChoosePredefinedTeam(self.ctx, target_team_idx_list)
-        return self.round_by_op_result(op.execute())
+        op = ChoosePredefinedTeam(
+            self.ctx,
+            shiyu_target_list=self.phase_team_list,
+        )
+        result = op.execute()
+        if not result.success:
+            return self.round_fail(result.status)
+
+        for idx, team in enumerate(self.phase_team_list):
+            predefined_team = self.ctx.team_config.get_team_by_idx(team.team_idx)
+            if predefined_team is None:
+                return self.round_fail(f'阶段 {idx + 1} 未找到预备编队')
+            log.info('阶段 %d 配队:%s 自动战斗:%s', idx + 1, predefined_team.name, predefined_team.auto_battle)
+
+        return self.round_success(result.status)
 
     # ==================== 多间模式 ====================
 
@@ -241,16 +257,16 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='多间-战斗结束', status=STATUS_ROOM_COMPLETE)
     @operation_node(name='多间-选择房间', node_max_retry_times=30)
     def multi_room_select(self) -> OperationRoundResult:
-        # 从 room_teams 中找第一个 team_idx >= 0 的房间
         idx = -1
-        for i, team in enumerate(self.room_teams):
-            if team.team_idx >= 0:
-                idx = i
+        for room_idx, team in enumerate(self.room_teams):
+            if not team.is_completed:
+                idx = room_idx
                 break
         if idx < 0:
             self.run_record.add_node_finished(self.current_node_idx)
             return self.round_success(ShiyuDefenseApp.STATUS_ALL_ROOMS_COMPLETE)
         self.current_room_idx = idx
+        self.current_room_team_idx = self.room_teams[idx].team_idx
         log.info('选择房间: %s', ROOM_NAMES[self.current_room_idx])
         return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战-三间选择', f'前往{ROOM_NAMES[self.current_room_idx]}', success_wait=1, retry_wait=1)
 
@@ -259,13 +275,33 @@ class ShiyuDefenseApp(ZApplication):
     def multi_room_wait_prepare(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '预备编队')
         if result.is_success:
-            op = ChoosePredefinedTeam(self.ctx, [self.room_teams[self.current_room_idx].team_idx])
-            op.execute()
+            current_team = self.room_teams[self.current_room_idx]
+            if current_team.team_idx < 0:
+                target_list = [
+                    team for team in self.room_teams if not team.is_completed
+                ]
+                op = ChoosePredefinedTeam(
+                    self.ctx,
+                    shiyu_target_list=target_list,
+                    shiyu_click_target_list=[current_team],
+                )
+            else:
+                op = ChoosePredefinedTeam(self.ctx, [current_team.team_idx])
+
+            op_result = op.execute()
+            if not op_result.success:
+                return self.round_fail(op_result.status)
+            if current_team.team_idx < 0:
+                return self.round_fail(f'{ROOM_NAMES[self.current_room_idx]}未找到预备编队')
+
+            self.current_room_team_idx = current_team.team_idx
             return self.round_success('预备编队完成')
-        # 没有预备编队，点下一步后继续等
+
         self.round_by_click_area(
-            '实战模拟室', '下一步',
-            success_wait=0.5, retry_wait=1
+            '实战模拟室',
+            '下一步',
+            success_wait=0.5,
+            retry_wait=1,
         )
         return self.round_retry('未找到预备编队', wait=1)
 
@@ -277,14 +313,14 @@ class ShiyuDefenseApp(ZApplication):
             success_wait=1, retry_wait=1
         )
         if result.is_success:
-            # 已出战，标记当前房间为已完成
+            self.room_teams[self.current_room_idx].is_completed = True
             self.room_teams[self.current_room_idx].team_idx = -1
         return result
 
     @node_from(from_name='多间-出战')
     @operation_node(name='多间-战斗')
     def multi_room_battle(self) -> OperationRoundResult:
-        op = ShiyuDefenseBattle(self.ctx, self.room_teams[self.current_room_idx].team_idx)
+        op = ShiyuDefenseBattle(self.ctx, self.current_room_team_idx)
         return self.round_success() if op.execute().success else self.round_success('战斗失败')
 
     @node_from(from_name='多间-战斗')
@@ -432,7 +468,7 @@ def __debug():
     ctx.init_ocr()
 
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('_1728799789929')
+    debug_utils.get_debug_image('_1728799789929')
 
     app = ShiyuDefenseApp(ctx)
     app.execute()

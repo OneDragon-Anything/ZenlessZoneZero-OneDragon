@@ -38,7 +38,6 @@ class ZPcController(PcControllerBase):
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
             self.enable_foreground_mode()
-            self.active_window()
 
     def init_before_context_run(self) -> bool:
         """运行前根据配置启用后台/前台模式"""

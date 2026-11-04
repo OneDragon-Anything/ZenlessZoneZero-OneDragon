@@ -29,37 +29,92 @@ class TargetStateChecker:
             TargetCheckWay.OCR_TEXT_CONTAINS: self._check_ocr_text_contains,
             TargetCheckWay.OCR_TEXT_SIMILARITY: self._check_ocr_text_similarity,
             TargetCheckWay.MAP_CONTOUR_LENGTH_TO_PERCENT: self._check_map_contour_length_to_percent,
+            TargetCheckWay.TEMPLATE_MATCH_CONFIDENCE: self._check_template_match_confidence,
         }
+        # 任务 -> 上次命中的状态名 用于下一次优先匹配
+        self._preferred_state: dict[str, str] = {}
 
-    def run_task(self, screen: MatLike, task: DetectionTask, debug_mode: bool = False) -> Tuple[CvPipelineContext, List[Tuple[str, Any]]]:
+    def run_task(self, screen: MatLike, task: DetectionTask, debug_mode: bool = False) -> Tuple[CvPipelineContext | None, List[Tuple[str, Any]]]:
         """
         运行一个检测任务组，并返回所有解读出的状态
         :param screen: 屏幕截图
         :param task: 检测任务组的定义
         :param debug_mode: 是否开启CV流水线的调试模式
-        :return: CV结果上下文, 状态元组列表 (state_name, result)
+        :return: CV结果上下文(无流水线时为None), 状态元组列表 (state_name, result)
         """
-        # 记录任务开始时间
-        start_time = time.time()
+        # 1. 有流水线时先跑一次，并传入1秒的软超时
+        cv_result: CvPipelineContext | None = None
+        if task.pipeline_name:
+            start_time = time.time()
+            cv_result = self.ctx.cv_service.run_pipeline(
+                task.pipeline_name,
+                screen,
+                debug_mode=debug_mode,
+                start_time=start_time,
+                timeout=1.0  # 自动战斗要求1秒超时
+            )
 
-        # 1. 运行一次CV流水线，并传入1秒的软超时
-        cv_result = self.ctx.cv_service.run_pipeline(
-            task.pipeline_name,
-            screen,
-            debug_mode=debug_mode,
-            start_time=start_time,
-            timeout=1.0  # 自动战斗要求1秒超时
-        )
+        # 2. 逐个模板匹配类状态：整组只匹配到第一个命中为止，上次命中的优先试
+        multi_hit_state = self._resolve_template_match_multi(screen, task)
 
-        # 2. 循环解读结果
+        # 3. 循环解读结果
         results = []
         for state_def in task.state_definitions:
+            if state_def.check_way == TargetCheckWay.TEMPLATE_MATCH_MULTI:
+                hit = multi_hit_state is not None and multi_hit_state == state_def.state_name
+                results.append((state_def.state_name, True if hit else (None if state_def.clear_on_miss else False)))
+                continue
             interpreted_value = self._interpret_result(cv_result, state_def)
             results.append((state_def.state_name, interpreted_value))
 
         return cv_result, results
 
-    def _interpret_result(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> Any:
+    def _resolve_template_match_multi(self, screen: MatLike, task: DetectionTask) -> str | None:
+        """
+        在同一块屏幕上逐个模板匹配，命中一个即停
+        上一次命中的状态优先试，命中过的首领不会被其它模板重复消耗时间
+        :return: 命中的状态名，全部未命中返回 None
+        """
+        defs = [state_def for state_def in task.state_definitions
+                if state_def.check_way == TargetCheckWay.TEMPLATE_MATCH_MULTI]
+        if len(defs) == 0:
+            return None
+
+        if not task.area_name:
+            log.error(f'任务 {task.task_id}: 多模板匹配缺少区域名')
+            return None
+        area = self.ctx.screen_loader.get_area('战斗画面', task.area_name)
+        if area is None:
+            log.error(f'任务 {task.task_id}: 战斗画面中找不到区域 {task.area_name}')
+            return None
+
+        preferred = self._preferred_state.get(task.task_id)
+        ordered = sorted(defs, key=lambda state_def: 0 if state_def.state_name == preferred else 1)
+
+        for state_def in ordered:
+            params = state_def.check_params
+            template_name = params.get('template_name')
+            threshold = params.get('threshold', 0.85)
+            if not template_name:
+                log.error(f'状态 {state_def.state_name}: 缺少模板名称')
+                continue
+            sub_dir, template_id = template_name.split('/')
+            match_result = self.ctx.tm.crop_and_match_template(
+                screen,
+                area.rect,
+                sub_dir,
+                template_id,
+                threshold=threshold,
+            )
+            if match_result.max is None:
+                continue
+            log.debug(f'任务 {task.task_id}: {state_def.state_name} 置信度 {match_result.max.confidence:.4f}')
+            self._preferred_state[task.task_id] = state_def.state_name
+            return state_def.state_name
+
+        return None
+
+    def _interpret_result(self, cv_result: CvPipelineContext | None, state_def: TargetStateDef) -> Any:
         """
         根据单个状态定义，解读一份CV结果。
         现在返回True, (True, value), False, 或 None
@@ -220,6 +275,27 @@ class TargetStateChecker:
         except (ValueError, TypeError, AttributeError) as e:
             log.exception(f"计算轮廓宽度与遮罩宽度比率时出错: {e}")
             return None if state_def.clear_on_miss else False
+
+    def _check_template_match_confidence(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
+        """
+        处理 TEMPLATE_MATCH_CONFIDENCE
+        流水线完成模板匹配后 按最佳匹配置信度判断是否命中
+        """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
+        threshold = state_def.check_params.get('threshold', 0.8)
+        match_result = cv_result.match_result
+        if match_result is None or match_result.max is None:
+            log.debug(f"状态 {state_def.state_name}: 模板匹配无结果")
+            return None if state_def.clear_on_miss else False
+
+        confidence = match_result.max.confidence
+        log.debug(f"状态 {state_def.state_name}: 模板匹配置信度 {confidence:.4f} (阈值 {threshold})")
+        if confidence >= threshold:
+            return True
+        return None if state_def.clear_on_miss else False
 
     def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """

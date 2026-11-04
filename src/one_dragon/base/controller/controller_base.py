@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
+
+if TYPE_CHECKING:
+    from one_dragon.base.controller.drag_timing import DragTiming
 
 
 class ScreenshotWithTime:
@@ -107,13 +113,17 @@ class ControllerBase:
         """
         pass
 
-    def drag_to(self, end: Point, start: Point | None = None, duration: float = 0.5):
-        """
-        按住拖拽
-        :param end: 拖拽目的点
-        :param start: 拖拽开始点
-        :param duration: 拖拽持续时间
-        :return:
+    def drag_to(
+        self, end: Point, start: Point | None = None, duration: float = 0.5,
+        *, timing: DragTiming | None = None,
+    ) -> None:
+        """按住拖拽。
+
+        Args:
+            end: 拖拽目的点。
+            start: 拖拽开始点。
+            duration: 未指定 timing 时的原有时长预算。
+            timing: 显式指定三段时序；提供时忽略 duration，None 保留原行为。
         """
         pass
 

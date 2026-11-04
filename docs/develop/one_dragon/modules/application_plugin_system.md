@@ -46,7 +46,7 @@
 **文件位置**: `src/one_dragon/base/operation/application/plugin_info.py`
 
 **属性**:
-- `app_id`, `app_name`, `default_group`: 核心信息
+- `app_id`, `app_name`, `default_group`, `internal_app`: 核心信息
 - `author`, `homepage`, `version`, `description`: 插件元数据
 - `plugin_dir`: 插件目录路径
 - `source`: 插件来源（BUILTIN/THIRD_PARTY）
@@ -64,7 +64,9 @@
 **类常量**:
 - `REQUIRED_CONST_FIELDS`: app_const 模块必须定义的字段（`APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`）
 - `OPTIONAL_PLUGIN_FIELDS`: 可选的插件元数据字段（`PLUGIN_AUTHOR`, `PLUGIN_HOMEPAGE`, `PLUGIN_VERSION`, `PLUGIN_DESCRIPTION`）
-- 可选 app 常量字段：`PRIORITY`（整数，默认组 app 的排序优先级）
+- 可选 app 常量字段：
+  - `INTERNAL_APP`：是否只能通过代码固定入口调用，默认 `False`
+  - `PRIORITY`：整数，默认组 app 的排序优先级
 
 ## 目录结构
 
@@ -85,39 +87,56 @@ project_root/
     └── my_plugin/
         ├── __init__.py
         ├── my_plugin_const.py
-        ├── my_plugin_factory.py
+        ├── my_plugin_factory.py   # 只扫描插件根第一层
         ├── my_plugin.py
         └── sub/
             ├── __init__.py
-            ├── sub_feature_const.py
-            └── sub_feature_factory.py
+            └── helper.py          # 普通子模块，不扫描子目录 factory
 ```
 
-## 应用分组
+## 应用入口
 
-### 默认组应用 (default_group=True)
+### 字段职责
 
-- 会出现在"一条龙"运行列表中
-- 可以被用户排序和启用/禁用
-- 适用于：体力刷本、咖啡店、邮件等日常任务
-- 可选定义 `PRIORITY` 整数；数值越小越靠前。显式 priority 相同的 app 按 `app_id` 排序，未定义 priority 的 app 排在全部显式 priority app 之后。
-- priority 只决定初始默认/候选顺序，不会覆盖用户保存的应用组顺序。
+- `DEFAULT_GROUP` 只表示应用是否默认进入一条龙列表。
+- 可选字段 `INTERNAL_APP` 表示应用是否只能由专用页面、父应用或系统代码按固定 `app_id` 调用，省略时为 `False`。
 
-可运行以下开发入口查看内置应用与 `plugins/` 中第三方应用的实际 priority：
+| `DEFAULT_GROUP` | `INTERNAL_APP` | 派生入口 |
+|:---:|:---:|---|
+| `True` | `False` | 加入 `default_group_apps` 和 `standalone_apps` |
+| `False` | `False` | 只加入 `standalone_apps` |
+| `False` | `True` | 只保留在工厂映射中，不进入通用应用列表 |
+| `True` | `True` | 非法组合，工厂加载失败并记入扫描失败列表 |
+
+`default_group_apps` 用于初始化一条龙列表；`standalone_apps` 用于 GUI“应用运行”页面及后端、HTTP、MCP 的通用独立应用列表。internal 应用也会注册到底层工厂映射，所以专用页面、父应用和系统代码仍可通过 `run_application()` 运行。
+
+旧 const 缺少 `INTERNAL_APP` 时按 `False` 处理。因此旧的 `DEFAULT_GROUP=False` 应用会成为 standalone 应用；需要维持固定入口范围的应用必须显式声明 `INTERNAL_APP=True`。
+
+加载 standalone 配置时只把已注册且非 internal 的应用放入运行时列表，不自动删除 YAML 中暂时不可用或不允许选择的原始 ID。
+
+### 默认列表顺序
+
+`DEFAULT_GROUP=True` 的应用可选定义 `PRIORITY` 整数；数值越小越靠前。显式 priority 相同的 app 按 `app_id` 排序，未定义 priority 的 app 排在全部显式 priority app 之后。priority 只决定初始默认/候选顺序，不会覆盖用户保存的一条龙顺序。
+
+可运行以下开发入口查看内置应用与 `plugins/` 中第三方应用的实际入口字段和 priority：
 
 ```shell
 uv run python src/zzz_od/application/devtools/application_priority_scanner.py
 ```
 
-入口只解析应用目录中的 factory/const 文件，不会初始化游戏上下文或启动 GUI。输出按 priority 排序，并包含默认组、来源、app ID、名称和 const 文件位置。
+入口只解析应用目录中的 factory/const 文件，不会初始化游戏上下文或启动 GUI。输出按 priority 排序，并包含默认组、固定入口、来源、app ID、名称和 const 文件位置。
 
-### 非默认组应用 (default_group=False)
+## 默认运行记录
 
-- 默认不会出现在"一条龙"运行列表中
-- 如果某个实例的一条龙配置文件中已经存在该应用、状态为启用且应用仍然注册，则继续显示
-- 配置中已禁用的非默认组应用会被永久移除，不会再次加入一条龙列表
-- 从配置文件中不存在的非默认组应用不会自动加入一条龙列表
-- 适用于：自动战斗、闪避助手、截图工具等独立工具
+`DEFAULT_GROUP=True` 且工厂没有覆盖 `create_run_record()` 时，父工厂创建基础 `AppRunRecord`。记录使用工厂的 `app_id`、请求的账号实例，以及 `self.ctx.game_account_config.game_refresh_hour_offset`，按当前区服游戏日重置；一条龙据此跳过当前游戏日已经成功的应用。
+
+`DEFAULT_GROUP=False` 的 standalone 和 internal 应用默认返回 `None`。没有运行记录是正常状态，不抛出错误；应用需要记录时再覆盖 `create_run_record()`。
+
+只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，具体工厂才覆盖 `create_run_record()`。父工厂不接收额外构造参数；具体工厂必须继续保存 `self.ctx`，作为默认运行记录和应用创建共同使用的上下文。覆盖方法抛出的创建异常会正常暴露，不能再用“没有运行记录”语义吞掉。
+
+手动执行和一条龙共用同一账号的应用记录。手动入口直接执行应用，不检查当天是否已完成；一条龙先刷新记录，再根据 `is_done` 跳过。手动成功同样更新记录，因此可以使一条龙跳过当天已完成的应用。没有单独按运行来源保存的每日状态。
+
+`GroupApplication` 是无注册工厂的组执行器，通过 `use_factory_run_record=False` 显式关闭获取工厂记录，不通过应用 ID 前缀推断类型。
 
 ## 插件加载机制
 
@@ -141,13 +160,15 @@ src/zzz_od/application/my_app/my_app_factory.py
 
 ### 第三方插件 (THIRD_PARTY)
 
-将 `plugins/` 目录加入 `sys.path`，模块名从 plugins 目录开始计算。
-支持嵌套子目录，中间包会自动加载或创建为命名空间包：
+将 `plugins/` 目录加入 `sys.path`，模块名从 plugins 目录开始计算。第三方插件只发现 `plugins/<插件根>/*_factory.py`；插件根内的嵌套子目录仍可作为普通 Python 子包导入，但其中的 factory 不会注册。
 
 ```
 plugins/my_plugin/my_plugin_factory.py
 → module_root: plugins/
 → 模块名: my_plugin.my_plugin_factory
+
+plugins/my_plugin/sub/helper.py
+→ 可由 my_plugin 内的代码导入，不参与 factory 发现
 ```
 
 ### 中间包加载
@@ -169,6 +190,22 @@ plugins/my_plugin/my_plugin_factory.py
 - `plugins/` 目录仅添加一次到 sys.path
 - 使用集合跟踪已添加的路径，避免重复
 
+## 插件导入边界
+
+`PluginImportService` 把 ZIP 或松散目录视为一个“来源”。来源根直接包含唯一 `*_factory.py` 和唯一 `*_const.py` 时，整个来源是一个插件；否则识别多个互不隶属的最外层合法插件根。
+
+- 每个插件根分别映射到 `plugins/<插件名>/`，来源包装目录和根外文件不安装。
+- 导入目标目录与运行时第三方插件扫描目录使用同一套 `src` 目录定位规则，避免导入目录与加载目录不一致。
+- ZIP 和目录的预览、导入都在界面后台线程执行；确认框仍在界面线程弹出。导入完成或取消后，再恢复刷新、删除并刷新应用注册和插件列表。
+- 正在运行的第三方插件不能删除。停止请求发出后，应用线程真正退出前也不能删除。确认后的目录删除在后台线程执行。
+- 插件根内的深层 factory 不参与根识别，也不会被第三方运行时扫描。
+- 同一来源中大小写不敏感的重复插件目录名会在写盘前拒绝。
+- ZIP 中本次选中插件根的解压后总体积受 512 MiB 上限约束。
+- 松散目录中的符号链接不能越出所属插件根或形成复制循环；插件根第一层的 Python 文件不能是符号链接。
+- 每个插件独立使用临时目录、覆盖和失败回滚；覆盖重试按“来源路径 + 插件名”选择，不重复处理同来源中已成功的插件。
+
+旧的 `preview_plugin()`、`import_plugin()`、`preview_directory()`、`import_directory()` 保持单插件语义；插件管理界面使用一对多来源接口。
+
 ## 插件生命周期流程
 
 ```
@@ -183,7 +220,8 @@ OneDragonContext.init()
 │   │   │   └── (plugins,            THIRD_PARTY)
 │   │   │
 │   │   ├── _scan_directory()          ─── 对每个目录
-│   │   │   ├── rglob("*.py")         ─── 收集 *_factory.py / *_const.py
+│   │   │   ├── BUILTIN: rglob("*.py")
+│   │   │   ├── THIRD_PARTY: 枚举真实插件根后 glob("*.py")，跳过符号链接目录和文件
 │   │   │   ├── 冲突检测              ─── 同目录多个 factory/const → 跳过 + 记录
 │   │   │   └── _load_factory_from_file()  ─── 对每个 factory 文件
 │   │   │       ├── resolve_module_name()  ─── 计算 dotted name + module_root
@@ -198,10 +236,12 @@ OneDragonContext.init()
 │   │   │               ├── APP_ID 唯一性检查
 │   │   │               └── 可选元数据 (author, version, ...)
 │   │   │
-│   │   └── return (non_default_factories, default_factories)
+│   │   └── return factories
 │   │
 │   └── run_context.registry_application(factories)
-│       └── 注册到 _factory_map: {app_id: factory}
+│       ├── 注册到 _application_factory_map: {app_id: factory}
+│       ├── 派生 default_group_apps
+│       └── 派生 standalone_apps
 │
 └── ... 后续初始化 (OCR, 控制器, ...)
 ```
@@ -211,7 +251,7 @@ OneDragonContext.init()
 ```
 refresh_application_registration()
 │
-├── run_context.clear_applications()         # 清空工厂注册表
+├── run_context.clear_applications()         # 清空工厂注册表和两个派生列表
 ├── factory_manager.discover_factories(reload_modules=True)
 │   ├── _plugin_infos.clear()                # 清空元数据
 │   ├── _scan_failures.clear()               # 清空失败记录
@@ -221,7 +261,7 @@ refresh_application_registration()
 │               ├── THIRD_PARTY: 卸载整个包 (my_plugin.*)
 │               └── BUILTIN: 卸载当前应用目录 (zzz_od.application.xxx.*)
 │
-├── run_context.registry_application(...)     # 重新注册
+├── run_context.registry_application(...)     # 重新注册并重建两个派生列表
 ├── app_group_manager.set_default_apps(...)   # 更新默认组
 ├── app_group_manager.clear_config_cache()    # 清除配置缓存
 └── del self.__dict__['notify_config']        # 刷新通知配置
@@ -275,10 +315,12 @@ AppSettingManager.discover()
 │            ┌─────────────────────┼──────────────────┐    │
 │            ▼                     ▼                   │    │
 │  ApplicationRunContext    AppSettingManager (GUI)     │    │
-│  ┌──────────────────┐    ┌────────────────────┐     │    │
-│  │ _factory_map      │    │ _app_setting_map   │     │    │
-│  │ {app_id: factory} │    │ {app_id: handler}  │     │    │
-│  └────────┬─────────┘    └────────┬───────────┘     │    │
+│  ┌──────────────────────┐ ┌────────────────────┐     │    │
+│  │ _application_factory │ │ _app_setting_map   │     │    │
+│  │ _map                 │ │ {app_id: handler}  │     │    │
+│  │ default_group_apps   │ └────────┬───────────┘     │    │
+│  │ standalone_apps      │          │                 │    │
+│  └──────────┬───────────┘          │                 │    │
 │           │                       │                  │    │
 │           ▼                       ▼                  │    │
 │     create_application()    show_app_setting()       │    │
@@ -296,6 +338,7 @@ AppSettingManager.discover()
 | 模块导入失败 | 记录到 `scan_failures`，继续扫描其他文件 |
 | 缺少 `*_const.py` | `ImportError`，记录到 `scan_failures` |
 | const 缺少必需字段 | 工厂 `__init__` 抛出 `AttributeError`，记录到 `scan_failures` |
+| `DEFAULT_GROUP` 与 `INTERNAL_APP` 同时为 `True` | 工厂 `__init__` 抛出 `ValueError`，记录到 `scan_failures` |
 | APP_ID 重复 | `ImportError`（先注册者胜），记录到 `scan_failures` |
 | 第三方插件直接放在 plugins 根目录 | `ImportError` |
 | factory 模块中无 ApplicationFactory 子类 | 记录 "No ApplicationFactory subclass found" |

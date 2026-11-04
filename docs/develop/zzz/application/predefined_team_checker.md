@@ -13,7 +13,7 @@
    - OCR 全图队名 → 用 `difflib` 模糊匹配 `team_config` 的队伍名(找对应配置队)。
    - 在匹配队名左侧 -10 起、宽 800 高 250 的区域(`avatar_rect = Rect(x-10, y, x+800, y+250)`),`match_team_agent_template` 模板匹配代理人头像 → 按横坐标排序 + 重叠过滤(issue #1487,同位置多识别取高置信)。
    - `team_config.update_team_members(队名, [代理人])` 写回配置(按队名匹配,非 idx)。
-3. **翻页**:中屏 drag 上滑(`-500px`),最多翻 4 次,每页重复识别。
+3. **翻页**:从 `(960, 715)` 拖到 `(960, 150)`,通过 `TEAM_DRAG_TIMING` 显式指定[拖拽时序](../../one_dragon/one_dragon_architecture.md#拖拽时序),不依赖公共默认等待。最多翻 4 次,每页重复识别。
 4. **返回**:`BackToNormalWorld` 回大世界。
 
 ## 关键点

@@ -104,6 +104,26 @@ class ChargePlanConfig(ApplicationConfig):
         for plan_item in self.data.get('plan_list', []):
             self.plan_list.append(ChargePlanItem(**plan_item))
 
+        # TODO 迁移旧副本名 2026-12 删除
+        self._migrate_legacy_mission_type_names()
+
+    # 资源表改名后，已保存计划仍可能带着旧的合法名称。
+    _LEGACY_MISSION_TYPE_NAMES: ClassVar[dict[str, str]] = {
+        '迅雷与裂爪': '迅脊与裂爪',
+    }
+
+    def _migrate_legacy_mission_type_names(self) -> None:
+        """把已保存计划中的旧副本名称改成当前名称并写回。"""
+        modified = False
+        for plan in self.plan_list:
+            new_name = self._LEGACY_MISSION_TYPE_NAMES.get(plan.mission_type_name)
+            if new_name is None:
+                continue
+            plan.mission_type_name = new_name
+            modified = True
+        if modified:
+            self.save()
+
     def save(self):
         plan_list = []
 

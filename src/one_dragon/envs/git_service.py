@@ -34,6 +34,10 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
+from one_dragon.envs.runtime_compatibility import (
+    check_manifest_compatible,
+    load_runtime_manifest,
+)
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -1117,6 +1121,12 @@ class GitService:
             return True
         return re.fullmatch(r"'{0,1}[0-9a-f]{40}'{0,1}", message) is not None
 
+    @staticmethod
+    def _format_source_error(error: BaseException) -> str:
+        """把代码源异常转成面向用户的简短原因，避免展示过长或空信息。"""
+        text = str(error).strip() or error.__class__.__name__
+        return text if len(text) <= 120 else f'{text[:117]}...'
+
     def _rebuild_repository(
         self,
         progress_callback: Callable[[float, str], None] | None,
@@ -1207,6 +1217,7 @@ class GitService:
         success = False
         used_repository: RepositoryItem | None = None
         local_repository_damaged = False
+        source_errors: list[str] = []
 
         try:
             for repository, repository_url in self._get_repository_candidates():
@@ -1234,6 +1245,9 @@ class GitService:
                         local_repository_damaged = True
                         log.error('导入远程对象时发现本地 Git 对象缺失，停止代码源回退', exc_info=True)
                         break
+                    source_errors.append(
+                        f'{repository_name}: {self._format_source_error(error)}'
+                    )
                     log.warning(f'代码源 {repository_name} 拉取失败，尝试下一个代码源', exc_info=True)
         finally:
             restored = True if local_repository_damaged else self._restore_origin()
@@ -1248,7 +1262,10 @@ class GitService:
             return GitSyncStatus.LOCAL_UPDATE_FAILED, gt('本地代码更新失败')
         if not success:
             log.error('所有代码源均拉取失败')
-            return GitSyncStatus.REMOTE_UNAVAILABLE, gt('暂时无法获取更新')
+            message = gt('暂时无法获取更新')
+            if source_errors:
+                message = f'{message}：{"；".join(source_errors)}'
+            return GitSyncStatus.REMOTE_UNAVAILABLE, message
 
         if used_repository is not None:
             try:
@@ -1377,11 +1394,10 @@ class GitService:
     # ================== 模块清单检查 ==================
 
     def _check_manifest_compatible(self, target_oid: Oid) -> tuple[bool, str]:
-        """检查模块清单是否与当前运行环境兼容
+        """读取目标提交的清单，调用运行时兼容性检查。
 
-        本地清单从 .runtime/module_manifest.py 读取（打包时写入），
-        远程清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
-        仅在 frozen 环境（PyInstaller 打包后）下执行检查。
+        没有可用的运行时打包清单时跳过检查。
+        本地清单可用时，目标 project.yml 缺少有效 manifest_path、目标清单读取失败或检查异常都阻止更新。
 
         Args:
             target_oid: 目标提交 OID
@@ -1389,44 +1405,33 @@ class GitService:
         Returns:
             (是否兼容, 提示消息)
         """
-        if not getattr(sys, 'frozen', False):
-            return True, ''
-
-        # 读取本地 manifest（打包进 .runtime/ 的文件）
-        runtime_dir = Path(getattr(sys, '_MEIPASS', ''))
-        local_manifest_path = runtime_dir / 'module_manifest.py'
-        if not local_manifest_path.is_file():
-            return True, ''
-
-        try:
-            local_manifest = local_manifest_path.read_bytes()
-        except Exception:
-            log.warning('读取本地模块清单失败，跳过检查', exc_info=True)
+        local_manifest = load_runtime_manifest()
+        if local_manifest is None:
             return True, ''
 
         # 从目标 commit 的 project.yml 获取清单路径
         manifest_git_path = self._get_manifest_path_from_commit(target_oid)
         if not manifest_git_path:
-            return True, ''
+            log.warning(f'目标版本缺少有效模块清单路径，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
         # 读取目标 commit 中的 manifest
         remote_manifest = self._get_file_at_commit(target_oid, manifest_git_path)
         if remote_manifest is None:
-            return True, ''
+            log.warning(f'目标版本模块清单读取失败，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
-        if local_manifest == remote_manifest:
-            return True, ''
+        try:
+            compatible = check_manifest_compatible(local_manifest, remote_manifest)
+        except Exception:
+            log.warning(f'检查模块清单时出错，阻止代码更新。目标: {str(target_oid)[:7]}', exc_info=True)
+            return False, gt('目标版本的运行环境与当前不兼容')
 
-        # 兼容旧打包产物的 CRLF；先走 raw bytes 快路径，仅不一致时再归一化。
-        if b'\r' in local_manifest or b'\r' in remote_manifest:
-            normalized_local_manifest = local_manifest.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-            normalized_remote_manifest = remote_manifest.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
-            if normalized_local_manifest == normalized_remote_manifest:
-                return True, ''
+        if not compatible:
+            log.warning(f'运行环境不兼容，阻止代码更新。目标: {str(target_oid)[:7]}')
+            return False, gt('目标版本的运行环境与当前不兼容')
 
-        msg = gt('目标版本的运行环境与当前不兼容')
-        log.warning(f'模块清单已变更，阻止代码更新。目标: {str(target_oid)[:7]}')
-        return False, msg
+        return True, ''
 
     def _get_manifest_path_from_commit(self, commit_oid: Oid) -> str | None:
         """从指定 commit 的 project.yml 中读取 manifest_path
@@ -1450,7 +1455,7 @@ class GitService:
     def _check_remote_manifest_compatible(self) -> tuple[bool, str]:
         """检查远程分支的模块清单是否与当前运行环境兼容
 
-        封装远程 OID 解析 + 清单比对，异常时跳过检查。
+        封装远程 OID 解析 + 清单比对；本地清单可用时，检查异常阻止更新。
 
         Returns:
             (是否兼容, 提示消息)
@@ -1463,8 +1468,11 @@ class GitService:
             remote_oid = repo.references[remote_ref].target
             return self._check_manifest_compatible(remote_oid)
         except Exception:
-            log.warning('检查模块清单时出错，跳过检查', exc_info=True)
-            return True, ''
+            if load_runtime_manifest() is None:
+                log.warning('检查模块清单时出错，跳过检查', exc_info=True)
+                return True, ''
+            log.warning('检查模块清单时出错，阻止代码更新', exc_info=True)
+            return False, gt('目标版本的运行环境与当前不兼容')
 
     def _checkout_branch(self) -> tuple[GitSyncStatus, bool, str]:
         """切换到目标分支，并返回是否发生了分支切换。"""

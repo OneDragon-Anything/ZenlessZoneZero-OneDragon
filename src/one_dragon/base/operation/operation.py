@@ -10,6 +10,12 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import (
+    DebugTraceBus,
+    DecisionTraceItem,
+    PerfTraceItem,
+    TimelineTraceItem,
+)
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
@@ -171,6 +177,18 @@ class Operation(OperationBase):
         self.node_clicked: bool = False
         """本节点是否已经完成了点击"""
 
+        self._goto_screen_debounce_source: str | None = None
+        """画面跳转防抖期间记录的来源画面"""
+
+        self._goto_screen_debounce_start_time: float = 0
+        """画面跳转防抖开始时间"""
+
+        self._goto_screen_loading: bool = False
+        """来源画面消失后是否正在等待下一个画面"""
+
+        self._goto_screen_loading_start_time: float = 0
+        """画面跳转加载宽限期开始时间"""
+
         self.node_retry_times: int = 0
         """当前节点的重试次数"""
 
@@ -204,6 +222,10 @@ class Operation(OperationBase):
         # 重置节点状态
         self.node_retry_times = 0
         self.node_clicked = False
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
         self._current_node_start_time = now
         self._previous_round_result = None
         self.node_status.clear()
@@ -228,7 +250,7 @@ class Operation(OperationBase):
         node_name_map: dict[str, OperationNode] = {}
         edge_desc_list: list[OperationEdgeDesc] = []
 
-        for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
+        for _name, method in inspect.getmembers(self, predicate=inspect.ismethod):
             # 从方法对象上直接获取 @operation_node 附加的节点信息
             node: OperationNode = getattr(method, 'operation_node_annotation', None)
             if node is None:
@@ -253,10 +275,10 @@ class Operation(OperationBase):
         for edge_desc in edge_desc_list:
             node_from = node_name_map.get(edge_desc.node_from_name, None)
             if node_from is None:
-                raise ValueError('找不到节点 %s' % edge_desc.node_from_name)
+                raise ValueError(f'找不到节点 {edge_desc.node_from_name}')
             node_to = node_name_map.get(edge_desc.node_to_name, None)
             if node_to is None:
-                raise ValueError('找不到节点 %s' % edge_desc.node_to_name)
+                raise ValueError(f'找不到节点 {edge_desc.node_to_name}')
 
             new_node = OperationEdge(
                 node_from,
@@ -366,7 +388,7 @@ class Operation(OperationBase):
         if self.ctx.is_game_window_ready:
             return self.round_success()
         else:
-            return self.round_fail('未打开游戏窗口 %s' % self.ctx.controller.game_win.win_title)
+            return self.round_fail(f'未打开游戏窗口 {self.ctx.controller.game_win.win_title}')
 
     def open_and_enter_game(self) -> OperationRoundResult:
         """打开并进入游戏。
@@ -427,7 +449,7 @@ class Operation(OperationBase):
                     else:
                         arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
                         log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
-                    self._emit_overlay_round_trace(
+                    self._emit_debug_round_trace(
                         from_node_name=from_node_name,
                         node_name=node_name,
                         status_text=round_result_status,
@@ -441,14 +463,13 @@ class Operation(OperationBase):
                     log.error('%s 执行出错 相关截图保存至 %s', self.display_name, file_name, exc_info=True)
                 else:
                     log.error('%s 执行出错', self.display_name, exc_info=True)
-                self._emit_overlay_timeline(
+                self._emit_debug_timeline(
                     category="node",
                     title=self.display_name,
                     detail=f"异常: {type(e).__name__}",
                     level="ERROR",
-                    ttl_seconds=60.0,
                 )
-            self._emit_overlay_round_perf((time.time() - self.round_start_time) * 1000.0)
+            self._emit_debug_round_perf((time.time() - self.round_start_time) * 1000.0)
 
             # 重试或者等待的
             if round_result.result == OperationRoundResultEnum.RETRY:
@@ -574,6 +595,10 @@ class Operation(OperationBase):
         self.node_retry_times = 0  # 每个节点都可以重试
         self._current_node_start_time = time.time()  # 每个节点单独计算耗时
         self.node_clicked = False  # 重置节点点击
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
 
     def _on_pause(self, e=None):
         """操作暂停时触发的回调。
@@ -662,7 +687,7 @@ class Operation(OperationBase):
         Returns:
             str: 格式化的显示名称。
         """
-        return '指令[ %s ]' % self.op_name
+        return f'指令[ {self.op_name} ]'
 
     def after_operation_done(self, result: OperationResult):
         """处理操作完成后的处理。
@@ -675,50 +700,49 @@ class Operation(OperationBase):
             log.info('%s 执行成功 返回状态 %s', self.display_name, coalesce_gt(result.status, '成功', model='ui'))
         else:
             log.error('%s 执行失败 返回状态 %s', self.display_name, coalesce_gt(result.status, '失败', model='ui'))
-        self._emit_overlay_timeline(
+        self._emit_debug_timeline(
             category="operation",
             title=self.display_name,
             detail=f"完成: {coalesce_gt(result.status, '成功' if result.success else '失败', model='ui')}",
             level="INFO" if result.success else "ERROR",
-            ttl_seconds=90.0,
         )
 
         if self.op_callback is not None:
             self.op_callback(result)
 
-    def _emit_overlay_round_trace(self, from_node_name: str, node_name: str, status_text: str) -> None:
+    def _emit_debug_round_trace(self, from_node_name: str, node_name: str, status_text: str) -> None:
         arrow = f"{from_node_name} -> {node_name}" if from_node_name != "none" else node_name
-        self._emit_overlay_timeline(
+        self._emit_debug_timeline(
             category="node",
             title=self.display_name,
             detail=f"{arrow} => {status_text}",
             level="INFO",
-            ttl_seconds=45.0,
         )
-        self._emit_overlay_decision(
+        self._emit_debug_decision(
             source="operation",
             trigger=from_node_name,
             expression=node_name,
             operation=self.op_name,
             status=status_text,
-            ttl_seconds=45.0,
         )
 
-    def _emit_overlay_decision(
+    def _get_enabled_debug_bus(self) -> DebugTraceBus | None:
+        """获取已启用的调试总线，不存在或未启用时返回 None。"""
+        bus = getattr(self.ctx, "debug_trace_bus", None)
+        if bus is None or not bus.enabled:
+            return None
+        return bus
+
+    def _emit_debug_decision(
         self,
         source: str,
         trigger: str,
         expression: str,
         operation: str,
         status: str,
-        ttl_seconds: float,
     ) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        bus = self._get_enabled_debug_bus()
         if bus is None:
-            return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import DecisionTraceItem
-        except Exception:
             return
         bus.add_decision(
             DecisionTraceItem(
@@ -727,49 +751,37 @@ class Operation(OperationBase):
                 expression=str(expression or "-"),
                 operation=str(operation or "-"),
                 status=str(status or "-"),
-                ttl_seconds=ttl_seconds,
             )
         )
 
-    def _emit_overlay_timeline(
+    def _emit_debug_timeline(
         self,
         category: str,
         title: str,
         detail: str,
         level: str,
-        ttl_seconds: float,
     ) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        bus = self._get_enabled_debug_bus()
         if bus is None:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
-        except Exception:
-            return
         bus.add_timeline(
-            TimelineItem(
+            TimelineTraceItem(
                 category=category,
                 title=str(title or "-"),
                 detail=str(detail or "-"),
                 level=level,
-                ttl_seconds=ttl_seconds,
             )
         )
 
-    def _emit_overlay_round_perf(self, elapsed_ms: float) -> None:
-        bus = getattr(self.ctx, "overlay_debug_bus", None)
+    def _emit_debug_round_perf(self, elapsed_ms: float) -> None:
+        bus = self._get_enabled_debug_bus()
         if bus is None:
             return
-        try:
-            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
-        except Exception:
-            return
-        bus.add_performance(
-            PerfMetricSample(
+        bus.add_perf(
+            PerfTraceItem(
                 metric="operation_round_ms",
                 value=float(elapsed_ms),
                 unit="ms",
-                ttl_seconds=20.0,
                 meta={"operation": self.op_name},
             )
         )
@@ -1114,10 +1126,7 @@ class Operation(OperationBase):
         if area is None:
             return self.round_fail(status=f'区域未配置 {area_name}')
 
-        if click_left_top:
-            to_click = area.left_top
-        else:
-            to_click = area.center
+        to_click = area.left_top if click_left_top else area.center
         time.sleep(pre_delay)
         click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
         if click:
@@ -1392,7 +1401,8 @@ class Operation(OperationBase):
 
     def round_by_goto_screen(self, screen: np.ndarray | None = None, screen_name: str | None = None,
                              success_wait: float | None = None, success_wait_round: float | None = None,
-                             retry_wait: float | None = 1, retry_wait_round: float | None = None) -> OperationRoundResult:
+                             retry_wait: float | None = 1, retry_wait_round: float | None = None,
+                             screen_switch_debounce: float = 0) -> OperationRoundResult:
         """从当前屏幕导航到目标屏幕。
 
         Args:
@@ -1402,6 +1412,7 @@ class Operation(OperationBase):
             success_wait_round: 成功后等待时间减去当前轮执行时间。默认为None。
             retry_wait: 不成功时等待时间（秒）。默认为1。
             retry_wait_round: 不成功时等待时间减去当前轮执行时间。默认为None。
+            screen_switch_debounce: 点击切换按钮后的防抖时间（秒）。默认为0。
 
         Returns:
             OperationRoundResult: 导航结果。
@@ -1409,10 +1420,52 @@ class Operation(OperationBase):
         if screen is None:
             screen = self.last_screenshot
 
+        debounce_source = self._goto_screen_debounce_source
+        if screen_switch_debounce <= 0:
+            self._goto_screen_debounce_source = None
+            self._goto_screen_debounce_start_time = 0
+            self._goto_screen_loading = False
+            self._goto_screen_loading_start_time = 0
+        elif debounce_source is not None and not self._goto_screen_loading:
+            source_screen_visible = screen_utils.is_target_screen(
+                self.ctx,
+                screen,
+                screen_name=debounce_source,
+            )
+            now = time.time()
+            in_debounce = now - self._goto_screen_debounce_start_time < screen_switch_debounce
+            if in_debounce and source_screen_visible:
+                return self.round_wait('等待画面切换', wait=retry_wait, wait_round_time=retry_wait_round)
+            if source_screen_visible:
+                self._goto_screen_debounce_source = None
+                self._goto_screen_debounce_start_time = 0
+            else:
+                self._goto_screen_loading = True
+                self._goto_screen_loading_start_time = now
+
         current_screen_name = screen_utils.get_match_screen_name(self.ctx, screen)
         self.ctx.screen_loader.update_current_screen_name(current_screen_name)
         if current_screen_name is None:
+            if self._goto_screen_loading:
+                loading_time = time.time() - self._goto_screen_loading_start_time
+                if loading_time < screen_switch_debounce:
+                    return self.round_wait(Operation.STATUS_SCREEN_UNKNOWN, wait=retry_wait,
+                                           wait_round_time=retry_wait_round)
+                self._goto_screen_debounce_source = None
+                self._goto_screen_debounce_start_time = 0
+                self._goto_screen_loading = False
+                self._goto_screen_loading_start_time = 0
             return self.round_retry(Operation.STATUS_SCREEN_UNKNOWN, wait=retry_wait, wait_round_time=retry_wait_round)
+        if self._goto_screen_loading:
+            in_debounce = time.time() - self._goto_screen_debounce_start_time < screen_switch_debounce
+            if current_screen_name == self._goto_screen_debounce_source and in_debounce:
+                self._goto_screen_loading = False
+                self._goto_screen_loading_start_time = 0
+                return self.round_wait('等待画面切换', wait=retry_wait, wait_round_time=retry_wait_round)
+        self._goto_screen_debounce_source = None
+        self._goto_screen_debounce_start_time = 0
+        self._goto_screen_loading = False
+        self._goto_screen_loading_start_time = 0
         log.debug(f'当前识别画面 {current_screen_name}')
         if current_screen_name == screen_name:
             return self.round_success(current_screen_name, wait=success_wait, wait_round_time=success_wait_round)
@@ -1423,6 +1476,9 @@ class Operation(OperationBase):
 
         result = self.round_by_find_and_click_area(screen, current_screen_name, route.node_list[0].from_area)
         if result.is_success:
+            if screen_switch_debounce > 0:
+                self._goto_screen_debounce_source = current_screen_name
+                self._goto_screen_debounce_start_time = time.time()
             self.ctx.screen_loader.update_current_screen_name(route.node_list[0].to_screen)
             return self.round_wait(result.status, wait=retry_wait, wait_round_time=retry_wait_round)
         else:

@@ -7,12 +7,12 @@ from zzz_od.application.coffee.coffee_app_const import APP_ID
 
 class CoffeeAppSetting(AppSettingProvider):
     app_id = APP_ID
-    setting_type = SettingType.INTERFACE
+    setting_type = SettingType.FLYOUT
 
     @staticmethod
     def get_setting_cls() -> type:
-        from zzz_od.gui.app_setting.coffee_setting_interface import (
-            CoffeeSettingInterface,
+        from zzz_od.gui.app_setting.coffee_setting_flyout import (
+            CoffeeSettingFlyout,
         )
 
-        return CoffeeSettingInterface
+        return CoffeeSettingFlyout
