@@ -31,6 +31,8 @@ class DownloadService:
         self.gh_proxy_service: GhProxyService = (
             gh_proxy_service if gh_proxy_service is not None else GhProxyService(env_config, repo_config)
         )
+        self._last_gh_proxy_url: str | None = None
+        """最近一次下载实际用上的代理线路，解压失败时用来把它排除。"""
 
     def download_env_file(self, file_name: str, save_file_path: str,
                           progress_callback: Callable[[float, str], None] | None = None) -> bool:
@@ -67,6 +69,7 @@ class DownloadService:
                     progress_callback=progress_callback,
                 ):
                     self.gh_proxy_service.remember_success(proxy_url)
+                    self._last_gh_proxy_url = proxy_url
                     log.info(f'GitHub 代理线路可用 {proxy_url}')
                     return True
                 log.warning(f'GitHub 代理线路下载失败 换下一条 {proxy_url}')
@@ -141,6 +144,12 @@ class DownloadService:
                 log.warning(msg)
                 if progress_callback is not None:
                     progress_callback(0, msg)
+
+                # 这条线路返回的内容是坏的，重试时跳过它
+                if self._last_gh_proxy_url is not None:
+                    self.gh_proxy_service.mark_failed(self._last_gh_proxy_url)
+                    log.warning(f'代理线路下载到的内容损坏 本次运行跳过 {self._last_gh_proxy_url}')
+                    self._last_gh_proxy_url = None
 
                 # 删除损坏的文件，准备重试
                 if zip_file_path.exists():

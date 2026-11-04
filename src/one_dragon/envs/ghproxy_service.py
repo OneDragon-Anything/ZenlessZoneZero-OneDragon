@@ -23,11 +23,16 @@ class GhProxyService:
     """
 
     def __init__(self, env_config: EnvConfig, repo_config: RepoConfig):
-        self.env_config = env_config
-        self.repo_config = repo_config
+        self.env_config: EnvConfig = env_config
+        self.repo_config: RepoConfig = repo_config
+        self._failed_urls: set[str] = set()
+        """本次运行中已确认不可用的线路（例如下载到的内容损坏），候选里优先跳过。"""
 
     def get_candidate_urls(self) -> list[str]:
         """按「当前使用 → 上次成功 → 内置顺序」返回去重后的代理地址。
+
+        本次运行中被标记不可用的线路会排到后面；全部都不可用时仍按原顺序返回，
+        避免把线路过滤没了。
 
         Returns:
             代理根地址列表，例如 `['https://gh-proxy.com', 'https://ghfast.top']`。
@@ -42,7 +47,8 @@ class GhProxyService:
             if not normalized or normalized in candidates:
                 continue
             candidates.append(normalized)
-        return candidates
+        usable = [url for url in candidates if url not in self._failed_urls]
+        return usable if usable else candidates
 
     def update_proxy_url(self) -> bool:
         """逐条探测候选线路，把第一条可用的写回配置。
@@ -97,9 +103,25 @@ class GhProxyService:
             return
         self.env_config.gh_proxy_url = normalized
         self.env_config.last_gh_proxy_url = normalized
+        self._failed_urls.discard(normalized)
+
+    def mark_failed(self, proxy_url: str) -> None:
+        """把一条线路标记为本次运行不可用。
+
+        用于 HTTP 下载成功但内容损坏（例如解压失败）的线路：这类线路每次都会
+        返回 200，只按「尝试成功」判断永远切不走。
+
+        Args:
+            proxy_url: 代理根地址。
+        """
+        normalized = proxy_url.rstrip('/')
+        if normalized:
+            self._failed_urls.add(normalized)
 
     def remember_success_by_url(self, proxied_url: str) -> str | None:
         """按拼好的下载地址反查并记录实际可用的线路。
+
+        按最长前缀匹配，避免较短的同域前缀把更长（更具体）的线路顶掉。
 
         Args:
             proxied_url: 带代理前缀的地址，例如 `https://gh-proxy.com/https://github.com/...`。
@@ -107,9 +129,13 @@ class GhProxyService:
         Returns:
             命中的代理根地址；地址不带已知代理前缀时返回 None。
         """
-        for candidate in self.get_candidate_urls():
-            if proxied_url.startswith(f'{candidate}/'):
-                self.remember_success(candidate)
-                return candidate
-        return None
+        matched = [
+            candidate for candidate in self.get_candidate_urls()
+            if proxied_url.startswith(f'{candidate}/')
+        ]
+        if not matched:
+            return None
+        proxy_url = max(matched, key=len)
+        self.remember_success(proxy_url)
+        return proxy_url
 

@@ -3,7 +3,7 @@ import threading
 import time
 from collections.abc import Callable
 from logging import DEBUG
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cv2.typing import MatLike
 
@@ -19,10 +19,12 @@ from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
-from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.utils import os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.envs.ghproxy_service import GhProxyService
 
 DEFAULT_OCR_MODEL_NAME: str = 'ppocrv6'
 PPOCRV6_MODEL_NAME: str = 'ppocrv6'
@@ -213,7 +215,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
-            gh_proxy_service: GhProxyService | None = None,
+            gh_proxy_service: "GhProxyService | None" = None,
             skip_if_existed: bool = True,
             progress_callback: Callable[[float, str], None] | None = None,
             on_source_success: Callable[[str], None] | None = None,

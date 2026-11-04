@@ -1,10 +1,13 @@
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.utils import http_utils
 from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.envs.ghproxy_service import GhProxyService
 
 # 使用 ghproxy 代理的源
 GITHUB_SOURCE_ID: str = 'github'
@@ -70,7 +73,7 @@ class CommonDownloader:
             source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
-            gh_proxy_service: GhProxyService | None = None,
+            gh_proxy_service: "GhProxyService | None" = None,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None,
