@@ -32,7 +32,6 @@ class EngagementRewardApp(ZApplication):
         )
         self.claim_retry_times: int = 0  # 领取失败后回到点击奖励的全局重试次数
 
-
     @operation_node(name='返回大世界', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
         self.claim_retry_times = 0  # 每次执行从头开始，重试次数清零
