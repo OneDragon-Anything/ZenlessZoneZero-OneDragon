@@ -82,7 +82,7 @@ class EnterGame(ZOperation):
     @node_from(from_name='点击进入游戏', status=STATUS_GAME_DATA_UPDATED)
     @node_from(from_name='点击进入游戏', status='切换账号确定')
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
-    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
+    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True, screenshot_before_round=False)
     def check_screen(self) -> OperationRoundResult:
         """获取登录画面并分流，窗口暂时失效时重新查找后间隔重试。"""
         try:
