@@ -657,10 +657,10 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         template.auto_mask = ref.auto_mask
         try:
             if not template.save_raw():
-                log.error(f'保存模板失败 原图写盘失败 {step.sub_dir}/{template.template_id}')
+                log.error(f'保存模板失败 原图保存失败 {step.sub_dir}/{template.template_id}')
                 return False
             if not template.save_mask():
-                log.error(f'保存模板失败 掩码写盘失败 {step.sub_dir}/{template.template_id}')
+                log.error(f'保存模板失败 掩码保存失败 {step.sub_dir}/{template.template_id}')
                 return False
             return True
         except Exception:
