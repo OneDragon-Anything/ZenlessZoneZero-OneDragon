@@ -35,19 +35,24 @@ class DownloadService:
         """最近一次下载实际用上的代理线路，解压失败时用来把它排除。"""
 
     def download_env_file(self, file_name: str, save_file_path: str,
-                          progress_callback: Callable[[float, str], None] | None = None) -> bool:
+                          progress_callback: Callable[[float, str], None] | None = None,
+                          exclude_proxy_urls: set[str] | None = None) -> bool:
         """
         下载环境文件
         :param file_name: 要下载的文件名
         :param save_file_path: 保存路径，包含文件名
         :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
+        :param exclude_proxy_urls: 本次调用中已经试过的线路，不再重复尝试。
         :return: 是否下载成功
         """
         download_url = f'{self.env_config.env_source}/{self.project_config.project_name}/{file_name}'
-        return self.download_file_from_url(download_url, save_file_path, progress_callback)
+        return self.download_file_from_url(
+            download_url, save_file_path, progress_callback, exclude_proxy_urls=exclude_proxy_urls,
+        )
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
-                               progress_callback: Callable[[float, str], None] | None = None) -> bool:
+                               progress_callback: Callable[[float, str], None] | None = None,
+                               exclude_proxy_urls: set[str] | None = None) -> bool:
         """从指定URL下载文件。
 
         GitHub 地址且启用了 ghproxy 时，按候选线路逐条尝试，每条只试一次，
@@ -57,12 +62,15 @@ class DownloadService:
             download_url: 下载URL。
             save_file_path: 保存路径，包含文件名。
             progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
+            exclude_proxy_urls: 本次调用中已经试过的线路，不再重复尝试。
 
         Returns:
             是否下载成功。
         """
         if 'github.com' in download_url and self.env_config.is_gh_proxy:
             for proxy_url in self.gh_proxy_service.get_candidate_urls():
+                if exclude_proxy_urls is not None and proxy_url in exclude_proxy_urls:
+                    continue
                 if http_utils.download_file(
                     f'{proxy_url}/{download_url}',
                     save_file_path,
@@ -99,7 +107,12 @@ class DownloadService:
         temp_path = Path(temp_dir)
         temp_path.mkdir(parents=True, exist_ok=True)
 
-        for attempt in range(retry_count):
+        # 线路比重试次数多时 按线路数继续试 不能只靠 retry_count 收尾
+        candidate_count = len(self.gh_proxy_service.get_candidate_urls()) if self.env_config.is_gh_proxy else 0
+        max_attempts = max(retry_count, candidate_count + 1)
+        tried_proxy_urls: set[str] = set()
+
+        for attempt in range(max_attempts):
             # 每次尝试只标记本次下载实际用上的线路
             self._last_gh_proxy_url = None
             zip_file_path = temp_path / file_name
@@ -111,10 +124,18 @@ class DownloadService:
                     progress_callback(-1, msg)
                 log.info(msg)
 
-                success = self.download_env_file(file_name, str(zip_file_path), progress_callback)
+                success = self.download_env_file(
+                    file_name, str(zip_file_path), progress_callback,
+                    exclude_proxy_urls=tried_proxy_urls,
+                )
                 if not success:
+                    if attempt < max_attempts - 1:
+                        log.warning(f'下载失败 准备重试 {attempt + 1}/{max_attempts}')
+                        continue
                     msg = gt('下载失败 请尝试更改网络代理')
                     log.error(msg)
+                    if progress_callback is not None:
+                        progress_callback(0, msg)
                     return False
 
             msg = f"{gt('正在解压')} {file_name}..."
@@ -142,15 +163,16 @@ class DownloadService:
                 return True
             else:
                 # 解压失败，可能是zip包损坏
-                msg = gt('解压失败 准备重试') if attempt < retry_count - 1 else gt('解压失败')
+                msg = gt('解压失败 准备重试') if attempt < max_attempts - 1 else gt('解压失败')
                 log.warning(msg)
                 if progress_callback is not None:
                     progress_callback(0, msg)
 
-                # 这条线路返回的内容是坏的，重试时跳过它
+                # 这条线路返回的内容是坏的，这次调用里不再试它
                 if self._last_gh_proxy_url is not None:
+                    tried_proxy_urls.add(self._last_gh_proxy_url)
                     self.gh_proxy_service.mark_failed(self._last_gh_proxy_url)
-                    log.warning(f'代理线路下载到的内容损坏 本次运行跳过 {self._last_gh_proxy_url}')
+                    log.warning(f'代理线路下载到的内容损坏 换下一条 {self._last_gh_proxy_url}')
                     self._last_gh_proxy_url = None
 
                 # 删除损坏的文件，准备重试

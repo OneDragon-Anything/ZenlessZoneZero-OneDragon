@@ -76,6 +76,7 @@ class CommonDownloader:
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             gh_proxy_service: "GhProxyService | None" = None,
+            exclude_proxy_urls: set[str] | None = None,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None,
@@ -92,6 +93,7 @@ class CommonDownloader:
             proxy_url: 个人代理地址
             ghproxy_url: ghproxy 代理地址 只对 github 源生效 只在没有 gh_proxy_service 时使用
             gh_proxy_service: GitHub 代理线路服务 提供时对每条 github 源地址逐条尝试候选线路
+            exclude_proxy_urls: 已经试过的线路 本次调用不再重复尝试
             skip_if_existed: 文件已存在时是否跳过下载
             progress_signal: 进度控制信号 signal=cancel 时取消下载
             progress_callback: 进度回调
@@ -103,6 +105,7 @@ class CommonDownloader:
         Returns:
             bool: 是否下载成功
         """
+        self._last_gh_proxy_url = None
         if skip_if_existed and self.is_file_existed():
             return True
 
@@ -125,9 +128,17 @@ class CommonDownloader:
             gh_proxy_urls = [ghproxy_url.rstrip('/')]
         else:
             gh_proxy_urls = []
+        if exclude_proxy_urls:
+            gh_proxy_urls = [url for url in gh_proxy_urls if url not in exclude_proxy_urls]
 
         for index, source_id in enumerate(candidates):
             base_download_url = self.param.download_urls[source_id]
+            if source_id == GITHUB_SOURCE_ID and gh_proxy_service is not None and not gh_proxy_urls:
+                # 启用了代理但没有可用线路了 不再退化成直连
+                log.warning(f'从 {source_id} 下载 {self.param.save_file_name} 时线路都已试过')
+                if on_source_failure is not None:
+                    on_source_failure(source_id)
+                continue
             if source_id == GITHUB_SOURCE_ID and gh_proxy_urls:
                 attempt_urls = [f'{prefix}/{base_download_url}' for prefix in gh_proxy_urls]
             else:

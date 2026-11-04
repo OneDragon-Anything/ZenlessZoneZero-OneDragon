@@ -38,6 +38,7 @@ class ZipDownloader(CommonDownloader):
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             gh_proxy_service: "GhProxyService | None" = None,
+            exclude_proxy_urls: set[str] | None = None,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None,
@@ -46,13 +47,20 @@ class ZipDownloader(CommonDownloader):
             on_source_failure: Callable[[str], None] | None = None,
             fallback_on_slow: bool = False,
             ) -> bool:
-        for i in range(2):
+        tried_proxy_urls: set[str] = set(exclude_proxy_urls or ())
+        # 每次解压失败换一条没试过的线路 试完为止 不只重试固定两次
+        max_rounds = 2
+        if gh_proxy_service is not None:
+            max_rounds = max(2, len(gh_proxy_service.get_candidate_urls()) + 1)
+
+        for i in range(max_rounds):
             download_result = CommonDownloader.download(
                 self,
                 source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
                 gh_proxy_service=gh_proxy_service,
+                exclude_proxy_urls=tried_proxy_urls,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,
@@ -71,10 +79,11 @@ class ZipDownloader(CommonDownloader):
             if unzip_result:
                 break
             else:  # 可能压缩包下载不完整 解压不成功 重新下载
-                # 这条线路返回的压缩包是坏的 重试时排到候选后面
+                # 这条线路返回的压缩包是坏的 这次调用里不再试它
                 if gh_proxy_service is not None and self._last_gh_proxy_url is not None:
+                    tried_proxy_urls.add(self._last_gh_proxy_url)
                     gh_proxy_service.mark_failed(self._last_gh_proxy_url)
-                    log.warning(f'代理线路下载到的压缩包损坏 本次运行排后 {self._last_gh_proxy_url}')
+                    log.warning(f'代理线路下载到的压缩包损坏 换下一条 {self._last_gh_proxy_url}')
                     self._last_gh_proxy_url = None
                 log.warning('疑似压缩包损毁 重新下载')
                 continue
