@@ -12,26 +12,17 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
-_market_urls: dict[str, str] | None = None
 
-
-def get_market_urls() -> dict[str, str]:
-    """各下载源的市场索引地址，取自 repository.yml（发布期配置，首次读取后复用）。"""
-    global _market_urls
-    if _market_urls is None:
-        _market_urls = dict(RepoConfig().plugin_market_urls)
-    return dict(_market_urls)
-
-
-def get_market_roots() -> dict[str, str]:
+def get_market_roots(repo_config: RepoConfig) -> dict[str, str]:
     """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
     return {
         source_id: url.rsplit('/', 1)[0] + '/'
-        for source_id, url in get_market_urls().items()
+        for source_id, url in repo_config.plugin_market_urls.items()
     }
 
 
@@ -185,7 +176,8 @@ def parse_market_payload(payload: dict | list) -> list[MarketPlugin]:
 class PluginMarketService:
     """负责拉取并缓存插件市场数据。"""
 
-    def __init__(self, cache_path: Path | None = None) -> None:
+    def __init__(self, env_config: EnvConfig, cache_path: Path | None = None) -> None:
+        self._env_config: EnvConfig = env_config
         self._cache_path: Path = cache_path or (
             Path(os_utils.get_path_under_work_dir('config')) / 'plugin_market_cache.json'
         )
@@ -243,10 +235,11 @@ class PluginMarketService:
         )
 
         target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
-        urls = get_market_urls()
+        urls = dict(self._env_config.repo_config.plugin_market_urls)
         if not urls:
             raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
         ok = download_with_resource_settings(
+            self._env_config,
             urls,
             str(target.parent),
             target.name,
@@ -255,7 +248,7 @@ class PluginMarketService:
         if not ok or not target.exists():
             raise RuntimeError('插件市场数据下载失败')
         payload = json.loads(target.read_text(encoding='utf-8'))
-        if not isinstance(payload, (dict, list)):
+        if not isinstance(payload, dict | list):
             raise RuntimeError('插件市场数据格式异常')
         return parse_market_payload(payload)
 
@@ -323,7 +316,7 @@ def _release_to_raw(release: MarketRelease | None) -> dict | None:
 _service_instance: PluginMarketService | None = None
 
 
-def get_plugin_market_service() -> PluginMarketService:
+def get_plugin_market_service(env_config: EnvConfig) -> PluginMarketService:
     """取全局市场服务。
 
     两个插件页面共用一份，避免首次打开时并发拉同一份 plugins.json，
@@ -331,5 +324,5 @@ def get_plugin_market_service() -> PluginMarketService:
     """
     global _service_instance
     if _service_instance is None:
-        _service_instance = PluginMarketService()
+        _service_instance = PluginMarketService(env_config)
     return _service_instance

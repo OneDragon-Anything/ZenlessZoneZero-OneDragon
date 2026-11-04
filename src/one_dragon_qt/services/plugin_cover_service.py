@@ -20,6 +20,8 @@ from PySide6.QtGui import QImage, QImageReader, QPixmap
 from one_dragon.base.operation.application.plugin_info import PluginInfo
 from one_dragon.base.operation.application.plugin_market import get_market_roots
 from one_dragon.base.web.common_downloader import download_with_resource_settings
+from one_dragon.envs.env_config import EnvConfig
+from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
@@ -27,7 +29,7 @@ MAX_COVER_BYTES = 4 * 1024 * 1024
 """单张封面允许的最大体积，超过则放弃使用。"""
 
 
-def resolve_cover_urls(raw_url: str) -> dict[str, str]:
+def resolve_cover_urls(raw_url: str, repo_config: RepoConfig) -> dict[str, str]:
     """把市场里的封面字段补成各源的完整地址。
 
     相对路径按各源索引所在目录解析，开头带不带 `/` 结果相同，
@@ -35,6 +37,7 @@ def resolve_cover_urls(raw_url: str) -> dict[str, str]:
 
     Args:
         raw_url: plugins.json 中的原始值，可能是完整地址或相对索引目录的路径。
+        repo_config: 提供各源索引地址的仓库配置。
 
     Returns:
         源ID到完整地址的映射；空值返回空字典。
@@ -44,7 +47,7 @@ def resolve_cover_urls(raw_url: str) -> dict[str, str]:
         return {}
     if urlparse(value).scheme:
         return {'direct': value}
-    return {source_id: urljoin(root, value) for source_id, root in get_market_roots().items()}
+    return {source_id: urljoin(root, value) for source_id, root in get_market_roots(repo_config).items()}
 
 
 def _read_image(path: Path) -> QImage | None:
@@ -98,6 +101,7 @@ class _DownloadTask(QRunnable):
         try:
             self._target.parent.mkdir(parents=True, exist_ok=True)
             ok = download_with_resource_settings(
+                self._service.env_config,
                 self._urls,
                 str(temp_path.parent),
                 temp_path.name,
@@ -128,8 +132,9 @@ class PluginCoverService(QObject):
     _download_finished = Signal(str, str, bool)
     """下载线程结束，参数为插件标识、地址、是否成功。仅内部使用。"""
 
-    def __init__(self) -> None:
+    def __init__(self, env_config: EnvConfig) -> None:
         super().__init__()
+        self.env_config: EnvConfig = env_config
         self._cache_dir: Path = Path(os_utils.get_path_under_work_dir('config', 'temp', 'plugin_covers'))
         self._memory: dict[str, QPixmap | None] = {}
         self._failed: set[str] = set()
@@ -169,7 +174,7 @@ class PluginCoverService(QObject):
 
     def market_cover(self, plugin_id: str, cover_url: str) -> QPixmap | None:
         """市场条目的封面；缓存未命中时返回 None 并在后台下载。"""
-        urls = resolve_cover_urls(cover_url)
+        urls = resolve_cover_urls(cover_url, self.env_config.repo_config)
         if not urls:
             return None
         # 按源ID排序取第一个 同时作为缓存文件与下载状态的键 缓存不随配置里的源顺序漂移
@@ -219,9 +224,9 @@ class PluginCoverService(QObject):
 _instance: PluginCoverService | None = None
 
 
-def get_plugin_cover_service() -> PluginCoverService:
+def get_plugin_cover_service(env_config: EnvConfig) -> PluginCoverService:
     """取全局封面服务，两个插件页面共用同一份缓存。"""
     global _instance
     if _instance is None:
-        _instance = PluginCoverService()
+        _instance = PluginCoverService(env_config)
     return _instance

@@ -198,9 +198,9 @@ class PluginOperationMixin:
         """初始化共用状态，由页面构造函数调用。"""
         self.ctx = ctx
         self.plugin_import_service = PluginImportService(ctx)
-        self.market_service = get_plugin_market_service()
+        self.market_service = get_plugin_market_service(ctx.env_config)
         self.subscription_config = get_plugin_subscription_config()
-        self.cover_service = get_plugin_cover_service()
+        self.cover_service = get_plugin_cover_service(ctx.env_config)
         self._cards_by_key: dict[str, PluginCard] = {}
         self._cover_urls: dict[str, str] = {}
         self._market_snapshot: MarketSnapshot | None = None

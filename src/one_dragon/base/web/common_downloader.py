@@ -3,7 +3,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from one_dragon.envs.env_config import EnvConfig
-from one_dragon.envs.repo_config import RepoConfig
 from one_dragon.utils import http_utils
 from one_dragon.utils.log_utils import log
 
@@ -13,6 +12,7 @@ AUTO_FALLBACK_MIN_BYTES_PER_SECOND: float = 100 * 1024
 
 
 def download_with_resource_settings(
+        env_config: EnvConfig,
         download_urls: dict[str, str],
         save_file_path: str,
         save_file_name: str,
@@ -24,6 +24,7 @@ def download_with_resource_settings(
     都在 Pages 域名上，代理站点处理不了这类地址（实测返回 403），所以统一不套。
 
     Args:
+        env_config: 环境配置，提供资源源顺序与个人代理设置。
         download_urls: 源ID到地址的映射，只有一项时即为固定单源。
         save_file_path: 保存目录。
         save_file_name: 保存文件名。
@@ -32,7 +33,6 @@ def download_with_resource_settings(
     Returns:
         bool: 是否下载成功
     """
-    env_config = EnvConfig(RepoConfig())
     downloader = CommonDownloader(
         CommonDownloaderParam(
             save_file_path=save_file_path,
