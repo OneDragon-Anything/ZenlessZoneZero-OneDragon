@@ -131,11 +131,11 @@ init_ocr 发现模型缺失
 
 ## 环境包下载源回退
 
-环境包（`OneDragon-Environment.zip`）和 Python（`cpython-*.zip`）都走 `DownloadService.download_env_file()`，用的是 `env_source` 这一组下载源：
+环境包（`OneDragon-Environment.zip`）和 Python（`cpython-*.zip`）都走 `DownloadService.download_and_extract_env_file()`，用的是 `env_source` 这一组下载源：
 
 - 候选顺序：当前选择 > 上次成功（`last_env_source`） > `repository.yml` 其余源，顺序与代码源回退一致；
-- 每次只尝试一个源，失败立刻换下一个，全部失败才报错；
-- 成功的源写入 `last_env_source`，下次优先尝试；用户选择的 `env_source` 不覆盖；
+- 每个源都要走完「下载 + 解压」，解压成功才算这个源可用；源上的包损坏（下载成功但解压失败）时同源重试 `retry_count` 次，仍失败就换下一个源，不会反复下载同一个坏包；
+- 解压成功的源写入 `last_env_source`，下次优先尝试；用户选择的 `env_source` 不覆盖；解压没成功不记录；
 - 与资源下载的区别：资源下载按资源 ID 生成地址，环境包是 `{env_source}/{project_name}/{file_name}` 的固定路径。
 
 调用链（uv、Python、环境压缩包三个入口共用同一段回退逻辑）：
@@ -143,6 +143,6 @@ init_ocr 发现模型缺失
 ```text
 PythonService.install_default_uv        （uv-x86_64-pc-windows-msvc.zip）
 PythonService.install_standalone_python （cpython-{版本}.zip）
-  └─ DownloadService.download_and_extract_env_file
-       └─ DownloadService.download_env_file   ← 候选源回退在这里
+  └─ DownloadService.download_and_extract_env_file   ← 候选源回退 + 解压校验在这里
+       └─ DownloadService.download_env_file          （只按候选顺序试下载，供单独调用）
 ```

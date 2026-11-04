@@ -506,12 +506,15 @@ class RepoConfig(YamlConfig):
         return self.sources.get(source_name, ())
 
     def get_source_order(self, source_name: str, current: str, last_success: str) -> list[str]:
-        """获取下载源的候选顺序: 当前选择 > 上次成功 > YAML 声明顺序, 重复的只留一次。
+        """获取下载源的候选顺序: 当前选择 > 上次成功 > YAML 声明顺序，重复的只留一次。
 
-        :param source_name: 下载源配置名, 如 env_source
-        :param current: 当前选择的源地址
-        :param last_success: 上次下载成功的源地址
-        :return: 源地址列表, 依次尝试
+        Args:
+            source_name: 下载源配置名，如 env_source。
+            current: 当前选择的源地址。
+            last_success: 上次下载成功的源地址。
+
+        Returns:
+            源地址列表，按顺序依次尝试。
         """
         candidates: list[str] = []
         for value in (current, last_success):
