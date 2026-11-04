@@ -36,6 +36,10 @@ if TYPE_CHECKING:
     from one_dragon.base.controller.drag_timing import DragTiming
 
 
+class GameWindowNotReadyError(RuntimeError):
+    """截图时找不到可用的游戏窗口。"""
+
+
 class PcControllerBase(ControllerBase):
 
     MOUSEEVENTF_MOVE = 0x0001
@@ -169,7 +173,7 @@ class PcControllerBase(ControllerBase):
                 self.screenshot_controller.init_screenshot(self.screenshot_method)
             return self.screenshot_controller.get_screenshot(independent)
         else:
-            raise RuntimeError('游戏窗口未就绪')
+            raise GameWindowNotReadyError('游戏窗口未就绪')
 
     def enable_foreground_mode(self) -> None:
         """

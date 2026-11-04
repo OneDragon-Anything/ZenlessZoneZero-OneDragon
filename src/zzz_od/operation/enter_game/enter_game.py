@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -7,6 +8,7 @@ from cv2.typing import MatLike
 from one_dragon.base.config.basic_game_config import TypeInputWay
 from one_dragon.base.config.game_account_config import GameRegionEnum
 from one_dragon.base.controller.pc_clipboard import PcClipboard
+from one_dragon.base.controller.pc_controller_base import GameWindowNotReadyError
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
@@ -20,7 +22,6 @@ from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -81,10 +82,13 @@ class EnterGame(ZOperation):
     @node_from(from_name='点击进入游戏', status=STATUS_GAME_DATA_UPDATED)
     @node_from(from_name='点击进入游戏', status='切换账号确定')
     @node_from(from_name='画面识别', status='B服新-同意隐私政策')
-    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
+    @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True, screenshot_before_round=False)
     def check_screen(self) -> OperationRoundResult:
-        # self.screenshot()
-        # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
+        try:
+            self.screenshot()
+        except GameWindowNotReadyError:
+            self.ctx.controller.game_win.refresh_win()
+            return self.round_retry('游戏窗口未就绪', wait=1)
 
         if self.last_screenshot is None:
             return self.round_retry('未获取到游戏截图', wait=1)
