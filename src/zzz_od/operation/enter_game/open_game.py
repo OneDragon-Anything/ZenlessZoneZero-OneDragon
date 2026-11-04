@@ -81,7 +81,8 @@ class OpenGame(Operation):
             if not EnableAutoHDR(self.ctx).execute().is_success:
                 # 窗口已经起来了，HDR 没恢复不影响本次启动，但必须记日志：
                 # 否则下次 DisableAutoHDR 会把"已禁用"当成原始值存下来，用户原设置就丢了
-                log.error('激活窗口后恢复 HDR 设置失败，请到游戏里确认 HDR 设置是否正确')
+                log.error('激活窗口后恢复 HDR 设置失败，请到「设置 - 游戏基础 - 切换 HDR 状态」点「启用 HDR」，'
+                          '或手动确认游戏内的 HDR 设置')
             return self.round_success()
 
         self.activate_fail_times += 1
@@ -94,7 +95,7 @@ class OpenGame(Operation):
                 '请检查是否有系统弹窗或其他窗口抢占前台'
             )
             if not hdr_restored:
-                log.error('恢复 HDR 设置失败，请手动到游戏里确认 HDR 设置')
-                msg += '；自动恢复 HDR 设置也失败了，请手动确认游戏内的 HDR 设置'
+                log.error('恢复 HDR 设置失败，请到「设置 - 游戏基础 - 切换 HDR 状态」点「启用 HDR」')
+                msg += '；自动恢复 HDR 设置也失败了，请到「设置」的「切换 HDR 状态」里点「启用 HDR」'
             return self.round_fail(msg)
         return self.round_retry(wait=1)
