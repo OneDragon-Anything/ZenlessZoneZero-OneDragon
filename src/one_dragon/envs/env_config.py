@@ -278,6 +278,26 @@ class EnvConfig(YamlConfig):
         self.update('env_source', new_value)
 
     @property
+    def last_env_source(self) -> str:
+        """最近一次成功使用的环境下载源地址。"""
+        return self.get('last_env_source', '')
+
+    @last_env_source.setter
+    def last_env_source(self, new_value: str) -> None:
+        """记录最近一次成功使用的环境下载源地址。
+
+        Args:
+            new_value: 本次下载成功使用的源地址。
+        """
+        self.update('last_env_source', new_value)
+
+    def get_env_source_candidates(self) -> list[str]:
+        """环境下载源的候选顺序: 当前选择 > 上次成功 > YAML 其余顺序。"""
+        return self.repo_config.get_source_order(
+            'env_source', self.env_source, self.last_env_source,
+        )
+
+    @property
     def pip_trusted_host(self) -> str:
         """
         pip源的可信主机

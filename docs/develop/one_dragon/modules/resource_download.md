@@ -149,3 +149,23 @@ init_ocr 发现模型缺失
 ## 开发者模式
 
 `developer_mode` 只控制界面可见性，不改变 `is_debug` 的运行行为。五秒内连续点击标题栏“代码版本”七次可开启；开启后显示开发工具、调试开关、代码高级项和现有带密码实验项。密码校验仍然有效。开发者模式由框架主窗口统一刷新，脚本环境页通过配置适配器修改状态后也会立即更新所有入口。脚本环境页提供关闭入口，关闭不会改动已保存的调试、主题、背景或窗口标题配置。
+
+## 环境包下载源回退
+
+环境包（`OneDragon-Environment.zip`）和 Python（`cpython-*.zip`）都走 `DownloadService.download_and_extract_env_file()`，用的是 `env_source` 这一组下载源：
+
+- 源候选顺序：当前选择 > 上次成功（`last_env_source`） > `repository.yml` 其余源，与资源下载一致；线路候选顺序见上文「GitHub 代理线路」。
+- 每个源都要走完「下载 + 解压」，解压成功才算这个源可用。
+- 每次下载按线路候选逐条尝试，本次已经试过的线路记在集合里，重试时跳过；解压失败说明当前线路的包坏了，把它标记失败并换下一条线路。
+- 每个源的总尝试次数为 `max(retry_count, 线路数 + 1)`：线路多于 `retry_count` 时按线路数继续试，多出的 1 次留给「临时目录里已有坏包、这一轮不用下载」的情况；下载失败也占用一次尝试，同源失败重试用完才换下一个源。
+- 解压成功的源写入 `last_env_source`，下次优先尝试；用户选择的 `env_source` 不覆盖；解压没成功不记录。
+- 与资源下载的区别：资源下载按资源 ID 生成地址，环境包是 `{env_source}/{project_name}/{file_name}` 的固定路径。
+
+调用链（uv、Python、环境压缩包三个入口共用同一段回退逻辑）：
+
+```text
+PythonService.install_default_uv        （uv-x86_64-pc-windows-msvc.zip）
+PythonService.install_standalone_python （cpython-{版本}.zip）
+  └─ DownloadService.download_and_extract_env_file   ← 候选源回退 + 解压校验在这里
+       └─ DownloadService.download_env_file          （只按候选顺序试下载，供单独调用）
+```

@@ -34,21 +34,69 @@ class DownloadService:
         self._last_gh_proxy_url: str | None = None
         """最近一次下载实际用上的代理线路，解压失败时用来把它排除。"""
 
+    def _record_env_source_success(self, source: str) -> None:
+        """记下这次真正可用的下载源，下次优先尝试；不改写用户选择的 env_source。
+
+        Args:
+            source: 本次可用的源地址。
+        """
+        if source != self.env_config.env_source:
+            log.warning('环境下载源 %s 不可用，本次改用 %s', self.env_config.env_source, source)
+        if self.env_config.last_env_source == source:
+            return
+        try:
+            self.env_config.last_env_source = source
+        except OSError:
+            # 配置写不进去只影响下次优先试哪个源，不能把已经下载好的文件判成失败
+            log.warning('记录上次成功的环境下载源失败，本次下载结果不受影响', exc_info=True)
+
+    def _download_env_file_from(self, source: str, file_name: str, save_file_path: str,
+                                progress_callback: Callable[[float, str], None] | None,
+                                exclude_proxy_urls: set[str] | None = None) -> bool:
+        """从指定下载源下载一个环境文件。
+
+        Args:
+            source: 下载源地址。
+            file_name: 要下载的文件名。
+            save_file_path: 保存路径，包含文件名。
+            progress_callback: 下载进度的回调。
+            exclude_proxy_urls: 本次调用中已经试过的代理线路，不再重复尝试。
+
+        Returns:
+            是否下载成功。
+        """
+        download_url = f'{source}/{self.project_config.project_name}/{file_name}'
+        return self.download_file_from_url(
+            download_url, save_file_path, progress_callback,
+            exclude_proxy_urls=exclude_proxy_urls,
+        )
+
     def download_env_file(self, file_name: str, save_file_path: str,
                           progress_callback: Callable[[float, str], None] | None = None,
                           exclude_proxy_urls: set[str] | None = None) -> bool:
+        """下载环境文件。
+
+        当前配置的源优先，下载失败后按候选顺序逐个换源，全部失败才返回失败；
+        下载成功的源记到 last_env_source，下次优先尝试，不改写用户选择的 env_source。
+
+        Args:
+            file_name: 要下载的文件名。
+            save_file_path: 保存路径，包含文件名。
+            progress_callback: 下载进度的回调。
+            exclude_proxy_urls: 本次调用中已经试过的代理线路，不再重复尝试。
+
+        Returns:
+            是否下载成功。
         """
-        下载环境文件
-        :param file_name: 要下载的文件名
-        :param save_file_path: 保存路径，包含文件名
-        :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
-        :param exclude_proxy_urls: 本次调用中已经试过的线路，不再重复尝试。
-        :return: 是否下载成功
-        """
-        download_url = f'{self.env_config.env_source}/{self.project_config.project_name}/{file_name}'
-        return self.download_file_from_url(
-            download_url, save_file_path, progress_callback, exclude_proxy_urls=exclude_proxy_urls,
-        )
+        for source in self.env_config.get_env_source_candidates():
+            if self._download_env_file_from(
+                source, file_name, save_file_path, progress_callback, exclude_proxy_urls,
+            ):
+                self._record_env_source_success(source)
+                return True
+            log.warning('从 %s 下载 %s 失败，继续尝试下一个下载源', source, file_name)
+        log.error('所有环境下载源均无法下载 %s', file_name)
+        return False
 
     def download_file_from_url(self, download_url: str, save_file_path: str,
                                progress_callback: Callable[[float, str], None] | None = None,
@@ -93,82 +141,84 @@ class DownloadService:
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
                                       progress_callback: Callable[[float, str], None] | None = None,
                                       clean_temp: bool = True, retry_count: int = 2) -> bool:
-        """
-        下载并解压环境文件的通用方法
-        :param file_name: 要下载的文件名
-        :param temp_dir: 临时下载目录
-        :param extract_dir: 解压目标目录
-        :param progress_callback: 进度回调
-        :param clean_temp: 是否清理临时文件，默认True
-        :param retry_count: 重试次数，默认2次
-        :return: 是否成功
+        """下载并解压环境文件。
+
+        每个候选源都要走完「下载 + 解压」，解压成功才算这个源可用：源返回的包损坏时换下一条
+        代理线路，线路都试过才换下一个源；只有解压成功才把源记到 last_env_source。
+
+        Args:
+            file_name: 要下载的文件名。
+            temp_dir: 临时下载目录。
+            extract_dir: 解压目标目录。
+            progress_callback: 进度回调。
+            clean_temp: 是否清理临时文件，默认清理。
+            retry_count: 每个源的总尝试次数（含首次），默认 2 次。
+
+        Returns:
+            是否成功。
         """
         # 确保临时目录存在
         temp_path = Path(temp_dir)
         temp_path.mkdir(parents=True, exist_ok=True)
+        zip_file_path = temp_path / file_name
+        extract_path = Path(extract_dir)
 
         # 线路比重试次数多时 按线路数继续试 不能只靠 retry_count 收尾
         candidate_count = len(self.gh_proxy_service.get_candidate_urls()) if self.env_config.is_gh_proxy else 0
         max_attempts = max(retry_count, candidate_count + 1)
-        tried_proxy_urls: set[str] = set()
 
-        for attempt in range(max_attempts):
-            # 每次尝试只标记本次下载实际用上的线路
-            self._last_gh_proxy_url = None
-            zip_file_path = temp_path / file_name
+        for source in self.env_config.get_env_source_candidates():
+            tried_proxy_urls: set[str] = set()
+            for attempt in range(max_attempts):
+                # 每次尝试只标记本次下载实际用上的线路
+                self._last_gh_proxy_url = None
 
-            # 如果文件不存在，下载它
-            if not zip_file_path.exists():
-                msg = f"{gt('正在下载')} {file_name}..."
+                # 如果文件不存在，下载它
+                if not zip_file_path.exists():
+                    msg = f"{gt('正在下载')} {file_name}..."
+                    if progress_callback is not None:
+                        progress_callback(-1, msg)
+                    log.info(msg)
+
+                    success = self._download_env_file_from(
+                        source, file_name, str(zip_file_path), progress_callback,
+                        exclude_proxy_urls=tried_proxy_urls,
+                    )
+                    if not success:
+                        # 这个源连下载都失败 同源再试一次仍可能碰上网络抖动
+                        if attempt < max_attempts - 1:
+                            log.warning(f'从 {source} 下载 {file_name} 失败 准备重试 {attempt + 1}/{max_attempts}')
+                            continue
+                        log.warning(f'从 {source} 下载 {file_name} 失败，尝试下一个下载源')
+                        break
+
+                msg = f"{gt('正在解压')} {file_name}..."
+                log.info(msg)
                 if progress_callback is not None:
                     progress_callback(-1, msg)
-                log.info(msg)
 
-                success = self.download_env_file(
-                    file_name, str(zip_file_path), progress_callback,
-                    exclude_proxy_urls=tried_proxy_urls,
-                )
-                if not success:
-                    if attempt < max_attempts - 1:
-                        log.warning(f'下载失败 准备重试 {attempt + 1}/{max_attempts}')
-                        continue
-                    msg = gt('下载失败 请尝试更改网络代理')
-                    log.error(msg)
+                # 如果目标目录存在，先清理
+                if extract_path.exists():
+                    shutil.rmtree(extract_path)
+
+                if file_utils.unzip_file(str(zip_file_path), str(extract_path)):
+                    self._record_env_source_success(source)
+                    msg = gt('解压成功')
+                    log.info(msg)
                     if progress_callback is not None:
-                        progress_callback(0, msg)
-                    return False
+                        progress_callback(1, msg)
 
-            msg = f"{gt('正在解压')} {file_name}..."
-            log.info(msg)
-            if progress_callback is not None:
-                progress_callback(-1, msg)
+                    # 成功后清理临时文件
+                    if clean_temp and zip_file_path.exists():
+                        zip_file_path.unlink()
+                    return True
 
-            # 如果目标目录存在，先清理
-            extract_path = Path(extract_dir)
-            if extract_path.exists():
-                shutil.rmtree(extract_path)
-
-            # 解压文件
-            success = file_utils.unzip_file(str(zip_file_path), str(extract_path))
-
-            if success:
-                msg = gt('解压成功')
-                log.info(msg)
-                if progress_callback is not None:
-                    progress_callback(1, msg)
-
-                # 成功后清理临时文件
-                if clean_temp and zip_file_path.exists():
-                    zip_file_path.unlink()
-                return True
-            else:
-                # 解压失败，可能是zip包损坏
-                msg = gt('解压失败 准备重试') if attempt < max_attempts - 1 else gt('解压失败')
-                log.warning(msg)
+                # 解压失败，多半是这个源/线路上的包坏了：换一条没试过的线路重试
+                msg = gt('解压失败 准备重试') if attempt < max_attempts - 1 else gt('解压失败 换下一个下载源')
+                log.warning('%s（下载源 %s）', msg, source)
                 if progress_callback is not None:
                     progress_callback(0, msg)
 
-                # 这条线路返回的内容是坏的，这次调用里不再试它
                 if self._last_gh_proxy_url is not None:
                     tried_proxy_urls.add(self._last_gh_proxy_url)
                     self.gh_proxy_service.mark_failed(self._last_gh_proxy_url)
@@ -179,5 +229,7 @@ class DownloadService:
                 if zip_file_path.exists():
                     zip_file_path.unlink()
 
-        # 所有重试都失败了
+        # 所有候选源都试过了
+        if progress_callback is not None:
+            progress_callback(0, gt('下载失败 请尝试更改网络代理'))
         return False
