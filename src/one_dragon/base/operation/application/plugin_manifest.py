@@ -42,7 +42,7 @@ def parse_manifest(data: bytes | str) -> dict[str, Any] | None:
             return None
     try:
         manifest = json.loads(data)
-    except ValueError:
+    except (ValueError, RecursionError):
         return None
     return manifest if isinstance(manifest, dict) else None
 
