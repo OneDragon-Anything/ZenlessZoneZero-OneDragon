@@ -84,27 +84,36 @@ NEED_NOTIFY = True
 
 # 可选，默认 False
 # INTERNAL_APP = True
-
-# 可选元数据（用于 GUI 显示）
-PLUGIN_AUTHOR = "作者名"
-PLUGIN_HOMEPAGE = "https://github.com/author/my_plugin"
-PLUGIN_VERSION = "1.0.0"
-PLUGIN_DESCRIPTION = "插件功能描述"
 ```
 
 ### 工厂类必须实现的方法
 
 `create_application` 和 `create_config` 必须由插件实现，漏掉会在界面上暴露成异常。`create_run_record` 父类已经有默认实现：`DEFAULT_GROUP = True` 时返回按当前区服刷新时间每日重置的通用记录，否则返回 `None`。只有运行周期或完成判定和这个默认不同时才需要覆盖；覆盖后如果创建失败，异常会继续抛出，不会被改成通用记录。
 
-### 插件封面
+### 插件元数据与封面
 
-插件包根目录放一个 `plugin.json` 声明元数据，封面用其中的 `cover` 字段指向包内图片：
+插件包根目录的 `plugin.json` 声明展示元数据，常量文件只保留身份和运行行为。客户端从 `plugin.json` 读取：
+
+| 字段 | 用途 | 校验 |
+| --- | --- | --- |
+| `version` | 已安装版本，用于和插件商店比对是否有更新；缺失时不提示更新 | 字符串，不超过 32 字符 |
+| `author.name` | 作者，列表和详情页显示 | 字符串，超过 200 字符截断 |
+| `homepage` | 详情页主页链接；没有订阅记录时用来匹配插件商店条目 | 只接受 `https://` 地址，不超过 200 字符 |
+| `summary` | 详情页简介 | 字符串，超过 500 字符截断 |
+| `cover` | 封面，见下 | 见下 |
+
+`plugin.json` 来自第三方：文件超过 64 KiB、不是合法 UTF-8 的 JSON 对象，或字段类型不对，都按「没有这项信息」处理，不影响插件加载。插件身份仍只认常量文件的 `APP_ID`，客户端不读 `plugin.json` 的 `id`。以前写在常量文件里的 `PLUGIN_AUTHOR`、`PLUGIN_HOMEPAGE`、`PLUGIN_VERSION`、`PLUGIN_DESCRIPTION` 已不再读取。
+
+封面用 `cover` 字段指向包内图片：
 
 ```json
 {
   "id": "my_plugin",
   "name": "我的插件",
   "version": "1.0.0",
+  "summary": "插件功能描述",
+  "author": {"name": "作者名"},
+  "homepage": "https://github.com/author/my_plugin",
   "cover": "assets/cover.webp"
 }
 ```
