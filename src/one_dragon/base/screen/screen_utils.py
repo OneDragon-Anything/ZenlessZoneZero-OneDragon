@@ -351,7 +351,7 @@ class _ScreenMatchDiag:
 
     near_miss_map: dict[str, list[str]] = field(default_factory=dict)  # 键为画面名，值为未命中的 id_mark 区域描述
     candidate_total: int = 0  # 参与判断的候选画面数
-    skipped_no_id_mark: int = 0  # 没有可用画面标识(id_mark) 而无法判断的画面数
+    skipped_no_id_mark: int = 0  # 没有可用于匹配的画面标识而无法判断的画面数（没配 id_mark，或标识区域缺 text/template）
 
 
 def _match_screen_or_collect_failure(
@@ -382,7 +382,7 @@ def _match_screen_or_collect_failure(
         if failed_marks:
             diag.near_miss_map[screen_info.screen_name] = failed_marks
         else:
-            # 没有可用于判断的画面标识(id_mark) 单独计数, 否则日志只会说"没有接近匹配", 看不出真实原因
+            # 没有可用于匹配的画面标识时单独计数, 否则日志只会说"没有接近匹配", 看不出真实原因
             diag.skipped_no_id_mark += 1
     return None
 
@@ -397,7 +397,7 @@ def _log_screen_match_failure(
 
     有接近匹配的画面（有画面标识 id_mark 但未命中）时，按未命中标识数排序后列出前几个，
     其余只报数量；带颜色过滤（color_range）的区域会标注"颜色过滤"，提示可能是颜色、分辨率或画面过时问题。
-    完全没有接近匹配的画面时，报出候选数量与"没有可用标识"的数量，不只给一句笼统结论。
+    完全没有接近匹配的画面时，报出候选数量与"没有可用于匹配的画面标识"的数量，不只给一句笼统结论。
 
     日志节流：同一失败详情只在首次出现时输出（识别成功后由调用方重置），
     避免导航等待循环每秒重复输出刷爆日志。
@@ -407,7 +407,7 @@ def _log_screen_match_failure(
     if not diag.near_miss_map:
         detail = (
             f'未能识别当前画面{scope}：候选 {diag.candidate_total} 个，'
-            f'其中 {diag.skipped_no_id_mark} 个没有可用的画面标识(id_mark)'
+            f'其中 {diag.skipped_no_id_mark} 个没有可用于匹配的画面标识'
         )
     else:
         ordered = sorted(diag.near_miss_map.items(), key=lambda item: len(item[1]), reverse=True)
@@ -420,7 +420,7 @@ def _log_screen_match_failure(
         if rest > 0:
             detail += f'；…其余 {rest} 个画面未命中'
         if diag.skipped_no_id_mark > 0:
-            detail += f'；另有 {diag.skipped_no_id_mark} 个画面没有可用的画面标识(id_mark)，未参与判断'
+            detail += f'；另有 {diag.skipped_no_id_mark} 个画面没有可用于匹配的画面标识，未参与判断'
 
     screen_loader = ctx.screen_loader
     if screen_loader.last_screen_match_failure_detail == detail:
