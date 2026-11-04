@@ -438,10 +438,14 @@ def _log_screen_match_failure(
         if diag.skipped_no_id_mark > 0:
             detail += f'；另有 {diag.skipped_no_id_mark} 个画面没有可用于匹配的画面标识，未参与判断'
 
+    # 展示文本只列前几个画面名，但节流键要带完整候选集合:
+    # 否则"前 5 个画面名相同、只后面不同"的两组候选会共用同一条日志，后一组失败被误吞
+    key = detail if screen_name_list is None else f'{detail}｜{ "、".join(screen_name_list) }'
+
     screen_loader = ctx.screen_loader
-    if screen_loader.last_screen_match_failure_detail == detail:
+    if screen_loader.last_screen_match_failure_key == key:
         return
-    screen_loader.last_screen_match_failure_detail = detail
+    screen_loader.last_screen_match_failure_key = key
     log.warning(detail)
 
 
@@ -488,7 +492,7 @@ def get_match_screen_name(
 
     if target_name is not None:
         # 识别成功: 重置失败日志节流状态, 便于下次识别失败时重新输出诊断
-        ctx.screen_loader.last_screen_match_failure_detail = None
+        ctx.screen_loader.last_screen_match_failure_key = None
         return target_name
     _log_screen_match_failure(ctx, diag, screen_name_list)
     return None
