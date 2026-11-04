@@ -14,8 +14,12 @@ from zzz_od.operation.enter_game.auto_hdr import DisableAutoHDR, EnableAutoHDR
 
 class OpenGame(Operation):
 
+    # 游戏窗口已经出现、但连续这么多次都激活不了，就判定启动失败，避免一直重试掩盖问题
+    ACTIVE_WINDOW_MAX_FAIL_TIMES = 5
+
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+        self.activate_fail_times: int = 0
         Operation.__init__(self, ctx, op_name=gt('打开游戏'),
                            need_check_game_win=False)
 
@@ -61,12 +65,25 @@ class OpenGame(Operation):
     @node_from(from_name='打开游戏')
     @operation_node(name='等待游戏打开', node_max_retry_times=60, screenshot_before_round=False)
     def wait_game(self) -> OperationRoundResult:
-        """等游戏窗口就绪 → 激活窗口 + 恢复 HDR。"""
+        """等游戏窗口就绪 → 激活窗口 + 恢复 HDR。
+
+        窗口出现不代表能激活（例如系统弹窗占据前台、窗口句柄失效）。激活失败时不能再无脑返回成功，
+        否则后面会进入登录识别连续报"未知画面"；这里重试几次后直接失败并说明原因。
+        """
         self.ctx.controller.init_game_win()
-        if self.ctx.controller.is_game_window_ready:
-            self.ctx.controller.active_window()
+        if not self.ctx.controller.is_game_window_ready:
+            return self.round_retry(wait=1)
+
+        if self.ctx.controller.active_window():
+            self.activate_fail_times = 0
             hdr_op = EnableAutoHDR(self.ctx)
             hdr_op.execute()
             return self.round_success()
-        else:
-            return self.round_retry(wait=1)
+
+        self.activate_fail_times += 1
+        if self.activate_fail_times >= self.ACTIVE_WINDOW_MAX_FAIL_TIMES:
+            return self.round_fail(
+                f'游戏窗口已打开但连续 {self.activate_fail_times} 次激活失败，'
+                '请检查是否有系统弹窗或其他窗口抢占前台'
+            )
+        return self.round_retry(wait=1)
