@@ -311,18 +311,3 @@ def _release_to_raw(release: MarketRelease | None) -> dict | None:
         'changelogHtml': release.changelog_html,
         'sources': release.sources,
     }
-
-
-_service_instance: PluginMarketService | None = None
-
-
-def get_plugin_market_service(env_config: EnvConfig) -> PluginMarketService:
-    """取全局市场服务。
-
-    两个插件页面共用一份，避免首次打开时并发拉同一份 plugins.json，
-    也避免同时写同一个缓存文件。
-    """
-    global _service_instance
-    if _service_instance is None:
-        _service_instance = PluginMarketService(env_config)
-    return _service_instance

@@ -219,14 +219,3 @@ class PluginCoverService(QObject):
             self.cover_ready.emit(plugin_id)
         else:
             self._failed.add(url)
-
-
-_instance: PluginCoverService | None = None
-
-
-def get_plugin_cover_service(env_config: EnvConfig) -> PluginCoverService:
-    """取全局封面服务，两个插件页面共用同一份缓存。"""
-    global _instance
-    if _instance is None:
-        _instance = PluginCoverService(env_config)
-    return _instance

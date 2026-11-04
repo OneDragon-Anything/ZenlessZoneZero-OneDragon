@@ -21,10 +21,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QWidget
 from qfluentwidgets import InfoBar, InfoBarPosition, MessageBox
 
-from one_dragon.base.config.plugin_subscription_config import (
-    PluginSubscriptionConfig,
-    get_plugin_subscription_config,
-)
+from one_dragon.base.config.plugin_subscription_config import PluginSubscriptionConfig
 from one_dragon.base.operation.application.plugin_import_service import (
     ImportResult,
     PluginImportService,
@@ -34,7 +31,6 @@ from one_dragon.base.operation.application.plugin_market import (
     MarketPlugin,
     MarketSnapshot,
     PluginMarketService,
-    get_plugin_market_service,
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import (
@@ -51,10 +47,7 @@ from one_dragon_qt.services.download_queue_service import (
     ResourceDownloadSpec,
     ResourceDownloadTaskState,
 )
-from one_dragon_qt.services.plugin_cover_service import (
-    PluginCoverService,
-    get_plugin_cover_service,
-)
+from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.view.plugin.plugin_detail_dialog import (
     ACTION_IGNORE,
     ACTION_MUTE_UPDATE,
@@ -198,9 +191,9 @@ class PluginOperationMixin:
         """初始化共用状态，由页面构造函数调用。"""
         self.ctx = ctx
         self.plugin_import_service = PluginImportService(ctx)
-        self.market_service = get_plugin_market_service(ctx.env_config)
-        self.subscription_config = get_plugin_subscription_config()
-        self.cover_service = get_plugin_cover_service(ctx.env_config)
+        self.market_service = ctx.plugin_market_service
+        self.subscription_config = ctx.plugin_subscription_config
+        self.cover_service = ctx.plugin_cover_service
         self._cards_by_key: dict[str, PluginCard] = {}
         self._cover_urls: dict[str, str] = {}
         self._market_snapshot: MarketSnapshot | None = None
