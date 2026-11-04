@@ -1,10 +1,16 @@
 import ctypes
 from ctypes.wintypes import RECT
+from pathlib import Path
+from threading import RLock
 
+import psutil
 import pyautogui
+import pywintypes
+import win32process
 import win32ui
 from pygetwindow import Win32Window
 
+from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
@@ -14,64 +20,151 @@ class PcGameWindow:
 
     def __init__(self,
                  standard_width: int = 1920,
-                 standard_height: int = 1080):
-        self.win_title: str | None = None
+                 standard_height: int = 1080) -> None:
+        """创建只持有一个控制目标的 PC 窗口对象。"""
+        self._win_titles: tuple[str, ...] = ()
+        self._binding_lock: RLock = RLock()
+        self._process: psutil.Process | None = None
+        self._thread_id: int | None = None
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
         self.standard_game_rect: Rect = Rect(0, 0, standard_width, standard_height)
 
         self._win: Win32Window | None = None
-        self._hWnd = None
+        self._hWnd: int | None = None
+
+    @property
+    def win_titles(self) -> tuple[str, ...]:
+        """按首次选择优先级排列的候选标题，不允许外部原地修改。"""
+        return self._win_titles
+
+    @property
+    def win_title(self) -> str | None:
+        """首选的预期标题，不代表实际绑定窗口或窗口是否存在。"""
+        return self._win_titles[0] if self._win_titles else None
+
+    @property
+    def bound_win_title(self) -> str | None:
+        """当前有效绑定的实际标题；不触发新窗口选择。"""
+        with self._binding_lock:
+            if not self._is_binding_valid():
+                self._clear_cached_window()
+                return None
+            return self._win.title
 
     def _clear_cached_window(self) -> None:
+        """释放唯一绑定及其进程身份。"""
         self._win = None
         self._hWnd = None
+        self._process = None
+        self._thread_id = None
+
+    def _is_binding_valid(self) -> bool:
+        """核对窗口、所属线程及进程身份，防止句柄或 PID 复用。"""
+        if self._hWnd is None or self._process is None:
+            return False
+        if not ctypes.windll.user32.IsWindow(self._hWnd):
+            return False
+        try:
+            thread_id, pid = win32process.GetWindowThreadProcessId(self._hWnd)
+            return (thread_id == self._thread_id and pid == self._process.pid
+                    and self._process.is_running())
+        except (pywintypes.error, psutil.NoSuchProcess):
+            log.debug('核对绑定窗口时窗口或进程已退出', exc_info=True)
+            return False
 
     def init_win(self) -> None:
-        """
-        初始化窗口
-        :return:
-        """
-        if self.win_title is None:
-            return
+        """保留有效绑定；否则按标题优先级选择唯一窗口。
 
-        windows = pyautogui.getWindowsWithTitle(self.win_title)
-        if len(windows) > 0:
-            for win in windows:
-                if win.title == self.win_title:
-                    self._win = win
-                    self._hWnd = win._hWnd
-        else:
-            self._win = None
-            self._hWnd = None
+        Raises:
+            WindowAmbiguousError: 首个匹配标题对应多个窗口。
+        """
+        with self._binding_lock:
+            if self._is_binding_valid():
+                return
+            self._clear_cached_window()
+            for title in self._win_titles:
+                windows = [win for win in pyautogui.getWindowsWithTitle(title)
+                           if win.title == title and ctypes.windll.user32.IsWindow(win._hWnd)]
+                if len(windows) > 1:
+                    raise WindowAmbiguousError(f'找到多个标题为“{title}”的窗口，请关闭多余窗口后重试')
+                if not windows:
+                    continue
+                win = windows[0]
+                try:
+                    thread_id, pid = win32process.GetWindowThreadProcessId(win._hWnd)
+                    process = psutil.Process(pid)
+                except (pywintypes.error, psutil.NoSuchProcess):
+                    log.debug('绑定窗口时进程已退出', exc_info=True)
+                    return
+                self._win = win
+                self._hWnd = win._hWnd
+                self._process = process
+                self._thread_id = thread_id
+                if not self._is_binding_valid():
+                    self._clear_cached_window()
+                return
+
+    def update_win_titles(self, titles: list[str]) -> None:
+        """设置有序精确标题候选，仅配置实际改变时释放绑定。"""
+        if not titles or any(not title.strip() for title in titles):
+            raise ValueError('候选窗口标题不能为空')
+        normalized = tuple(dict.fromkeys(titles))
+        with self._binding_lock:
+            if normalized != self._win_titles:
+                self._win_titles = normalized
+                self._clear_cached_window()
 
     def update_win_title(self, new_title: str) -> None:
-        """
-        更新窗口标题并清除缓存的窗口句柄
-        :param new_title: 新的窗口标题
-        """
-        if self.win_title != new_title:
-            self.win_title = new_title
-            self._clear_cached_window()
+        """设置唯一候选标题，保持单标题精确匹配。"""
+        self.update_win_titles([new_title])
 
     def refresh_win(self) -> None:
-        self._clear_cached_window()
+        """验证并刷新窗口；有效绑定不会被其他候选窗口抢占。"""
         self.init_win()
 
     def get_win(self) -> Win32Window | None:
-        if self._win is None:
+        """获取唯一控制窗口，失效时重新发现。"""
+        with self._binding_lock:
             self.init_win()
-        return self._win
+            return self._win
 
-    def get_hwnd(self) -> int:
-        if self._hWnd is None:
+    def get_hwnd(self) -> int | None:
+        """获取唯一控制句柄，失效时重新发现。"""
+        with self._binding_lock:
             self.init_win()
-        return self._hWnd
+            return self._hWnd
+
+    def get_executable_path(self) -> str:
+        """读取绑定窗口的进程路径，不激活窗口或初始化截图。
+
+        Raises:
+            FileNotFoundError: 没有窗口、进程退出或路径无效。
+            psutil.AccessDenied: 系统拒绝读取进程信息。
+            WindowAmbiguousError: 无法唯一选择控制窗口。
+        """
+        with self._binding_lock:
+            self.init_win()
+            if self._process is None:
+                raise FileNotFoundError('未找到运行中的游戏窗口，请先启动游戏')
+            process = self._process
+            try:
+                executable = process.exe()
+                if not self._is_binding_valid():
+                    self._clear_cached_window()
+                    raise FileNotFoundError('读取期间游戏进程已退出，请重试')
+            except psutil.NoSuchProcess as error:
+                self._clear_cached_window()
+                raise FileNotFoundError('读取期间游戏进程已退出，请重试') from error
+            path = Path(executable)
+            if not executable or path.suffix.lower() != '.exe' or not path.is_file():
+                raise FileNotFoundError('游戏进程的可执行文件路径无效，请手动选择')
+            return str(path)
 
     def _reset_cached_window(self) -> None:
-        """清空缓存窗口对象与句柄，触发后续重新查找窗口。"""
-        self._win = None
-        self._hWnd = None
+        """释放失效绑定，后续按候选规则重新发现。"""
+        with self._binding_lock:
+            self._clear_cached_window()
 
     @staticmethod
     def _try_get_client_rect(hwnd: int) -> tuple[bool, RECT]:
@@ -89,9 +182,9 @@ class PcGameWindow:
         当前窗口是否正常
         :return:
         """
-        win = self.get_win()
-        hwnd = self.get_hwnd()
-        return win is not None and hwnd is not None and ctypes.windll.user32.IsWindow(hwnd) != 0
+        with self._binding_lock:
+            self.init_win()
+            return self._is_binding_valid()
 
     @property
     def is_win_active(self) -> bool:
@@ -160,7 +253,7 @@ class PcGameWindow:
         :return: 游戏窗口信息
         """
         win = self.get_win()
-        hwnd = self.get_hwnd()
+        hwnd = win._hWnd if win is not None else None
         if win is None or hwnd is None:
             return None
 
@@ -171,7 +264,7 @@ class PcGameWindow:
             log.warning('检测到失效窗口句柄，重置缓存后重试')
             self._reset_cached_window()
             win = self.get_win()
-            hwnd = self.get_hwnd()
+            hwnd = win._hWnd if win is not None else None
             if win is None or hwnd is None:
                 return None
             got_rect, client_rect = self._try_get_client_rect(hwnd)
