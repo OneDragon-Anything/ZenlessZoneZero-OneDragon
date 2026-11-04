@@ -63,7 +63,6 @@
 
 **类常量**:
 - `REQUIRED_CONST_FIELDS`: app_const 模块必须定义的字段（`APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`）
-- `OPTIONAL_PLUGIN_FIELDS`: 可选的插件元数据字段（`PLUGIN_AUTHOR`, `PLUGIN_HOMEPAGE`, `PLUGIN_VERSION`, `PLUGIN_DESCRIPTION`）
 - 可选 app 常量字段：
   - `INTERNAL_APP`：是否只能通过代码固定入口调用，默认 `False`
   - `PRIORITY`：整数，默认组 app 的排序优先级
