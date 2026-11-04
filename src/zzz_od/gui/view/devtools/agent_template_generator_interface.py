@@ -656,8 +656,11 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         template.point_list = [Point(p.x + dx, p.y) for p in ref.point_list]
         template.auto_mask = ref.auto_mask
         try:
-            template.save_raw()
-            template.save_mask()
+            raw_saved = template.save_raw()
+            mask_saved = template.save_mask()
+            if not raw_saved or not mask_saved:
+                log.error(f'保存模板失败 写盘失败 {step.sub_dir}/{template.template_id}')
+                return False
             return True
         except Exception:
             log.error(f'保存模板失败 {step.sub_dir}/{template.template_id}', exc_info=True)

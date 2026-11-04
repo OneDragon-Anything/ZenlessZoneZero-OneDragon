@@ -556,26 +556,42 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self._update_existed_yml_options()
 
     def _on_save_raw_clicked(self) -> None:
-        """
-        保存配置
-        :return:
-        """
+        """保存模板原图，写盘失败时提示。"""
         if self.chosen_template is None:
             return
 
-        self.chosen_template.save_raw()
+        if not self.chosen_template.save_raw():
+            self._show_save_failed(self.save_raw_btn, '保存模板原图失败')
+            return
         self._update_existed_yml_options()
 
     def _on_save_mask_clicked(self) -> None:
-        """
-        保存掩码
-        :return:
-        """
+        """保存模板掩码，写盘失败时提示。"""
         if self.chosen_template is None:
             return
 
-        self.chosen_template.save_mask()
+        if not self.chosen_template.save_mask():
+            self._show_save_failed(self.save_mask_btn, '保存模板掩码失败')
+            return
         self._update_existed_yml_options()
+
+    def _show_save_failed(self, target: PushButton, content: str) -> None:
+        """提示模板图片写盘失败。
+
+        Args:
+            target: 提示气泡挂靠的按钮。
+            content: 提示内容。
+        """
+        TeachingTip.create(
+            target=target,
+            icon=InfoBarIcon.ERROR,
+            title='温馨提示',
+            content=f'{content} 请检查模板目录是否可写',
+            isClosable=True,
+            tailPosition=TeachingTipTailPosition.RIGHT,
+            duration=3000,
+            parent=self
+        )
 
     def _on_clear_points_clicked(self) -> None:
         """
