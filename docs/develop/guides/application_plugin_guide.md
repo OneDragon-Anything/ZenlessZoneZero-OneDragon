@@ -225,7 +225,7 @@ your-repo/
 
 - 仓库根目录下恰好一个子目录第一层同时有 `factory.py` 和 `const.py`，它就是插件包。旧写法 `*_factory.py` / `*_const.py` 继续兼容，不推荐。仓库根放开发用的文件（文档、测试、前端工程等），不会进安装包。
 - 插件 ID 匹配 `^[a-z][a-z0-9_]*$`，运行时身份只认 `const.py` 的 `APP_ID`：`APP_ID == 插件包目录名 == plugin.json.id`，`APP_NAME == plugin.json.name`，不一致校验失败。保留 ID（`one_dragon`、`one_dragon_qt`、`zzz_od`、`plugins`、`plugin`、`test`、`example`、`sample_plugin`）不能使用。
-- 一个仓库一个插件，一个插件一个应用。需要由父应用调用的子功能，做成另一个插件，并在其 `const.py` 里写 `INTERNAL_APP = True`。
+- 一个仓库一个插件，一个插件注册一个应用（一个工厂）。插件里的子功能写成 `Operation`，由这个应用直接调用，不需要单独做应用。只有需要在应用列表里单独出现、单独配置或单独运行的功能，才做成另一个插件。
 - 插件包内不能有 `requirements.txt`、`pyproject.toml`、`setup.py` 等依赖声明文件，只能使用一条龙主程序已有的依赖。
 - `<id>.zip` 不超过 50 MiB，解压后总量不超过它的 10 倍；zip 里只有一个顶层目录（插件包），不能有符号链接、加密条目和不安全路径。
 
