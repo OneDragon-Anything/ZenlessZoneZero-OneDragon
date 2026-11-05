@@ -501,7 +501,10 @@ def get_match_screen_names(
     Returns:
         命中的画面名列表，顺序与传入的候选列表一致。
     """
-    candidates = screen_info_list if screen_info_list is not None else ctx.screen_loader.screen_info_list
+    # 复制一份：调用方可能在比对过程中 reload，原地改动 screen_loader 的列表
+    candidates = list(
+        screen_info_list if screen_info_list is not None else ctx.screen_loader.screen_info_list
+    )
 
     matched: list[str] = []
     for candidate in candidates:
