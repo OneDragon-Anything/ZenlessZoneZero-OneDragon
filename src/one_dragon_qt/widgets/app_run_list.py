@@ -200,7 +200,9 @@ class AppRunList(DraggableList):
         Args:
             new_data_list: 新顺序的数据列表
         """
-        old_index_map = {card.data: idx for idx, card in enumerate(self._app_cards)}
+        # DraggableList 记录着真正被拖动的项，直接用它，别靠位移猜
+        dragging_item = self._dragging_item
+        moved_app_id = dragging_item.app.app_id if dragging_item is not None else ''
 
         # 重新构建 _app_cards 的顺序
         new_card_list: list[AppRunCard] = []
@@ -210,18 +212,6 @@ class AppRunList(DraggableList):
                     new_card_list.append(card)
                     break
         self._app_cards = new_card_list
-
-        # 拖拽只操作了一张卡片，位移最大的那张就是被拖动的那张
-        moved_app_id = ''
-        max_delta = 0
-        for idx, card in enumerate(self._app_cards):
-            old_idx = old_index_map.get(card.data)
-            if old_idx is None:
-                continue
-            delta = abs(idx - old_idx)
-            if delta > max_delta:
-                max_delta = delta
-                moved_app_id = card.app.app_id
 
         # 更新所有卡片的索引
         for idx, card in enumerate(self._app_cards):

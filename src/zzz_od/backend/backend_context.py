@@ -845,11 +845,19 @@ class ZzzBackendContext:
             raise BackendNotReadyError(f'应用 {target_app_id} 未注册')
         if not self._ctx.run_context.is_app_standalone_available(target_app_id):
             raise BackendNotReadyError(f'应用 {target_app_id} 只能通过固定入口运行')
-        ok, future = self._start_app(source, target_app_id, application_const.DEFAULT_GROUP_ID)
-        if ok:
-            # 通过 HTTP / MCP 跑过一次也算用户用过，写进默认组顺序，卡片不再显示 New
+        def refresh_and_persist() -> None:
+            """刷新配置后再记一次运行记录。"""
+            self._refresh_runtime_config()
+            # 刷新可能切了实例，按刷新后的实例写默认组顺序
             self._persist_default_group_app(target_app_id)
-        return ok, future
+
+        # 通过 HTTP / MCP 跑过一次也算用户用过：刷新完成、真正开跑后再清 New 标记
+        return self._start_app(
+            source,
+            target_app_id,
+            application_const.DEFAULT_GROUP_ID,
+            refresh_config=refresh_and_persist,
+        )
 
     def _persist_default_group_app(self, app_id: str) -> None:
         """把独立应用写进默认应用组的保存顺序。
@@ -865,7 +873,13 @@ class ZzzBackendContext:
         except Exception:  # noqa: BLE001 配置保存失败不影响本次运行
             log.error('保存默认应用组顺序失败 %s', app_id, exc_info=True)
 
-    def _start_app(self, source: str, app_id: str, group_id: str) -> tuple[bool, Future | None]:
+    def _start_app(
+        self,
+        source: str,
+        app_id: str,
+        group_id: str,
+        refresh_config: 'Callable[[], None] | None' = None,
+    ) -> tuple[bool, Future | None]:
         """app 路径统一入口:委托 ``run_slot._start`` 的 app 分派。
 
         ``refresh_config`` 作为钩子注入槽线程:仅在 ``_start`` 赢锁后、``run_application``
@@ -883,7 +897,7 @@ class ZzzBackendContext:
         return self.run_slot._start(
             source, app_id=app_id, group_id=group_id,
             instance_idx=self._ctx.current_instance_idx,
-            refresh_config=self._refresh_runtime_config,
+            refresh_config=refresh_config or self._refresh_runtime_config,
         )
 
     def list_applications(self) -> ApplicationListResult:

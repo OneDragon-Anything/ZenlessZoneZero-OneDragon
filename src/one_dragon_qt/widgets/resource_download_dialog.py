@@ -111,20 +111,10 @@ class ResourceUpdateDialog(MessageBoxBase):
 
         self.remember_check: CheckBox | None = None
         if show_remember:
-            # 插件和启动器更新始终要确认，列表里有这两类时必须写明该选项不包含它们
-            skipped_types = [
-                gt('插件') for spec in specs if spec.resource_type == 'plugin'
-            ] + [
-                gt('启动器') for spec in specs if spec.resource_type == 'launcher'
-            ]
-            if skipped_types:
-                self.remember_check = CheckBox(
-                    gt('官方资源以后自动下载，不再询问（{types}更新仍需确认）').format(
-                        types='、'.join(skipped_types)
-                    )
-                )
-            else:
-                self.remember_check = CheckBox(gt('以后自动下载，不再询问'))
+            # 勾选只免除官方资源的确认，插件和启动器更新始终要确认，文案直接写清
+            self.remember_check = CheckBox(
+                gt('官方资源以后自动下载，不再询问（插件和启动器更新仍需确认）')
+            )
             self.remember_check.setChecked(False)
             self.viewLayout.addWidget(self.remember_check)
 
