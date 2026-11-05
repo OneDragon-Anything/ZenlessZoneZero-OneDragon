@@ -2,6 +2,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
+    CheckBox,
     Dialog,
     FluentIcon,
     LineEdit,
@@ -79,6 +80,10 @@ class ChargePlanCard(DraggableListItem):
         self.notorious_hunt_buff_num_opt = ComboBox()
         self.notorious_hunt_buff_num_opt.currentIndexChanged.connect(self.on_notorious_hunt_buff_num_changed)
 
+        # 专业挑战室 是否使用燃竭模式
+        self.burnout_check_box = CheckBox(text=gt('燃竭模式'))
+        self.burnout_check_box.stateChanged.connect(self.on_burnout_changed)
+
         self.predefined_team_opt = ComboBox()
         self.predefined_team_opt.currentIndexChanged.connect(self.on_predefined_team_changed)
 
@@ -113,6 +118,7 @@ class ChargePlanCard(DraggableListItem):
                     self.auto_battle_combo_box,
                 ],
                 [
+                    self.burnout_check_box,
                     run_times_label,
                     self.run_times_input,
                     plan_times_label,
@@ -157,6 +163,13 @@ class ChargePlanCard(DraggableListItem):
         config_list = [config_enum.value for config_enum in CardNumEnum]
         self.card_num_box.set_items(config_list, self.plan.card_num)
         self.card_num_box.setVisible(self.plan.category_name == '实战模拟室')
+
+    def init_burnout_check_box(self) -> None:
+        """燃竭模式只在专业挑战室有意义"""
+        self.burnout_check_box.blockSignals(True)
+        self.burnout_check_box.setChecked(self.plan.expert_challenge_burnout_on)
+        self.burnout_check_box.blockSignals(False)
+        self.burnout_check_box.setVisible(self.plan.category_name == '专业挑战室')
 
     def init_notorious_hunt_buff_num_opt(self) -> None:
         """
@@ -212,6 +225,7 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
+        self.init_burnout_check_box()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
 
@@ -230,6 +244,7 @@ class ChargePlanCard(DraggableListItem):
         self.init_mission_combo_box()
         self.init_card_num_box()
         self.init_notorious_hunt_buff_num_opt()
+        self.init_burnout_check_box()
         self.init_predefined_team_opt()
         self.init_auto_battle_box()
 
@@ -255,6 +270,10 @@ class ChargePlanCard(DraggableListItem):
 
     def on_notorious_hunt_buff_num_changed(self, idx: int) -> None:
         self.plan.notorious_hunt_buff_num = self.notorious_hunt_buff_num_opt.currentData()
+        self._emit_value()
+
+    def on_burnout_changed(self, state: int) -> None:
+        self.plan.expert_challenge_burnout_on = self.burnout_check_box.isChecked()
         self._emit_value()
 
     def on_predefined_team_changed(self, idx: int) -> None:

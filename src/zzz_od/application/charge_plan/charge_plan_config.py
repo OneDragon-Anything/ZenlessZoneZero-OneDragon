@@ -41,6 +41,7 @@ class ChargePlanItem:
     card_num: str = CardNumEnum.DEFAULT.value.value  # 实战模拟室的卡片数量
     predefined_team_idx: int = -1  # 预备配队下标 -1为使用当前配队
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
+    expert_challenge_burnout_on: bool = False  # 专业挑战室 是否开启燃竭模式
     plan_id: str | None = None  # 计划的唯一标识符
     skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
 
