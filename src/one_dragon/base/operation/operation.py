@@ -425,6 +425,7 @@ class Operation(OperationBase):
         while True:
             self.round_start_time = time.time()
             if self.timeout_seconds != -1 and self.operation_usage_time >= self.timeout_seconds:
+                self._save_failure_screenshot(Operation.STATUS_TIMEOUT)
                 op_result = self.op_fail(Operation.STATUS_TIMEOUT)
                 break
             if self.ctx.run_context.is_context_stop:
@@ -477,6 +478,8 @@ class Operation(OperationBase):
                 if self.node_retry_times <= self.node_max_retry_times:
                     continue
                 else:
+                    # 重试次数用完还没过 留一张当时的画面 方便事后查是哪一步卡住
+                    self._save_failure_screenshot(f'重试{self.node_retry_times}次未通过')
                     round_result.result = OperationRoundResultEnum.FAIL
             else:
                 self.node_retry_times = 0
@@ -495,6 +498,7 @@ class Operation(OperationBase):
                     op_result = self.op_success(round_result.status, round_result.data)
                     break
                 elif round_result.result == OperationRoundResultEnum.FAIL:
+                    self._save_failure_screenshot(round_result.status or '执行失败')
                     op_result = self.op_fail(round_result.status, round_result.data)
                     break
                 else:
@@ -679,6 +683,25 @@ class Operation(OperationBase):
         if prefix is None:
             prefix = self.__class__.__name__
         return debug_utils.save_debug_image(self.last_screenshot, prefix=prefix)
+
+    def _save_failure_screenshot(self, reason: str) -> None:
+        """失败时把最后一次画面存到调试图目录，方便事后排查。
+
+        Args:
+            reason: 失败原因，写进日志和文件名前缀。
+        """
+        if self.last_screenshot is None:
+            return
+
+        node_name = 'none' if self._current_node is None else self._current_node.cn
+        try:
+            file_name = self.save_screenshot(prefix=f'fail_{self.__class__.__name__}_{node_name}')
+        except Exception:
+            log.error('保存失败截图出错', exc_info=True)
+            return
+
+        if file_name:
+            log.error('%s %s 失败 截图已保存 %s', self.display_name, reason, file_name)
 
     @cached_property
     def display_name(self) -> str:
