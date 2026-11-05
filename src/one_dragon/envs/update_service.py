@@ -8,6 +8,8 @@ from importlib import metadata
 from pathlib import Path
 from typing import Literal
 
+from packaging import version
+
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH, EnvConfig
 from one_dragon.envs.git_service import GitService
@@ -30,6 +32,28 @@ RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
 RUNTIME_DIR = runtime_paths.RUNTIME_DIR
 RUNTIME_DIR_NEW = runtime_paths.RUNTIME_DIR_NEW
 RUNTIME_DIR_BACKUP = runtime_paths.RUNTIME_DIR_BACKUP
+
+
+def is_launcher_downgrade(current_version: str, target_version: str) -> bool:
+    """判断目标版本是否低于当前版本。
+
+    新版本的运行时替换方式是 `.runtime.new` + 退出后换目录，早期启动器不认识这个
+    目录：降级安装后旧启动器会继续用当前运行时，新旧版本对不上。所以只允许升级。
+
+    Args:
+        current_version: 当前已安装版本号，空字符串表示未安装或版本读不出来
+        target_version: 目标版本号，`latest` 表示未取到具体版本
+
+    Returns:
+        bool: 目标版本低于当前版本时为 True
+    """
+    if not current_version or not target_version or target_version == 'latest':
+        return False
+
+    try:
+        return version.parse(target_version) < version.parse(current_version)
+    except version.InvalidVersion:
+        return False
 
 
 class UpdateService:
@@ -77,6 +101,12 @@ class UpdateService:
         result = (current_version, latest_stable, latest_beta)
         self._launcher_version_cache[launcher_type] = result
         return result
+
+    def clear_launcher_version_cache(self) -> None:
+        """清掉启动器版本缓存，更新完成后重新读取磁盘上的版本。"""
+        cache = getattr(self, '_launcher_version_cache', None)
+        if cache is not None:
+            cache.clear()
 
     def is_launcher_update_available(self) -> bool:
         """检查当前启动器通道是否存在可用更新。"""
@@ -139,11 +169,20 @@ class UpdateService:
 
     @staticmethod
     def is_launcher_installed(launcher_type: LauncherType) -> bool:
-        """检查指定类型的启动器是否已安装。"""
+        """检查指定类型的启动器是否已安装（文件存在且非空）。
+
+        版本号读不出来和「没装」要分开判断，文件存在但空/损坏时不算装好。
+
+        Args:
+            launcher_type: 启动器类型
+
+        Returns:
+            bool: 启动器文件存在且非空
+        """
         launcher_path = Path(os_utils.get_work_dir()) / UpdateService.get_launcher_exe_name(
             launcher_type
         )
-        return launcher_path.exists()
+        return launcher_path.is_file() and launcher_path.stat().st_size > 0
 
     def get_launcher_download_param(
         self,
@@ -199,7 +238,16 @@ class UpdateService:
         launcher_type: LauncherType,
         staging_dir: Path,
     ) -> None:
-        """校验临时目录后再备份并替换启动器，失败时自动回滚。"""
+        """校验临时目录后替换启动器。
+
+        原始启动器当场替换 exe 并删备份；集成启动器不能当场换：它的 exe 要配新
+        运行时，而运行时正被当前进程占用。exe 与运行时都先放到 `.new` / `.runtime.new`，
+        由后台脚本退出后一起换。
+
+        Args:
+            launcher_type: 启动器类型
+            staging_dir: 解压好的更新包目录
+        """
         staged_exe = staging_dir / self.get_launcher_exe_name(launcher_type)
         if not staged_exe.is_file() or staged_exe.stat().st_size == 0:
             raise RuntimeError('启动器更新包校验失败')
@@ -208,27 +256,67 @@ class UpdateService:
             raise RuntimeError('启动器运行环境缺失')
 
         work_dir = Path(os_utils.get_work_dir())
-        backup_prepared = False
+
+        # 启动时的更新不经过下载卡片，这里再拦一次降级安装
+        exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
+        current_version = app_utils.get_exe_version(str(exe_path)) if exe_path.exists() else ''
+        if is_launcher_downgrade(current_version, staging_dir.name):
+            raise RuntimeError(
+                f'不允许降级安装启动器：当前 {current_version}，目标 {staging_dir.name}'
+            )
+
         try:
-            self.prepare_launcher_update(launcher_type)
-            backup_prepared = True
-            staged_exe.replace(work_dir / staged_exe.name)
             if launcher_type == 'runtime':
-                # 版本号变了不代表运行时文件也变了，内容一致就不替换整个目录
-                current_runtime = work_dir / RUNTIME_DIR
-                if runtime_paths.runtime_dirs_equal(staged_runtime, current_runtime):
-                    log.info('运行时文件与当前版本一致，跳过运行时替换')
-                else:
-                    # 当前进程还在用 .runtime，改名会报 WinError 5，新目录先放到
-                    # .runtime.new，由后台脚本等本进程退出后再换
-                    runtime_paths.stage_runtime_dir(staged_runtime, work_dir)
-                    runtime_paths.schedule_runtime_swap(work_dir, os.getpid())
-            self.finish_launcher_update(launcher_type, True)
+                self._apply_runtime_launcher_update(staged_exe, staged_runtime, work_dir)
+            else:
+                self.prepare_launcher_update('launcher')
+                try:
+                    staged_exe.replace(work_dir / staged_exe.name)
+                except Exception:
+                    self.finish_launcher_update('launcher', False)
+                    raise
+                self.finish_launcher_update('launcher', True)
+            self.clear_launcher_version_cache()
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:
-            if backup_prepared:
-                self.finish_launcher_update(launcher_type, False)
+            runtime_paths.clear_staged_runtime_dir(work_dir)
+            new_exe = work_dir / f'{staged_exe.name}{runtime_paths.NEW_FILE_SUFFIX}'
+            if new_exe.exists():
+                new_exe.unlink()
             raise
+
+    def _apply_runtime_launcher_update(
+        self,
+        staged_exe: Path,
+        staged_runtime: Path,
+        work_dir: Path,
+    ) -> None:
+        """集成启动器：运行时没变就只换 exe，变了就把两者都留到退出后换。
+
+        Args:
+            staged_exe: 解压出来的新 exe
+            staged_runtime: 解压出来的新运行时目录
+            work_dir: 程序目录
+        """
+        current_runtime = work_dir / RUNTIME_DIR
+        if runtime_paths.runtime_dirs_equal(staged_runtime, current_runtime):
+            # 运行时文件一致，新 exe 用当前运行时没问题，直接换
+            log.info('运行时文件与当前版本一致，只替换启动器')
+            staged_exe.replace(work_dir / staged_exe.name)
+            runtime_paths.clear_staged_runtime_dir(work_dir)
+            return
+
+        new_exe = work_dir / f'{staged_exe.name}{runtime_paths.NEW_FILE_SUFFIX}'
+        if new_exe.exists():
+            new_exe.unlink()
+        staged_exe.replace(new_exe)
+        runtime_paths.stage_runtime_dir(staged_runtime, work_dir)
+        if not runtime_paths.schedule_runtime_swap(work_dir, os.getpid(), staged_exe.name):
+            new_exe.unlink(missing_ok=True)
+            runtime_paths.clear_staged_runtime_dir(work_dir)
+            raise RuntimeError('无法安排启动器与运行时替换')
+
+        log.info('启动器与运行时已暂存，本次退出后一起替换')
 
     def restore_interrupted_launcher_update(self) -> None:
         """启动时回滚中断的更新，或清理上次成功更新保留的备份。"""
@@ -236,10 +324,21 @@ class UpdateService:
         for launcher_type in ('launcher', 'runtime'):
             exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
             backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
-            current_valid = exe_path.is_file() and exe_path.stat().st_size > 0
+            exe_valid = exe_path.is_file() and exe_path.stat().st_size > 0
+            current_valid = exe_valid
             has_backup = backup_path.exists()
             if launcher_type == 'runtime':
-                current_valid = current_valid and (work_dir / RUNTIME_DIR).is_dir()
+                # 上次退出后的替换脚本没跑完会留下 .new exe：exe 还在就直接丢掉，
+                # exe 不在（改名/复制中断）就用它补上
+                new_exe_path = work_dir / f'{exe_path.name}{runtime_paths.NEW_FILE_SUFFIX}'
+                if new_exe_path.exists():
+                    if exe_valid:
+                        new_exe_path.unlink()
+                    else:
+                        new_exe_path.replace(exe_path)
+                        log.info('用上次没换完的启动器文件补齐 %s', exe_path.name)
+                        exe_valid = True
+                current_valid = exe_valid and (work_dir / RUNTIME_DIR).is_dir()
                 has_backup = has_backup or (work_dir / RUNTIME_DIR_BACKUP).exists()
             if has_backup and not current_valid:
                 self._swap_launcher_backup(launcher_type, backup=False)

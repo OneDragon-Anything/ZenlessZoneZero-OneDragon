@@ -122,9 +122,13 @@ class RuntimeLauncher(ExeLauncher):
         """上次更新留下的新运行时，安排在本进程退出后替换。
 
         进程活着的时候，解释器自己就是从 `.runtime` 加载的，改名会被系统拒绝；
-        所以这里只启动一个等待本进程退出的脚本，由它退出后再换目录。
+        所以这里只启动一个等待本进程退出的脚本，由它退出后再换目录和 exe。
         """
-        runtime_paths.schedule_runtime_swap(Path(sys.executable).parent, os.getpid())
+        runtime_paths.schedule_runtime_swap(
+            Path(sys.executable).parent,
+            os.getpid(),
+            Path(sys.executable).name,
+        )
 
     def run_onedragon_mode(self, launch_args: list[str]) -> None:
         try:

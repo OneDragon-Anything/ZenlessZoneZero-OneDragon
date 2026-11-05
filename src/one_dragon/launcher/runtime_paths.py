@@ -19,24 +19,31 @@ RUNTIME_DIR = '.runtime'
 RUNTIME_DIR_NEW = '.runtime.new'
 RUNTIME_DIR_BACKUP = '.runtime.bak'
 SWAP_SCRIPT_NAME = 'apply_runtime_update.bat'
+NEW_FILE_SUFFIX = '.new'
 
 # 等进程退出、再把 .runtime.new 换成 .runtime 的批处理
 SWAP_SCRIPT_CONTENT = """@echo off
 setlocal
 set "TARGET_PID=%~1"
+set "EXE_NAME=%~2"
+if not exist ".runtime.new" if not exist "%EXE_NAME%.new" exit /b 2
 :wait
+ping -n 2 127.0.0.1 >nul 2>&1
 tasklist /FI "PID eq %TARGET_PID%" /NH 2>nul | find "%TARGET_PID%" >nul
-if not errorlevel 1 (
-  timeout /t 1 /nobreak >nul
-  goto wait
-)
+if not errorlevel 1 goto wait
+if not exist ".runtime.new" goto swap_exe
 if exist ".runtime" rmdir /s /q ".runtime.bak" >nul 2>&1
 if exist ".runtime" ren ".runtime" ".runtime.bak"
 if errorlevel 1 exit /b 1
-if exist ".runtime.new" ren ".runtime.new" ".runtime"
+ren ".runtime.new" ".runtime"
 if errorlevel 1 (
   ren ".runtime.bak" ".runtime" >nul 2>&1
   exit /b 1
+)
+:swap_exe
+if exist "%EXE_NAME%.new" (
+  copy /y "%EXE_NAME%.new" "%EXE_NAME%" >nul
+  del "%EXE_NAME%.new" >nul 2>&1
 )
 del "%~f0" >nul 2>&1
 exit /b 0
@@ -48,6 +55,13 @@ def has_staged_runtime(work_dir: Path) -> bool:
     return (work_dir / RUNTIME_DIR_NEW).is_dir()
 
 
+def has_pending_swap(work_dir: Path, exe_name: str | None = None) -> bool:
+    """是否还有等待退出后替换的文件（运行时目录或启动器 exe）。"""
+    if has_staged_runtime(work_dir):
+        return True
+    return exe_name is not None and (work_dir / f'{exe_name}{NEW_FILE_SUFFIX}').is_file()
+
+
 def write_swap_script(work_dir: Path) -> Path:
     """写好退出后替换运行时的批处理，返回脚本路径。"""
     script_path = work_dir / SWAP_SCRIPT_NAME
@@ -57,25 +71,31 @@ def write_swap_script(work_dir: Path) -> Path:
     return script_path
 
 
-def schedule_runtime_swap(work_dir: Path, pid: int) -> bool:
-    """安排当前进程退出后替换 `.runtime`。
+def schedule_runtime_swap(
+    work_dir: Path,
+    pid: int,
+    exe_name: str | None = None,
+) -> bool:
+    """安排当前进程退出后替换 `.runtime` 和启动器 exe。
 
-    解释器还在跑的时候替换不了运行时目录，交给独立进程等待退出后再换。
+    解释器还在跑的时候替换不了运行时目录，交给独立进程等待退出后再换。exe 也放到
+    同一批里换：新 exe 依赖新运行时，先换 exe 会让新版本用旧运行时启动。
 
     Args:
         work_dir: 程序目录
         pid: 需要等待退出的进程号
+        exe_name: 需要一起替换的启动器文件名，没有就只换运行时
 
     Returns:
         bool: 是否成功启动替换脚本
     """
-    if not has_staged_runtime(work_dir):
+    if not has_pending_swap(work_dir, exe_name):
         return False
 
     try:
         script_path = write_swap_script(work_dir)
         subprocess.Popen(
-            [str(script_path), str(pid)],
+            [str(script_path), str(pid), exe_name or ''],
             cwd=str(work_dir),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
