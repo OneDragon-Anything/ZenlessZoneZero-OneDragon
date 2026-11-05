@@ -251,6 +251,8 @@ jobs:
         tag_name: ${{ needs.version.outputs.version }}
         name: "Release ${{ needs.version.outputs.version }}"
         body: |
+          > 中国大陆用户推荐前往 [CNB（Cloud Native Build）](https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon) 下载，速度更快。
+
           ## 安装方式
 
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
@@ -266,8 +268,6 @@ jobs:
           若运行出错请查看 [自助排障指南](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
 
           已有 Mirror酱 CDK？前往 [Mirror酱](https://mirrorchyan.com/zh/projects?rid=ZZZ-OneDragon&source=zzzgh-release) 高速下载
-
-          下载速度慢？推荐前往 [CNB（Cloud Native Build）](https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon) 下载
 
           ## 签名策略 (Code Signing Policy)
 
