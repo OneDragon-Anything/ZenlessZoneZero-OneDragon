@@ -71,10 +71,18 @@ class ExpertChallenge(ZOperation):
 
     @node_from(from_name='等待入口加载')
     @operation_node(name='调整燃竭模式', node_max_retry_times=5)
-    def adjust_burnout_mode(self):
+    def adjust_burnout_mode(self) -> OperationRoundResult:
+        """把燃竭模式调整到计划要求的状态。
+
+        画面里弹出确认框时先点确认；开关状态和期望不一致时点一次开关，下一次再判断。
+        确认点击也算一次重试，避免状态一直不生效时无限循环。
+
+        Returns:
+            OperationRoundResult: 节点执行结果
+        """
         result = self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-确认')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            return self.round_retry(result.status, wait=1)
 
         is_on = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON').is_success
         want_on = self.plan.expert_challenge_burnout_on

@@ -273,6 +273,11 @@ class ChargePlanCard(DraggableListItem):
         self._emit_value()
 
     def on_burnout_changed(self, state: int) -> None:
+        """燃竭模式复选框状态变化时，写回体力计划并触发保存。
+
+        Args:
+            state: Qt 复选框状态值；当前直接从复选框读，参数只为匹配信号签名。
+        """
         self.plan.expert_challenge_burnout_on = self.burnout_check_box.isChecked()
         self._emit_value()
 

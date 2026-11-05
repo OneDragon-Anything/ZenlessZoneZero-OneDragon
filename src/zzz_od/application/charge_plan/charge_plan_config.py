@@ -402,4 +402,7 @@ class ChargePlanConfig(ApplicationConfig):
             return f'mission_name 必填(合法: {missions})'
         if item.mission_name is not None and item.mission_name not in missions:
             return f'mission {item.mission_name} 不合法(合法: {missions})'
+        if not isinstance(item.expert_challenge_burnout_on, bool):
+            # 外部传 "false" 这种字符串时 bool != "false" 恒为真，燃竭开关会被一直点
+            return 'expert_challenge_burnout_on 必须为布尔值'
         return None
