@@ -233,6 +233,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         for app in self.config.app_list:
             if app.app_id == app_id:
                 self.config.persist_app(app_id)
+                self.app_run_list.update_cards_display()
                 self.run_app_by_item(app)
                 break
 
@@ -248,6 +249,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
             app_id=app_id,
             enabled=value,
         )
+        # 启用后应用会被写进保存顺序，顺手去掉 New 标记
+        self.app_run_list.update_cards_display()
 
     def _on_instance_event(self, event) -> None:
         """

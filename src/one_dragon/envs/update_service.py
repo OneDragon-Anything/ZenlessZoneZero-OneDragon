@@ -76,8 +76,17 @@ class UpdateService:
         return result
 
     def is_launcher_update_available(self) -> bool:
-        """检查当前启动器通道是否存在可用更新。"""
-        launcher_type = self.detect_running_launcher_type() or 'launcher'
+        """检查本次运行所用启动器是否存在可用更新。
+
+        源码运行时当前进程不是启动器，工作目录里的启动器 exe 与本次运行无关，
+        不把它当成需要更新的版本。
+        """
+        if not self.is_running_packaged_launcher():
+            return False
+
+        launcher_type = self.detect_running_launcher_type()
+        if launcher_type is None:
+            return False
         current_version, latest_stable, latest_beta = (
             self.get_launcher_version_info(launcher_type)
         )
@@ -87,6 +96,11 @@ class UpdateService:
             latest_beta,
         )
         return current_version != target_latest
+
+    @staticmethod
+    def is_running_packaged_launcher() -> bool:
+        """当前进程是否由打包后的启动器启动（源码运行返回 False）。"""
+        return bool(getattr(sys, 'frozen', False))
 
     @staticmethod
     def get_launcher_target_version(

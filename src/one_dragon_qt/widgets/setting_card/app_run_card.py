@@ -91,10 +91,14 @@ class AppRunCard(DraggableListItem):
         更新显示的状态
         :return:
         """
-        title = gt(self.app.app_name)
+        is_new = self.app.is_new
+        title = f'【New！】{gt(self.app.app_name)}' if is_new else gt(self.app.app_name)
         self.content_widget.setTitle(title)
+        self.content_widget.setToolTip(
+            gt('新功能，还没启用过；启用或运行一次后不再标记') if is_new else ''
+        )
         if self.run_record is None:
-            self.content_widget.setContent('')
+            self.content_widget.setContent(gt('新功能 还没使用过') if is_new else '')
         else:
             self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
 

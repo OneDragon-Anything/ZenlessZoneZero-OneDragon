@@ -20,6 +20,14 @@ class ApplicationGroupConfigItem:
         self.is_persisted: bool = is_persisted
         self.app_name: str = ''  # 不需要保存 每次注入
 
+    @property
+    def is_new(self) -> bool:
+        """是否是新加入、用户还没动过的应用。
+
+        新应用只会以未保存状态出现在列表里；用户启用、运行或拖拽排序后都会被写进保存顺序。
+        """
+        return not self.is_persisted
+
 
 class ApplicationGroupConfig(YamlOperator):
 
