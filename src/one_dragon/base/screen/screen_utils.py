@@ -11,6 +11,7 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -466,6 +467,7 @@ def is_target_screen(
         if screen_info is None:
             return False
 
+
     existed_id_mark: bool = False
     fit_id_mark: bool = True
     for screen_area in screen_info.area_list:
@@ -478,6 +480,38 @@ def is_target_screen(
             break
 
     return existed_id_mark and fit_id_mark
+
+def get_match_screen_names(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_info_list: list[ScreenInfo] | None = None,
+    crop_first: bool = True,
+) -> list[str]:
+    """把截图和所有画面逐个比对，返回命中的画面名。
+
+    开发工具里用来确认一张截图到底符合哪些画面。单个画面比对出错时只记日志跳过，
+    不影响其他画面。
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_info_list: 要比对的画面列表，默认取 screen_loader 里加载的全部画面
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        命中的画面名列表，顺序与传入的候选列表一致。
+    """
+    candidates = screen_info_list if screen_info_list is not None else ctx.screen_loader.screen_info_list
+
+    matched: list[str] = []
+    for candidate in candidates:
+        try:
+            if is_target_screen(ctx, screen, screen_info=candidate, crop_first=crop_first):
+                matched.append(candidate.screen_name)
+        except Exception:
+            log.warning('比对画面 %s 出错', candidate.screen_name, exc_info=True)
+
+    return matched
 
 
 def find_by_ocr(
