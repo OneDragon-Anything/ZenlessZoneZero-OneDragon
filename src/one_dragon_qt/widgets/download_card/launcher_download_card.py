@@ -20,6 +20,28 @@ from one_dragon_qt.widgets.setting_card.common_download_card import (
 )
 
 
+def is_launcher_downgrade(current_version: str, target_version: str) -> bool:
+    """判断目标版本是否低于当前版本。
+
+    新版本的运行时替换方式是 `.runtime.new` + 退出后换目录，早期启动器不认识这个
+    目录：降级安装后旧启动器会继续用当前运行时，新旧版本对不上。所以只允许升级。
+
+    Args:
+        current_version: 当前已安装版本号，空字符串表示未安装
+        target_version: 目标版本号，`latest` 表示未取到具体版本
+
+    Returns:
+        bool: 目标版本低于当前版本时为 True
+    """
+    if not current_version or not target_version or target_version == 'latest':
+        return False
+
+    try:
+        return version.parse(target_version) < version.parse(current_version)
+    except version.InvalidVersion:
+        return False
+
+
 class LauncherVersionChecker(QThread):
     """启动器版本信息检查器。
 
@@ -148,7 +170,15 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self._update_downloader_and_runner()
 
         # 更新UI显示
-        if self.current_version and self.current_version == self.target_version:
+        if is_launcher_downgrade(self.current_version or '', self.target_version or ''):
+            # 降级装的旧启动器不会应用新运行时，直接不允许
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value),
+                message=f"{gt('当前版本高于目标版本，不支持降级')}: {self.current_version}; {gt('目标版本')}: {self.target_version}",
+                button_text=gt('不支持降级'),
+                button_enabled=False
+            )
+        elif self.current_version and self.current_version == self.target_version:
             # 版本一致：已安装
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),

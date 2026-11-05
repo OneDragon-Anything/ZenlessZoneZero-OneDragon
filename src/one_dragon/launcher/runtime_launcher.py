@@ -1,5 +1,6 @@
 import ctypes
 import importlib
+import os
 import sys
 from pathlib import Path
 
@@ -117,17 +118,17 @@ class RuntimeLauncher(ExeLauncher):
         sys.exit(1)
 
     @staticmethod
-    def _apply_staged_runtime() -> None:
-        """启动早期把上次更新留下的新运行时换进来。
+    def _schedule_staged_runtime() -> None:
+        """上次更新留下的新运行时，安排在本进程退出后替换。
 
-        更新流程不能在运行中给 `.runtime` 改名，只能把新目录放到 `.runtime.new`；
-        Python 运行时还没加载时替换才是安全的，所以放在启动最开始。
+        进程活着的时候，解释器自己就是从 `.runtime` 加载的，改名会被系统拒绝；
+        所以这里只启动一个等待本进程退出的脚本，由它退出后再换目录。
         """
-        runtime_paths.apply_staged_runtime_dir(Path(sys.executable).parent)
+        runtime_paths.schedule_runtime_swap(Path(sys.executable).parent, os.getpid())
 
     def run_onedragon_mode(self, launch_args: list[str]) -> None:
         try:
-            self._apply_staged_runtime()
+            self._schedule_staged_runtime()
             self._sync_code()
             self._do_run_onedragon(launch_args)
         except Exception:
@@ -136,7 +137,7 @@ class RuntimeLauncher(ExeLauncher):
 
     def run_gui_mode(self) -> None:
         try:
-            self._apply_staged_runtime()
+            self._schedule_staged_runtime()
             self._sync_code()
             self._hide_console()
             self._do_run_gui()

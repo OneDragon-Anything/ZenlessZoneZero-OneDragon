@@ -1,14 +1,16 @@
 """集成启动器运行时目录的路径与替换。
 
-集成启动器运行中无法给 `.runtime` 改名：进程把它当运行时目录，目录里还有加载中的
-DLL，Windows 会报 WinError 5 拒绝访问。所以更新时新运行时先落到 `.runtime.new`，
-等下次启动、Python 还没加载运行时时再换进来。
+集成启动器运行时，Python 解释器本身就是从 `.runtime` 加载的，进程活着的时候
+既不能改名也不能替换这个目录（Windows 报 WinError 5 拒绝访问）。所以更新时新
+运行时先落到 `.runtime.new`，再由一个独立的批处理在本次进程退出后完成替换。
 """
 
 from __future__ import annotations
 
 import hashlib
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from one_dragon.utils.log_utils import log
@@ -16,49 +18,87 @@ from one_dragon.utils.log_utils import log
 RUNTIME_DIR = '.runtime'
 RUNTIME_DIR_NEW = '.runtime.new'
 RUNTIME_DIR_BACKUP = '.runtime.bak'
+SWAP_SCRIPT_NAME = 'apply_runtime_update.bat'
+
+# 等进程退出、再把 .runtime.new 换成 .runtime 的批处理
+SWAP_SCRIPT_CONTENT = """@echo off
+setlocal
+set "TARGET_PID=%~1"
+:wait
+tasklist /FI "PID eq %TARGET_PID%" /NH 2>nul | find "%TARGET_PID%" >nul
+if not errorlevel 1 (
+  timeout /t 1 /nobreak >nul
+  goto wait
+)
+if exist ".runtime" rmdir /s /q ".runtime.bak" >nul 2>&1
+if exist ".runtime" ren ".runtime" ".runtime.bak"
+if errorlevel 1 exit /b 1
+if exist ".runtime.new" ren ".runtime.new" ".runtime"
+if errorlevel 1 (
+  ren ".runtime.bak" ".runtime" >nul 2>&1
+  exit /b 1
+)
+del "%~f0" >nul 2>&1
+exit /b 0
+"""
 
 
-def apply_staged_runtime_dir(work_dir: Path) -> bool:
-    """把 `.runtime.new` 换成当前 `.runtime`。
+def has_staged_runtime(work_dir: Path) -> bool:
+    """是否还有等待替换的新运行时目录。"""
+    return (work_dir / RUNTIME_DIR_NEW).is_dir()
 
-    只能在启动早期、Python 运行时还没加载时调用。旧 `.runtime` 先改名成
-    `.runtime.bak` 留作回滚；新目录换不进去时把旧目录换回来，保证启动不会因为
-    更新留下坏目录而失败。
+
+def write_swap_script(work_dir: Path) -> Path:
+    """写好退出后替换运行时的批处理，返回脚本路径。"""
+    script_path = work_dir / SWAP_SCRIPT_NAME
+    script_path.write_bytes(
+        SWAP_SCRIPT_CONTENT.encode("utf-8").replace(bytes([10]), bytes([13, 10]))
+    )
+    return script_path
+
+
+def schedule_runtime_swap(work_dir: Path, pid: int) -> bool:
+    """安排当前进程退出后替换 `.runtime`。
+
+    解释器还在跑的时候替换不了运行时目录，交给独立进程等待退出后再换。
 
     Args:
         work_dir: 程序目录
+        pid: 需要等待退出的进程号
 
     Returns:
-        bool: 是否完成了替换；没有待替换的目录或替换失败时返回 False
+        bool: 是否成功启动替换脚本
     """
-    staged = work_dir / RUNTIME_DIR_NEW
-    if not staged.is_dir():
-        return False
-
-    runtime = work_dir / RUNTIME_DIR
-    backup = work_dir / RUNTIME_DIR_BACKUP
-    try:
-        if backup.exists():
-            shutil.rmtree(backup, ignore_errors=True)
-        if runtime.is_dir():
-            runtime.rename(backup)
-    except OSError:
-        log.error('旧运行时目录无法改名，继续使用当前版本', exc_info=True)
+    if not has_staged_runtime(work_dir):
         return False
 
     try:
-        staged.rename(runtime)
+        script_path = write_swap_script(work_dir)
+        subprocess.Popen(
+            [str(script_path), str(pid)],
+            cwd=str(work_dir),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            creationflags=_detached_flags(),
+        )
     except OSError:
-        log.error('新运行时目录切换失败，回滚到旧版本', exc_info=True)
-        if not runtime.is_dir() and backup.is_dir():
-            try:
-                backup.rename(runtime)
-            except OSError:
-                log.error('回滚旧运行时目录失败，请重新安装', exc_info=True)
+        log.error('启动运行时替换脚本失败', exc_info=True)
         return False
 
-    log.info('已切换到新版本的运行时')
+    log.info('已安排退出后替换运行时目录')
     return True
+
+
+def _detached_flags() -> int:
+    """返回后台运行所需的进程创建标志。"""
+    if sys.platform != 'win32':
+        return 0
+    return (
+        getattr(subprocess, 'DETACHED_PROCESS', 0)
+        | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+    )
 
 
 def runtime_dirs_equal(left: Path, right: Path) -> bool:
@@ -107,7 +147,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def stage_runtime_dir(staged_runtime: Path, work_dir: Path) -> None:
-    """把下载好的新运行时放到 `.runtime.new`，等下次启动再替换。
+    """把下载好的新运行时放到 `.runtime.new`，等进程退出后替换。
 
     Args:
         staged_runtime: 解压好的新运行时目录

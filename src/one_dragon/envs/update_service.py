@@ -1,5 +1,6 @@
 import gc
 import importlib
+import os
 import shutil
 import sys
 import time
@@ -219,8 +220,9 @@ class UpdateService:
                     log.info('运行时文件与当前版本一致，跳过运行时替换')
                 else:
                     # 当前进程还在用 .runtime，改名会报 WinError 5，新目录先放到
-                    # .runtime.new，下次启动时再换
+                    # .runtime.new，由后台脚本等本进程退出后再换
                     runtime_paths.stage_runtime_dir(staged_runtime, work_dir)
+                    runtime_paths.schedule_runtime_swap(work_dir, os.getpid())
             self.finish_launcher_update(launcher_type, True)
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:

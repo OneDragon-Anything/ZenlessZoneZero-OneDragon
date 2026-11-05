@@ -147,15 +147,19 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ## 启动器更新时的文件替换
 
-集成启动器运行中，`.runtime` 正被当前进程当作运行时目录使用，目录里的 DLL 也还映射着，直接改名会报 `WinError 5 拒绝访问`。所以更新分成两步：
+集成启动器的 Python 解释器本身就是从 `.runtime` 加载的，进程活着的时候既不能改名也不能替换这个目录（报 `WinError 5 拒绝访问`）。所以替换交给退出之后再做：
 
 1. 下载并解压到临时目录，校验 exe 和 `.runtime` 都在
 2. 替换 exe（先改名为 `.bak` 再放入新文件）；`.runtime` 目录**不动**，新目录改名为 `.runtime.new` 放着
-3. 下次启动时，启动器在 Python 运行时还没加载时把 `.runtime` 改名为 `.runtime.bak`、`.runtime.new` 换成 `.runtime`；换失败就把旧目录换回来继续用，`.runtime.new` 留到下次再试
+3. 同时写一个批处理 `apply_runtime_update.bat`，它记录当前进程号，轮询到进程退出后把 `.runtime` 改名为 `.runtime.bak`、`.runtime.new` 换成 `.runtime`；换不进去就把旧目录换回来，`.runtime.new` 留到下次再试
+
+启动时如果发现还有 `.runtime.new`（例如上次替换脚本没跑起来），启动器会再安排一次同样的脚本，保证这次会话结束后一定完成替换。
 
 替换前会先比较两个目录的文件内容：相对路径和大小都一致时再逐个算 sha256，全一致就跳过运行时替换（PyInstaller 的 `_internal` 经常原样复用，只有 exe 变了）。这样不会因为版本号变化白白替换几十 MB 运行时，也不依赖发布侧提供 hash。
 
-exe 的 `.bak` 在下次启动、确认新 exe 有效后才清理；如果新 exe 起不来，`restore_interrupted_launcher_update()` 会把备份换回去。
+exe 的 `.bak` 在下次启动、确认新 exe 存在且非空后才清理；如果新 exe 连主窗口都进不去（启动早期就失败），本次不会自动回滚，需要重新安装或用 `.bak` 手工换回。
+
+只支持升级、不支持降级：目标版本低于当前版本时不允许下载更新，否则旧启动器不认识 `.runtime.new`，会继续用当前运行时。
 
 ## 界面重启
 
