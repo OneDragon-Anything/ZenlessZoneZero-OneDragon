@@ -1,10 +1,12 @@
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QCursor, QFontMetrics
 from PySide6.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
+    QListWidgetItem,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -39,7 +41,7 @@ class PersistentCheckableMenu(CheckableMenu):
         """显式调用 Fluent 菜单，避免实例绑定到不接受动画参数的 QMenu.exec。"""
         CheckableMenu.exec(self, pos, ani=ani, aniType=aniType)
 
-    def _onItemClicked(self, item) -> None:
+    def _onItemClicked(self, item: QListWidgetItem) -> None:
         """勾选选项后不关闭菜单"""
         action = item.data(Qt.ItemDataRole.UserRole)
         if action not in self.menuActions() or not action.isEnabled():
@@ -139,6 +141,7 @@ class FluentDropdownButton(QFrame):
     """Fluent 风格下拉按钮，内部显示标签（自动换行）"""
 
     clicked = Signal()  # 当按钮被点击时发出信号
+    height_changed = Signal()  # 当按钮最小高度因标签换行改变时发出信号
 
     def __init__(
         self, placeholder_text: str = "请选择...", max_width: int = None, parent=None
@@ -217,6 +220,9 @@ class FluentDropdownButton(QFrame):
 
         这样可以避免标签提前换行的问题，同时遵循封装原则。
         """
+        # 步骤0：先清空旧标签，避免全部取消后旧标签残留在布局中
+        self._clear_flow_layout()
+
         if not self._tags:
             return
 
@@ -225,20 +231,28 @@ class FluentDropdownButton(QFrame):
         if parent and hasattr(parent, "calculate_and_set_width_for_tags"):
             parent.calculate_and_set_width_for_tags(self._tags)
 
-        # 步骤2：清除 FlowLayout 中的所有现有元素
-        while self._flow_layout.count():
-            item: FluentTagLabel = self._flow_layout.takeAt(0)
-            if item is not None:
-                item.setParent(None)
-
         # 步骤3：将所有标签添加到 FlowLayout
         # 此时组件已经有了正确的宽度，FlowLayout 会正确布局，不会提前换行
         for tag in self._tags:
             # 设置固定尺寸策略，防止标签被压缩
             tag.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            # 先挂到流式容器下，避免无父级的标签被当作独立窗口弹出
+            tag.setParent(self._flow_widget)
             self._flow_layout.addWidget(tag)
+            tag.show()
         wrapped_height = self._flow_layout.heightForWidth(max(1, self._flow_widget.width()))
         self.setMinimumHeight(max(32, wrapped_height + 8))
+        self.height_changed.emit()
+
+    def _clear_flow_layout(self) -> None:
+        """移除并销毁 FlowLayout 中的旧标签（先隐藏再销毁，不产生顶层窗口）"""
+        while self._flow_layout.count():
+            old_tag = self._flow_layout.takeAt(0)
+            if old_tag is not None:
+                old_tag.hide()
+                # 仍在使用的标签（仅重排）会重新加入，不能销毁
+                if old_tag not in self._tags:
+                    old_tag.deleteLater()
 
     def mousePressEvent(self, event):
         """鼠标点击事件"""
@@ -260,6 +274,7 @@ class FluentDropdownButton(QFrame):
             self._flow_widget.hide()
             self._arrow_label.show()
             self.setMinimumHeight(32)
+            self.height_changed.emit()
         else:
             # 有标签时隐藏占位符，显示 FlowLayout
             self._placeholder_label.hide()
@@ -328,6 +343,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
             else (200 if fixed_width is None else None)
         )
         self._menu = None  # 下拉菜单实例
+        self._menu_anchor_y: int = 0  # 菜单锚定的按钮下边缘（全局坐标）
 
         self._setup_ui()
 
@@ -343,6 +359,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
             self._placeholder_text, self._max_width
         )
         self._dropdown_btn.clicked.connect(self._toggle_dropdown_menu)
+        self._dropdown_btn.height_changed.connect(self._schedule_menu_reposition)
 
         layout.addWidget(self._dropdown_btn)
 
@@ -531,12 +548,16 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._show_dropdown_menu()
 
     def _on_dropdown_menu_closed(self) -> None:
-        """菜单关闭后，仅在光标已离开按钮时清除引用"""
+        """菜单关闭后，仅在按钮点击关闭（光标仍在按钮内）时保留引用"""
         if self._menu is None:
             return
 
+        # 按钮点击会在鼠标按下时关闭菜单；Escape 关闭时没有按下的鼠标键
         pos = self._dropdown_btn.mapFromGlobal(QCursor.pos())
-        if not self._dropdown_btn.rect().contains(pos):
+        pressed_on_btn = bool(
+            QApplication.mouseButtons() & Qt.MouseButton.LeftButton
+        ) and self._dropdown_btn.rect().contains(pos)
+        if not pressed_on_btn:
             self._menu = None
 
     def _show_dropdown_menu(self) -> None:
@@ -557,11 +578,29 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._menu.closedSignal.connect(self._on_dropdown_menu_closed)
 
         # 显示菜单，使用 DROP_DOWN 动画
-        button_rect = self._dropdown_btn.geometry()
-        self._menu.exec(
-            self._dropdown_btn.mapToGlobal(button_rect.bottomLeft()),
-            aniType=MenuAnimationType.DROP_DOWN,
-        )
+        anchor = self._menu_anchor_pos()
+        self._menu_anchor_y = anchor.y()
+        self._menu.exec(anchor, aniType=MenuAnimationType.DROP_DOWN)
+
+    def _menu_anchor_pos(self) -> 'QPoint':
+        """菜单锚点：按钮左下角的全局坐标"""
+        return self._dropdown_btn.mapToGlobal(self._dropdown_btn.rect().bottomLeft())
+
+    def _schedule_menu_reposition(self) -> None:
+        """按钮增高后，待布局生效再重新定位已打开的菜单"""
+        if self._menu is not None and self._menu.isVisible():
+            QTimer.singleShot(0, self._reposition_menu)
+
+    def _reposition_menu(self) -> None:
+        """让已打开的菜单锚定到按钮更新后的下边缘"""
+        menu = self._menu
+        if menu is None or not menu.isVisible():
+            return
+        new_y = self._menu_anchor_pos().y()
+        delta = new_y - self._menu_anchor_y
+        if delta:
+            menu.move(menu.x(), menu.y() + delta)
+            self._menu_anchor_y = new_y
 
     def _on_item_triggered(self, item: ConfigItem, checked: bool) -> None:
         """当菜单项被点击时处理选中状态
