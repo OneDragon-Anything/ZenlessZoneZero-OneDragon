@@ -87,6 +87,9 @@ class ExpertChallenge(ZOperation):
         is_on = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON').is_success
         want_on = self.plan.expert_challenge_burnout_on
         if need_toggle_burnout_mode(is_on, want_on):
+            if self.node_retry_times >= self.node_max_retry_times:
+                # 最后几轮只核对状态：上一步刚点过确认，可能已经生效，别直接判失败
+                return self.round_retry('燃竭模式仍在切换中，等待画面更新', wait=1)
             self.round_by_click_area('恶名狩猎', '按钮-深度追猎-ON')
             return self.round_retry(
                 f'燃竭模式 {"开启" if want_on else "关闭"}中', wait=1
