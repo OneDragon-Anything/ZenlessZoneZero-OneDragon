@@ -425,7 +425,7 @@ class Operation(OperationBase):
         while True:
             self.round_start_time = time.time()
             if self.timeout_seconds != -1 and self.operation_usage_time >= self.timeout_seconds:
-                self._save_failure_screenshot(Operation.STATUS_TIMEOUT)
+                self._save_timeout_screenshot()
                 op_result = self.op_fail(Operation.STATUS_TIMEOUT)
                 break
             if self.ctx.run_context.is_context_stop:
@@ -478,8 +478,7 @@ class Operation(OperationBase):
                 if self.node_retry_times <= self.node_max_retry_times:
                     continue
                 else:
-                    # 重试次数用完还没过 留一张当时的画面 方便事后查是哪一步卡住
-                    self._save_failure_screenshot(f'重试{self.node_retry_times}次未通过')
+                    # 重试耗尽不一定最终失败（后面可能还有恢复节点），截图留给最终失败分支
                     round_result.result = OperationRoundResultEnum.FAIL
             else:
                 self.node_retry_times = 0
@@ -684,6 +683,15 @@ class Operation(OperationBase):
             prefix = self.__class__.__name__
         return debug_utils.save_debug_image(self.last_screenshot, prefix=prefix)
 
+    def _save_timeout_screenshot(self) -> None:
+        """超时截图。
+
+        停止请求和超时同时到时按人工停止处理：那次退出不是失败，不该新增调试图。
+        """
+        if self.ctx.run_context.is_context_stop:
+            return
+        self._save_failure_screenshot(Operation.STATUS_TIMEOUT)
+
     def _save_failure_screenshot(self, reason: str) -> None:
         """失败时把最后一次画面存到调试图目录，方便事后排查。
 
@@ -700,8 +708,11 @@ class Operation(OperationBase):
             log.error('保存失败截图出错', exc_info=True)
             return
 
-        if file_name:
-            log.error('%s %s 失败 截图已保存 %s', self.display_name, reason, file_name)
+        if not file_name:
+            log.error('%s %s 失败，截图保存失败', self.display_name, reason)
+            return
+
+        log.error('%s %s 失败 截图已保存 %s', self.display_name, reason, file_name)
 
     @cached_property
     def display_name(self) -> str:

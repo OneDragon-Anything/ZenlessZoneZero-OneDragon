@@ -80,18 +80,14 @@ def prune_debug_images(keep_count: int = DEBUG_IMAGE_KEEP_COUNT) -> int:
 
     entries: list[tuple[float, str]] = []
     try:
-        scan = os.scandir(image_dir)
-    except OSError:
-        return 0
-
-    with scan:
-        for entry in scan:
-            try:
+        with os.scandir(image_dir) as scan:
+            for entry in scan:
                 if not entry.is_file():
                     continue
                 entries.append((entry.stat().st_mtime, entry.path))
-            except OSError:
-                continue
+    except OSError:
+        # 目录读一半失败时不要按不完整的列表删文件
+        return 0
 
     if len(entries) <= keep_count:
         return 0
@@ -128,7 +124,9 @@ def save_debug_image(image, file_name: Optional[str] = None, prefix: str = '', c
     log.debug('临时图片保存 %s', path)
 
     bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(path, bgr_image)
+    if not cv2.imwrite(path, bgr_image):
+        log.warning('调试图保存失败（目录不可写？） %s', path)
+        return ''
 
     _maybe_prune_debug_images()
 
