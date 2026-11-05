@@ -281,8 +281,11 @@ class UpdateService:
         # 启动时的更新不经过下载卡片，这里再拦一次降级安装
         exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
         current_version = app_utils.get_exe_version(str(exe_path)) if exe_path.exists() else ''
-        if current_version and not is_version_parseable(current_version):
-            raise RuntimeError(f'无法识别当前启动器版本（{current_version}），请重新安装启动器')
+        if self.is_launcher_installed(launcher_type) and not is_version_parseable(current_version):
+            # 已安装却读不出版本：不能当未安装放行，否则降级判断会失效
+            raise RuntimeError(
+                f'无法识别当前启动器版本（{current_version or "空"}），请重新安装启动器'
+            )
         if is_launcher_downgrade(current_version, staging_dir.name):
             raise RuntimeError(
                 f'不允许降级安装启动器：当前 {current_version}，目标 {staging_dir.name}'
