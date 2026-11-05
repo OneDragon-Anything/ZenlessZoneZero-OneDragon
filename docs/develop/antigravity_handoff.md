@@ -58,8 +58,10 @@
   - `MacGameWindowHandle.isActive` 改用 `NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier()` 判断前台状态。
   - 邮件应用在 `click_confirm` 中重新截图检查是否包含“确认删除/确定删除/是否删除”。
 - 广色域屏幕截图颜色偏移根因已定位并修复：`PilScreencapper._capture_mac_window()` 在裁剪窗口标题栏后通过 `CGBitmapContext` 转换到标准 `sRGB` 色彩空间，解决快捷手册等依赖 `color_range` 的画面识别问题。
-- 自动战斗 macOS 启动崩溃已修复：`AudioRecorder.start_running_async` 在非 Windows 平台直接返回，避免加载 `soundcard.mediafoundation` 触发 `cffi.CDefError`。
-- 已在游戏内实测通过：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**。
+- 已添加 PlayCover 桌面键鼠模式必要插件 `tools/macos/libUnityDesktopMode.dylib`。
+- 自动战斗 macOS 声音闪避识别已修复并实现原生回环采集：新增 `tools/macos/sck_audio_capture.mm`（编译为 `.install/macos-vhid/libod_sck_audio.dylib`），通过 macOS `ScreenCaptureKit` 直接采集系统输出音频（32kHz 单声道），并在 `AudioRecorder.start_running_async` 中优先启用（同时兼容 `BlackHole` 虚拟声卡回退），避免加载 Windows 专属 `soundcard.mediafoundation` 触发 `cffi.CDefError`。
+- 已在游戏内实测通过：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**、**咖啡店**、**恶名狩猎（周期无剩余次数领奖）**、**迷失之地（含自动战斗与 ScreenCaptureKit 声音闪避识别）**。
+- 待继续排查问题：`体力刷本`（`实战模拟室` / `区域巡防`）在打完第一把或进入第二把时，偶发卡在战斗内或鼠标停留在右下角「下一步 / 出战 / 完成」按钮区域（`click_next` 移开鼠标的目标 `ScreenNormalWorldEnum.UID` `(1866, 1069)` 紧贴右下角按钮，且 `Deploy` 点击「出战」后未移开鼠标）。
 
 ## 可直接发送给 Antigravity 的提示
 

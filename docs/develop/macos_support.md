@@ -15,6 +15,7 @@ macOS 控制器只使用前台键鼠模式：发送键盘或鼠标输入时，�
 - 后台点击和后台输入不适用于 macOS；本 fork 只提供前台键鼠控制，不提供后台运行模式或手柄控制。
 - PlayCover 内置 Keymapping（键位映射）当前关闭；自动化输入需要兼容用户安装的 PC 逻辑插件。
 - macOS 使用 ONNX Runtime 的 CPU 执行提供程序。模型推理与自动化流程保持不变；若后续增加 Apple GPU 加速，须单独验证模型兼容性与推理结果。
+- 自动战斗的声音闪避识别通过 macOS 原生 `ScreenCaptureKit`（`tools/macos/sck_audio_capture.mm` 构建为 `.install/macos-vhid/libod_sck_audio.dylib`）直接捕获系统输出音频回环（复用屏幕与系统录音权限，无需将系统输出切换为虚拟声卡）；若 `ScreenCaptureKit` 音频流未就绪，则回退尝试 `BlackHole` 等虚拟音频输入设备。
 - PlayCover 中的游戏窗口标题由账号配置决定；窗口无法按标题匹配时，用户可设置自定义窗口标题。
 
 ## 发行与验证
