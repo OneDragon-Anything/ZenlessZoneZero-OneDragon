@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from one_dragon.base.web.common_downloader import (
+    GITHUB_SOURCE_ID,
     CommonDownloader,
     CommonDownloaderParam,
     ResourceDownloadProgress,
@@ -95,9 +96,19 @@ class ZipDownloader(CommonDownloader):
                     gh_proxy_service.mark_failed(self._last_gh_proxy_url)
                     log.warning(f'代理线路下载到的压缩包损坏 换下一条 {self._last_gh_proxy_url}')
                     self._last_gh_proxy_url = None
-                # 这个源给的包是坏的 本次调用不再试它 自动模式下也清掉上次成功记录
+                # 这个源给的包是坏的 自动模式下先清掉上次成功记录
                 if self._last_source_id is not None:
-                    failed_sources.add(self._last_source_id)
+                    # github 还剩没试过的线路时 只换线路不排除整个源
+                    has_line_left = (
+                        self._last_source_id == GITHUB_SOURCE_ID
+                        and gh_proxy_service is not None
+                        and any(
+                            url not in tried_proxy_urls
+                            for url in gh_proxy_service.get_candidate_urls()
+                        )
+                    )
+                    if not has_line_left:
+                        failed_sources.add(self._last_source_id)
                     if on_source_failure is not None:
                         on_source_failure(self._last_source_id)
                 log.warning('疑似压缩包损毁 重新下载')

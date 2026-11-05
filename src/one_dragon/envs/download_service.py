@@ -149,6 +149,22 @@ class DownloadService:
 
         return http_utils.download_file(download_url, save_file_path, proxy=proxy, progress_callback=progress_callback)
 
+    @staticmethod
+    def _restore_env_backup(extract_path: Path) -> None:
+        """目标目录缺失时 把上次替换中断留下的备份还原回来。
+
+        Args:
+            extract_path: 环境解压目标目录。
+        """
+        backup_path = extract_path.with_name(f'{extract_path.name}_bak_tmp')
+        if extract_path.exists() or not backup_path.exists():
+            return
+        try:
+            backup_path.rename(extract_path)
+            log.warning('发现上次中断留下的环境备份 已还原 %s', extract_path)
+        except OSError:
+            log.error('还原环境备份失败 备份保留在 %s', backup_path, exc_info=True)
+
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
                                       progress_callback: Callable[[float, str], None] | None = None,
                                       clean_temp: bool = True, retry_count: int = 2) -> bool:
@@ -175,6 +191,8 @@ class DownloadService:
         extract_path = Path(extract_dir)
         # 先解压到同级临时目录 成功才替换目标目录 重装失败时现有环境不会被提前删掉
         temp_extract_path = extract_path.with_name(f'{extract_path.name}_extract_tmp')
+        # 上次替换中断可能把旧环境留在备份目录 先还原 否则这次全部失败后环境不可用
+        self._restore_env_backup(extract_path)
 
         for source in self.env_config.get_env_source_candidates():
             # 只有 github 源才按代理线路数加尝试次数 其他源仍按 retry_count
@@ -235,13 +253,8 @@ class DownloadService:
                     # 先把现有目录改名成备份，替换成功才删；替换失败用备份还原
                     backup_path = extract_path.with_name(f'{extract_path.name}_bak_tmp')
                     if not extract_path.exists() and backup_path.exists():
-                        # 上次恢复失败遗留的备份 先还原回来再继续
-                        try:
-                            backup_path.rename(extract_path)
-                            log.warning('发现上次遗留的环境备份 已还原 %s', extract_path)
-                        except OSError:
-                            log.error('还原遗留的环境备份失败 %s', backup_path, exc_info=True)
-                            return False
+                        # 正常情况下循环开始前已经还原过 这里再兜一次
+                        self._restore_env_backup(extract_path)
                     try:
                         if backup_path.exists():
                             shutil.rmtree(backup_path)
