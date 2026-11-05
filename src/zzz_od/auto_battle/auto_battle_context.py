@@ -33,8 +33,6 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-_battle_state_check_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
-
 BTN_BAN_CHECK_INTERVAL: float = 0.02  # 按键禁用的识别间隔秒
 
 
@@ -42,6 +40,8 @@ class AutoBattleContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+        # 战斗状态识别线程池：本 context 是单例（ZContext 持有），线程池跟实例走
+        self._battle_state_check_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
         self.agent_context: AutoBattleAgentContext = AutoBattleAgentContext(self.ctx)
         self.dodge_context: AutoBattleDodgeContext = AutoBattleDodgeContext(self.ctx)
         self.custom_context: AutoBattleCustomContext = AutoBattleCustomContext(self.ctx)
@@ -242,7 +242,7 @@ class AutoBattleContext:
         App关闭后进行的操作 关闭一切可能资源操作
         """
         self.stop_auto_battle()
-        _battle_state_check_executor.shutdown(wait=False, cancel_futures=True)
+        self._battle_state_check_executor.shutdown(wait=False, cancel_futures=True)
 
         self.agent_context.after_app_shutdown()
         self.dodge_context.after_app_shutdown()
@@ -598,32 +598,32 @@ class AutoBattleContext:
         # 统一提交检测任务
         if in_battle:
             # 闪避相关
-            audio_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
+            audio_future = self._battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
             future_list.append(audio_future)
             if self.ctx.model_config.flash_classifier_gpu:
                 future_list.append(gpu_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
             else:
-                future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+                future_list.append(self._battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
 
             # 角色状态
-            future_list.append(_battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
+            future_list.append(self._battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
 
             # 目标状态
-            future_list.append(_battle_state_check_executor.submit(self.target_context.run_all_checks, screen, screenshot_time))
+            future_list.append(self._battle_state_check_executor.submit(self.target_context.run_all_checks, screen, screenshot_time))
 
             # 快速支援
-            future_list.append(_battle_state_check_executor.submit(self.check_quick_assist, screen, screenshot_time))
-            future_list.append(_battle_state_check_executor.submit(self.check_switch_backup, screen, screenshot_time))
+            future_list.append(self._battle_state_check_executor.submit(self.check_quick_assist, screen, screenshot_time))
+            future_list.append(self._battle_state_check_executor.submit(self.check_switch_backup, screen, screenshot_time))
 
             # 距离
             if check_distance:
                 if self.ctx.model_config.ocr_use_gpu:
                     future_list.append(gpu_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
                 else:
-                    future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
+                    future_list.append(self._battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
         else:
             # 连携
-            future_list.append(_battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
+            future_list.append(self._battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
 
             # 战斗结束
             check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
@@ -631,7 +631,7 @@ class AutoBattleContext:
                 if self.ctx.model_config.ocr_use_gpu:
                     executor = gpu_executor
                 else:
-                    executor = _battle_state_check_executor
+                    executor = self._battle_state_check_executor
                 future_list.append(executor.submit(
                     self._check_battle_end,
                     screen, screenshot_time,
@@ -679,11 +679,11 @@ class AutoBattleContext:
         # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+        future_list.append(self._battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
+        future_list.append(self._battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
 
         # 连携条检测（独立运行，结果在方法内部处理）
-        _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
+        self._battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
 
         for future in future_list:
             try:
@@ -1091,7 +1091,7 @@ class AutoBattleContext:
 
         future_list: list[Future] = []
         for _, area, template_id in ban_check_list:
-            future_list.append(_battle_state_check_executor.submit(
+            future_list.append(self._battle_state_check_executor.submit(
                 self._match_btn_ban_gray, screen, area, template_id,
             ))
 

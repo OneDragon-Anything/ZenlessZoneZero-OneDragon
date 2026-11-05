@@ -33,13 +33,13 @@ from zzz_od.hollow_zero.hollow_zero_data_service import HallowZeroDataService
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
-_withered_domain_context_executor = ThreadPoolExecutor(thread_name_prefix='withered_domain_context_executor', max_workers=16)
-
-
 class WitheredDomainContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+
+        # 识别线程池：本 context 是单例（ZContext 持有），线程池跟实例走
+        self._withered_domain_context_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='withered_domain_context_executor', max_workers=16)
 
         self.challenge_config: Optional[HollowZeroChallengeConfig] = None
 
@@ -490,7 +490,7 @@ class WitheredDomainContext:
         for i in range(len(area_img)):
             img = area_img[i]
             rect = check_agent_area[i].rect
-            future_list.append(_withered_domain_context_executor.submit(self._match_agent_in, img, possible_agents))
+            future_list.append(self._withered_domain_context_executor.submit(self._match_agent_in, img, possible_agents))
 
         any_not_none: bool = False
         for future in future_list:
@@ -524,4 +524,4 @@ class WitheredDomainContext:
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
-        _withered_domain_context_executor.shutdown(wait=False, cancel_futures=True)
+        self._withered_domain_context_executor.shutdown(wait=False, cancel_futures=True)

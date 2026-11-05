@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 
-# 模块私有的独立线程池，用于并行处理状态检测任务
-_target_context_executor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
-
-
 class AutoBattleTargetContext:
     """
     一个由数据驱动的、通用的目标状态上下文。
@@ -31,6 +27,8 @@ class AutoBattleTargetContext:
         构造函数
         """
         self.ctx: ZContext = ctx
+        # 模块私有的独立线程池改为实例级：本 context 是单例（AutoBattleContext 持有），线程池跟实例走
+        self._target_context_executor: ThreadPoolExecutor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
         self.checker: TargetStateChecker = TargetStateChecker(ctx)
 
         self._check_lock = threading.Lock()
@@ -95,7 +93,7 @@ class AutoBattleTargetContext:
                 if now - self._last_check_times[task.task_id] >= interval:
                     self._last_check_times[task.task_id] = now
                     if task.is_async:
-                        future = _target_context_executor.submit(self.checker.run_task, screen, task)
+                        future = self._target_context_executor.submit(self.checker.run_task, screen, task)
                         futures[future] = task
                     else:
                         cv_ctx, sync_results = self.checker.run_task(screen, task)
@@ -162,4 +160,4 @@ class AutoBattleTargetContext:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         """
-        _target_context_executor.shutdown(wait=False, cancel_futures=True)
+        self._target_context_executor.shutdown(wait=False, cancel_futures=True)
