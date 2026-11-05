@@ -1,5 +1,9 @@
 import Quartz
-from AppKit import NSApplicationActivateIgnoringOtherApps, NSRunningApplication
+from AppKit import (
+    NSApplicationActivateIgnoringOtherApps,
+    NSRunningApplication,
+    NSWorkspace,
+)
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -17,10 +21,13 @@ class MacGameWindowHandle:
     @property
     def isActive(self) -> bool:
         """游戏窗口所属应用是否处于前台。"""
+        front = NSWorkspace.sharedWorkspace().frontmostApplication()
+        if front is not None and front.processIdentifier() == self.owner_pid:
+            return True
         app = NSRunningApplication.runningApplicationWithProcessIdentifier_(
             self.owner_pid
         )
-        return app is not None and app.isActive()
+        return app is not None and bool(app.isActive())
 
     def activate(self) -> bool:
         """将游戏窗口所属应用切到前台。"""

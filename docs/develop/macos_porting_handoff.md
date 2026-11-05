@@ -77,19 +77,23 @@
 - macOS 上可双击仓库根目录的 `启动一条龙.command`，以当前登录用户启动 GUI；启动器只会为 Karabiner 虚拟 HID 客户端请求管理员授权。macOS 屏幕录制和辅助功能授权针对实际运行的程序，授权给 GitHub Copilot 不会自动授权给一条龙。
 - 点击需由此启动脚本运行；首次启动要联网并安装 Xcode Command Line Tools，以构建 Karabiner 官方 v8.7.0 客户端。Karabiner 虚拟 HID 驱动需已安装、批准并保持守护进程运行。
 - 测试位于独立仓 `zzz-od-test/`，目前工作区未确认有该仓；不要把测试写入主仓。
-- 目前没有提交或推送变更。
+- 以上为此前记录；当前分支和远程状态以文末的「接手状态更新」为准。
 
-## 2026-11-05 接手状态
+## 2026-11-05 接手状态更新
 
-- 当前分支为 `pokemc32ryan-macos-support`，与本地 `main` 指向同一个提交；macOS 移植内容仍是工作区未提交改动，没有可直接合并的分支提交。工作区同时包含此前形成的整套 macOS 移植与手柄移除改动，不要只处理最近两处邮件/点击诊断改动，也不要覆盖其他未提交内容。
-- 最近补充了两项安全诊断：`PcControllerBase` 记录 macOS 点击的游戏坐标、目标桌面坐标和鼠标移动后的实际坐标；邮件应用在确认步骤前检查 OCR，识别到“确认删除”“确定删除”或“是否删除”时跳过通用确认点击。
-- 用户明确报告：此前点击“全部领取”实际落到“删除已读”，出现删除确认框；用户在确认前点击左上角返回，没有确认删除。此前日志中的 `全部领取 → 确认` 只证明识别到通用确认文案，不能证明领取成功。任何后续测试都不要自动确认领取或删除弹窗。
-- 用户同意重启 GUI；管理员验证过程中密码第一次输入失败，随后启动成功。OCR 和应用初始化日志正常，但存在旧 root 所有的缓存和配置写入错误，包括 `notice_cache/notice_cache.json` 与 `config/01/one_dragon/_group.yml`。没有修改文件所有者或权限。
-- 用户同意只做非破坏性点击验证。终端通过 CoreGraphics 截取 PlayCover 窗口时得到空图像并触发 `NSInternalInconsistencyException`，因此没有执行测试点击。点击坐标偏移仍未查明，也未证明 0.1 秒等待有效。
-- 最近验证：`PYTHONPATH=src uv run ruff check --ignore I001 ...`、两个修改过的 Python 文件 `py_compile`、`git diff --check` 通过。完整 Ruff 检查仍报告 `email_app.py` 导入排序规则 `I001`；使用 `.env` 的检查命令因仓库没有 `.env` 无法运行。
-- 本段记录生成时，当前没有提交、推送、PR 或合并。用户随后明确授权：将当前分支改动提交，并创建指向项目 `main` 的 PR；这不等于授权直接合并 PR。后续交接时应以 GitHub 上的实际 PR 状态为准。
+- macOS 移植和手柄移除改动已提交为 `b2162f57`。个人 fork 内的 PR #1 已合并到 `pokemc32ryan/ZenlessZoneZero-OneDragon-mac` 的 `main`；此前误开的上游 PR #3015 已关闭且未合并。用户明确要求后续只在个人 fork 工作。
+- `config/repository.yml` 中的 GitHub 远端地址已更新为个人 fork `https://github.com/pokemc32ryan/ZenlessZoneZero-OneDragon-mac.git`，避免 GUI 启动时把 `origin` 自动重写回上游仓库。
+- 查明并修复了 PlayCover 鼠标点击错位与视角转向失效问题：
+  - `pyautogui.moveTo()` 移动系统指针不会触发 PlayCover 更新游戏内游标位置；现通过 Karabiner 虚拟 HID 客户端新增 `move <dx> <dy>` 与 `wheel <v> <h>` 命令，在指针移动后微移 `(+1, 0)` / `(-1, 0)` 同步游戏内游标位置，并用虚拟 HID 相对位移实现大世界视角转向 (`move_mouse_relative`)。
+  - `MacGameWindowHandle.isActive` 改用 `NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier()` 判断前台应用，避免 PlayCover 下 `NSRunningApplication.isActive()` 恒为 `False` 导致每次点击重复激活窗口。
+  - 邮件确认节点在点击前重新截图再检查是否含“确认删除/确定删除/是否删除”。
+- 查明并修复了广色域屏幕截图颜色偏移问题：`PilScreencapper._capture_mac_window()` 改为在裁剪标题栏后通过 `CGBitmapContext` 转换到标准 `sRGB` 色彩空间，修复了快捷手册等依赖 `color_range` 的画面识别问题。
+- 修复了自动战斗在 macOS 启动时加载 `soundcard.mediafoundation` 导致的 `cffi.CDefError` 崩溃：非 Windows 平台跳过 `AudioRecorder.start_running_async`。
+- 已完成游戏内实测验证的功能：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**。
 
-### 可直接交给下一位大模型的提示
+### 旧提示（已由 Antigravity 接手说明取代）
+
+以下提示已过时，勿照此执行。当前任务与 Git 边界见 [`antigravity_handoff.md`](antigravity_handoff.md)。
 
 ```text
 请先阅读仓库根目录 AGENTS.md 和 docs/develop/macos_porting_handoff.md，并先检查 git status；本工作区有大量未提交的 macOS 移植与手柄移除改动，必须保留，不要重置、覆盖或只挑最近几处提交。
