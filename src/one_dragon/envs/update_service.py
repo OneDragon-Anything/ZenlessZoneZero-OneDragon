@@ -1,5 +1,6 @@
 import gc
 import importlib
+import os
 import shutil
 import sys
 import time
@@ -24,6 +25,9 @@ LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
 # 集成启动器
 RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
 RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
+
+# 原始启动器 exe 用 run_python 拉起 GUI，子进程不是 frozen，靠这个环境变量说明来源
+LAUNCHER_SOURCE_ENV = 'ONE_DRAGON_LAUNCHER_SOURCE'
 RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
 RUNTIME_DIR = '.runtime'
 RUNTIME_DIR_BACKUP = '.runtime.bak'
@@ -99,8 +103,14 @@ class UpdateService:
 
     @staticmethod
     def is_running_packaged_launcher() -> bool:
-        """当前进程是否由打包后的启动器启动（源码运行返回 False）。"""
-        return bool(getattr(sys, 'frozen', False))
+        """当前进程是否由打包后的启动器启动（源码运行返回 False）。
+
+        原始启动器 exe 用 `run_python` 拉起 GUI，GUI 子进程本身不是 frozen，
+        但启动器会在环境变量里留下来源，按“由启动器启动”处理。
+        """
+        if getattr(sys, 'frozen', False):
+            return True
+        return os.environ.get(LAUNCHER_SOURCE_ENV) in ('launcher', 'runtime')
 
     @staticmethod
     def get_launcher_target_version(
@@ -129,6 +139,9 @@ class UpdateService:
         集成启动器运行时当前进程是 OneDragon-RuntimeLauncher.exe；
         源码运行和原始启动器 exe 运行都属于原始启动器。
         """
+        source = os.environ.get(LAUNCHER_SOURCE_ENV)
+        if source in ('launcher', 'runtime'):
+            return source
         if not getattr(sys, 'frozen', False):
             return 'launcher'
         exe_name = Path(sys.executable).name

@@ -75,13 +75,15 @@ class ResourceUpdateDialog(MessageBoxBase):
             check.setEnabled(not already_queued)
             check.stateChanged.connect(self._update_confirm_enabled)
             version = f'{spec.current_version or "未安装"} → {spec.target_version}'
-            reason = (
-                gt('已在队列')
-                if already_queued
-                else gt('重新下载')
-                if retryable
-                else (spec.note or gt('缺失或有新版本'))
-            )
+            if already_queued:
+                reason = gt('已在队列')
+            elif retryable:
+                # 重试项原来只写“重新下载”，启动器这种要重启才生效的说明会丢
+                reason = gt('重新下载')
+                if spec.note:
+                    reason = f'{reason}（{spec.note}）'
+            else:
+                reason = spec.note or gt('缺失或有新版本')
             grid.addWidget(check, row, 0)
             detail = QWidget()
             detail_layout = QHBoxLayout(detail)
@@ -109,12 +111,20 @@ class ResourceUpdateDialog(MessageBoxBase):
 
         self.remember_check: CheckBox | None = None
         if show_remember:
-            # 第三方插件更新始终要确认，列表里有插件时必须写明该选项不包含插件
-            has_plugin = any(spec.resource_type == 'plugin' for spec in specs)
-            self.remember_check = CheckBox(
-                gt('官方资源以后自动下载，不再询问（插件更新仍需确认）')
-                if has_plugin else gt('以后自动下载，不再询问')
-            )
+            # 插件和启动器更新始终要确认，列表里有这两类时必须写明该选项不包含它们
+            skipped_types = [
+                gt('插件') for spec in specs if spec.resource_type == 'plugin'
+            ] + [
+                gt('启动器') for spec in specs if spec.resource_type == 'launcher'
+            ]
+            if skipped_types:
+                self.remember_check = CheckBox(
+                    gt('官方资源以后自动下载，不再询问（{types}更新仍需确认）').format(
+                        types='、'.join(skipped_types)
+                    )
+                )
+            else:
+                self.remember_check = CheckBox(gt('以后自动下载，不再询问'))
             self.remember_check.setChecked(False)
             self.viewLayout.addWidget(self.remember_check)
 

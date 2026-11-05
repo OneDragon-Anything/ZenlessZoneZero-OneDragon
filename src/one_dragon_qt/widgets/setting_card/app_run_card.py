@@ -99,6 +99,9 @@ class AppRunCard(DraggableListItem):
         )
         if self.run_record is None:
             self.content_widget.setContent(gt('新功能 还没使用过') if is_new else '')
+        elif is_new:
+            # 一条龙应用会有运行记录，但没启用/没跑过时仍然算新应用
+            self.content_widget.setContent(gt('新功能 还没使用过'))
         else:
             self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
 
