@@ -234,6 +234,14 @@ class DownloadService:
                 if unzip_ok:
                     # 先把现有目录改名成备份，替换成功才删；替换失败用备份还原
                     backup_path = extract_path.with_name(f'{extract_path.name}_bak_tmp')
+                    if not extract_path.exists() and backup_path.exists():
+                        # 上次恢复失败遗留的备份 先还原回来再继续
+                        try:
+                            backup_path.rename(extract_path)
+                            log.warning('发现上次遗留的环境备份 已还原 %s', extract_path)
+                        except OSError:
+                            log.error('还原遗留的环境备份失败 %s', backup_path, exc_info=True)
+                            return False
                     try:
                         if backup_path.exists():
                             shutil.rmtree(backup_path)
@@ -251,7 +259,11 @@ class DownloadService:
                             shutil.rmtree(temp_extract_path)
                         return False
                     if backup_path.exists():
-                        shutil.rmtree(backup_path)
+                        try:
+                            shutil.rmtree(backup_path)
+                        except OSError:
+                            # 新目录已经换好了 备份删不掉只记日志 不能把安装判成失败
+                            log.warning('清理环境备份失败 保留在 %s', backup_path, exc_info=True)
 
                     # 只有本次从该源下载并解压成功 才把它记为上次成功源
                     if downloaded_now:

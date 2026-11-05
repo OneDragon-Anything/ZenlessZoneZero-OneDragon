@@ -48,6 +48,7 @@ class ZipDownloader(CommonDownloader):
             fallback_on_slow: bool = False,
             ) -> bool:
         tried_proxy_urls: set[str] = set(exclude_proxy_urls or ())
+        failed_sources: set[str] = set()
         # 每次解压失败换一条没试过的线路 试完为止 不只重试固定两次
         max_rounds = 2
         if gh_proxy_service is not None:
@@ -61,6 +62,7 @@ class ZipDownloader(CommonDownloader):
                 ghproxy_url=ghproxy_url,
                 gh_proxy_service=gh_proxy_service,
                 exclude_proxy_urls=tried_proxy_urls,
+                exclude_source_ids=failed_sources,
                 record_proxy_success=False,
                 defer_source_success=True,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
@@ -93,9 +95,11 @@ class ZipDownloader(CommonDownloader):
                     gh_proxy_service.mark_failed(self._last_gh_proxy_url)
                     log.warning(f'代理线路下载到的压缩包损坏 换下一条 {self._last_gh_proxy_url}')
                     self._last_gh_proxy_url = None
-                # 这个源给的包是坏的 自动模式下不能继续记成上次成功源
-                if on_source_failure is not None and self._last_source_id is not None:
-                    on_source_failure(self._last_source_id)
+                # 这个源给的包是坏的 本次调用不再试它 自动模式下也清掉上次成功记录
+                if self._last_source_id is not None:
+                    failed_sources.add(self._last_source_id)
+                    if on_source_failure is not None:
+                        on_source_failure(self._last_source_id)
                 log.warning('疑似压缩包损毁 重新下载')
                 continue
 
@@ -122,7 +126,18 @@ class ZipDownloader(CommonDownloader):
         # 使用指定的解压路径，如果没有指定则使用save_file_path
         unzip_dir = self.param.unzip_dir_path or self.param.save_file_path
         os.makedirs(unzip_dir, exist_ok=True)
-        file_utils.unzip_file(zip_file_path=zip_file_path, unzip_dir_path=unzip_dir)
+        # 记录解压前还缺哪些目标文件 解压失败时清掉只写了一半的产物
+        missing_before = [f for f in self.param.check_existed_list if not os.path.exists(f)]
+        unzip_ok = file_utils.unzip_file(zip_file_path=zip_file_path, unzip_dir_path=unzip_dir)
+        if not unzip_ok:
+            log.warning(f'解压失败 {zip_file_path}')
+            for missing_file in missing_before:
+                if os.path.exists(missing_file):
+                    try:
+                        os.remove(missing_file)
+                    except OSError:
+                        log.warning(f'清理未解压完的文件失败 {missing_file}')
+            return False
         log.info(f"解压完成 {zip_file_path} 到 {unzip_dir}")
 
         # 最后判断压缩包以外的文件是否完整了 完整了才说明解压成功

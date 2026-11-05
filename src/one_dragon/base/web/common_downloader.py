@@ -79,6 +79,7 @@ class CommonDownloader:
             ghproxy_url: str | None = None,
             gh_proxy_service: "GhProxyService | None" = None,
             exclude_proxy_urls: set[str] | None = None,
+            exclude_source_ids: set[str] | None = None,
             record_proxy_success: bool = True,
             defer_source_success: bool = False,
             skip_if_existed: bool = True,
@@ -98,6 +99,7 @@ class CommonDownloader:
             ghproxy_url: ghproxy 代理地址 只对 github 源生效 只在没有 gh_proxy_service 时使用
             gh_proxy_service: GitHub 代理线路服务 提供时对每条 github 源地址逐条尝试候选线路
             exclude_proxy_urls: 已经试过的线路 本次调用不再重复尝试
+            exclude_source_ids: 本次调用不再尝试的源 用于解压失败后换下一个源
             record_proxy_success: 下载成功就记录线路 压缩包下载传 False 由解压成功后再记录
             defer_source_success: 暂不回调源成功 压缩包下载要等解压成功才算这个源可用
             skip_if_existed: 文件已存在时是否跳过下载
@@ -112,6 +114,7 @@ class CommonDownloader:
             bool: 是否下载成功
         """
         self._last_gh_proxy_url = None
+        self._last_source_id = None
         if skip_if_existed and self.is_file_existed():
             return True
 
@@ -120,6 +123,13 @@ class CommonDownloader:
             candidates = [i for i in source_order if i in self.param.download_urls]
         if len(candidates) == 0:
             candidates = list(self.param.download_urls.keys())
+        if exclude_source_ids:
+            remaining = [source_id for source_id in candidates if source_id not in exclude_source_ids]
+            if remaining:
+                candidates = remaining
+            else:
+                # 只剩下载过坏包的源时 还是得继续重试 否则无源可用
+                log.warning('候选源都下载过损坏的压缩包 继续重试原候选')
 
         if len(candidates) == 0:
             log.error('没有可用的下载源')
@@ -195,10 +205,10 @@ class CommonDownloader:
 
                 if success:
                     if gh_proxy_service is not None and source_id == GITHUB_SOURCE_ID:
-                        proxy_url = gh_proxy_service.match_proxy_url(download_url)
-                        self._last_gh_proxy_url = proxy_url
-                        if record_proxy_success and proxy_url is not None:
-                            gh_proxy_service.remember_success(proxy_url)
+                        matched_proxy_url = gh_proxy_service.match_proxy_url(download_url)
+                        self._last_gh_proxy_url = matched_proxy_url
+                        if record_proxy_success and matched_proxy_url is not None:
+                            gh_proxy_service.remember_success(matched_proxy_url)
                     self._last_source_id = source_id
                     source_success = True
                     break
