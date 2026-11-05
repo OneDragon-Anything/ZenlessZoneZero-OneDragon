@@ -167,6 +167,17 @@ class PcControllerBase(ControllerBase):
             log.error('关闭游戏失败', exc_info=True)
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
+        """获取游戏截图。
+
+        Args:
+            independent: 是否独立创建截图资源。
+
+        Returns:
+            游戏画面，截图策略均失败时返回 None。
+
+        Raises:
+            GameWindowNotReadyError: 游戏窗口不存在或缓存的窗口已失效。
+        """
         if self.is_game_window_ready:
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
