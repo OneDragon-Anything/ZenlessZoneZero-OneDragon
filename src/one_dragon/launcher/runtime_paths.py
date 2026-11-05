@@ -26,6 +26,7 @@ SWAP_SCRIPT_CONTENT = """@echo off
 setlocal
 set "TARGET_PID=%~1"
 set "EXE_NAME=%~2"
+set "RUNTIME_SWAPPED=0"
 if not exist ".runtime.new" if not exist "%EXE_NAME%.new" exit /b 2
 :wait
 ping -n 2 127.0.0.1 >nul 2>&1
@@ -40,10 +41,18 @@ if errorlevel 1 (
   ren ".runtime.bak" ".runtime" >nul 2>&1
   exit /b 1
 )
+set "RUNTIME_SWAPPED=1"
 :swap_exe
 if exist "%EXE_NAME%.new" (
   copy /y "%EXE_NAME%.new" "%EXE_NAME%" >nul
-  if errorlevel 1 exit /b 1
+  if errorlevel 1 (
+    if "%RUNTIME_SWAPPED%"=="1" if exist ".runtime.bak" (
+      rem 新 exe 没换上就别把运行时单独升上去，回滚到旧的配对
+      ren ".runtime" ".runtime.new" >nul 2>&1
+      ren ".runtime.bak" ".runtime" >nul 2>&1
+    )
+    exit /b 1
+  )
   del "%EXE_NAME%.new" >nul 2>&1
 )
 del "%~f0" >nul 2>&1

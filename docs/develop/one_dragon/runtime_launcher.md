@@ -152,7 +152,7 @@ LauncherBase          → 基础参数解析、run() 入口
 1. 下载并解压到临时目录，校验 exe 和 `.runtime` 都在
 2. 先比较两个运行时目录的内容：相对路径和大小都一致时再逐个算 sha256，全一致就跳过运行时替换，只换 exe
 3. 不管运行时变没变，exe 都复制成 `OneDragon-RuntimeLauncher.exe.new`；运行时变了再把新目录改名为 `.runtime.new`，两者都等退出后再生效
-4. 同时写一个批处理 `apply_runtime_update.bat`，它记录当前进程号，用 `ping` 轮询到进程退出后把 `.runtime` 改名为 `.runtime.bak`、`.runtime.new` 换成 `.runtime`，再把 `.new` exe 复制过去；运行时换不进去就把旧目录换回来，`.runtime.new` 留到下次再试。exe 复制失败同样保留 `.new` 并以非零退出，下次启动还能再安排一次
+4. 同时写一个批处理 `apply_runtime_update.bat`，它记录当前进程号，用 `ping` 轮询到进程退出后把 `.runtime` 改名为 `.runtime.bak`、`.runtime.new` 换成 `.runtime`，再把 `.new` exe 复制过去；运行时换不进去就把旧目录换回来，`.runtime.new` 留到下次再试。exe 复制失败同样保留 `.new`、回滚已换上的运行时并以非零退出，下次启动还能再安排一次
 
 exe 和运行时必须一起换：新 exe 可能依赖新运行时里的 DLL 或冻结模块，若 exe 先生效、运行时还是旧的，新 exe 会在加载阶段就崩，连安排替换脚本的机会都没有。所以 exe 只在运行时目录真正换好之后才覆盖。
 
