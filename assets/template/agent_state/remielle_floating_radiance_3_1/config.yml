@@ -5,4 +5,4 @@ template_shape: rectangle
 auto_mask: true
 point_list:
 - 143, 120
-- 211, 121
+- 210, 121
