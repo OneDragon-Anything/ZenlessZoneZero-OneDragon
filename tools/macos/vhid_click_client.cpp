@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -94,10 +95,83 @@ int run() {
 
     std::istringstream input(line);
     std::string command;
+    if (!(input >> command)) {
+      std::cout << "ERROR 无效的虚拟鼠标命令" << std::endl;
+      continue;
+    }
+
+    if (command == "move") {
+      int dx = 0;
+      int dy = 0;
+      std::string trailing;
+      if (!(input >> dx >> dy) || input >> trailing) {
+        std::cout << "ERROR 无效的虚拟鼠标移动命令" << std::endl;
+        continue;
+      }
+
+      {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        if (!startup_error.empty() || !pointing_ready) {
+          std::cout << "ERROR "
+                    << (startup_error.empty() ? "虚拟鼠标设备已断开" : startup_error)
+                    << std::endl;
+          continue;
+        }
+      }
+
+      PointingInput move_report;
+      for (uint8_t report_button = 1; report_button <= 3; ++report_button) {
+        if ((buttons_state & (1u << (report_button - 1))) != 0) {
+          move_report.buttons.insert(report_button);
+        }
+      }
+      const int clamped_dx = std::clamp(dx, -127, 127);
+      const int clamped_dy = std::clamp(dy, -127, 127);
+      move_report.x = static_cast<uint8_t>(static_cast<int8_t>(clamped_dx));
+      move_report.y = static_cast<uint8_t>(static_cast<int8_t>(clamped_dy));
+      client->async_post_report(move_report);
+      std::cout << "OK" << std::endl;
+      continue;
+    }
+
+    if (command == "wheel") {
+      int vertical = 0;
+      int horizontal = 0;
+      std::string trailing;
+      if (!(input >> vertical >> horizontal) || input >> trailing) {
+        std::cout << "ERROR 无效的虚拟鼠标滚轮命令" << std::endl;
+        continue;
+      }
+
+      {
+        std::lock_guard<std::mutex> lock(state_mutex);
+        if (!startup_error.empty() || !pointing_ready) {
+          std::cout << "ERROR "
+                    << (startup_error.empty() ? "虚拟鼠标设备已断开" : startup_error)
+                    << std::endl;
+          continue;
+        }
+      }
+
+      PointingInput wheel_report;
+      for (uint8_t report_button = 1; report_button <= 3; ++report_button) {
+        if ((buttons_state & (1u << (report_button - 1))) != 0) {
+          wheel_report.buttons.insert(report_button);
+        }
+      }
+      const int clamped_v = std::clamp(vertical, -127, 127);
+      const int clamped_h = std::clamp(horizontal, -127, 127);
+      wheel_report.vertical_wheel = static_cast<uint8_t>(static_cast<int8_t>(clamped_v));
+      wheel_report.horizontal_wheel = static_cast<uint8_t>(static_cast<int8_t>(clamped_h));
+      client->async_post_report(wheel_report);
+      std::cout << "OK" << std::endl;
+      continue;
+    }
+
     unsigned int button = 0;
     unsigned int duration_ms = 0;
     std::string trailing;
-    if (!(input >> command >> button >> duration_ms) ||
+    if (!(input >> button >> duration_ms) ||
         input >> trailing ||
         (command != "click" && command != "press" && command != "release") ||
         (button < 1 || button > 3) ||

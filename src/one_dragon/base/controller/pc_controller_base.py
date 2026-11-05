@@ -221,7 +221,11 @@ class PcControllerBase(ControllerBase):
                 if self._mac_virtual_hid_mouse is None:
                     log.error('macOS 虚拟鼠标未初始化；请先运行启动脚本并确认 Karabiner 虚拟 HID 服务正常')
                     return False
+                if not self.game_win.is_win_active:
+                    self.game_win.active()
+                    time.sleep(0.05)
                 pyautogui.moveTo(click_pos.x, click_pos.y)
+                self._mac_virtual_hid_mouse.nudge_cursor()
                 actual_pos = pyautogui.position()
                 log.info(
                     'macOS 鼠标定位: 游戏坐标=%s, 目标桌面坐标=(%s, %s), 实际桌面坐标=(%s, %s)',
@@ -282,14 +286,18 @@ class PcControllerBase(ControllerBase):
             log.error('拖拽终点不在游戏窗口区域 (%s)', end)
             return
         if sys.platform == 'darwin':
+            if not self.game_win.is_win_active:
+                self.game_win.active()
+                time.sleep(0.05)
             mouse = self._get_mac_virtual_hid_mouse()
             drag_mouse(
                 from_pos,
                 to_pos,
                 duration=duration,
                 timing=timing,
-                button_down=lambda: mouse.press('left'),
+                button_down=lambda: (mouse.nudge_cursor(), mouse.press('left')),
                 button_up=lambda: mouse.release('left'),
+                move_step=lambda dx, dy: mouse.move_relative(dx, dy),
             )
         else:
             drag_mouse(from_pos, to_pos, duration=duration, timing=timing)
@@ -306,6 +314,16 @@ class PcControllerBase(ControllerBase):
         win_pos = self.game_win.game2win_pos(pos)
         if win_pos is None:
             log.error('滚动位置不在游戏窗口区域 (%s)', pos)
+            return
+        if sys.platform == 'darwin':
+            if not self.game_win.is_win_active:
+                self.game_win.active()
+                time.sleep(0.05)
+            mouse = self._get_mac_virtual_hid_mouse()
+            pyautogui.moveTo(win_pos.x, win_pos.y)
+            mouse.nudge_cursor()
+            time.sleep(self.MAC_MOUSE_MOVE_SETTLE)
+            mouse.scroll(-down * 5)
             return
         win_scroll(down, win_pos)
 
@@ -324,6 +342,8 @@ class PcControllerBase(ControllerBase):
         win_pos = self.game_win.game2win_pos(game_pos)
         if win_pos is not None:
             pyautogui.moveTo(win_pos.x, win_pos.y)
+            if sys.platform == 'darwin' and self._mac_virtual_hid_mouse is not None:
+                self._mac_virtual_hid_mouse.nudge_cursor()
             time.sleep(0.1)  # 原本 pyautogui 的操作会有0.1s延迟, 现在去掉了, 故在这里加上延迟
 
     @property
@@ -367,6 +387,7 @@ def drag_mouse(
     *, timing: DragTiming | None = None,
     button_down: Callable[[], None] | None = None,
     button_up: Callable[[], None] | None = None,
+    move_step: Callable[[int, int], None] | None = None,
 ) -> None:
     """按住鼠标左键进行画面拖动 (消除拖动后的惯性)。
 
@@ -390,11 +411,17 @@ def drag_mouse(
         duration_drag = max(move_duration, PcControllerBase.DRAG_MIN_DURATION)
         # 分步移动到终点
         steps = max(int(duration_drag / 0.02), 5)
+        prev_x = int(start.x)
+        prev_y = int(start.y)
         for i in range(1, steps + 1):
             t = i / steps
             cx = int(start.x + (end.x - start.x) * t)
             cy = int(start.y + (end.y - start.y) * t)
             pyautogui.moveTo(cx, cy)
+            if move_step is not None:
+                move_step(cx - prev_x, cy - prev_y)
+            prev_x = cx
+            prev_y = cy
             time.sleep(duration_drag / steps)
         # 松开之前先定住鼠标以消除滑动惯性
         time.sleep(release_wait)

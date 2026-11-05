@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -64,6 +65,10 @@ class AudioRecorder:
         """
         异步启动音频录制。
         """
+        if sys.platform != 'win32':
+            log.info('非 Windows 平台暂不支持系统输出音频回环录制，跳过声音闪避识别')
+            return
+
         with self._run_lock:
             if self.running:
                 return

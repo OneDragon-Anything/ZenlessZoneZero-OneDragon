@@ -59,6 +59,49 @@ class MacVirtualHIDMouse:
         """释放鼠标按键。"""
         self._send_command('release', button, 0)
 
+    def move_relative(self, dx: int, dy: int) -> None:
+        """通过虚拟 HID 发送相对鼠标移动（自动拆分超过单次 HID 报告范围的位移）。"""
+        rem_x = round(dx)
+        rem_y = round(dy)
+        if rem_x == 0 and rem_y == 0:
+            return
+        while rem_x != 0 or rem_y != 0:
+            step_x = max(-127, min(127, rem_x))
+            step_y = max(-127, min(127, rem_y))
+            self._send_raw_command(f'move {step_x} {step_y}', '虚拟 HID 鼠标移动失败')
+            rem_x -= step_x
+            rem_y -= step_y
+
+    def scroll(self, vertical: int, horizontal: int = 0) -> None:
+        """通过虚拟 HID 发送滚轮事件。"""
+        rem_v = round(vertical)
+        rem_h = round(horizontal)
+        if rem_v == 0 and rem_h == 0:
+            return
+        while rem_v != 0 or rem_h != 0:
+            step_v = max(-127, min(127, rem_v))
+            step_h = max(-127, min(127, rem_h))
+            self._send_raw_command(f'wheel {step_v} {step_h}', '虚拟 HID 鼠标滚轮操作失败')
+            rem_v -= step_v
+            rem_h -= step_h
+
+    def nudge_cursor(self) -> None:
+        """在当前光标位置发送微小 HID 相对位移并归位，使 PlayCover 同步当前光标位置。"""
+        self.move_relative(1, 0)
+        self.move_relative(-1, 0)
+
+    def _send_raw_command(self, line: str, error_msg: str) -> None:
+        with self._lock:
+            if self._process.poll() is not None:
+                raise RuntimeError('虚拟 HID 点击客户端已退出')
+            if self._process.stdin is None:
+                raise RuntimeError('虚拟 HID 点击客户端输入通道不可用')
+            self._process.stdin.write(f'{line}\n')
+            self._process.stdin.flush()
+            response = self._read_line(self.RESPONSE_TIMEOUT)
+            if response != 'OK':
+                raise RuntimeError(response.removeprefix('ERROR ').strip() or error_msg)
+
     def _send_command(self, command: str, button: str, duration_ms: int) -> None:
         button_id = {'left': 1, 'right': 2, 'middle': 3}.get(button)
         if button_id is None:

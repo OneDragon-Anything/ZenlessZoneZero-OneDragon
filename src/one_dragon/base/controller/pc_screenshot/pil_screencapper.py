@@ -1,5 +1,4 @@
 import sys
-from io import BytesIO
 
 import numpy as np
 from cv2.typing import MatLike
@@ -10,8 +9,6 @@ from one_dragon.base.geometry.rectangle import Rect
 
 if sys.platform == 'darwin':
     import Quartz
-    from AppKit import NSBitmapImageRep, NSPNGFileType
-    from PIL import Image
 
 
 class PilScreencapper(ScreencapperBase):
@@ -49,7 +46,7 @@ class PilScreencapper(ScreencapperBase):
         return screenshot
 
     def _capture_mac_window(self) -> MatLike | None:
-        """按窗口 ID 截取游戏画面，避免桌面上的其他窗口遮挡。"""
+        """按窗口 ID 截取游戏画面，转换到 sRGB 色彩空间并裁剪标题栏。"""
         window_id = self.game_win.get_hwnd()
         if window_id is None:
             return None
@@ -63,18 +60,50 @@ class PilScreencapper(ScreencapperBase):
         if image_ref is None:
             return None
 
-        bitmap = NSBitmapImageRep.alloc().initWithCGImage_(image_ref)
-        png_data = bitmap.representationUsingType_properties_(NSPNGFileType, {})
-        if png_data is None:
+        width = int(Quartz.CGImageGetWidth(image_ref))
+        height = int(Quartz.CGImageGetHeight(image_ref))
+        if width <= 0 or height <= 0:
             return None
 
-        image = Image.open(BytesIO(bytes(png_data.bytes()))).convert('RGB')
-        screenshot = np.asarray(image)
-        game_height = round(
-            screenshot.shape[1] * self.standard_height / self.standard_width
+        game_height = min(
+            height,
+            round(width * self.standard_height / self.standard_width),
         )
-        if screenshot.shape[0] > game_height:
-            screenshot = screenshot[-game_height:, :, :]
+        title_height = max(0, height - game_height)
+        if title_height > 0:
+            cropped_ref = Quartz.CGImageCreateWithImageInRect(
+                image_ref,
+                Quartz.CGRectMake(0, title_height, width, game_height),
+            )
+            if cropped_ref is not None:
+                image_ref = cropped_ref
+                height = game_height
+
+        srgb_space = Quartz.CGColorSpaceCreateWithName(
+            Quartz.kCGColorSpaceSRGB
+        )
+        buffer = bytearray(height * width * 4)
+        context = Quartz.CGBitmapContextCreate(
+            buffer,
+            width,
+            height,
+            8,
+            width * 4,
+            srgb_space,
+            Quartz.kCGImageAlphaPremultipliedLast
+            | Quartz.kCGBitmapByteOrder32Big,
+        )
+        if context is None:
+            return None
+
+        Quartz.CGContextDrawImage(
+            context,
+            Quartz.CGRectMake(0, 0, width, height),
+            image_ref,
+        )
+        screenshot = np.frombuffer(buffer, dtype=np.uint8).reshape(
+            (height, width, 4)
+        )[:, :, :3].copy()
         return screenshot
 
     def cleanup(self):

@@ -1,3 +1,5 @@
+import sys
+
 import pyautogui
 from cv2.typing import MatLike
 
@@ -188,5 +190,10 @@ class ZPcController(PcControllerBase):
             dy: 纵向移动距离，正数向下
         """
         if dx == 0 and dy == 0:
+            return
+        if sys.platform == 'darwin':
+            if not self.game_win.is_win_active:
+                self.game_win.active()
+            self._get_mac_virtual_hid_mouse().move_relative(round(dx), round(dy))
             return
         pyautogui.moveRel(int(dx), int(dy), duration=0)
