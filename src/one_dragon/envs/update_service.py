@@ -11,6 +11,7 @@ from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH, EnvConfig
 from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
+from one_dragon.launcher import runtime_paths
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
 
@@ -25,8 +26,9 @@ LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
 RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
 RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
 RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
-RUNTIME_DIR = '.runtime'
-RUNTIME_DIR_BACKUP = '.runtime.bak'
+RUNTIME_DIR = runtime_paths.RUNTIME_DIR
+RUNTIME_DIR_NEW = runtime_paths.RUNTIME_DIR_NEW
+RUNTIME_DIR_BACKUP = runtime_paths.RUNTIME_DIR_BACKUP
 
 
 class UpdateService:
@@ -211,7 +213,14 @@ class UpdateService:
             backup_prepared = True
             staged_exe.replace(work_dir / staged_exe.name)
             if launcher_type == 'runtime':
-                staged_runtime.rename(work_dir / RUNTIME_DIR)
+                # 版本号变了不代表运行时文件也变了，内容一致就不替换整个目录
+                current_runtime = work_dir / RUNTIME_DIR
+                if runtime_paths.runtime_dirs_equal(staged_runtime, current_runtime):
+                    log.info('运行时文件与当前版本一致，跳过运行时替换')
+                else:
+                    # 当前进程还在用 .runtime，改名会报 WinError 5，新目录先放到
+                    # .runtime.new，下次启动时再换
+                    runtime_paths.stage_runtime_dir(staged_runtime, work_dir)
             self.finish_launcher_update(launcher_type, True)
             shutil.rmtree(staging_dir, ignore_errors=True)
         except Exception:
@@ -236,14 +245,24 @@ class UpdateService:
                 self._cleanup_launcher_backup(launcher_type)
 
     def prepare_launcher_update(self, launcher_type: LauncherType) -> None:
-        """备份现有启动器并清理旧版本遗留文件。"""
-        self._swap_launcher_backup(launcher_type, backup=True)
+        """备份现有启动器并清理旧版本遗留文件。
+
+        集成启动器只备份 exe：`.runtime` 正在被当前进程使用，改名会报 WinError 5，
+        新运行时通过 `.runtime.new` 在下次启动时生效。
+        """
+        self._swap_launcher_backup(
+            launcher_type,
+            backup=True,
+            with_runtime_dir=launcher_type != 'runtime',
+        )
         self._delete_legacy_launcher_files()
 
     def finish_launcher_update(self, launcher_type: LauncherType, success: bool) -> None:
         """更新成功时安排清理备份，失败时回滚原启动器。"""
         if not success:
             self._swap_launcher_backup(launcher_type, backup=False)
+            if launcher_type == 'runtime':
+                runtime_paths.clear_staged_runtime_dir(Path(os_utils.get_work_dir()))
             return
         if launcher_type == 'runtime':
             # 当前进程可能仍占用已改名的 exe 和 .runtime 备份 Windows 无法立即删除
@@ -252,8 +271,20 @@ class UpdateService:
             return
         self._cleanup_launcher_backup(launcher_type)
 
-    def _swap_launcher_backup(self, launcher_type: LauncherType, backup: bool) -> None:
-        """备份或回滚启动器文件。"""
+    def _swap_launcher_backup(
+        self,
+        launcher_type: LauncherType,
+        backup: bool,
+        with_runtime_dir: bool = True,
+    ) -> None:
+        """备份或回滚启动器文件。
+
+        Args:
+            launcher_type: 启动器类型
+            backup: True 备份，False 回滚
+            with_runtime_dir: 是否连 `.runtime` 目录一起处理；当前进程正在使用
+                该目录时不能改名
+        """
         work_dir = Path(os_utils.get_work_dir())
         exe_path = work_dir / self.get_launcher_exe_name(launcher_type)
         backup_path = work_dir / self._get_launcher_backup_name(launcher_type)
@@ -265,7 +296,7 @@ class UpdateService:
             try:
                 if backup_path.exists():
                     backup_path.unlink()
-                if launcher_type == 'runtime' and runtime_backup_path.exists():
+                if with_runtime_dir and launcher_type == 'runtime' and runtime_backup_path.exists():
                     shutil.rmtree(runtime_backup_path)
             except Exception:
                 log.error('清理旧启动器备份失败', exc_info=True)
@@ -277,7 +308,7 @@ class UpdateService:
                     exe_path.replace(backup_path)
                     exe_backed_up = True
                     log.info(f'备份文件: {exe_path.name} -> {backup_path.name}')
-                if launcher_type == 'runtime' and runtime_path.exists():
+                if with_runtime_dir and launcher_type == 'runtime' and runtime_path.exists():
                     self._rename_runtime_dir(runtime_path, runtime_backup_path)
                     log.info(f'备份目录: {runtime_path.name} -> {runtime_backup_path.name}')
             except Exception:
@@ -297,7 +328,7 @@ class UpdateService:
             except Exception:
                 log.error(f'回滚文件失败 {backup_path.name}', exc_info=True)
 
-        if launcher_type == 'runtime' and runtime_backup_path.exists():
+        if with_runtime_dir and launcher_type == 'runtime' and runtime_backup_path.exists():
             try:
                 if runtime_path.exists():
                     shutil.rmtree(runtime_path)

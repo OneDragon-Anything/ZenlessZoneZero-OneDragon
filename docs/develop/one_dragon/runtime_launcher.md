@@ -145,6 +145,18 @@ LauncherBase          → 基础参数解析、run() 入口
 
 用户提示只说明结果、影响和下一步，不展示 tag、checkout、reset、OID 或模块清单等实现细节。具体错误继续写日志。
 
+## 启动器更新时的文件替换
+
+集成启动器运行中，`.runtime` 正被当前进程当作运行时目录使用，目录里的 DLL 也还映射着，直接改名会报 `WinError 5 拒绝访问`。所以更新分成两步：
+
+1. 下载并解压到临时目录，校验 exe 和 `.runtime` 都在
+2. 替换 exe（先改名为 `.bak` 再放入新文件）；`.runtime` 目录**不动**，新目录改名为 `.runtime.new` 放着
+3. 下次启动时，启动器在 Python 运行时还没加载时把 `.runtime` 改名为 `.runtime.bak`、`.runtime.new` 换成 `.runtime`；换失败就把旧目录换回来继续用，`.runtime.new` 留到下次再试
+
+替换前会先比较两个目录的文件内容：相对路径和大小都一致时再逐个算 sha256，全一致就跳过运行时替换（PyInstaller 的 `_internal` 经常原样复用，只有 exe 变了）。这样不会因为版本号变化白白替换几十 MB 运行时，也不依赖发布侧提供 hash。
+
+exe 的 `.bak` 在下次启动、确认新 exe 有效后才清理；如果新 exe 起不来，`restore_interrupted_launcher_update()` 会把备份换回去。
+
 ## 界面重启
 
 代码同步完成后的“立即重启”、语言切换等入口统一通过 `app_utils.start_one_dragon()` 启动新进程。集成启动器重新运行当前 exe；源码模式运行工作目录中的 `OneDragon-Launcher.exe`。

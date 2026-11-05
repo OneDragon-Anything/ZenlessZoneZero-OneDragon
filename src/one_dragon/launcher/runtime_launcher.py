@@ -3,6 +3,7 @@ import importlib
 import sys
 from pathlib import Path
 
+from one_dragon.launcher import runtime_paths
 from one_dragon.launcher.exe_launcher import ExeLauncher
 
 
@@ -115,8 +116,18 @@ class RuntimeLauncher(ExeLauncher):
         )
         sys.exit(1)
 
+    @staticmethod
+    def _apply_staged_runtime() -> None:
+        """启动早期把上次更新留下的新运行时换进来。
+
+        更新流程不能在运行中给 `.runtime` 改名，只能把新目录放到 `.runtime.new`；
+        Python 运行时还没加载时替换才是安全的，所以放在启动最开始。
+        """
+        runtime_paths.apply_staged_runtime_dir(Path(sys.executable).parent)
+
     def run_onedragon_mode(self, launch_args: list[str]) -> None:
         try:
+            self._apply_staged_runtime()
             self._sync_code()
             self._do_run_onedragon(launch_args)
         except Exception:
@@ -125,6 +136,7 @@ class RuntimeLauncher(ExeLauncher):
 
     def run_gui_mode(self) -> None:
         try:
+            self._apply_staged_runtime()
             self._sync_code()
             self._hide_console()
             self._do_run_gui()
