@@ -71,7 +71,8 @@ class ChargePlanItem:
         if self.category_name == '区域巡防':
             return 60
         if self.category_name == '专业挑战室':
-            return 40
+            # 燃竭模式双倍奖励也双倍消耗
+            return 80 if self.expert_challenge_burnout_on else 40
         if self.category_name == '恶名狩猎':
             return 60
         if self.category_name == '合成电池':
