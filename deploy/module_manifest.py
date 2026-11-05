@@ -34,6 +34,7 @@ if not getattr(sys, 'frozen', False):
     import math
     import matplotlib.font_manager
     import matplotlib.pyplot
+    import msvcrt
     import numpy
     import onnxruntime
     import os
