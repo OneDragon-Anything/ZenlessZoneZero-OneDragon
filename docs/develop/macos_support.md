@@ -2,7 +2,7 @@
 
 ## 目标
 
-本仓库是专为 macOS 开发的 fork，不再支持 Windows。目标是在 Apple Silicon Mac 上运行一条龙，通过 PlayCover 运行绝区零；游戏使用额外插件以 PC 逻辑接收输入，不依赖 PlayCover 内置键位映射。游戏流程、画面识别和自动化逻辑继续复用现有实现。
+本仓库是专为 macOS 开发的 fork，不再支持 Windows。目标是在 Apple Silicon Mac 上运行一条龙，通过 PlayCover 运行绝区零；游戏注入 `tools/macos/libUnityDesktopMode.dylib` 插件以 PC 桌面模式逻辑接收键鼠输入，不依赖 PlayCover 内置键位映射。游戏流程、画面识别和自动化逻辑继续复用现有实现。
 
 macOS 控制器只使用前台键鼠模式：发送键盘或鼠标输入时，游戏窗口必须处于前台。截图按 PlayCover 游戏窗口 ID 获取，因此游戏窗口被其他窗口遮挡时仍可截图；窗口仍须可见，系统可能要求授予屏幕录制权限。系统级键鼠模拟需要用户授予辅助功能权限。权限未授予或游戏窗口未找到时，控制器应报告明确错误，不应假装操作成功。项目不提供手柄控制方案。
 
