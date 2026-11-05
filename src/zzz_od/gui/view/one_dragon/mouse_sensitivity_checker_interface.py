@@ -29,5 +29,5 @@ class MouseSensitivityCheckerInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         return HelpCard(
             title='使用说明',
-            content='点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动'
+            content='点击「开始」后将自动校准鼠标转向灵敏度，用于视角转动'
         )

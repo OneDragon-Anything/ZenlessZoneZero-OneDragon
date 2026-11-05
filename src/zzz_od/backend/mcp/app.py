@@ -222,7 +222,6 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> MCPSe
         template_match_threshold: float = 0.7,
         goto_list: list[str] | None = None,
         id_mark: bool = False,
-        gamepad_key: str | None = None,
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类,改 screen_info。
 
@@ -247,7 +246,6 @@ def create_mcp_server(backend: ZzzBackendContext, name: str = "zzz_od") -> MCPSe
                 color_range=color_range,
                 goto_list=goto_list,
                 id_mark=id_mark,
-                gamepad_key=gamepad_key,
                 area_type=area_type,
             )
         except Exception as e:  # noqa: BLE001 工具层统一兜底

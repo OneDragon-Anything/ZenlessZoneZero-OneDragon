@@ -40,16 +40,16 @@ class AutoBattleApp(ZApplication):
         """
         pass
 
-    @operation_node(name='手柄检测', is_start_node=True)
-    def check_gamepad(self) -> OperationRoundResult:
+    @operation_node(name='启用键鼠', is_start_node=True)
+    def enable_keyboard_input(self) -> OperationRoundResult:
         """
-        检测手柄
+        启用前台键鼠控制
         :return:
         """
         success, status = apply_battle_assistant_input_mode(self.ctx)
         return self.round_success(status=status) if success else self.round_fail(status=status)
 
-    @node_from(from_name='手柄检测')
+    @node_from(from_name='启用键鼠')
     @operation_node(name='加载自动战斗指令')
     def load_op(self) -> OperationRoundResult:
         """

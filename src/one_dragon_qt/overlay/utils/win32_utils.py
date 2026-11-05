@@ -5,7 +5,6 @@ import re
 import sys
 from ctypes import wintypes
 
-
 VK_CONTROL = 0x11
 VK_LCONTROL = 0xA2
 VK_RCONTROL = 0xA3
@@ -26,22 +25,23 @@ WDA_NONE = 0x0
 WDA_EXCLUDEFROMCAPTURE = 0x11
 
 
-_user32 = ctypes.windll.user32
+_user32 = ctypes.windll.user32 if sys.platform == 'win32' else None
 
-_user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
-_user32.GetWindowLongW.restype = ctypes.c_long
-_user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
-_user32.SetWindowLongW.restype = ctypes.c_long
-_user32.SetWindowDisplayAffinity.argtypes = [wintypes.HWND, wintypes.DWORD]
-_user32.SetWindowDisplayAffinity.restype = wintypes.BOOL
-_user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
-_user32.GetAsyncKeyState.restype = ctypes.c_short
-_user32.IsIconic.argtypes = [wintypes.HWND]
-_user32.IsIconic.restype = wintypes.BOOL
-_user32.IsWindowVisible.argtypes = [wintypes.HWND]
-_user32.IsWindowVisible.restype = wintypes.BOOL
-_user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
-_user32.GetAncestor.restype = wintypes.HWND
+if _user32 is not None:
+    _user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+    _user32.GetWindowLongW.restype = ctypes.c_long
+    _user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
+    _user32.SetWindowLongW.restype = ctypes.c_long
+    _user32.SetWindowDisplayAffinity.argtypes = [wintypes.HWND, wintypes.DWORD]
+    _user32.SetWindowDisplayAffinity.restype = wintypes.BOOL
+    _user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
+    _user32.GetAsyncKeyState.restype = ctypes.c_short
+    _user32.IsIconic.argtypes = [wintypes.HWND]
+    _user32.IsIconic.restype = wintypes.BOOL
+    _user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    _user32.IsWindowVisible.restype = wintypes.BOOL
+    _user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+    _user32.GetAncestor.restype = wintypes.HWND
 
 
 class WINDOWPLACEMENT(ctypes.Structure):
@@ -55,14 +55,19 @@ class WINDOWPLACEMENT(ctypes.Structure):
     ]
 
 
-_user32.GetWindowPlacement.argtypes = [wintypes.HWND, ctypes.POINTER(WINDOWPLACEMENT)]
-_user32.GetWindowPlacement.restype = wintypes.BOOL
+if _user32 is not None:
+    _user32.GetWindowPlacement.argtypes = [
+        wintypes.HWND,
+        ctypes.POINTER(WINDOWPLACEMENT),
+    ]
+    _user32.GetWindowPlacement.restype = wintypes.BOOL
 
 _shcore = None
-try:
-    _shcore = ctypes.windll.shcore
-except Exception:
-    _shcore = None
+if sys.platform == 'win32':
+    try:
+        _shcore = ctypes.windll.shcore
+    except Exception:
+        _shcore = None
 
 if _shcore is not None:
     _shcore.GetProcessDpiAwareness.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_int)]
@@ -84,7 +89,7 @@ def is_windows_build_supported(min_build: int = 19041) -> bool:
 
 
 def get_process_dpi_awareness() -> int:
-    if _shcore is None:
+    if _shcore is None or _user32 is None:
         return _PROCESS_DPI_UNAWARE
     awareness = ctypes.c_int(_PROCESS_DPI_UNAWARE)
     hr = _shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
@@ -101,6 +106,8 @@ def is_process_dpi_aware() -> bool:
 
 
 def is_key_pressed(vk: int) -> bool:
+    if _user32 is None:
+        return False
     state = _user32.GetAsyncKeyState(vk)
     return bool(state & 0x8000)
 
@@ -189,6 +196,8 @@ def is_hotkey_combo_pressed(main_key: str) -> bool:
 
 
 def _root_hwnd(hwnd: int) -> int:
+    if _user32 is None:
+        return int(hwnd)
     try:
         root_owner = int(_user32.GetAncestor(int(hwnd), GA_ROOTOWNER) or 0)
         if root_owner != 0:
@@ -202,7 +211,7 @@ def _root_hwnd(hwnd: int) -> int:
 
 
 def is_window_minimized(hwnd: int | None) -> bool:
-    if hwnd is None or int(hwnd) == 0:
+    if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
     original_hwnd = int(hwnd)
     root_hwnd = _root_hwnd(original_hwnd)
@@ -226,14 +235,14 @@ def is_window_minimized(hwnd: int | None) -> bool:
 
 def is_window_visible(hwnd: int | None) -> bool:
     """Check whether a window has the WS_VISIBLE style set."""
-    if hwnd is None or int(hwnd) == 0:
+    if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
     root_hwnd = _root_hwnd(int(hwnd))
     return bool(_user32.IsWindowVisible(root_hwnd))
 
 
 def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
-    if hwnd is None or int(hwnd) == 0:
+    if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
 
     ctypes.set_last_error(0)
@@ -248,13 +257,11 @@ def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
 
     ctypes.set_last_error(0)
     result = _user32.SetWindowLongW(int(hwnd), GWL_EXSTYLE, new_style)
-    if result == 0 and ctypes.get_last_error() != 0:
-        return False
-    return True
+    return not (result == 0 and ctypes.get_last_error() != 0)
 
 
 def set_window_display_affinity(hwnd: int | None, exclude_from_capture: bool) -> bool:
-    if hwnd is None or int(hwnd) == 0:
+    if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
 
     affinity = WDA_EXCLUDEFROMCAPTURE if exclude_from_capture else WDA_NONE
