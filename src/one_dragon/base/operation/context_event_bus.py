@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from one_dragon.utils import thread_utils
+from one_dragon.utils.log_utils import log
 
 _od_event_bus_executor = ThreadPoolExecutor(thread_name_prefix='od_event_bus', max_workers=32)
 
@@ -20,18 +21,25 @@ class ContextEventBus:
     def __init__(self):
         self.callbacks: dict[str, list[Callable[[Any], None]]] = {}
 
-    def dispatch_event(self, event_id: str, event_obj: Any = None):
+    def dispatch_event(self, event_id: str, event_obj: Any = None) -> bool:
         """
         下发事件
         :param event_id: 事件ID
         :param event_obj: 事件体
-        :return:
+        :return: 是否成功提交派发。无监听者返回 False；
+            线程池已关闭（App 关闭阶段）时降级为日志并返回 False
         """
         if event_id not in self.callbacks:
-            return
+            return False
         for callback in self.callbacks[event_id]:
-            future: Future = _od_event_bus_executor.submit(callback, ContextEventItem(event_id, event_obj))
+            try:
+                future: Future = _od_event_bus_executor.submit(callback, ContextEventItem(event_id, event_obj))
+            except RuntimeError:
+                # 线程池已关闭（App 关闭阶段），无法再派发事件，降级为日志而不是抛异常
+                log.warning(f'事件总线已关闭 丢弃事件 {event_id}', exc_info=True)
+                return False
             future.add_done_callback(thread_utils.handle_future_result)
+        return True
 
     def has_event_listener(self, event_id: str) -> bool:
         """

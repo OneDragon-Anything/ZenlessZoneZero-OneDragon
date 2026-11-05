@@ -636,7 +636,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             return True
 
         request = ContextDownloadRequestEvent(title=title, note=note)
-        self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request)
+        if not self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request):
+            # 事件总线已关闭（App 关闭阶段）无前端可应答 直接取消下载
+            log.warning('资源下载确认事件派发失败，已取消本次下载')
+            return False
         if not request.wait(timeout=300):
             log.warning('资源下载确认超时，已取消本次下载')
             return False
@@ -682,6 +685,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.controller is not None:
             self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
+        # 先停止运行中的任务：stop_running 会向事件总线派发停止事件，
+        # 必须在事件总线关闭之前完成，否则会报 cannot schedule new futures after shutdown
+        self.run_context.after_app_shutdown()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
         from one_dragon.base.conditional_operation.operator import ConditionalOperator
@@ -698,6 +704,5 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         gpu_executor.shutdown(wait=False)
         from one_dragon.base.operation.application_base import Application
         Application.after_app_shutdown()
-        self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
         self.debug_trace_bus.clear()
