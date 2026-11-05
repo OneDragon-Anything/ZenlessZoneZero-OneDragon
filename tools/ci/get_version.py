@@ -4,15 +4,30 @@ import subprocess
 
 TAG_PATTERN = re.compile(r'^v\d+\.\d+\.\d+(?:-beta\.\d+)?$')
 
+# vX.Y.Z-beta.N；稳定版同一 base 下排在 beta 之后
+_VERSION_PATTERN = re.compile(r'^v(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$')
+
+
+def _version_sort_key(tag: str) -> tuple[int, int, int, int, int]:
+    """把 tag 换成可排序的元组，稳定版排在同一个 base 的 beta 之后。"""
+    match = _VERSION_PATTERN.match(tag)
+    if match is None:
+        return (0, 0, 0, 0, 0)
+    major, minor, patch, beta = match.groups()
+    return (int(major), int(minor), int(patch), 1 if beta is None else 0, int(beta or 0))
+
 
 def _remote_tags_by_version_desc() -> list[str]:
     """读取远端 tag，按版本号从高到低返回。
+
+    git 自带的 `--sort=-version:refname` 会把 `v2.6.0-beta.2` 排在 `v2.6.0` 后面，
+    递增 beta 号时就会算错，所以这里自己按语义排序。
 
     Returns:
         形如 `['v2.6.0', 'v2.5.2-beta.3']` 的 tag 列表；读取失败时返回空列表。
     """
     result = subprocess.run(
-        ['git', 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin', 'v*'],
+        ['git', 'ls-remote', '--refs', '--tags', 'origin', 'v*'],
         capture_output=True,
         text=True,
     )
@@ -23,7 +38,7 @@ def _remote_tags_by_version_desc() -> list[str]:
         match = re.search(r'refs/tags/(v\d+\.\d+\.\d+(?:-beta\.\d+)?)$', line)
         if match:
             tags.append(match.group(1))
-    return tags
+    return sorted(tags, key=_version_sort_key, reverse=True)
 
 
 def next_version(latest_tag: str | None) -> str:
@@ -59,9 +74,9 @@ def resolve_version(
 ) -> str:
     """计算本次构建的版本号。
 
-    手动发版时优先用传入的版本号（稳定版和 beta 都可以），没传就在最新 tag 上递增
-    一个 beta。这里不推 tag：tag 留到 release 步骤和产物一起创建，避免 tag 先出现、
-    产物还没上传的空窗期。
+    tag 触发的补发直接用该 tag，忽略手填版本号；分支手动发版才使用手填版本号，
+    没传就在最新 tag 上递增一个 beta。这里不推 tag：tag 留到 release 步骤和产物
+    一起创建，避免 tag 先出现、产物还没上传的空窗期。
 
     Args:
         github_ref: GitHub 的 ref，例如 `refs/heads/main`。
@@ -77,13 +92,13 @@ def resolve_version(
     Raises:
         ValueError: 手填的版本号格式不合法。
     """
-    if version_input:
+    if github_ref.startswith('refs/tags/'):
+        return github_ref[10:]
+
+    if create_release and version_input:
         if not TAG_PATTERN.match(version_input):
             raise ValueError(f'版本号格式不对: {version_input}，应为 vX.Y.Z 或 vX.Y.Z-beta.N')
         return version_input
-
-    if github_ref.startswith('refs/tags/'):
-        return github_ref[10:]
 
     if create_release:
         return next_version(remote_tags[0] if remote_tags else None)
@@ -96,19 +111,25 @@ def resolve_version(
 def tag_exists_on_remote(version: str) -> bool:
     """检查远端是否已经有这个 tag。
 
+    按完整 ref 匹配：`git ls-remote --tags origin v2.6.0` 是尾部匹配，会命中
+    `refs/tags/archive/v2.6.0`，让发版误判成 tag 已存在。
+
     Args:
         version: 版本号，也就是 tag 名。
 
     Returns:
         已存在返回 True。
+
+    Raises:
+        RuntimeError: 读取远端 tag 失败，无法确认是否重复
     """
     result = subprocess.run(
-        ['git', 'ls-remote', '--tags', 'origin', version],
+        ['git', 'ls-remote', '--refs', '--tags', 'origin', f'refs/tags/{version}'],
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
-        return False
+        raise RuntimeError(f'读取远端 tag 失败，无法确认 {version} 是否已存在')
     return bool(result.stdout.strip())
 
 
@@ -139,10 +160,16 @@ def main() -> int:
         return 1
 
     # 从 tag 触发的补发版允许复用已有 tag；分支上的手动发版不允许同名 tag
-    if create_release and not github_ref.startswith('refs/tags/') and tag_exists_on_remote(version):
-        print(f'::error::tag {version} 已经存在。发版时 tag 会和产物一起创建，'
-              f'不要再手动推同名 tag；要重发请换一个版本号。')
-        return 1
+    if create_release and not github_ref.startswith('refs/tags/'):
+        try:
+            existed = tag_exists_on_remote(version)
+        except RuntimeError as error:
+            print(f'::error::{error}')
+            return 1
+        if existed:
+            print(f'::error::tag {version} 已经存在。发版时 tag 会和产物一起创建，'
+                  f'不要再手动推同名 tag；要重发请换一个版本号。')
+            return 1
 
     print(f'Version: {version}')
 

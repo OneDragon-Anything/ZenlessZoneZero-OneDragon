@@ -218,6 +218,13 @@ jobs:
             github.event_name == 'workflow_dispatch' && inputs.create_release == true &&
             (needs.sign.result == 'success')
         }}
+    # 同一个版本只允许一次发版，避免两次运行互相覆盖产物
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -248,6 +255,21 @@ jobs:
         RELEASE_VERSION: ${{ needs.version.outputs.version }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: python tools/ci/prepare_release_assets.py --release-version "$env:RELEASE_VERSION"
+
+    - name: Ensure tag is not created elsewhere
+      # 版本号在 version 作业算好，tag 到 Create Release 才创建；这里再确认一次
+      if: ${{ !startsWith(github.ref, 'refs/tags/') && github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
+      shell: pwsh
+      env:
+        RELEASE_VERSION: ${{ needs.version.outputs.version }}
+      run: |
+        $existing = git ls-remote --refs --tags origin "refs/tags/$env:RELEASE_VERSION"
+        if ($LASTEXITCODE -ne 0) {
+          throw "读取远端 tag 失败，无法确认 $env:RELEASE_VERSION 是否已存在"
+        }
+        if (-not [string]::IsNullOrWhiteSpace($existing)) {
+          throw "tag $env:RELEASE_VERSION 已存在，可能另一次发版已经完成；换版本号再来"
+        }
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -302,6 +324,16 @@ jobs:
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Trigger CNB mirror workflow
+      # Create Release 用的是 GITHUB_TOKEN，它产生的 release 事件不会启动新工作流，
+      # 所以这里显式触发 sync-cnb.yml 把新 tag 镜像到 CNB
+      if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
+      continue-on-error: true
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh workflow run sync-cnb.yml --repo ${{ github.repository }} --ref main
 
     - name: Trigger CNB Release sync
       if: ${{ github.repository == 'OneDragon-Anything/ZenlessZoneZero-OneDragon' }}
