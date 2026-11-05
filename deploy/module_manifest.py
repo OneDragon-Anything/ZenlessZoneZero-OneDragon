@@ -13,6 +13,7 @@ if not getattr(sys, 'frozen', False):
     import cv2
     import datetime
     import difflib
+    import fcntl
     import gc
     import gettext
     import glob
@@ -30,6 +31,7 @@ if not getattr(sys, 'frozen', False):
     import math
     import matplotlib.font_manager
     import matplotlib.pyplot
+    import msvcrt
     import numpy
     import onnxruntime
     import os

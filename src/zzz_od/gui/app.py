@@ -293,14 +293,16 @@ except Exception:
 
 # 初始化应用程序，并启动主窗口
 def main() -> None:
-    from one_dragon.utils.single_instance import acquire_instance_lock
+    from one_dragon.utils.single_instance import (
+        acquire_instance_lock,
+        describe_lock_failure,
+    )
 
     if not acquire_instance_lock():
         import ctypes as _ctypes
         _ctypes.windll.user32.MessageBoxW(
             None,
-            '已经有一个一条龙在运行（同一目录只允许开一个）。\n'
-            '请先关掉已经打开的窗口，或者切换工作目录后再启动。',
+            describe_lock_failure(),
             '一条龙',
             0x40,  # MB_ICONINFORMATION
         )

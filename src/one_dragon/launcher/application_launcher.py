@@ -8,7 +8,10 @@ from one_dragon.base.operation.one_dragon_finalizer import (
 )
 from one_dragon.launcher.launcher_base import LauncherBase
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.single_instance import acquire_instance_lock
+from one_dragon.utils.single_instance import (
+    acquire_instance_lock,
+    describe_lock_failure,
+)
 
 
 class ApplicationLauncher(LauncherBase):
@@ -95,7 +98,7 @@ class ApplicationLauncher(LauncherBase):
     def main(self, args) -> None:
         """执行主要逻辑"""
         if not acquire_instance_lock():
-            log.error('已经有一个一条龙在运行，同一目录只允许开一个；请先关掉已经打开的窗口')
+            log.error(describe_lock_failure())
             sys.exit(1)
 
         self.init_context()
