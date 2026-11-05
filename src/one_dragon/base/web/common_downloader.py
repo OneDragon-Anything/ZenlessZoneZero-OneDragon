@@ -69,6 +69,8 @@ class CommonDownloader:
         self.param: CommonDownloaderParam = param
         self._last_gh_proxy_url: str | None = None
         """本次下载实际用上的代理线路，解压失败时用来把它排到候选后面。"""
+        self._last_source_id: str | None = None
+        """本次下载成功的源 ID，子类可以用它在后续步骤成功后再回调。"""
 
     def download(
             self,
@@ -78,6 +80,7 @@ class CommonDownloader:
             gh_proxy_service: "GhProxyService | None" = None,
             exclude_proxy_urls: set[str] | None = None,
             record_proxy_success: bool = True,
+            defer_source_success: bool = False,
             skip_if_existed: bool = True,
             progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None,
@@ -96,6 +99,7 @@ class CommonDownloader:
             gh_proxy_service: GitHub 代理线路服务 提供时对每条 github 源地址逐条尝试候选线路
             exclude_proxy_urls: 已经试过的线路 本次调用不再重复尝试
             record_proxy_success: 下载成功就记录线路 压缩包下载传 False 由解压成功后再记录
+            defer_source_success: 暂不回调源成功 压缩包下载要等解压成功才算这个源可用
             skip_if_existed: 文件已存在时是否跳过下载
             progress_signal: 进度控制信号 signal=cancel 时取消下载
             progress_callback: 进度回调
@@ -124,6 +128,8 @@ class CommonDownloader:
             return False
 
         save_file_path = os.path.join(self.param.save_file_path, self.param.save_file_name)
+        if gh_proxy_service is not None and GITHUB_SOURCE_ID in candidates:
+            gh_proxy_service.ensure_probed()
         if gh_proxy_service is not None:
             gh_proxy_urls = gh_proxy_service.get_candidate_urls()
         elif ghproxy_url is not None and ghproxy_url.strip('/'):
@@ -193,6 +199,7 @@ class CommonDownloader:
                         self._last_gh_proxy_url = proxy_url
                         if record_proxy_success and proxy_url is not None:
                             gh_proxy_service.remember_success(proxy_url)
+                    self._last_source_id = source_id
                     source_success = True
                     break
 
@@ -203,7 +210,7 @@ class CommonDownloader:
                     log.warning(f'从 {source_id} 的代理线路下载失败 换下一条')
 
             if source_success:
-                if on_source_success is not None:
+                if on_source_success is not None and not defer_source_success:
                     on_source_success(source_id)
                 return True
 

@@ -62,6 +62,7 @@ class ZipDownloader(CommonDownloader):
                 gh_proxy_service=gh_proxy_service,
                 exclude_proxy_urls=tried_proxy_urls,
                 record_proxy_success=False,
+                defer_source_success=True,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,
@@ -81,6 +82,9 @@ class ZipDownloader(CommonDownloader):
                 # 压缩包校验过了才把这条线路记成可用 避免坏包把线路记成首选
                 if gh_proxy_service is not None and self._last_gh_proxy_url is not None:
                     gh_proxy_service.remember_success(self._last_gh_proxy_url)
+                # 解压成功才算这个源可用 回调源成功
+                if on_source_success is not None and self._last_source_id is not None:
+                    on_source_success(self._last_source_id)
                 break
             else:  # 可能压缩包下载不完整 解压不成功 重新下载
                 # 这条线路返回的压缩包是坏的 这次调用里不再试它
@@ -89,6 +93,9 @@ class ZipDownloader(CommonDownloader):
                     gh_proxy_service.mark_failed(self._last_gh_proxy_url)
                     log.warning(f'代理线路下载到的压缩包损坏 换下一条 {self._last_gh_proxy_url}')
                     self._last_gh_proxy_url = None
+                # 这个源给的包是坏的 自动模式下不能继续记成上次成功源
+                if on_source_failure is not None and self._last_source_id is not None:
+                    on_source_failure(self._last_source_id)
                 log.warning('疑似压缩包损毁 重新下载')
                 continue
 

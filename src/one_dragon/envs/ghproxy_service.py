@@ -29,6 +29,8 @@ class GhProxyService:
         self.repo_config: RepoConfig = repo_config
         self._failed_urls: set[str] = set()
         """本次运行中已确认不可用的线路（例如下载到的内容损坏），候选里优先跳过。"""
+        self._probed: bool = False
+        """本次运行是否已经探测过线路；探测放到第一次真正下载时做，不在启动时堵初始化。"""
 
     def get_candidate_urls(self) -> list[str]:
         """按「当前使用 → 上次成功 → 内置顺序」返回去重后的代理地址。
@@ -50,6 +52,22 @@ class GhProxyService:
                 continue
             candidates.append(normalized)
         return sorted(candidates, key=lambda url: url in self._failed_urls)
+
+    def ensure_probed(self) -> None:
+        """首次真正下载前探测一次线路。
+
+        启动时逐条探测会累积多次网络超时，所以改到第一次用 GitHub 下载时再做；
+        关掉了自动获取线路或不是 GitHub 代理模式时直接跳过。
+        """
+        if self._probed:
+            return
+        self._probed = True
+        if not getattr(self.env_config, 'auto_fetch_gh_proxy_url', False):
+            return
+        try:
+            self.update_proxy_url()
+        except Exception:
+            log.warning('GitHub 代理线路探测失败 继续按现有候选尝试', exc_info=True)
 
     def update_proxy_url(self) -> bool:
         """逐条探测候选线路，把第一条可用的写回配置。

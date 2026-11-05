@@ -124,6 +124,7 @@ class DownloadService:
             是否下载成功。
         """
         if 'github.com' in download_url and self.env_config.is_gh_proxy:
+            self.gh_proxy_service.ensure_probed()
             for proxy_url in self.gh_proxy_service.get_candidate_urls():
                 if exclude_proxy_urls is not None and proxy_url in exclude_proxy_urls:
                     continue
