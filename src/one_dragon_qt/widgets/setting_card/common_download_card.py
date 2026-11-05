@@ -50,6 +50,7 @@ class DownloadRunner(QThread):
             result = self.downloader.download(
                 source_order=env_config.get_resource_source_order(),
                 ghproxy_url=env_config.gh_proxy_url if env_config.is_gh_proxy else None,
+                gh_proxy_service=self.ctx.gh_proxy_service if env_config.is_gh_proxy else None,
                 proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
                 skip_if_existed=False,
                 progress_signal=self.progress_signal,

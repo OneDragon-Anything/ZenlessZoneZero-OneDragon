@@ -20,7 +20,7 @@
 手动模式：用户指定源 → 其余代码源按 YAML 顺序
 ```
 
-候选源失败或超时后仍继续回退。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
+候选源失败或超时后仍继续回退。启用 GitHub 代理时，启用代理的代码源会展开成「代码源 × 代理线路」，每条线路在这一次拉取中只尝试一次，成功线路写入 `last_gh_proxy_url` 作为下次首选。只有候选源 fetch 成功后才更新 `last_repository_url`；记录的是 YAML 中的原始 URL，不是拼接 GitHub 代理后的临时请求 URL。自动模式的状态属于运行环境配置，具体代码源标题、URL、代理能力和 YAML 顺序仍由项目级 `repository.yml` 提供，框架不硬编码具体托管平台。
 
 ## fetch 线程隔离与作废式超时
 

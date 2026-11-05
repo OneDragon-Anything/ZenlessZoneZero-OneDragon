@@ -62,12 +62,37 @@ resource_download:
 
 `CommonDownloaderParam.download_urls` 为 `源ID → 下载地址` 的映射。`CommonDownloader.download(source_order=...)` 按候选顺序逐个尝试：
 
-- 只对 `github` 源拼接 ghproxy 前缀；
+- 只对 `github` 源拼接 ghproxy 前缀；启用了 `gh_proxy_service` 时，一个 `github` 源会按候选线路逐条尝试，每条只试一次；
 - 某源失败自动尝试下一个；用户取消（`progress_signal`）则立即终止不再回退；
 - 自动模式下，非最后候选源有 10 秒启动宽限；之后最近约 4 秒持续低于 100 KB/s 时按失败处理并尝试下一个源。最后一个候选源不限速，避免慢网络完全无法下载。手动选择下载源时不启用低速淘汰。
-- 成功后回调 `on_source_success(source_id)`，调用方以此写入 `last_resource_source`；自动模式中上次成功源失败或因持续低速被淘汰时，会先清除旧记录，后续源成功后再记录新源。
+- 传输成功后回调 `on_source_success(source_id)`，调用方以此写入 `last_resource_source`；自动模式中上次成功源失败或因持续低速被淘汰时，会先清除旧记录，后续源成功后再记录新源。
+- 压缩包下载（`ZipDownloader`）把回调推迟到解压成功之后：解压失败时回调 `on_source_failure`，不会把坏包所在的源记成上次成功源。
+- 解压失败后先换线路、再换源：github 源只在这些代理线路都试过之后才被本次调用排除，非代理源（CNB / Gitee）坏包后直接排除；只有候选源全都给过坏包时才回到原候选继续重试（否则无源可用）。
+- `unzip()` 以 `file_utils.unzip_file()` 的返回值为准，不再只看目标文件是否存在；解压失败会删掉这次只写了一半的目标文件，避免下一轮被误判成已经解压完成。
 - 同时提供结构化进度，包含来源、阶段、字节数、总量和实时速度；旧的百分比回调继续保留。
 - HTTP 下载先写同目录临时文件，成功后再替换目标文件；失败或取消会清理临时文件。
+
+## GitHub 代理线路
+
+`gh_proxy` 段声明内置的代理候选线路，按顺序尝试；社区线路随时可能失效，所以不依赖解析任何第三方页面：
+
+```yaml
+gh_proxy:
+  default: gh_proxy_com
+  options:
+    gh_proxy_com:
+      label: gh-proxy
+      value: "https://gh-proxy.com"
+    ghfast:
+      label: ghfast
+      value: "https://ghfast.top"
+```
+
+- 候选顺序：当前使用的 `gh_proxy_url` → 上次成功的 `last_gh_proxy_url` → `gh_proxy` 段的 YAML 顺序，重复地址只保留一次。
+- `GhProxyService.update_proxy_url()` 逐条探测，每条只探一次，第一条可用就写回 `gh_proxy_url` 和 `last_gh_proxy_url`；全部不可用时保留原地址。
+- 启动时不再同步探测（多条线路超时会拖住初始化）。第一次真正走 GitHub 下载时由 `ensure_probed()` 探一次；关掉自动获取线路或不是 GitHub 代理模式时跳过。设置页/资源管理页的「自动获取」按钮仍会立即探测。
+- 探测方式是请求 GitHub 上的一个小文件（`raw/main/pyproject.toml`）：返回 200，且响应内容（跨分片累积够长度后）以 `[project]` 开头才算可用。只返回 200 和任意内容的线路（例如防护页、JS 挑战页）会被拒绝。
+- 下载或拉取过程中失败会立刻换下一条线路，成功的线路同样写回 `last_gh_proxy_url`，成为下次首选。代码同步（`GitService._get_fetch_candidates()`）对启用代理的代码源展开成「代码源 × 线路」，文件下载（`CommonDownloader`、`DownloadService`）对 `github` 源逐条尝试。
 
 ## 进程内下载队列
 
@@ -128,3 +153,27 @@ init_ocr 发现模型缺失
 ## 开发者模式
 
 `developer_mode` 只控制界面可见性，不改变 `is_debug` 的运行行为。五秒内连续点击标题栏“代码版本”七次可开启；开启后显示开发工具、调试开关、代码高级项和现有带密码实验项。密码校验仍然有效。开发者模式由框架主窗口统一刷新，脚本环境页通过配置适配器修改状态后也会立即更新所有入口。脚本环境页提供关闭入口，关闭不会改动已保存的调试、主题、背景或窗口标题配置。
+
+## 环境包下载源回退
+
+环境包（`OneDragon-Environment.zip`）和 Python（`cpython-*.zip`）都走 `DownloadService.download_and_extract_env_file()`，用的是 `env_source` 这一组下载源：
+
+- 源候选顺序：当前选择 > 上次成功（`last_env_source`） > `repository.yml` 其余源，与资源下载一致；线路候选顺序见上文「GitHub 代理线路」。
+- 每个源都要走完「下载 + 解压」，解压成功才算这个源可用。
+- 每次下载按线路候选逐条尝试，本次已经试过的线路记在集合里，重试时跳过；解压失败说明当前线路的包坏了，把它标记失败并换下一条线路。
+- 每个源的总尝试次数：github 源为 `max(retry_count, 线路数 + 1)`（线路多于 `retry_count` 时按线路数继续试，多出的 1 次留给「临时目录里已有坏包、这一轮不用下载」）；CNB、Gitee 等不走代理的源仍按 `retry_count`。下载失败也占用一次尝试，同源失败重试用完才换下一个源。
+- 本次请求过的线路（含下载失败的）都会记入排除集合，同源重试不会再把失败线路重新请求一遍。
+- 只有本次真的从该源下载并解压成功，才写入 `last_env_source`（已有压缩包直接解压成功不算）；用户选择的 `env_source` 不覆盖。
+- 解压先解到目标目录同级的 `*_extract_tmp`，成功后才替换目标目录；所有源都失败时，原有环境目录保持不变。
+- 替换过程：现有目录改名为 `*_bak_tmp` → 临时目录改名成目标目录 → 成功后才删备份；改名失败用备份还原。进入下载循环前会先检查「目标目录缺失、备份还在」的遗留状态并还原，避免这次下载全部失败时环境一直不可用。若上次还原失败留下了备份（目标目录缺失、备份存在），下一次会先把备份还原回来再继续，不会直接删掉它。
+- 备份删除失败（文件占用等）只记警告，不影响已经完成的安装结果。
+- 与资源下载的区别：资源下载按资源 ID 生成地址，环境包是 `{env_source}/{project_name}/{file_name}` 的固定路径。
+
+调用链（uv、Python、环境压缩包三个入口共用同一段回退逻辑）：
+
+```text
+PythonService.install_default_uv        （uv-x86_64-pc-windows-msvc.zip）
+PythonService.install_standalone_python （cpython-{版本}.zip）
+  └─ DownloadService.download_and_extract_env_file   ← 候选源回退 + 解压校验在这里
+       └─ DownloadService.download_env_file          （只按候选顺序试下载，供单独调用）
+```

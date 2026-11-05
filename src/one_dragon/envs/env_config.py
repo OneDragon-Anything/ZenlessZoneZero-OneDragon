@@ -15,7 +15,7 @@ DEFAULT_WHEELS_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'wheels')  # 默认的w
 DEFAULT_VENV_DIR_PATH = os_utils.get_path_under_work_dir('.venv')  # 默认的虚拟环境文件夹路径
 DEFAULT_VENV_PYTHON_PATH = os.path.join(DEFAULT_VENV_DIR_PATH, 'Scripts', 'python.exe')  # 默认的虚拟环境中python.exe的路径
 
-GH_PROXY_URL = 'https://ghfast.top'  # 免费代理的路径
+GH_PROXY_URL = 'https://gh-proxy.com'  # 内置代理线路的第一条，同时作为未配置时的默认值
 
 
 class ProxyTypeEnum(Enum):
@@ -278,6 +278,26 @@ class EnvConfig(YamlConfig):
         self.update('env_source', new_value)
 
     @property
+    def last_env_source(self) -> str:
+        """最近一次成功使用的环境下载源地址。"""
+        return self.get('last_env_source', '')
+
+    @last_env_source.setter
+    def last_env_source(self, new_value: str) -> None:
+        """记录最近一次成功使用的环境下载源地址。
+
+        Args:
+            new_value: 本次下载成功使用的源地址。
+        """
+        self.update('last_env_source', new_value)
+
+    def get_env_source_candidates(self) -> list[str]:
+        """环境下载源的候选顺序: 当前选择 > 上次成功 > YAML 其余顺序。"""
+        return self.repo_config.get_source_order(
+            'env_source', self.env_source, self.last_env_source,
+        )
+
+    @property
     def pip_trusted_host(self) -> str:
         """
         pip源的可信主机
@@ -335,30 +355,44 @@ class EnvConfig(YamlConfig):
 
     @property
     def gh_proxy_url(self) -> str:
-        """
-        免费代理的url
-        :return:
-        """
+        """当前使用的 GitHub 代理地址。"""
         return self.get('gh_proxy_url', GH_PROXY_URL)
 
     @gh_proxy_url.setter
     def gh_proxy_url(self, new_value: str) -> None:
-        """
-        免费代理的url
-        :return:
+        """更新当前使用的 GitHub 代理地址。
+
+        Args:
+            new_value: 代理根地址，例如 https://gh-proxy.com 。
         """
         self.update('gh_proxy_url', new_value)
 
     @property
+    def last_gh_proxy_url(self) -> str:
+        """上次探测或下载成功的 GitHub 代理地址，作为下次首选。"""
+        return self.get('last_gh_proxy_url', '')
+
+    @last_gh_proxy_url.setter
+    def last_gh_proxy_url(self, new_value: str) -> None:
+        """记录上次成功的 GitHub 代理地址。
+
+        Args:
+            new_value: 代理根地址；空字符串表示没有记录。
+        """
+        self.update('last_gh_proxy_url', new_value)
+
+    @property
     def auto_fetch_gh_proxy_url(self) -> bool:
-        """
-        自动获取免费代理的url
-        :return:
-        """
+        """启动时是否自动探测内置的 GitHub 代理线路。"""
         return self.get('auto_fetch_gh_proxy_url', True)
 
     @auto_fetch_gh_proxy_url.setter
     def auto_fetch_gh_proxy_url(self, new_value: bool) -> None:
+        """更新启动时是否自动探测代理线路。
+
+        Args:
+            new_value: 是否自动探测。
+        """
         self.update('auto_fetch_gh_proxy_url', new_value)
 
     def write_env_bat(self) -> None:

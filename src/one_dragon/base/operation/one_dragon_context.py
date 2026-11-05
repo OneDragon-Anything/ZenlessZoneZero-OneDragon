@@ -375,13 +375,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
-            # 只有在配置了 ghproxy 代理时才更新代理地址
-            if self.env_config.is_gh_proxy:
-                self.gh_proxy_service.update_proxy_url()
-
             self.init_others()
 
             self._start_btn_listener()
+
+            # 代理线路探测放到第一次 GitHub 下载时再做 避免启动时逐条超时累积
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -590,6 +588,17 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
 
+        # 先记下这次的下载设置 用户取消后懒加载仍按这份设置下载
+        self.ocr.set_download_options(
+            source_order=self.env_config.get_resource_source_order(),
+            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+            gh_proxy_service=self.gh_proxy_service if self.env_config.is_gh_proxy else None,
+            on_source_success=self._on_resource_source_success,
+            on_source_failure=self._on_resource_source_failure,
+            fallback_on_slow=self.env_config.is_resource_source_auto,
+        )
+
         need_download: bool = not self.ocr.is_file_existed()
         if need_download:
             if not self._confirm_resource_download(title='OCR识别模型', note=self.model_config.ocr):
@@ -600,14 +609,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 ContextNotifyEvent.info('资源下载', '开始下载OCR识别模型'),
             )
 
-        success: bool = self.ocr.init_model(
-            source_order=self.env_config.get_resource_source_order(),
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-            on_source_success=self._on_resource_source_success,
-            on_source_failure=self._on_resource_source_failure,
-            fallback_on_slow=self.env_config.is_resource_source_auto,
-        )
+        success: bool = self.ocr.init_model()
 
         if need_download:
             if success:

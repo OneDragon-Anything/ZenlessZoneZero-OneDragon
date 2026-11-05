@@ -43,11 +43,16 @@ class OneDragonEnvContext:
 
     @cached_property
     def download_service(self):
-        return DownloadService(self.project_config, self.env_config)
+        return DownloadService(
+            self.project_config,
+            self.env_config,
+            self.repo_config,
+            gh_proxy_service=self.gh_proxy_service,
+        )
 
     @cached_property
     def git_service(self):
-        return GitService(self.env_config, self.repo_config)
+        return GitService(self.env_config, self.repo_config, gh_proxy_service=self.gh_proxy_service)
 
     @cached_property
     def update_service(self) -> UpdateService:
@@ -59,7 +64,7 @@ class OneDragonEnvContext:
 
     @cached_property
     def gh_proxy_service(self):
-        return GhProxyService(self.env_config)
+        return GhProxyService(self.env_config, self.repo_config)
 
     def after_app_shutdown(self) -> None:
         """
