@@ -86,9 +86,14 @@ class GhProxyService:
             try:
                 if response.status_code != 200:
                     return False
+                # 内容按网络到达的大小分片 [project] 可能被拆到两个分片里 先攒够再比
+                buffer = b''
                 for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        return chunk.lstrip().startswith(_PROBE_CONTENT_PREFIX)
+                    if not chunk:
+                        continue
+                    buffer += chunk
+                    if len(buffer) >= len(_PROBE_CONTENT_PREFIX):
+                        return buffer.lstrip().startswith(_PROBE_CONTENT_PREFIX)
                 return False
             finally:
                 response.close()
@@ -105,8 +110,12 @@ class GhProxyService:
         normalized = proxy_url.rstrip('/')
         if not normalized:
             return
-        self.env_config.gh_proxy_url = normalized
-        self.env_config.last_gh_proxy_url = normalized
+        try:
+            self.env_config.gh_proxy_url = normalized
+            self.env_config.last_gh_proxy_url = normalized
+        except OSError:
+            # 配置写不进去只影响下次首选线路 已经下载完的文件不能因此判成失败
+            log.warning('记录 GitHub 代理线路失败 本次下载结果不受影响', exc_info=True)
         self._failed_urls.discard(normalized)
 
     def mark_failed(self, proxy_url: str) -> None:
@@ -133,13 +142,25 @@ class GhProxyService:
         Returns:
             命中的代理根地址；地址不带已知代理前缀时返回 None。
         """
+        proxy_url = self.match_proxy_url(proxied_url)
+        if proxy_url is not None:
+            self.remember_success(proxy_url)
+        return proxy_url
+
+    def match_proxy_url(self, proxied_url: str) -> str | None:
+        """按最长前缀匹配出这条下载地址用的是哪条线路 不写配置。
+
+        Args:
+            proxied_url: 带代理前缀的地址。
+
+        Returns:
+            命中的代理根地址；地址不带已知代理前缀时返回 None。
+        """
         matched = [
             candidate for candidate in self.get_candidate_urls()
             if proxied_url.startswith(f'{candidate}/')
         ]
         if not matched:
             return None
-        proxy_url = max(matched, key=len)
-        self.remember_success(proxy_url)
-        return proxy_url
+        return max(matched, key=len)
 

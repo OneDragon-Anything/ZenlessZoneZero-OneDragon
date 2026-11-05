@@ -234,6 +234,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             # 懒加载时不一定再传一遍代理服务 记住显式传过的那份
             if gh_proxy_service is not None:
                 self._gh_proxy_service = gh_proxy_service
+            elif self._gh_proxy_service is not None and not self._gh_proxy_service.env_config.is_gh_proxy:
+                # 用户已改成直连或个人代理 不再沿用过期的线路服务
+                self._gh_proxy_service = None
 
             # 先检查模型文件和下载模型
             done: bool = self.download(

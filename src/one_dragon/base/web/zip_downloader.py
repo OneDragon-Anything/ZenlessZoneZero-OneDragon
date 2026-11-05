@@ -61,6 +61,7 @@ class ZipDownloader(CommonDownloader):
                 ghproxy_url=ghproxy_url,
                 gh_proxy_service=gh_proxy_service,
                 exclude_proxy_urls=tried_proxy_urls,
+                record_proxy_success=False,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
                 progress_signal=progress_signal,
                 progress_callback=progress_callback,
@@ -77,6 +78,9 @@ class ZipDownloader(CommonDownloader):
                 status_callback(ResourceDownloadProgress(phase='extracting', progress=1, message='正在解压'))
             unzip_result = self.unzip()
             if unzip_result:
+                # 压缩包校验过了才把这条线路记成可用 避免坏包把线路记成首选
+                if gh_proxy_service is not None and self._last_gh_proxy_url is not None:
+                    gh_proxy_service.remember_success(self._last_gh_proxy_url)
                 break
             else:  # 可能压缩包下载不完整 解压不成功 重新下载
                 # 这条线路返回的压缩包是坏的 这次调用里不再试它
