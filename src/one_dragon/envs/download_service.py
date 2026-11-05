@@ -232,15 +232,26 @@ class DownloadService:
                     log.warning('解压完成但没有产生目录 %s', temp_extract_path)
                     unzip_ok = False
                 if unzip_ok:
-                    if extract_path.exists():
-                        shutil.rmtree(extract_path)
+                    # 先把现有目录改名成备份，替换成功才删；替换失败用备份还原
+                    backup_path = extract_path.with_name(f'{extract_path.name}_bak_tmp')
                     try:
+                        if backup_path.exists():
+                            shutil.rmtree(backup_path)
+                        if extract_path.exists():
+                            extract_path.rename(backup_path)
                         temp_extract_path.rename(extract_path)
                     except OSError:
                         log.error('替换环境目录失败 %s', extract_path, exc_info=True)
+                        if not extract_path.exists() and backup_path.exists():
+                            try:
+                                backup_path.rename(extract_path)
+                            except OSError:
+                                log.error('恢复原环境目录失败 备份保留在 %s', backup_path, exc_info=True)
                         if temp_extract_path.exists():
                             shutil.rmtree(temp_extract_path)
                         return False
+                    if backup_path.exists():
+                        shutil.rmtree(backup_path)
 
                     # 只有本次从该源下载并解压成功 才把它记为上次成功源
                     if downloaded_now:
