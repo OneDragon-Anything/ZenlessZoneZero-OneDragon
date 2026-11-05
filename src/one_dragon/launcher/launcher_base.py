@@ -1,5 +1,7 @@
 import argparse
 
+from one_dragon.utils.console_utils import ensure_utf8_stdio
+
 
 class LauncherBase:
     """基础启动器类"""
@@ -32,6 +34,8 @@ class LauncherBase:
 
     def run(self) -> None:
         """运行启动器"""
+        # 非中文系统的控制台编码表示不了中文，打印进度会直接抛编码异常
+        ensure_utf8_stdio()
         self.setup_parser()
         self.main(self.args)
 
