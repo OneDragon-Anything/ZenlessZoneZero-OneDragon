@@ -52,6 +52,19 @@ class EmailApp(ZApplication):
         邮件画面 领取后点击确认
         :return:
         """
+        if self.last_screenshot is not None:
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot,
+            )
+            screen_text = ''.join(
+                ''.join(result.data.split()) for result in ocr_result_list
+            )
+            if any(
+                warning in screen_text
+                for warning in ('确认删除', '确定删除', '是否删除')
+            ):
+                return self.round_fail(status='检测到删除确认弹窗，跳过自动确认')
+
         target_word_list = [
             '确认',  # 正常领取的情况
             '确定',  # 某种物品爆满了

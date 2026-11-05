@@ -266,7 +266,7 @@ def find_and_click_area(
 
         for ocr_result in ocr_result_list:
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
-                if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
+                if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
                 else:
                     return OcrClickResultEnum.OCR_CLICK_FAIL
@@ -283,12 +283,12 @@ def find_and_click_area(
         matched_center = mrl.max.center + rect.left_top
         to_click = Point(ctx.controller.center_point.x, matched_center.y) if center_x else matched_center
 
-        if ctx.controller.click(to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key):
+        if ctx.controller.click(to_click, pc_alt=area.pc_alt):
             return OcrClickResultEnum.OCR_CLICK_SUCCESS
         else:
             return OcrClickResultEnum.OCR_CLICK_FAIL
     else:
-        ctx.controller.click(area.center, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
+        ctx.controller.click(area.center, pc_alt=area.pc_alt)
         return OcrClickResultEnum.OCR_CLICK_SUCCESS
 
 

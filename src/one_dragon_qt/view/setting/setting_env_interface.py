@@ -1,3 +1,5 @@
+import sys
+
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget
@@ -57,9 +59,18 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_basic_group(self) -> SettingCardGroup:
         basic_group = SettingCardGroup(gt('基础'))
 
+        screenshot_options = None
+        screenshot_enum = ScreenshotMethodEnum
+        if sys.platform == 'darwin':
+            screenshot_enum = None
+            screenshot_options = [
+                ScreenshotMethodEnum.AUTO.value,
+                ScreenshotMethodEnum.PIL.value,
+            ]
         self.screenshot_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.CAMERA, title='截图方法',
-            options_enum=ScreenshotMethodEnum
+            options_enum=screenshot_enum,
+            options_list=screenshot_options,
         )
         self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
         basic_group.addSettingCard(self.screenshot_method_opt)
