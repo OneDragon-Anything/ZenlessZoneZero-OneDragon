@@ -15,6 +15,8 @@ if not getattr(sys, 'frozen', False):
     import cv2
     import datetime
     import difflib
+    import errno
+    import fcntl
     import gc
     import gettext
     import glob
