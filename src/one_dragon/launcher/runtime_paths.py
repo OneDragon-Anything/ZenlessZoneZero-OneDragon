@@ -43,6 +43,7 @@ if errorlevel 1 (
 :swap_exe
 if exist "%EXE_NAME%.new" (
   copy /y "%EXE_NAME%.new" "%EXE_NAME%" >nul
+  if errorlevel 1 exit /b 1
   del "%EXE_NAME%.new" >nul 2>&1
 )
 del "%~f0" >nul 2>&1

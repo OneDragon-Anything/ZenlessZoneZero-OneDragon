@@ -12,6 +12,7 @@ from one_dragon.envs.update_service import (
     LauncherType,
     UpdateService,
     is_launcher_downgrade,
+    is_version_parseable,
 )
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -155,8 +156,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         # 更新UI显示
         installed = self.ctx.update_service.is_launcher_installed(self._launcher_type)
-        if installed and not self.current_version:
-            # 文件在但版本读不出来：目标版本可能是降级，别让用户盲下
+        if installed and not is_version_parseable(self.current_version or ''):
+            # 文件在但版本读不出来或解析不了：目标版本可能是降级，别让用户盲下
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
                 message=gt('无法读取当前启动器版本，请重新安装启动器'),
