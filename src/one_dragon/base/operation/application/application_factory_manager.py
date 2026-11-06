@@ -539,9 +539,14 @@ class ApplicationFactoryManager:
         value = getattr(const_module, attr, default)
         if not isinstance(value, str):
             raise ImportError(f"插件 {app_id} 的 {attr} 必须是字符串")
+        value = value.strip()
+        if value == '':
+            return ''
+        if value == '.':
+            raise ImportError(f"插件 {app_id} 的 {attr} 必须是相对 plugin_dir 的目录名")
         path = Path(value)
         # anchor 非空代表带盘符或盘根前缀（如 C:outside、\\outside），拼接时会逃出 plugin_dir
-        if path.is_absolute() or path.anchor != '' or '..' in path.parts or value == '.':
+        if path.is_absolute() or path.anchor != '' or '..' in path.parts or path == Path('.'):
             raise ImportError(f"插件 {app_id} 的 {attr} 必须是相对 plugin_dir 的目录名")
         return value
 

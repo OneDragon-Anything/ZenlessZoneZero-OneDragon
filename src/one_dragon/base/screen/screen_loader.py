@@ -160,17 +160,17 @@ class ScreenContext:
         """记录触发重载的调用方模块/行号（只定位，不拦截）。"""
         frame = inspect.currentframe()
         try:
-            direct = frame.f_back if frame is not None else None
-            if direct is not None and direct.f_code.co_filename == __file__:
+            caller = frame.f_back if frame is not None else None
+            if caller is not None and caller.f_code.co_filename == __file__:
+                # 跳过 reload 自身帧，取真实调用方
+                caller = caller.f_back
+            if caller is not None and caller.f_code.co_filename == __file__:
                 # save/_save_extra_screen/delete_screen 内部的 from_memory 重载不刷 info
                 log.debug(
                     '画面重载 caller=screen_loader.%s from_memory=%s',
-                    direct.f_code.co_name, from_memory,
+                    caller.f_code.co_name, from_memory,
                 )
                 return
-            caller = direct
-            while caller is not None and caller.f_code.co_filename == __file__:
-                caller = caller.f_back
             if caller is None:
                 log.debug('画面重载 caller=未知 from_memory=%s', from_memory)
                 return
@@ -534,6 +534,32 @@ class ScreenContext:
         old_file_path = self._extra_screen_paths.get(old_screen_id)
         if old_file_path is None:
             return
+
+        # from_memory 不重读插件目录；改成别的画面的 id/name 会覆盖 base 或其它插件且无法自愈。
+        base_ids = set(self._id_2_screen) - self._extra_screen_ids
+        base_names = {
+            self._id_2_screen[screen_id].screen_name
+            for screen_id in base_ids
+            if screen_id in self._id_2_screen
+        }
+        other_ids = self._extra_screen_ids - {old_screen_id}
+        other_names = {
+            self._id_2_screen[screen_id].screen_name
+            for screen_id in other_ids
+            if screen_id in self._id_2_screen
+        }
+        if (
+            screen_info.screen_id in base_ids
+            or screen_info.screen_name in base_names
+            or screen_info.screen_id in other_ids
+            or screen_info.screen_name in other_names
+        ):
+            log.warning(
+                f"插件画面不能改成其它画面的 ID/名称，已跳过保存: "
+                f"{old_screen_id} → {screen_info.screen_id}/{screen_info.screen_name}"
+            )
+            return
+
         file_path = old_file_path
 
         if old_screen_id != screen_info.screen_id:
@@ -554,7 +580,10 @@ class ScreenContext:
         self._id_2_screen[screen_info.screen_id] = screen_info
         self._extra_screen_ids.add(screen_info.screen_id)
         self._extra_screen_paths[screen_info.screen_id] = file_path
-        self.reload(from_memory=True)
+        if not self.reload(from_memory=True):
+            log.error(
+                f"插件画面已写入文件，但内存回读失败，保留旧内存状态: {file_path}"
+            )
 
     def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
         """
