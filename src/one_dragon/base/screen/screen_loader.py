@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import yaml
@@ -49,8 +50,10 @@ class ScreenContext:
         self.screen_info_map: dict[str, ScreenInfo] = {}
         self._screen_area_map: dict[str, ScreenArea] = {}
         self._id_2_screen: dict[str, ScreenInfo] = {}
-        self._extra_screen_dirs: dict[Path, str] = {}
-        """插件画面来源：目录 → 未声明 app_id 时的默认应用 ID。由 load_extra_screen_dir / set_extra_screen_dirs 写。"""
+        self._extra_screen_source: Callable[[], list[tuple[Path, str]]] | None = None
+        """插件画面来源回调：返回 [(画面目录, 默认 app_id)]；每次重建现取，None 表示不注入。"""
+        self._manual_extra_screen_dirs: dict[Path, str] = {}
+        """手工登记的插件画面目录（load_extra_screen_dir 写入，bagel ensure_screens 用）。"""
         self._extra_screen_ids: set[str] = set()
         """派生：当前内存里确实来自插件目录的画面 ID（save 过滤用）。每次 _load_extras 重建。"""
         self._extra_screen_paths: dict[str, Path] = {}
@@ -78,14 +81,53 @@ class ScreenContext:
     def get_yml_file_path(self, screen_id: str) -> Path:
         return self.yml_file_dir / f'{screen_id}.yml'
 
+    def set_extra_screen_source(self, source: Callable[[], list[tuple[Path, str]]] | None) -> None:
+        """设置插件画面来源回调，之后每次非 from_memory 重建都会现取。
+
+        Args:
+            source: 返回 [(画面目录, 默认 app_id)] 的函数；None 表示不注入插件画面。
+        """
+        self._extra_screen_source = source
+
+    def _collect_extra_sources(self) -> dict[Path, str]:
+        """汇总回调与手工登记的插件画面目录，按 resolve 后路径去重。
+
+        同一目录同时来自回调与手工登记时只保留一份；app_id 不一致时 warning，
+        并以回调为准（回调代表插件当前声明）。
+        """
+        sources: dict[Path, str] = {}
+        if self._extra_screen_source is not None:
+            for dir_path, default_app_id in self._extra_screen_source():
+                key = Path(dir_path).resolve()
+                if key in sources and sources[key] != default_app_id:
+                    log.warning(
+                        f"插件画面来源 app_id 不一致，使用回调值: {key} "
+                        f"{sources[key]} -> {default_app_id}"
+                    )
+                sources[key] = default_app_id
+        for dir_path, default_app_id in self._manual_extra_screen_dirs.items():
+            key = Path(dir_path).resolve()
+            if key in sources:
+                if sources[key] != default_app_id:
+                    log.warning(
+                        f"插件画面来源 app_id 不一致，保留回调值: {key} "
+                        f"{sources[key]} vs {default_app_id}"
+                    )
+                continue
+            sources[key] = default_app_id
+        return sources
+
     def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> bool:
         """重建主配置与插件画面，返回是否成功。
 
         插件安装/卸载不要调这里（用 OneDragonContext.refresh_application_registration）；
-        需要显式重读磁盘时用 OneDragonContext.reload_screens()。
+        需要显式重读磁盘时直接调用本方法（devtools 的「更新」、init 都是直调）。
 
         先构建完整新状态、成功后一次性替换；构建中任何异常都保留原状态并返回 False，
         避免插件画面已清空、主配置却加载失败这种半更新状态。
+
+        ``from_memory=True`` 只用内存重建 base 与派生状态，不读取、不重建插件目录；
+        插件画面保持内存里的对象，供 devtools 保存后回读。
 
         Args:
             from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
@@ -94,9 +136,19 @@ class ScreenContext:
         Returns:
             是否重载成功；失败时内存保持重载前的状态。
         """
+        if from_memory:
+            base = self._build_base(True, False)
+            extras = {
+                screen_id: self._id_2_screen[screen_id]
+                for screen_id in self._extra_screen_ids
+                if screen_id in self._id_2_screen
+            }
+            extra_paths = dict(self._extra_screen_paths)
+            return self._apply_state(base, extras, extra_paths)
+
         try:
             base = self._build_base(from_memory, from_separated_files)
-            extras, extra_paths = self._build_extras(base)
+            extras, extra_paths = self._build_extras(base, self._collect_extra_sources())
         except Exception:
             log.error('画面重载失败，保留原状态', exc_info=True)
             return False
@@ -163,7 +215,7 @@ class ScreenContext:
         return base
 
     def _build_extras(
-        self, base: dict[str, ScreenInfo],
+        self, base: dict[str, ScreenInfo], extra_sources: dict[Path, str],
     ) -> tuple[dict[str, ScreenInfo], dict[str, Path]]:
         """按来源目录构建插件画面，不修改现有内存表。
 
@@ -175,8 +227,8 @@ class ScreenContext:
         extra_paths: dict[str, Path] = {}
         extra_names: set[str] = set()
 
-        for screen_dir in sorted(self._extra_screen_dirs, key=lambda path: str(path).casefold()):
-            default_app_id = self._extra_screen_dirs[screen_dir]
+        for screen_dir in sorted(extra_sources, key=lambda path: str(path).casefold()):
+            default_app_id = extra_sources[screen_dir]
             if not screen_dir.is_dir():
                 continue
             for file_path in sorted(screen_dir.iterdir(), key=lambda path: path.name.casefold()):
@@ -255,6 +307,7 @@ class ScreenContext:
             self._screen_area_map,
             self._extra_screen_ids,
             self._extra_screen_paths,
+            dict(self._manual_extra_screen_dirs),
             {name: dict(routes) for name, routes in self.screen_route_map.items()},
             self._global_screen_names,
             self._local_screen_names,
@@ -271,6 +324,7 @@ class ScreenContext:
             self._screen_area_map,
             self._extra_screen_ids,
             self._extra_screen_paths,
+            self._manual_extra_screen_dirs,
             self.screen_route_map,
             self._global_screen_names,
             self._local_screen_names,
@@ -278,8 +332,8 @@ class ScreenContext:
             self._scope_app_id,
         ) = snapshot
 
-    def _drop_screen_after_rebuild_failure(self, screen_id: str) -> None:
-        """文件已删但重建失败时，至少把该画面从内存里摘掉，避免继续显示已删画面。"""
+    def _drop_screen(self, screen_id: str) -> None:
+        """把画面从四张内存表摘掉并更新派生表（删插件画面文件成功后用）。"""
         screen_info = self._id_2_screen.pop(screen_id, None)
         if screen_info is not None:
             self.screen_info_map.pop(screen_info.screen_name, None)
@@ -302,11 +356,11 @@ class ScreenContext:
         self._refresh_scope()
 
     def _load_extras(self) -> bool:
-        """按来源目录重建插件画面，返回是否成功。
+        """按当前来源重建插件画面，返回是否成功。
 
-        单独调用也一次性替换，失败保留原状态。同名/同 id 冲突时先遍历到的优先：
-        来源目录按 str(path).casefold() 排序、目录内文件按文件名 casefold 排序，
-        遍历顺序显式且稳定。
+        来源每次现取：回调（插件当前 plugin_infos）+ 手工登记目录。单独调用也一次性
+        替换，失败保留原状态。同名/同 id 冲突时先遍历到的优先：来源目录按
+        str(path).casefold() 排序、目录内文件按文件名 casefold 排序，遍历顺序显式且稳定。
         """
         base = {
             screen_id: screen_info
@@ -314,43 +368,33 @@ class ScreenContext:
             if screen_id not in self._extra_screen_ids
         }
         try:
-            extras, extra_paths = self._build_extras(base)
+            extras, extra_paths = self._build_extras(base, self._collect_extra_sources())
         except Exception:
             log.error('插件画面重建失败，保留原状态', exc_info=True)
             return False
         return self._apply_state(base, extras, extra_paths)
 
-    def set_extra_screen_dirs(
-        self, screen_dirs: dict[Path, str], *, rebuild: bool = True,
-    ) -> bool:
-        """替换插件画面来源表（刷新注册用；不重载主配置），返回是否成功。
-
-        Args:
-            screen_dirs: 目录 → default_app_id
-            rebuild: 是否立即重建插件层；初始化时先登记、等 reload 一次建好时传 False
-
-        Returns:
-            来源登记成功，且 rebuild=False 或插件层重建成功。
-        """
-        self._extra_screen_dirs.clear()
-        self._extra_screen_dirs.update(screen_dirs)
-        if not rebuild:
-            return True
+    def reload_extra_screens(self) -> bool:
+        """只重建插件画面层（refresh 的唯一入口；不重载主配置），返回是否成功。"""
         return self._load_extras()
 
     def unload_extra_screens(self) -> bool:
-        """清空插件画面来源并重建插件层，返回是否成功；主配置不动。"""
-        self._extra_screen_dirs.clear()
+        """清空手工登记的插件画面来源并重建插件层，返回是否成功。
+
+        来源回调仍会提供插件目录，因此卸载只对 load_extra_screen_dir 手工注入的画面
+        生效；回调目录会在下一次重建时回来。
+        """
+        self._manual_extra_screen_dirs.clear()
         return self._load_extras()
 
     def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> bool:
-        """登记插件画面来源目录并立刻重建插件层（登记即生效），返回是否成功。
+        """手工登记插件画面来源目录并立刻重建插件层（登记即生效），返回是否成功。
 
         Args:
             dir_path: 包含 screen YAML 的目录路径
             default_app_id: 插件 screen 未声明 app_id 时使用的默认值
         """
-        self._extra_screen_dirs[Path(dir_path)] = default_app_id
+        self._manual_extra_screen_dirs[Path(dir_path)] = default_app_id
         return self._load_extras()
 
     def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
@@ -424,7 +468,7 @@ class ScreenContext:
             save: 是否触发保存
         """
         if screen_id in self._extra_screen_ids:
-            # 插件画面：先删文件，失败则保留内存状态；成功后再重建插件层。
+            # 插件画面：先删文件，失败则保留内存状态；成功后直接摘内存，不重读磁盘。
             extra_file_path = self._extra_screen_paths.get(screen_id)
             if extra_file_path is None:
                 log.error(f"插件画面缺少文件路径登记，已跳过删除: {screen_id}")
@@ -435,10 +479,7 @@ class ScreenContext:
                 except OSError:
                     log.error(f"删除插件画面文件失败，保留内存状态: {extra_file_path}", exc_info=True)
                     return
-            if not self._load_extras():
-                # 文件已删、重建失败：内存不能继续显示已删画面，至少把这一条摘掉。
-                log.error(f"插件画面文件已删除但重建失败，先从内存摘除: {screen_id}")
-                self._drop_screen_after_rebuild_failure(screen_id)
+            self._drop_screen(screen_id)
             return
 
         # 基础画面：同样先删文件，失败则不碰内存；成功后再摘除并重建派生状态。
@@ -478,6 +519,14 @@ class ScreenContext:
             yaml.safe_dump(screen_info.to_dict(), file, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         screen_info.old_screen_id = screen_info.screen_id
+        # 显式维护内存：from_memory 重载不读插件目录，这里先把对象/派生表改成新值。
+        if old_screen_id != screen_info.screen_id:
+            self._id_2_screen.pop(old_screen_id, None)
+            self._extra_screen_ids.discard(old_screen_id)
+            self._extra_screen_paths.pop(old_screen_id, None)
+        self._id_2_screen[screen_info.screen_id] = screen_info
+        self._extra_screen_ids.add(screen_info.screen_id)
+        self._extra_screen_paths[screen_info.screen_id] = file_path
         self.reload(from_memory=True)
 
     def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
