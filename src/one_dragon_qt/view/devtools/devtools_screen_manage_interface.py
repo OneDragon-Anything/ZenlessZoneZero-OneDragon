@@ -1237,6 +1237,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._update_area_param_display()
 
     def _on_merge_clicked(self) -> None:
-        self.ctx.screen_loader.reload(from_separated_files=True)
+        self.ctx.reload_screens(from_separated_files=True)
         self.ctx.screen_loader.save(reload_after_save=False)
         self._existed_yml_update.signal.emit()

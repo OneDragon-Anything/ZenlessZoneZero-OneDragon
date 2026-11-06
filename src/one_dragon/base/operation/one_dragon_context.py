@@ -262,19 +262,30 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.run_context.registry_application(factories)
 
     def _load_plugin_screens(self) -> None:
-        """加载插件的 screen_info
+        """按当前 plugin_infos 重设插件画面来源并重建插件层。
 
-        遍历所有已注册插件，从其 screen_info/ 子目录加载 screen YAML。
+        遍历所有已注册插件，把其 screen_info/ 目录登记为画面来源；
         未设 app_id 的 screen 自动使用插件的 app_id。
-        应在 screen_loader.reload() 之后调用。
+
+        不要直接调：init() 与 refresh_application_registration() 会用到。
         """
+        screen_dirs: dict[Path, str] = {}
         for plugin_info in self.factory_manager.plugin_infos:
             if plugin_info.plugin_dir is None:
                 continue
-            screen_dir = plugin_info.plugin_dir / 'screen_info'
-            self.screen_loader.load_extra_screen_dir(
-                str(screen_dir), default_app_id=plugin_info.app_id
-            )
+            screen_dirs[plugin_info.plugin_dir / 'screen_info'] = plugin_info.app_id
+        self.screen_loader.set_extra_screen_dirs(screen_dirs)
+
+    def reload_screens(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
+        """显式重载画面配置（会一并按来源目录重建插件画面）。
+
+        插件安装/卸载不要用它，用 refresh_application_registration()。
+
+        Args:
+            from_memory: 是否从内存中加载
+            from_separated_files: 是否从单独文件加载
+        """
+        self.screen_loader.reload(from_memory=from_memory, from_separated_files=from_separated_files)
 
     def refresh_application_registration(self) -> None:
         """刷新应用注册
@@ -297,8 +308,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if factories:
             self.run_context.registry_application(factories)
 
-        # 重新加载插件 screen
-        self.screen_loader.reload()
+        # 只重建插件画面层：插件安装/卸载不重载主画面配置。
         self._load_plugin_screens()
 
         # 更新默认应用组
@@ -358,7 +368,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_ocr()
 
-            self.screen_loader.reload()
+            self.reload_screens()
             self._load_plugin_screens()
 
             # 账号实例层级的配置 不是应用特有的配置

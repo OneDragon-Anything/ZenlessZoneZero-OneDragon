@@ -44,7 +44,7 @@
 
 ### 自动推导机制
 
-1. **`reload()`** 后自动计算全局集合：`_global_screen_names = {无 app_id 的 screen}`
+1. **reload 或插件画面重建后**自动计算全局集合：`_global_screen_names = {无 app_id 的 screen}`
 2. **应用启动** 时 `enter_scope(app_id)`，自动收集 `app_id` 匹配的局部 screen
 3. **应用停止** 时 `exit_scope()`，恢复全量匹配
 
@@ -136,7 +136,7 @@ class Application(Operation):
 
 ### 路由不变
 
-全局路由表（Floyd）仅在 `reload()` 时计算一次，scope 不影响。
+全局路由表（Floyd）在 reload 或插件画面增删重建时计算，scope 不影响。
 `round_by_goto_screen` 使用全局路由表查找路径，scope 仅影响 screen 识别的搜索范围。
 
 ## 6. 向后兼容性
@@ -175,23 +175,31 @@ class Application(Operation):
 
 ## 8. 插件 Screen 加载
 
-### 加载机制
+插件画面按「来源目录」登记，需要时全量重建；插件安装/卸载不触发主画面配置的 `reload`。
+语义参考 MaaFramework `ProjectInterfaceV2` 的 `resource.path` 数组：资源按来源加载，
+单个来源增删只重建资源层，不重载全局配置。
 
-插件的 screen 通过 `OneDragonContext._load_plugin_screens()` 自动加载：
+### 加载机制
 
 ```
 OneDragonContext.init()
-├── register_application_factory()    ← 扫描插件，填充 plugin_infos
-├── screen_loader.reload()            ← 加载主 screen YAML
-└── _load_plugin_screens()            ← 遍历 plugin_infos → load_extra_screen_dir()
-    └── 对每个插件的 screen_info/ 目录加载 YAML
-        └── 未设 app_id 的 screen 自动使用插件的 app_id
+├── register_application_factory()         ← 扫描插件，填充 plugin_infos
+├── reload_screens()                       ← 加载主 screen YAML（ScreenContext.reload）
+└── _load_plugin_screens()                 ← 按 plugin_infos 重设来源目录 → _load_extras()
 
-refresh_application_registration()    ← 运行时刷新插件
-├── clear_applications + discover_factories    ← 重新扫描
-├── screen_loader.reload()            ← 重新加载主 YAML
-└── _load_plugin_screens()            ← 重新加载插件 screen
+refresh_application_registration()           ← 运行时安装/卸载/更新插件
+├── clear_applications + discover_factories  ← 重新扫描
+└── _load_plugin_screens()                 ← 只重设来源并重建插件画面，不 reload 主配置
 ```
+
+- 来源表 `_extra_screen_dirs`：目录 → `default_app_id`，只由 `load_extra_screen_dir()` /
+  `set_extra_screen_dirs()` 写。
+- 派生表 `_extra_screen_ids`（画面 id）与 `_extra_screen_paths`（id → yml）：
+  每次 `_load_extras()` 全量重建，任何分支不手改。
+- `_load_extras()` 先把上一轮登记的插件画面从内存表摘掉，再遍历来源目录：
+  YAML 解析失败、`ScreenInfo` 构造失败（缺 `pc_rect` 等）都跳过该文件；
+  与已加载画面同名或同 id 时跳过并告警（带 id 与文件路径），插件画面不覆盖主配置。
+- 显式重载主配置走 `OneDragonContext.reload_screens()`；`ScreenContext.reload()` 不建议直接调用。
 
 ### 插件目录结构
 
@@ -226,16 +234,17 @@ area_list:
 
 ### 冲突处理
 
-- 插件 screen_name 与主 YAML 或其他插件冲突时，跳过并输出警告日志
-- `default_app_id` 仅在 YAML 未显式设置 `app_id` 时使用
-插件的 screen 加载到 `ScreenContext` 后，通过 `app_id` 自动归入局部命名空间，不污染其他应用。
+- 插件 screen_name 或 screen_id 与主 YAML / 先加载的插件画面冲突时，跳过并输出警告日志，不覆盖已有画面。
+- `default_app_id` 仅在 YAML 未显式设置 `app_id` 时使用。
+- `save()` 只写主配置：按 `_extra_screen_ids` 排除插件画面；插件画面自身的增删改走
+  `_save_extra_screen()`（按 `_extra_screen_paths` 定位文件），不会把主配置写进插件 YAML。
 
 ## 9. 文件变更清单
 
 | 文件 | 变更 |
 |------|------|
 | `src/one_dragon/base/screen/screen_info.py` | `ScreenInfo` 新增 `app_id` 字段 |
-| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理 API 和 `load_extra_screen_dir` |
+| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理、插件画面来源表与按来源全量重建（`_load_extras`） |
 | `src/one_dragon/base/screen/screen_utils.py` | BFS 匹配适配活跃范围 |
 | `src/one_dragon/base/operation/application_base.py` | `Application` 生命周期自动 enter/exit scope |
 | `src/one_dragon/base/operation/one_dragon_context.py` | 新增 `_load_plugin_screens()`，init 和 refresh 时加载插件 screen |
