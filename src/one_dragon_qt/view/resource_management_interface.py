@@ -192,10 +192,16 @@ class ResourceManagementInterface(VerticalScrollInterface):
             password_hash='9eccbf284f363f3a5f416e879aa9bcb2c8d8445997f97740270fccc98d360a33'
         )
 
+        self.notify_on_update_opt = SwitchSettingCard(
+            icon=FluentIcon.MAIL, title='更新通知',
+            content='运行期间后台发现新版本时，通过推送渠道通知（渠道在[通知设置]配置）',
+        )
+
         self.code_settings_group = SettingCardGroup(gt('代码设置'))
         self.code_settings_group.addSettingCard(self.repository_url_opt)
         self.code_settings_group.addSettingCard(self.git_branch_opt)
         self.code_settings_group.addSettingCard(self.force_update_opt)
+        self.code_settings_group.addSettingCard(self.notify_on_update_opt)
 
         self.developer_code_group = SettingCardGroup(gt('开发者选项'))
         self.developer_code_group.addSettingCard(self.auto_update_code_opt)
@@ -649,6 +655,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
     def _refresh_code_settings(self) -> None:
         """刷新代码设置控件及开发者选项可见性。"""
         self.auto_update_code_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update_code'))
+        self.notify_on_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('notify_on_update'))
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.repository_url_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_url'))

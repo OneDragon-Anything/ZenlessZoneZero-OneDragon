@@ -26,3 +26,14 @@ class ContextLazySignal:
     @start_onedragon.setter
     def start_onedragon(self, new_value: bool) -> None:
         self._signals['start_onedragon'] = new_value
+
+    @property
+    def code_update_available(self) -> bool:
+        """
+        发现代码有新版本 已由后台服务下载到本地仓库
+        """
+        return self._signals.get('code_update_available', False)
+
+    @code_update_available.setter
+    def code_update_available(self, new_value: bool) -> None:
+        self._signals['code_update_available'] = new_value

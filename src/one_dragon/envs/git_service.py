@@ -1727,6 +1727,22 @@ class GitService:
         except Exception:
             return None
 
+    def get_remote_head_commit_id(self, short: bool = False) -> str | None:
+        """获取远程跟踪分支的 commit hash"""
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        try:
+            repo = self._open_repo()
+            if remote_ref not in repo.references:
+                return None
+            oid = str(repo.references[remote_ref].target)
+            return oid[:8] if short else oid
+        except Exception:
+            return None
+
+    def check_remote_manifest_compatible(self) -> tuple[bool, str]:
+        """检查远程最新代码的模块清单是否与当前运行环境兼容"""
+        return self._check_remote_manifest_compatible()
+
     def is_current_branch_latest(self) -> tuple[bool, str]:
         """
         当前分支是否已经最新 与远程分支一致
@@ -1786,6 +1802,35 @@ class GitService:
 
             logs.append(GitLog(short_id, author, commit_time, message))
 
+        return logs
+
+    def fetch_recent_remote_commits(self, count: int = 20) -> list[GitLog]:
+        """获取远程跟踪分支的最新提交 只读本地已 fetch 的对象 不发网络请求
+
+        沿第一父提交遍历：常规源只返回版本线上的提交 集成分支不会列出 PR 内部的零碎提交
+
+        Args:
+            count: 最多返回条数
+
+        Returns:
+            GitLog列表 仓库不存在或远程分支未 fetch 过时返回空列表
+        """
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        try:
+            repo = self._open_repo()
+            if remote_ref not in repo.references:
+                return []
+            commit = repo[repo.references[remote_ref].target]
+        except Exception:
+            return []
+
+        logs: list[GitLog] = []
+        while commit is not None and len(logs) < count:
+            commit_time = time.strftime('%Y-%m-%d', time.localtime(commit.commit_time))
+            message = commit.message.splitlines()[0] if commit.message else ''
+            author = commit.author.name if commit.author and commit.author.name else ''
+            logs.append(GitLog(str(commit.id)[:7], author, commit_time, message))
+            commit = repo[commit.parent_ids[0]] if commit.parent_ids else None
         return logs
 
     def update_remote(self) -> None:

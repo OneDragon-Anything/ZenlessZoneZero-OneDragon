@@ -357,6 +357,8 @@ class LostVoidRunLevel(ZOperation):
                                                                   icon=LostVoidDetector.CLASS_DISTANCE,
                                                                   is_distance=True)
                     return self.round_success(LostVoidDetector.CLASS_DISTANCE)
+            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
                 return self.round_retry('移动失败')
 
@@ -384,6 +386,8 @@ class LostVoidRunLevel(ZOperation):
                     interact_type = op_result.data  # 根据显示图标 返回入口类型
                     self.interact_target = LostVoidInteractTarget(name=interact_type, icon=interact_type, is_entry=True)
                     return self.round_success(LostVoidDetector.CLASS_ENTRY, wait=1)
+            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
                 return self.round_retry('移动失败')
 

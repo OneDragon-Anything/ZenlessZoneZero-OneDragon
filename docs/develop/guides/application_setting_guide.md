@@ -112,6 +112,16 @@ class MyAppSetting(AppSettingProvider):
 
 ---
 
+## 多选设置控件
+
+多个选项可同时启用时，复用 [`MultiSelectionComboBox`](../../../src/one_dragon_qt/widgets/multi_selection_combo_box.py)。例如，贝果自定义出售的一步分别选择类型和品质。勾选后菜单保持打开，选中值通过 `selection_changed` 或配置适配器写回。
+
+该控件使用 `PersistentCheckableMenu` 保持菜单打开。子类显式定义 `exec(pos, ani, aniType)`，并调用 `CheckableMenu.exec`，确保使用 Fluent 的非阻塞显示和动画逻辑。PySide6 下仅继承该方法可能使实例绑定到原生 `QMenu.exec`；原生方法不接受 `aniType`，不能通过删除动画参数来替代 Fluent 调用。
+
+修改菜单交互后，检查首次打开、连续勾选与取消、关闭后重开，以及类型和品质之间切换。还需在实际设置页核对滚动位置、显示缩放和选中值回写；不能只检查菜单对象是否创建成功。
+
+---
+
 ## 多标签设置界面
 
 如果一个应用有多个相关的设置子页面，可以使用 `SegmentedSettingInterface` 将它们组合：

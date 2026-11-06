@@ -5,6 +5,7 @@ import os
 import random
 import time
 import webbrowser
+from collections.abc import Callable
 
 import requests
 from PySide6.QtCore import (
@@ -338,7 +339,7 @@ class AcrylicBackground(QWidget):
 
 
 class NoticeCard(SimpleCardWidget):
-    def __init__(self, notice_url):
+    def __init__(self, notice_url, update_provider: Callable[[], list[dict]] | None = None):
         SimpleCardWidget.__init__(self)
         self._acrylic = None
         self.fetcher = None
@@ -349,6 +350,9 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.setSpacing(0)
 
         self.notice_url = notice_url
+        # 外部注入的最新功能提交数据源 本地读取 失败时静默为空 不影响公告展示
+        self.update_provider = update_provider
+        self.update_posts: list[dict] = self._load_update_posts()
         self.banners, self.banner_urls, self.posts = [], [], {"announcements": [], "software_research": [], "game_guides": []}
         self._banner_loader = None
         self._is_loading_banners = False
@@ -415,6 +419,22 @@ class NoticeCard(SimpleCardWidget):
             Qt.ConnectionType.QueuedConnection
         )
         self.fetcher.start()
+
+    def _load_update_posts(self) -> list[dict]:
+        """读取外部注入的最新功能提交 失败时静默为空"""
+        if self.update_provider is None:
+            return []
+        try:
+            return list(self.update_provider() or [])
+        except Exception:
+            log.error('读取更新内容失败', exc_info=True)
+            return []
+
+    def _display_posts(self, type: str) -> list[dict]:
+        """列表实际展示的数据 公告要闻头部固定最新功能提交"""
+        if type == 'announcements':
+            return self.update_posts + self.posts['announcements']
+        return self.posts[type]
 
     def handle_data(self, content):
         if "error" in content:
@@ -752,11 +772,14 @@ class NoticeCard(SimpleCardWidget):
             webbrowser.open(self.banner_urls[self.flipView.currentIndex()])
 
     def open_post_link(self, widget: ListWidget, type: str):
-        if self.posts[type]:
-            webbrowser.open(self.posts[type][widget.currentIndex().row()]["url"])
+        posts = self._display_posts(type)
+        if posts:
+            url = posts[widget.currentIndex().row()].get('url', '')
+            if url:
+                webbrowser.open(url)
 
     def add_posts_to_widget(self, widget: ListWidget, type: str):
-        for post in self.posts[type][:3]:
+        for post in self._display_posts(type)[:3]:
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.DisplayRole, post["title"])
             item.setData(Qt.ItemDataRole.UserRole, post["date"])

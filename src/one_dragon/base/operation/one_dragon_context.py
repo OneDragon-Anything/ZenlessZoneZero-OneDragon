@@ -42,6 +42,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
+from one_dragon.envs.update_check_service import UpdateCheckService
 from one_dragon.utils import (
     debug_utils,
     file_utils,
@@ -375,6 +376,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
+            self.update_check_service.start_checking()
+
             # 只有在配置了 ghproxy 代理时才更新代理地址
             if self.env_config.is_gh_proxy:
                 self.gh_proxy_service.update_proxy_url()
@@ -673,6 +676,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self._btn_listener_closed = True
         self.btn_listener.stop()
 
+    @cached_property
+    def update_check_service(self) -> UpdateCheckService:
+        """
+        代码更新后台检查服务
+        """
+        return UpdateCheckService(self)
+
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
@@ -700,4 +710,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
+        if 'update_check_service' in self.__dict__:
+            self.update_check_service.after_app_shutdown()
         self.debug_trace_bus.clear()

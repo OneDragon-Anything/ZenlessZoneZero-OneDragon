@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from contextlib import suppress
 
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
@@ -18,6 +19,7 @@ class ZApplication(Application):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
+                 use_factory_run_record: bool = True,
                  ):
         self.ctx: ZContext = ctx
         if op_to_enter_game is None:
@@ -33,8 +35,16 @@ class ZApplication(Application):
             need_check_game_win=need_check_game_win,
             op_to_enter_game=op_to_enter_game,
             run_record=run_record,
+            use_factory_run_record=use_factory_run_record,
         )
 
     def handle_resume(self) -> None:
         self.ctx.controller.active_window()
         Application.handle_resume(self)
+
+    def after_operation_done(self, result: OperationResult) -> None:
+        """应用运行结束，递增按应用统计的运行计数"""
+        Application.after_operation_done(self, result)
+        if result.success:
+            with suppress(Exception):
+                self.ctx.user_stats.increment_app(self.app_id)

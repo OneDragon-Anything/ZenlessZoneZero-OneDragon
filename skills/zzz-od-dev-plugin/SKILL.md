@@ -255,3 +255,7 @@ my_plugin.zip
 - [ ] 如有设置界面，文件名为 `*_app_setting.py`。
 - [ ] 如有 screen_info，区域名和代码中的 `round_by_find_area` / `round_by_click_area` 一致。
 - [ ] 修改代码后只对改动文件运行 `uv run --env-file .env ruff check <file>`。
+- [ ] **纯配置/工具类应用（不进游戏）**：构造函数传 `need_check_game_win=False`，且所有 `operation_node` 传 `screenshot_before_round=False`——否则运行时会在「检测游戏窗口 / 截图」处直接失败（游戏窗口未就绪）。
+## 11. 实机探测
+
+开发中/开发后需要在实机游戏里摸 UI 流程、验证点击与识别是否可达（尤其是无现成 screen_info / 无先例的界面），按 `zzz-od-dev-e2e-probe` 走探测流程——不改生产代码，探测完按其收尾清单清理。

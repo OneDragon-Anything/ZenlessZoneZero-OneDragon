@@ -60,6 +60,11 @@ class ZContext(OneDragonContext):
         )
         return WitheredDomainContext(self)
 
+    @cached_property
+    def user_stats(self):
+        from zzz_od.config.dodge_stats_config import UserStatsConfig
+        return UserStatsConfig()
+
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
@@ -125,6 +130,7 @@ class ZContext(OneDragonContext):
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
+                force_active_window=self.env_config.force_active_window,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
@@ -145,6 +151,10 @@ class ZContext(OneDragonContext):
         """
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
+
+        # 持久化用户统计
+        if hasattr(self, 'user_stats') and self.user_stats:
+            self.user_stats.save_stats()
 
         # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
         self.withered_domain.after_app_shutdown()

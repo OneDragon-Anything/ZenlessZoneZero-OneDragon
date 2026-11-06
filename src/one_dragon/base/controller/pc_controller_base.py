@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import ctypes
 import time
+from collections.abc import Callable
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -10,10 +11,10 @@ import pyautogui
 import win32api
 import win32con
 import win32gui
-from cv2.typing import MatLike
 from pynput import keyboard
 
 from one_dragon.base.controller.controller_base import ControllerBase
+from one_dragon.base.controller.owned_foreground_click import owned_foreground_click
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.ds4_button_controller import (
     Ds4ButtonController,
@@ -33,6 +34,8 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
+    from cv2.typing import MatLike
+
     from one_dragon.base.controller.drag_timing import DragTiming
 
 
@@ -49,6 +52,7 @@ class PcControllerBase(ControllerBase):
 
     def __init__(self,
                  screenshot_method: str,
+                 force_active_window: bool = False,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
@@ -63,6 +67,7 @@ class PcControllerBase(ControllerBase):
         self.btn_controller: PcButtonController = self.keyboard_controller
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
+        self.force_active_window: bool = force_active_window
         self.background_mode: bool = False
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
@@ -96,13 +101,15 @@ class PcControllerBase(ControllerBase):
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
-    def active_window(self) -> None:
-        """
-        前置窗口
-        """
+    def active_window(self) -> bool:
+        """尝试一次将游戏窗口切到前台。"""
         self.game_win.init_win()
-        if not self.background_mode:
-            self.game_win.active()
+        return self.background_mode or self.game_win.active()
+
+    def ensure_active_window(self) -> bool:
+        """运行期间按配置恢复游戏窗口焦点。"""
+        self.game_win.init_win()
+        return self.background_mode or self.game_win.active(retry_until_active=self.force_active_window)
 
     def set_window_title(self, new_title: str) -> None:
         """设置窗口标题。
@@ -131,6 +138,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_tap(self, key: str) -> None:
         """按键（tap）。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.tap(key)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
@@ -138,6 +158,19 @@ class PcControllerBase(ControllerBase):
 
     def btn_press(self, key: str, press_time: float | None = None) -> None:
         """按住键。后台模式下先发 WM_ACTIVATE 再确保手柄输入模式。"""
+        if (
+            not self.background_mode
+            and self.btn_controller is self.keyboard_controller
+            and pc_button_utils.is_mouse_button(key)
+        ):
+            with owned_foreground_click(
+                self.game_win.get_hwnd(),
+                self.keyboard_controller.mouse.position,
+                self.game_win.active,
+            ) as can_press:
+                if can_press():
+                    self.btn_controller.press(key, press_time)
+            return
         if self.background_mode:
             self._send_activate()
             self._ensure_gamepad_mode()
@@ -164,6 +197,9 @@ class PcControllerBase(ControllerBase):
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
+            if self.force_active_window and not self.background_mode and not self.game_win.is_win_active:
+                if not self.ensure_active_window():
+                    raise RuntimeError('游戏窗口激活失败，已停止本轮操作以避免误点其他窗口')
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)
@@ -226,21 +262,18 @@ class PcControllerBase(ControllerBase):
 
         if not self.game_win.active():
             return False
-
-        mouse_flash_duration = self.get_mouse_flash_duration()
-        time.sleep(mouse_flash_duration)
-
-        # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
-        user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(mouse_flash_duration)
-
-        # 切回原来的前台窗口
-        if prev_hwnd and prev_hwnd != hwnd:
-            with contextlib.suppress(Exception):
-                win32gui.SetForegroundWindow(prev_hwnd)
+        try:
+            mouse_flash_duration = self.get_mouse_flash_duration()
+            time.sleep(mouse_flash_duration)
+            # 鼠标移动触发 Raw Input，让游戏切回键鼠。
+            user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
+            time.sleep(mouse_flash_duration)
+        finally:
+            if prev_hwnd and prev_hwnd != hwnd:
+                with contextlib.suppress(Exception):
+                    win32gui.SetForegroundWindow(prev_hwnd)
         time.sleep(0.1)
         self._game_input_mode = 'keyboard_mouse'
-
         return True
 
     def get_mouse_flash_duration(self) -> float:
@@ -327,13 +360,24 @@ class PcControllerBase(ControllerBase):
         else:
             click_pos = get_current_mouse_pos()
 
-        if pc_alt:
-            self.keyboard_controller.keyboard.press(keyboard.Key.alt)
-            time.sleep(0.2)
-        win_click(click_pos, press_time=press_time)
-        if pc_alt:
-            self.keyboard_controller.keyboard.release(keyboard.Key.alt)
-        return True
+        with owned_foreground_click(
+            self.game_win.get_hwnd(),
+            (int(click_pos.x), int(click_pos.y)),
+            self.game_win.active,
+        ) as can_press:
+            if not can_press():
+                log.error('游戏窗口未取得点击点归属，取消前台点击')
+                return False
+            try:
+                if pc_alt:
+                    self.keyboard_controller.keyboard.press(keyboard.Key.alt)
+                    time.sleep(0.2)
+                return win_click(
+                    click_pos, press_time=press_time, before_press=can_press
+                )
+            finally:
+                if pc_alt:
+                    self.keyboard_controller.keyboard.release(keyboard.Key.alt)
 
     def _gamepad_click(self, gamepad_key: str | None) -> bool:
         """后台模式下使用手柄按键替代点击。
@@ -416,7 +460,7 @@ class PcControllerBase(ControllerBase):
         self, end: Point, start: Point | None = None, duration: float = 0.5,
         *, timing: DragTiming | None = None,
     ) -> None:
-        """按住拖拽。
+        """同步完成本次拖拽，不支持中途取消。
 
         Args:
             end: 拖拽目的点。
@@ -426,11 +470,10 @@ class PcControllerBase(ControllerBase):
         """
         if start is None:
             start = get_current_mouse_pos()
-
         if self.background_mode:
-            return self._background_drag(start, end, duration, timing=timing)
-
-        return self._foreground_drag(start, end, duration, timing=timing)
+            self._background_drag(start, end, duration, timing=timing)
+        else:
+            self._foreground_drag(start, end, duration, timing=timing)
 
     def _foreground_drag(
         self, start: Point, end: Point, duration: float = 0.5,
@@ -469,7 +512,7 @@ class PcControllerBase(ControllerBase):
             timing: 显式三段时序，None 保留原行为。
         """
         if not self._ensure_mouse_mode():
-            log.error('无法切到键鼠模式，后台拖拽失败')
+            log.error('无法切到键鼠模式，后台拖拽停止')
             return
 
         hwnd = self.game_win.get_hwnd()
@@ -491,13 +534,13 @@ class PcControllerBase(ControllerBase):
             return
         ex, ey = int(scaled_end.x), int(scaled_end.y)
 
+        release_needed = False
         try:
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
             time.sleep(0.01)
-
-            # 移动到起点并按下
             self._set_cursor_to(hwnd, sx, sy)
             time.sleep(0.01)
+            release_needed = True
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
             press_wait = 0.02 if timing is None else timing.press_wait
             if press_wait > 0:
@@ -516,12 +559,13 @@ class PcControllerBase(ControllerBase):
                 self._set_cursor_to(hwnd, cx, cy)
                 time.sleep(duration_drag / steps)
 
-            # 松开之前先定住鼠标以消除滑动惯性
+            # 松开之前先定住鼠标以消除滑动惯性。
             time.sleep(release_wait)
-            # 松开
-            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
         except Exception:
             log.error('后台拖拽失败', exc_info=True)
+        finally:
+            if release_needed:
+                win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, 0)
 
     def scroll(self, down: int, pos: Point | None = None) -> None:
         """向下滚动。
@@ -560,22 +604,37 @@ class PcControllerBase(ControllerBase):
         return Point(self.standard_width // 2, self.standard_height // 2)
 
 
-def win_click(pos: Point = None, press_time: float = 0.1, primary: bool = True):
+def win_click(
+    pos: Point | None = None,
+    press_time: float = 0.1,
+    primary: bool = True,
+    before_press: Callable[[], bool] | None = None,
+) -> bool:
     """点击鼠标。
 
     Args:
         pos: 屏幕坐标
         press_time: 按住时间
         primary: 是否点击鼠标主要按键（通常是左键）
+        before_press: 移动鼠标后、按下前执行的目标归属检查。
+
+    Returns:
+        成功发送点击返回 True，归属检查失败返回 False。
     """
     btn = pyautogui.PRIMARY if primary else pyautogui.SECONDARY
     if pos is None:
         pos = get_current_mouse_pos()
 
     pyautogui.moveTo(pos.x, pos.y)
-    pyautogui.mouseDown(button=btn)
-    time.sleep(max(0.001, press_time))
-    pyautogui.mouseUp(button=btn)
+    if before_press is not None and not before_press():
+        log.error('鼠标移动后游戏窗口丢失点击点归属，取消前台点击')
+        return False
+    try:
+        pyautogui.mouseDown(button=btn)
+        time.sleep(max(0.001, press_time))
+    finally:
+        pyautogui.mouseUp(button=btn)
+    return True
 
 
 def win_scroll(clicks: int, pos: Point = None):
@@ -614,27 +673,26 @@ def drag_mouse(
 
     # 移动到起点并按下
     pyautogui.moveTo(start.x, start.y)
-    pyautogui.mouseDown()
-    if timing is not None and timing.press_wait > 0:
-        time.sleep(timing.press_wait)
+    try:
+        pyautogui.mouseDown()
+        if timing is not None and timing.press_wait > 0:
+            time.sleep(timing.press_wait)
 
-    # 默认前台不增加按下等待，保留原有计算方式。
-    release_wait = PcControllerBase.SLEEP_BEFORE_DRAG_END if timing is None else timing.release_wait
-    move_duration = duration - release_wait if timing is None else timing.move_duration
-    duration_drag = max(move_duration, PcControllerBase.DRAG_MIN_DURATION)
-    # 分步移动到终点
-    steps = max(int(duration_drag / 0.02), 5)
-    for i in range(1, steps + 1):
-        t = i / steps
-        cx = int(start.x + (end.x - start.x) * t)
-        cy = int(start.y + (end.y - start.y) * t)
-        pyautogui.moveTo(cx, cy)
-        ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_MOVE, 0, 0, 0, 0)
-        time.sleep(duration_drag / steps)
-    # 松开之前先定住鼠标以消除滑动惯性
-    time.sleep(release_wait)
-    # 松开
-    pyautogui.mouseUp()
+        # 默认前台不增加按下等待，保留原有计算方式。
+        release_wait = PcControllerBase.SLEEP_BEFORE_DRAG_END if timing is None else timing.release_wait
+        move_duration = duration - release_wait if timing is None else timing.move_duration
+        duration_drag = max(move_duration, PcControllerBase.DRAG_MIN_DURATION)
+        steps = max(int(duration_drag / 0.02), 5)
+        for i in range(1, steps + 1):
+            t = i / steps
+            cx = int(start.x + (end.x - start.x) * t)
+            cy = int(start.y + (end.y - start.y) * t)
+            pyautogui.moveTo(cx, cy)
+            ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_MOVE, 0, 0, 0, 0)
+            time.sleep(duration_drag / steps)
+        time.sleep(release_wait)
+    finally:
+        pyautogui.mouseUp()
 
 
 def get_current_mouse_pos() -> Point:

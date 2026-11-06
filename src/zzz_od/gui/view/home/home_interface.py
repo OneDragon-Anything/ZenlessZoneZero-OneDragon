@@ -1,4 +1,5 @@
 import contextlib
+import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,6 +9,7 @@ from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QSizePolicy,
     QSpacerItem,
     QStackedWidget,
@@ -23,6 +25,9 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
@@ -37,6 +42,7 @@ from zzz_od.gui.dialog.pre_flight_check_dialog import (
     PreFlightCheckDialog,
     check_pre_flight,
 )
+from zzz_od.gui.widgets.stats_bar import StatsBar
 
 
 class ButtonGroup(QWidget):
@@ -46,7 +52,7 @@ class ButtonGroup(QWidget):
         QWidget.__init__(self, parent=parent)
         self.ctx = ctx
 
-        self.setFixedSize(70, 250)
+        self.setFixedSize(70, 310)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -92,6 +98,18 @@ class ButtonGroup(QWidget):
         layout.addWidget(doc_button)
         self.buttons.append(doc_button)
 
+        # 创建 插件商城 按钮
+        market_button = IconButton(
+            FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
+            tip_title="插件商城",
+            tip_content="浏览与下载官方收录插件",
+            isTooltip=True,
+        )
+        market_button.setIconSize(QSize(30, 30))
+        market_button.clicked.connect(self.open_plugin_market)
+        layout.addWidget(market_button)
+        self.buttons.append(market_button)
+
         # 创建 频道 按钮
         chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
@@ -112,6 +130,10 @@ class ButtonGroup(QWidget):
     def open_github(self):
         """打开 GitHub 链接"""
         QDesktopServices.openUrl(QUrl(self.ctx.project_config.github_homepage))
+
+    def open_plugin_market(self):
+        """打开官方插件商城（plugin-data 站点）"""
+        QDesktopServices.openUrl(QUrl('https://onedragon-anyone.github.io/plugin-data/'))
 
     def open_chat(self):
         """打开 频道 链接"""
@@ -356,6 +378,11 @@ class HomeInterface(BaseInterface):
         self._last_reload_banner_signal = False
         self._last_applied_theme_color: tuple[int, int, int] | None = None
 
+        # 运行时间统计
+        self._home_run_start_time: float = 0
+        self._home_run_timer: QTimer | None = None
+        self._home_run_label: QLabel | None = None
+
         self._init_check_runners()
         self._init_ui()
 
@@ -365,6 +392,10 @@ class HomeInterface(BaseInterface):
 
         self._banner_widget = Banner(self.choose_banner_media())
         main_layout.addWidget(self._banner_widget)
+
+        # Banner 同步加载完成，立即将提取的主题色推送到 ThemeManager，
+        # 确保后续 StatsBar 等组件能获取到正确的主题色，而非兜底蓝色。
+        ThemeManager.set_theme_color(self._get_theme_color())
 
         v_layout = QVBoxLayout(self._banner_widget)
         # 边缘距离由子布局控制，避免与子布局叠加导致超过 16px
@@ -382,10 +413,26 @@ class HomeInterface(BaseInterface):
 
         h2_layout.setContentsMargins(32, 32, 0, 32)
 
-        # 公告卡片
-        self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
+        # 左侧容器：统计栏 + 公告卡片（垂直排列）
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(6)
+
+        # 统计栏
+        self._stats_bar = StatsBar(self.ctx.user_stats)
+        left_layout.addWidget(self._stats_bar, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        # 公告卡片 公告要闻头部固定一条最新功能提交（来自远程跟踪分支）
+        self.notice_container = NoticeCard(
+            self.ctx.project_config.notice_url,
+            update_provider=self._get_update_posts,
+        )
         apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
-        h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
+        left_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        h2_layout.addWidget(left_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addStretch()
 
@@ -406,8 +453,31 @@ class HomeInterface(BaseInterface):
         self.start_button.enterEvent = self._on_button_enter
         self.start_button.leaveEvent = self._on_button_leave
 
-        # 添加启动按钮到布局
-        h2_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        # 启动按钮 + 运行状态 统一容器
+        start_group = QWidget()
+        start_group_layout = QVBoxLayout(start_group)
+        start_group_layout.setContentsMargins(0, 0, 0, 0)
+        start_group_layout.setSpacing(4)
+        start_group_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
+
+        start_group_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+
+        # 运行时间统计标签
+        self._home_run_label = QLabel()
+        self._home_run_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._home_run_label.setFixedHeight(20)
+        self._home_run_label.setVisible(False)
+        self._apply_run_label_style()
+        start_group_layout.addWidget(self._home_run_label)
+
+        # 运行计时器
+        self._home_run_start_time: float = 0
+        self._home_run_timer = QTimer(self)
+        self._home_run_timer.setInterval(1000)
+        self._home_run_timer.timeout.connect(self._home_update_run_timer)
+
+        # 添加启动按钮组到布局
+        h2_layout.addWidget(start_group, alignment=Qt.AlignmentFlag.AlignBottom)
 
         # 按钮组
         self.button_group = ButtonGroup(self.ctx)
@@ -425,8 +495,29 @@ class HomeInterface(BaseInterface):
         for button in self.button_group.buttons:
             apply_shadow(button)
 
+    def _get_update_posts(self) -> list[dict]:
+        """公告卡头部的最新功能提交 取自远程跟踪分支 沿用后台定时 fetch 的结果 不另发网络请求"""
+        posts: list[dict] = []
+        for commit_log in self.ctx.git_service.fetch_recent_remote_commits():
+            if not commit_log.commit_message.startswith('feat:'):
+                continue
+            posts.append({'title': commit_log.commit_message, 'date': commit_log.commit_time})
+            break  # 固定第一条 只取最新一条功能提交
+        return posts
+
     def _init_check_runners(self):
-        """初始化主页背景相关线程。"""
+        """初始化主页背景与代码更新检查线程"""
+        # 代码更新由 UpdateCheckService 后台定时检查 这里只读取它发现的信号 不再每次进首页都 fetch
+        self._check_code_runner = FlagCheckRunner(
+            self.ctx,
+            lambda ctx: ctx.signal.code_update_available,
+            self
+        )
+        self._check_code_runner.need_update.connect(
+            self._need_to_update_code,
+            Qt.ConnectionType.QueuedConnection
+        )
+
         self._check_banner_runner = FlagCheckRunner(
             self.ctx,
             lambda ctx: ctx.signal.reload_banner,
@@ -483,6 +574,15 @@ class HomeInterface(BaseInterface):
         if self._banner_widget:
             self._banner_widget.resume_media()
 
+        # 监听运行状态变化，用于更新主页运行时间统计
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.START, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_run_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_run_state_changed)
+        # 首次显示时同步一次当前状态
+        self._sync_run_state_display()
+        self._stats_bar.refresh()
+
         # 设置顶部边距为0，让海报覆盖标题栏；同时切换标题栏首页模式
         if self.main_window:
             if self._saved_area_margins is None:
@@ -532,6 +632,9 @@ class HomeInterface(BaseInterface):
     def on_interface_hidden(self) -> None:
         """界面隐藏时的清理工作"""
         super().on_interface_hidden()
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
+        if self._home_run_timer is not None:
+            self._home_run_timer.stop()
         if self._banner_widget:
             self._banner_widget.pause_media()
 
@@ -542,6 +645,14 @@ class HomeInterface(BaseInterface):
             self._static_background_downloader.stop()
         if self._dynamic_background_downloader.isRunning():
             self._dynamic_background_downloader.stop()
+
+    def _need_to_update_code(self, with_new: bool):
+        if not with_new:
+            # 信号未置位时不提示 是否最新以后台检查服务的结果为准
+            return
+        # 后台服务已把新版本对象下载到本地仓库 下次启动由启动器落盘生效
+        self.ctx.signal.code_update_available = False
+        self._show_info_bar("有新版本啦", "已在后台下载 下次启动自动生效~")
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条（手动定位，避免标题栏遮挡）"""
@@ -741,3 +852,63 @@ class HomeInterface(BaseInterface):
         self._black_icon = icon.icon(color=QColor(foreground))
         self._yellow_icon = icon.icon(color=QColor(r, g, b))
         self.start_button.setIcon(self._black_icon)
+
+    # ---------- 运行时间统计 ----------
+
+    def _apply_run_label_style(self) -> None:
+        """应用运行统计标签的半透明毛玻璃样式"""
+        if self._home_run_label is None:
+            return
+        self._home_run_label.setStyleSheet(
+            "background-color: rgba(0,0,0,90);"
+            "color: rgba(255,255,255,210);"
+            "border-radius: 10px;"
+            "padding: 1px 12px;"
+            "font-size: 12px;"
+        )
+
+    def _on_run_state_changed(self, _event=None) -> None:
+        """运行状态变化回调（由事件总线从后台线程触发，需切到主线程更新 UI）"""
+        QTimer.singleShot(0, self._sync_run_state_display)
+        QTimer.singleShot(0, self._stats_bar.refresh)
+
+    def _sync_run_state_display(self) -> None:
+        """根据当前运行状态同步计时器与显示"""
+        if self._home_run_label is None or self._home_run_timer is None:
+            return
+
+        if self.ctx.run_context.is_context_running:
+            if self._home_run_start_time == 0:
+                self._home_run_start_time = time.time()
+            self._home_run_timer.start()
+            self._home_run_label.setVisible(True)
+            self._home_update_run_timer()
+        elif self.ctx.run_context.is_context_pause:
+            self._home_run_timer.stop()
+        else:
+            self._home_run_timer.stop()
+            if self._home_run_start_time > 0:
+                elapsed = time.time() - self._home_run_start_time
+                self._home_run_label.setText(f"上次运行  {_format_elapsed(elapsed)}")
+                self._home_run_label.setVisible(True)
+            self._home_run_start_time = 0
+
+    def _home_update_run_timer(self) -> None:
+        """定时刷新运行时间"""
+        if self._home_run_label is None:
+            return
+        if self._home_run_start_time > 0:
+            elapsed = time.time() - self._home_run_start_time
+            self._home_run_label.setText(f"运行中  {_format_elapsed(elapsed)}")
+
+
+
+def _format_elapsed(seconds: float) -> str:
+    """格式化运行耗时"""
+    total_seconds = int(seconds)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    else:
+        return f"{minutes}:{secs:02d}"

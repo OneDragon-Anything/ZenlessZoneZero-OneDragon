@@ -29,6 +29,7 @@ class LauncherBase:
         power_group.add_argument("--hibernate", action="store_true", help="运行后休眠电脑")
         power_group.add_argument("--sleep", action="store_true", help="运行后让电脑进入睡眠状态")
         parser.add_argument("-i", "--instance", type=str, help="指定运行的账号实例，多个用英文逗号分隔，如：1,2")
+        parser.add_argument("-a", "--app", type=str, help="只运行指定的单个应用，如：disc_cleanup")
 
     def run(self) -> None:
         """运行启动器"""

@@ -149,3 +149,7 @@ uv run --env-file .env ruff check --fix src/你修改的文件.py
 - 游戏知识库（给智能体理解游戏）：`docs/game/`（画面描述 `screens/` + 玩法 `gameplay/`）
 - 后端服务 / MCP 对外能力：`docs/develop/zzz/backend/`（入口 README；开发 MCP tool 前先看 design-principles）
 - 打包与 RuntimeLauncher：`docs/develop/README.md`、`docs/develop/one_dragon/runtime_launcher.md`
+
+## 跨 Agent 任务交接
+
+每次会话开始先读仓库旁的运维交接文件 `../zode-agent/HANDOFF.md`（相对仓库根，即维护机上的 `E:/Z1D/zode-agent/HANDOFF.md`，不入 git）：接手「当前任务卡」，结束前把状态写回。规则见该文件头部；推送远程前必须实机验证通过。

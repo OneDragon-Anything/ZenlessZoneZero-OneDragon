@@ -102,10 +102,16 @@ class NotoriousHuntApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
+    @node_from(from_name='传送', success=False)
+    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=ChooseNextOrFinishAfterBattle.STATUS_AGENT_PLAN_FINISHED)
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:
         # 特训目标找不到代理人头像或已达成，提前跳过/结束
+        # 传送失败（success=False）与电量不足（success=True + 状态返回）都必须在此
+        # 标记 last_tried_plan：不标记则查找下一条计划永远返回同一计划形成死循环
+        # （13:25 轮实测：959bdaac 只补了传送失败边，电量不足走 is_success=True
+        #  路径仍会复位游标重查同一条，40s 一轮持续空转）
         self.next_plan.skipped = True
         self.last_tried_plan = self.next_plan
         return self.round_success()
@@ -122,6 +128,16 @@ class NotoriousHuntApp(ZApplication):
     def check_left_times(self) -> OperationRoundResult:
         if self.run_record.left_times == 0:
             return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
+
+        # 电量不足必须在本节点内处理（14:28 实测：status 专用边在框架 _get_next_node
+        # 的匹配顺序里不敌 success=True 无条件边，依赖边会继续死循环）。
+        # 电量不足时 op 成功返回但副本没打：标记当前计划跳过并推进游标，
+        # 否则下方 is_success 分支复位游标后「查找下一条计划」永远重查同一条（40s 一轮空转）。
+        prev_status = self._previous_round_result.status if self._previous_round_result else None
+        if prev_status == NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH:
+            self.next_plan.skipped = True
+            self.last_tried_plan = self.next_plan
+            return self.round_success()
 
         if self.previous_node.is_success:
             # 成功完成一次后复位游标，从头重新查找

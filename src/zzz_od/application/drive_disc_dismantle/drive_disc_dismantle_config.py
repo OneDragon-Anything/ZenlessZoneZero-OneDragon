@@ -1,8 +1,6 @@
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 
 

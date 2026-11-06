@@ -1,4 +1,6 @@
+import os
 import sys
+import time
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -69,12 +71,65 @@ class ApplicationLauncher(LauncherBase):
                 self.ctx.after_app_shutdown()
                 sys.exit(1)
 
+    @staticmethod
+    def _consume_single_app_flag() -> str | None:
+        """读取并删除一次性单应用标志文件（工作目录 .single_app_run，内容为 app_id）。
+
+        用途：计划任务等固定命令行的提权场景无法追加 -a 参数，预先放置标志文件
+        即可让本次启动进入单应用模式。读取后立即删除，保证一次性语义，不影响
+        后续正常启动。文件缺失、为空或读取异常都返回 None（走默认全链）。
+        """
+        flag_path = os.path.join(os.getcwd(), '.single_app_run')
+        try:
+            if not os.path.isfile(flag_path):
+                return None
+            with open(flag_path, encoding='utf-8-sig') as f:
+                app_id = f.read().strip()
+            os.remove(flag_path)
+            if app_id:
+                log.info('检测到一次性单应用标志文件: %s', app_id)
+                return app_id
+        except Exception:
+            log.error('读取单应用标志文件失败', exc_info=True)
+        return None
+
+    def get_target_app_id(self, args) -> str:
+        """根据参数获取要运行的应用ID，-a 指定单应用时校验其已注册"""
+        app_id = getattr(args, 'app', None) or self._consume_single_app_flag()
+        if not app_id:
+            return application_const.ONE_DRAGON_APP_ID
+
+        run_context = self.ctx.run_context
+        if not run_context.is_app_registered(app_id):
+            registered = sorted(getattr(run_context, '_application_factory_map', {}).keys())
+            log.error("应用 %s 未注册。可用应用: %s", app_id, ', '.join(registered))
+            self.ctx.after_app_shutdown()
+            sys.exit(1)
+
+        log.info("单应用运行模式: %s", app_id)
+        return app_id
+
+    def wait_context_ready(self, timeout: float = 180.0) -> None:
+        """等待异步初始化完成（init_async 在线程池执行 init，含应用注册与 OCR）。
+
+        直跑模式（-a 单应用）会在启动后立即校验应用注册，GUI 模式下初始化早已完成，
+        此处补齐时序：轮询 ready_for_application，超时则带警告继续。
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if getattr(self.ctx, 'ready_for_application', False):
+                log.info('上下文初始化完成')
+                return
+            time.sleep(0.5)
+        log.warning('等待上下文初始化超时（%s 秒），继续尝试运行', timeout)
+
     def run_application(self, args) -> None:
         """运行应用"""
         try:
-            # 执行一条龙应用
+            # 执行一条龙应用（-a 指定时只运行该应用）
+            self.wait_context_ready()
             run_result = self.ctx.run_context.run_application(
-                app_id=application_const.ONE_DRAGON_APP_ID,
+                app_id=self.get_target_app_id(args),
                 instance_idx=self.ctx.current_instance_idx,
                 group_id=application_const.DEFAULT_GROUP_ID,
             )

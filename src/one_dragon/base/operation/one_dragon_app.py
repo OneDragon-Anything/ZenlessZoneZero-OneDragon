@@ -7,7 +7,6 @@ from one_dragon.base.operation.application.group_application import GroupApplica
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -141,6 +140,3 @@ class OneDragonApp(Application):
             return self.round_success(OneDragonApp.STATUS_ALL_DONE)
         else:
             return self.round_success(OneDragonApp.STATUS_NEXT)
-
-    def after_operation_done(self, result: OperationResult):
-        Application.after_operation_done(self, result)

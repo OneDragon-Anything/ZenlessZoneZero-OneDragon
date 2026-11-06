@@ -137,6 +137,13 @@ class CombatSimulation(ZOperation):
                 log.info(f'找到代理人目标，点击位置: {target_point}')
 
             if target_point is None:
+                # 2026-10-27 新版 UI：传送后直达宿主副本详情页（右上角有「挑战等级」和「相关代理人」），
+                # 页面无代理人头像列表，直接点「下一步」进入部署；找不到「下一步」才算失败
+                result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步',
+                                                           success_wait=1, retry_wait=1)
+                if result.is_success:
+                    log.info('新版代理人详情页：直接点击下一步进入部署')
+                    return self.round_success(status=CombatSimulation.STATUS_CHOOSE_SUCCESS, wait=1)
                 start = area.center + Point(-100, 0)
                 end = start + Point(-400, 0)
                 self.ctx.controller.drag_to(start=start, end=end)
@@ -188,6 +195,10 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='进入选择数量')
     @operation_node(name='选择数量')
     def choose_card_num(self) -> OperationRoundResult:
+        if self.plan.is_agent_plan:
+            # 代理人方案详情页没有卡片数量选择 直接跳过
+            return self.round_success('代理人方案无需选择数量')
+
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '保存方案')
         if not result.is_success:
             return self.round_retry(result.status, wait=1)

@@ -37,6 +37,8 @@ class CompendiumChooseMissionType(ZOperation):
         )
 
         self.mission_type: CompendiumMissionType = mission_type
+        self.agent_nav_clicked: bool = False  # 是否已点击新版 UI 左侧的「特训目标」入口
+        self.use_new_agent_page: bool = False  # 新版 UI 是否成功进入独立的特训目标页
 
     @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=20)
     def choose_mission_type(self) -> OperationRoundResult:
@@ -97,9 +99,26 @@ class CompendiumChooseMissionType(ZOperation):
         """
         专门处理"代理人方案培养"的方法
         """
+        # 新版 UI：训练页左侧新增独立的「特训目标」入口，且默认选中「实战模拟室」，
+        # 必须先点击「特训目标」进入代理人列表，再识别头像；旧版 UI 无此入口则跳过。
+        if not self.agent_nav_clicked:
+            self.agent_nav_clicked = True
+            nav_area = self.ctx.screen_loader.get_area('快捷手册', '分类列表')
+            ocr_results = self.ctx.ocr.crop_and_run_ocr(self.last_screenshot, nav_area.rect, merge_line_distance=40)
+            for ocr_result, mrl in ocr_results.items():
+                if mrl.max is None:
+                    continue
+                if str_utils.find_by_lcs(gt('特训目标', 'game'), ocr_result, percent=0.5):
+                    log.debug('新版训练页：点击左侧「特训目标」入口')
+                    self.use_new_agent_page = True
+                    self.ctx.controller.click(nav_area.left_top + mrl.max.center)
+                    return self.round_retry(wait=1)  # 等待画面切换后再识别头像
+            log.debug('未找到「特训目标」入口，按旧版 UI 处理')
+
         tab_name = self.mission_type.category.tab.tab_name
-        # 快捷手册-训练-恶名狩猎页顶部有暗色分层条会干扰头像识别，使用收窄后的专用取景区域
-        if self.mission_type.category.category_name == '恶名狩猎':
+        # 旧版 UI：快捷手册-训练-恶名狩猎页顶部有暗色分层条会干扰头像识别，使用收窄后的专用取景区域
+        # 新版 UI 已通过左侧入口进入通用特训目标页，统一使用通用取景区域
+        if not self.use_new_agent_page and self.mission_type.category.category_name == '恶名狩猎':
             area = self.ctx.screen_loader.get_area("快捷手册", "目标列表-训练-恶名狩猎")
         else:
             area = self.ctx.screen_loader.get_area("快捷手册", f"目标列表-{tab_name}")

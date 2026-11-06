@@ -442,13 +442,9 @@ class Operation(OperationBase):
                     node_name = 'none' if self._current_node is None else self._current_node.cn
                     from_node_name = 'none' if self._previous_node is None else self._previous_node.cn
                     round_result_status = 'none' if round_result is None else coalesce_gt(round_result.status, round_result.status_display, model='ui')
-                    if (self._current_node is not None
-                            and self._current_node.mute
-                        and (round_result.result == OperationRoundResultEnum.WAIT or round_result.result == OperationRoundResultEnum.RETRY)):
-                        pass
-                    else:
-                        arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
-                        log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
+                    self._log_round_result(
+                        from_node_name, node_name, round_result_status, round_result,
+                    )
                     self._emit_debug_round_trace(
                         from_node_name=from_node_name,
                         node_name=node_name,
@@ -510,6 +506,17 @@ class Operation(OperationBase):
 
         self.after_operation_done(op_result)
         return op_result
+
+    def _log_round_result(
+        self,
+        from_node_name: str,
+        node_name: str,
+        status_text: str,
+        result: OperationRoundResult | None,
+    ) -> None:
+        """输出节点文本日志；子类可合并重复输出，不影响逐轮调试事件。"""
+        arrow = f'{from_node_name} -> {node_name}' if self._previous_node is not None else node_name
+        log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, status_text)
 
     def _execute_one_round(self) -> OperationRoundResult:
         """执行当前操作节点的一轮。

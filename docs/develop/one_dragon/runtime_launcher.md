@@ -109,10 +109,10 @@ LauncherBase          → 基础参数解析、run() 入口
 ### 生成时机
 
 - **打包时**：spec 文件通过 `importlib` 动态加载 `generate_module_manifest.py`，在 Analysis 阶段生成 `module_manifest.py`
-- **CI 自动构建**：`build-running-resources.yml` 工作流每次推送到 main 或者 pr 更新时运行 `generate_module_manifest.py`，如果清单有变化则自动提交
-- **CI 兼容性检查**：`runtime-compatibility.yml` 在推送到 main 或手动触发时，下载最新正式版 RuntimeLauncher。检查脚本提取 EXE 内的 PYZ 和冻结导入器，使用同版本 Python 加载 `.runtime` 中的标准库、扩展模块和 DLL，再调用同一套新增导入检查。确认不兼容时打开或评论同一个未关闭 issue，并提醒仓库变量 `COMPATIBILITY_NOTIFY_USER` 指定的 GitHub 用户；变量缺失、为空或不是合法用户名时，Action 失败且不打开 issue。下载、解压或检查进程异常同样只让 Action 失败，不打开 issue。
-
-检查只使用发布列表中第一个非草稿、非预发布版本；该正式版缺少 RuntimeLauncher 资产时直接失败，不回退到较旧版本。两个 CI 下载脚本仅在协议、主机名和有效端口均相同时保留 Authorization，其他来源的重定向移除凭据；携带凭据的 HTTPS 请求重定向到 HTTP 时直接拒绝。兼容性子进程开启 UTF-8，并在检查期间持有 `.runtime` 的 DLL 搜索目录句柄。
+- **CI 自动构建**：`build-running-resources.yml` 工作流每次推送到 main 或者 pr 更新时运行 `generate_module_manifest.py`，如果清单有变化则自动提交。本 fork 差异：同仓 PR 和 main 可自动提交产物；fork PR 只检查，产物与提交内容不一致时失败，不会自动回写。
+- **CI 兼容性检查**：`runtime-compatibility.yml` 在推送到 main 或手动触发时，下载最新正式版 RuntimeLauncher。检查脚本提取 EXE 内的 PYZ 和冻结导入器，使用同版本 Python 加载 `.runtime` 中的标准库、扩展模块和 DLL，再调用同一套新增导入检查。确认不兼容时打开或评论同一个未关闭 issue，并提醒仓库变量 `COMPATIBILITY_NOTIFY_USER` 指定的 GitHub 用户；变量缺失、为空或不是合法用户名时，Action 失败且不打开 issue。下载、解压或检查进程异常同样只让 Action 失败，不打开 issue。检查只使用发布列表中第一个非草稿、非预发布版本；该正式版缺少 RuntimeLauncher 资产时直接失败，不回退到较旧版本。两个 CI 下载脚本仅在协议、主机名和有效端口均相同时保留 Authorization，其他来源的重定向移除凭据；携带凭据的 HTTPS 请求重定向到 HTTP 时直接拒绝。兼容性子进程开启 UTF-8，并在检查期间持有 `.runtime` 的 DLL 搜索目录句柄。
+- **清单同步（fork 维护者手动兜底）**：源码增加外部导入后，运行 `uv run --no-sync --env-file .env python deploy/generate_module_manifest.py`，核对并提交清单。
+- **完整产物检查**：按[构建工作流](../../../.github/workflows/build-running-resources.yml)的 `Build files` 步骤依次生成全部产物，核对并提交差异。再次生成应无新增差异；仅重跑 CI 不能修复未提交的产物。
 
 ## 代码同步流程
 

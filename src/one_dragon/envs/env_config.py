@@ -246,6 +246,18 @@ class EnvConfig(YamlConfig):
         self.update('auto_update_code', new_value)
 
     @property
+    def notify_on_update(self) -> bool:
+        """
+        后台发现新版本时是否推送通知
+        :return:
+        """
+        return self.get('notify_on_update', True)
+
+    @notify_on_update.setter
+    def notify_on_update(self, new_value: bool) -> None:
+        self.update('notify_on_update', new_value)
+
+    @property
     def pip_source(self) -> str:
         """
         pip源
@@ -423,6 +435,14 @@ class EnvConfig(YamlConfig):
     @screenshot_method.setter
     def screenshot_method(self, new_value: str) -> None:
         self.update('screenshot_method', new_value)
+
+    @property
+    def force_active_window(self) -> bool:
+        return self.get('force_active_window', False)
+
+    @force_active_window.setter
+    def force_active_window(self, new_value: bool) -> None:
+        self.update('force_active_window', new_value)
 
     @property
     def key_start_running(self) -> str:
