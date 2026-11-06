@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
@@ -40,6 +41,7 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
         layout.addWidget(self.team_opt)
 
     def init_config(self) -> None:
+        """加载当前实例的配置与运行记录 并刷新界面"""
         config = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
@@ -51,7 +53,7 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
         )
 
         self.times_opt.init_with_adapter(get_prop_adapter(config, 'daily_plan_times'))
-        self.done_value.titleLabel.setText(f'当日: {run_record.daily_run_times}')
+        self.done_value.titleLabel.setText(gt('当日: {}').format(run_record.daily_run_times))
 
         team_list = ([ConfigItem('游戏内配队', -1)] +
                      [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])

@@ -233,16 +233,16 @@ class SettingEnvInterface(VerticalScrollInterface):
         # 异步测速pip源，toast显示日志和结果
         self._pip_speed_thread = PipSourceSpeedTestThread(self.ctx)
         self._pip_speed_thread.log_signal.connect(lambda label, ms: self._show_info_bar(
-            title=f"测速：{label}",
-            content=f"耗时 {ms}ms",
+            title=gt("测速：{}").format(label),
+            content=gt("耗时 {}ms").format(ms),
             duration=2000
         ))
         def pip_result(label, ms, value):
             self.ctx.env_config.pip_source = value
             self.pip_source_opt.setValue(value)
             self._show_info_bar(
-                title="测速结果",
-                content=f"已选择最快的Pip源：{label}（{ms}ms）",
+                title=gt("测速结果"),
+                content=gt("已选择最快的Pip源：{}（{}ms）").format(gt(label), ms),
                 duration=3000
             )
         self._pip_speed_thread.result_signal.connect(pip_result)
