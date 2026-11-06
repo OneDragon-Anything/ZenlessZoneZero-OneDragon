@@ -51,6 +51,8 @@ class ScreenContext:
         self._id_2_screen: dict[str, ScreenInfo] = {}
         self._extra_screen_ids: set[str] = set()
         self._extra_screen_file_path_map: dict[str, Path] = {}
+        self._extra_screen_app_id_map: dict[str, str] = {}
+        """插件画面注入时补的 default_app_id：重载要补回去，否则会变成全局画面。"""
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
         self.last_screen_name: str | None = None  # 上一个画面名字
@@ -88,6 +90,7 @@ class ScreenContext:
         if not from_memory and not keep_extra:
             self._extra_screen_ids.clear()
             self._extra_screen_file_path_map.clear()
+            self._extra_screen_app_id_map.clear()
 
         if from_memory:
             for screen_info in self._id_2_screen.values():
@@ -195,8 +198,10 @@ class ScreenContext:
                 data['app_id'] = default_app_id
 
             screen_info = ScreenInfo(data)
-            if self._extra_screen_file_path_map.get(screen_info.screen_id) == file_path:
-                # 同一个插件画面文件重复注入（刷新注册时 reload 已经把插件画面补回来了），无需再加载
+            if (self._extra_screen_file_path_map.get(screen_info.screen_id) == file_path
+                    and screen_info.screen_id in self._id_2_screen):
+                # 同一个文件、且画面当前还在内存里：reload 已补回，无需再加载。
+                # 只比路径不比在不在，一次读盘失败会让这个画面永久注入不回来。
                 continue
             if screen_info.screen_name in self.screen_info_map:
                 log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
@@ -210,6 +215,8 @@ class ScreenContext:
             self._id_2_screen[screen_info.screen_id] = screen_info
             self._extra_screen_ids.add(screen_info.screen_id)
             self._extra_screen_file_path_map[screen_info.screen_id] = file_path
+            if default_app_id and not screen_info.app_id:
+                self._extra_screen_app_id_map[screen_info.screen_id] = default_app_id
 
             for screen_area in screen_info.area_list:
                 self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
@@ -242,6 +249,9 @@ class ScreenContext:
             if not isinstance(data, dict):
                 log.warning(f"插件画面配置格式错误，已跳过: {file_path}")
                 continue
+            default_app_id = self._extra_screen_app_id_map.get(screen_id, '')
+            if default_app_id and not data.get('app_id'):
+                data['app_id'] = default_app_id
             screen_info = ScreenInfo(data)
             if screen_info.screen_name in self.screen_info_map:
                 continue
@@ -310,6 +320,7 @@ class ScreenContext:
             del self._id_2_screen[screen_id]
             self._extra_screen_ids.discard(screen_id)
             self._extra_screen_file_path_map.pop(screen_id, None)
+            self._extra_screen_app_id_map.pop(screen_id, None)
 
             if extra_file_path is not None:
                 if extra_file_path.exists():
@@ -334,6 +345,7 @@ class ScreenContext:
             self._id_2_screen.pop(old_screen_id, None)
             self._extra_screen_ids.discard(old_screen_id)
             self._extra_screen_file_path_map.pop(old_screen_id, None)
+            self._extra_screen_app_id_map.pop(old_screen_id, None)
             if old_file_path.exists():
                 old_file_path.unlink()
             file_path = old_file_path.with_name(f'{screen_info.screen_id}.yml')

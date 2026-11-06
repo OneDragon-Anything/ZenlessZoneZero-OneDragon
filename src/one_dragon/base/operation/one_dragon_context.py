@@ -297,8 +297,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if factories:
             self.run_context.registry_application(factories)
 
-        # 重新加载插件 screen
-        self.screen_loader.reload()
+        # 重新加载插件 screen：先按 keep_extra=False 清掉旧插件画面，再按当前插件列表注入，
+        # 否则已卸载插件的画面会一直残留、挡住新插件的同名画面。
+        self.screen_loader.reload(keep_extra=False)
         self._load_plugin_screens()
 
         # 更新默认应用组

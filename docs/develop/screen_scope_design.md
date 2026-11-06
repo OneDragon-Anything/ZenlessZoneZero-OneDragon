@@ -50,6 +50,19 @@
 
 无需代码中手动维护字符串列表。
 
+### 插件画面的重载语义
+
+插件经 load_extra_screen_dir 注入的画面不在工作目录的分离/合并文件里，
+eload() 默认会按登记把
+它们补回来（keep_extra=True）：
+
+- 补回时按注入时补过的 default_app_id 重新填 pp_id，保证重载后仍是局部 screen，不会变成全局画面。
+- 只有「同一个文件、且画面当前确实在内存里」才算重复注入而跳过；读盘失败导致画面丢失时，再次注入会补回。
+- 刷新应用注册（
+efresh_application_registration）用 
+eload(keep_extra=False) 先清空旧插件画面，
+  再按当前插件列表注入，避免已卸载插件的画面残留、挡住新插件的同名画面。
+
 ## 3. 数据模型变更
 
 ### ScreenInfo 新增 `app_id` 字段
