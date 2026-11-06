@@ -184,8 +184,8 @@ class Application(Operation):
 ```
 OneDragonContext.init()
 ├── register_application_factory()         ← 扫描插件，填充 plugin_infos
-├── reload_screens()                       ← 加载主 screen YAML（ScreenContext.reload）
-└── _load_plugin_screens()                 ← 按 plugin_infos 重设来源目录 → _load_extras()
+├── _load_plugin_screens(rebuild=False)    ← 先登记插件画面来源目录（不重建）
+└── reload_screens()                       ← 一次建好主 screen YAML + 插件画面
 
 refresh_application_registration()           ← 运行时安装/卸载/更新插件
 ├── clear_applications + discover_factories  ← 重新扫描
@@ -196,10 +196,13 @@ refresh_application_registration()           ← 运行时安装/卸载/更新�
   `set_extra_screen_dirs()` 写。
 - 派生表 `_extra_screen_ids`（画面 id）与 `_extra_screen_paths`（id → yml）：
   每次 `_load_extras()` 全量重建，任何分支不手改。
-- `_load_extras()` 先把上一轮登记的插件画面从内存表摘掉，再遍历来源目录：
-  YAML 解析失败、`ScreenInfo` 构造失败（缺 `pc_rect` 等）都跳过该文件；
-  与已加载画面同名或同 id 时跳过并告警（带 id 与文件路径），插件画面不覆盖主配置。
-- 显式重载主配置走 `OneDragonContext.reload_screens()`；`ScreenContext.reload()` 不建议直接调用。
+- 重建是「先构建、成功后整体替换」：`_build_base()` / `_build_extras()` 只读文件或内存，
+  构建失败（base YAML/ScreenInfo 抛错等）时保留原状态并返回失败；成功后 `_apply_state()`
+  一次性替换四张内存表、两张派生表并重建路由/global/scope。
+- 同名或同 id 冲突时先遍历到的优先；遍历顺序显式按目录路径/文件名 casefold 排序，结果可预测。
+  插件画面不覆盖主配置：冲突文件跳过并告警（带 id 与文件路径）。
+- 显式重载主配置走 `OneDragonContext.reload_screens()`，返回是否成功；失败时调用方不要继续
+  `save()`（devtools 的「更新」已据此处理）。`ScreenContext.reload()` 不建议直接调用。
 
 ### 插件目录结构
 

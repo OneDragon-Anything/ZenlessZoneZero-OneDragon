@@ -78,26 +78,29 @@ class ScreenContext:
     def get_yml_file_path(self, screen_id: str) -> Path:
         return self.yml_file_dir / f'{screen_id}.yml'
 
-    def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
-        """重建主配置与插件画面。
+    def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> bool:
+        """重建主配置与插件画面，返回是否成功。
 
         插件安装/卸载不要调这里（用 OneDragonContext.refresh_application_registration）；
         需要显式重读磁盘时用 OneDragonContext.reload_screens()。
 
-        先构建完整新状态、成功后一次性替换；构建中任何异常都保留原状态，避免
-        插件画面已清空、主配置却加载失败这种半更新状态。
+        先构建完整新状态、成功后一次性替换；构建中任何异常都保留原状态并返回 False，
+        避免插件画面已清空、主配置却加载失败这种半更新状态。
 
         Args:
             from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
             from_separated_files: 是否从单独文件加载
+
+        Returns:
+            是否重载成功；失败时内存保持重载前的状态。
         """
         try:
             base = self._build_base(from_memory, from_separated_files)
             extras, extra_paths = self._build_extras(base)
         except Exception:
             log.error('画面重载失败，保留原状态', exc_info=True)
-            return
-        self._apply_state(base, extras, extra_paths)
+            return False
+        return self._apply_state(base, extras, extra_paths)
 
     def _build_base(
         self, from_memory: bool, from_separated_files: bool,
@@ -216,21 +219,78 @@ class ScreenContext:
         base: dict[str, ScreenInfo],
         extras: dict[str, ScreenInfo],
         extra_paths: dict[str, Path],
-    ) -> None:
-        """一次性替换四张内存表与两张派生表，并重建路由/global/scope。"""
-        self.screen_info_list = list(base.values()) + list(extras.values())
-        self.screen_info_map = {
-            screen_info.screen_name: screen_info for screen_info in self.screen_info_list
-        }
-        self._id_2_screen = {
-            screen_info.screen_id: screen_info for screen_info in self.screen_info_list
-        }
-        self._screen_area_map = {}
-        for screen_info in self.screen_info_list:
+    ) -> bool:
+        """一次性替换四张内存表与两张派生表，并重建路由/global/scope。
+
+        重建派生状态若抛错，恢复替换前的状态并返回 False。
+        """
+        snapshot = self._snapshot_state()
+        try:
+            self.screen_info_list = list(base.values()) + list(extras.values())
+            self.screen_info_map = {
+                screen_info.screen_name: screen_info for screen_info in self.screen_info_list
+            }
+            self._id_2_screen = {
+                screen_info.screen_id: screen_info for screen_info in self.screen_info_list
+            }
+            self._screen_area_map = {}
+            for screen_info in self.screen_info_list:
+                for screen_area in screen_info.area_list:
+                    self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+            self._extra_screen_ids = set(extras)
+            self._extra_screen_paths = dict(extra_paths)
+            self._refresh_derived_state()
+        except Exception:
+            log.error('画面状态应用失败，恢复旧状态', exc_info=True)
+            self._restore_state(snapshot)
+            return False
+        return True
+
+    def _snapshot_state(self) -> tuple:
+        """保存当前画面状态引用，供 _apply_state 失败时回滚。"""
+        return (
+            self.screen_info_list,
+            self.screen_info_map,
+            self._id_2_screen,
+            self._screen_area_map,
+            self._extra_screen_ids,
+            self._extra_screen_paths,
+            {name: dict(routes) for name, routes in self.screen_route_map.items()},
+            self._global_screen_names,
+            self._local_screen_names,
+            self._scoped,
+            self._scope_app_id,
+        )
+
+    def _restore_state(self, snapshot: tuple) -> None:
+        """恢复 _snapshot_state 保存的画面状态。"""
+        (
+            self.screen_info_list,
+            self.screen_info_map,
+            self._id_2_screen,
+            self._screen_area_map,
+            self._extra_screen_ids,
+            self._extra_screen_paths,
+            self.screen_route_map,
+            self._global_screen_names,
+            self._local_screen_names,
+            self._scoped,
+            self._scope_app_id,
+        ) = snapshot
+
+    def _drop_screen_after_rebuild_failure(self, screen_id: str) -> None:
+        """文件已删但重建失败时，至少把该画面从内存里摘掉，避免继续显示已删画面。"""
+        screen_info = self._id_2_screen.pop(screen_id, None)
+        if screen_info is not None:
+            self.screen_info_map.pop(screen_info.screen_name, None)
+            for index, item in enumerate(self.screen_info_list):
+                if item is screen_info:
+                    self.screen_info_list.pop(index)
+                    break
             for screen_area in screen_info.area_list:
-                self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
-        self._extra_screen_ids = set(extras)
-        self._extra_screen_paths = dict(extra_paths)
+                self._screen_area_map.pop(f'{screen_info.screen_name}.{screen_area.area_name}', None)
+        self._extra_screen_ids.discard(screen_id)
+        self._extra_screen_paths.pop(screen_id, None)
         self._refresh_derived_state()
 
     def _refresh_derived_state(self) -> None:
@@ -241,11 +301,12 @@ class ScreenContext:
         }
         self._refresh_scope()
 
-    def _load_extras(self) -> None:
-        """按来源目录重建插件画面；单独调用也一次性替换，失败保留原状态。
+    def _load_extras(self) -> bool:
+        """按来源目录重建插件画面，返回是否成功。
 
-        同名/同 id 冲突时先遍历到的优先：来源目录按 str(path).casefold() 排序、
-        目录内文件按文件名 casefold 排序，遍历顺序显式且稳定。
+        单独调用也一次性替换，失败保留原状态。同名/同 id 冲突时先遍历到的优先：
+        来源目录按 str(path).casefold() 排序、目录内文件按文件名 casefold 排序，
+        遍历顺序显式且稳定。
         """
         base = {
             screen_id: screen_info
@@ -256,35 +317,41 @@ class ScreenContext:
             extras, extra_paths = self._build_extras(base)
         except Exception:
             log.error('插件画面重建失败，保留原状态', exc_info=True)
-            return
-        self._apply_state(base, extras, extra_paths)
+            return False
+        return self._apply_state(base, extras, extra_paths)
 
-    def set_extra_screen_dirs(self, screen_dirs: dict[Path, str], *, rebuild: bool = True) -> None:
-        """替换插件画面来源表（刷新注册用；不重载主配置）。
+    def set_extra_screen_dirs(
+        self, screen_dirs: dict[Path, str], *, rebuild: bool = True,
+    ) -> bool:
+        """替换插件画面来源表（刷新注册用；不重载主配置），返回是否成功。
 
         Args:
             screen_dirs: 目录 → default_app_id
             rebuild: 是否立即重建插件层；初始化时先登记、等 reload 一次建好时传 False
+
+        Returns:
+            来源登记成功，且 rebuild=False 或插件层重建成功。
         """
         self._extra_screen_dirs.clear()
         self._extra_screen_dirs.update(screen_dirs)
-        if rebuild:
-            self._load_extras()
+        if not rebuild:
+            return True
+        return self._load_extras()
 
-    def unload_extra_screens(self) -> None:
-        """清空插件画面来源并重建插件层；主配置不动。"""
+    def unload_extra_screens(self) -> bool:
+        """清空插件画面来源并重建插件层，返回是否成功；主配置不动。"""
         self._extra_screen_dirs.clear()
-        self._load_extras()
+        return self._load_extras()
 
-    def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> None:
-        """登记插件画面来源目录并立刻重建插件层（登记即生效）。
+    def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> bool:
+        """登记插件画面来源目录并立刻重建插件层（登记即生效），返回是否成功。
 
         Args:
             dir_path: 包含 screen YAML 的目录路径
             default_app_id: 插件 screen 未声明 app_id 时使用的默认值
         """
         self._extra_screen_dirs[Path(dir_path)] = default_app_id
-        self._load_extras()
+        return self._load_extras()
 
     def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
         """
@@ -368,14 +435,23 @@ class ScreenContext:
                 except OSError:
                     log.error(f"删除插件画面文件失败，保留内存状态: {extra_file_path}", exc_info=True)
                     return
-            self._load_extras()
+            if not self._load_extras():
+                # 文件已删、重建失败：内存不能继续显示已删画面，至少把这一条摘掉。
+                log.error(f"插件画面文件已删除但重建失败，先从内存摘除: {screen_id}")
+                self._drop_screen_after_rebuild_failure(screen_id)
             return
 
+        # 基础画面：同样先删文件，失败则不碰内存；成功后再摘除并重建派生状态。
+        file_path = self.get_yml_file_path(screen_id)
+        if file_path.exists():
+            try:
+                file_path.unlink()
+            except OSError:
+                log.error(f"删除画面文件失败，保留内存状态: {file_path}", exc_info=True)
+                return
         if screen_id in self._id_2_screen:
             del self._id_2_screen[screen_id]
-            file_path = self.get_yml_file_path(screen_id)
-            if file_path.exists():
-                file_path.unlink()
+            self._refresh_derived_state()
 
         if save:
             self.save(screen_id=screen_id)
