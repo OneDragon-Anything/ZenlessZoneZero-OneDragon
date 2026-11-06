@@ -72,18 +72,20 @@ class ScreenContext:
     def get_yml_file_path(self, screen_id: str) -> Path:
         return self.yml_file_dir / f'{screen_id}.yml'
 
-    def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
+    def reload(self, from_memory: bool = False, from_separated_files: bool = False,
+               keep_extra: bool = True) -> None:
         """
         重新加载配置文件
 
         Args:
             from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
             from_separated_files: 是否从单独文件加载
+            keep_extra: 重载后是否把插件注入的画面补回来；只有主动卸载插件画面时才传 False
         """
         self.screen_info_list.clear()
         self.screen_info_map.clear()
         self._screen_area_map.clear()
-        if not from_memory:
+        if not from_memory and not keep_extra:
             self._extra_screen_ids.clear()
             self._extra_screen_file_path_map.clear()
 
@@ -155,6 +157,9 @@ class ScreenContext:
                 for screen_area in screen_info.area_list:
                     self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
 
+        if not from_memory and keep_extra:
+            self._reload_extra_screens()
+
         self.init_screen_route()
 
         # 自动计算全局 screen：没有 app_id 的 screen 为全局
@@ -190,6 +195,9 @@ class ScreenContext:
                 data['app_id'] = default_app_id
 
             screen_info = ScreenInfo(data)
+            if self._extra_screen_file_path_map.get(screen_info.screen_id) == file_path:
+                # 同一个插件画面文件重复注入（刷新注册时 reload 已经把插件画面补回来了），无需再加载
+                continue
             if screen_info.screen_name in self.screen_info_map:
                 log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
                 continue
@@ -212,6 +220,38 @@ class ScreenContext:
             self._global_screen_names = {
                 s.screen_name for s in self.screen_info_list if not s.app_id
             }
+
+    def _reload_extra_screens(self) -> None:
+        """重载后把插件注入的画面补回来。
+
+        分离文件与合并文件都只看工作目录，插件经 load_extra_screen_dir 注入的画面
+        不在其中；不补的话任何一次 reload 都会把插件画面整片清掉，插件随后报
+        「区域未配置」。文件已被插件删除时顺手把登记清掉。
+        """
+        for screen_id, file_path in list(self._extra_screen_file_path_map.items()):
+            if not file_path.exists():
+                self._extra_screen_ids.discard(screen_id)
+                self._extra_screen_file_path_map.pop(screen_id, None)
+                continue
+            try:
+                with file_path.open(encoding='utf-8') as file:
+                    data = yaml_utils.safe_load(file)
+            except OSError:
+                log.warning(f"插件画面配置读取失败，已跳过: {file_path}")
+                continue
+            if not isinstance(data, dict):
+                log.warning(f"插件画面配置格式错误，已跳过: {file_path}")
+                continue
+            screen_info = ScreenInfo(data)
+            if screen_info.screen_name in self.screen_info_map:
+                continue
+            if screen_info.screen_id in self._id_2_screen:
+                continue
+            self.screen_info_list.append(screen_info)
+            self.screen_info_map[screen_info.screen_name] = screen_info
+            self._id_2_screen[screen_info.screen_id] = screen_info
+            for screen_area in screen_info.area_list:
+                self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
 
     def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
         """
