@@ -261,20 +261,23 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if factories:
             self.run_context.registry_application(factories)
 
-    def _load_plugin_screens(self) -> None:
-        """按当前 plugin_infos 重设插件画面来源并重建插件层。
+    def _load_plugin_screens(self, *, rebuild: bool = True) -> None:
+        """按当前 plugin_infos 重设插件画面来源（可选立即重建插件层）。
 
         遍历所有已注册插件，把其 screen_info/ 目录登记为画面来源；
         未设 app_id 的 screen 自动使用插件的 app_id。
 
         不要直接调：init() 与 refresh_application_registration() 会用到。
+
+        Args:
+            rebuild: 是否立即重建插件层；初始化时先登记、等 reload_screens 一次建好时传 False
         """
         screen_dirs: dict[Path, str] = {}
         for plugin_info in self.factory_manager.plugin_infos:
             if plugin_info.plugin_dir is None:
                 continue
             screen_dirs[plugin_info.plugin_dir / 'screen_info'] = plugin_info.app_id
-        self.screen_loader.set_extra_screen_dirs(screen_dirs)
+        self.screen_loader.set_extra_screen_dirs(screen_dirs, rebuild=rebuild)
 
     def reload_screens(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
         """显式重载画面配置（会一并按来源目录重建插件画面）。
@@ -368,8 +371,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_ocr()
 
+            # 先登记插件画面来源，再 reload 一次把 base 与插件画面一起建好，避免重复重建。
+            self._load_plugin_screens(rebuild=False)
             self.reload_screens()
-            self._load_plugin_screens()
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()

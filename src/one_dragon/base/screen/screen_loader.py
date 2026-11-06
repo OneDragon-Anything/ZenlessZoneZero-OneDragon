@@ -84,32 +84,50 @@ class ScreenContext:
         插件安装/卸载不要调这里（用 OneDragonContext.refresh_application_registration）；
         需要显式重读磁盘时用 OneDragonContext.reload_screens()。
 
+        先构建完整新状态、成功后一次性替换；构建中任何异常都保留原状态，避免
+        插件画面已清空、主配置却加载失败这种半更新状态。
+
         Args:
             from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
             from_separated_files: 是否从单独文件加载
         """
-        prev_extra = set(self._extra_screen_ids)
-        # 先摘掉上一轮插件画面，再加载 base：反过来会让新出现的同名 base 画面
-        # 先进入内存、随后被「上一轮插件 id」当成插件摘掉，save() 就丢了 base。
-        for screen_id in prev_extra:
-            self._remove_screen(screen_id)
-        self._extra_screen_ids.clear()
-        self._extra_screen_paths.clear()
-        self._load_base(from_memory, from_separated_files)
-        self._load_extras()
+        try:
+            base = self._build_base(from_memory, from_separated_files)
+            extras, extra_paths = self._build_extras(base)
+        except Exception:
+            log.error('画面重载失败，保留原状态', exc_info=True)
+            return
+        self._apply_state(base, extras, extra_paths)
 
-    def _load_base(self, from_memory: bool, from_separated_files: bool) -> None:
-        """只加载主配置（内存/分离文件/合并文件），不碰插件画面。"""
-        self.screen_info_list.clear()
-        self.screen_info_map.clear()
-        self._screen_area_map.clear()
+    def _build_base(
+        self, from_memory: bool, from_separated_files: bool,
+    ) -> dict[str, ScreenInfo]:
+        """构建主配置（内存/分离文件/合并文件），不修改现有内存表。
+
+        base 文件解析/构造异常向上抛，由 reload 统一兜底保留旧状态。
+        """
+        base: dict[str, ScreenInfo] = {}
+        names: set[str] = set()
+
+        def add(screen_info: ScreenInfo) -> None:
+            if screen_info.screen_name in names:
+                log.warning(f"画面名称冲突，已跳过: {screen_info.screen_name}")
+                return
+            if screen_info.screen_id in base:
+                log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
+                return
+            base[screen_info.screen_id] = screen_info
+            names.add(screen_info.screen_name)
 
         if from_memory:
-            for screen_info in self._id_2_screen.values():
-                self._append_screen(screen_info)
+            for screen_id, screen_info in self._id_2_screen.items():
+                if screen_id in self._extra_screen_ids:
+                    continue
+                add(screen_info)
         elif from_separated_files:
-            self._id_2_screen.clear()
-            for file_path in self.yml_file_dir.iterdir():
+            for file_path in sorted(
+                self.yml_file_dir.iterdir(), key=lambda path: path.name.casefold(),
+            ):
                 if file_path.suffix != '.yml':
                     continue
                 if file_path.name == '_od_merged.yml':
@@ -120,16 +138,8 @@ class ScreenContext:
                 if not isinstance(data, dict):
                     log.warning(f"画面配置格式错误，已跳过: {file_path}")
                     continue
-                screen_info = ScreenInfo(data)
-                if screen_info.screen_name in self.screen_info_map:
-                    log.warning(f"画面名称冲突，已跳过: {screen_info.screen_name}")
-                    continue
-                if screen_info.screen_id in self._id_2_screen:
-                    log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
-                    continue
-                self._append_screen(screen_info)
+                add(ScreenInfo(data))
         else:
-            self._id_2_screen.clear()
             file_path = self.merge_yml_file_path
             if file_path.exists():
                 with file_path.open(encoding='utf-8') as file:
@@ -146,55 +156,27 @@ class ScreenContext:
                 if not isinstance(data, dict):
                     log.warning(f"合并画面配置中存在非字典条目，已跳过: {file_path}")
                     continue
-                screen_info = ScreenInfo(data)
-                if screen_info.screen_name in self.screen_info_map:
-                    log.warning(f"画面名称冲突，已跳过: {screen_info.screen_name}")
-                    continue
-                if screen_info.screen_id in self._id_2_screen:
-                    log.warning(f"画面ID冲突，已跳过: {screen_info.screen_id}")
-                    continue
-                self._append_screen(screen_info)
+                add(ScreenInfo(data))
+        return base
 
-    def _append_screen(self, screen_info: ScreenInfo) -> None:
-        """把画面登记进四张内存表。"""
-        self.screen_info_list.append(screen_info)
-        self.screen_info_map[screen_info.screen_name] = screen_info
-        self._id_2_screen[screen_info.screen_id] = screen_info
-        for screen_area in screen_info.area_list:
-            self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+    def _build_extras(
+        self, base: dict[str, ScreenInfo],
+    ) -> tuple[dict[str, ScreenInfo], dict[str, Path]]:
+        """按来源目录构建插件画面，不修改现有内存表。
 
-    def _remove_screen(self, screen_id: str) -> None:
-        """从内存各表里摘掉一个画面；不在内存里时什么也不做。"""
-        screen_info = self._id_2_screen.pop(screen_id, None)
-        if screen_info is None:
-            return
-        self.screen_info_map.pop(screen_info.screen_name, None)
-        for index, item in enumerate(self.screen_info_list):
-            if item is screen_info:
-                self.screen_info_list.pop(index)
-                break
-        for screen_area in screen_info.area_list:
-            self._screen_area_map.pop(f'{screen_info.screen_name}.{screen_area.area_name}', None)
+        同名/同 id 冲突时先遍历到的优先：来源目录按 str(path).casefold() 排序、
+        目录内文件按文件名 casefold 排序，遍历顺序显式且稳定。
+        """
+        base_names = {screen_info.screen_name for screen_info in base.values()}
+        extras: dict[str, ScreenInfo] = {}
+        extra_paths: dict[str, Path] = {}
+        extra_names: set[str] = set()
 
-    def _refresh_derived_state(self) -> None:
-        """重建路由、全局画面集合与当前 scope。"""
-        self.init_screen_route()
-        self._global_screen_names = {
-            s.screen_name for s in self.screen_info_list if not s.app_id
-        }
-        self._refresh_scope()
-
-    def _load_extras(self) -> None:
-        """按来源目录全量重建插件画面；派生表只在这里产生。"""
-        for screen_id in list(self._extra_screen_ids):
-            self._remove_screen(screen_id)
-        self._extra_screen_ids.clear()
-        self._extra_screen_paths.clear()
-
-        for screen_dir, default_app_id in self._extra_screen_dirs.items():
+        for screen_dir in sorted(self._extra_screen_dirs, key=lambda path: str(path).casefold()):
+            default_app_id = self._extra_screen_dirs[screen_dir]
             if not screen_dir.is_dir():
                 continue
-            for file_path in screen_dir.iterdir():
+            for file_path in sorted(screen_dir.iterdir(), key=lambda path: path.name.casefold()):
                 if file_path.suffix != '.yml':
                     continue
                 try:
@@ -214,26 +196,80 @@ class ScreenContext:
                 except Exception:
                     log.warning(f"插件画面配置无效，已跳过: {file_path}")
                     continue
-                if screen_info.screen_name in self.screen_info_map:
+                if screen_info.screen_name in base_names or screen_info.screen_name in extra_names:
                     log.warning(
                         f"插件画面名称冲突，已跳过: {screen_info.screen_name}（{file_path}）"
                     )
                     continue
-                if screen_info.screen_id in self._id_2_screen:
+                if screen_info.screen_id in base or screen_info.screen_id in extras:
                     log.warning(
                         f"插件画面 ID 冲突，已跳过: {screen_info.screen_id}（{file_path}）"
                     )
                     continue
-                self._append_screen(screen_info)
-                self._extra_screen_ids.add(screen_info.screen_id)
-                self._extra_screen_paths[screen_info.screen_id] = file_path
+                extras[screen_info.screen_id] = screen_info
+                extra_paths[screen_info.screen_id] = file_path
+                extra_names.add(screen_info.screen_name)
+        return extras, extra_paths
+
+    def _apply_state(
+        self,
+        base: dict[str, ScreenInfo],
+        extras: dict[str, ScreenInfo],
+        extra_paths: dict[str, Path],
+    ) -> None:
+        """一次性替换四张内存表与两张派生表，并重建路由/global/scope。"""
+        self.screen_info_list = list(base.values()) + list(extras.values())
+        self.screen_info_map = {
+            screen_info.screen_name: screen_info for screen_info in self.screen_info_list
+        }
+        self._id_2_screen = {
+            screen_info.screen_id: screen_info for screen_info in self.screen_info_list
+        }
+        self._screen_area_map = {}
+        for screen_info in self.screen_info_list:
+            for screen_area in screen_info.area_list:
+                self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+        self._extra_screen_ids = set(extras)
+        self._extra_screen_paths = dict(extra_paths)
         self._refresh_derived_state()
 
-    def set_extra_screen_dirs(self, screen_dirs: dict[Path, str]) -> None:
-        """替换插件画面来源表并重建插件层（刷新注册用；不重载主配置）。"""
+    def _refresh_derived_state(self) -> None:
+        """重建路由、全局画面集合与当前 scope。"""
+        self.init_screen_route()
+        self._global_screen_names = {
+            s.screen_name for s in self.screen_info_list if not s.app_id
+        }
+        self._refresh_scope()
+
+    def _load_extras(self) -> None:
+        """按来源目录重建插件画面；单独调用也一次性替换，失败保留原状态。
+
+        同名/同 id 冲突时先遍历到的优先：来源目录按 str(path).casefold() 排序、
+        目录内文件按文件名 casefold 排序，遍历顺序显式且稳定。
+        """
+        base = {
+            screen_id: screen_info
+            for screen_id, screen_info in self._id_2_screen.items()
+            if screen_id not in self._extra_screen_ids
+        }
+        try:
+            extras, extra_paths = self._build_extras(base)
+        except Exception:
+            log.error('插件画面重建失败，保留原状态', exc_info=True)
+            return
+        self._apply_state(base, extras, extra_paths)
+
+    def set_extra_screen_dirs(self, screen_dirs: dict[Path, str], *, rebuild: bool = True) -> None:
+        """替换插件画面来源表（刷新注册用；不重载主配置）。
+
+        Args:
+            screen_dirs: 目录 → default_app_id
+            rebuild: 是否立即重建插件层；初始化时先登记、等 reload 一次建好时传 False
+        """
         self._extra_screen_dirs.clear()
         self._extra_screen_dirs.update(screen_dirs)
-        self._load_extras()
+        if rebuild:
+            self._load_extras()
 
     def unload_extra_screens(self) -> None:
         """清空插件画面来源并重建插件层；主配置不动。"""
@@ -295,6 +331,17 @@ class ScreenContext:
                 f"基础画面不能改成插件画面 ID，已跳过保存: {old_screen_id} → {screen_info.screen_id}"
             )
             return
+        plugin_names = {
+            self._id_2_screen[screen_id].screen_name
+            for screen_id in self._extra_screen_ids
+            if screen_id in self._id_2_screen
+        }
+        if screen_info.screen_name in plugin_names:
+            # 名称也是冲突源：否则保存后重建会把插件画面挤掉、base 变成同名画面。
+            log.warning(
+                f"基础画面不能改成插件画面名称，已跳过保存: {old_screen_id} → {screen_info.screen_name}"
+            )
+            return
 
         if old_screen_id and old_screen_id != screen_info.screen_id:
             self.delete_screen(old_screen_id, save=False)
@@ -310,11 +357,17 @@ class ScreenContext:
             save: 是否触发保存
         """
         if screen_id in self._extra_screen_ids:
-            # 插件画面：删文件后只重建插件层，主配置不动。
-            self._remove_screen(screen_id)
+            # 插件画面：先删文件，失败则保留内存状态；成功后再重建插件层。
             extra_file_path = self._extra_screen_paths.get(screen_id)
-            if extra_file_path is not None and extra_file_path.exists():
-                extra_file_path.unlink()
+            if extra_file_path is None:
+                log.error(f"插件画面缺少文件路径登记，已跳过删除: {screen_id}")
+                return
+            if extra_file_path.exists():
+                try:
+                    extra_file_path.unlink()
+                except OSError:
+                    log.error(f"删除插件画面文件失败，保留内存状态: {extra_file_path}", exc_info=True)
+                    return
             self._load_extras()
             return
 
