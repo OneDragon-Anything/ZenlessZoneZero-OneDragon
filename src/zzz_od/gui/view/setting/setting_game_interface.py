@@ -1,5 +1,12 @@
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, InfoBar, PushButton, SettingCardGroup
+from qfluentwidgets import (
+    ColorDialog,
+    FluentIcon,
+    InfoBar,
+    PushButton,
+    SettingCardGroup,
+)
 
 from one_dragon.base.config.basic_game_config import (
     FullScreenEnum,
@@ -12,6 +19,7 @@ from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4Button
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.overlay.overlay_config import HudFontSizeEnum, OverlayConfig
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -28,8 +36,10 @@ from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
+    SpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
@@ -90,8 +100,51 @@ class SettingGameInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.hdr_btn)
 
         basic_group.addSettingCard(self._get_launch_argument_group())
+        basic_group.addSettingCard(self._get_overlay_group())
 
         return basic_group
+
+    def _get_overlay_group(self) -> ExpandSettingCardGroup:
+        """Overlay 总开关作为头部，展开后是外观参数（不透明度 / 字号 / 粗体）。"""
+        overlay_group = ExpandSettingCardGroup(
+            icon=FluentIcon.DEVELOPER_TOOLS,
+            title='Overlay 调试面板',
+            content='按调试按钮（默认 F12）循环三档：normal 显示常规面板且不会被录屏捕获，debug 显示全部面板且可被录屏捕获',
+            content_wrap=True,
+        )
+
+        self.overlay_switch = SwitchSettingCard(
+            icon=FluentIcon.DEVELOPER_TOOLS, title='Overlay 调试面板',
+        )
+        self.overlay_switch.value_changed.connect(self._on_overlay_switch_changed)
+        overlay_group.addHeaderWidget(self.overlay_switch.btn)
+
+        self.overlay_opacity_opt = SpinBoxSettingCard(
+            icon=FluentIcon.BRIGHTNESS, title='面板不透明度',
+            content='100 为纯黑不透明，调低后游戏画面会从面板后透出来',
+            step=5, minimum=10, maximum=100,
+        )
+        self.overlay_opacity_opt.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_opacity_opt)
+
+        self.overlay_font_size_opt = ComboBoxSettingCard(
+            icon=FluentIcon.FONT, title='字体大小', options_enum=HudFontSizeEnum,
+        )
+        self.overlay_font_size_opt.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_font_size_opt)
+
+        self.overlay_font_bold_switch = SwitchSettingCard(icon=FluentIcon.FONT, title='粗体')
+        self.overlay_font_bold_switch.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_font_bold_switch)
+
+        self.overlay_theme_color_card = PushSettingCard(
+            icon=FluentIcon.PALETTE, title='主题色', text='选择颜色',
+            content='标题条与状态行流光使用的颜色',
+        )
+        self.overlay_theme_color_card.clicked.connect(self._on_overlay_theme_color_clicked)
+        overlay_group.addSettingCard(self.overlay_theme_color_card)
+
+        return overlay_group
 
     def _get_background_mode_group(self) -> ExpandSettingCardGroup:
         """后台模式开关 + 手柄动作键配置组（Xbox 和 DS4 各一套）。"""
@@ -256,6 +309,13 @@ class SettingGameInterface(VerticalScrollInterface):
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
 
+        overlay_config = OverlayConfig()
+        self.overlay_switch.setValue(overlay_config.display_mode != 'off', emit_signal=False)
+        self.overlay_opacity_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_opacity'))
+        self.overlay_font_size_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_font_size'))
+        self.overlay_font_bold_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_font_bold'))
+        self.overlay_theme_color_card.button.setText(overlay_config.hud_theme_color)
+
         for action, card in self._key_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'key_{action.value.value}'))
 
@@ -286,6 +346,39 @@ class SettingGameInterface(VerticalScrollInterface):
             card.setVisible(is_xbox)
         for card in self._ds4_action_cards.values():
             card.setVisible(not is_xbox)
+
+    def _on_overlay_theme_color_clicked(self) -> None:
+        """弹调色盘选主题色，确认后写回配置并刷新 Overlay。"""
+        config = OverlayConfig()
+        dialog = ColorDialog(QColor(config.hud_theme_color), '请选择 Overlay 主题色', self)
+        dialog.yesButton.setText('确定')
+        dialog.cancelButton.setText('取消')
+        if dialog.exec():
+            config.hud_theme_color = dialog.color.name()
+            self.overlay_theme_color_card.button.setText(config.hud_theme_color)
+            self._refresh_overlay()
+
+    def _on_overlay_appearance_changed(self, *_) -> None:
+        """外观参数已由适配器写盘，这里让运行中的 Overlay 立刻应用。"""
+        self._refresh_overlay()
+
+    def _on_overlay_switch_changed(self, value: bool) -> None:
+        """开关只切换档位：打开回到 normal，关闭落回 off，debug 档保留给调试按钮。"""
+        config = OverlayConfig()
+        if value:
+            if config.display_mode == 'off':
+                config.display_mode = 'normal'
+        else:
+            config.display_mode = 'off'
+        self._refresh_overlay()
+
+    def _refresh_overlay(self) -> None:
+        """配置写盘后让运行中的 Overlay 立刻按新档位刷新。"""
+        from one_dragon_qt.overlay.overlay_manager import OverlayManager
+
+        manager = OverlayManager.instance()
+        if manager is not None:
+            manager.reload_config()
 
     def _on_background_mode_changed(self, value: bool) -> None:
         """后台模式开关变更时检查 vgamepad 是否可用。"""
