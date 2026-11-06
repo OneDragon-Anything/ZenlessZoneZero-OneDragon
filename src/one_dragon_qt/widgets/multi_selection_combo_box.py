@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QAbstractAnimation, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor, QFontMetrics
 from PySide6.QtWidgets import (
     QApplication,
@@ -27,7 +27,6 @@ from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QPoint
     from PySide6.QtWidgets import QWidget
 
 
@@ -599,7 +598,14 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         new_y = self._menu_anchor_pos().y()
         delta = new_y - self._menu_anchor_y
         if delta:
-            menu.move(menu.x(), menu.y() + delta)
+            max_y = menu.screen().availableGeometry().bottom() - menu.height() + 1
+            ani = menu.aniManager.ani
+            if ani.state() == QAbstractAnimation.State.Running:
+                # 弹出动画每帧都会写入位置，需改动画终点，否则移动会被覆盖
+                end = ani.endValue()
+                ani.setEndValue(QPoint(end.x(), min(end.y() + delta, max_y)))
+            else:
+                menu.move(menu.x(), min(menu.y() + delta, max_y))
             self._menu_anchor_y = new_y
 
     def _on_item_triggered(self, item: ConfigItem, checked: bool) -> None:
