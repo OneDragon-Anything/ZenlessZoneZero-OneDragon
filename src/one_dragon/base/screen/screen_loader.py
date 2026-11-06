@@ -187,9 +187,13 @@ class ScreenContext:
         for file_path in screen_dir.iterdir():
             if file_path.suffix != '.yml':
                 continue
-            with file_path.open(encoding='utf-8') as file:
-                log.debug(f"加载插件画面: {file_path}")
-                data = yaml_utils.safe_load(file)
+            try:
+                with file_path.open(encoding='utf-8') as file:
+                    log.debug(f"加载插件画面: {file_path}")
+                    data = yaml_utils.safe_load(file)
+            except (OSError, yaml.YAMLError):
+                log.warning(f"插件画面配置读取失败，已跳过: {file_path}")
+                continue
             if not isinstance(data, dict):
                 log.warning(f"插件画面配置格式错误，已跳过: {file_path}")
                 continue
@@ -197,7 +201,11 @@ class ScreenContext:
             if default_app_id and not data.get('app_id'):
                 data['app_id'] = default_app_id
 
-            screen_info = ScreenInfo(data)
+            try:
+                screen_info = ScreenInfo(data)
+            except Exception:
+                log.warning(f"插件画面配置无效，已跳过: {file_path}")
+                continue
             if (self._extra_screen_file_path_map.get(screen_info.screen_id) == file_path
                     and screen_info.screen_id in self._id_2_screen):
                 # 同一个文件、且画面当前还在内存里：reload 已补回，无需再加载。
@@ -243,7 +251,7 @@ class ScreenContext:
             try:
                 with file_path.open(encoding='utf-8') as file:
                     data = yaml_utils.safe_load(file)
-            except OSError:
+            except (OSError, yaml.YAMLError):
                 log.warning(f"插件画面配置读取失败，已跳过: {file_path}")
                 continue
             if not isinstance(data, dict):
@@ -252,7 +260,11 @@ class ScreenContext:
             default_app_id = self._extra_screen_app_id_map.get(screen_id, '')
             if default_app_id and not data.get('app_id'):
                 data['app_id'] = default_app_id
-            screen_info = ScreenInfo(data)
+            try:
+                screen_info = ScreenInfo(data)
+            except Exception:
+                log.warning(f"插件画面配置无效，已跳过: {file_path}")
+                continue
             if screen_info.screen_name in self.screen_info_map:
                 continue
             if screen_info.screen_id in self._id_2_screen:
