@@ -77,6 +77,23 @@
 
 ```python
 class ScreenContext:
+    # ---- 插件画面来源 ----
+
+    def set_extra_screen_source(self, source: Callable[[], list[tuple[Path, str]]] | None) -> None:
+        """设置插件画面来源回调；每次重建现取，None 表示不注入"""
+
+    def reload_extra_screens(self) -> bool:
+        """只重建插件画面层（refresh 入口），不重载主配置"""
+
+    def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> bool:
+        """手工登记插件画面目录并立即重建（bagel ensure_screens 用）"""
+
+    def unload_extra_screens(self) -> bool:
+        """清空手工登记的插件画面来源并重建插件层"""
+
+    def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> bool:
+        """重建主配置；from_memory=True 时不读、不重建插件目录"""
+
     # ---- Screen Scope 管理 ----
 
     def enter_scope(self, app_id: str) -> None:
@@ -184,25 +201,32 @@ class Application(Operation):
 ```
 OneDragonContext.init()
 ├── register_application_factory()         ← 扫描插件，填充 plugin_infos
-├── _load_plugin_screens(rebuild=False)    ← 先登记插件画面来源目录（不重建）
-└── reload_screens()                       ← 一次建好主 screen YAML + 插件画面
+└── screen_loader.reload()                 ← 一次建好主 screen YAML + 插件画面
 
 refresh_application_registration()           ← 运行时安装/卸载/更新插件
 ├── clear_applications + discover_factories  ← 重新扫描
-└── _load_plugin_screens()                 ← 只重设来源并重建插件画面，不 reload 主配置
+└── screen_loader.reload_extra_screens()     ← 只重建插件画面层，不 reload 主配置
 ```
 
-- 来源表 `_extra_screen_dirs`：目录 → `default_app_id`，只由 `load_extra_screen_dir()` /
-  `set_extra_screen_dirs()` 写。
+- 来源是**拉取**的：`ScreenContext` 持有 `set_extra_screen_source(cb)` 回调，每次重建现取
+  `plugin_infos`（`_plugin_screen_dirs()`），不需要调用方维护目录表。
+- 插件画面目录来自 `PluginInfo.screen_info_dir`：插件可在 const 中声明 `SCREEN_INFO_DIR`
+  （默认 `'screen_info'`，空串表示不附带画面）；`KEY_SIM_DIR` 与它共用
+  `_read_relative_dir` 校验（非字符串/绝对路径/带盘符 anchor/含 `..`/`.` 都抛 `ImportError`，
+  该插件计入 scan_failures，不中断其它插件扫描）。
+- 手工注入（bagel `ensure_screens`）走 `load_extra_screen_dir()`，写
+  `_manual_extra_screen_dirs`；`unload_extra_screens()` 只清手工表，回调提供的目录下次重建会回来。
 - 派生表 `_extra_screen_ids`（画面 id）与 `_extra_screen_paths`（id → yml）：
   每次 `_load_extras()` 全量重建，任何分支不手改。
 - 重建是「先构建、成功后整体替换」：`_build_base()` / `_build_extras()` 只读文件或内存，
   构建失败（base YAML/ScreenInfo 抛错等）时保留原状态并返回失败；成功后 `_apply_state()`
   一次性替换四张内存表、两张派生表并重建路由/global/scope。
+- `reload(from_memory=True)` 只用内存重建 base 与派生状态，**不读、不重建插件目录**；
+  devtools 保存插件画面后靠它回读内存修改。非 from_memory 才按来源目录重建插件画面。
 - 同名或同 id 冲突时先遍历到的优先；遍历顺序显式按目录路径/文件名 casefold 排序，结果可预测。
   插件画面不覆盖主配置：冲突文件跳过并告警（带 id 与文件路径）。
-- 显式重载主配置走 `OneDragonContext.reload_screens()`，返回是否成功；失败时调用方不要继续
-  `save()`（devtools 的「更新」已据此处理）。`ScreenContext.reload()` 不建议直接调用。
+- `reload()` 返回是否成功；失败时调用方不要继续 `save()`（devtools 的「更新」已据此处理）。
+  重载会记录调用方模块与行号（save/delete 内部触发的 from_memory 重载只 debug）。
 
 ### 插件目录结构
 
@@ -213,7 +237,7 @@ plugins/
     my_plugin_const.py       # APP_ID = 'my_plugin'
     my_plugin_factory.py
     my_plugin.py
-    screen_info/             # ← 新增，放 screen YAML
+    screen_info/             # ← 默认目录（可用 const 的 SCREEN_INFO_DIR 改名；空串=不附带）
       my_screen.yml
 ```
 
@@ -247,7 +271,9 @@ area_list:
 | 文件 | 变更 |
 |------|------|
 | `src/one_dragon/base/screen/screen_info.py` | `ScreenInfo` 新增 `app_id` 字段 |
-| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理、插件画面来源表与按来源全量重建（`_load_extras`） |
+| `src/one_dragon/base/screen/screen_loader.py` | `ScreenContext` 新增 scope 管理、插件画面来源回调、按来源全量重建 + 原子替换 |
 | `src/one_dragon/base/screen/screen_utils.py` | BFS 匹配适配活跃范围 |
+| `src/one_dragon/base/operation/application/plugin_info.py` | `PluginInfo` 新增 `screen_info_dir`（const `SCREEN_INFO_DIR`，默认 `'screen_info'`） |
+| `src/one_dragon/base/operation/application/application_factory_manager.py` | 抽 `_read_relative_dir`，`KEY_SIM_DIR` / `SCREEN_INFO_DIR` 共用校验 |
 | `src/one_dragon/base/operation/application_base.py` | `Application` 生命周期自动 enter/exit scope |
-| `src/one_dragon/base/operation/one_dragon_context.py` | 新增 `_load_plugin_screens()`，init 和 refresh 时加载插件 screen |
+| `src/one_dragon/base/operation/one_dragon_context.py` | 构造时注入插件画面来源回调；init/refresh 直接调 screen_loader |
