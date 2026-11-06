@@ -1237,7 +1237,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._update_area_param_display()
 
     def _on_merge_clicked(self) -> None:
-        if not self.ctx.reload_screens(from_separated_files=True):
+        if not self.ctx.screen_loader.reload(from_separated_files=True):
             log.error('画面配置重载失败，保留现有配置，未保存')
             return
         self.ctx.screen_loader.save(reload_after_save=False)

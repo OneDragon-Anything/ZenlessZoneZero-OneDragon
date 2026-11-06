@@ -79,6 +79,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """通用调试 trace 总线"""
 
         self.screen_loader: ScreenContext = ScreenContext()
+        self.screen_loader.set_extra_screen_source(self._plugin_screen_dirs)
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(
             self.template_loader, debug_trace_bus=self.debug_trace_bus
@@ -261,42 +262,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if factories:
             self.run_context.registry_application(factories)
 
-    def _load_plugin_screens(self, *, rebuild: bool = True) -> bool:
-        """按当前 plugin_infos 重设插件画面来源（可选立即重建插件层）。
+    def _plugin_screen_dirs(self) -> list[tuple[Path, str]]:
+        """插件画面来源：各插件 const 里 SCREEN_INFO_DIR 声明的目录及其 app_id。
 
-        遍历所有已注册插件，把其 screen_info/ 目录登记为画面来源；
-        未设 app_id 的 screen 自动使用插件的 app_id。
-
-        不要直接调：init() 与 refresh_application_registration() 会用到。
-
-        Args:
-            rebuild: 是否立即重建插件层；初始化时先登记、等 reload_screens 一次建好时传 False
-
-        Returns:
-            来源登记成功，且 rebuild=False 或插件层重建成功。
+        空串表示插件不附带画面；这里不做 is_dir 过滤，目录是否存在由 ScreenContext 校验。
         """
-        screen_dirs: dict[Path, str] = {}
-        for plugin_info in self.factory_manager.plugin_infos:
-            if plugin_info.plugin_dir is None:
-                continue
-            screen_dirs[plugin_info.plugin_dir / 'screen_info'] = plugin_info.app_id
-        return self.screen_loader.set_extra_screen_dirs(screen_dirs, rebuild=rebuild)
-
-    def reload_screens(self, from_memory: bool = False, from_separated_files: bool = False) -> bool:
-        """显式重载画面配置（会一并按来源目录重建插件画面），返回是否成功。
-
-        插件安装/卸载不要用它，用 refresh_application_registration()。
-
-        Args:
-            from_memory: 是否从内存中加载
-            from_separated_files: 是否从单独文件加载
-
-        Returns:
-            是否重载成功；失败时保留重载前的画面状态，调用方不要继续 save()。
-        """
-        return self.screen_loader.reload(
-            from_memory=from_memory, from_separated_files=from_separated_files,
-        )
+        return [
+            (plugin_info.plugin_dir / plugin_info.screen_info_dir, plugin_info.app_id)
+            for plugin_info in self.factory_manager.plugin_infos
+            if plugin_info.plugin_dir is not None and plugin_info.screen_info_dir != ''
+        ]
 
     def refresh_application_registration(self) -> None:
         """刷新应用注册
@@ -319,8 +294,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if factories:
             self.run_context.registry_application(factories)
 
-        # 只重建插件画面层：插件安装/卸载不重载主画面配置。
-        if not self._load_plugin_screens():
+        # 只重建插件画面层：来源由 screen_loader 的回调现取 plugin_infos，不重载主配置。
+        if not self.screen_loader.reload_extra_screens():
             log.error('插件画面重建失败，保留现有插件画面')
 
         # 更新默认应用组
@@ -380,9 +355,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_ocr()
 
-            # 先登记插件画面来源，再 reload 一次把 base 与插件画面一起建好，避免重复重建。
-            self._load_plugin_screens(rebuild=False)
-            self.reload_screens()
+            if not self.screen_loader.reload():
+                log.error('画面配置加载失败，保留现有配置')
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()

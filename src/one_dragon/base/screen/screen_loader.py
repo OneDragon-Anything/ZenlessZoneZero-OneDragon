@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from pathlib import Path
 
@@ -136,6 +137,7 @@ class ScreenContext:
         Returns:
             是否重载成功；失败时内存保持重载前的状态。
         """
+        self._log_reload_caller(from_memory)
         if from_memory:
             base = self._build_base(True, False)
             extras = {
@@ -153,6 +155,31 @@ class ScreenContext:
             log.error('画面重载失败，保留原状态', exc_info=True)
             return False
         return self._apply_state(base, extras, extra_paths)
+
+    def _log_reload_caller(self, from_memory: bool) -> None:
+        """记录触发重载的调用方模块/行号（只定位，不拦截）。"""
+        frame = inspect.currentframe()
+        try:
+            direct = frame.f_back if frame is not None else None
+            if direct is not None and direct.f_code.co_filename == __file__:
+                # save/_save_extra_screen/delete_screen 内部的 from_memory 重载不刷 info
+                log.debug(
+                    '画面重载 caller=screen_loader.%s from_memory=%s',
+                    direct.f_code.co_name, from_memory,
+                )
+                return
+            caller = direct
+            while caller is not None and caller.f_code.co_filename == __file__:
+                caller = caller.f_back
+            if caller is None:
+                log.debug('画面重载 caller=未知 from_memory=%s', from_memory)
+                return
+            log.info(
+                '画面重载 caller=%s:%s from_memory=%s',
+                caller.f_globals.get('__name__'), caller.f_lineno, from_memory,
+            )
+        finally:
+            del frame
 
     def _build_base(
         self, from_memory: bool, from_separated_files: bool,
