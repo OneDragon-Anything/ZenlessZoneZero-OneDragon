@@ -69,6 +69,9 @@ class PluginInfo:
     # 键鼠脚本目录名（相对 plugin_dir；空 = 插件不附带键鼠脚本）
     key_sim_dir: str = ''
 
+    # 插件画面目录名（相对 plugin_dir；空 = 插件不附带画面）
+    screen_info_dir: str = 'screen_info'
+
     # 工厂信息
     factory_module: str = ''
     const_module: str = ''
