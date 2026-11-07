@@ -293,6 +293,21 @@ except Exception:
 
 # 初始化应用程序，并启动主窗口
 def main() -> None:
+    from one_dragon.utils.single_instance import (
+        acquire_instance_lock,
+        describe_lock_failure,
+    )
+
+    if not acquire_instance_lock():
+        import ctypes as _ctypes
+        _ctypes.windll.user32.MessageBoxW(
+            None,
+            describe_lock_failure(),
+            '一条龙',
+            0x40,  # MB_ICONINFORMATION
+        )
+        sys.exit(1)
+
     if _init_error is not None:
         # 显示错误弹窗，询问用户是否打开排障文档
         error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"

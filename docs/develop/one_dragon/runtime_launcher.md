@@ -153,6 +153,25 @@ LauncherBase          → 基础参数解析、run() 入口
 
 新进程的环境副本必须设置 `PYINSTALLER_RESET_ENVIRONMENT=1`，让 PyInstaller 将其作为独立程序初始化，避免复用旧进程的运行时环境。不要修改当前进程的环境变量。此要求见 [PyInstaller 重启说明](https://pyinstaller.org/en/stable/common-issues-and-pitfalls.html#using-sys-executable-to-spawn-subprocesses-that-outlive-the-application-process-implementing-application-restart)。
 
+## 单实例与控制台编码
+
+### 单实例锁
+
+同一个工作目录只允许运行一个一条龙实例，避免两个进程同时玩游戏、抢窗口或互相覆盖配置。
+
+- 实现在 `one_dragon/utils/single_instance.py`，用操作系统文件锁（Windows `msvcrt.locking`、其他平台 `fcntl.flock`）锁住工作目录下 `.one_dragon.lock` 的第一个字节，进程存活期间一直持有。进程退出（包括崩溃）时由系统释放，不会留下清不掉的死锁文件。
+- 加锁点在真正跑业务的进程入口：GUI 是 `zzz_od/gui/app.py` 的 `main()`，一条龙模式是 `ApplicationLauncher.main()`。启动器 exe 自己不加锁——它只是拉起子进程，加在 exe 上会和子进程互锁。
+- 第二个实例拿不到锁时：GUI 弹 MessageBox 说明已有一个在运行，然后以状态码 1 退出；一条龙模式打日志提示后退出。
+- 锁文件里写持有者 PID；Windows 的强制锁不允许别的句柄读被锁字节，所以自己持锁时用同一个句柄读。
+
+### 非中文系统的控制台编码
+
+非中文 Windows（CP1252 / CP932 / CP949 等）的控制台编码表示不了中文。启动器打印中文进度或错误提示会抛 `UnicodeEncodeError` 直接退出，表现为“启动器报错”。
+
+- `one_dragon/utils/console_utils.py` 的 `ensure_utf8_stdio()` 把 stdout / stderr 切成 UTF-8 + `errors='replace'`，编码不了时替换成问号而不是抛异常。
+- 调用点：`LauncherBase.run()`（两个启动器 exe 的共同入口）、`show_version()`（版本查询，仍固定 UTF-8 输出）、`python_launcher` 模块导入时（在 colorama 包装流之前）和 `run_python()`。
+- `python_launcher.configure_environment()` 给子进程设置 `PYTHONIOENCODING=utf-8` 和 `PYTHONUTF8=1`，让 `uv run` 拉起的 Python 进程管道输出同样是 UTF-8。
+
 ## 错误处理
 
 ### 集成启动器的 try/except

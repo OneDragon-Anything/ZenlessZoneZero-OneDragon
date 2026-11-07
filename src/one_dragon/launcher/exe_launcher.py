@@ -4,6 +4,7 @@ import sys
 import pyuac
 
 from one_dragon.launcher.launcher_base import LauncherBase
+from one_dragon.utils.console_utils import ensure_utf8_stdio
 
 
 class ExeLauncher(LauncherBase):
@@ -21,7 +22,7 @@ class ExeLauncher(LauncherBase):
     def show_version(self) -> None:
         """显示版本信息"""
         # 版本号会被其他程序读取，固定 UTF-8 写出；不改控制台代码页。
-        sys.stdout.reconfigure(encoding='utf-8')
+        ensure_utf8_stdio()
         print(f"{self.description} {self.version}")
         sys.exit(0)
 

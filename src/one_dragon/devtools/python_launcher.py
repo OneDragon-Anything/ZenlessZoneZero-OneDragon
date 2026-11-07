@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
+from one_dragon.utils.console_utils import ensure_utf8_stdio
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import (
     LoggerConfig,
@@ -29,6 +30,9 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
 PYTHON_LAUNCHER_FRAMEWORK_LOG_FILE_NAME = 'python_launcher_framework.log'
+
+# 先切 UTF-8 再包 colorama：包装后的控制台流不再支持 reconfigure
+ensure_utf8_stdio()
 
 # 初始化 colorama
 init(autoreset=True)
@@ -112,6 +116,9 @@ def configure_environment(ctx: OneDragonEnvContext, cwd):
     os.environ.update({
         'PYTHONPATH': os.path.join(cwd, "src"),
         'UV_DEFAULT_INDEX': ctx.env_config.pip_source,
+        # 子进程的管道输出同样按 UTF-8 写出，避免非中文系统下打印中文报编码错误
+        'PYTHONIOENCODING': 'utf-8',
+        'PYTHONUTF8': '1',
     })
 
     for var in ['PYTHONPATH', 'UV_DEFAULT_INDEX']:
@@ -326,6 +333,7 @@ def sync_dependencies(ctx: OneDragonEnvContext) -> None:
 
 def run_python(app_path, no_windows: bool = True, args: list[str] | None = None, piped: bool = False) -> None:
     # 主函数
+    ensure_utf8_stdio()
     try:
         from one_dragon.version import __version__
         print_message(f"OneDragon 启动器 {__version__}", "INFO")
