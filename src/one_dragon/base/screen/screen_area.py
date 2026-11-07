@@ -32,6 +32,7 @@ class ScreenArea:
         goto_list: list[str] | None = None,
         color_range: list[list[int]] | None = None,
         gamepad_key: str | None = None,
+        screen_name: str = '',
     ) -> None:
         self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
@@ -42,10 +43,31 @@ class ScreenArea:
         self.template_match_threshold: float = 0.7 if template_match_threshold is None else template_match_threshold
         self.pc_alt: bool = pc_alt  # PC端需要使用ALT后才能点击
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
-        self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后可能会跳转的画面名称列表
+        self.goto_list: list[str] = self._parse_goto_list(goto_list, self.area_name, screen_name)
         self.color_range: list[list[int]] | None = color_range  # OCR识别前的颜色过滤范围
         self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
         self._area_type: ScreenAreaType = self._init_area_type(area_type)
+
+    @staticmethod
+    def _parse_goto_list(goto_list: list[str] | None, area_name: str, screen_name: str) -> list[str]:
+        """只保留非空字符串元素；非法容器/元素告警后丢弃，不整屏跳过。"""
+        if not isinstance(goto_list, (list, tuple)):
+            if goto_list is not None:
+                log.warning(
+                    '画面 %s 区域 %s 的 goto_list 不是列表，已忽略: %r',
+                    screen_name, area_name, goto_list,
+                )
+            return []
+        result: list[str] = []
+        for item in goto_list:
+            if not isinstance(item, str) or item == '':
+                log.warning(
+                    '画面 %s 区域 %s 的 goto_list 元素无效，已忽略: %r',
+                    screen_name, area_name, item,
+                )
+                continue
+            result.append(item)
+        return result
 
     def _init_area_type(self, area_type: ScreenAreaType | str | None) -> ScreenAreaType:
         """初始化区域类型，兼容旧名称并推断旧配置。
