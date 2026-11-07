@@ -1253,6 +1253,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
     def _on_merge_clicked(self) -> None:
         if not self.ctx.screen_loader.reload(from_separated_files=True):
             log.error('画面配置重载失败，保留现有配置，未保存')
+            self.show_info_bar(
+                '重载失败',
+                '画面配置未重新加载：配置解析失败，已保留原有画面',
+                icon=InfoBarIcon.ERROR,
+                duration=5000,
+            )
             return
         self.ctx.screen_loader.save(reload_after_save=False)
         self._existed_yml_update.signal.emit()
