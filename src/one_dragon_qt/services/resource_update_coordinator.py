@@ -207,22 +207,26 @@ class ResourceUpdateCoordinator(QObject):
             if spec.resource_type != 'ocr'
         )
 
-        # 免确认的官方资源直接入队，不进弹窗；第三方插件未经审查，始终需要确认。
-        # 只要还有需要确认的项就弹一次统一弹窗，否则不弹。
+        # 免确认的官方资源直接入队，不进弹窗；第三方插件未经审查、启动器更新会影响
+        # 本次运行，这两种始终需要确认。只要还有需要确认的项就弹一次统一弹窗。
         no_confirm = self.ctx.env_config.resource_download_no_confirm
+        always_confirm_types = ('plugin', 'launcher')
         auto_specs = [
             spec for spec in specs
-            if no_confirm and spec.resource_type != 'plugin'
+            if no_confirm and spec.resource_type not in always_confirm_types
         ]
         confirm_specs = [spec for spec in specs if spec not in auto_specs]
         selected_specs = list(auto_specs)
         remember_choice = False
         if confirm_specs:
+            has_launcher_update = any(
+                spec.resource_type == 'launcher' for spec in confirm_specs
+            )
             dialog = ResourceUpdateDialog(
                 self.ctx,
                 self.queue,
                 confirm_specs,
-                title='发现可下载资源',
+                title='启动器需要更新' if has_launcher_update else '发现可下载资源',
                 show_remember=(
                     included_ocr_request is not None
                     and any(spec.resource_type == 'ocr' for spec in confirm_specs)
@@ -406,7 +410,11 @@ class ResourceUpdateCoordinator(QObject):
                 title='启动器',
                 current_version=current,
                 target_version=target,
-                note='启动器更新',
+                note=(
+                    '下载后需重启启动器生效'
+                    if launcher_type == 'runtime'
+                    else '启动器更新'
+                ),
                 downloader_factory=lambda: ZipDownloader(launcher_param),
                 after_download=lambda success: self._after_launcher_download(
                     launcher_type,
