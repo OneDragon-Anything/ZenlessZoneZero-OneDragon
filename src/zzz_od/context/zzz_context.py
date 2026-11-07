@@ -125,6 +125,7 @@ class ZContext(OneDragonContext):
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
+                force_active_window=self.env_config.force_active_window,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
