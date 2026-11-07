@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ SQUASH_SOURCE_PATTERN = re.compile(
     re.MULTILINE,
 )
 MAIN_BRANCH = "main"
+RUNTIME_CHECK_DIR = REPO_ROOT / ".install" / "runtime-compatibility"
 
 
 @dataclass(frozen=True)
@@ -509,7 +511,6 @@ def check_runtime_compatibility() -> bool | None:
 
     返回 True 兼容，False 不兼容，None 表示检查本身失败。
     """
-    work_dir = REPO_ROOT / ".install" / "runtime-compatibility"
     result = run_command(
         [
             sys.executable,
@@ -517,7 +518,8 @@ def check_runtime_compatibility() -> bool | None:
             "--repository-root",
             str(REPO_ROOT),
             "--work-dir",
-            str(work_dir),
+            str(RUNTIME_CHECK_DIR),
+            "--reuse-runtime",
         ],
         check=False,
     )
@@ -692,6 +694,8 @@ def main() -> int:
     summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
 
     configure_git()
+    # 清掉上次遗留的运行时，本次运行内的多次兼容性检查共用同一份下载。
+    shutil.rmtree(RUNTIME_CHECK_DIR, ignore_errors=True)
     ensure_labels(include_label, conflict_label, integrated_conflict_label)
     prs, source, require_label = resolve_prs(input_prs, include_label)
 
