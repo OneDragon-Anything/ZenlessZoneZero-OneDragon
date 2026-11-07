@@ -109,3 +109,25 @@ class PivotNavigatorInterface(BaseInterface):
         if isinstance(current_widget, PageStackWrapper):
             current_widget.reset_to_root()
             self.secondary_state_changed.emit(False)
+
+    def reset_all_setting_interfaces(self) -> None:
+        """把所有子页面的二级设置界面重置回根页面。
+
+        应用注册刷新后重扫设置入口时调用：页面栈里压着的设置界面实例
+        来自刷新前的旧插件代码，刷新后已经作废（插件可能已卸载或换新版本），
+        继续留在栈里会让用户切回去看到失效界面，因此全部退回根页面。
+
+        只有当前可见的一级页面才触发子界面的 on_interface_shown：该回调会注册
+        按键等事件监听，不可见页面注册后会在界面隐藏时也能响应，属误触发。
+        不可见页面退回根页面后，用户切回来时由 on_current_index_changed 正常触发。
+        """
+        current_wrapper: QWidget | None = (
+            self.stacked_widget.currentWidget() if self.isVisible() else None
+        )
+        reset_any: bool = False
+        for wrapper in self._page_wrappers.values():
+            if wrapper.is_secondary_shown:
+                wrapper.reset_to_root(notify_shown=wrapper is current_wrapper)
+                reset_any = True
+        if reset_any:
+            self.secondary_state_changed.emit(False)

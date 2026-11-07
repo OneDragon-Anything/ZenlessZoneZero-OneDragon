@@ -251,6 +251,8 @@ jobs:
         tag_name: ${{ needs.version.outputs.version }}
         name: "Release ${{ needs.version.outputs.version }}"
         body: |
+          > 中国大陆用户推荐前往 [CNB（Cloud Native Build）](https://cnb.cool/OneDragon-Anything/ZenlessZoneZero-OneDragon) 下载，速度更快。
+
           ## 安装方式
 
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。

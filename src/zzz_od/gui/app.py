@@ -2,11 +2,16 @@ try:
     import sys
 
     from PySide6.QtCore import Qt, QThread, QTimer, Signal
+    from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, Theme, setTheme
+    from qfluentwidgets import (
+        NavigationItemPosition,
+        Theme,
+        setTheme,
+    )
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
-    from one_dragon.utils import app_utils
+    from one_dragon.utils import app_utils, os_utils
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.overlay.overlay_manager import OverlayManager
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -43,7 +48,11 @@ try:
         def run(self):
             launcher_version = app_utils.get_launcher_version()
             code_version = self.ctx.git_service.get_current_version()
-            versions = (launcher_version, code_version)
+
+            # 区分启动器类型：集成启动器（exe 打包运行）与源码启动器
+            launch_tag = '集成' if os_utils.run_in_exe() else '源码'
+
+            versions = (launcher_version, code_version, launch_tag)
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
@@ -61,16 +70,14 @@ try:
             MainAppWindowBase.__init__(
                 self,
                 ctx=ctx,
-                win_title="%s %s"
-                % (
-                    gt(ctx.project_config.project_name),
-                    ctx.one_dragon_config.current_active_instance.name,
+                win_title=(
+                    f'{gt(ctx.project_config.project_name)} '
+                    f'{ctx.one_dragon_config.current_active_instance.name}'
                 ),
                 project_config=ctx.project_config,
                 app_icon="logo.ico",
                 parent=parent,
             )
-
             self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_active_event)
             self._context_event_signal: ContextEventSignal = ContextEventSignal()
             self._context_event_signal.instance_changed.connect(self._on_instance_active_signal)
@@ -120,18 +127,25 @@ try:
 
             # 主页
             from zzz_od.gui.view.home.home_interface import HomeInterface
-            self.add_sub_interface(HomeInterface(self.ctx, parent=self))
+            self.home_interface = HomeInterface(self.ctx, parent=self)
+            self.add_sub_interface(self.home_interface)
 
             # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+            from zzz_od.gui.view.game_assistant.game_assistant_interface import (
+                GameAssistantInterface,
+            )
             self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
-            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import (
+                ZOneDragonInterface,
+            )
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
             # 应用运行
-            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import ZStandaloneAppInterface
+            from zzz_od.gui.view.standalone.zzz_standalone_app_interface import (
+                ZStandaloneAppInterface,
+            )
             self.add_sub_interface(ZStandaloneAppInterface(self.ctx, parent=self))
 
             # 画中画
@@ -147,28 +161,51 @@ try:
             )
 
             # 开发工具
-            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+            from zzz_od.gui.view.devtools.app_devtools_interface import (
+                AppDevtoolsInterface,
+            )
+            self.devtools_interface = AppDevtoolsInterface(self.ctx, parent=self)
             self.add_sub_interface(
-                AppDevtoolsInterface(self.ctx, parent=self),
+                self.devtools_interface,
                 position=NavigationItemPosition.BOTTOM,
             )
 
-            # 代码同步
-            from one_dragon_qt.view.code_interface import CodeInterface
+            # 插件总入口，紧挨在资源管理上面
+            from one_dragon_qt.view.plugin.plugin_interface import (
+                PluginInterface,
+            )
+            self.plugin_interface = PluginInterface(self.ctx, parent=self)
             self.add_sub_interface(
-                CodeInterface(self.ctx, parent=self),
+                self.plugin_interface,
+                position=NavigationItemPosition.BOTTOM,
+            )
+
+            # 资源管理
+            from one_dragon_qt.view.resource_manager_interface import (
+                ResourceManagerInterface,
+            )
+            self.add_sub_interface(
+                ResourceManagerInterface(
+                    self.ctx,
+                    self.download_queue,
+                    parent=self,
+                ),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 多账号管理
-            from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+            from zzz_od.gui.view.accounts.app_accounts_interface import (
+                AccountsInterface,
+            )
             self.add_sub_interface(
                 AccountsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 设置
-            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+            from zzz_od.gui.view.setting.app_setting_interface import (
+                AppSettingInterface,
+            )
             self.add_sub_interface(
                 AppSettingInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
@@ -180,6 +217,16 @@ try:
         def _on_navigation_changed(self, index):
             """导航变化时的处理"""
             self._last_stack_idx = index
+
+        def _apply_developer_mode_visibility(self) -> None:
+            """刷新绝区零开发工具导航和通用高级控件。"""
+            super()._apply_developer_mode_visibility()
+            if hasattr(self, 'devtools_interface'):
+                nav_widget = self.navigationInterface.widget(
+                    self.devtools_interface.objectName()
+                )
+                if nav_widget is not None:
+                    nav_widget.setVisible(self.ctx.env_config.developer_mode)
 
         def _on_instance_active_event(self, event) -> None:
             """
@@ -193,22 +240,19 @@ try:
             切换实例后 更新title 这是Signal 可以更新UI
             :return:
             """
-            self.setWindowTitle(
-                "%s %s"
-                % (
-                    gt(self.ctx.project_config.project_name),
-                    self.ctx.one_dragon_config.current_active_instance.name,
-                )
-            )
+            project_name = gt(self.ctx.project_config.project_name)
+            instance_name = self.ctx.one_dragon_config.current_active_instance.name
+            self.setWindowTitle(f'{project_name} {instance_name}')
 
-        def _update_version(self, versions: tuple[str, str]) -> None:
+        def _update_version(self, versions: tuple[str, str, str]) -> None:
             """
             更新版本显示
-            @param ver:
+            @param versions: (启动器版本, 代码版本, 启动器类型tag)
             @return:
             """
             self.titleBar.setLauncherVersion(versions[0])
             self.titleBar.setCodeVersion(versions[1])
+            self.titleBar.setLaunchTag(versions[2])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
@@ -222,18 +266,21 @@ try:
             """异步处理应用启动后需要处理的事情"""
             self._check_version_runner.start()
             self._check_first_run()
+            self.check_resource_updates(force=True)
+            self.on_welcome_dialog_closed()
 
-        def closeEvent(self, event):
+        def closeEvent(self, event: QCloseEvent) -> None:
             """窗口关闭事件"""
+            super().closeEvent(event)
+            if not event.isAccepted():
+                return
+            if hasattr(self, 'plugin_interface') and self.plugin_interface is not None:
+                self.plugin_interface.shutdown()
             if hasattr(self, 'pip_btn') and self.pip_btn:
                 self.pip_btn.dispose()
 
             if hasattr(self, "overlay_manager") and self.overlay_manager is not None:
                 self.overlay_manager.shutdown()
-
-            # 调用父类的关闭事件
-            super().closeEvent(event)
-
 
 except Exception:
     import ctypes

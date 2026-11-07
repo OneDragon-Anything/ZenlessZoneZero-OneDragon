@@ -5,6 +5,7 @@ handlers:
     - state_template: "琉音-送客连携"
     - state_template: "叶瞬光-失衡决策"
     - state_template: "连携模板-爱芮"
+    - state_template: "连携模板-蕾米埃尔"
     - states: "[前台-仪玄]"
       sub_handlers:
         - state_template: "连携模板-跳过"
@@ -30,5 +31,6 @@ handlers:
         - state_template: "连携模板-支援"
         - state_template: "连携模板-异常"
         - state_template: "连携模板-强攻"
+        - state_template: "连携模板-锋御"
         - state_template: "连携模板-后置角色"
         - state_template: "连携模板-跳过"

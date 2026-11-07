@@ -287,12 +287,12 @@ move_mouse_relative(dx, dy)
 - `active_window()` — 后台模式直接返回成功；前台模式只尝试一次恢复窗口，不读取运行期强制恢复配置
 - `ensure_active_window()` — 运行期截图失焦恢复入口，根据 `force_active_window` 决定是否持续重试及启用最小化其他窗口兜底
 - `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
-- `drag_to(start, end, duration)` — 统一拖拽入口，根据模式分发
+- `drag_to(end, start=None, duration=0.5, *, timing=None)` — 统一拖拽入口；可选 `DragTiming` 指定按下等待、移动、松开前等待
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
-- `_foreground_drag(start, end, duration)` — 前台 pyautogui 拖拽
+- `_foreground_drag(start, end, duration, *, timing=None)` — 前台 pyautogui 拖拽
 - `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
 - `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
-- `_background_drag(start, end, duration)` — 后台 SetCursorPos + PostMessage 拖拽
+- `_background_drag(start, end, duration, *, timing=None)` — 后台 SetCursorPos + PostMessage 拖拽
 - `_send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口
 - `enable_background_mode()` — 开启后台模式（PostMessage + Xbox）
 - `enable_foreground_mode()` — 开启前台模式（pyautogui + 键盘）
@@ -322,6 +322,8 @@ move_mouse_relative(dx, dy)
 - `get_gamepad_action_keys(gamepad_type) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
   - `gamepad_type`：`'xbox'` / `'ds4'`（默认读 `config.background_gamepad_type`）
   - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lt', 'xbox_a'], ...}`
+
+前后台共用的拖拽参数与默认时序见[控制器拖拽时序](one_dragon_architecture.md#拖拽时序)。
 
 ## 前置条件
 

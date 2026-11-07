@@ -166,7 +166,7 @@ class PushChannel(ABC):
         image_bytes.seek(0)
         return base64.b64encode(image_bytes.getvalue()).decode('utf-8')
 
-    def get_proxy(self, proxy_url: str) -> dict | None:
+    def get_proxy(self, proxy_url: str | None) -> dict[str, str | None]:
         """
         获取代理配置
 
@@ -174,9 +174,10 @@ class PushChannel(ABC):
             proxy_url: 代理地址
 
         Returns:
-            dict | None: 代理配置
+            dict[str, str | None]: 代理配置
         """
         if proxy_url is not None and proxy_url != "":
             return {"http": proxy_url, "https": proxy_url}
-        else:
-            return None
+
+        # 显式传入空代理，避免 requests 自动读取 ALL_PROXY 等环境变量。
+        return {"http": None, "https": None, "all": None}

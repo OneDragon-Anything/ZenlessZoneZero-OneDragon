@@ -1,0 +1,38 @@
+# 燔焰到 90 以上时，长按普攻发动「普攻:焚罪」，掷出武器结算异放伤害。
+# 长按写法和通用模板一致：按下 -> 每 0.5 秒重复按下 -> 松开，
+# 总时长 3.5 秒（7 次 0.5 秒），不能只按 1 秒。
+# 焚罪标记由速切模板在进入这个动作前设置，这里只负责按键。
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 4.5
+  - op_name: "设置状态"
+    state: "自定义-无视闪光"
+    seconds: 4.5
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "清除状态"
+    state: "自定义-动作不打断"

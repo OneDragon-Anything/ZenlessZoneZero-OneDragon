@@ -3,11 +3,10 @@ from typing import ClassVar
 import cv2
 from cv2.typing import MatLike
 
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.detect_utils import DetectFrameResult, DetectObjectResult
-from one_dragon.yolo.yolo_utils import get_github_model_download_url
 from one_dragon.yolo.yolov8_onnx_det import Yolov8Detector
-from zzz_od.config.model_config import YOLO_RELEASE_TAG
 
 
 class LostVoidDetector(Yolov8Detector):
@@ -23,12 +22,14 @@ class LostVoidDetector(Yolov8Detector):
     def __init__(self,
                  model_name: str,
                  backup_model_name: str,
+                 model_download_url: str,
                  gh_proxy: bool = True,
                  gh_proxy_url: str | None = None,
                  personal_proxy: str | None = None,
                  gpu: bool = False,
-                 keep_result_seconds: float = 2
-                 ):
+                 keep_result_seconds: float = 2,
+                 debug_trace_bus: DebugTraceBus | None = None
+                 ) -> None:
         """
         崩铁用的YOLO模型 参考自 https://github.com/ibaiGorordo/ONNX-YOLOv8-Object-Detection
         :param model_name: 模型名称 在根目录下会有一个以模型名称创建的子文件夹
@@ -41,12 +42,13 @@ class LostVoidDetector(Yolov8Detector):
             model_name=model_name,
             backup_model_name=backup_model_name,
             model_parent_dir_path=yolo_config_utils.get_model_category_dir('lost_void_det'),
-            model_download_url=get_github_model_download_url(YOLO_RELEASE_TAG),
+            model_download_url=model_download_url,
             gh_proxy=gh_proxy,
             gh_proxy_url=gh_proxy_url,
             personal_proxy=personal_proxy,
             gpu=gpu,
-            keep_result_seconds=keep_result_seconds
+            keep_result_seconds=keep_result_seconds,
+            debug_trace_bus=debug_trace_bus
         )
 
     def mask_battle_avatars(self, image: MatLike) -> MatLike:
@@ -157,7 +159,10 @@ def __debug():
     from zzz_od.context.zzz_context import ZContext
     ctx = ZContext()
     detector = LostVoidDetector(model_name=ctx.model_config.lost_void_det,
-                                backup_model_name=ctx.model_config.lost_void_det_backup)
+                                backup_model_name=ctx.model_config.lost_void_det_backup,
+                                model_download_url=ctx.model_config.get_model_download_base_url(
+                                    'lost_void_det',
+                                ))
 
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('_1736869628156')

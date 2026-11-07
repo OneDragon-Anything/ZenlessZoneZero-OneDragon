@@ -5,13 +5,13 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
-import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
+from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
@@ -26,18 +26,32 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
+from one_dragon.base.operation.context_download_request_event import (
+    ContextDownloadRequestEvent,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
-from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import (
+    debug_utils,
+    file_utils,
+    i18_utils,
+    log_utils,
+    os_utils,
+    thread_utils,
+)
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import list_repo_plugin_dirs
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -61,26 +75,29 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
+        self.debug_trace_bus: DebugTraceBus = DebugTraceBus()
+        """通用调试 trace 总线"""
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
-        self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        self.tm.overlay_debug_bus = self.overlay_debug_bus
+        self.tm: TemplateMatcher = TemplateMatcher(
+            self.template_loader, debug_trace_bus=self.debug_trace_bus
+        )
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            debug_trace_bus=self.debug_trace_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
-        self.btn_listener.start()
+        self._btn_listener_started: bool = False
+        self._btn_listener_closed: bool = False
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
@@ -96,6 +113,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
     #------------------- 以下是 应用工厂相关 -------------------#
+
+    @cached_property
+    def plugins_dir(self) -> Path | None:
+        """项目根目录下的 plugins 目录，所有外部插件的代码都放在它下面。
+
+        Returns:
+            插件代码根目录；项目下没有 plugins 目录时返回 None
+        """
+        cls_file = inspect.getfile(self.__class__)
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is None:
+            return None
+        plugins_dir = src_dir.parent / 'plugins'
+        return plugins_dir if plugins_dir.is_dir() else None
 
     @cached_property
     def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
@@ -125,14 +156,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if application_dir.is_dir():
             dirs.append((application_dir, PluginSource.BUILTIN))
 
-        # 计算项目根目录下的 plugins 目录（外部插件）
-        # 从 src 目录往上一级就是项目根目录
-        src_dir = file_utils.find_src_dir(cls_file)
-        if src_dir is not None:
-            project_root = src_dir.parent
-            plugins_dir = project_root / 'plugins'
-            if plugins_dir.is_dir():
-                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+        # 插件仓库布局：plugins/<仓库>/<id>/，只认两层，不再往下深入。
+        # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
+        # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
+        plugins_dir = self.plugins_dir
+        if plugins_dir is not None:
+            dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+            try:
+                repo_dirs = sorted(plugins_dir.iterdir())
+            except OSError:
+                repo_dirs = []
+            for repo_dir in repo_dirs:
+                if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
+                    continue
+                if list_repo_plugin_dirs(repo_dir):
+                    dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
 
@@ -140,6 +178,32 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def factory_manager(self) -> ApplicationFactoryManager:
         """应用工厂管理器"""
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
+
+    def get_plugin_data_dir(self, app_id: str) -> Path:
+        """获取插件数据目录（不存在时自动创建）。
+
+        数据放在 plugin_data/<app_id>/，与插件代码装在哪里无关：APP_ID 在本机
+        是唯一的（重复的插件不会被加载），所以不同插件不会共用目录，
+        从扁平布局挪到仓库布局也不会丢数据。插件更新覆盖代码目录时不会碰到
+        这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
+
+        Args:
+            app_id: 应用标识，即插件常量模块里的 APP_ID
+
+        Returns:
+            插件数据目录路径
+
+        Raises:
+            ValueError: app_id 为空，或含路径分隔符、``..`` 等会逃出 plugin_data 的内容
+        """
+        if (
+            not isinstance(app_id, str)
+            or not app_id
+            or app_id in ('.', '..')
+            or any(c in app_id for c in '/\\:')
+        ):
+            raise ValueError(f'APP_ID 不能用作数据目录名: {app_id!r}')
+        return Path(os_utils.get_path_under_work_dir('plugin_data', app_id))
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 
@@ -165,7 +229,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @cached_property
     def model_config(self) -> BasicModelConfig:
-        return BasicModelConfig()
+        return BasicModelConfig(self.repo_config)
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -192,14 +256,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         使用工厂管理器自动扫描和注册应用工厂。
         """
-        # 发现并注册应用
-        non_default_factories, default_factories = self.factory_manager.discover_factories()
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        # 发现并注册应用，入口列表由 ApplicationRunContext 按工厂元数据派生
+        factories = self.factory_manager.discover_factories()
+        if factories:
+            self.run_context.registry_application(factories)
 
     def _load_plugin_screens(self) -> None:
         """加载插件的 screen_info
@@ -227,14 +287,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 清空现有注册
         self.run_context.clear_applications()
 
+        # 重新发现扫描根：启动后才 clone/创建的插件仓库目录，要在这里才会被扫到
+        for cached_name in ('plugins_dir', 'application_plugin_dirs'):
+            self.__dict__.pop(cached_name, None)
+        self.factory_manager.set_plugin_dirs(self.application_plugin_dirs)
+
         # 重新发现并注册
-        non_default_factories, default_factories = self.factory_manager.discover_factories(reload_modules=True)
-
-        if non_default_factories:
-            self.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.run_context.registry_application(default_factories, default_group=True)
+        factories = self.factory_manager.discover_factories(reload_modules=True)
+        if factories:
+            self.run_context.registry_application(factories)
 
         # 重新加载插件 screen
         self.screen_loader.reload()
@@ -250,7 +311,29 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if 'notify_config' in self.__dict__:
             del self.__dict__['notify_config']
 
+        self._sync_current_application_after_refresh()
+
+        # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
+        self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
+
         log.info("应用注册刷新完成")
+
+    def _sync_current_application_after_refresh(self) -> None:
+        """刷新后校验当前运行应用，避免继续引用已移除的注册。"""
+        run_context = self.run_context
+        current_app_id = run_context.current_app_id
+        if current_app_id is None:
+            return
+
+        if run_context.is_app_registered(current_app_id):
+            return
+
+        if not run_context.is_context_stop:
+            run_context.stop_running()
+        run_context.current_app_id = None
+        run_context.current_group_id = None
+        run_context.current_instance_idx = None
+        run_context.current_application = None
 
     #------------------- 以下是 初始化相关 -------------------#
 
@@ -286,9 +369,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_for_application()
 
-            self.ready_for_application = True
-
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.ready_for_application = True
 
             self.push_service.init_push_channels()
 
@@ -297,6 +380,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
+
+            self._start_btn_listener()
         except Exception:
             log.error('初始化出错', exc_info=True)
         finally:
@@ -409,6 +494,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     @staticmethod
     def _compose_overlay_patched_image(base_image, overlay_rgba):
+        import cv2
+
         if base_image is None or overlay_rgba is None:
             return None
         if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
@@ -484,6 +571,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        ocr_model_name = self.model_config.ocr
+
         # 清理旧实例资源
         if hasattr(self, 'ocr') and self.ocr is not None:
             if hasattr(self.ocr, 'cleanup'):
@@ -491,26 +580,105 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr = OnnxOcrMatcher(
             OnnxOcrParam(
-                ocr_model_name=self.model_config.ocr,
+                ocr_model_name=ocr_model_name,
                 use_gpu=self.model_config.ocr_use_gpu,
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
+            ),
+            debug_trace_bus=self.debug_trace_bus,
         )
-        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service.ocr_matcher = self.ocr
         if 'cv_service' in self.__dict__:
             self.cv_service.ocr = self.ocr
-        self.ocr.init_model(
+
+        need_download: bool = not self.ocr.is_file_existed()
+        if need_download:
+            if not self._confirm_resource_download(title='OCR识别模型', note=self.model_config.ocr):
+                log.info('已取消下载OCR模型 使用OCR时将重新下载')
+                return
+            self.dispatch_event(
+                ContextNotifyEvent.EVENT_ID,
+                ContextNotifyEvent.info('资源下载', '开始下载OCR识别模型'),
+            )
+
+        success: bool = self.ocr.init_model(
+            source_order=self.env_config.get_resource_source_order(),
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+            on_source_success=self._on_resource_source_success,
+            on_source_failure=self._on_resource_source_failure,
+            fallback_on_slow=self.env_config.is_resource_source_auto,
         )
+
+        if need_download:
+            if success:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.success('资源下载', 'OCR识别模型下载完成'),
+                )
+            else:
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.error('资源下载', 'OCR识别模型下载失败 可到[设置-资源下载]更换下载源重试'),
+                )
+
+    def _confirm_resource_download(self, title: str, note: str) -> bool:
+        """自动下载资源前请求前端确认。
+
+        已设置不再询问或无前端监听时自动下载；前端等待超时视为取消。
+        :param title: 资源显示名
+        :param note: 资源说明
+        :return: 是否继续下载
+        """
+        if self.env_config.resource_download_no_confirm:
+            return True
+        if not self.has_event_listener(ContextDownloadRequestEvent.EVENT_ID):
+            # 无界面场景 按候选源顺序自动下载
+            return True
+
+        request = ContextDownloadRequestEvent(title=title, note=note)
+        self.dispatch_event(ContextDownloadRequestEvent.EVENT_ID, request)
+        if not request.wait(timeout=300):
+            log.warning('资源下载确认超时，已取消本次下载')
+            return False
+        if request.confirmed and request.remember:
+            self.env_config.resource_download_no_confirm = True
+        return request.confirmed
+
+    def _on_resource_source_success(self, source_id: str) -> None:
+        """资源下载成功后记录使用的源。"""
+        self.env_config.mark_resource_source_success(source_id)
+
+    def _on_resource_source_failure(self, source_id: str) -> None:
+        """自动模式下清除已经失效的上次成功源。"""
+        self.env_config.mark_resource_source_failure(source_id)
+
+    def _start_btn_listener(self) -> None:
+        """
+        启动按键监听器 可以重复调用
+        已经启动或关闭流程开始后 不会再启动
+        """
+        if self._btn_listener_started or self._btn_listener_closed:
+            return
+
+        self.btn_listener.start()
+        self._btn_listener_started = True
+
+    def _stop_btn_listener(self) -> None:
+        """
+        停止按键监听器 可以重复调用
+        """
+        if self._btn_listener_closed:
+            return
+
+        self._btn_listener_closed = True
+        self.btn_listener.stop()
 
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
-        self.btn_listener.stop()
+        self._stop_btn_listener()
         if self.controller is not None:
             self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
@@ -532,4 +700,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
-        self.overlay_debug_bus.clear()
+        self.debug_trace_bus.clear()

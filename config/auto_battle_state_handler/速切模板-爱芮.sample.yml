@@ -73,7 +73,7 @@ handlers:
               - operation_template: "爱芮-绝对音准"
 
           # 常规能量≥80 → 强化特殊技二连
-          - states: "[前台-能量]{40, 120}"
+          - states: "[前台-能量]{80, 120}"
             debug_name: "补能（强化特殊技）"
             operations:
               - operation_template: "爱芮-强化特殊技二连"
@@ -96,11 +96,11 @@ handlers:
         sub_handlers:
 
           # 手动连携提示
-          - states: "[自定义-提示-手动连携]"
-            debug_name: "手动连携提示"
-            operations:
-              - op_name: "清除状态"
-                state: "自定义-提示-手动连携"
+          #- states: "[自定义-提示-手动连携]"
+          #  debug_name: "手动连携提示"
+          #  operations:
+          #    - op_name: "清除状态"
+          #      state: "自定义-提示-手动连携"
 
           # 没有击破队友时，有大招直接放
           - states: "[爱芮-终结技可用] & ![后台-1-击破] & ![后台-2-击破]"
@@ -111,17 +111,19 @@ handlers:
                 state: "自定义-爱芮-妄想时刻"
                 seconds: 15
 
-          # 非失衡期补豆：能量≥80 打单次强化特殊技
+          # 非失衡期小爆发：应援能量≥4点
+          - states: "[爱芮-应援能量]{4, 8}"
+            debug_name: "非失衡小爆发"
+            operations:
+              - operation_template: "爱芮-绝对音准"
+              
+          # 非失衡期补豆：能量≥80 打两次强化特殊技
           - states: "[前台-能量]{80, 120}"
             debug_name: "非失衡期补豆"
             operations:
               - operation_template: "爱芮-强化特殊技二连"
 
-          # 非失衡期小爆发：应援能量≥8点
-          - states: "[爱芮-应援能量]{8, 8}"
-            debug_name: "非失衡小爆发"
-            operations:
-              - operation_template: "爱芮-绝对音准"
+
 
           # 默认：普攻循环攒豆
           - states: ""

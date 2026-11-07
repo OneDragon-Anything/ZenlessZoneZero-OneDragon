@@ -6,7 +6,7 @@ resonium_priority:
   - 诡术 华丽手杖
   - 邦布 鲨牙布
   - 邦布 企鹅布
-auto_battle: 专属配队-艾莲
+auto_battle: 全配队通用
 event_priority:
   - ""
 path_finding: 默认

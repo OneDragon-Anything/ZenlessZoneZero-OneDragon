@@ -100,6 +100,8 @@ def find_area_in_screen_binary(
     """
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
+    if not area.can_match:
+        return FindAreaResultEnum.FALSE
 
     # 对屏幕进行二值化处理
     binary_screen = cv2_utils.to_binary(screen, threshold=binary_threshold)
@@ -155,6 +157,8 @@ def find_area_in_screen(
     """
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
+    if not area.can_match:
+        return FindAreaResultEnum.FALSE
 
     find: bool = False
     if area.is_text_area:
@@ -175,7 +179,6 @@ def find_area_in_screen(
         mrl = ctx.tm.crop_and_match_template(screen, rect, area.template_sub_dir, area.template_id,
                                              threshold=area.template_match_threshold)
         find = mrl.max is not None
-
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 
 
@@ -251,6 +254,8 @@ def find_and_click_area(
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
+    if (area.is_text_area or area.is_template_area) and not area.can_match:
+        return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
     if area.is_text_area:
         ocr_result_list = ctx.ocr_service.get_ocr_result_list(
             image=screen,
@@ -293,6 +298,7 @@ def scroll_area(
     direction: str = 'down',
     start_ratio: float = 0.9,
     end_ratio: float = 0.1,
+    duration: float = 0.5
 ) -> None:
     """
     在指定区域内滚动屏幕
@@ -303,6 +309,7 @@ def scroll_area(
         direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
         start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
         end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
+        duration: 拖拽持续时间
     """
     rect = area.rect
     height = rect.height
@@ -329,7 +336,7 @@ def scroll_area(
         else:
             end = Point(end.x, min(rect.y2 - 1, end.y + 1))
 
-    ctx.controller.drag_to(start=start, end=end)
+    ctx.controller.drag_to(start=start, end=end, duration=duration)
 
 
 def get_match_screen_name(
@@ -462,7 +469,7 @@ def is_target_screen(
     existed_id_mark: bool = False
     fit_id_mark: bool = True
     for screen_area in screen_info.area_list:
-        if not screen_area.id_mark:
+        if not screen_area.id_mark or not screen_area.can_match:
             continue
         existed_id_mark = True
 
