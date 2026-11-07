@@ -26,9 +26,6 @@ class PrInfo:
     author_login: str
     target_branch: str
     head_sha: str
-    files: set[str]
-    files_complete: bool
-    runtime_compatible: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -194,44 +191,6 @@ def resolve_prs(input_prs: str, include_label: str) -> tuple[list[str], str, boo
     return prs, source, require_label
 
 
-def get_pr_files(pr: str) -> tuple[set[str], bool]:
-    """分页读取 PR 文件列表，并返回是否已确认完整。"""
-    repository = os.environ.get("GITHUB_REPOSITORY", "")
-    if not repository:
-        return set(), False
-
-    result = run_command(
-        [
-            "gh",
-            "api",
-            "--paginate",
-            "--slurp",
-            f"repos/{repository}/pulls/{pr}/files?per_page=100",
-        ],
-        check=False,
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        return set(), False
-
-    try:
-        pages = load_json(result)
-    except json.JSONDecodeError:
-        return set(), False
-    if not isinstance(pages, list):
-        return set(), False
-
-    files: set[str] = set()
-    for page in pages:
-        if not isinstance(page, list):
-            return set(), False
-        for item in page:
-            if not isinstance(item, dict) or not isinstance(item.get("filename"), str):
-                return set(), False
-            files.add(item["filename"])
-    return files, True
-
-
 def get_pr_info(pr: str) -> PrInfo | None:
     """一次读取 PR 状态、标题、标签、发起人、目标分支和 head SHA。"""
     result = run_command(
@@ -254,7 +213,6 @@ def get_pr_info(pr: str) -> PrInfo | None:
     except json.JSONDecodeError:
         return None
 
-    files, files_complete = get_pr_files(pr)
     author = data.get("author") or {}
     return PrInfo(
         number=pr,
@@ -264,8 +222,6 @@ def get_pr_info(pr: str) -> PrInfo | None:
         author_login=normalize_line(str(author.get("login", ""))),
         target_branch=normalize_line(str(data.get("baseRefName") or "")),
         head_sha=normalize_line(str(data.get("headRefOid") or "")),
-        files=files,
-        files_complete=files_complete,
     )
 
 
@@ -295,18 +251,6 @@ def get_conflict_files() -> list[str]:
         capture_output=True,
     )
     return [line for line in (result.stdout or "").splitlines() if line]
-
-
-def get_staged_files() -> set[str] | None:
-    """读取当前 squash 结果中已暂存的文件。"""
-    result = run_command(
-        ["git", "diff", "--cached", "--name-only"],
-        check=False,
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        return None
-    return {line for line in (result.stdout or "").splitlines() if line}
 
 
 def get_conflict_ranges(path: str) -> str:
@@ -560,11 +504,12 @@ def maintain_conflict_labels(
         )
 
 
-def check_runtime_compatibility(pr: str) -> bool | None:
-    """检查当前代码是否兼容最新正式版 RuntimeLauncher。"""
-    work_dir = REPO_ROOT / ".install" / "runtime-compatibility" / pr
-    if work_dir.exists():
-        run_command(["git", "clean", "-fd", "--", str(work_dir)], check=False)
+def check_runtime_compatibility() -> bool | None:
+    """检查当前工作区代码是否兼容最新正式版 RuntimeLauncher。
+
+    返回 True 兼容，False 不兼容，None 表示检查本身失败。
+    """
+    work_dir = REPO_ROOT / ".install" / "runtime-compatibility"
     result = run_command(
         [
             sys.executable,
@@ -592,7 +537,7 @@ def rebuild_test_branch(
     repository: str,
     summary_path: Path,
     target_branch: str,
-    compatibility_cache: dict[str, bool | None] | None = None,
+    integrated: bool = False,
 ) -> int:
     """从 main 重建目标测试分支，并逐个 squash 指定 PR。"""
     run_command(["git", "fetch", "origin", MAIN_BRANCH])
@@ -624,15 +569,6 @@ def rebuild_test_branch(
             continue
         if require_label and include_label not in info.labels:
             continue
-        if compatibility_cache is not None and compatibility_cache.get(pr) is not True:
-            reason = (
-                "当前运行时无法加载新增导入"
-                if compatibility_cache.get(pr) is False
-                else "无法确认运行时兼容性,集成分支跳过"
-            )
-            skipped.append(SkippedPr(pr, reason))
-            continue
-
         pr_ref = f"refs/remotes/pr/{pr}"
         fetch_result = run_command(
             [
@@ -649,7 +585,7 @@ def rebuild_test_branch(
             continue
         fetched_head_sha = get_full_sha(pr_ref)
         if not info.head_sha or fetched_head_sha != info.head_sha:
-            skipped.append(SkippedPr(pr, "PR 在读取文件列表后发生更新"))
+            skipped.append(SkippedPr(pr, "PR 在读取信息后发生更新"))
             continue
         head_sha = fetched_head_sha[:7]
 
@@ -685,10 +621,21 @@ def rebuild_test_branch(
             skipped.append(SkippedPr(pr, "无变更(已在 main 中)"))
             continue
 
-        if compatibility_cache is not None:
-            compatibility_cache[pr] = check_runtime_compatibility(pr)
-            run_command(["git", "reset", "--hard", "HEAD"])
-            run_command(["git", "clean", "-fd"])
+        if integrated:
+            # 在已合入前序 PR 的工作区上检查，结果与最终分支内容一致。
+            compatible = check_runtime_compatibility()
+            if compatible is not True:
+                run_command(["git", "reset", "--hard", "HEAD"])
+                run_command(["git", "clean", "-fd"])
+                skipped.append(
+                    SkippedPr(
+                        pr,
+                        "当前运行时无法加载新增导入"
+                        if compatible is False
+                        else "无法确认运行时兼容性,集成分支跳过",
+                    )
+                )
+                continue
 
         authors = get_commit_authors(pr_ref)
         author = (
@@ -748,7 +695,6 @@ def main() -> int:
     ensure_labels(include_label, conflict_label, integrated_conflict_label)
     prs, source, require_label = resolve_prs(input_prs, include_label)
 
-    compatibility_cache: dict[str, bool | None] = {}
     test_result = rebuild_test_branch(
         prs,
         source,
@@ -758,7 +704,6 @@ def main() -> int:
         repository,
         summary_path,
         "test",
-        compatibility_cache,
     )
     integrated_result = rebuild_test_branch(
         prs,
@@ -769,7 +714,7 @@ def main() -> int:
         repository,
         summary_path,
         "test-integrated",
-        compatibility_cache,
+        integrated=True,
     )
     return 1 if test_result != 0 or integrated_result != 0 else 0
 
