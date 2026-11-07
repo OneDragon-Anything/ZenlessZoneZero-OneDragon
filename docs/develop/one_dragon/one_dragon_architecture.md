@@ -98,9 +98,11 @@ TEAM_DRAG_TIMING: DragTiming = DragTiming(press_wait=0.6, move_duration=0.3, rel
 
 ### 一条龙结束后动作
 
-一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机、休眠、睡眠等收尾动作。
-GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作（`--close-game`、`--shutdown`、`--hibernate`、`--sleep`）。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
+一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机、休眠、睡眠、运行指定脚本等收尾动作。
+GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作（`--close-game`、`--shutdown`、`--hibernate`、`--sleep`、`--run-script`）。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
 `STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
+
+「运行指定脚本」读取 `one_dragon.yml` 的 `after_done_script_path`（默认根目录 `bettergi.bat`，相对路径基于程序根目录），执行前会先关闭游戏窗口（发一次关闭消息，最多等 3 秒，超时不阻塞），然后通过 cmd 非阻塞执行（隐藏窗口，不等待结束）；它在正常完成（`COMPLETED`）或失败结束（`FAILED`）时触发，手动停止（`STOPPED`）和未启动（`NOT_STARTED`）不触发。关闭游戏、关机、休眠、睡眠仍只在正常完成时触发。
 
 ## 核心流程
 

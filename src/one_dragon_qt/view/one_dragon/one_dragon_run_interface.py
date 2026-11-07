@@ -40,6 +40,7 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 
 
@@ -103,6 +104,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.after_done_opt.value_changed.connect(self._on_after_done_changed)
         run_group.addSettingCard(self.after_done_opt)
 
+        self.after_done_script_opt = TextSettingCard(
+            icon=FluentIcon.CODE, title='结束后脚本',
+            content='结束后选【运行指定脚本】时执行：先关闭游戏再运行脚本；正常跑完或失败结束时触发；相对路径基于程序根目录',
+            input_placeholder='bettergi.bat',
+        )
+        run_group.addSettingCard(self.after_done_script_opt)
+
         return top
 
     def _init_app_list(self) -> None:
@@ -139,6 +147,9 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.blockSignals(False)
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
+        self.after_done_script_opt.init_with_adapter(
+            self.ctx.one_dragon_config.get_prop_adapter('after_done_script_path')
+        )
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
         self.run_all_apps_signal.connect(self.run_app)
@@ -190,6 +201,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
                 ),
                 hibernate=after_done == AfterDoneOpEnum.HIBERNATE.value.value,
                 sleep=after_done == AfterDoneOpEnum.SLEEP.value.value,
+                run_script=after_done == AfterDoneOpEnum.RUN_SCRIPT.value.value,
+                script_path=self.ctx.one_dragon_config.after_done_script_path,
             ),
         )
 

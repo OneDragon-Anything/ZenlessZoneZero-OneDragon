@@ -86,6 +86,8 @@ class ApplicationLauncher(LauncherBase):
                     shutdown_seconds=args.shutdown,
                     hibernate=args.hibernate,
                     sleep=args.sleep,
+                    run_script=args.run_script,
+                    script_path=self.ctx.one_dragon_config.after_done_script_path,
                 ),
             )
         finally:
