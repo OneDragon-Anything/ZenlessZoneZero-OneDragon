@@ -96,13 +96,15 @@ class PcControllerBase(ControllerBase):
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
-    def active_window(self) -> None:
+    def active_window(self) -> bool:
         """
         前置窗口
+        :return: 是否成功让游戏窗口成为前台窗口（后台模式不需要前台，直接返回 True）
         """
         self.game_win.init_win()
-        if not self.background_mode:
-            self.game_win.active()
+        if self.background_mode:
+            return True
+        return self.game_win.active()
 
     def set_window_title(self, new_title: str) -> None:
         """设置窗口标题。
