@@ -1,3 +1,5 @@
+import os
+
 import Quartz
 from AppKit import (
     NSApplicationActivateIgnoringOtherApps,
@@ -79,22 +81,27 @@ class MacPcGameWindow:
         if not self.win_title:
             return
 
+        current_pid = os.getpid()
+        expected_titles = self.GAME_TITLE_ALIASES.get(
+            self.win_title, {self.win_title}
+        )
         for window in self._get_windows():
-            title = str(window.get(Quartz.kCGWindowName, '') or '')
-            owner_name = str(window.get(Quartz.kCGWindowOwnerName, '') or '')
-            expected_titles = self.GAME_TITLE_ALIASES.get(
-                self.win_title, {self.win_title}
-            )
-            if not any(
-                expected in candidate
-                for expected in expected_titles
-                for candidate in (title, owner_name)
-            ):
-                continue
-
             window_id = window.get(Quartz.kCGWindowNumber)
             owner_pid = window.get(Quartz.kCGWindowOwnerPID)
             if window_id is None or owner_pid is None:
+                continue
+            if int(owner_pid) == current_pid:
+                continue
+            if int(window.get(Quartz.kCGWindowLayer, 0)) != 0:
+                continue
+
+            title = str(window.get(Quartz.kCGWindowName, '') or '').strip()
+            owner_name = str(window.get(Quartz.kCGWindowOwnerName, '') or '').strip()
+            if not any(
+                candidate == expected
+                for expected in expected_titles
+                for candidate in (title, owner_name)
+            ):
                 continue
 
             self._window_id = int(window_id)

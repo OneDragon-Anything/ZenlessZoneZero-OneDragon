@@ -52,6 +52,39 @@ if ! sudo -v; then
     exit 1
 fi
 
+VHID_DAEMON_STARTED=0
+VHID_DAEMON="/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon"
+if ! pgrep -f "Karabiner-VirtualHIDDevice-Daemon" >/dev/null 2>&1; then
+    if [[ ! -x "$VHID_DAEMON" ]]; then
+        echo "找不到 Karabiner 虚拟 HID 守护进程：$VHID_DAEMON"
+        echo "请先安装并批准 Karabiner-DriverKit-VirtualHIDDevice。"
+        read -r -p "按 Enter 键关闭此窗口..." || true
+        exit 1
+    fi
+    echo "Karabiner 虚拟 HID 守护进程未运行，正在本终端后台启动（脚本退出时自动关闭）。"
+    sudo "$VHID_DAEMON" >/tmp/od_vhid_daemon.log 2>&1 &
+    VHID_DAEMON_STARTED=1
+    for _ in $(seq 1 60); do
+        if pgrep -f "Karabiner-VirtualHIDDevice-Daemon" >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.5
+    done
+    if ! pgrep -f "Karabiner-VirtualHIDDevice-Daemon" >/dev/null 2>&1; then
+        echo "守护进程未能启动，日志：/tmp/od_vhid_daemon.log"
+        read -r -p "按 Enter 键关闭此窗口..." || true
+        exit 1
+    fi
+    sleep 2
+fi
+
+cleanup_vhid_daemon() {
+    if [[ "$VHID_DAEMON_STARTED" -eq 1 ]]; then
+        sudo -n pkill -f "Karabiner-VirtualHIDDevice-Daemon" >/dev/null 2>&1 || true
+    fi
+}
+trap cleanup_vhid_daemon EXIT
+
 UV_ARGS=(run --project "$PROJECT_DIR" --no-sync)
 if [[ -f "$PROJECT_DIR/.env" ]]; then
     UV_ARGS+=(--env-file "$PROJECT_DIR/.env")
