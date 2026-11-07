@@ -14,7 +14,6 @@ from pathlib import Path
 
 from one_dragon.base.web.common_downloader import (
     DIRECT_SOURCE_ID,
-    GITHUB_SOURCE_ID,
     CommonDownloader,
     CommonDownloaderParam,
 )
@@ -39,7 +38,7 @@ class MarketRelease:
     sha256: str
     changelog_html: str
     sources: dict[str, str]
-    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时，由 downloadUrl 反推补成一项。"""
+    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时，按直链 `direct` 放一项。"""
 
 
 @dataclass(frozen=True)
@@ -102,25 +101,15 @@ def _parse_sources(raw: object) -> dict[str, str]:
     return {str(key): url for key, url in raw.items() if isinstance(url, str) and url}
 
 
-def _infer_source_id(download_url: str) -> str:
-    """按地址域名判断它属于哪个下载源；源 ID 必须与资源下载同源，否则会记成不存在的源。"""
-    lowered = download_url.casefold()
-    if 'github.com/' in lowered or 'githubusercontent.com/' in lowered:
-        return GITHUB_SOURCE_ID
-    if 'cnb.cool/' in lowered:
-        return 'cnb'
-    return DIRECT_SOURCE_ID
-
-
 def _parse_release(raw: dict) -> MarketRelease | None:
     version = str(raw.get('version') or '').strip()
     if not version:
         return None
     download_url = str(raw.get('downloadUrl') or '')
     sources = _parse_sources(raw.get('sources'))
-    if download_url:
-        # 旧索引、旧缓存、镜像缺源：缺哪个源就用 downloadUrl 反推出来的那个补上，已有的不动
-        sources.setdefault(_infer_source_id(download_url), download_url)
+    if not sources and download_url:
+        # 旧索引、旧缓存没有地址表：只有一个地址，当作不属于任何已配置源的直链
+        sources = {DIRECT_SOURCE_ID: download_url}
     return MarketRelease(
         version=version,
         published_at=str(raw.get('publishedAt') or ''),
