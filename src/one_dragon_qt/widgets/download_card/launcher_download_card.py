@@ -8,7 +8,12 @@ from qfluentwidgets import FluentIcon, FluentThemeColor
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
-from one_dragon.envs.update_service import LauncherType, UpdateService
+from one_dragon.envs.update_service import (
+    LauncherType,
+    UpdateService,
+    is_launcher_downgrade,
+    is_version_parseable,
+)
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.download_queue_service import (
@@ -98,6 +103,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.current_version = None
             self.latest_stable = None
             self.latest_beta = None
+            # 更新完成后重新读磁盘上的版本，否则缓存还是更新前的版本号
+            self.ctx.update_service.clear_launcher_version_cache()
         super()._on_queue_task_changed(task)
 
     def _on_version_check_finished(self, current_version: str, latest_stable: str, latest_beta: str) -> None:
@@ -148,7 +155,24 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self._update_downloader_and_runner()
 
         # 更新UI显示
-        if self.current_version and self.current_version == self.target_version:
+        installed = self.ctx.update_service.is_launcher_installed(self._launcher_type)
+        if installed and not is_version_parseable(self.current_version or ''):
+            # 文件在但版本读不出来或解析不了：目标版本可能是降级，别让用户盲下
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
+                message=gt('无法读取当前启动器版本，请重新安装启动器'),
+                button_text=gt('版本未知'),
+                button_enabled=False
+            )
+        elif is_launcher_downgrade(self.current_version or '', self.target_version or ''):
+            # 降级装的旧启动器不会应用新运行时，直接不允许
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value),
+                message=f"{gt('当前版本高于目标版本，不支持降级')}: {self.current_version}; {gt('目标版本')}: {self.target_version}",
+                button_text=gt('不支持降级'),
+                button_enabled=False
+            )
+        elif self.current_version and self.current_version == self.target_version:
             # 版本一致：已安装
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
