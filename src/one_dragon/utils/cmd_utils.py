@@ -1,4 +1,5 @@
 import ctypes
+import os
 import platform
 import subprocess
 import threading
@@ -28,12 +29,14 @@ def run_command(
         cwd = os_utils.get_work_dir()
 
     try:
-        # 在Windows上
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-
-        # 为子进程指定不创建新窗口的标志
-        creationflags = subprocess.CREATE_NO_WINDOW
+        popen_options: dict[str, object] = {}
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            popen_options = {
+                'startupinfo': startupinfo,
+                'creationflags': subprocess.CREATE_NO_WINDOW,
+            }
 
         process = subprocess.Popen(
             commands,
@@ -44,8 +47,7 @@ def run_command(
             text=True,
             encoding='utf-8',  # 使用 UTF-8 编码
             errors='ignore',  # 忽略解码错误
-            startupinfo=startupinfo,
-            creationflags=creationflags,
+            **popen_options,
         )
 
         result_str: str = ''

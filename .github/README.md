@@ -26,6 +26,8 @@ __ZenlessZoneZero-OneDragon__
 
 ✨ 如果喜欢本项目，欢迎右上角点亮`Star`支持 ✨
 
+要整個clone 下來，執行“./启动一条龙.command”
+
 </div>
 
 ## 🚀 功能介绍

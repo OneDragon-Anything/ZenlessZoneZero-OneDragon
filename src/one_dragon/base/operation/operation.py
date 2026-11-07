@@ -273,10 +273,10 @@ class Operation(OperationBase):
                 edge_desc_list.append(edge)
 
         for edge_desc in edge_desc_list:
-            node_from = node_name_map.get(edge_desc.node_from_name, None)
+            node_from = node_name_map.get(edge_desc.node_from_name)
             if node_from is None:
                 raise ValueError(f'找不到节点 {edge_desc.node_from_name}')
-            node_to = node_name_map.get(edge_desc.node_to_name, None)
+            node_to = node_name_map.get(edge_desc.node_to_name)
             if node_to is None:
                 raise ValueError(f'找不到节点 {edge_desc.node_to_name}')
 
@@ -1128,7 +1128,7 @@ class Operation(OperationBase):
 
         to_click = area.left_top if click_left_top else area.center
         time.sleep(pre_delay)
-        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
+        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt)
         if click:
             self.update_screen_after_operation(screen_name, area_name)
             return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)

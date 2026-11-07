@@ -1,3 +1,5 @@
+import sys
+
 try:
     import sys
 
@@ -295,13 +297,27 @@ except Exception:
 def main() -> None:
     if _init_error is not None:
         # 显示错误弹窗，询问用户是否打开排障文档
-        error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
-        # MB_ICONERROR | MB_OKCANCEL = 0x10 | 0x01 = 0x11
-        # 返回值: IDOK = 1, IDCANCEL = 2
-        result = ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x11)
+        error_message = f"启动一条龙失败，报错信息如下:\n{_init_error}\n\n是否打开排障文档查看解决方案？"
+        if sys.platform == 'win32':
+            result = ctypes.windll.user32.MessageBoxW(
+                0, error_message, "错误", 0x11
+            )
+        else:
+            from PySide6.QtWidgets import QApplication as ErrorQApplication
+            from PySide6.QtWidgets import QMessageBox
+
+            ErrorQApplication(sys.argv)
+            result = QMessageBox.question(
+                None,
+                '启动失败',
+                error_message,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            result = int(result == QMessageBox.StandardButton.Yes)
 
         # 如果用户点击确定，则打开排障文档
-        if result == 1:  # IDOK
+        if result == 1:
             webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
 
         sys.exit(1)

@@ -1,6 +1,6 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.email_app import email_app_const
 from zzz_od.application.zzz_application import ZApplication
@@ -52,12 +52,27 @@ class EmailApp(ZApplication):
         邮件画面 领取后点击确认
         :return:
         """
+        screen = self.screenshot()
+        if screen is not None:
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+            )
+            screen_text = ''.join(
+                ''.join(result.data.split()) for result in ocr_result_list
+            )
+            if any(
+                warning in screen_text
+                for warning in ('确认删除', '确定删除', '是否删除', '删除')
+            ):
+                return self.round_fail(status='检测到删除确认弹窗，跳过自动确认')
+
         target_word_list = [
             '确认',  # 正常领取的情况
             '确定',  # 某种物品爆满了
         ]
         return self.round_by_ocr_and_click_by_priority(
             target_cn_list=target_word_list,
+            screen=screen,
             success_wait=1,
             retry_wait=1,
         )

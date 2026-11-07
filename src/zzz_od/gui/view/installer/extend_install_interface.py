@@ -1,12 +1,15 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from qfluentwidgets import ProgressBar, IndeterminateProgressBar, SettingCardGroup, \
-    FluentIcon
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+from qfluentwidgets import (
+    FluentIcon,
+    IndeterminateProgressBar,
+    ProgressBar,
+    SettingCardGroup,
+)
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon.utils.i18_utils import gt
-from zzz_od.gui.view.installer.gamepad_install_card import GamepadInstallCard
+from one_dragon_qt.widgets.log_display_card import LogDisplayCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class ExtendInstallInterface(VerticalScrollInterface):
@@ -30,13 +33,6 @@ class ExtendInstallInterface(VerticalScrollInterface):
         self.progress_bar_2.setVisible(False)
         v_layout.addWidget(self.progress_bar_2)
 
-        self.gamepad_opt = GamepadInstallCard(self.ctx)
-
-        update_group = SettingCardGroup(gt('运行环境'))
-        update_group.addSettingCard(self.gamepad_opt)
-
-        v_layout.addWidget(update_group)
-
         log_group = SettingCardGroup(gt('安装日志'))
         self.log_card = LogDisplayCard()
         log_group.addSettingCard(self.log_card)
@@ -50,7 +46,6 @@ class ExtendInstallInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
-        self.gamepad_opt.check_and_update_display()
         self.log_card.start()
 
     def on_interface_hidden(self) -> None:
