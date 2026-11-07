@@ -357,6 +357,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             if not self.screen_loader.reload():
                 log.error('画面配置加载失败，保留现有配置')
+                self.dispatch_event(
+                    ContextNotifyEvent.EVENT_ID,
+                    ContextNotifyEvent.error('画面配置', '画面配置加载失败，已保留原有配置'),
+                )
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()
