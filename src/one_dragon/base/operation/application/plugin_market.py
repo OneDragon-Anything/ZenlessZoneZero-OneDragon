@@ -11,6 +11,7 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urljoin
 
 from one_dragon.base.web.common_downloader import (
     DIRECT_SOURCE_ID,
@@ -179,7 +180,7 @@ class PluginMarketService:
     def __init__(self, env_config: EnvConfig, cache_path: Path | None = None) -> None:
         self._env_config: EnvConfig = env_config
         self._cache_path: Path = cache_path or (
-            Path(os_utils.get_path_under_work_dir('config')) / 'plugin_market_cache.json'
+            Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market_cache.json'
         )
         self._snapshot: MarketSnapshot | None = None
         self._lock: threading.Lock = threading.Lock()
@@ -192,7 +193,7 @@ class PluginMarketService:
     def index_roots(self) -> dict[str, str]:
         """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
         return {
-            source_id: url.rsplit('/', 1)[0] + '/'
+            source_id: urljoin(url, '.')
             for source_id, url in self._env_config.repo_config.plugin_market_urls.items()
         }
 
@@ -257,7 +258,11 @@ class PluginMarketService:
         )
         if not ok or not target.exists():
             raise RuntimeError('插件市场数据下载失败')
-        payload = json.loads(target.read_text(encoding='utf-8'))
+        try:
+            payload = json.loads(target.read_text(encoding='utf-8'))
+        finally:
+            # 原始索引解析完就删：留下的只有解析后的快照缓存一份
+            target.unlink(missing_ok=True)
         if not isinstance(payload, dict | list):
             raise RuntimeError('插件市场数据格式异常')
         return parse_market_payload(payload)

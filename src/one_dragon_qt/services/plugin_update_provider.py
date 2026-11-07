@@ -14,6 +14,7 @@ from one_dragon_qt.view.plugin.plugin_operation_mixin import PluginOperationMixi
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 
 
 class PluginUpdateProvider(PluginOperationMixin, QObject):
@@ -26,12 +27,13 @@ class PluginUpdateProvider(PluginOperationMixin, QObject):
     def __init__(
         self,
         ctx: OneDragonContext,
-        window: QWidget,
+        window: MainAppWindowBase,
         parent: QObject | None = None,
     ) -> None:
         QObject.__init__(self, parent)
-        self._window: QWidget = window
+        self._window: MainAppWindowBase = window
         self.init_plugin_operation(ctx)
+        self.cover_service = window.plugin_cover_service
         self._pending: list[tuple[MarketPlugin, PluginInfo]] = []
 
     def refresh_cards(self) -> None:
