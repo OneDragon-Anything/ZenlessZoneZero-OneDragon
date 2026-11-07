@@ -307,6 +307,7 @@ def _build_routes() -> dict[str, RouterEntry]:
                 {'name': 'predefined_team_idx', 'type': 'int', 'required': False, 'default': -1},
                 {'name': 'card_num', 'type': 'enum', 'required': False, 'enum_cls': CardNumEnum, 'applicability': '仅实战模拟室'},
                 {'name': 'level', 'type': 'str', 'required': False, 'default': '默认等级'},
+                {'name': 'expert_challenge_burnout_on', 'type': 'bool', 'required': False, 'default': False, 'applicability': '仅专业挑战室'},
             ],
         ),
         'notorious_hunt': RouterEntry(

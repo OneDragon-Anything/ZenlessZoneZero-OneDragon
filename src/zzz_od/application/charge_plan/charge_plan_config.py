@@ -41,6 +41,7 @@ class ChargePlanItem:
     card_num: str = CardNumEnum.DEFAULT.value.value  # 实战模拟室的卡片数量
     predefined_team_idx: int = -1  # 预备配队下标 -1为使用当前配队
     notorious_hunt_buff_num: int = 1  # 恶名狩猎 选择的buff
+    expert_challenge_burnout_on: bool = False  # 专业挑战室 是否开启燃竭模式
     plan_id: str | None = None  # 计划的唯一标识符
     skipped: bool = field(default=False, repr=False, metadata={'persist': False})  # 单次运行中是否跳过
 
@@ -70,7 +71,8 @@ class ChargePlanItem:
         if self.category_name == '区域巡防':
             return 60
         if self.category_name == '专业挑战室':
-            return 40
+            # 燃竭模式双倍奖励也双倍消耗
+            return 80 if self.expert_challenge_burnout_on else 40
         if self.category_name == '恶名狩猎':
             return 60
         if self.category_name == '合成电池':
@@ -401,4 +403,7 @@ class ChargePlanConfig(ApplicationConfig):
             return f'mission_name 必填(合法: {missions})'
         if item.mission_name is not None and item.mission_name not in missions:
             return f'mission {item.mission_name} 不合法(合法: {missions})'
+        if not isinstance(item.expert_challenge_burnout_on, bool):
+            # 外部传 "false" 这种字符串时 bool != "false" 恒为真，燃竭开关会被一直点
+            return 'expert_challenge_burnout_on 必须为布尔值'
         return None
