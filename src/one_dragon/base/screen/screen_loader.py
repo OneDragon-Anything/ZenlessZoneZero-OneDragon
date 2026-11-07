@@ -634,13 +634,16 @@ class ScreenContext:
         # 根据画面的goto_list来初始化边
         for screen_info in self.screen_info_list:
             for area in screen_info.area_list:
-                if area.goto_list is None or len(area.goto_list) == 0:
+                goto_list = area.goto_list
+                if not isinstance(goto_list, (list, tuple)) or len(goto_list) == 0:
                     continue
                 from_screen_route = self.screen_route_map[screen_info.screen_name]
                 if from_screen_route is None:
                     log.error('画面路径没有初始化 %s', screen_info.screen_name)
                     continue
-                for goto_screen_name in area.goto_list:
+                for goto_screen_name in goto_list:
+                    if not isinstance(goto_screen_name, str):
+                        continue
                     if goto_screen_name not in from_screen_route:
                         log.error('画面路径 %s -> %s 无法找到目标画面', screen_info.screen_name, goto_screen_name)
                         continue
