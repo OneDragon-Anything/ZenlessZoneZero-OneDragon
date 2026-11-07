@@ -633,14 +633,28 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if self.chosen_screen is None:
             return
 
-        self.ctx.screen_loader.save_screen(self.chosen_screen)
+        if not self.ctx.screen_loader.save_screen(self.chosen_screen):
+            self.show_info_bar(
+                '保存失败',
+                '画面未保存：ID/名称可能与其他画面冲突，或文件写入失败',
+                icon=InfoBarIcon.ERROR,
+                duration=5000,
+            )
+            return
         self._existed_yml_update.signal.emit()
 
     def _on_delete_clicked(self) -> None:
         """删除。"""
         if self.chosen_screen is None:
             return
-        self.ctx.screen_loader.delete_screen(self.chosen_screen.screen_id)
+        if not self.ctx.screen_loader.delete_screen(self.chosen_screen.screen_id):
+            self.show_info_bar(
+                '删除失败',
+                '画面未删除：文件删除失败，请稍后重试',
+                icon=InfoBarIcon.ERROR,
+                duration=5000,
+            )
+            return
         self.chosen_screen = None
         self._whole_update.signal.emit()
         self._existed_yml_update.signal.emit()
