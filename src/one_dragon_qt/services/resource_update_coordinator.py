@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal
-from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
@@ -28,6 +27,7 @@ from one_dragon_qt.widgets.resource_download_dialog import ResourceUpdateDialog
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,14 +72,14 @@ class ResourceUpdateCoordinator(QObject):
         self,
         ctx: OneDragonContext,
         queue: DownloadQueueService,
-        window: QWidget,
+        window: MainAppWindowBase,
         show_queue_added_tip: Callable[[str], None],
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self.ctx: OneDragonContext = ctx
         self.queue: DownloadQueueService = queue
-        self.window: QWidget = window
+        self.window: MainAppWindowBase = window
         self._show_queue_added_tip: Callable[[str], None] = show_queue_added_tip
         self._resource_checks: dict[str, _ResourceCheck] = {}
         self._check_runners: dict[str, _ResourceUpdateCheckRunner] = {}
