@@ -487,6 +487,28 @@ class ScreenContext:
             )
             return False
 
+        base_ids = set(self._id_2_screen) - self._extra_screen_ids - {old_screen_id}
+        base_names = {
+            self._id_2_screen[screen_id].screen_name
+            for screen_id in base_ids
+            if screen_id in self._id_2_screen
+        }
+        if screen_info.screen_id in base_ids or screen_info.screen_name in base_names:
+            log.warning(
+                f"基础画面不能改成其它基础画面的 ID/名称，已跳过保存: "
+                f"{old_screen_id} → {screen_info.screen_id}/{screen_info.screen_name}"
+            )
+            return False
+
+        # 新建画面时 old_screen_id 可能等于新 id（ScreenInfo 初始化约定），但内存里没有旧对象。
+        if old_screen_id not in self._id_2_screen:
+            old_screen_id = ''
+
+        target_file_path = self.get_yml_file_path(screen_info.screen_id)
+        if screen_info.screen_id != old_screen_id and target_file_path.exists():
+            log.warning(f"目标画面文件已被占用，拒绝保存: {target_file_path}")
+            return False
+
         renamed = bool(old_screen_id) and old_screen_id != screen_info.screen_id
         old_info = self._id_2_screen.get(old_screen_id) if old_screen_id else None
         if renamed:
@@ -608,6 +630,9 @@ class ScreenContext:
                 return False
         else:
             file_path = old_file_path
+        if file_path != old_file_path and file_path.exists():
+            log.warning(f"目标画面文件已被占用，拒绝保存: {file_path}")
+            return False
 
         temp_path = file_path.with_name(f'.{file_path.name}.tmp')
         try:
