@@ -1,4 +1,5 @@
 import inspect
+import os
 from collections.abc import Callable
 from pathlib import Path
 
@@ -258,7 +259,12 @@ class ScreenContext:
             default_app_id = extra_sources[screen_dir]
             if not screen_dir.is_dir():
                 continue
-            for file_path in sorted(screen_dir.iterdir(), key=lambda path: path.name.casefold()):
+            try:
+                file_paths = sorted(screen_dir.iterdir(), key=lambda path: path.name.casefold())
+            except OSError:
+                log.warning(f"插件画面目录读取失败，已跳过: {screen_dir}")
+                continue
+            for file_path in file_paths:
                 if file_path.suffix != '.yml':
                     continue
                 try:
@@ -452,23 +458,23 @@ class ScreenContext:
         key = f'{screen_name}.{area_name}'
         return self._screen_area_map.get(key, None)
 
-    def save_screen(self, screen_info: ScreenInfo) -> None:
-        """
-        保存画面
+    def save_screen(self, screen_info: ScreenInfo) -> bool:
+        """保存画面。
 
-        Args:
-            screen_info: 画面信息
+        改名时先写新文件/新状态，成功后再删旧文件，避免写失败丢旧画面。
+
+        Returns:
+            True 成功；False 已知冲突或写盘失败（旧文件与内存保持原样）。
         """
         old_screen_id = screen_info.old_screen_id
         if old_screen_id in self._extra_screen_ids:
-            self._save_extra_screen(screen_info)
-            return
+            return self._save_extra_screen(screen_info)
         if screen_info.screen_id in self._extra_screen_ids:
             # 基础画面改成插件已占用的 id：直接写会覆盖内存里的插件画面并让 base 丢写。
             log.warning(
                 f"基础画面不能改成插件画面 ID，已跳过保存: {old_screen_id} → {screen_info.screen_id}"
             )
-            return
+            return False
         plugin_names = {
             self._id_2_screen[screen_id].screen_name
             for screen_id in self._extra_screen_ids
@@ -479,35 +485,58 @@ class ScreenContext:
             log.warning(
                 f"基础画面不能改成插件画面名称，已跳过保存: {old_screen_id} → {screen_info.screen_name}"
             )
-            return
+            return False
 
-        if old_screen_id and old_screen_id != screen_info.screen_id:
-            self.delete_screen(old_screen_id, save=False)
+        renamed = bool(old_screen_id) and old_screen_id != screen_info.screen_id
+        old_info = self._id_2_screen.get(old_screen_id) if old_screen_id else None
+        if renamed:
+            self._id_2_screen.pop(old_screen_id, None)
         self._id_2_screen[screen_info.screen_id] = screen_info
-        self.save(screen_id=screen_info.screen_id)
-        screen_info.old_screen_id = screen_info.screen_id
+        try:
+            self.save(screen_id=screen_info.screen_id)
+        except OSError:
+            log.error(f"保存画面失败，已回滚内存: {screen_info.screen_id}", exc_info=True)
+            self._id_2_screen.pop(screen_info.screen_id, None)
+            if old_screen_id and old_info is not None:
+                self._id_2_screen[old_screen_id] = old_info
+            return False
 
-    def delete_screen(self, screen_id: str, save: bool = True) -> None:
+        if renamed:
+            old_file_path = self.get_yml_file_path(old_screen_id)
+            if old_file_path.exists():
+                try:
+                    old_file_path.unlink()
+                except OSError:
+                    log.error(f"新配置已保存，旧文件删除失败: {old_file_path}", exc_info=True)
+                    screen_info.old_screen_id = screen_info.screen_id
+                    return False
+        screen_info.old_screen_id = screen_info.screen_id
+        return True
+
+    def delete_screen(self, screen_id: str, save: bool = True) -> bool:
         """
         删除一个画面
         Args:
             screen_id: 画面ID
             save: 是否触发保存
+
+        Returns:
+            True 成功；False 删除文件失败（内存保持原样）。
         """
         if screen_id in self._extra_screen_ids:
             # 插件画面：先删文件，失败则保留内存状态；成功后直接摘内存，不重读磁盘。
             extra_file_path = self._extra_screen_paths.get(screen_id)
             if extra_file_path is None:
                 log.error(f"插件画面缺少文件路径登记，已跳过删除: {screen_id}")
-                return
+                return False
             if extra_file_path.exists():
                 try:
                     extra_file_path.unlink()
                 except OSError:
                     log.error(f"删除插件画面文件失败，保留内存状态: {extra_file_path}", exc_info=True)
-                    return
+                    return False
             self._drop_screen(screen_id)
-            return
+            return True
 
         # 基础画面：同样先删文件，失败则不碰内存；成功后再摘除并重建派生状态。
         file_path = self.get_yml_file_path(screen_id)
@@ -516,24 +545,34 @@ class ScreenContext:
                 file_path.unlink()
             except OSError:
                 log.error(f"删除画面文件失败，保留内存状态: {file_path}", exc_info=True)
-                return
+                return False
         if screen_id in self._id_2_screen:
             del self._id_2_screen[screen_id]
             self._refresh_derived_state()
 
         if save:
-            self.save(screen_id=screen_id)
-        else:
-            self.reload(from_memory=True)
+            try:
+                self.save(screen_id=screen_id)
+            except OSError:
+                log.error(f"删除画面后保存失败: {screen_id}", exc_info=True)
+                return False
+            return True
+        return self.reload(from_memory=True)
 
-    def _save_extra_screen(self, screen_info: ScreenInfo) -> None:
-        """保存插件 screen 到原插件目录的独立 YAML。"""
+    def _save_extra_screen(self, screen_info: ScreenInfo) -> bool:
+        """保存插件 screen 到原插件目录的独立 YAML。
+
+        先写新文件成功后再删旧文件、更新内存；写盘失败回滚内存、旧文件保留。
+
+        Returns:
+            True 成功；False 冲突、写盘失败或回读失败。
+        """
         old_screen_id = screen_info.old_screen_id
         if old_screen_id not in self._extra_screen_ids:
-            return
+            return False
         old_file_path = self._extra_screen_paths.get(old_screen_id)
         if old_file_path is None:
-            return
+            return False
 
         # from_memory 不重读插件目录；改成别的画面的 id/name 会覆盖 base 或其它插件且无法自愈。
         base_ids = set(self._id_2_screen) - self._extra_screen_ids
@@ -558,22 +597,44 @@ class ScreenContext:
                 f"插件画面不能改成其它画面的 ID/名称，已跳过保存: "
                 f"{old_screen_id} → {screen_info.screen_id}/{screen_info.screen_name}"
             )
-            return
+            return False
 
-        file_path = old_file_path
+        renamed = old_screen_id != screen_info.screen_id
+        if renamed:
+            try:
+                file_path = old_file_path.with_name(f'{screen_info.screen_id}.yml')
+            except (OSError, ValueError):
+                log.error(f"插件画面 ID 无法生成合法文件名: {screen_info.screen_id}", exc_info=True)
+                return False
+        else:
+            file_path = old_file_path
 
-        if old_screen_id != screen_info.screen_id:
-            if old_file_path.exists():
+        temp_path = file_path.with_name(f'.{file_path.name}.tmp')
+        try:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with temp_path.open('w', encoding='utf-8') as file:
+                yaml.safe_dump(screen_info.to_dict(), file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            os.replace(temp_path, file_path)
+        except (OSError, ValueError):
+            log.error(f"插件画面写入失败，保留旧文件: {file_path}", exc_info=True)
+            try:
+                if temp_path.exists():
+                    temp_path.unlink()
+            except OSError:
+                pass
+            return False
+
+        delete_old_failed = False
+        if renamed and old_file_path.exists():
+            try:
                 old_file_path.unlink()
-            file_path = old_file_path.with_name(f'{screen_info.screen_id}.yml')
-
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with file_path.open('w', encoding='utf-8') as file:
-            yaml.safe_dump(screen_info.to_dict(), file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            except OSError:
+                log.error(f"新配置已保存，旧文件删除失败: {old_file_path}", exc_info=True)
+                delete_old_failed = True
 
         screen_info.old_screen_id = screen_info.screen_id
         # 显式维护内存：from_memory 重载不读插件目录，这里先把对象/派生表改成新值。
-        if old_screen_id != screen_info.screen_id:
+        if renamed:
             self._id_2_screen.pop(old_screen_id, None)
             self._extra_screen_ids.discard(old_screen_id)
             self._extra_screen_paths.pop(old_screen_id, None)
@@ -581,9 +642,9 @@ class ScreenContext:
         self._extra_screen_ids.add(screen_info.screen_id)
         self._extra_screen_paths[screen_info.screen_id] = file_path
         if not self.reload(from_memory=True):
-            log.error(
-                f"插件画面已写入文件，但内存回读失败，保留旧内存状态: {file_path}"
-            )
+            log.error(f"插件画面已写入文件，但内存回读失败: {file_path}")
+            return False
+        return not delete_old_failed
 
     def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
         """
