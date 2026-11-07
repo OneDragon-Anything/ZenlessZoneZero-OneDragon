@@ -90,6 +90,61 @@
       - "op_name": "等待秒数"
         "seconds": 3
       "states": "[按键禁用-终结技, 0, 999]"
+  - "debug_name": "猎血清道夫-首领交互"
+    "states": "[首领-猎血清道夫, 0, 999]"
+    "sub_handlers":
+    - "debug_name": "猎血清道夫-首领交互-切人"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.8
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.5
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.3
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.5
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 10
+      "states": "[按键禁用-普通攻击, 0, 999]"
+    - "debug_name": "猎血清道夫-首领交互-闪避"
+      "interrupt_states": "[按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 6
+      "states": "[按键禁用-终结技, 0, 999]"
+  - "debug_name": "熔狱行赭-首领交互"
+    "states": "[首领-熔狱行赭, 0, 999]"
+    "sub_handlers":
+    - "debug_name": "熔狱行赭-首领交互-切人"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.9
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.3
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.5
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1.9
+      - "op_name": "按键-切换角色-下一个"
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[按键禁用-普通攻击, 0, 999]"
+    - "debug_name": "熔狱行赭-首领交互-闪避"
+      "interrupt_states": "[按键禁用-普通攻击, 0, 999]"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 5
+      "states": "[按键禁用-终结技, 0, 999]"
   "interval": 0.01
   "priority": 100
   "triggers":
