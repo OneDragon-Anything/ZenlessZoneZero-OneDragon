@@ -252,11 +252,10 @@ class AutoBattleDodgeContext:
 
             result = self._flash_model.run(screen)
             state_name: str | None = None
-            if result.class_idx == 1:
-                state_name = YoloStateEventEnum.DODGE_RED.value
-            elif result.class_idx == 2:
-                state_name = YoloStateEventEnum.DODGE_YELLOW.value
-            elif audio_future is not None:
+            if result.class_idx >= 0:
+                # 类别 → 状态 由模型 labels.csv + 别名表决定 兼容红黄/红黄紫等多版本模型
+                state_name = self._flash_model.idx_2_state.get(result.class_idx)
+            if state_name is None and audio_future is not None:
                 audio_result = audio_future.result()
                 if audio_result:
                     state_name = YoloStateEventEnum.DODGE_AUDIO.value

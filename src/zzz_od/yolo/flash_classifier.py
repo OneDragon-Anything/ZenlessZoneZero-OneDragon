@@ -1,6 +1,40 @@
 from one_dragon.utils import yolo_config_utils
 from one_dragon.yolo.yolov8_onnx_cls import Yolov8Classifier
 
+# 模型类别名 → 闪避状态事件 的兼容映射
+# 模型实际类别顺序以模型目录 labels.csv 为准；新迭代出现的变种
+# 先按近似色降级复用现有状态，行为由闪避 yml 配置决定
+LABEL_ALIAS_STATE = {
+    'red': '闪避识别-红光',
+    'purple': '闪避识别-红光',
+    'yellow': '闪避识别-黄光',
+    'orange': '闪避识别-黄光',
+}
+
+
+def load_label_states(model_dir_path: str) -> dict[int, str]:
+    """
+    读取模型目录 labels.csv 得到 idx → 闪避状态事件 的映射
+    :param model_dir_path: 模型目录
+    :return: idx → 状态事件名 不在别名表里的类别不会出现在结果中
+    """
+    import csv
+    import os
+
+    csv_path = os.path.join(model_dir_path, 'labels.csv')
+    if not os.path.exists(csv_path):
+        return {}
+    result: dict[int, str] = {}
+    with open(csv_path, encoding='utf-8') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            if row[0] == 'idx':
+                continue
+            state = LABEL_ALIAS_STATE.get(row[1])
+            if state is not None:
+                result[int(row[0])] = state
+    return result
+
 
 class FlashClassifier(Yolov8Classifier):
 
@@ -34,6 +68,7 @@ class FlashClassifier(Yolov8Classifier):
             gpu=gpu,
             keep_result_seconds=keep_result_seconds
         )
+        self.idx_2_state: dict[int, str] = load_label_states(self.model_dir_path)
 
 
 def __debug():
