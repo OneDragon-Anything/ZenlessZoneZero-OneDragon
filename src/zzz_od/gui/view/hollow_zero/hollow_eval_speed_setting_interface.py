@@ -123,9 +123,13 @@ class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
             btn.blockSignals(False)
 
     def _on_agent_changed(self, idx: int) -> None:
-        agents: list[str | None] = []
-        for btn in self.agent_btn_list:
-            agents.append(None if btn.currentIndex() == -1 else btn.currentData())
+        # 只更新被改动的槽位 其余槽位保持原来保存的值
+        changed = self.sender()
+        agents: list[str | None] = list(self.config.target_agents)
+        agents += [None] * (len(self.agent_btn_list) - len(agents))
+        for i, btn in enumerate(self.agent_btn_list):
+            if btn is changed:
+                agents[i] = None if btn.currentIndex() == -1 else btn.currentData()
         self.config.target_agents = agents
 
     def _update_run_record_display(self) -> None:

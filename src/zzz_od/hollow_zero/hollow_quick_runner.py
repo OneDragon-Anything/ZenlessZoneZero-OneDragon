@@ -45,6 +45,11 @@ class HollowQuickRunner(HollowRunner):
         blocker_node, stand_node = blocker
         current_node = current_map.nodes[current_map.current_idx]
         if stand_node is not current_node:
+            if stand_node.next_node_to_move is None:
+                # 到站位格的路上都不需要步数 改为点击路径上相邻的第一格
+                stand_node.path_go_way = 0
+            if stand_node.next_node_to_move is None:
+                return target_node, None
             # 先走到挡路小怪的前一格 再使用炸弹
             log.info(f'终点被 [{blocker_node.entry.entry_name}] 挡住 先前往它旁边的格子')
             return stand_node, None
@@ -81,7 +86,8 @@ class HollowQuickRunner(HollowRunner):
         if not bomb_result.success:
             log.error(f'使用炸弹失败 回退为战斗通过 {bomb_result.status}')
             self._plugin_unavailable = True
-            return None
+            self._recover_after_plugin()
+            return self.round_wait('使用炸弹失败', wait=1)
 
         # 炸弹对全队造成伤害 马上使用医疗包 失败了也继续
         medical_result = UseBangbooPlugin(self.ctx, BangbooPlugin.MEDICAL).execute()
@@ -89,6 +95,17 @@ class HollowQuickRunner(HollowRunner):
             log.error(f'使用医疗包失败 {medical_result.status}')
 
         # 小怪格被清除 之前识别的地图已经失效
+        self._recover_after_plugin()
+        return self.round_wait('已使用炸弹', wait=1.5)
+
+    def _recover_after_plugin(self) -> None:
+        """
+        使用邦布插件后 关闭可能还开着的插件弹窗 并让之前识别的地图失效 下一轮重新识别
+        """
+        for _ in range(3):
+            screen = self.screenshot()
+            if not self.round_by_find_area(screen, UseBangbooPlugin.SCREEN_NAME, '邦布插件-标题').is_success:
+                break
+            self.round_by_find_and_click_area(screen, '画面-通用', '关闭', success_wait=0.5)
         self.ctx.withered_domain.map_service.clear_map_result()
         self.ctx.withered_domain.last_target_node = None
-        return self.round_wait('已使用炸弹', wait=1.5)
