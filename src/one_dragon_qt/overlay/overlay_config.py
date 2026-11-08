@@ -37,8 +37,6 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "vision_offset_y": 0,
     "vision_scale_x": 1.0,
     "vision_scale_y": 1.0,
-    "patched_capture_enabled": False,
-    "patched_capture_suffix": "_patched",
     # 档位键换过一次名：旧键 display_mode 默认 off，老配置里残留的关闭状态会让
     # overlay 永远不显示，因此改用新键，老用户与新用户都从 normal 起。
     "overlay_display_mode": "normal",
@@ -66,8 +64,6 @@ _OVERLAY_SCALAR_KEYS = {
     "vision_offset_y",
     "vision_scale_x",
     "vision_scale_y",
-    "patched_capture_enabled",
-    "patched_capture_suffix",
     "follow_interval_ms",
     "input_poll_interval_ms",
     "state_poll_interval_ms",
@@ -167,32 +163,6 @@ class OverlayConfig(YamlConfig):
         if _HEX_COLOR_PATTERN.fullmatch(color) is None:
             color = _DEFAULT_HUD_THEME_COLOR
         self._update_overlay_data("hud_theme_color", color.lower())
-
-    @property
-    def patched_capture_enabled(self) -> bool:
-        return bool(self._overlay_data()["patched_capture_enabled"])
-
-    @patched_capture_enabled.setter
-    def patched_capture_enabled(self, value: bool) -> None:
-        self._update_overlay_data("patched_capture_enabled", bool(value))
-
-    @property
-    def patched_capture_suffix(self) -> str:
-        suffix = str(self._overlay_data()["patched_capture_suffix"] or "").strip()
-        if not suffix:
-            suffix = "_patched"
-        if not suffix.startswith("_"):
-            suffix = "_" + suffix
-        return suffix
-
-    @patched_capture_suffix.setter
-    def patched_capture_suffix(self, value: str) -> None:
-        suffix = str(value or "").strip()
-        if not suffix:
-            suffix = "_patched"
-        if not suffix.startswith("_"):
-            suffix = "_" + suffix
-        self._update_overlay_data("patched_capture_suffix", suffix[:40])
 
     @property
     def vision_layer_enabled(self) -> bool:

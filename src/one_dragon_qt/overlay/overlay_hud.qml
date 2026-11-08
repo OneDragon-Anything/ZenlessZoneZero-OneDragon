@@ -157,6 +157,7 @@ Window {
 
     // ---------- 战斗状态面板（右下角，决策栏上方，窄高条） ----------
     Item {
+                        textFormat: Text.PlainText
         id: stateBox
         anchors.right: parent.right
         anchors.rightMargin: 4
@@ -398,6 +399,7 @@ Window {
         visible: root.perfVisible
         radius: 6
         color: Qt.rgba(0, 0, 0, 0.8 * root.panelOpacity)
+                        textFormat: Text.PlainText
         width: perfColumn.width + 12
         height: perfColumn.height + 12
 

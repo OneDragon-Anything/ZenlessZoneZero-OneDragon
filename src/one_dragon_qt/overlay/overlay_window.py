@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import numpy as np
 from PySide6.QtCore import QPoint, QRect, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPaintEvent, QPen
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPaintEvent, QPen
 from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.debug.debug_trace_bus import VisionTraceItem
@@ -77,25 +76,6 @@ class OverlayWindow(QWidget):
             return
         self._vision_items = list(items)
         self.update()
-
-    def capture_overlay_rgba(self) -> np.ndarray | None:
-        if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
-            return None
-
-        pixmap = self.grab()
-        image = pixmap.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
-        width = image.width()
-        height = image.height()
-        if width <= 0 or height <= 0:
-            return None
-
-        buffer = image.bits()
-        arr = np.frombuffer(
-            buffer,
-            dtype=np.uint8,
-            count=image.bytesPerLine() * height,
-        ).reshape((height, image.bytesPerLine() // 4, 4))
-        return arr[:, :width, :].copy()
 
     def set_passthrough(self, enabled: bool) -> None:
         self._passthrough_enabled = enabled

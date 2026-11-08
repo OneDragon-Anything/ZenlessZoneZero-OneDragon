@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import html
 import logging
 import time
 from collections.abc import Sequence
@@ -141,15 +140,6 @@ class OverlayManager(QObject):
         self._apply_timer_intervals()
         self._safe_follow_window()
 
-    def capture_overlay_rgba(self):
-        if self._overlay_window is None or not self._overlay_window.isVisible():
-            return None
-        try:
-            return self._overlay_window.capture_overlay_rgba()
-        except Exception:
-            log.error("捕获 Overlay 图像失败", exc_info=True)
-            return None
-
     def _apply_timer_intervals(self) -> None:
         self._follow_timer.setInterval(self.config.follow_interval_ms)
         self._input_timer.setInterval(self.config.input_poll_interval_ms)
@@ -198,8 +188,8 @@ class OverlayManager(QObject):
                 "time": time.strftime("%H:%M:%S", time.localtime(payload.created)),
                 "level": level_name,
                 "levelColor": level_color,
-                "source": html.escape(source),
-                "message": html.escape(payload.message),
+                "source": source,
+                "message": payload.message,
             }
         )
         # 日志面板常驻，只按固定行数裁剪（样式写死，不读配置）
@@ -470,11 +460,11 @@ class OverlayManager(QObject):
             rows.append(
                 {
                     "time": time.strftime("%H:%M:%S", time.localtime(item.created)),
-                    "source": html.escape(item.source),
-                    "trigger": html.escape(item.trigger),
-                    "expr": html.escape(item.expression),
-                    "action": html.escape(item.operation),
-                    "status": html.escape(item.status),
+                    "source": item.source,
+                    "trigger": item.trigger,
+                    "expr": item.expression,
+                    "action": item.operation,
+                    "status": item.status,
                 }
             )
         return rows
