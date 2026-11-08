@@ -267,7 +267,7 @@ class OverlayManager(QObject):
             scale_y=self.config.vision_scale_y,
         )
         mode = self.config.display_mode
-        overlay.set_anti_capture(mode != "debug")
+        overlay.set_anti_capture(self.config.hud_anti_capture)
         overlay.set_overlay_visible(mode != "off")
         if mode != "off":
             overlay.set_passthrough(not self._ctrl_interaction)
@@ -279,6 +279,7 @@ class OverlayManager(QObject):
             font_scale=self.config.hud_font_scale,
             bold=self.config.hud_font_bold,
         )
+        hud.set_log_size(self.config.hud_log_width, self.config.hud_log_height)
         hud.set_theme_color(self.config.hud_theme_color)
         # off 模式下 toast 展示期（5 秒）窗口仍可见，展示结束自动隐藏
         toast_showing = time.time() < self._toast_until
@@ -286,7 +287,7 @@ class OverlayManager(QObject):
         hud.set_visible(hud_visible)
         if hud_visible:
             hud.set_passthrough(True)
-            hud.set_anti_capture(mode != "debug")
+            hud.set_anti_capture(self.config.hud_anti_capture)
 
         self._sync_hud_panels(game_qt_rect)
 

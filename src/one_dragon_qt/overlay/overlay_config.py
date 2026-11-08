@@ -17,6 +17,11 @@ class HudFontSizeEnum(Enum):
     SMALL = ConfigItem('小', 'small')
 
 
+# 日志面板宽、高各 5 档（档位 0~4，2 为默认），逻辑像素，按缩放系数 1.0 计
+_HUD_LOG_WIDTH_LEVELS: tuple[int, ...] = (420, 470, 520, 580, 640)
+_HUD_LOG_HEIGHT_LEVELS: tuple[int, ...] = (260, 290, 320, 360, 400)
+_HUD_LOG_DEFAULT_LEVEL = 2
+
 _HUD_FONT_SCALE_MAP: dict[str, float] = {
     'large': 1.0,
     'medium': 0.9,
@@ -43,6 +48,9 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "hud_opacity": 100,
     "hud_font_size": "large",
     "hud_font_bold": True,
+    "hud_anti_capture": True,
+    "hud_log_width_level": 2,
+    "hud_log_height_level": 2,
     "hud_theme_color": _DEFAULT_HUD_THEME_COLOR,
     "follow_interval_ms": 120,
     "input_poll_interval_ms": 50,
@@ -54,6 +62,9 @@ _OVERLAY_SCALAR_KEYS = {
     "hud_opacity",
     "hud_font_size",
     "hud_font_bold",
+    "hud_anti_capture",
+    "hud_log_width_level",
+    "hud_log_height_level",
     "hud_theme_color",
     "vision_layer_enabled",
     "vision_yolo_enabled",
@@ -142,12 +153,48 @@ class OverlayConfig(YamlConfig):
         return _HUD_FONT_SCALE_MAP[self.hud_font_size]
 
     @property
+    def hud_log_width_level(self) -> int:
+        return max(0, min(4, int(self._overlay_data()["hud_log_width_level"])))
+
+    @hud_log_width_level.setter
+    def hud_log_width_level(self, value: int) -> None:
+        self._update_overlay_data("hud_log_width_level", max(0, min(4, int(value))))
+
+    @property
+    def hud_log_height_level(self) -> int:
+        return max(0, min(4, int(self._overlay_data()["hud_log_height_level"])))
+
+    @hud_log_height_level.setter
+    def hud_log_height_level(self, value: int) -> None:
+        self._update_overlay_data("hud_log_height_level", max(0, min(4, int(value))))
+
+    @property
+    def hud_log_width(self) -> int:
+        """日志面板宽度，由档位换算，不下发到配置。"""
+        return _HUD_LOG_WIDTH_LEVELS[self.hud_log_width_level]
+
+    @property
+    def hud_log_height(self) -> int:
+        """日志面板高度，由档位换算，不下发到配置。"""
+        return _HUD_LOG_HEIGHT_LEVELS[self.hud_log_height_level]
+
+    @property
     def hud_font_bold(self) -> bool:
         return bool(self._overlay_data()["hud_font_bold"])
 
     @hud_font_bold.setter
     def hud_font_bold(self, value: bool) -> None:
         self._update_overlay_data("hud_font_bold", bool(value))
+
+    @property
+    def hud_anti_capture(self) -> bool:
+        """防录屏：开启后 overlay 不会被录屏/截图捕获，与显示档位无关。"""
+        return bool(self._overlay_data()["hud_anti_capture"])
+
+    @hud_anti_capture.setter
+    def hud_anti_capture(self, value: bool) -> None:
+        self._update_overlay_data("hud_anti_capture", bool(value))
+
 
     @property
     def hud_theme_color(self) -> str:

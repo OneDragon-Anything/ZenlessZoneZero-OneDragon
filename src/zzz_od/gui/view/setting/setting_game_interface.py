@@ -19,9 +19,13 @@ from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4Button
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.overlay.overlay_config import HudFontSizeEnum, OverlayConfig
+from one_dragon_qt.overlay.overlay_config import (
+    HudFontSizeEnum,
+    OverlayConfig,
+)
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.level_slider import LevelSlider
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -34,6 +38,7 @@ from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
     MultiPushSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
@@ -109,7 +114,7 @@ class SettingGameInterface(VerticalScrollInterface):
         overlay_group = ExpandSettingCardGroup(
             icon=FluentIcon.DEVELOPER_TOOLS,
             title='Overlay 调试面板',
-            content='按调试按钮（默认 F12）循环三档：normal 显示常规面板且不会被录屏捕获，debug 显示全部面板且可被录屏捕获',
+            content='按调试按钮（默认 F12）循环三档：关闭 / normal 显示常规面板 / debug 显示全部面板',
             content_wrap=True,
         )
 
@@ -127,6 +132,19 @@ class SettingGameInterface(VerticalScrollInterface):
         self.overlay_opacity_opt.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_opacity_opt)
 
+        self.overlay_log_width_opt = LevelSlider(levels=5, title='宽')
+        self.overlay_log_width_opt.value_changed.connect(self._on_overlay_appearance_changed)
+        self.overlay_log_height_opt = LevelSlider(levels=5, title='高')
+        self.overlay_log_height_opt.value_changed.connect(self._on_overlay_appearance_changed)
+        self.overlay_log_size_card = MultiLineSettingCard(
+            icon=FluentIcon.ZOOM, title='日志面板大小',
+            line_list=[
+                [self.overlay_log_width_opt],
+                [self.overlay_log_height_opt],
+            ],
+        )
+        overlay_group.addSettingCard(self.overlay_log_size_card)
+
         self.overlay_font_size_opt = ComboBoxSettingCard(
             icon=FluentIcon.FONT, title='字体大小', options_enum=HudFontSizeEnum,
         )
@@ -136,6 +154,13 @@ class SettingGameInterface(VerticalScrollInterface):
         self.overlay_font_bold_switch = SwitchSettingCard(icon=FluentIcon.FONT, title='粗体')
         self.overlay_font_bold_switch.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_font_bold_switch)
+
+        self.overlay_anti_capture_switch = SwitchSettingCard(
+            icon=FluentIcon.VIEW, title='防录屏',
+            content='关闭后非 PrintWindow 截图方式会截到 Overlay',
+        )
+        self.overlay_anti_capture_switch.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_anti_capture_switch)
 
         self.overlay_theme_color_card = PushSettingCard(
             icon=FluentIcon.PALETTE, title='主题色', text='选择颜色',
@@ -312,8 +337,11 @@ class SettingGameInterface(VerticalScrollInterface):
         overlay_config = OverlayConfig()
         self.overlay_switch.setValue(overlay_config.display_mode != 'off', emit_signal=False)
         self.overlay_opacity_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_opacity'))
+        self.overlay_log_width_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_log_width_level'))
+        self.overlay_log_height_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_log_height_level'))
         self.overlay_font_size_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_font_size'))
         self.overlay_font_bold_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_font_bold'))
+        self.overlay_anti_capture_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_anti_capture'))
         self.overlay_theme_color_card.button.setText(overlay_config.hud_theme_color)
 
         for action, card in self._key_cards.items():

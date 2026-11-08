@@ -278,6 +278,11 @@ class OverlayHudWindow:
         self._set("fontScale", float(font_scale))
         self._set("fontBold", bool(bold))
 
+    def set_log_size(self, width: int, height: int) -> None:
+        """注入日志面板宽高（按 1.0 缩放计，窗口放不下时 QML 侧会再收缩）。"""
+        self._set("logWidth", int(width))
+        self._set("logHeight", int(height))
+
     def set_theme_color(self, color: str) -> None:
         """注入主题色（#rrggbb），标题条与状态行流光共用。"""
         self._set("themeColor", str(color))

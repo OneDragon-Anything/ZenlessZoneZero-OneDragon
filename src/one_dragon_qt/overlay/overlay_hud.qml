@@ -52,15 +52,18 @@ Window {
     property real panelOpacity: 1.0
     property real fontScale: 1.0
     property bool fontBold: true
+    // 日志面板宽高（Python 侧按配置注入，按 1.0 缩放计）
+    property int logWidth: 520
+    property int logHeight: 320
     property color panelBg: Qt.rgba(13 / 255, 13 / 255, 13 / 255, panelOpacity)
     // themeColor：主题色，标题条与状态行流光共用
     property color themeColor: "#ffd400"
 
-    // uiScale：面板整体缩放。原尺寸需要约 1100x800 逻辑像素才放得下（log+decision 宽约 1080、
+    // uiScale：面板整体缩放。原尺寸需要约 (日志宽+580)x800 逻辑像素才放得下（log+decision 宽即日志宽+580、
     // state+decision 高约 760，log 高 320），窗口（逻辑像素 = 物理像素 / DPR）够大时保持 1.0 不变，
     // 只有放不下（如 200% DPI 下 1080p 仅 960x540）才缩小，下限 0.6 避免过小。
     // 缩放以各面板贴靠的角为原点
-    property real uiScale: Math.max(0.6, Math.min(1.0, Math.min(width / 1100, height / 800)))
+    property real uiScale: Math.max(0.6, Math.min(1.0, Math.min(width / (root.logWidth + 580), height / 800)))
 
     // ============ 数据模型（Python 侧注入 OverlayListModel） ============
     // logModel / stateModel / decisionModel / perfModel
@@ -76,8 +79,9 @@ Window {
         anchors.leftMargin: 4
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 4
-        width: 520
-        height: 320
+        // 不超过窗口：放不下时收缩，避免自定义的大尺寸超出游戏窗口
+        width: Math.min(root.logWidth, (root.width - 8) / root.uiScale)
+        height: Math.min(root.logHeight, (root.height - 8) / root.uiScale)
         scale: root.uiScale
         transformOrigin: Item.BottomLeft
         visible: root.logVisible
