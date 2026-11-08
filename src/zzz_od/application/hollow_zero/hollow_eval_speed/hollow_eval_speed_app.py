@@ -15,7 +15,7 @@ from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeC
 
 class HollowEvalSpeedApp(WitheredDomainApp):
 
-    """零号业绩速刷:固定进入枯萎之都-施工废墟-内部,速刷零号业绩或周期奖励。入口流程与枯萎之都一致。"""
+    """零号业绩速刷:固定进入枯萎之都-施工废墟-内部,只速刷零号业绩。注意:这样刷业绩会亏掉周期奖励的丁尼。"""
 
     SPEED_RUN: ClassVar[bool] = True
 
