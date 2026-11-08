@@ -129,9 +129,11 @@ def check_entry_opt_pos_at_right(ctx: ZContext, screen: MatLike, ignore_events: 
         return mr
 
 
-def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[EventOcrResultHandler]) -> OperationRoundResult:
+def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[EventOcrResultHandler],
+                             force_bottom_fallback: bool = False) -> OperationRoundResult:
     """
     识别当前事件的文本 并做出选择
+    :param force_bottom_fallback: 调试模式下也使用 点击最下方选项 的兜底 周期速刷需要靠它离开事件
     """
     area = get_event_text_area(op.ctx)
     part = cv2_utils.crop_image_only(screen, area.rect)
@@ -188,7 +190,7 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
             target_handler = handler
             target_mrl = mrl
 
-    if op.ctx.env_config.is_debug:
+    if op.ctx.env_config.is_debug and not force_bottom_fallback:
         # 调试模式下 不进行兜底 尽量补全事件选项
         bottom_opt_pos = None
 

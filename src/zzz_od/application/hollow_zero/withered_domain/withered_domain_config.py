@@ -22,10 +22,10 @@ class HollowZeroExtraExitEnum(Enum):
 
 class WitheredDomainConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: int, group_id: str):
+    def __init__(self, instance_idx: int, group_id: str, app_id: str = withered_domain_const.APP_ID):
         ApplicationConfig.__init__(
             self,
-            app_id=withered_domain_const.APP_ID,
+            app_id=app_id,
             instance_idx=instance_idx,
             group_id=group_id,
         )
