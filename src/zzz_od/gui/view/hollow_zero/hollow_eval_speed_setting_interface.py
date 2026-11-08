@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, PushSettingCard
+from qfluentwidgets import BodyLabel, FluentIcon, FluentThemeColor, PushSettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.log_utils import log
@@ -44,6 +44,10 @@ class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def get_content_widget(self) -> QWidget:
         widget = Column()
+
+        self.tip_label = BodyLabel(text='注意：用这个方法刷业绩会使周期丁尼的总量减少')
+        self.tip_label.setTextColor(FluentThemeColor.RED.value)
+        widget.add_widget(self.tip_label)
 
         self.agent_btn_list: list[EditableComboBox] = []
         for _ in range(3):
