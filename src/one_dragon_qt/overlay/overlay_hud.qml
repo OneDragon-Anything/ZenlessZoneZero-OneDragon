@@ -56,6 +56,12 @@ Window {
     // themeColor：主题色，标题条与状态行流光共用
     property color themeColor: "#ffd400"
 
+    // uiScale：面板整体缩放。原尺寸需要约 1100x800 逻辑像素才放得下（log+decision 宽约 1080、
+    // state+decision 高约 760，log 高 320），窗口（逻辑像素 = 物理像素 / DPR）够大时保持 1.0 不变，
+    // 只有放不下（如 200% DPI 下 1080p 仅 960x540）才缩小，下限 0.6 避免过小。
+    // 缩放以各面板贴靠的角为原点
+    property real uiScale: Math.max(0.6, Math.min(1.0, Math.min(width / 1100, height / 800)))
+
     // ============ 数据模型（Python 侧注入 OverlayListModel） ============
     // logModel / stateModel / decisionModel / perfModel
     // 由 OverlayHudWindow 通过 setContextProperty 注入，QML 不再自建 ListModel。
@@ -70,8 +76,10 @@ Window {
         anchors.leftMargin: 4
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 4
-        width: 460
-        height: 300
+        width: 520
+        height: 320
+        scale: root.uiScale
+        transformOrigin: Item.BottomLeft
         visible: root.logVisible
         opacity: root.logFade
         Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
@@ -128,7 +136,9 @@ Window {
                 model: logModel
                 spacing: 3
 
-                onCountChanged: positionViewAtEnd()
+                // 委托高度随文字（字号缩放/DPI）变化，需等委托实例化后再定位，否则最后几行会被挤出可视区
+                onCountChanged: Qt.callLater(positionViewAtEnd)
+                onContentHeightChanged: Qt.callLater(positionViewAtEnd)
 
                 delegate: Row {
                     width: logList.width
@@ -143,11 +153,15 @@ Window {
 
                     Text {
                         text: model.message
+                        textFormat: Text.PlainText
                         color: "#e8e8e8"
                         font.pixelSize: Math.round(14 * root.fontScale)
                         font.bold: root.fontBold
                         font.family: root.monoFont
                         width: logList.width - 14
+                        // 长文本（OCR 结果等）折行显示，最多 3 行，超出才省略
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: 3
                         elide: Text.ElideRight
                     }
                 }
@@ -157,14 +171,16 @@ Window {
 
     // ---------- 战斗状态面板（右下角，决策栏上方，窄高条） ----------
     Item {
-                        textFormat: Text.PlainText
         id: stateBox
         anchors.right: parent.right
         anchors.rightMargin: 4
-        anchors.bottom: decisionBox.top
-        anchors.bottomMargin: 8
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 4 + decisionBox.height * root.uiScale + 8
         width: 200
-        height: 600
+        // 高度不超过决策面板上方的剩余空间（小窗口下压缩，顶部留 40 给灵动岛）
+        height: Math.min(600, Math.max(120, (root.height - 40 - anchors.bottomMargin) / root.uiScale))
+        scale: root.uiScale
+        transformOrigin: Item.BottomRight
         visible: root.stateVisible
         opacity: root.stateFade
         Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
@@ -297,6 +313,8 @@ Window {
         anchors.bottomMargin: 4
         width: 550
         height: 150
+        scale: root.uiScale
+        transformOrigin: Item.BottomRight
         visible: root.decisionVisible
         opacity: root.decisionFade
         Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
@@ -377,11 +395,15 @@ Window {
 
                     Text {
                         text: model.expr
+                        textFormat: Text.PlainText
                         color: "#d8e27f"
                         font.pixelSize: Math.round(13 * root.fontScale)
                         font.bold: root.fontBold
                         font.family: root.monoFont
                         width: decisionList.width - 30
+                        // 长表达式折行显示，最多 3 行，超出才省略
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: 3
                         elide: Text.ElideRight
                     }
                 }
@@ -399,9 +421,10 @@ Window {
         visible: root.perfVisible
         radius: 6
         color: Qt.rgba(0, 0, 0, 0.8 * root.panelOpacity)
-                        textFormat: Text.PlainText
         width: perfColumn.width + 12
         height: perfColumn.height + 12
+        scale: root.uiScale
+        transformOrigin: Item.TopRight
 
         Column {
             id: perfColumn
@@ -442,6 +465,8 @@ Window {
         anchors.top: parent.top
         anchors.topMargin: 4
         spacing: 8
+        scale: root.uiScale
+        transformOrigin: Item.Top
 
         // fairy 徽章（位于胶囊左侧，36px 与胶囊同高）：
         // SVG 已裁剪掉透明留白（266x266 画布，圆心居中）
@@ -660,6 +685,8 @@ Window {
         anchors.bottomMargin: 160
         width: toastLabel.width + 56
         height: 44
+        scale: root.uiScale
+        transformOrigin: Item.Bottom
         visible: root.toastText.length > 0
         opacity: 0
 

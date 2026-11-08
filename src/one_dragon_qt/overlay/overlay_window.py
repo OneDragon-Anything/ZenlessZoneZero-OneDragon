@@ -120,11 +120,19 @@ class OverlayWindow(QWidget):
         scale_x = self.width() / float(self._standard_width)
         scale_y = self.height() / float(self._standard_height)
 
+        # 装饰（光晕/线宽/圆角/标签）按窗口逻辑尺寸缩放：高 DPI 下窗口逻辑像素变小，
+        # 固定逻辑像素的光晕会相对画面放大一倍，yolo/ocr 框密集时遮挡全部内容
+        deco_k = max(0.5, min(1.0, min(self.width() / 1920.0, self.height() / 1080.0)))
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         # 标签用粗体：需在测量文本尺寸前设置，否则首帧按非粗体测量导致背景框偏窄、文字被裁
         label_font = painter.font()
         label_font.setBold(True)
+        if label_font.pointSizeF() > 0:
+            label_font.setPointSizeF(max(6.0, label_font.pointSizeF() * deco_k))
+        elif label_font.pixelSize() > 0:
+            label_font.setPixelSize(max(8, round(label_font.pixelSize() * deco_k)))
         painter.setFont(label_font)
 
         for item in self._vision_items:
@@ -137,7 +145,7 @@ class OverlayWindow(QWidget):
             if not glow_color.isValid():
                 glow_color = QColor("#bdbdbd")
 
-            radius = 8
+            radius = max(3, round(8 * deco_k))
             path = QPainterPath()
             path.addRoundedRect(rect, radius, radius)
 
@@ -153,7 +161,7 @@ class OverlayWindow(QWidget):
                 gc = QColor(glow_color)
                 gc.setAlpha(glow_alpha)
                 gp = QPen(gc)
-                gp.setWidth(glow_w)
+                gp.setWidth(max(1, round(glow_w * deco_k)))
                 gp.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                 painter.setPen(gp)
                 painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -161,7 +169,7 @@ class OverlayWindow(QWidget):
 
             # 主框：白色圆角细线
             pen = QPen(QColor(255, 255, 255))
-            pen.setWidth(2)
+            pen.setWidth(max(1, round(2 * deco_k)))
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawPath(path)
@@ -176,7 +184,7 @@ class OverlayWindow(QWidget):
 
             # 标签放在朝向屏幕中心的一侧（框在上半放下面、下半放上面、左半放右边、右半放左边）
             # 取偏移更大的轴定方向，并 clamp 到窗口内，避免边缘出屏
-            gap = 4
+            gap = max(2, round(4 * deco_k))
             box_c = rect.center()
             screen_c = QPoint(self.width() // 2, self.height() // 2)
             if abs(box_c.x() - screen_c.x()) >= abs(box_c.y() - screen_c.y()):
