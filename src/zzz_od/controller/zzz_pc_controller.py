@@ -16,11 +16,13 @@ class ZPcController(PcControllerBase):
             self,
             game_config: GameConfig,
             screenshot_method: str,
+            force_active_window: bool = False,
             standard_width: int = 1920,
             standard_height: int = 1080
     ):
         PcControllerBase.__init__(self,
                                   screenshot_method=screenshot_method,
+                                  force_active_window=force_active_window,
                                   standard_width=standard_width,
                                   standard_height=standard_height)
 
