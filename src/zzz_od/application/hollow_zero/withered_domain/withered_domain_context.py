@@ -56,8 +56,8 @@ class WitheredDomainContext:
         self._last_current_node: Optional[HollowZeroMapNode] = None  # 上一次当前所在的点
         self.speed_up_clicked: bool = False  # 是否已经点击加速
         self.invalid_map_times: int = 0  # 识别不到正确地图的次数
-        self.app_id: str = withered_domain_const.APP_ID  # 当前运行的应用 空洞周期速刷和枯萎之都共用上下文
-        self.force_only_boss: bool = False  # 是否强制使用速通寻路 空洞周期速刷使用
+        self.app_id: str = withered_domain_const.APP_ID  # 当前运行的应用 零号业绩速刷和枯萎之都共用上下文
+        self.force_only_boss: bool = False  # 是否强制使用速通寻路 零号业绩速刷使用
         self.plugin_click_opens_list: bool | None = None  # 点击邦布插件入口能否打开列表 None为未知 点击/长按可在游戏设置里交换
 
     def init_before_run(self, app_id: str = withered_domain_const.APP_ID,
@@ -395,7 +395,7 @@ class WitheredDomainContext:
 
     def _get_path_finding(self) -> str:
         """
-        当前使用的寻路方式 周期速刷模式强制为速通
+        当前使用的寻路方式 零号业绩速刷模式强制为速通
         """
         if self.force_only_boss:
             return HollowZeroChallengePathFinding.ONLY_BOSS.value.value

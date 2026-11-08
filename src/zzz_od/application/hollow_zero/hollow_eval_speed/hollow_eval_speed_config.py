@@ -1,8 +1,6 @@
-from enum import Enum
 from typing import ClassVar
 
-from one_dragon.base.config.config_item import ConfigItem
-from zzz_od.application.hollow_zero.hollow_period_speed import hollow_period_speed_const
+from zzz_od.application.hollow_zero.hollow_eval_speed import hollow_eval_speed_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
     HollowZeroExtraExitEnum,
     HollowZeroExtraTask,
@@ -14,13 +12,7 @@ from zzz_od.hollow_zero.hollow_zero_challenge_config import (
 )
 
 
-class HollowPeriodSpeedGoal(Enum):
-
-    EVA_POINT = ConfigItem('刷满业绩')
-    PERIOD_REWARD = ConfigItem('刷满丁尼')  # 丁尼即枯萎之都里的周期奖励
-
-
-class HollowPeriodSpeedConfig(WitheredDomainConfig):
+class HollowEvalSpeedConfig(WitheredDomainConfig):
 
     MISSION_NAME: ClassVar[str] = '施工废墟-内部'  # 固定进入的副本
 
@@ -29,32 +21,22 @@ class HollowPeriodSpeedConfig(WitheredDomainConfig):
             self,
             instance_idx=instance_idx,
             group_id=group_id,
-            app_id=hollow_period_speed_const.APP_ID,
+            app_id=hollow_eval_speed_const.APP_ID,
         )
 
     @property
     def mission_name(self) -> str:
-        return HollowPeriodSpeedConfig.MISSION_NAME
+        return HollowEvalSpeedConfig.MISSION_NAME
 
     @property
     def weekly_plan_times(self) -> int:
-        # 没有基础次数的要求 直接按周期奖励刷取
+        # 没有基础次数的要求 直接刷业绩
         return 0
 
     @property
-    def goal(self) -> str:
-        return self.get('goal', HollowPeriodSpeedGoal.PERIOD_REWARD.value.value)
-
-    @goal.setter
-    def goal(self, new_value: str):
-        self.update('goal', new_value)
-
-    @property
     def extra_task(self) -> str:
-        # 刷取目标对应枯萎之都里的额外刷取 共用运行记录和停止条件的判断
-        if self.goal == HollowPeriodSpeedGoal.EVA_POINT.value.value:
-            return HollowZeroExtraTask.EVA_POINT.value.value
-        return HollowZeroExtraTask.PERIOD_REWARD.value.value
+        # 目标固定为刷满业绩 共用枯萎之都的运行记录和停止条件的判断
+        return HollowZeroExtraTask.EVA_POINT.value.value
 
     @property
     def extra_exit(self) -> str:

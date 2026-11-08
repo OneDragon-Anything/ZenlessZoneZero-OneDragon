@@ -133,7 +133,7 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
                              force_bottom_fallback: bool = False) -> OperationRoundResult:
     """
     识别当前事件的文本 并做出选择
-    :param force_bottom_fallback: 调试模式下也使用 点击最下方选项 的兜底 周期速刷需要靠它离开事件
+    :param force_bottom_fallback: 调试模式下也使用 点击最下方选项 的兜底 零号业绩速刷需要靠它离开事件
     """
     area = get_event_text_area(op.ctx)
     part = cv2_utils.crop_image_only(screen, area.rect)

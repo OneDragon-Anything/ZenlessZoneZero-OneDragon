@@ -16,14 +16,14 @@ class HollowQuickRunner(HollowRunner):
 
     def __init__(self, ctx: ZContext):
         """
-        空洞周期速刷的调度操作器
+        零号业绩速刷的调度操作器
         在 HollowRunner 的基础上 全程接入邦布插件:
         速通寻路绕开小怪格 前往终点的路径被小怪格堵住时 走到小怪格旁使用炸弹 再用医疗包回血
 
         炸弹用不了(没有数量/弹窗打不开)时 不再尝试 回退为常规的战斗通过
         """
         HollowRunner.__init__(self, ctx)
-        self.op_name = gt('空洞周期速刷', 'game')
+        self.op_name = gt('零号业绩速刷', 'game')
 
         # 不进入商店 经过商人格子时直接前往下一格
         self._entry_event_handlers.pop('邦布商人', None)

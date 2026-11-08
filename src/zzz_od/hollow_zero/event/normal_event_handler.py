@@ -37,7 +37,7 @@ class NormalEventHandler(ZOperation):
 
         self._handlers: list[EventOcrResultHandler] = []
 
-        # 周期速刷模式 不拿事件收益 有离开的选项就只选离开 否则也不选会扣血的选项
+        # 零号业绩速刷模式 不拿事件收益 有离开的选项就只选离开 否则也不选会扣血的选项
         skip_hp_loss: bool = self.ctx.withered_domain.force_only_boss
         options: list[HallowZeroNormalEventOption] = event.options
         if skip_hp_loss:

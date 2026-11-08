@@ -7,12 +7,12 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from zzz_od.application.hollow_zero.hollow_period_speed import hollow_period_speed_const
-from zzz_od.application.hollow_zero.hollow_period_speed.hollow_period_speed_app import (
-    HollowPeriodSpeedApp,
+from zzz_od.application.hollow_zero.hollow_eval_speed import hollow_eval_speed_const
+from zzz_od.application.hollow_zero.hollow_eval_speed.hollow_eval_speed_app import (
+    HollowEvalSpeedApp,
 )
-from zzz_od.application.hollow_zero.hollow_period_speed.hollow_period_speed_config import (
-    HollowPeriodSpeedConfig,
+from zzz_od.application.hollow_zero.hollow_eval_speed.hollow_eval_speed_config import (
+    HollowEvalSpeedConfig,
 )
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import (
     WitheredDomainRunRecord,
@@ -22,30 +22,30 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class HollowPeriodSpeedAppFactory(ApplicationFactory):
+class HollowEvalSpeedAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(self, hollow_period_speed_const)
+        ApplicationFactory.__init__(self, hollow_eval_speed_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
-        return HollowPeriodSpeedApp(self.ctx)
+        return HollowEvalSpeedApp(self.ctx)
 
     def create_config(
         self, instance_idx: int, group_id: str
     ) -> ApplicationConfig:
-        return HollowPeriodSpeedConfig(
+        return HollowEvalSpeedConfig(
             instance_idx=instance_idx,
             group_id=group_id,
         )
 
     def create_run_record(self, instance_idx: int) -> AppRunRecord:
         return WitheredDomainRunRecord(
-            config=cast(HollowPeriodSpeedConfig, self.get_config(
+            config=cast(HollowEvalSpeedConfig, self.get_config(
                 instance_idx=instance_idx,
                 group_id=application_const.DEFAULT_GROUP_ID,
             )),
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
-            app_id=hollow_period_speed_const.APP_ID,
+            app_id=hollow_eval_speed_const.APP_ID,
         )

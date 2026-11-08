@@ -22,24 +22,21 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
-from zzz_od.application.hollow_zero.hollow_period_speed import hollow_period_speed_const
-from zzz_od.application.hollow_zero.hollow_period_speed.hollow_period_speed_config import (
-    HollowPeriodSpeedGoal,
-)
+from zzz_od.application.hollow_zero.hollow_eval_speed import hollow_eval_speed_const
 from zzz_od.game_data.agent import AgentEnum, AgentTypeEnum
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class HollowPeriodSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
+class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         VerticalScrollInterface.__init__(
             self,
             content_widget=None,
-            object_name='hollow_period_speed_setting_interface',
-            nav_text_cn='空洞周期速刷配置',
+            object_name='hollow_eval_speed_setting_interface',
+            nav_text_cn='零号业绩速刷配置',
             parent=parent,
         )
 
@@ -47,14 +44,6 @@ class HollowPeriodSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def get_content_widget(self) -> QWidget:
         widget = Column()
-
-        self.goal_opt = ComboBoxSettingCard(
-            icon=FluentIcon.CALENDAR,
-            title='刷取目标',
-            content='刷满零号业绩，或刷满丁尼',
-            options_enum=HollowPeriodSpeedGoal,
-        )
-        widget.add_widget(self.goal_opt)
 
         self.agent_btn_list: list[EditableComboBox] = []
         for _ in range(3):
@@ -98,16 +87,15 @@ class HollowPeriodSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
         super().on_interface_shown()
 
         self.config = self.ctx.run_context.get_config(
-            app_id=hollow_period_speed_const.APP_ID,
+            app_id=hollow_eval_speed_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
         self.run_record = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
-            app_id=hollow_period_speed_const.APP_ID,
+            app_id=hollow_eval_speed_const.APP_ID,
         )
 
-        self.goal_opt.init_with_adapter(get_prop_adapter(self.config, 'goal'))
         self._update_agent_options()
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
         self.auto_battle_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle'))
@@ -138,7 +126,7 @@ class HollowPeriodSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def _update_run_record_display(self) -> None:
         if self.run_record.is_finished_by_week():
-            content = '已完成本周刷取目标 如错误可重置'
+            content = '已完成刷取业绩 如错误可重置'
         else:
             content = f'进入次数 本日: {self.run_record.daily_run_times}'
         self.run_record_opt.setContent(content)
