@@ -34,9 +34,9 @@ class GitRemoteEnum(Enum):
 class ScreenshotMethodEnum(Enum):
 
     AUTO = ConfigItem('自动', 'auto')
-    PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
-    BITBLT = ConfigItem('BitBlt', 'bitblt')
-    PIL = ConfigItem('PIL', 'pil')
+    PRINT_WINDOW = ConfigItem('Print Window', 'print_window', tag='后台')
+    BITBLT = ConfigItem('BitBlt', 'bitblt', tag='前台')
+    PIL = ConfigItem('PIL', 'pil', tag='前台')
 
 
 class EnvConfig(YamlConfig):

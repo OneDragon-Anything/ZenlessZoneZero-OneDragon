@@ -156,8 +156,8 @@ class SettingGameInterface(VerticalScrollInterface):
         overlay_group.addSettingCard(self.overlay_font_bold_switch)
 
         self.overlay_anti_capture_switch = SwitchSettingCard(
-            icon=FluentIcon.VIEW, title='防录屏',
-            content='关闭后非 PrintWindow 截图方式会截到 Overlay',
+            icon=FluentIcon.VIEW, title='防截图',
+            content='防止 BitBlt 等前台截图方式受到影响',
         )
         self.overlay_anti_capture_switch.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_anti_capture_switch)
