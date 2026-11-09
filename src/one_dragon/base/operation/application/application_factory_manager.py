@@ -10,21 +10,28 @@
 from __future__ import annotations
 
 import importlib
-import json
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
     PluginInfo,
     PluginSource,
 )
+from one_dragon.base.operation.application.plugin_manifest import (
+    MANIFEST_FILE_NAME,
+    extract_manifest_info,
+    read_manifest_file,
+)
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     ensure_sys_path,
     import_module_from_file,
+    is_const_file,
+    is_factory_file,
+    list_repo_plugin_dirs,
     resolve_module_name,
 )
 
@@ -47,8 +54,6 @@ class ApplicationFactoryManager:
         """
         self.ctx: OneDragonContext = ctx
         self._plugin_dirs: list[tuple[Path, PluginSource]] = plugin_dirs
-        self._factory_module_suffix: str = "_factory"
-        self._const_module_suffix: str = "_const"
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
         self._scan_failures: list[tuple[Path, str]] = []  # 最近一次扫描的失败记录
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
@@ -57,6 +62,14 @@ class ApplicationFactoryManager:
     def plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """获取插件目录列表"""
         return self._plugin_dirs
+
+    def set_plugin_dirs(self, plugin_dirs: list[tuple[Path, PluginSource]]) -> None:
+        """更新扫描根列表，刷新注册时用来纳入新出现的插件仓库目录。
+
+        Args:
+            plugin_dirs: 新的插件目录列表，每项为 (path, source) 元组
+        """
+        self._plugin_dirs = plugin_dirs
 
     @property
     def plugin_infos(self) -> list[PluginInfo]:
@@ -161,9 +174,23 @@ class ApplicationFactoryManager:
                     )
                     return factories
 
+                if self._is_repo_root(directory):
+                    # 仓库根：一个仓库只能有一个插件，其余目录（文档、测试等）不是插件
+                    repo_plugins = list_repo_plugin_dirs(directory)
+                    if len(repo_plugins) > 1:
+                        names = ', '.join(p.name for p in repo_plugins)
+                        error_msg = f"一个插件仓库只能有一个插件目录，实际有 {len(repo_plugins)} 个: {names}"
+                        self._scan_failures.append((directory, error_msg))
+                        log.warning(f"仓库 {directory} 已跳过: {error_msg}")
+                        return factories
+                    plugin_dirs = repo_plugins
+
                 for plugin_dir in plugin_dirs:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
+                        if self._is_repo_root(plugin_dir):
+                            # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
                             continue
                         plugin_dir_resolved = plugin_dir.resolve(strict=True)
                         if plugin_dir_resolved != directory_resolved / plugin_dir.name:
@@ -193,9 +220,9 @@ class ApplicationFactoryManager:
         factory_files: list[Path] = []
         const_files: list[Path] = []
         for f in python_files:
-            if f.stem.endswith(self._factory_module_suffix):
+            if is_factory_file(f.name):
                 factory_files.append(f)
-            elif f.stem.endswith(self._const_module_suffix):
+            elif is_const_file(f.name):
                 const_files.append(f)
 
         # 检测同一目录下多个 factory 或 const 文件
@@ -232,6 +259,22 @@ class ApplicationFactoryManager:
                 log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
         return factories
+
+    def _is_repo_root(self, directory: Path) -> bool:
+        """判断目录是否为插件仓库根（plugins/<仓库>）。
+
+        仓库根是自身和上一级都在第三方扫描根里的目录。
+
+        Args:
+            directory: 待判断的目录。
+
+        Returns:
+            是否为仓库根。
+        """
+        third_party_roots = {
+            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+        }
+        return directory in third_party_roots and directory.parent in third_party_roots
 
     def _load_factory_from_file(
         self,
@@ -422,12 +465,12 @@ class ApplicationFactoryManager:
         # 查找 factory 同目录下的 const 文件
         const_file = None
         for f in factory_file.parent.iterdir():
-            if f.is_file() and f.suffix == '.py' and f.stem.endswith(self._const_module_suffix):
+            if f.is_file() and is_const_file(f.name):
                 const_file = f
                 break
 
         if const_file is None:
-            raise ImportError(f"插件 {factory.app_id} 缺少 *{self._const_module_suffix}.py 文件")
+            raise ImportError(f"插件 {factory.app_id} 缺少 const.py（或旧写法 *_const.py）文件")
 
         # 与 factory 相同的包前缀 + const 文件名
         package_prefix, _, _ = factory_module_name.rpartition('.')
@@ -448,17 +491,32 @@ class ApplicationFactoryManager:
             existing = self._plugin_infos[factory.app_id]
             raise ImportError(
                 f"重复的 APP_ID '{factory.app_id}'，"
-                f"当前模块 {const_module_name}，"
-                f"首次注册于 {existing.const_module}"
+                f"当前插件 {factory_file.parent}（模块 {const_module_name}），"
+                f"首次注册于 {existing.plugin_dir}（模块 {existing.const_module}）。"
+                f"请删除或停用其中一个"
             )
 
-        # 读取可选的插件元数据
-        plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
-        plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
-        plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
-        plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
-        # 读取封面：插件包内的 plugin.json 声明，缺失时界面用默认封面
-        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent)
+        # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
+        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
+        if (
+            source == PluginSource.THIRD_PARTY
+            and self._is_repo_root(factory_file.parent.parent)
+            and factory_file.parent.name != factory.app_id
+        ):
+            raise ImportError(
+                f"仓库布局下插件目录名 '{factory_file.parent.name}' "
+                f"必须等于 APP_ID '{factory.app_id}'"
+            )
+
+        # 展示元数据（版本、作者、主页、简介）和封面都来自插件包内的 plugin.json，
+        # 缺失或不合法的字段为空，界面显示为空或默认封面
+        manifest = read_manifest_file(factory_file.parent / MANIFEST_FILE_NAME)
+        manifest_info = extract_manifest_info(manifest)
+        plugin_info.author = manifest_info.author
+        plugin_info.homepage = manifest_info.homepage
+        plugin_info.version = manifest_info.version
+        plugin_info.description = manifest_info.description
+        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent, manifest)
 
         # 校验 KEY_SIM_DIR：必须是相对目录名，防止插件从 plugin_dir 外加载脚本
         key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
@@ -476,27 +534,20 @@ class ApplicationFactoryManager:
         return plugin_info
 
     @staticmethod
-    def _resolve_cover_path(plugin_dir: Path) -> Path | None:
-        """从插件包内的 plugin.json 读取封面图路径。
+    def _resolve_cover_path(plugin_dir: Path, manifest: dict[str, Any] | None) -> Path | None:
+        """从 plugin.json 的内容取封面图路径。
 
-        封面属于可选信息，未声明、格式损坏、路径越界或文件不存在都按「没有封面」
+        封面属于可选信息，未声明、路径越界或文件不存在都按「没有封面」
         处理，由界面回退到默认封面，不打断插件加载。
 
         Args:
             plugin_dir: 插件根目录。
+            manifest: plugin.json 的内容，不可用时为 None。
 
         Returns:
             封面图的绝对路径；不可用时返回 None。
         """
-        manifest_file = plugin_dir / 'plugin.json'
-        if not manifest_file.is_file():
-            return None
-
-        try:
-            manifest = json.loads(manifest_file.read_text(encoding='utf-8'))
-        except (OSError, ValueError):
-            return None
-        if not isinstance(manifest, dict):
+        if manifest is None:
             return None
 
         raw_path = str(manifest.get('cover') or '').strip()

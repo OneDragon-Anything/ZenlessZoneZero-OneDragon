@@ -26,6 +26,9 @@ from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
@@ -39,8 +42,16 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import (
+    debug_utils,
+    file_utils,
+    i18_utils,
+    log_utils,
+    os_utils,
+    thread_utils,
+)
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import list_repo_plugin_dirs
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -104,6 +115,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 以下是 应用工厂相关 -------------------#
 
     @cached_property
+    def plugins_dir(self) -> Path | None:
+        """项目根目录下的 plugins 目录，所有外部插件的代码都放在它下面。
+
+        Returns:
+            插件代码根目录；项目下没有 plugins 目录时返回 None
+        """
+        cls_file = inspect.getfile(self.__class__)
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is None:
+            return None
+        plugins_dir = src_dir.parent / 'plugins'
+        return plugins_dir if plugins_dir.is_dir() else None
+
+    @cached_property
     def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """
         应用插件目录列表
@@ -131,14 +156,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if application_dir.is_dir():
             dirs.append((application_dir, PluginSource.BUILTIN))
 
-        # 计算项目根目录下的 plugins 目录（外部插件）
-        # 从 src 目录往上一级就是项目根目录
-        src_dir = file_utils.find_src_dir(cls_file)
-        if src_dir is not None:
-            project_root = src_dir.parent
-            plugins_dir = project_root / 'plugins'
-            if plugins_dir.is_dir():
-                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+        # 插件仓库布局：plugins/<仓库>/<id>/，只认两层，不再往下深入。
+        # 插件商店要求插件代码放在仓库下的子目录里，仓库根因此不是插件根；
+        # 把仓库根也作为扫描根，它下面的插件目录才会被当成插件根加载。
+        plugins_dir = self.plugins_dir
+        if plugins_dir is not None:
+            dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+            try:
+                repo_dirs = sorted(plugins_dir.iterdir())
+            except OSError:
+                repo_dirs = []
+            for repo_dir in repo_dirs:
+                if not repo_dir.is_dir() or repo_dir.name.startswith('.'):
+                    continue
+                if list_repo_plugin_dirs(repo_dir):
+                    dirs.append((repo_dir, PluginSource.THIRD_PARTY))
 
         return dirs
 
@@ -146,6 +178,32 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def factory_manager(self) -> ApplicationFactoryManager:
         """应用工厂管理器"""
         return ApplicationFactoryManager(self, self.application_plugin_dirs)
+
+    def get_plugin_data_dir(self, app_id: str) -> Path:
+        """获取插件数据目录（不存在时自动创建）。
+
+        数据放在 plugin_data/<app_id>/，与插件代码装在哪里无关：APP_ID 在本机
+        是唯一的（重复的插件不会被加载），所以不同插件不会共用目录，
+        从扁平布局挪到仓库布局也不会丢数据。插件更新覆盖代码目录时不会碰到
+        这里的数据；plugin_data 已在 .gitignore 中忽略，不入库。
+
+        Args:
+            app_id: 应用标识，即插件常量模块里的 APP_ID
+
+        Returns:
+            插件数据目录路径
+
+        Raises:
+            ValueError: app_id 为空，或含路径分隔符、``..`` 等会逃出 plugin_data 的内容
+        """
+        if (
+            not isinstance(app_id, str)
+            or not app_id
+            or app_id in ('.', '..')
+            or any(c in app_id for c in '/\\:')
+        ):
+            raise ValueError(f'APP_ID 不能用作数据目录名: {app_id!r}')
+        return Path(os_utils.get_path_under_work_dir('plugin_data', app_id))
 
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 
@@ -229,6 +287,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 清空现有注册
         self.run_context.clear_applications()
 
+        # 重新发现扫描根：启动后才 clone/创建的插件仓库目录，要在这里才会被扫到
+        for cached_name in ('plugins_dir', 'application_plugin_dirs'):
+            self.__dict__.pop(cached_name, None)
+        self.factory_manager.set_plugin_dirs(self.application_plugin_dirs)
+
         # 重新发现并注册
         factories = self.factory_manager.discover_factories(reload_modules=True)
         if factories:
@@ -249,6 +312,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             del self.__dict__['notify_config']
 
         self._sync_current_application_after_refresh()
+
+        # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
+        self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
 
         log.info("应用注册刷新完成")
 
@@ -399,70 +465,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.controller.game_win is not None:
             self.controller.game_win.active()
         _, img = self.controller.screenshot(independent=True)
-        base_file_name = debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
-        self._save_overlay_patched_image(img, base_file_name)
-
-    def _save_overlay_patched_image(self, base_image, base_file_name: str) -> None:
-        try:
-            from one_dragon_qt.overlay.overlay_config import OverlayConfig
-        except Exception:
-            return
-
-        config = OverlayConfig()
-        if not config.patched_capture_enabled:
-            return
-
-        overlay_rgba = self._capture_overlay_rgba()
-        if overlay_rgba is None:
-            return
-
-        patched = self._compose_overlay_patched_image(base_image, overlay_rgba)
-        if patched is None:
-            return
-
-        debug_utils.save_debug_image(
-            patched,
-            file_name=f"{base_file_name}{config.patched_capture_suffix}",
-            copy_screenshot=False,
-        )
-
-    @staticmethod
-    def _compose_overlay_patched_image(base_image, overlay_rgba):
-        import cv2
-
-        if base_image is None or overlay_rgba is None:
-            return None
-        if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
-            return None
-
-        target_h, target_w = base_image.shape[:2]
-        if target_h <= 0 or target_w <= 0:
-            return None
-
-        if overlay_rgba.shape[0] != target_h or overlay_rgba.shape[1] != target_w:
-            overlay_rgba = cv2.resize(
-                overlay_rgba,
-                (target_w, target_h),
-                interpolation=cv2.INTER_LINEAR,
-            )
-
-        overlay_rgb = overlay_rgba[:, :, :3].astype("float32")
-        overlay_bgr = overlay_rgb[:, :, ::-1]  # RGBA -> BGR 通道顺序
-        alpha = (overlay_rgba[:, :, 3:4].astype("float32") / 255.0).clip(0.0, 1.0)
-        base_rgb = base_image.astype("float32")
-        patched = base_rgb * (1.0 - alpha) + overlay_bgr * alpha
-        return patched.astype("uint8")
-
-    @staticmethod
-    def _capture_overlay_rgba():
-        try:
-            from one_dragon_qt.overlay.overlay_manager import OverlayManager
-        except Exception:
-            return None
-        manager = OverlayManager.instance()
-        if manager is None:
-            return None
-        return manager.capture_overlay_rgba()
+        debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
 
     def switch_instance(self, instance_idx: int) -> None:
         """

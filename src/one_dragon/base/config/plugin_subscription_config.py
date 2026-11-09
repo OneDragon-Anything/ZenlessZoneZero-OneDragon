@@ -61,6 +61,7 @@ class PluginSubscriptionConfig(YamlConfig):
             'plugin_dir_name': plugin_dir_name,
             'installed_version': installed_version,
             'ignored_version': str(old.get('ignored_version') or ''),
+            'mute_update': bool(old.get('mute_update', False)),
             'source': source,
         }
         self.update('records', current)
@@ -92,6 +93,34 @@ class PluginSubscriptionConfig(YamlConfig):
         # update() 判断新旧值相等而跳过保存
         current[registry_id] = {**record, 'ignored_version': version}
         self.update('records', current)
+
+    def is_update_muted(self, registry_id: str) -> bool:
+        """该插件是否关闭了更新提示。
+
+        Args:
+            registry_id: 市场条目 id。
+        """
+        record = self.records.get(registry_id)
+        return bool(record and record.get('mute_update', False))
+
+    def set_update_muted(self, registry_id: str, muted: bool) -> bool:
+        """开关单个插件的启动更新提示。
+
+        Args:
+            registry_id: 市场条目 id。
+            muted: True 表示不再在启动时提示该插件的更新。
+
+        Returns:
+            订阅记录存在并已写入返回 True，没有记录返回 False。
+        """
+        current = self.records
+        record = current.get(registry_id)
+        if record is None:
+            return False
+        # 同 set_ignored_version，必须换成新字典才会触发保存
+        current[registry_id] = {**record, 'mute_update': muted}
+        self.update('records', current)
+        return True
 
     def find_registry_id(self, app_id: str, plugin_dir_name: str) -> str | None:
         """反查某个本地插件对应的市场条目 id。

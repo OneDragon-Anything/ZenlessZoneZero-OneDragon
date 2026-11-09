@@ -30,6 +30,7 @@ from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContex
 from zzz_od.game_data.agent import Agent, AgentEnum
 
 if TYPE_CHECKING:
+    from one_dragon.base.geometry.rectangle import Rect
     from zzz_od.context.zzz_context import ZContext
 
 
@@ -589,6 +590,12 @@ class AutoBattleContext:
 
         future_list: list[Future] = []
 
+        # 终结技被禁用说明进入了首领封招阶段 这段交互对时间极度敏感 脚本慢 0.1 秒以上就格挡不到
+        # 期间角色无法攻击 其他识别都没有意义 继续跑只会占住线程池和 GPU 把下一帧的普攻禁用检测推后
+        # 所以只保留普攻可用和两个禁用状态的识别与写回 战斗结束检测在 else 分支 不受这里影响
+        if in_battle and ban_result.get(BattleStateEnum.STATUS_ULTIMATE_BAN.value, False):
+            return in_battle
+
         # 统一提交检测任务
         if in_battle:
             # 闪避相关
@@ -673,8 +680,8 @@ class AutoBattleContext:
         # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents, self.area_chain_1.rect))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents, self.area_chain_2.rect))
 
         # 连携条检测（独立运行，结果在方法内部处理）
         _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
@@ -737,26 +744,36 @@ class AutoBattleContext:
                             self.switch_by_name(back_agent.agent_name)
                             break
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, area_rect: Rect) -> Agent | None:
         """
         在候选列表重匹配角色
+        :param img: 裁剪好的连携技头像图片
+        :param possible_agents: 候选角色列表
+        :param area_rect: 裁剪区域，用于 overlay 识别框坐标偏移
         :return:
         """
         prefix = 'avatar_chain_'
-        for agent, specific_template_id in possible_agents:
-            # 上次识别过的模板 ID，接着用
-            if specific_template_id:
-                template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
-                if mrl.max is not None:
-                    return agent
-            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
-            else:
-                for template_id in agent.template_id_list:
-                    template_to_check = prefix + template_id
+        bus = getattr(self.ctx, 'debug_trace_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            for agent, specific_template_id in possible_agents:
+                # 上次识别过的模板 ID，接着用
+                if specific_template_id:
+                    template_to_check = prefix + specific_template_id
                     mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
                     if mrl.max is not None:
                         return agent
+                # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+                else:
+                    for template_id in agent.template_id_list:
+                        template_to_check = prefix + template_id
+                        mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                        if mrl.max is not None:
+                            return agent
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None
 
@@ -806,7 +823,7 @@ class AutoBattleContext:
 
             possible_agents = self.agent_context.get_possible_agent_list()
 
-            agent = self._match_quick_assist_agent_in(part, possible_agents)
+            agent = self._match_quick_assist_agent_in(part, possible_agents, self.area_btn_switch.rect)
 
             if agent is not None:
                 state_records: list[StateRecord] = [
@@ -890,26 +907,36 @@ class AutoBattleContext:
 
         return gray_ratio <= 0.2
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, area_rect: Rect) -> Agent | None:
         """
         在候选列表重匹配角色
+        :param img: 裁剪好的快速支援头像图片
+        :param possible_agents: 候选角色列表
+        :param area_rect: 裁剪区域，用于 overlay 识别框坐标偏移
         :return:
         """
         prefix = 'avatar_quick_'
-        for agent, specific_template_id in possible_agents:
-            # 上次识别过的模板 ID，接着用
-            if specific_template_id:
-                template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
-                if mrl.max is not None:
-                    return agent
-            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
-            else:
-                for template_id in agent.template_id_list:
-                    template_to_check = prefix + template_id
+        bus = getattr(self.ctx, 'debug_trace_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            for agent, specific_template_id in possible_agents:
+                # 上次识别过的模板 ID，接着用
+                if specific_template_id:
+                    template_to_check = prefix + specific_template_id
                     mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
                     if mrl.max is not None:
                         return agent
+                # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+                else:
+                    for template_id in agent.template_id_list:
+                        template_to_check = prefix + template_id
+                        mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                        if mrl.max is not None:
+                            return agent
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None
 

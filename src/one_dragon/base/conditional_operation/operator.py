@@ -356,6 +356,17 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断\n%s', '\n'.join(snapshot))
                 if interrupt:
                     self._stop_running_task()
+                    bus = self._get_debug_trace_bus()
+                    if bus is not None and bus.enabled:
+                        bus.add_decision(
+                            DecisionTraceItem(
+                                source=self.__class__.__name__,
+                                trigger="中断",
+                                expression="复合中断条件满足",
+                                operation=self._op_list_summary(self.current_execution_info),
+                                status="执行中断",
+                            )
+                        )
                     self._emit_debug_timeline(
                         category="decision",
                         title="触发中断",
@@ -372,7 +383,13 @@ class ConditionalOperator(ConditionalOperatorLoader):
         :return: 形如 [蕾米埃尔-虚曜]  v=1  t=0.02s 的行
         """
         lines: list[str] = []
+        shown_states: set[str] = set()
         for recorder in cal_tree.usage_recorders:
+            # 同一个状态会被父级和子级的中断条件各引用一次 按状态名去重 只保留一行
+            if recorder.state_name in shown_states:
+                continue
+            shown_states.add(recorder.state_name)
+
             value = '-' if recorder.last_value is None else recorder.last_value
             if recorder.last_record_time == -1:
                 time_desc = '-'

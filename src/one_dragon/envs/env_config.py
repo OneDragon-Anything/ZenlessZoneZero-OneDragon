@@ -34,9 +34,9 @@ class GitRemoteEnum(Enum):
 class ScreenshotMethodEnum(Enum):
 
     AUTO = ConfigItem('自动', 'auto')
-    PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
-    BITBLT = ConfigItem('BitBlt', 'bitblt')
-    PIL = ConfigItem('PIL', 'pil')
+    PRINT_WINDOW = ConfigItem('Print Window', 'print_window', tag='后台')
+    BITBLT = ConfigItem('BitBlt', 'bitblt', tag='前台')
+    PIL = ConfigItem('PIL', 'pil', tag='前台')
 
 
 class EnvConfig(YamlConfig):
@@ -202,6 +202,20 @@ class EnvConfig(YamlConfig):
     @resource_download_no_confirm.setter
     def resource_download_no_confirm(self, new_value: bool) -> None:
         self.update('resource_download_no_confirm', new_value)
+
+    @property
+    def plugin_update_notify(self) -> bool:
+        """启动时是否在统一弹窗里提示插件更新。"""
+        return self.get('plugin_update_notify', True)
+
+    @plugin_update_notify.setter
+    def plugin_update_notify(self, new_value: bool) -> None:
+        """设置启动时是否提示插件更新。
+
+        Args:
+            new_value: True 表示在统一弹窗里提示插件更新，False 表示不提示。
+        """
+        self.update('plugin_update_notify', new_value)
 
     @property
     def force_update(self) -> bool:

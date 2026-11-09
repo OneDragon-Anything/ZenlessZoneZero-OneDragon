@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import inspect
 import os
-import re
 import shutil
 import stat
 import zipfile
@@ -28,8 +27,22 @@ from types import TracebackType
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from one_dragon.base.operation.application.plugin_manifest import (
+    MANIFEST_FILE_NAME,
+    MAX_MANIFEST_BYTES,
+    PluginManifestInfo,
+    extract_manifest_info,
+    parse_manifest,
+    read_manifest_file,
+)
 from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import (
+    FACTORY_FILE_NAME,
+    find_git_repo,
+    is_const_file,
+    is_factory_file,
+)
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -317,18 +330,17 @@ class PluginImportService:
         layout: _ZipLayout,
     ) -> PluginPreviewInfo:
         """读取 ZIP 中一个插件根的预览信息。"""
-        content = zf.read(layout.preview_const_info).decode("utf-8")
+        manifest_info = PluginManifestInfo()
+        for info, relative_path in layout.members:
+            if relative_path == PurePosixPath(MANIFEST_FILE_NAME):
+                if not info.is_dir() and info.file_size <= MAX_MANIFEST_BYTES:
+                    manifest_info = extract_manifest_info(parse_manifest(zf.read(info)))
+                break
         return PluginPreviewInfo(
             plugin_name=layout.plugin_dir_name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
-
-    def _extract_const_value(self, content: str, const_name: str) -> str | None:
-        """从代码内容中提取字符串常量值。"""
-        pattern = rf"{const_name}\s*=\s*['\"](.+?)['\"]"
-        match = re.search(pattern, content)
-        return match.group(1) if match else None
 
     def _analyze_zip(self, zf: zipfile.ZipFile) -> list[_ZipLayout]:
         """校验 ZIP 成员，并识别全部最外层合法插件根。"""
@@ -360,19 +372,20 @@ class PluginImportService:
             root_factory_path = next(
                 path
                 for path in file_paths
-                if path.parent == plugin_root and path.name.endswith("_factory.py")
+                if path.parent == plugin_root and is_factory_file(path.name)
             )
-            plugin_dir_name = (
-                plugin_root.name
-                if plugin_root.parts
-                else root_factory_path.name.removesuffix("_factory.py")
-            )
+            if plugin_root.parts:
+                plugin_dir_name = plugin_root.name
+            elif root_factory_path.name == FACTORY_FILE_NAME:
+                raise ValueError("无效的插件结构: factory.py 直接放在压缩包根目录时无法确定插件目录名，请放进子目录")
+            else:
+                plugin_dir_name = root_factory_path.name.removesuffix("_factory.py")
             self._validate_plugin_dir_name(plugin_dir_name)
 
             preview_const_path = next(
                 path
                 for path in file_paths
-                if path.parent == plugin_root and path.name.endswith("_const.py")
+                if path.parent == plugin_root and is_const_file(path.name)
             )
             preview_const_info = next(
                 info for info, path in archive_members if path == preview_const_path
@@ -407,18 +420,18 @@ class PluginImportService:
     ) -> list[PurePosixPath]:
         """从来源文件列表中找出互不隶属的最外层合法插件根。"""
         factory_paths = sorted(
-            (path for path in file_paths if path.name.endswith("_factory.py")),
+            (path for path in file_paths if is_factory_file(path.name)),
             key=lambda path: (len(path.parts), path.as_posix()),
         )
         if not factory_paths:
-            raise ValueError("无效的插件结构: 缺少 *_factory.py 文件")
+            raise ValueError("无效的插件结构: 缺少 factory.py（或旧写法 *_factory.py）文件")
 
         factory_paths_by_dir: dict[PurePosixPath, list[PurePosixPath]] = {}
         const_paths_by_dir: dict[PurePosixPath, list[PurePosixPath]] = {}
         for path in factory_paths:
             factory_paths_by_dir.setdefault(path.parent, []).append(path)
         for path in file_paths:
-            if path.name.endswith("_const.py"):
+            if is_const_file(path.name):
                 const_paths_by_dir.setdefault(path.parent, []).append(path)
 
         plugin_roots: list[PurePosixPath] = []
@@ -431,13 +444,13 @@ class PluginImportService:
 
             root_factory_paths = factory_paths_by_dir[factory_dir]
             if len(root_factory_paths) > 1:
-                raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_factory.py 文件")
+                raise ValueError("无效的插件结构: 插件根目录不能包含多个工厂文件（factory.py / *_factory.py）")
 
             root_const_paths = const_paths_by_dir.get(factory_dir, [])
             if not root_const_paths:
-                raise ValueError("无效的插件结构: 插件根目录缺少 *_const.py 文件")
+                raise ValueError("无效的插件结构: 插件根目录缺少 const.py（或旧写法 *_const.py）文件")
             if len(root_const_paths) > 1:
-                raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_const.py 文件")
+                raise ValueError("无效的插件结构: 插件根目录不能包含多个常量文件（const.py / *_const.py）")
 
             plugin_roots.append(factory_dir)
 
@@ -638,16 +651,16 @@ class PluginImportService:
             return None
 
         try:
-            const_file = self._find_primary_const_file(dir_path)
+            self._find_primary_const_file(dir_path)
             self._validate_directory_symlinks(dir_path)
-            content = const_file.read_text(encoding="utf-8")
         except Exception:
             return None
 
+        manifest_info = extract_manifest_info(read_manifest_file(dir_path / MANIFEST_FILE_NAME))
         return PluginPreviewInfo(
             plugin_name=dir_path.name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
 
     def preview_plugins_from_directory(
@@ -670,11 +683,13 @@ class PluginImportService:
         layout: _DirectoryLayout,
     ) -> PluginPreviewInfo:
         """读取松散目录中一个插件根的预览信息。"""
-        content = layout.preview_const_path.read_text(encoding="utf-8")
+        manifest_info = extract_manifest_info(
+            read_manifest_file(layout.source_dir / MANIFEST_FILE_NAME)
+        )
         return PluginPreviewInfo(
             plugin_name=layout.plugin_dir_name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
 
     def _analyze_directory(self, source_dir: Path) -> list[_DirectoryLayout]:
@@ -693,7 +708,7 @@ class PluginImportService:
             preview_const_path = next(
                 path
                 for path in file_paths
-                if path.parent == plugin_root and path.name.endswith("_const.py")
+                if path.parent == plugin_root and is_const_file(path.name)
             )
             layouts.append(
                 _DirectoryLayout(
@@ -780,17 +795,17 @@ class PluginImportService:
 
     def _find_primary_const_file(self, plugin_dir: Path) -> Path:
         """校验插件根第一层，并返回主 factory 对应的 const 文件。"""
-        root_factory_files = sorted(plugin_dir.glob("*_factory.py"))
+        root_factory_files = sorted(p for p in plugin_dir.glob("*.py") if is_factory_file(p.name))
         if not root_factory_files:
-            raise ValueError("无效的插件结构: 插件根目录缺少 *_factory.py 文件")
+            raise ValueError("无效的插件结构: 插件根目录缺少 factory.py（或旧写法 *_factory.py）文件")
         if len(root_factory_files) > 1:
-            raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_factory.py 文件")
+            raise ValueError("无效的插件结构: 插件根目录不能包含多个工厂文件（factory.py / *_factory.py）")
 
-        root_const_files = sorted(plugin_dir.glob("*_const.py"))
+        root_const_files = sorted(p for p in plugin_dir.glob("*.py") if is_const_file(p.name))
         if not root_const_files:
-            raise ValueError("无效的插件结构: 插件根目录缺少 *_const.py 文件")
+            raise ValueError("无效的插件结构: 插件根目录缺少 const.py（或旧写法 *_const.py）文件")
         if len(root_const_files) > 1:
-            raise ValueError("无效的插件结构: 插件根目录不能包含多个 *_const.py 文件")
+            raise ValueError("无效的插件结构: 插件根目录不能包含多个常量文件（const.py / *_const.py）")
 
         return root_const_files[0]
 
@@ -837,6 +852,11 @@ class PluginImportService:
                 raise ValueError("插件目标目录不能是符号链接")
             if not target_dir.is_dir():
                 raise ValueError("插件目标路径不是目录")
+            git_dir = find_git_repo(target_dir)
+            if git_dir is not None:
+                raise ValueError(
+                    f"插件目录含 git 仓库（{git_dir.name}），不能覆盖安装，请用 git 更新"
+                )
             backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
             target_dir.replace(backup_dir)
 
@@ -896,6 +916,14 @@ class PluginImportService:
                 success=False,
                 plugin_name=plugin_name,
                 message="只能删除插件目录",
+            )
+
+        git_dir = find_git_repo(plugin_dir_resolved)
+        if git_dir is not None:
+            return ImportResult(
+                success=False,
+                plugin_name=plugin_name,
+                message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
             )
 
         try:

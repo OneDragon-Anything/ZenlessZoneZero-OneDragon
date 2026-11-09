@@ -39,6 +39,8 @@ ACTION_UNSUBSCRIBE = 'unsubscribe'
 ACTION_UNINSTALL = 'uninstall'
 ACTION_UPDATE = 'update'
 ACTION_IGNORE = 'ignore'
+ACTION_MUTE_UPDATE = 'mute_update'
+ACTION_UNMUTE_UPDATE = 'unmute_update'
 
 DIALOG_WIDTH = 720
 DIALOG_HEIGHT = 560
@@ -94,11 +96,13 @@ class HtmlView(TextBrowser):
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        setCustomStyleSheet(
-            self,
-            'TextBrowser { background-color: transparent; border: none; }',
-            'TextBrowser { background-color: transparent; border: none; }',
+        # 说明文本只读展示：去掉 fluent 文本框的焦点底边，并让悬浮/焦点态与常态一致
+        self.layer.hide()
+        static_qss = (
+            'TextBrowser, TextBrowser:hover, TextBrowser:focus '
+            '{ background-color: transparent; border: none; }'
         )
+        setCustomStyleSheet(self, static_qss, static_qss)
         self.anchorClicked.connect(self._on_anchor_clicked)
         self.document().documentLayout().documentSizeChanged.connect(self._sync_height)
 

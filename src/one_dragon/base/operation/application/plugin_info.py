@@ -56,7 +56,7 @@ class PluginInfo:
     # 应用入口
     internal_app: bool = False
 
-    # 插件元数据（从 const 获取，可选）
+    # 插件元数据（从插件包内的 plugin.json 获取，可选）
     author: str = ''
     homepage: str = ''
     version: str = ''
