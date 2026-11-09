@@ -1,6 +1,8 @@
 # 应用开发指引
 
 > 本文档指引如何创建新应用并接入插件系统。架构细节请参考 [application_plugin_system.md](../one_dragon/modules/application_plugin_system.md)。
+>
+> AI 智能体新增 / 修改应用或插件时，配套使用 `zzz-od-dev-plugin` skill：[skills/zzz-od-dev-plugin/SKILL.md](../../../skills/zzz-od-dev-plugin/SKILL.md)。
 
 ---
 

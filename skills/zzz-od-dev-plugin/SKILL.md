@@ -1,7 +1,7 @@
 ---
 name: zzz-od-dev-plugin
 description: 当要新增或修改绝区零一条龙的内置应用、第三方应用插件或插件接入配置时使用。
-version: 1.0.0
+version: 2.0.0
 author: OneDragon-Anything
 tags: [zzz, one-dragon, application, plugin, development]
 ---
@@ -15,71 +15,20 @@ tags: [zzz, one-dragon, application, plugin, development]
 | 内置应用 | `src/zzz_od/application/<app>/` | 是 | 绝对导入 |
 | 第三方插件 | `plugins/<plugin>/` | 否，`plugins/` 被 gitignore | 插件内可相对导入 |
 
-第三方插件必须放在 `plugins/` 的子目录，不能把 `_factory.py` 直接放在 `plugins/` 根目录。
+## 先读文档
 
-## 1. 最小文件结构
+文件命名、const 字段、入口组合、工厂、运行记录、`plugin.json`、仓库布局、数据目录、ZIP 导入、插件商店发布、刷新规则，都以下面这份文档为准，**先完整读它再动手**，本 skill 不重复其内容：
 
-### 内置应用
+- [docs/develop/guides/application_plugin_guide.md](../../docs/develop/guides/application_plugin_guide.md)
 
-```text
-src/zzz_od/application/my_app/
-├── __init__.py
-├── my_app_const.py
-├── my_app_factory.py
-├── my_app.py
-└── my_app_run_record.py        # 需要自定义运行周期、进度或完成判定时添加
-```
+按需再读：
 
-### 第三方插件
+- 架构与调用链：[application_plugin_system.md](../../docs/develop/one_dragon/modules/application_plugin_system.md)
+- 设置界面：[application_setting_guide.md](../../docs/develop/guides/application_setting_guide.md)
 
-```text
-plugins/my_plugin/
-├── __init__.py
-├── my_plugin_const.py
-├── my_plugin_factory.py
-├── my_plugin.py
-└── my_plugin_run_record.py     # 需要自定义运行周期、进度或完成判定时添加
-```
+文档与代码不一致时，以代码为准，并顺手修正文档。
 
-## 2. const 文件
-
-`ApplicationFactory` 要求 const 模块必须有：
-
-```python
-APP_ID = 'my_plugin'
-APP_NAME = '我的插件'
-DEFAULT_GROUP = True
-NEED_NOTIFY = True
-
-# 只允许代码中的固定入口调用时才声明
-# INTERNAL_APP = True
-```
-
-字段含义：
-
-| 字段 | 含义 |
-|---|---|
-| `APP_ID` | 全局唯一应用 ID，重复会被拒绝 |
-| `APP_NAME` | GUI 展示名称 |
-| `DEFAULT_GROUP` | 是否默认进入一条龙列表 |
-| `INTERNAL_APP` | 可选；`True` 表示只允许代码中的固定入口调用，省略时为 `False` |
-| `NEED_NOTIFY` | 是否需要通知能力 |
-
-先按入口需求选择合法组合：
-
-| `DEFAULT_GROUP` | `INTERNAL_APP` | 入口范围 |
-|:---:|:---:|---|
-| `True` | `False` | 默认进入一条龙，也允许从通用独立应用入口选择 |
-| `False` | `False` | 不进入一条龙，只允许从通用独立应用入口选择 |
-| `False` | `True` | 不进入通用列表，只允许固定入口调用 |
-
-不得同时设为 `True`，否则工厂加载失败。先按入口需求选择字段，再按是否进入一条龙使用默认每日记录；非一条龙应用有业务记录需求时单独实现。
-
-第三方插件的 GUI 元数据（`version`、`author.name`、`homepage`、`summary`）写在插件包根目录的 `plugin.json` 里，不写在常量文件里。
-
-要上架插件商店时，用官方模板仓库创建插件仓库，`plugin.json` 的必填字段、发版和提交流程见 `docs/develop/guides/application_plugin_guide.md` 的「发布到插件商店」。
-
-## 3. Application 类
+## Application 类
 
 应用继承 `ZApplication`，状态机写法与普通 `ZOperation` 一致。
 
@@ -108,69 +57,11 @@ class MyPlugin(ZApplication):
         return self.round_success()
 ```
 
-内置应用按项目规范使用绝对导入：
+内置应用按项目规范使用绝对导入（`from zzz_od.application.my_app import my_app_const`）；第三方插件内部可以使用相对导入。
 
-```python
-from zzz_od.application.my_app import my_app_const
-```
+## 自定义运行记录
 
-第三方插件内部可以使用相对导入：
-
-```python
-from . import my_plugin_const
-```
-
-## 4. Factory 类
-
-工厂文件必须以 `_factory.py` 结尾，同一个目录最多一个 `_factory.py`。
-
-```python
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from one_dragon.base.operation.application.application_factory import ApplicationFactory
-from one_dragon.base.operation.application_base import Application
-
-from . import my_plugin_const
-from .my_plugin import MyPlugin
-
-if TYPE_CHECKING:
-    from zzz_od.context.zzz_context import ZContext
-
-
-class MyPluginFactory(ApplicationFactory):
-
-    def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(self, my_plugin_const)
-        self.ctx: ZContext = ctx
-
-    def create_application(self, instance_idx: int, group_id: str) -> Application:
-        return MyPlugin(self.ctx)
-```
-
-`DEFAULT_GROUP=True` 时，不要为普通每日状态实现 `create_run_record()`。父工厂会自动创建基础 `AppRunRecord`，并从当前上下文读取区服刷新时间偏移。
-
-`DEFAULT_GROUP=False` 时，默认返回 `None`。不要为了表示“没有记录”抛出异常；只有应用确实需要记录时才覆盖 `create_run_record()`。
-
-只有需要不同重置周期、业务进度或自定义完成判定时，才实现自定义记录并覆盖 `create_run_record()`：
-
-```python
-from one_dragon.base.operation.application_run_record import AppRunRecord
-from .my_plugin_run_record import MyPluginRunRecord
-
-    def create_run_record(self, instance_idx: int) -> AppRunRecord:
-        return MyPluginRunRecord(
-            instance_idx=instance_idx,
-            game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
-        )
-```
-
-如果应用需要配置，再实现 `create_config` 并返回 `ApplicationConfig` 子类。
-
-## 5. 自定义运行记录
-
-先确认基础每日记录无法表达需求，再新增自定义记录：
+先确认基础每日记录无法表达需求（默认行为见文档「运行记录」），再新增自定义记录，`AppRunRecord` 的 app id 要与 `APP_ID` 一致：
 
 ```python
 from one_dragon.base.operation.application_run_record import AppRunRecord
@@ -187,15 +78,9 @@ class MyPluginRunRecord(AppRunRecord):
         )
 ```
 
-`AppRunRecord` 的 app id 要与 `APP_ID` 一致。
+然后在工厂里覆盖 `create_run_record()` 返回它，并传入 `self.ctx.game_account_config.game_refresh_hour_offset`。
 
-## 6. 设置界面
-
-需要设置入口时，新增 `*_app_setting.py`。先搜索现有设置界面的通用模式，复用项目已有的设置卡片、配置适配器和入口注册方式，不要自建第二套扫描逻辑。
-
-设置界面扫描器会复用已发现的插件信息，不需要自己全盘扫描。
-
-## 7. 插件 screen_info
+## 插件 screen_info
 
 第三方插件可以携带自己的 screen YAML：
 
@@ -205,7 +90,7 @@ plugins/my_plugin/
     └── my_screen.yml
 ```
 
-`app_id` 可省略，加载时会自动使用插件的 `APP_ID`。示例：
+`app_id` 可省略，加载时会自动使用插件的 `APP_ID`。插件 screen 进入对应应用的局部命名空间，不污染其他应用。
 
 ```yaml
 screen_id: my_plugin_main
@@ -216,42 +101,15 @@ area_list:
     text: 开始
 ```
 
-插件 screen 会进入对应应用的局部命名空间，避免污染其他应用。
+## 验证清单
 
-## 8. 发现与刷新规则
-
-遵守以下规则：
-
-- 扫描所有 `_factory.py`。
-- 同一目录存在多个 `_factory.py` 或多个 `_const.py` 时，该目录跳过。
-- 每个 factory 模块最多一个 `ApplicationFactory` 子类。
-- `APP_ID` 重复时，后注册者会被拒绝。
-- 第三方插件通过 `plugins/` 作为 module root 加入 `sys.path`。
-- 运行时可调用 `ctx.refresh_application_registration()` 重新扫描。
-
-## 9. zip 包结构
-
-GUI 导入第三方插件时，zip 顶层应包含插件目录：
-
-```text
-my_plugin.zip
-└── my_plugin/
-    ├── __init__.py
-    ├── my_plugin_const.py
-    ├── my_plugin_factory.py
-    └── my_plugin.py
-```
-
-不要把文件直接压在 zip 根目录。
-
-## 10. 验证清单
-
+- [ ] 已按文档确认文件命名、const 字段和入口组合合法。
 - [ ] `APP_ID` 全局唯一，且与运行记录 app id 一致。
-- [ ] 同一目录只有一个 `_factory.py` 和一个 `_const.py`。
-- [ ] factory 类继承 `ApplicationFactory`，并实现 `create_application`。
+- [ ] 同一目录只有一个工厂文件和一个常量文件。
+- [ ] factory 类继承 `ApplicationFactory`，并实现 `create_application` 和 `create_config`。
 - [ ] 应用类继承 `ZApplication`，构造函数传入 `app_id` 和 `op_name`。
 - [ ] 状态机只有一个 `is_start_node=True`。
-- [ ] 第三方插件位于 `plugins/<plugin>/`，不是 `plugins/` 根目录。
-- [ ] 如有设置界面，文件名为 `*_app_setting.py`。
+- [ ] 第三方插件位于 `plugins/<plugin>/` 子目录，运行所需文件都在插件根内。
+- [ ] 需要持久化数据时用 `self.data_dir`，不写到插件目录或 `config/`。
+- [ ] 如有设置界面，按设置界面文档接入。
 - [ ] 如有 screen_info，区域名和代码中的 `round_by_find_area` / `round_by_click_area` 一致。
-- [ ] 修改代码后只对改动文件运行 `uv run --env-file .env ruff check <file>`。
