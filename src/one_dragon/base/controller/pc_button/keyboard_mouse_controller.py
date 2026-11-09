@@ -29,7 +29,7 @@ class KeyboardMouseController(PcButtonController):
             self.keyboard.tap(pc_button_utils.get_keyboard_button(key))
 
     @staticmethod
-    def _is_unknown_keyboard_key(real_key) -> bool:
+    def _is_unknown_keyboard_key(real_key: keyboard.Key | keyboard.KeyCode | str) -> bool:
         """键名不认识时 get_keyboard_button 不会报错，会原样返回字符串（认识的返回 Key/KeyCode）；
         再往下发会抛异常，所以 press / release 都先拦掉，别让无效键进账本。"""
         return isinstance(real_key, str)
@@ -72,16 +72,17 @@ class KeyboardMouseController(PcButtonController):
         """
         with self._pressed_lock:
             self._pressed_keys.discard(key)
-        if pc_button_utils.is_mouse_button(key):
-            self.mouse.release(pc_button_utils.get_mouse_button(key))
-            return
-        real_key = pc_button_utils.get_keyboard_button(key)
-        if self._is_unknown_keyboard_key(real_key):
-            log.error('无效的按键名 %r，未松开', key)
-            return
-        self.keyboard.release(real_key)
+            if pc_button_utils.is_mouse_button(key):
+                self.mouse.release(pc_button_utils.get_mouse_button(key))
+                return
+            real_key = pc_button_utils.get_keyboard_button(key)
+            if self._is_unknown_keyboard_key(real_key):
+                log.error('无效的按键名 %r，未松开', key)
+                return
+            self.keyboard.release(real_key)
 
     def reset(self) -> None:
+        """松开账本里的所有按键；单个键失败只记日志，不中断其余键。"""
         with self._pressed_lock:
             keys = list(self._pressed_keys)
         for key in keys:
