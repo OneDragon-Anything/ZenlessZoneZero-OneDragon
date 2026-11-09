@@ -779,7 +779,7 @@ class Operation(OperationBase):
             return
         bus.add_perf(
             PerfTraceItem(
-                metric="operation_round_ms",
+                metric="operations",
                 value=float(elapsed_ms),
                 unit="ms",
                 meta={"operation": self.op_name},

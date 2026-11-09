@@ -69,6 +69,7 @@ class SettingEnvInterface(VerticalScrollInterface):
             ]
         self.screenshot_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.CAMERA, title='截图方法',
+            content='前台要求窗口无遮挡，后台要求窗口不被最小化',
             options_enum=screenshot_enum,
             options_list=screenshot_options,
         )
