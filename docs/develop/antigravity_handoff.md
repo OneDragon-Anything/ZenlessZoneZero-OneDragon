@@ -60,8 +60,12 @@
 - 广色域屏幕截图颜色偏移根因已定位并修复：`PilScreencapper._capture_mac_window()` 在裁剪窗口标题栏后通过 `CGBitmapContext` 转换到标准 `sRGB` 色彩空间，解决快捷手册等依赖 `color_range` 的画面识别问题。
 - 已添加 PlayCover 桌面键鼠模式必要插件 `tools/macos/libUnityDesktopMode.dylib`。
 - 自动战斗 macOS 声音闪避识别已修复并实现原生回环采集：新增 `tools/macos/sck_audio_capture.mm`（编译为 `.install/macos-vhid/libod_sck_audio.dylib`），通过 macOS `ScreenCaptureKit` 直接采集系统输出音频（32kHz 单声道），并在 `AudioRecorder.start_running_async` 中优先启用（同时兼容 `BlackHole` 虚拟声卡回退），避免加载 Windows 专属 `soundcard.mediafoundation` 触发 `cffi.CDefError`。
-- 已在游戏内实测通过：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**、**咖啡店**、**恶名狩猎（周期无剩余次数领奖）**、**迷失之地（含自动战斗与 ScreenCaptureKit 声音闪避识别）**。
-- 待继续排查问题：`体力刷本`（`实战模拟室` / `区域巡防`）在打完第一把或进入第二把时，偶发卡在战斗内或鼠标停留在右下角「下一步 / 出战 / 完成」按钮区域（`click_next` 移开鼠标的目标 `ScreenNormalWorldEnum.UID` `(1866, 1069)` 紧贴右下角按钮，且 `Deploy` 点击「出战」后未移开鼠标）。
+- 已在游戏内实测通过：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**、**咖啡店**、**恶名狩猎（周期无剩余次数领奖）**、**迷失之地（含自动战斗与 ScreenCaptureKit 声音闪避识别）**、**体力刷本（实战模拟室 / 区域巡防连续轮次刷本）**。
+- 已修复 `启动一条龙.command` 自动在同终端后台启动 `Karabiner-VirtualHIDDevice-Daemon`，并修复 `MacPcGameWindow.init_win` 排除自身进程及精确匹配窗口标题（防止误把一条龙 GUI 窗口识别为游戏窗口）。
+- 已修复并实测通过 `体力刷本`（`实战模拟室` / `区域巡防` / `专业挑战室` / `恶名狩猎`）连续轮次卡在战斗结束或鼠标停留在右下角按钮区域的问题：
+  1. `combat_simulation.py`、`area_patrol.py`、`expert_challenge.py`、`notorious_hunt.py`、`choose_predefined_team.py`、`withered_domain_app.py` 点击「下一步 / 预备出战 / 出战」后，以及 `deploy.py` 点击「按钮-出战」和 `check_next_after_battle.py` 点击「战斗结果-再来一次」后，统一将鼠标移至安全空白坐标 `Point(200, 200)`（替代原先紧贴右下角按钮与屏幕边缘的 `UID` `(1866, 1069)`），避免进入战斗结算画面时光标仍停在「战斗结果-完成」`(1731, 1028)` 上被残留的 `mouse_left` 普攻连段误点而提前退出结算页。
+  2. `AutoBattleContext.check_battle_state` 在刚离开战斗画面（`was_in_battle -> not in_battle`）时立即重置 `_last_check_end_time = 0`，消除此前连携阶段触发冷却导致的 5 秒战斗结束识别延迟。
+  3. `MacVirtualHIDMouse.nudge_cursor()` 调整为先左移 `(-1, 0)` 再右移 `(+1, 0)`，防止游戏窗口靠桌面右边缘时被系统屏幕边界截断。
 
 ## 可直接发送给 Antigravity 的提示
 

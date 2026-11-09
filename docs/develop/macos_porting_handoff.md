@@ -90,8 +90,9 @@
 - 查明并修复了广色域屏幕截图颜色偏移问题：`PilScreencapper._capture_mac_window()` 改为在裁剪标题栏后通过 `CGBitmapContext` 转换到标准 `sRGB` 色彩空间，修复了快捷手册等依赖 `color_range` 的画面识别问题。
 - 已添加 PlayCover 桌面键鼠模式必要插件 `tools/macos/libUnityDesktopMode.dylib`。
 - 修复了自动战斗在 macOS 启动时加载 `soundcard.mediafoundation` 导致的 `cffi.CDefError` 崩溃，并新增 `tools/macos/sck_audio_capture.mm`（构建为 `.install/macos-vhid/libod_sck_audio.dylib`），通过 macOS `ScreenCaptureKit` 实现原生系统音频回环捕获以支持声音闪避识别（同时支持 `BlackHole` 虚拟声卡回退）。
-- 已完成游戏内实测验证的功能：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**、**咖啡店**、**恶名狩猎（周期无剩余次数领奖）**、**迷失之地（含自动战斗与 ScreenCaptureKit 声音闪避识别）**。
-- 待继续排查问题：`体力刷本`（`实战模拟室` / `区域巡防`）在打完第一把或进入第二把时，偶发卡在战斗内或鼠标停留在右下角「下一步 / 出战 / 完成」按钮区域。
+- 已完成游戏内实测验证的功能：**邮件领取**、**每日签到 / 吼吼饼铺**、**录像店营业**、**咖啡店**、**恶名狩猎（周期无剩余次数领奖）**、**迷失之地（含自动战斗与 ScreenCaptureKit 声音闪避识别）**、**体力刷本（实战模拟室 / 区域巡防连续轮次刷本）**。
+- 已修复 `启动一条龙.command` 自动在同终端后台启动 `Karabiner-VirtualHIDDevice-Daemon`，并修复 `MacPcGameWindow.init_win` 排除自身进程及精确匹配窗口标题（防止误把一条龙 GUI 窗口识别为游戏窗口）。
+- 已修复并实测通过 `体力刷本`（`实战模拟室` / `区域巡防` / `专业挑战室` / `恶名狩猎`）点击「下一步 / 出战 / 再来一次」后鼠标停留在右下角按钮区域及战后残留普攻误触「战斗结果-完成」的问题：点击后统一将鼠标移至左上安全空白区 `Point(200, 200)`，并在离开战斗画面时立即重置 `_last_check_end_time = 0`。
 
 ### 旧提示（已由 Antigravity 接手说明取代）
 

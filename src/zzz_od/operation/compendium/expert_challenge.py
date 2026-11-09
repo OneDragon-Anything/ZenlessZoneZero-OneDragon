@@ -1,6 +1,7 @@
 import time
 from typing import ClassVar
 
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -23,7 +24,6 @@ from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
 from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
-from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
 class ExpertChallenge(ZOperation):
@@ -87,7 +87,7 @@ class ExpertChallenge(ZOperation):
         result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
         if result.is_success:
             time.sleep(0.5)
-            self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
+            self.ctx.controller.mouse_move(Point(200, 200))  # 点击后移开鼠标，防止悬停遮挡或贴边偏移影响识别
             return self.round_wait(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)

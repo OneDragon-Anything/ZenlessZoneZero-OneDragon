@@ -87,8 +87,8 @@ class MacVirtualHIDMouse:
 
     def nudge_cursor(self) -> None:
         """在当前光标位置发送微小 HID 相对位移并归位，使 PlayCover 同步当前光标位置。"""
-        self.move_relative(1, 0)
         self.move_relative(-1, 0)
+        self.move_relative(1, 0)
 
     def _send_raw_command(self, line: str, error_msg: str) -> None:
         with self._lock:

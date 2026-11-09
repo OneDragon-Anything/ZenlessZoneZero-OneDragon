@@ -33,7 +33,6 @@ from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
-from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
 class NotoriousHunt(ZOperation):
@@ -284,7 +283,7 @@ class NotoriousHunt(ZOperation):
         result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
         if result.is_success:
             time.sleep(0.5)
-            self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
+            self.ctx.controller.mouse_move(Point(200, 200))  # 点击后移开鼠标，防止悬停遮挡或贴边偏移影响识别
             return self.round_wait(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)
@@ -309,10 +308,13 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='选择预备编队')
     @operation_node(name='出战')
     def click_start(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
+        result = self.round_by_find_and_click_area(
             self.last_screenshot, '实战模拟室', '出战',
             success_wait=1, retry_wait_round=1
         )
+        if result.is_success:
+            self.ctx.controller.mouse_move(Point(200, 200))
+        return result
 
     @node_from(from_name='出战')
     @node_from(from_name='重新开始-确认')
