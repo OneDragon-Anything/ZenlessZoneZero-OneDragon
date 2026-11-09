@@ -246,6 +246,10 @@ class OverlayHudWindow:
     def set_status_line(self, text: str) -> None:
         self._set("statusLine", str(text or ""))
 
+    def set_hotkey_hint(self, text: str) -> None:
+        """设置日志面板标题栏的快捷键提示。"""
+        self._set("hotkeyHint", str(text or ""))
+
     def set_running(self, running: bool) -> None:
         """设置自动战斗运行状态，控制灵动岛流光动画。"""
         self._set("isRunning", bool(running))

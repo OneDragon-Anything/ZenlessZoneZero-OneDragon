@@ -26,6 +26,9 @@ Window {
     // 左下角运行状态行（由 Python 注入）
     property string statusLine: ""
 
+    // 日志面板标题栏的快捷键提示（由 Python 注入）
+    property string hotkeyHint: ""
+
     // 自动战斗是否运行中（由 Python 注入，控制灵动岛流光动画）
     property bool isRunning: false
 
@@ -116,6 +119,17 @@ Window {
                     font.family: root.zhFont
                 }
                 Text {
+                    anchors.right: logTag.left
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.hotkeyHint
+                    color: "#0d0d0d"
+                    font.pixelSize: Math.round(12 * root.fontScale)
+                    font.bold: root.fontBold
+                    font.family: root.zhFont
+                }
+                Text {
+                    id: logTag
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter

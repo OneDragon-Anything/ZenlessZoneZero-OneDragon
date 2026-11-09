@@ -364,6 +364,7 @@ class OverlayManager(QObject):
 
         if self._hud_window is not None:
             self._hud_window.set_status_line(self._build_run_status_line())
+            self._hud_window.set_hotkey_hint(self._build_hotkey_hint())
 
         self._sync_panel_fade()
 
@@ -702,7 +703,6 @@ class OverlayManager(QObject):
                 node = str(app.current_node.name or "-")
             if node and node != "-":
                 parts.append(node)
-        parts.append(self._build_hotkey_hint())
         return "｜".join(parts)
 
     def _build_hotkey_hint(self) -> str:
@@ -710,7 +710,7 @@ class OverlayManager(QObject):
         start_key = str(self.ctx.key_start_running or "f9").upper()
         stop_key = str(self.ctx.key_stop_running or "f10").upper()
         toggle_key = str(self.ctx.key_debug or "f12").upper()
-        return f"开始/暂停 {start_key}  停止 {stop_key}  切换Overlay {toggle_key}"
+        return f"开始/暂停 {start_key}  停止 {stop_key}  切换 {toggle_key}"
 
     def _get_game_rect(self):
         if self.ctx.controller is None:
