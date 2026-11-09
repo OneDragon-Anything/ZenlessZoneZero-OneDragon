@@ -39,7 +39,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 
-from . import my_plugin_const
+from . import const
 
 
 class MyPlugin(ZApplication):
@@ -48,8 +48,8 @@ class MyPlugin(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id=my_plugin_const.APP_ID,
-            op_name=my_plugin_const.APP_NAME,
+            app_id=const.APP_ID,
+            op_name=const.APP_NAME,
         )
 
     @operation_node(name='开始', is_start_node=True)
@@ -78,7 +78,9 @@ class MyPluginRunRecord(AppRunRecord):
         )
 ```
 
-然后在工厂里覆盖 `create_run_record()` 返回它，并传入 `self.ctx.game_account_config.game_refresh_hour_offset`。
+然后在工厂里覆盖 `create_run_record()` 返回它，并传入当前区服的刷新偏移（取法见架构文档）。
+
+`DEFAULT_GROUP=False` 的应用默认返回 `None`，不保存完成状态；它需要普通每日完成记录时，也要覆盖 `create_run_record()` 并返回基础 `AppRunRecord`。
 
 ## 插件 screen_info
 
@@ -90,7 +92,7 @@ plugins/my_plugin/
     └── my_screen.yml
 ```
 
-`app_id` 可省略，加载时会自动使用插件的 `APP_ID`。插件 screen 进入对应应用的局部命名空间，不污染其他应用。
+`app_id` 可省略，加载时会自动使用插件的 `APP_ID`。应用作用域只限制画面匹配，不隔离画面注册：`screen_id` 和 `screen_name` 要在所有插件间全局唯一，重名时后加载的画面会被跳过。
 
 ```yaml
 screen_id: my_plugin_main
@@ -106,10 +108,10 @@ area_list:
 - [ ] 已按文档确认文件命名、const 字段和入口组合合法。
 - [ ] `APP_ID` 全局唯一，且与运行记录 app id 一致。
 - [ ] 同一目录只有一个工厂文件和一个常量文件。
-- [ ] factory 类继承 `ApplicationFactory`，并实现 `create_application` 和 `create_config`。
+- [ ] factory 类继承 `ApplicationFactory`，并实现 `create_application`；第三方插件和需要应用配置的内置应用还要实现 `create_config`，无配置的内置应用可不覆盖。
 - [ ] 应用类继承 `ZApplication`，构造函数传入 `app_id` 和 `op_name`。
 - [ ] 状态机只有一个 `is_start_node=True`。
 - [ ] 第三方插件位于 `plugins/<plugin>/` 子目录，运行所需文件都在插件根内。
-- [ ] 需要持久化数据时用 `self.data_dir`，不写到插件目录或 `config/`。
+- [ ] 第三方插件需要持久化数据时用 `self.data_dir`，不写到插件目录或 `config/`；内置应用保留现有 `config/` 路径，要迁移必须兼容读取旧配置。
 - [ ] 如有设置界面，按设置界面文档接入。
 - [ ] 如有 screen_info，区域名和代码中的 `round_by_find_area` / `round_by_click_area` 一致。
