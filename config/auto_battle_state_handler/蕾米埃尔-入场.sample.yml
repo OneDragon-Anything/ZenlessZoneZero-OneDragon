@@ -9,7 +9,7 @@ handlers:
       - operation_template: "蕾米埃尔-入场技"
 
   # 浮晖满点，切入后由速切模板接管长按强化特殊技
-  - states: "[蕾米埃尔-浮晖]{100,100} & ![前台-蕾米埃尔]"
+  - states: "[蕾米埃尔-浮晖]{98,100} & ![前台-蕾米埃尔]"
     debug_name: "蕾米埃尔浮晖满点切入"
     operations:
       - op_name: "按键-切换角色"

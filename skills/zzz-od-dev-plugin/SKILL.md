@@ -75,14 +75,9 @@ NEED_NOTIFY = True
 
 不得同时设为 `True`，否则工厂加载失败。先按入口需求选择字段，再按是否进入一条龙使用默认每日记录；非一条龙应用有业务记录需求时单独实现。
 
-第三方插件可额外提供 GUI 元数据：
+第三方插件的 GUI 元数据（`version`、`author.name`、`homepage`、`summary`）写在插件包根目录的 `plugin.json` 里，不写在常量文件里。
 
-```python
-PLUGIN_AUTHOR = '作者名'
-PLUGIN_HOMEPAGE = 'https://github.com/author/my_plugin'
-PLUGIN_VERSION = '1.0.0'
-PLUGIN_DESCRIPTION = '插件功能描述'
-```
+要上架插件商店时，用官方模板仓库创建插件仓库，`plugin.json` 的必填字段、发版和提交流程见 `docs/develop/guides/application_plugin_guide.md` 的「发布到插件商店」。
 
 ## 3. Application 类
 

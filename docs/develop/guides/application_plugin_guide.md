@@ -51,8 +51,8 @@ class MyAppFactory(ApplicationFactory):
 ```
 
 **命名约定**:
-- 工厂文件必须以 `_factory.py` 结尾
-- 常量文件必须以 `_const.py` 结尾
+- 推荐使用固定文件名：工厂 `factory.py`、常量 `const.py`（应用实现放 `app.py`），不再需要猜前缀
+- 旧写法 `*_factory.py` / `*_const.py` 继续兼容，但不推荐新插件使用
 - 同一目录最多各一个
 
 完成后重启程序，系统会自动发现并注册你的应用。
@@ -66,8 +66,9 @@ class MyAppFactory(ApplicationFactory):
 ```
 plugins/my_plugin/
 ├── __init__.py              # 推荐添加
-├── my_plugin_const.py
-├── my_plugin_factory.py
+├── const.py                   # 推荐固定名；旧写法 my_plugin_const.py 仍兼容
+├── factory.py                 # 推荐固定名；旧写法 my_plugin_factory.py 仍兼容
+├── app.py                     # 应用实现
 └── my_plugin.py
 ```
 
@@ -83,37 +84,50 @@ NEED_NOTIFY = True
 
 # 可选，默认 False
 # INTERNAL_APP = True
-
-# 可选元数据（用于 GUI 显示）
-PLUGIN_AUTHOR = "作者名"
-PLUGIN_HOMEPAGE = "https://github.com/author/my_plugin"
-PLUGIN_VERSION = "1.0.0"
-PLUGIN_DESCRIPTION = "插件功能描述"
 ```
 
 ### 工厂类必须实现的方法
 
 `create_application` 和 `create_config` 必须由插件实现，漏掉会在界面上暴露成异常。`create_run_record` 父类已经有默认实现：`DEFAULT_GROUP = True` 时返回按当前区服刷新时间每日重置的通用记录，否则返回 `None`。只有运行周期或完成判定和这个默认不同时才需要覆盖；覆盖后如果创建失败，异常会继续抛出，不会被改成通用记录。
 
-### 插件封面
+### 插件元数据与封面
 
-插件包根目录放一个 `plugin.json` 声明元数据，封面用其中的 `cover` 字段指向包内图片：
+插件包根目录的 `plugin.json` 声明展示元数据，常量文件只保留身份和运行行为。客户端从 `plugin.json` 读取：
+
+| 字段 | 用途 | 校验 |
+| --- | --- | --- |
+| `version` | 已安装版本，用于和插件商店比对是否有更新；缺失时不提示更新 | 字符串，不超过 32 字符 |
+| `author.name` | 作者，列表和详情页显示 | 字符串，超过 200 字符截断 |
+| `homepage` | 详情页主页链接；没有订阅记录时用来匹配插件商店条目 | 只接受 `https://` 地址，不超过 200 字符 |
+| `summary` | 详情页简介 | 字符串，超过 500 字符截断 |
+| `cover` | 封面，见下 | 见下 |
+
+`plugin.json` 来自第三方：文件超过 64 KiB、不是合法 UTF-8 的 JSON 对象，或字段类型不对，都按「没有这项信息」处理，不影响插件加载。插件身份仍只认常量文件的 `APP_ID`，客户端不读 `plugin.json` 的 `id`。以前写在常量文件里的 `PLUGIN_AUTHOR`、`PLUGIN_HOMEPAGE`、`PLUGIN_VERSION`、`PLUGIN_DESCRIPTION` 已不再读取。
+
+要上架插件商店时，`plugin.json` 还有必填字段和校验规则，见下面的「发布到插件商店」。
+
+封面用 `cover` 字段指向包内图片：
 
 ```json
 {
   "id": "my_plugin",
   "name": "我的插件",
   "version": "1.0.0",
-  "cover": "assets/cover.png"
+  "summary": "插件功能描述",
+  "author": {"name": "作者名"},
+  "homepage": "https://github.com/author/my_plugin",
+  "cover": "assets/cover.webp"
 }
 ```
 
 要求与约定：
 
 - `cover` 必须是插件根目录内的相对路径，绝对路径与越界路径会被忽略。
-- 建议比例 16:10（卡片 300×188），最小 600×375，支持 png / jpg / webp，单张不超过 4 MiB。
+- 格式用 WebP 或 JPG。PNG 的体积是 WebP 的数倍，而卡片实际只有 300×188，用不到这个精度，不建议使用。
+- 尺寸至少 600×376，宽高比 16:10（卡片 300×188 的两倍），偏差不超过 3%。卡片按逻辑像素 300×188 布局，高分屏下会放大到物理像素，封面只给一倍大小会发虚。
+- 单张控制在 512 KiB 以内。压缩建议：WebP 用 `cwebp -q 82 原图.png -o cover.webp`，JPG 按质量 85 导出；想先比较两种格式的体积，可以用 Squoosh 这类在线工具压一份对比后选小的那个。
 - 封面是可选信息：没有 `plugin.json`、没有 `cover`、路径无效或文件不存在都不会报错，界面回退到按插件标识生成的默认封面。
-- 发布到插件商店时，构建流程把 `cover` 一并带进 registry 的 `plugins.json` 同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.png`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
+- 发布到插件商店时，构建流程把 `cover` 一并带进商店发布的 `plugins.json`（`https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json`）的同名字段，值可以是完整 URL，也可以是相对插件商店站点根目录（`https://onedragon-anyone.github.io/plugin-data/`）的路径，开头带不带 `/` 都一样，例如 `covers/my_plugin.webp`。客户端首次加载时下载并缓存到 `config/temp/plugin_covers/`，之后直接用缓存；下载失败的封面在插件商店点刷新后会重试。
 - 插件商店里的每个版本都必须带 `sha256`。客户端下载后校验，没有校验值或校验不通过都不会安装。
 
 ### 工厂类
@@ -143,6 +157,140 @@ class MyPluginFactory(ApplicationFactory):
 - ✅ 可导入主程序模块：`from one_dragon.xxx`、`from zzz_od.xxx`
 - ✅ 支持嵌套子目录和子包
 - ✅ 必须放在 `plugins/` 的子目录中（不能直接放在根目录）
+- ✅ 支持插件仓库布局：直接 `git clone` 到 `plugins/<仓库>/`，仓库根放开发文件（测试、文档、前端工程等），插件本体放在 `plugins/<仓库>/<APP_ID>/`
+  - 仓库里第一层同时有工厂文件（`factory.py`，旧写法 `*_factory.py`）和常量文件（`const.py`，旧写法 `*_const.py`）的子目录才是插件根；`plugin.json` 只是附加信息，不参与判定
+  - 一个仓库只能有一个插件目录，有多个时整个仓库都不会加载
+  - 仓库布局下插件目录名必须等于 `APP_ID`，否则加载失败；`plugin.json` 的内容不参与校验，插件身份只以常量文件里的 `APP_ID` 为准
+  - 本机 `APP_ID` 重复时只加载先扫描到的，另一个报错并给出两个目录，请删除或停用其中一个
+
+### 插件数据目录
+
+插件需要持久化数据（缓存、用户数据、路由文件等）时，统一使用插件数据目录，不要写到插件目录或 `config/` 里：
+
+- 在工厂类中用 `self.data_dir`（等价于 `ctx.get_plugin_data_dir(APP_ID)`，目录不存在时自动创建）
+- 数据目录是 `plugin_data/<APP_ID>/`，与插件代码装在哪里无关，扁平布局和仓库布局之间挪动不会丢数据
+- 本机 `APP_ID` 必须唯一，重复的插件只会加载先扫描到的那个，所以不同插件不会共用数据目录
+- `plugin_data/` 与 `plugins/` 同级，已在 `.gitignore` 中忽略，不会被 git 追踪
+
+```python
+import json
+
+class MyPluginFactory(ApplicationFactory):
+    def __init__(self, ctx: ZContext) -> None:
+        super().__init__(my_plugin_const)
+        self.ctx = ctx
+
+    def load_routes(self) -> list[dict]:
+        """读取插件保存的路线数据。"""
+        data_file = self.data_dir / 'routes.json'
+        if not data_file.exists():
+            return []
+        return json.loads(data_file.read_text(encoding='utf-8'))
+```
+
+---
+
+## 发布到插件商店
+
+插件商店让用户在插件管理页里直接浏览、订阅和更新插件。涉及三个仓库，各管一件事：
+
+| 仓库 | 作用 |
+| --- | --- |
+| [`plugin-template`](https://github.com/OneDragon-Anyone/plugin-template)（插件模板仓） | 作者用它创建插件仓库。自带校验、打包脚本和发版工作流，推送 tag 自动发布 `<插件ID>.zip` |
+| [`plugin-data`](https://github.com/OneDragon-Anyone/plugin-data)（数据仓） | 存放收录配置：每个已收录插件一个 `market/plugins/<id>.json`（仓库地址、标签、状态、审核记录）和 `market/policy.json`（限制与保留 ID） |
+| [`plugin-market`](https://github.com/OneDragon-Anyone/plugin-market)（市场代码仓） | 构建脚本、提交机器人和商店网页，产出 `https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json`，客户端从这里读取插件列表 |
+
+插件源码、Release 和更新都留在作者自己的仓库。作者只在首次上架时提交一次，之后每次发新 Release，商店定时任务（目前每小时一次）会自动抓取、校验并更新索引。
+
+### 作者仓库的结构
+
+用模板仓库创建（GitHub 上点 **Use this template**）。模板的完整说明、改名清单和本地命令见它的 README，这里只列开发时必须遵守的规则：
+
+```text
+your-repo/
+├── README.md                  # 必需，展示在商店详情页
+├── LICENSE                    # 必需
+├── .github/workflows/
+│   ├── release.yml            # 推送 v* tag 时发布，调用官方可复用工作流
+│   └── validate.yml           # 推送和 PR 时校验
+├── scripts/                   # 本地调试用的校验和打包脚本
+└── my_plugin/                 # 插件包，目录名 = 插件 ID，整体打进 zip
+    ├── plugin.json            # 上架商店必需，商店网页和客户端读取的元数据
+    ├── __init__.py
+    ├── const.py               # APP_ID 等身份和运行行为
+    ├── factory.py
+    ├── app.py
+    └── ...
+```
+
+- 仓库根目录下恰好一个子目录第一层同时有 `factory.py` 和 `const.py`，它就是插件包。旧写法 `*_factory.py` / `*_const.py` 继续兼容，不推荐。仓库根放开发用的文件（文档、测试、前端工程等），不会进安装包。
+- 插件 ID 匹配 `^[a-z][a-z0-9_]*$`，运行时身份只认 `const.py` 的 `APP_ID`：`APP_ID == 插件包目录名 == plugin.json.id`，`APP_NAME == plugin.json.name`，不一致校验失败。保留 ID（`one_dragon`、`one_dragon_qt`、`zzz_od`、`plugins`、`plugin`、`test`、`example`、`sample_plugin`）不能使用。
+- 一个仓库一个插件，一个插件注册一个应用（一个工厂）。插件里的子功能写成 `Operation`，由这个应用直接调用，不需要单独做应用。只有需要在应用列表里单独出现、单独配置或单独运行的功能，才做成另一个插件。
+- 插件包内不能有 `requirements.txt`、`pyproject.toml`、`setup.py` 等依赖声明文件，只能使用一条龙主程序已有的依赖。
+- `<id>.zip` 不超过 50 MiB，解压后总量不超过它的 10 倍；zip 里只有一个顶层目录（插件包），不能有符号链接、加密条目和不安全路径。
+
+### plugin.json 字段
+
+商店网页和客户端都读 `plugin.json`，`const.py` 只放身份和运行行为，两边没有重复要维护的字段。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `id` | 是 | 必须等于目录名和 `APP_ID` |
+| `name`、`summary` | 是 | 非空字符串，商店列表展示；`name` 必须等于 `APP_NAME` |
+| `version` | 是 | 展示用版本号，发版 tag 必须是 `v` + `version`。客户端用它判断已安装版本；含 `-`（如 `0.2.0-beta.1`）的发布标记为预发布，商店作为 beta 版展示 |
+| `versionCode` | 是 | 正整数，**每次发版必须递增**，不能重复或回退；商店用它判断这次发布是否比已收录的新，不大于就拒收（`version_not_increased`） |
+| `author.name`、`author.url` | 是 | 两个都要填，`url` 带 `http://` 或 `https://` |
+| `homepage` | 是 | 插件仓库地址，带 `http://` 或 `https://`；客户端要求 `https://` 才使用 |
+| `risk` | 是 | 数组，取值 `filesystem` `network` `account` `automation` `ocr` `yolo` `clipboard` `process`，如实声明，没有写 `[]` |
+| `compatibility` | 是 | `minAppVersion`、`minCoreApiVersion`（整数）、`python` 三项都必填 |
+| `cover` | 否 | 封面，规则见上一节，不超过 512 KiB |
+
+`defaultGroup`、`needNotify`、`apps` 是已废弃的旧字段：新插件不要写，运行行为只写在 `const.py`；已上架插件的 json 里带着也不会被拒绝，校验只给 `WARN DEPRECATED_FIELD` 提示。
+
+### 发布一个版本
+
+1. 修改 `plugin.json` 的 `version`，`versionCode` 加 1，提交。
+2. 打 tag 并推送：
+
+```shell
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+`Release Plugin` 工作流会校验仓库、确认 tag 等于 `v<version>`、打包 `<id>.zip`、再次校验 zip、创建 GitHub Release 并上传。
+
+- 不要手动往 Release 上传或替换 zip。商店记录每个版本首次抓到的 sha256，替换附件会被标记 `asset_changed` 并继续使用旧记录。建议在仓库设置里开启不可变 Release（*Enable release immutability*）。
+- 改坏了就发一个更大的 `versionCode`，不能重发同一个。
+- 第一次使用模板时需要在仓库里启用 Actions，并把 `Settings → Actions → General → Workflow permissions` 设为 *Read and write permissions*。
+- 工作流引用 `@v1`，跟随官方 v1 的修复；想锁定可以换成具体提交 sha。用 fork 或模板创建的仓库不会自动跟随模板更新，要手动替换 `release.yml` 和 `validate.yml`。
+
+### 首次提交上架
+
+1. 确认仓库里已有至少一个带 `<id>.zip` 附件的 Release。
+2. 打开商店网页的 **提交插件** 页，粘贴仓库地址，确认预览，点 **提交**。
+3. 页面打开预填好的 `[submission]` Issue，点 *Submit new issue*。
+4. 机器人自动校验并开 PR，维护者审核合并后上架，进度在 Issue 里回复。
+
+提交者必须是该插件仓库的管理员。商店对每位用户同时处理中的提交数有限制（见数据仓 `market/policy.json` 的 `rateLimit`，目前 24 小时内最多 3 个）。
+
+### 商店怎么处理版本
+
+- 构建时下载每个 Release 的 `<id>.zip`，用模板的校验脚本检查，通过的才会进索引；每个版本记录 sha256，客户端下载后校验，没有校验值或不一致都不会安装。
+- 索引默认保留最近 10 个版本。安装包还会镜像到国内下载源（CNB），客户端按「资源」页选的下载源顺序挑选。
+- 收录状态在数据仓的 `market/plugins/<id>.json` 的 `status` 字段：`listed` 正常；`deprecated` 展示并提示已弃用；`hidden` 不出现在列表；`suspended` 紧急下架，禁止安装和更新；`removed` 完全移除。
+- 版本被拒收时，原因记录在该插件索引的 `warnings` 里，提交时机器人也会在 Issue 里回复，常见的有：
+
+| 错误 | 含义 |
+| --- | --- |
+| `ID_MISMATCH` / `PACKAGE_MISMATCH` / `NAME_MISMATCH` | `APP_ID`、目录名、`plugin.json` 的 `id` 或 `name` 不一致 |
+| `TAG_MISMATCH` | tag 不是 `v<version>` |
+| `version_not_increased` | `versionCode` 没有大于已收录的最大值 |
+| `DEPENDENCY_FILE` | 插件包里有依赖声明文件 |
+| `INVALID_FIELD` / `INVALID_HOMEPAGE` / `INVALID_RISK` | `plugin.json` 字段缺失或格式不对 |
+| `COVER_MISSING` / `COVER_TOO_LARGE` / `INVALID_COVER` | 封面文件不存在、超过 512 KiB 或格式不符 |
+| `asset_changed` | Release 里的 zip 被替换过，商店继续使用旧记录 |
+
+本地用模板的 `python scripts/validate_plugin.py --strict` 可以提前发现这些问题，CI 使用的是官方模板对应版本的脚本，与本地一致。
 
 ---
 
@@ -155,7 +303,7 @@ class MyPluginFactory(ApplicationFactory):
 
 ### ZIP 包结构
 
-一个可安装插件包必须在插件根目录直接放置一个主 `*_factory.py` 和一个 `*_const.py`：
+一个可安装插件包必须在插件根目录直接放置一个主工厂文件（推荐 `factory.py`，旧写法 `*_factory.py`）和一个常量文件（推荐 `const.py`，旧写法 `*_const.py`）：
 
 ```
 my_plugin.zip
@@ -339,6 +487,6 @@ class MyContext(OneDragonContext):
 2. **一模块一工厂**：每个 `_factory.py` 中只定义一个 `ApplicationFactory` 子类
 3. **const 字段**：必须定义 `APP_ID`、`APP_NAME`、`DEFAULT_GROUP`、`NEED_NOTIFY`；`INTERNAL_APP` 可选，默认为 `False`
 4. **入口组合**：`DEFAULT_GROUP` 和 `INTERNAL_APP` 不能同时为 `True`
-5. **同目录冲突**：同目录下多个 `_factory.py` 或 `_const.py` 时整个目录被跳过
+5. **同目录冲突**：同目录下多个工厂文件（`factory.py` / `*_factory.py`）或常量文件（`const.py` / `*_const.py`）时整个目录被跳过
 6. **第三方插件备份**：`plugins/` 被 gitignore，用户需自行备份
 7. **设置界面**：如需为应用添加设置界面，请参考 [application_setting_guide.md](application_setting_guide.md)
