@@ -119,7 +119,7 @@ Window {
                     font.family: root.zhFont
                 }
                 Text {
-                    anchors.right: logTag.left
+                    anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.hotkeyHint
@@ -127,17 +127,6 @@ Window {
                     font.pixelSize: Math.round(12 * root.fontScale)
                     font.bold: root.fontBold
                     font.family: root.zhFont
-                }
-                Text {
-                    id: logTag
-                    anchors.right: parent.right
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "LOG"
-                    color: "#0d0d0d"
-                    font.pixelSize: Math.round(12 * root.fontScale)
-                    font.bold: root.fontBold
-                    font.family: root.monoFont
                 }
             }
 
