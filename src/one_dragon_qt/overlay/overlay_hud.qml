@@ -112,11 +112,22 @@ Window {
                     anchors.left: parent.left
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
+                    id: logTitle
                     text: "日志"
                     color: "#0d0d0d"
                     font.pixelSize: Math.round(17 * root.fontScale)
                     font.bold: root.fontBold
                     font.family: root.zhFont
+                }
+                Text {
+                    anchors.left: logTitle.right
+                    anchors.leftMargin: 6
+                    anchors.baseline: logTitle.baseline
+                    text: "LOG"
+                    color: Qt.rgba(13 / 255, 13 / 255, 13 / 255, 0.55)
+                    font.pixelSize: Math.round(12 * root.fontScale)
+                    font.bold: root.fontBold
+                    font.family: root.monoFont
                 }
                 Text {
                     anchors.right: parent.right
