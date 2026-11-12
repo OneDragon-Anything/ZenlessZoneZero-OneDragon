@@ -129,15 +129,43 @@ Window {
                     font.bold: root.fontBold
                     font.family: root.monoFont
                 }
-                Text {
+                // 快捷键按键块：hotkeyHint 格式 "键|动作;键|动作"
+                Row {
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.hotkeyHint
-                    color: "#0d0d0d"
-                    font.pixelSize: Math.round(12 * root.fontScale)
-                    font.bold: root.fontBold
-                    font.family: root.zhFont
+                    spacing: 10
+                    Repeater {
+                        model: root.hotkeyHint.length > 0 ? root.hotkeyHint.split(";") : []
+                        Row {
+                            spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: keyText.implicitWidth + 12
+                                height: keyText.implicitHeight + 2
+                                radius: 4
+                                color: "#0d0d0d"
+                                Text {
+                                    id: keyText
+                                    anchors.centerIn: parent
+                                    text: modelData.split("|")[0]
+                                    color: root.themeColor
+                                    font.pixelSize: Math.round(12 * root.fontScale)
+                                    font.bold: root.fontBold
+                                    font.family: root.monoFont
+                                }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.split("|")[1]
+                                color: "#0d0d0d"
+                                font.pixelSize: Math.round(12 * root.fontScale)
+                                font.bold: root.fontBold
+                                font.family: root.zhFont
+                            }
+                        }
+                    }
                 }
             }
 

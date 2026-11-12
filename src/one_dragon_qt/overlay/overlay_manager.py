@@ -706,7 +706,10 @@ class OverlayManager(QObject):
         return "｜".join(parts)
 
     def _build_hotkey_hint(self) -> str:
-        """快捷键提示：开始/暂停/继续共用一个键，名称随运行状态变化。"""
+        """快捷键提示：开始/暂停/继续共用一个键，名称随运行状态变化。
+
+        格式 "键|动作;键|动作"，由 QML 拆成按键块。
+        """
         start_key = str(self.ctx.key_start_running or "f9").upper()
         stop_key = str(self.ctx.key_stop_running or "f10").upper()
         toggle_key = str(self.ctx.key_debug or "f12").upper()
@@ -717,7 +720,7 @@ class OverlayManager(QObject):
             start_label = "继续"
         else:
             start_label = "开始"
-        return f"{start_label} {start_key}  停止 {stop_key}  切换 {toggle_key}"
+        return f"{start_key}|{start_label};{stop_key}|停止;{toggle_key}|Overlay"
 
     def _get_game_rect(self):
         if self.ctx.controller is None:
