@@ -47,8 +47,9 @@ class MacPcGameWindow:
     """通过 macOS 窗口列表定位 PlayCover 中的游戏窗口。"""
 
     GAME_TITLE_ALIASES: dict[str, set[str]] = {
-        '绝区零': {'绝区零', '絕區零'},
-        '絕區零': {'绝区零', '絕區零'},
+        '绝区零': {'绝区零', '絕區零', 'ZenlessZoneZero'},
+        '絕區零': {'绝区零', '絕區零', 'ZenlessZoneZero'},
+        'ZenlessZoneZero': {'绝区零', '絕區零', 'ZenlessZoneZero'},
     }
 
     def __init__(
