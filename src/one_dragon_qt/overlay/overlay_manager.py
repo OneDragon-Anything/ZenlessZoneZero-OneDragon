@@ -720,7 +720,7 @@ class OverlayManager(QObject):
             start_label = "继续"
         else:
             start_label = "开始"
-        return f"{start_key}|{start_label};{stop_key}|停止;{toggle_key}|Overlay"
+        return f"{start_key}|{start_label};{stop_key}|停止;{toggle_key}|显示"
 
     def _get_game_rect(self):
         if self.ctx.controller is None:
