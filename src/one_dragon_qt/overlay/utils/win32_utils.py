@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import ctypes
 import re
 import sys
 from ctypes import wintypes
-
 
 VK_CONTROL = 0x11
 VK_LCONTROL = 0xA2
@@ -189,15 +189,13 @@ def is_hotkey_combo_pressed(main_key: str) -> bool:
 
 
 def _root_hwnd(hwnd: int) -> int:
-    try:
+    with contextlib.suppress(Exception):
         root_owner = int(_user32.GetAncestor(int(hwnd), GA_ROOTOWNER) or 0)
         if root_owner != 0:
             return root_owner
         root = int(_user32.GetAncestor(int(hwnd), GA_ROOT) or 0)
         if root != 0:
             return root
-    except Exception:
-        pass
     return int(hwnd)
 
 
