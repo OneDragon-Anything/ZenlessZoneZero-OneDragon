@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Optional, Union
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidRegionType,
+)
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import AgentEnum, Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 
 
 class LostVoidInteractNPC(Enum):
@@ -31,6 +31,10 @@ class LostVoidBoss(Enum):
     JIE_PEI_TUO = '终结之役·杰佩托'
 
 
+# 混合入口(一扇门上方有多个区域图标)的交互文本 只说是复杂区域 看不出具体区域类型
+MIXED_ENTRY_NAME: str = '复杂区域'
+
+
 class LostVoidInteractTarget:
 
     def __init__(self, name: str, icon: str,
@@ -52,7 +56,7 @@ class LostVoidInteractTarget:
 
 
 
-def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidInteractTarget]:
+def match_interact_target(ctx: ZContext, ocr_result: str,) -> LostVoidInteractTarget | None:
     """
     匹配具体的交互目标
     @param ctx: 上下文
@@ -65,7 +69,10 @@ def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidI
     if len(ocr_result) == 0:
         return None
 
-    target_list: list[Union[str, Agent]] = (
+    if str_utils.find_best_match_by_difflib(ocr_result, [gt(MIXED_ENTRY_NAME, 'game')], cutoff=0.6) is not None:
+        return LostVoidInteractTarget(name=MIXED_ENTRY_NAME, icon=MIXED_ENTRY_NAME, is_entry=True)
+
+    target_list: list[str | Agent] = (
             [i.value.value for i in LostVoidRegionType]  # 入口
             + [i.value for i in LostVoidInteractNPC]  # NPC
             + [i.value for i in AgentEnum]  # 代理人
