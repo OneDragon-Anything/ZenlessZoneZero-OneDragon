@@ -109,6 +109,7 @@ class PythonService:
     ) -> tuple[bool, str]:
         """
         使用uv安装环境和依赖
+        使用 --inexact 保留额外安装的依赖（如扩展安装的可选组），避免误卸载。
         :return:
         """
         msg = gt('正在使用 UV 安装依赖...')
@@ -132,6 +133,7 @@ class PythonService:
         command = [
             self.env_config.uv_path,
             'sync',
+            '--inexact',
             '--find-links',
             DEFAULT_WHEELS_DIR_PATH,
             '--default-index',
@@ -210,6 +212,7 @@ class PythonService:
     ) -> bool:
         """
         检查环境是否与项目同步
+        按 --inexact 口径检查，环境中的额外依赖不算未同步。
         :param progress_callback: 进度回调
         :return:
         """
@@ -220,7 +223,7 @@ class PythonService:
 
         self._configure_uv_environment()
 
-        command = [self.env_config.uv_path, 'sync', '--check']
+        command = [self.env_config.uv_path, 'sync', '--inexact', '--check']
 
         if groups is not None:
             for group in groups:
