@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import contextlib
+import ctypes
+import subprocess
+import sys
 import threading
 import warnings
 from collections.abc import Callable
@@ -82,6 +86,10 @@ class AudioRecorder:
         """
         音频录制循环，持续录制音频数据。
         """
+        if sys.platform == 'darwin':
+            self._record_loop_macos()
+            return
+
         # 这个在全局导入的话 会导致QT的选择文件无法使用
         import soundcard as sc
         from soundcard.mediafoundation import SoundcardRuntimeWarning
@@ -116,6 +124,129 @@ class AudioRecorder:
                 self._error_callback(e)
         finally:
             self.running = False
+
+    def _record_loop_macos(self) -> None:
+        """
+        macOS 下使用 ScreenCaptureKit 捕获系统输出音频回环；若失败则回退到 BlackHole 等虚拟回环设备。
+        """
+        lib: ctypes.CDLL | None = None
+        try:
+            lib = self._load_macos_sck_audio_lib()
+            if lib is not None:
+                rc = int(lib.od_sck_audio_start(self._sample_rate))
+                if rc == 0:
+                    log.info('已启用 macOS ScreenCaptureKit 系统音频回环捕获（声音闪避识别）')
+                    buf = (ctypes.c_float * self._chunk_size)()
+                    while self.running:
+                        read_frames = int(
+                            lib.od_sck_audio_read(buf, self._chunk_size, 50)
+                        )
+                        if read_frames == -2:
+                            err_bytes = lib.od_sck_audio_last_error()
+                            err_msg = (
+                                err_bytes.decode('utf-8', errors='replace')
+                                if err_bytes
+                                else 'ScreenCaptureKit 音频流已停止'
+                            )
+                            raise RuntimeError(err_msg)
+                        if read_frames <= 0:
+                            continue
+                        stream_data = np.ctypeslib.as_array(buf)[:read_frames].astype(
+                            np.float64, copy=True
+                        )
+                        with self._update_audio_lock:
+                            self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
+                            self.latest_audio[-len(stream_data):] = stream_data
+                    return
+                err_bytes = lib.od_sck_audio_last_error()
+                err_msg = (
+                    err_bytes.decode('utf-8', errors='replace')
+                    if err_bytes
+                    else f'错误码 {rc}'
+                )
+                log.warning('ScreenCaptureKit 音频捕获启动失败 (%s)，尝试回退到虚拟音频设备', err_msg)
+
+            self._record_loop_macos_fallback()
+        except Exception as e:
+            log.warning('macOS 音频录制异常，已停止声音闪避识别', exc_info=True)
+            if self._error_callback is not None:
+                self._error_callback(RuntimeError(str(e)))
+        finally:
+            if lib is not None:
+                with contextlib.suppress(Exception):
+                    lib.od_sck_audio_stop()
+            self.running = False
+
+    @staticmethod
+    def _load_macos_sck_audio_lib() -> ctypes.CDLL | None:
+        """加载或构建 macOS ScreenCaptureKit 音频回环动态库。"""
+        dylib_path = Path(
+            os_utils.get_path_under_work_dir('.install', 'macos-vhid', 'libod_sck_audio.dylib')
+        )
+        build_script = Path(
+            os_utils.get_path_under_work_dir('tools', 'macos', 'build_vhid_click_client.sh')
+        )
+        if not dylib_path.is_file() and build_script.is_file():
+            try:
+                subprocess.run(
+                    ['/bin/bash', str(build_script)],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+            except Exception:
+                log.warning('构建 macOS ScreenCaptureKit 音频库失败', exc_info=True)
+                return None
+
+        if not dylib_path.is_file():
+            return None
+
+        lib = ctypes.CDLL(str(dylib_path))
+        lib.od_sck_audio_start.argtypes = [ctypes.c_int]
+        lib.od_sck_audio_start.restype = ctypes.c_int
+        lib.od_sck_audio_read.argtypes = [
+            ctypes.POINTER(ctypes.c_float),
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
+        lib.od_sck_audio_read.restype = ctypes.c_int
+        lib.od_sck_audio_stop.argtypes = []
+        lib.od_sck_audio_stop.restype = None
+        lib.od_sck_audio_last_error.argtypes = []
+        lib.od_sck_audio_last_error.restype = ctypes.c_char_p
+        return lib
+
+    def _record_loop_macos_fallback(self) -> None:
+        """当 ScreenCaptureKit 不可用时，尝试使用 BlackHole / Loopback 等虚拟输入设备录制。"""
+        import soundcard as sc
+
+        warnings.filterwarnings('ignore', message='macOS does not support loopback recording functionality')
+        loopback_keywords = ('blackhole', 'loopback', 'soundflower', 'vb-cable')
+        target_mic = None
+        for mic in sc.all_microphones(include_loopback=False):
+            if any(k in mic.name.lower() for k in loopback_keywords):
+                target_mic = mic
+                break
+
+        if target_mic is None:
+            raise RuntimeError(
+                'ScreenCaptureKit 音频捕获未就绪（请检查屏幕与系统录音权限），且未找到 BlackHole 等虚拟音频设备'
+            )
+
+        log.info('已回退使用虚拟音频输入设备进行声音闪避识别: %s', target_mic.name)
+        recorder = target_mic.recorder(samplerate=self._sample_rate, channels=self._used_channel)
+        with recorder as audio_recorder:
+            while self.running:
+                stream_data = audio_recorder.record(numframes=self._chunk_size)
+                if self._used_channel > 1:
+                    stream_data = np.mean(stream_data, axis=1)
+                else:
+                    stream_data = stream_data.T
+
+                with self._update_audio_lock:
+                    self.latest_audio[:-len(stream_data)] = self.latest_audio[len(stream_data):]
+                    self.latest_audio[-len(stream_data):] = stream_data
 
     def stop_running(self) -> None:
         """

@@ -135,8 +135,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         ColumnMeta('位置', 'pc_rect', _parse_rect, 170),
         ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
                    formatter=lambda v: ','.join(v) if v else ''),
-        ColumnMeta('手柄键', 'gamepad_key', lambda x: x.strip() or None, 120,
-                   formatter=lambda v: '' if v is None else str(v)),
     ]
 
     AREA_FIELD_2_COLUMN: ClassVar[dict[str, int]] = {
@@ -153,7 +151,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         'template_match_threshold': lambda x: float(x) if x else 0.7,
         'color_range': _parse_color_range,
         'goto_list': lambda x: [i.strip() for i in x.split(',') if i.strip()],
-        'gamepad_key': lambda x: x.strip() or None,
     }
 
     def __init__(self, ctx: OneDragonContext, parent=None):

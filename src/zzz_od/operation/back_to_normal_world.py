@@ -9,6 +9,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
+from zzz_od.operation.enter_game.enter_game import EnterGame
 from zzz_od.operation.map_transport import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -67,6 +68,10 @@ class BackToNormalWorld(ZOperation):
         mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
+
+        if EnterGame.is_login_screen(self.ctx, self.last_screenshot):
+            op = EnterGame(self.ctx)
+            return self.round_by_op_result(op.execute())
 
         # 核对完整入口词，避免把“迷宫诡域”的单个“域”当作返回入口。
         area = self.ctx.screen_loader.get_area('画面-通用', '左上角-区域')

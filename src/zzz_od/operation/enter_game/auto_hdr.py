@@ -1,4 +1,7 @@
-import winreg
+import sys
+
+if sys.platform == 'win32':
+    import winreg
 
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_node import operation_node
@@ -20,6 +23,8 @@ class DisableAutoHDR(Operation):
         禁用自动HDR，并保存原始设置
         :return: OperationRoundResult
         """
+        if sys.platform != 'win32':
+            return self.round_fail('自动HDR设置仅支持 Windows')
         if self.ctx.game_account_config.game_path == '':
             return self.round_fail('未配置游戏路径')
 
@@ -33,7 +38,7 @@ class DisableAutoHDR(Operation):
                     value, _ = winreg.QueryValueEx(key, game_path)
                     self.ctx.game_config.original_hdr_value = value
                     log.info('已保存原始HDR设置: %s', value)
-            except WindowsError:
+            except OSError:
                 self.ctx.game_config.original_hdr_value = None
                 log.info('没有找到原始HDR设置')
 
@@ -43,7 +48,7 @@ class DisableAutoHDR(Operation):
                 log.info('已设置注册表键值: %s -> AutoHDREnable=2096', game_path)
 
             return self.round_success('已禁用HDR', wait=0.5)
-        except WindowsError as e:
+        except OSError as e:
             log.error('设置注册表失败: %s', str(e))
             return self.round_fail('设置注册表失败')
 
@@ -59,6 +64,8 @@ class EnableAutoHDR(Operation):
         启用自动HDR，恢复原始设置
         :return: OperationRoundResult
         """
+        if sys.platform != 'win32':
+            return self.round_fail('自动HDR设置仅支持 Windows')
         if self.ctx.game_account_config.game_path == '':
             return self.round_fail('未配置游戏路径')
 
@@ -77,6 +84,6 @@ class EnableAutoHDR(Operation):
                     log.info('已删除HDR设置键值')
 
             return self.round_success('已启用HDR', wait=0.5)
-        except WindowsError as e:
+        except OSError as e:
             log.error('修改注册表失败: %s', str(e))
             return self.round_fail('修改注册表失败')

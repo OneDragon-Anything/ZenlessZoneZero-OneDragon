@@ -1,7 +1,5 @@
-import ctypes
-import os
 import shutil
-from ctypes import wintypes
+from pathlib import Path
 
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QFileDialog, QWidget
@@ -162,17 +160,15 @@ class SettingCustomInterface(VerticalScrollInterface):
         ThemeManager.set_theme_color(_ct)
 
     def _on_banner_select_clicked(self) -> None:
-        _dp = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
-        ctypes.windll.shell32.SHGetFolderPathW(None, 0x0027, None, 0, _dp)
-        _fp, _ = QFileDialog.getOpenFileName(
+        file_path, _ = QFileDialog.getOpenFileName(
             self,
             f"{gt('选择你的')}{gt('背景图片')}",
-            _dp.value,
+            str(Path.home()),
             filter="Images and Videos (*.png *.jpg *.jpeg *.webp *.bmp *.webm *.mp4 *.avi *.mov *.mkv);;Images (*.png *.jpg *.jpeg *.webp *.bmp);;Videos (*.webm *.mp4 *.avi *.mov *.mkv)"
         )
-        if _fp is not None and _fp != '':
-            _bp = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
-            shutil.copyfile(_fp, _bp)
+        if file_path:
+            banner_path = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
+            shutil.copyfile(file_path, banner_path)
             self.reload_banner()
 
     def _on_background_type_changed(self, index: int, value: str) -> None:

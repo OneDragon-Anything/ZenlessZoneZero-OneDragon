@@ -1,8 +1,11 @@
-import ctypes
-import time
+import sys
 
+import pyautogui
 from cv2.typing import MatLike
 
+from one_dragon.base.controller.pc_button.keyboard_mouse_controller import (
+    KeyboardMouseController,
+)
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import cv2_utils
 from zzz_od.config.game_config import GameConfig
@@ -17,16 +20,17 @@ class ZPcController(PcControllerBase):
             game_config: GameConfig,
             screenshot_method: str,
             standard_width: int = 1920,
-            standard_height: int = 1080
+            standard_height: int = 1080,
+            keyboard_mouse_controller: KeyboardMouseController | None = None,
     ):
         PcControllerBase.__init__(self,
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
-                                  standard_height=standard_height)
+                                  standard_height=standard_height,
+                                  keyboard_mouse_controller=keyboard_mouse_controller)
 
         self.game_config: GameConfig = game_config
-        self.action_keys = self.game_config.get_action_keys('keyboard')
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
+        self.action_keys = self.game_config.get_action_keys()
 
         self.is_moving: bool = False  # 是否正在移动
 
@@ -34,22 +38,12 @@ class ZPcController(PcControllerBase):
         """切换实例后同步控制器持有的账号级配置"""
         self.game_config = game_config
 
-        if self.game_config.background_mode:
-            self.enable_background_mode(self.game_config.background_gamepad_type)
-        else:
-            self.enable_foreground_mode()
+        self.enable_foreground_mode()
 
     def init_before_context_run(self) -> bool:
-        """运行前根据配置启用后台/前台模式"""
-        if self.game_config.background_mode:
-            self.enable_background_mode(self.game_config.background_gamepad_type)
-        else:
-            self.enable_foreground_mode()
+        """运行前启用前台键鼠模式。"""
+        self.enable_foreground_mode()
         return PcControllerBase.init_before_context_run(self)
-
-    def get_mouse_flash_duration(self) -> float:
-        """从当前实例配置获取闪切键鼠模式时的单步等待时长"""
-        return self.game_config.mouse_flash_duration
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
@@ -66,27 +60,7 @@ class ZPcController(PcControllerBase):
 
     def enable_keyboard(self):
         PcControllerBase.enable_keyboard(self)
-        self.action_keys = self.game_config.get_action_keys('keyboard')
-
-    def enable_background_mode(self, gamepad_type: str = 'xbox') -> None:
-        """启用后台模式并应用当前实例的按键时长配置"""
-        PcControllerBase.enable_background_mode(self, gamepad_type)
-        if not self.background_mode:
-            return
-        if gamepad_type == 'ds4':
-            self.btn_controller.set_key_press_time(self.game_config.ds4_key_press_time)
-        else:
-            self.btn_controller.set_key_press_time(self.game_config.xbox_key_press_time)
-
-    def enable_xbox(self):
-        PcControllerBase.enable_xbox(self)
-        self.action_keys = self.game_config.get_action_keys('xbox')
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
-
-    def enable_ds4(self):
-        PcControllerBase.enable_ds4(self)
-        self.action_keys = self.game_config.get_action_keys('ds4')
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('ds4')
+        self.action_keys = self.game_config.get_action_keys()
 
     def _action_btn(self, key: str, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """通用按键动作：按下/释放/点按"""
@@ -217,42 +191,9 @@ class ZPcController(PcControllerBase):
         """
         if dx == 0 and dy == 0:
             return
-        if self.background_mode:
-            self._gamepad_turn(dx, dy)
-        else:
-            self._ensure_mouse_mode()
-            ctypes.windll.user32.mouse_event(0x0001, int(dx), int(dy))
-
-    def _gamepad_turn(self, dx: float, dy: float) -> None:
-        """
-        手柄右摇杆模拟鼠标转向
-
-        将鼠标像素距离换算为右摇杆满偏转持续时间。
-        Y 轴取反：鼠标向下(+dy)对应摇杆向下(-y)。
-
-        Args:
-            dx: 水平像素距离，正数向右
-            dy: 垂直像素距离，正数向下
-        """
-        if dx == 0 and dy == 0:
+        if sys.platform == 'darwin':
+            if not self.game_win.is_win_active:
+                self.game_win.active()
+            self._get_mac_virtual_hid_mouse().move_relative(round(dx), round(dy))
             return
-        gamepad_turn_speed = self.game_config.gamepad_turn_speed
-        if gamepad_turn_speed <= 0:
-            return
-
-        self._ensure_gamepad_mode()
-
-        max_d = max(abs(dx), abs(dy))
-        stick_x = dx / max_d
-        stick_y = -dy / max_d  # 鼠标下(+) → 摇杆下(-y)
-
-        duration = max_d / gamepad_turn_speed
-
-        pad = self.btn_controller.pad
-        try:
-            pad.right_joystick_float(stick_x, stick_y)
-            pad.update()
-            time.sleep(duration)
-        finally:
-            pad.right_joystick_float(0, 0)
-            pad.update()
+        pyautogui.moveRel(int(dx), int(dy), duration=0)

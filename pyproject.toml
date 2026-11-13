@@ -1,7 +1,7 @@
 [project]
 name = "ZenlessZoneZero-OneDragon"
 version = "2.0.0"
-description = "绝区零 一条龙 | 全自动 | 自动闪避 | 自动每日 | 自动空洞 | 支持手柄"
+description = "绝区零一条龙 macOS 版"
 requires-python = ">=3.11.9,<3.12"
 dependencies = [
     "pyside6==6.11.1",
@@ -11,7 +11,7 @@ dependencies = [
     "opencv-python==4.13.0.92",
     "pyautogui==0.9.54",
     "pynput==1.8.1",
-    "onnxruntime-directml==1.24.4",
+    "onnxruntime==1.24.4",
     "shapely==2.1.2",
     "pyclipper==1.4.0",
     "soundcard==0.4.6",
@@ -20,11 +20,9 @@ dependencies = [
     "gensim==4.4.0",
     "pygit2==1.19.3",
     "psutil==7.2.2",
-    # pywin32>=312 的 wheel 不再内置 mfc140u.dll，未装 VC++ 2015-2022 Redistributable (x64) 的机器
-    # import win32ui 会闪退（issue #2428）；锁 <312 沿用 311（自带 pythonwin/mfc140u.dll）。等上游 build 313 修复后放开。
-    "pywin32<312",
+    "pyobjc-framework-Quartz>=10.3",
+    "pyobjc-framework-Cocoa>=10.3",
     "websocket-client==1.9.2",
-    "vgamepad==0.2.0",
 ]
 
 [dependency-groups]
@@ -37,7 +35,6 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.15.18",
-    "pyuac==0.0.3",
     "mcp>=2.0.0,<3",
     "uvicorn>=0.30.0",
     "pyright>=1.1.411",
@@ -46,7 +43,7 @@ dev = [
 [tool.uv]
 package = false
 cache-dir = "./.install/uv_cache"
-environments = ["sys_platform == 'win32'"]
+environments = ["sys_platform == 'darwin'"]
 default-groups = []
 
 # Ruff configuration

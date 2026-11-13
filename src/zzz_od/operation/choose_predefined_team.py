@@ -26,7 +26,6 @@ from zzz_od.operation.predefined_team_recognizer import (
     recognize_predefined_team,
 )
 from zzz_od.operation.zzz_operation import ZOperation
-from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 if TYPE_CHECKING:
     from zzz_od.application.shiyu_defense.shiyu_defense_team_utils import (
@@ -348,7 +347,7 @@ class ChoosePredefinedTeam(ZOperation):
         if result.is_success:
             log.info('预备编队选择完成:已点击预备出战')
             time.sleep(0.5)
-            self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)
+            self.ctx.controller.mouse_move(Point(200, 200))
             return self.round_success(result.status, wait=0.5)
         return self.round_retry(result.status, wait=1)
 

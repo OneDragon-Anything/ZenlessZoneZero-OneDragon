@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import sys
 import time
 from collections.abc import Sequence
 from typing import Protocol, TypeVar
@@ -236,7 +237,10 @@ class OverlayManager(QObject):
         if not self._supported:
             self._hide_overlay()
             if not self._warned_unsupported:
-                log.warning("Overlay 已禁用：系统版本低于 Windows 10 2004（build 19041）")
+                if sys.platform == 'darwin':
+                    log.warning('macOS 暂不支持游戏画面覆盖层')
+                else:
+                    log.warning("Overlay 已禁用：系统版本低于 Windows 10 2004（build 19041）")
                 self._warned_unsupported = True
             return
 

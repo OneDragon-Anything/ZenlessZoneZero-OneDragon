@@ -10,6 +10,9 @@ from pynput import keyboard
 from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
+from one_dragon.base.controller.pc_button.keyboard_mouse_controller import (
+    KeyboardMouseController,
+)
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.debug.debug_trace_bus import DebugTraceBus
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
@@ -95,6 +98,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
+        self.keyboard_mouse_controller: KeyboardMouseController = KeyboardMouseController()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self._btn_listener_started: bool = False
         self._btn_listener_closed: bool = False

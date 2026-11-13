@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -44,6 +45,7 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-再来一次',
                                                        success_wait=1, retry_wait=1)
             if result.is_success:
+                self.ctx.controller.mouse_move(Point(200, 200))
                 return result
 
         return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',

@@ -21,7 +21,11 @@ class OpenGame(Operation):
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
-        """禁用自动 HDR + 启动游戏 exe。"""
+        """macOS 等待 PlayCover 启动游戏，Windows 启动游戏程序。"""
+        if sys.platform == 'darwin':
+            log.info('请在 PlayCover 中启动绝区零，程序将等待游戏窗口出现')
+            return self.round_success(wait=5)
+
         hdr_op = DisableAutoHDR(self.ctx)
         hdr_op.execute()
 
@@ -65,8 +69,9 @@ class OpenGame(Operation):
         self.ctx.controller.init_game_win()
         if self.ctx.controller.is_game_window_ready:
             self.ctx.controller.active_window()
-            hdr_op = EnableAutoHDR(self.ctx)
-            hdr_op.execute()
+            if sys.platform == 'win32':
+                hdr_op = EnableAutoHDR(self.ctx)
+                hdr_op.execute()
             return self.round_success()
         else:
             return self.round_retry(wait=1)

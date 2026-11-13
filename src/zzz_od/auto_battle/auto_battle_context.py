@@ -573,8 +573,12 @@ class AutoBattleContext:
 
         ban_result: dict[str, bool] = self.check_btn_ban(screen, ban_check_list)
         in_battle: bool = normal_attack_available or ban_result.get(BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value, False)
+        was_in_battle: bool = self.last_check_in_battle
 
         self.last_check_in_battle = in_battle
+        if not in_battle and was_in_battle:
+            # 刚离开战斗画面（如进入战斗结算或连携），重置战斗结束检测冷却以便立即识别结算按钮
+            self._last_check_end_time = 0
         if normal_attack_available:
             self.state_record_service.update_state(
                 StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
