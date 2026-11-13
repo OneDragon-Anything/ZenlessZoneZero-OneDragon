@@ -39,6 +39,7 @@ if not getattr(sys, 'frozen', False):
     import pyautogui
     import pyclipper
     import pygit2
+    import pyi_splash
     import pyuac
     import pywintypes
     import queue
