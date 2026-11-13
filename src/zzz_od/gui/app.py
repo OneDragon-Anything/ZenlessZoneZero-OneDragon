@@ -1,7 +1,7 @@
 try:
     import sys
 
-    from PySide6.QtCore import Qt, QThread, QTimer, Signal
+    from PySide6.QtCore import QLocale, Qt, QThread, QTimer, Signal
     from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import (
@@ -309,6 +309,11 @@ def main() -> None:
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
+    # 数值显示不跟随系统区域设置：
+    # Windows「区域格式 - 其他设置 - 标准数字」配成非 0123456789 时（部分香港等区域配置会这样），
+    # QLocale.system() 会按 LOCALE_SNATIVEDIGITS 返回本地产数字，
+    # 数值框就会显示成异形字形（看起来是乱码）。固定用 C locale 让数字始终为 0-9。
+    QLocale.setDefault(QLocale.c())
     app = QApplication(sys.argv)
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
