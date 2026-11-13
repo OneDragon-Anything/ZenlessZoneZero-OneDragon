@@ -144,18 +144,3 @@ class PluginSubscriptionConfig(YamlConfig):
                 if str(record.get('app_id') or '') == app_id:
                     return registry_id
         return None
-
-
-_instance: PluginSubscriptionConfig | None = None
-
-
-def get_plugin_subscription_config() -> PluginSubscriptionConfig:
-    """取全局订阅记录。
-
-    插件管理与插件商店必须共用同一份实例：配置保存时会把整份内存快照写回
-    文件，两个实例各自持有旧快照会互相覆盖，导致订阅记录丢失。
-    """
-    global _instance
-    if _instance is None:
-        _instance = PluginSubscriptionConfig()
-    return _instance

@@ -208,6 +208,22 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 
     @cached_property
+    def plugin_market_service(self):
+        """插件市场服务。两个插件页共用，避免并发拉同一份 plugins.json、同时写同一个缓存文件。"""
+        from one_dragon.base.operation.application.plugin_market import (
+            PluginMarketService,
+        )
+        return PluginMarketService(self.env_config)
+
+    @cached_property
+    def plugin_subscription_config(self):
+        """插件订阅记录。保存时会把整份内存快照写回文件，必须只有一份实例，否则会互相覆盖。"""
+        from one_dragon.base.config.plugin_subscription_config import (
+            PluginSubscriptionConfig,
+        )
+        return PluginSubscriptionConfig()
+
+    @cached_property
     def one_dragon_config(self):
         from one_dragon.base.config.one_dragon_config import OneDragonConfig
         return OneDragonConfig()

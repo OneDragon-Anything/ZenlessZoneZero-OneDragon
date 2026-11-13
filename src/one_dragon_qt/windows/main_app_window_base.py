@@ -27,6 +27,7 @@ from one_dragon_qt.services.app_setting.app_setting_manager import AppSettingMan
 from one_dragon_qt.services.download_queue_service import (
     DownloadQueueService,
 )
+from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.services.resource_update_coordinator import (
     ResourceUpdateCoordinator,
 )
@@ -66,6 +67,7 @@ class MainAppWindowBase(AppWindowBase):
         self.app_setting_manager = AppSettingManager(ctx)
         self.ctx.update_service.restore_interrupted_launcher_update()
         self.download_queue = DownloadQueueService(ctx)
+        self.plugin_cover_service = PluginCoverService(ctx.env_config, ctx.plugin_market_service)
         self._connected_pivot_navi: PivotNavigatorInterface | None = None
 
         AppWindowBase.__init__(
@@ -76,6 +78,7 @@ class MainAppWindowBase(AppWindowBase):
             parent=parent,
         )
         self.download_queue.setParent(self)
+        self.plugin_cover_service.setParent(self)
         self.download_queue_dialog = DownloadQueueDialog(self.download_queue, self)
         self._download_queue_tip: TeachingTip | None = None
         self._closing_after_cancel: bool = False  # 是否已请求取消下载并等待退出

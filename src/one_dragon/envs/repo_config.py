@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.utils.log_utils import log
 
 
 @dataclass(frozen=True)
@@ -167,6 +168,7 @@ class RepoConfig(YamlConfig):
         }
         self.resource_recommend: dict[str, str] = self._load_resource_recommend()
         self.resource_repos: dict[str, dict[str, str]] = self._load_resource_repos()
+        self.plugin_market_urls: dict[str, str] = self._load_plugin_market_urls()
         self.model_resources: tuple[ModelResourceDefinition, ...] = (
             self._load_model_resources()
         )
@@ -383,18 +385,33 @@ class RepoConfig(YamlConfig):
         for repo_key, raw_urls in raw_repos.items():
             if not isinstance(repo_key, str) or not repo_key or not isinstance(raw_urls, dict):
                 raise ValueError('resource_download.repos 必须是仓库到源 URL 的映射')
-            urls: dict[str, str] = {}
-            for source_id, url in raw_urls.items():
-                if source_id not in self._resource_sources_by_id:
-                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 不在 sources 中')
-                if not isinstance(url, str) or not url:
-                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 必须配置 URL')
-                parsed_url = urlparse(url)
-                if parsed_url.scheme != 'https' or not parsed_url.netloc:
-                    raise ValueError(f'资源仓库 {repo_key} 的 {source_id} 必须使用 HTTPS 链接')
-                urls[source_id] = url
-            repos[repo_key] = urls
+            repos[repo_key] = self._load_source_urls(raw_urls, f'资源仓库 {repo_key}')
         return repos
+
+    def _load_plugin_market_urls(self) -> dict[str, str]:
+        """插件市场是可选功能：这里配置写错只让市场不可用，不能拖垮整个应用启动。"""
+        raw_urls = self._get_resource_download_config().get('plugin_market', {})
+        try:
+            if not isinstance(raw_urls, dict):
+                raise ValueError('resource_download.plugin_market 必须是映射')
+            return self._load_source_urls(raw_urls, '插件市场索引')
+        except ValueError as exc:
+            log.error(f'插件市场索引配置无效，已忽略: {exc}')
+            return {}
+
+    def _load_source_urls(self, raw_urls: dict[str, object], field_name: str) -> dict[str, str]:
+        """解析「下载源 ID 到地址」的映射，校验源 ID 与 HTTPS 链接。"""
+        urls: dict[str, str] = {}
+        for source_id, url in raw_urls.items():
+            if source_id not in self._resource_sources_by_id:
+                raise ValueError(f'{field_name} 的 {source_id} 不在 sources 中')
+            if not isinstance(url, str) or not url:
+                raise ValueError(f'{field_name} 的 {source_id} 必须配置 URL')
+            parsed_url = urlparse(url)
+            if parsed_url.scheme != 'https' or not parsed_url.netloc:
+                raise ValueError(f'{field_name} 的 {source_id} 必须使用 HTTPS 链接')
+            urls[source_id] = url
+        return urls
 
     def _load_model_resources(self) -> tuple[ModelResourceDefinition, ...]:
         raw_models = self._get_resource_download_config().get('models', {})
