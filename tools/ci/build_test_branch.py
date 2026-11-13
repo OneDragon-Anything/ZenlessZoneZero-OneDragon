@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -14,6 +15,8 @@ SQUASH_SOURCE_PATTERN = re.compile(
     r"^Squashed from PR: https://(?:redirect\.)?github\.com/[^/]+/[^/]+/pull/([0-9]+) .*",
     re.MULTILINE,
 )
+MAIN_BRANCH = "main"
+RUNTIME_CHECK_DIR = REPO_ROOT / ".install" / "runtime-compatibility"
 
 
 @dataclass(frozen=True)
@@ -23,6 +26,8 @@ class PrInfo:
     title: str
     labels: set[str]
     author_login: str
+    target_branch: str
+    head_sha: str
 
 
 @dataclass(frozen=True)
@@ -119,34 +124,57 @@ def configure_git() -> None:
     )
 
 
-def ensure_labels(include_label: str, conflict_label: str) -> None:
-    """创建或更新 test 分支使用的标签。"""
-    run_command(
+def ensure_labels(
+    include_label: str,
+    conflict_label: str,
+    integrated_conflict_label: str,
+) -> None:
+    """创建或更新测试分支使用的标签。"""
+    labels = [
+        (include_label, "0E8A16", "合入 test 分支"),
+        (conflict_label, "D93F0B", "合入 test 分支时冲突,需 rebase"),
+        (
+            integrated_conflict_label,
+            "B60205",
+            "合入 test-integrated 分支时冲突,需 rebase",
+        ),
+    ]
+    for name, color, description in labels:
+        run_command(
+            [
+                "gh",
+                "label",
+                "create",
+                name,
+                "--color",
+                color,
+                "--description",
+                description,
+                "--force",
+            ]
+        )
+
+
+def list_open_prs(label: str) -> list[str]:
+    """按 PR 号升序读取带指定标签的 open PR。"""
+    result = run_command(
         [
             "gh",
-            "label",
-            "create",
-            include_label,
-            "--color",
-            "0E8A16",
-            "--description",
-            "合入 test 分支",
-            "--force",
-        ]
+            "pr",
+            "list",
+            "--state",
+            "open",
+            "--label",
+            label,
+            "--limit",
+            "100",
+            "--json",
+            "number",
+        ],
+        capture_output=True,
     )
-    run_command(
-        [
-            "gh",
-            "label",
-            "create",
-            conflict_label,
-            "--color",
-            "D93F0B",
-            "--description",
-            "合入 test 分支时冲突,需 rebase",
-            "--force",
-        ]
-    )
+    data = load_json(result)
+    return sorted((str(item["number"]) for item in data), key=int)
 
 
 def resolve_prs(input_prs: str, include_label: str) -> tuple[list[str], str, bool]:
@@ -156,27 +184,7 @@ def resolve_prs(input_prs: str, include_label: str) -> tuple[list[str], str, boo
         source = "手动输入(按填写顺序)"
         require_label = False
     else:
-        result = run_command(
-            [
-                "gh",
-                "pr",
-                "list",
-                "--state",
-                "open",
-                "--label",
-                include_label,
-                "--limit",
-                "100",
-                "--json",
-                "number",
-            ],
-            capture_output=True,
-        )
-        data = load_json(result)
-        prs = sorted(
-            (str(item["number"]) for item in data),
-            key=int,
-        )
+        prs = list_open_prs(include_label)
         source = f"标签 `{include_label}`(按 PR 号升序)"
         require_label = True
 
@@ -186,9 +194,16 @@ def resolve_prs(input_prs: str, include_label: str) -> tuple[list[str], str, boo
 
 
 def get_pr_info(pr: str) -> PrInfo | None:
-    """一次读取 PR 状态、标题、标签和发起人。"""
+    """一次读取 PR 状态、标题、标签、发起人、目标分支和 head SHA。"""
     result = run_command(
-        ["gh", "pr", "view", str(pr), "--json", "state,title,labels,author"],
+        [
+            "gh",
+            "pr",
+            "view",
+            str(pr),
+            "--json",
+            "state,title,labels,author,baseRefName,headRefOid",
+        ],
         check=False,
         capture_output=True,
     )
@@ -207,6 +222,8 @@ def get_pr_info(pr: str) -> PrInfo | None:
         title=normalize_line(str(data.get("title", ""))),
         labels={str(label["name"]) for label in data.get("labels", [])},
         author_login=normalize_line(str(author.get("login", ""))),
+        target_branch=normalize_line(str(data.get("baseRefName") or "")),
+        head_sha=normalize_line(str(data.get("headRefOid") or "")),
     )
 
 
@@ -214,6 +231,15 @@ def get_short_sha(ref: str) -> str:
     """读取 Git ref 的短 SHA。"""
     result = run_command(
         ["git", "rev-parse", "--short", ref],
+        capture_output=True,
+    )
+    return (result.stdout or "").strip()
+
+
+def get_full_sha(ref: str) -> str:
+    """读取 Git ref 的完整 SHA。"""
+    result = run_command(
+        ["git", "rev-parse", ref],
         capture_output=True,
     )
     return (result.stdout or "").strip()
@@ -252,7 +278,7 @@ def get_conflict_ranges(path: str) -> str:
 def get_related_prs(path: str) -> str:
     """从此前 squash 提交中找出修改过冲突文件的 PR。"""
     result = run_command(
-        ["git", "log", "--format=%B", "origin/main..HEAD", "--", path],
+        ["git", "log", "--format=%B", f"origin/{MAIN_BRANCH}..HEAD", "--", path],
         check=False,
         capture_output=True,
     )
@@ -262,7 +288,12 @@ def get_related_prs(path: str) -> str:
     return ", ".join(f"#{number}" for number in numbers) or "无"
 
 
-def build_conflict_report(pr: str, conflict_files: list[str], main_conflict: bool) -> str:
+def build_conflict_report(
+    pr: str,
+    conflict_files: list[str],
+    main_conflict: bool,
+    target_branch: str,
+) -> str:
     """生成单个 PR 的冲突 Markdown 报告。"""
     lines: list[str] = []
     if main_conflict:
@@ -278,7 +309,7 @@ def build_conflict_report(pr: str, conflict_files: list[str], main_conflict: boo
             [
                 f"### PR #{pr} 与此前已合入 PR 冲突",
                 "",
-                "当前 PR 单独合入 `main` 无冲突，因此冲突来自当前 `test` 基线中此前已合入的 PR。",
+                f"当前 PR 单独合入 `main` 无冲突，因此冲突来自当前 `{target_branch}` 基线中此前已合入的 PR。",
             ]
         )
 
@@ -389,13 +420,14 @@ def append_summary(path: Path, content: str) -> None:
             file.write("\n")
 
 
-def build_failure_summary(conflict_report: str) -> str:
-    """生成 test 分支 push 失败时的摘要。"""
+def build_failure_summary(target_branch: str, conflict_report: str) -> str:
+    """生成测试分支 push 失败时的摘要。"""
     lines = [
-        "## test 分支重建失败",
+        f"## {target_branch} 分支重建失败",
         "",
-        "PR 已按顺序处理完,但 `git push --force origin test` 被拒绝,`test` 分支**未更新**。",
-        "请检查 `test` 分支的保护规则是否禁止强制推送。",
+        f"PR 已按顺序处理完,但 `git push --force origin {target_branch}` 被拒绝,"
+        f"`{target_branch}` 分支**未更新**。",
+        f"请检查 `{target_branch}` 分支的保护规则是否禁止强制推送。",
     ]
     if conflict_report:
         lines.extend(["", conflict_report])
@@ -408,8 +440,9 @@ def display_author_name(author: str) -> str:
 
 
 def build_success_summary(
+    target_branch: str,
     base_sha: str,
-    test_sha: str,
+    branch_sha: str,
     source: str,
     applied: list[AppliedPr],
     conflicted: list[ConflictPr],
@@ -417,18 +450,18 @@ def build_success_summary(
     conflict_label: str,
     conflict_report: str,
 ) -> str:
-    """生成 test 分支重建成功后的摘要。"""
+    """生成测试分支重建成功后的摘要。"""
     lines = [
-        "## test 分支重建结果",
+        f"## {target_branch} 分支重建结果",
         "",
-        f"- 基线:`main` @ `{base_sha}` → `test` @ `{test_sha}`",
+        f"- 基线:`main` @ `{base_sha}` → `{target_branch}` @ `{branch_sha}`",
         f"- PR 来源:{source}",
         "",
         f"### 已合入({len(applied)})",
         "",
     ]
     if not applied:
-        lines.append("无,`test` 与 `main` 一致。")
+        lines.append(f"无,`{target_branch}` 与 `main` 一致。")
     else:
         lines.extend(
             f"- #{item.number} {item.title} — {display_author_name(item.author)}"
@@ -473,6 +506,30 @@ def maintain_conflict_labels(
         )
 
 
+def check_runtime_compatibility() -> bool | None:
+    """检查当前工作区代码是否兼容最新正式版 RuntimeLauncher。
+
+    返回 True 兼容，False 不兼容，None 表示检查本身失败。
+    """
+    result = run_command(
+        [
+            sys.executable,
+            "tools/ci/check_runtime_compatibility.py",
+            "--repository-root",
+            str(REPO_ROOT),
+            "--work-dir",
+            str(RUNTIME_CHECK_DIR),
+            "--reuse-runtime",
+        ],
+        check=False,
+    )
+    if result.returncode == 0:
+        return True
+    if result.returncode == 2:
+        return False
+    return None
+
+
 def rebuild_test_branch(
     prs: list[str],
     source: str,
@@ -481,10 +538,14 @@ def rebuild_test_branch(
     conflict_label: str,
     repository: str,
     summary_path: Path,
+    target_branch: str,
+    integrated: bool = False,
 ) -> int:
-    """从 main 重建 test 分支，并逐个 squash 指定 PR。"""
-    run_command(["git", "fetch", "origin", "main"])
-    run_command(["git", "checkout", "-B", "test", "origin/main"])
+    """从 main 重建目标测试分支，并逐个 squash 指定 PR。"""
+    run_command(["git", "fetch", "origin", MAIN_BRANCH])
+    run_command(
+        ["git", "checkout", "-B", target_branch, f"origin/{MAIN_BRANCH}"]
+    )
     base_sha = get_short_sha("HEAD")
 
     applied: list[AppliedPr] = []
@@ -500,9 +561,16 @@ def rebuild_test_branch(
         if info.state != "OPEN":
             skipped.append(SkippedPr(pr, info.state or "查不到该 PR"))
             continue
+        if info.target_branch != MAIN_BRANCH:
+            skipped.append(
+                SkippedPr(
+                    pr,
+                    f"目标分支不是 {MAIN_BRANCH}: {info.target_branch or '未知'}",
+                )
+            )
+            continue
         if require_label and include_label not in info.labels:
             continue
-
         pr_ref = f"refs/remotes/pr/{pr}"
         fetch_result = run_command(
             [
@@ -517,7 +585,11 @@ def rebuild_test_branch(
         if fetch_result.returncode != 0:
             skipped.append(SkippedPr(pr, "拉取 PR 分支失败"))
             continue
-        head_sha = get_short_sha(pr_ref)
+        fetched_head_sha = get_full_sha(pr_ref)
+        if not info.head_sha or fetched_head_sha != info.head_sha:
+            skipped.append(SkippedPr(pr, "PR 在读取信息后发生更新"))
+            continue
+        head_sha = fetched_head_sha[:7]
 
         merge_result = run_command(
             ["git", "merge", "--squash", pr_ref],
@@ -527,14 +599,20 @@ def rebuild_test_branch(
             conflict_files = get_conflict_files()
             main_conflict = (
                 run_command(
-                    ["git", "merge-tree", "--write-tree", "origin/main", pr_ref],
+                    [
+                        "git",
+                        "merge-tree",
+                        "--write-tree",
+                        f"origin/{MAIN_BRANCH}",
+                        pr_ref,
+                    ],
                     check=False,
                     quiet=True,
                 ).returncode
                 != 0
             )
             conflict_reports.append(
-                build_conflict_report(pr, conflict_files, main_conflict)
+                build_conflict_report(pr, conflict_files, main_conflict, target_branch)
             )
             run_command(["git", "reset", "--hard", "HEAD"])
             run_command(["git", "clean", "-fd"])
@@ -544,6 +622,22 @@ def rebuild_test_branch(
         if run_command(["git", "diff", "--cached", "--quiet"], check=False).returncode == 0:
             skipped.append(SkippedPr(pr, "无变更(已在 main 中)"))
             continue
+
+        if integrated:
+            # 在已合入前序 PR 的工作区上检查，结果与最终分支内容一致。
+            compatible = check_runtime_compatibility()
+            if compatible is not True:
+                run_command(["git", "reset", "--hard", "HEAD"])
+                run_command(["git", "clean", "-fd"])
+                skipped.append(
+                    SkippedPr(
+                        pr,
+                        "当前运行时无法加载新增导入"
+                        if compatible is False
+                        else "无法确认运行时兼容性,集成分支跳过",
+                    )
+                )
+                continue
 
         authors = get_commit_authors(pr_ref)
         author = (
@@ -558,20 +652,24 @@ def rebuild_test_branch(
     conflict_report = "\n".join(conflict_reports)
 
     push_result = run_command(
-        ["git", "push", "--force", "origin", "test"],
+        ["git", "push", "--force", "origin", target_branch],
         check=False,
     )
     if push_result.returncode != 0:
-        append_summary(summary_path, build_failure_summary(conflict_report))
+        append_summary(
+            summary_path,
+            build_failure_summary(target_branch, conflict_report),
+        )
         return 1
 
-    test_sha = get_short_sha("HEAD")
+    branch_sha = get_short_sha("HEAD")
     maintain_conflict_labels(conflicted, applied, conflict_label)
     append_summary(
         summary_path,
         build_success_summary(
+            target_branch,
             base_sha,
-            test_sha,
+            branch_sha,
             source,
             applied,
             conflicted,
@@ -587,14 +685,21 @@ def main() -> int:
     """执行 Build Test Branch workflow 的全部逻辑。"""
     include_label = os.environ.get("INCLUDE_LABEL", "test-branch")
     conflict_label = os.environ.get("CONFLICT_LABEL", "test-conflict")
+    integrated_conflict_label = os.environ.get(
+        "INTEGRATED_CONFLICT_LABEL",
+        "test-integrated-conflict",
+    )
     input_prs = os.environ.get("INPUT_PRS", "")
     repository = os.environ["GITHUB_REPOSITORY"]
     summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
 
     configure_git()
-    ensure_labels(include_label, conflict_label)
+    # 清掉上次遗留的运行时，本次运行内的多次兼容性检查共用同一份下载。
+    shutil.rmtree(RUNTIME_CHECK_DIR, ignore_errors=True)
+    ensure_labels(include_label, conflict_label, integrated_conflict_label)
     prs, source, require_label = resolve_prs(input_prs, include_label)
-    return rebuild_test_branch(
+
+    test_result = rebuild_test_branch(
         prs,
         source,
         require_label,
@@ -602,7 +707,20 @@ def main() -> int:
         conflict_label,
         repository,
         summary_path,
+        "test",
     )
+    integrated_result = rebuild_test_branch(
+        prs,
+        source,
+        require_label,
+        include_label,
+        integrated_conflict_label,
+        repository,
+        summary_path,
+        "test-integrated",
+        integrated=True,
+    )
+    return 1 if test_result != 0 or integrated_result != 0 else 0
 
 
 if __name__ == "__main__":
