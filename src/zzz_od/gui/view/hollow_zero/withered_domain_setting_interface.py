@@ -79,6 +79,13 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
         )
         left_layout.addWidget(self.weekly_plan_times_opt)
 
+        self.daily_plan_times_opt = SpinBoxSettingCard(
+            icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
+            title='每天进入次数',
+            content='将空洞分摊到每天运行',
+        )
+        left_layout.addWidget(self.daily_plan_times_opt)
+
         self.extra_task_opt = ComboBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
             title='额外刷取',
@@ -111,13 +118,6 @@ class WitheredDomainSettingInterface(VerticalScrollInterface, GroupIdMixin):
             title='挑战配置', content='选择角色、鸣徽和事件',
         )
         right_layout.addWidget(self.challenge_config_opt)
-
-        self.daily_plan_times_opt = SpinBoxSettingCard(
-            icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
-            title='每天进入次数',
-            content='将空洞分摊到每天运行',
-        )
-        right_layout.addWidget(self.daily_plan_times_opt)
 
         self.extra_exit_opt = ComboBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标

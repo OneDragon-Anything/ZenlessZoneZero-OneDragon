@@ -1,5 +1,3 @@
-from typing import Optional
-
 from one_dragon.base.operation.application_run_record import (
     AppRunRecord,
     AppRunRecordPeriod,
@@ -14,10 +12,11 @@ from zzz_od.application.hollow_zero.withered_domain.withered_domain_config impor
 
 class WitheredDomainRunRecord(AppRunRecord):
 
-    def __init__(self, config: WitheredDomainConfig, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0):
+    def __init__(self, config: WitheredDomainConfig, instance_idx: int | None = None, game_refresh_hour_offset: int = 0,
+                 app_id: str = withered_domain_const.APP_ID):
         AppRunRecord.__init__(
             self,
-            app_id=withered_domain_const.APP_ID,
+            app_id=app_id,
             instance_idx=instance_idx,
             game_refresh_hour_offset=game_refresh_hour_offset,
             record_period=AppRunRecordPeriod.WEEKLY
@@ -58,9 +57,7 @@ class WitheredDomainRunRecord(AppRunRecord):
             self.reset_record()
             self.daily_run_times = 0
         else:  # 当天的
-            if self.is_finished_by_week():
-                pass
-            elif self.is_finished_by_day():
+            if self.is_finished_by_week() or self.is_finished_by_day():
                 pass
             else:
                 self.reset_record()
@@ -163,4 +160,3 @@ class WitheredDomainRunRecord(AppRunRecord):
         @return:
         """
         self.update('period_reward_complete', new_value)
-

@@ -56,14 +56,29 @@ class WitheredDomainContext:
         self._last_current_node: Optional[HollowZeroMapNode] = None  # 上一次当前所在的点
         self.speed_up_clicked: bool = False  # 是否已经点击加速
         self.invalid_map_times: int = 0  # 识别不到正确地图的次数
+        self.app_id: str = withered_domain_const.APP_ID  # 当前运行的应用 零号业绩速刷和枯萎之都共用上下文
+        self.force_only_boss: bool = False  # 是否强制使用速通寻路 零号业绩速刷使用
+        self.plugin_click_opens_list: bool | None = None  # 点击邦布插件入口能否打开列表 None为未知 点击/长按可在游戏设置里交换
 
-    def init_before_run(self) -> None:
+    def init_before_run(self, app_id: str = withered_domain_const.APP_ID,
+                        challenge_config: HollowZeroChallengeConfig | None = None,
+                        speed_run: bool = False) -> None:
         """
         应用开始前的初始化
+        :param app_id: 当前运行的应用
+        :param challenge_config: 应用自己提供的挑战配置 不传时读取枯萎之都的挑战配置
+        :param speed_run: 是否为速刷 速刷强制使用速通寻路
         """
         self.data_service.reload()
+        self.app_id = app_id
+        self.force_only_boss = speed_run
+
+        if challenge_config is not None:
+            self.challenge_config = challenge_config
+            return
+
         config: WitheredDomainConfig = self.ctx.run_context.get_config(
-            app_id=withered_domain_const.APP_ID,
+            app_id=app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
@@ -378,16 +393,51 @@ class WitheredDomainContext:
                 return True
         return False
 
+    def _get_path_finding(self) -> str:
+        """
+        当前使用的寻路方式 零号业绩速刷模式强制为速通
+        """
+        if self.force_only_boss:
+            return HollowZeroChallengePathFinding.ONLY_BOSS.value.value
+        return self.challenge_config.path_finding
+
+    def find_blocker(self, current_map: HollowZeroMap,
+                     target: HollowZeroMapNode | None) -> tuple[HollowZeroMapNode, HollowZeroMapNode] | None:
+        """
+        目标是终点时 判断前往终点的路径上是否必须经过需要避开的格子(小怪) 即被堵住
+        需要在 get_next_to_move 之后调用 依赖其计算出的路径信息
+        :param current_map: 当前地图
+        :param target: 本次想前往的目标
+        :return: (挡路的格子, 路径上它的上一格)；没有被堵住时返回None
+        """
+        if target is None or target.entry.entry_name not in ['守门人', '传送点', '不宜久留']:
+            return None
+
+        avoid = set(self._get_avoid())
+        blocker: HollowZeroMapNode | None = None
+        node = target
+        for _ in range(len(current_map.nodes)):
+            last = node.path_last_node
+            if last is None:
+                break
+            if node.entry.entry_name in avoid:
+                blocker = node  # 从终点往回找 最后一个就是离当前格最近的
+            node = last
+
+        if blocker is None or blocker.path_last_node is None:
+            return None
+        return blocker, blocker.path_last_node
+
     def _get_go_in_1_step(self) -> List[str]:
         """
         一步可达时前往
         :return:
         """
-        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self._get_path_finding() == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_go_in_1_step_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_only_boss_go_in_1_step_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.CUSTOM.value.value:
             return self.challenge_config.go_in_1_step
         else:
             return []
@@ -397,11 +447,14 @@ class WitheredDomainContext:
         途经点
         :return:
         """
-        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self.force_only_boss:
+            # 速刷模式 先拿业绩 再去黑洞(识别为诡雾) 不需要呼叫增援
+            return ['业绩考察点', '诡雾']
+        if self._get_path_finding() == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_waypoint_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_only_boss_waypoint_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.CUSTOM.value.value:
             return self.challenge_config.waypoint
         else:
             return []
@@ -411,11 +464,11 @@ class WitheredDomainContext:
         避免途经点
         :return:
         """
-        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self._get_path_finding() == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_avoid_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_default_avoid_entry_list()
-        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+        elif self._get_path_finding() == HollowZeroChallengePathFinding.CUSTOM.value.value:
             return self.challenge_config.avoid
         else:
             return []
@@ -518,6 +571,7 @@ class WitheredDomainContext:
         self.map_service.init_event_yolo()
         self.init_level_info(mission_type_name, mission_name, level, phase)
         self.agent_list = None
+        self.plugin_click_opens_list = None
 
     def after_app_shutdown(self) -> None:
         """
