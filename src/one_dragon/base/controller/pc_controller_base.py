@@ -29,6 +29,7 @@ from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import (
     PcScreenshotController,
 )
+from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.geometry.point import Point
 from one_dragon.utils.log_utils import log
 
@@ -84,9 +85,13 @@ class PcControllerBase(ControllerBase):
     def init_before_context_run(self) -> bool:
         pyautogui.PAUSE = 0.001  # pyautogui的操作会有延迟, 一些需要低延迟的操作中会取消这个延迟然后恢复延迟, 以免影响其他功能
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
-        self.init_game_win()
-        if not self.background_mode:
-            self.game_win.active()
+        try:
+            self.init_game_win()
+            if not self.background_mode:
+                self.game_win.active()
+        except WindowAmbiguousError as error:
+            log.error('%s', error)
+            return False
         return True
 
     def cleanup_after_app_shutdown(self) -> None:
@@ -111,6 +116,10 @@ class PcControllerBase(ControllerBase):
             new_title: 新的窗口标题
         """
         self.game_win.update_win_title(new_title)
+
+    def set_window_titles(self, titles: list[str]) -> None:
+        """设置按优先级排列的候选标题，相同配置保留当前绑定。"""
+        self.game_win.update_win_titles(titles)
 
     def enable_xbox(self):
         if pc_button_utils.is_vgamepad_installed():
