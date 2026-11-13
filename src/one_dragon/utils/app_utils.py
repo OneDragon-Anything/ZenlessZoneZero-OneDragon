@@ -62,16 +62,18 @@ def get_exe_version(exe_path: str) -> str:
 
 
 def get_launcher_version() -> str:
-    """
-    检查当前启动器版本
+    """检查本次运行所用启动器的版本。
+
+    源码运行时没有随本次运行一起打包的启动器，工作目录里的 exe 只是别的启动器留下的文件，
+    读它会把不相干的版本号当成当前版本，所以直接返回空。
+
     Returns:
-        str: 版本号
+        str: 版本号，源码运行或读取失败时为空字符串
     """
-    if getattr(sys, 'frozen', False):
-        launcher_path = Path(sys.executable)
-    else:
-        launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
-    return get_exe_version(str(launcher_path))
+    if not getattr(sys, 'frozen', False):
+        return ''
+
+    return get_exe_version(str(Path(sys.executable)))
 
 
 if __name__ == '__main__':

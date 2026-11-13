@@ -105,6 +105,11 @@ class ApplicationGroupManager:
                 for app_id in old_config.app_run_list:
                     config.set_app_enable(app_id, True)
 
+                # 旧配置里的顺序整体要保留下来（包括没启用的），先逐个落进保存顺序，
+                # set_app_order 只负责排序，不再顺带持久化
+                for app_id in old_config.app_order:
+                    config.persist_app(app_id)
+
                 config.set_app_order(old_config.app_order)
 
         return config

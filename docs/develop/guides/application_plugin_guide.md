@@ -444,6 +444,8 @@ ctx.refresh_application_registration()
 
 `INTERNAL_APP` 只限制通用选择入口，不限制底层 `run_application()`；固定入口仍能运行 internal 应用。运行时会过滤已保存配置中的 internal 或未注册应用，但不会因此删除 YAML 中的原始 ID。
 
+新加入一条龙的应用在用户第一次启用、运行或拖拽排序之前，处于未保存状态（`is_persisted=False`），界面会把它排在列表前面并标上【New！】。启用、运行一次或**拖拽这个应用本身**之后，它才会被写进保存顺序，标记自动消失；只是调整了别的应用顺序时，没被操作的新应用仍保留标记。
+
 ## 运行记录
 
 工厂没有覆盖 `create_run_record()` 时：

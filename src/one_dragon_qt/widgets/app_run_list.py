@@ -21,7 +21,8 @@ class AppRunList(DraggableList):
     支持通过拖拽来调整应用执行顺序，并提供应用状态管理。
 
     Signals:
-        app_list_changed(list[ApplicationGroupConfigItem]): 应用列表顺序改变时触发
+        app_list_changed(list[ApplicationGroupConfigItem], str): 应用列表顺序改变时触发，
+            第二个参数是被拖拽/置顶的应用 ID
         app_run_clicked(str): 运行某个应用时触发，参数为 app_id
         app_switch_changed(str, bool): 应用开关状态改变时触发，参数为 app_id 和 状态
         app_setting_clicked(str): 点击应用设置按钮时触发，参数为 app_id
@@ -29,7 +30,7 @@ class AppRunList(DraggableList):
     """
 
     # 应用列表改变信号（拖拽排序后触发）
-    app_list_changed = Signal(list)
+    app_list_changed = Signal(list, str)
 
     # 运行某个应用
     app_run_clicked = Signal(str)
@@ -189,7 +190,7 @@ class AppRunList(DraggableList):
 
                     # 触发信号
                     new_app_list = [card.app for card in self._app_cards]
-                    self.app_list_changed.emit(new_app_list)
+                    self.app_list_changed.emit(new_app_list, app_id)
                 break
 
     def _handle_order_changed(self, new_data_list: list) -> None:
@@ -199,6 +200,10 @@ class AppRunList(DraggableList):
         Args:
             new_data_list: 新顺序的数据列表
         """
+        # DraggableList 记录着真正被拖动的项，直接用它，别靠位移猜
+        dragging_item = self._dragging_item
+        moved_app_id = dragging_item.app.app_id if dragging_item is not None else ''
+
         # 重新构建 _app_cards 的顺序
         new_card_list: list[AppRunCard] = []
         for data in new_data_list:
@@ -214,4 +219,4 @@ class AppRunList(DraggableList):
 
         # 触发应用列表改变信号
         new_app_list = [card.app for card in self._app_cards]
-        self.app_list_changed.emit(new_app_list)
+        self.app_list_changed.emit(new_app_list, moved_app_id)
