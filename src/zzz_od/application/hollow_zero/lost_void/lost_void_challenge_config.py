@@ -283,6 +283,72 @@ class LostVoidChallengeConfig(YamlConfig):
     def chase_new_mode(self, new_value: bool):
         self.update('chase_new_mode', new_value)
 
+    @property
+    def smart_escape(self) -> bool:
+        """
+        :return: 寻路卡住时是否用新的脱困方式: 画面静止判卡住 后退/横移/前进绕开 转向比例跨移动保留
+        """
+        return self.get('smart_escape', False)
+
+    @smart_escape.setter
+    def smart_escape(self, new_value: bool):
+        self.update('smart_escape', new_value)
+
+    @property
+    def same_faction_first(self) -> bool:
+        """
+        :return: 是否最优先选择本局已有通用武备同派系的鸣徽和武备 没有同派系鸣徽时刷新
+        """
+        return self.get('same_faction_first', False)
+
+    @same_faction_first.setter
+    def same_faction_first(self, new_value: bool):
+        self.update('same_faction_first', new_value)
+
+    @property
+    def store_save_coin(self) -> bool:
+        """
+        :return: 邦布商店是否留硬币: 普通商店最多刷新 3 次 之后只买同派系鸣徽 硬币留给最后一个休息区
+        """
+        return self.get('store_save_coin', False)
+
+    @store_save_coin.setter
+    def store_save_coin(self, new_value: bool):
+        self.update('store_save_coin', new_value)
+
+    @property
+    def route_plan_by_map(self) -> bool:
+        """
+        :return: 是否打开 Tab 地图按区域类型优先级规划本层路线 寻路锁定规划的入口
+        """
+        return self.get('route_plan_by_map', False)
+
+    @route_plan_by_map.setter
+    def route_plan_by_map(self, new_value: bool):
+        self.update('route_plan_by_map', new_value)
+
+    @property
+    def difficulty(self) -> str:
+        """
+        :return: 进入副本前切换到的难度 如 难度五 空表示沿用游戏当前难度 目前只支持战线肃清
+        """
+        return self.get('difficulty', '')
+
+    @difficulty.setter
+    def difficulty(self, new_value: str):
+        self.update('difficulty', new_value)
+
+    @property
+    def stop_when_no_strategy(self) -> bool:
+        """
+        :return: 追新模式找不到可刷的调查战略时 是否结束本次运行 关闭时点第一个战略
+        """
+        return self.get('stop_when_no_strategy', False)
+
+    @stop_when_no_strategy.setter
+    def stop_when_no_strategy(self, new_value: bool):
+        self.update('stop_when_no_strategy', new_value)
+
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> list[LostVoidChallengeConfig]:
     config_list: list[LostVoidChallengeConfig] = []

@@ -31,8 +31,10 @@ class LostVoidChooseCommon(ZOperation):
         self.to_choose_gear_branch: bool = False  # 需要选择武备分支
         self.to_choose_num: int = 1  # 需选数量（本轮总目标）
         self.chosen_idx_list: list[int] = []  # 已经选择过的下标
+        self.clicked_list: list[LostVoidArtifactPos] = []  # 依次点过的候选 画面上认不出已选时 用最后点的几个记进本局记录
         self.fallback_click_count: int = 0  # 按钮计数缺失时，使用本轮点击次数作为兜底
         self.last_choose_target_num: int = 0  # 记录上一轮目标数量，用于重置点击计数
+        self.last_refresh_left: int | None = None  # 上次刷新前识别到的剩余刷新次数 刷新后没变少就不再刷新
 
     @operation_node(name='选择', is_start_node=True)
     def choose_artifact(self) -> OperationRoundResult:
@@ -54,6 +56,9 @@ class LostVoidChooseCommon(ZOperation):
             )
             if chosen_cnt >= self.to_choose_num:
                 return self.click_confirm()
+
+            if chosen_cnt == 0 and self.try_refresh_for_gear_faction(art_list):
+                return self.round_wait(status='刷新鸣徽', wait=1)
 
             # 四层流程：NEW -> 同流派 -> 优先级 -> 兜底
             # 每层都按“还需选择数量”补齐，补满即确认。
@@ -83,6 +88,7 @@ class LostVoidChooseCommon(ZOperation):
         # 1) 先取NEW候选（无需试探点击）
         # 2) 再取优先级候选
         # 3) 合并去重后仅点击第一个，然后重算
+        # 同派系抱团开启时 已有通用武备派系的候选排在NEW之前
         for _ in range(12):
             _, current_screen = self.ctx.controller.screenshot()
             can_choose_list, chosen_list = self.get_artifact_pos(current_screen)
@@ -94,6 +100,9 @@ class LostVoidChooseCommon(ZOperation):
             available_list = [i for i in can_choose_list if i.can_choose]
             if len(available_list) == 0:
                 continue
+
+            # 同派系抱团 已有通用武备派系的候选最先选
+            faction_list = [i for i in available_list if self.ctx.lost_void.is_gear_faction_match(i)]
 
             new_list: list[LostVoidArtifactPos] = []
             if self.ctx.lost_void.challenge_config.artifact_priority_new:
@@ -112,7 +121,7 @@ class LostVoidChooseCommon(ZOperation):
 
             merged_list: list[LostVoidArtifactPos] = []
             used_center_set: set[tuple[int, int]] = set()
-            for item in new_list + priority_list:
+            for item in faction_list + new_list + priority_list:
                 key = (item.rect.center.x, item.rect.center.y)
                 if key in used_center_set:
                     continue
@@ -126,18 +135,18 @@ class LostVoidChooseCommon(ZOperation):
                 )
                 return False
 
+            faction_text = ', '.join([i.artifact.display_name for i in faction_list]) if len(faction_list) > 0 else '无'
             new_text = ', '.join([i.artifact.display_name for i in new_list]) if len(new_list) > 0 else '无'
             priority_text = ', '.join([i.artifact.display_name for i in priority_list]) if len(priority_list) > 0 else '无'
             merged_text = ', '.join([i.artifact.display_name for i in merged_list]) if len(merged_list) > 0 else '无'
             log.info(
                 f'选择决策 | 常规层 | 需选={target_num} 已选={chosen_cnt} 还需={remain_cnt} 可选={len(available_list)} '
-                f'NEW={new_text} 优先级={priority_text} 合并={merged_text}'
+                f'同派系={faction_text} NEW={new_text} 优先级={priority_text} 合并={merged_text}'
             )
 
             target = merged_list[0]
             log.info(f'选择决策 | 常规层 | 动作=点击 目标={target.artifact.display_name} 坐标=({target.rect.center.x},{target.rect.center.y})')
-            self.ctx.controller.click(target.rect.center)
-            self.fallback_click_count += 1
+            self.click_candidate(target)
             time.sleep(0.3)
             if self._reached_target_choose_num(target_num):
                 return True
@@ -146,6 +155,64 @@ class LostVoidChooseCommon(ZOperation):
         _, final_chosen_list = self.get_artifact_pos(final_screen)
         final_chosen_cnt = self.get_effective_chosen_count(final_screen, final_chosen_list, target_num)
         return final_chosen_cnt >= target_num
+
+    def try_refresh_for_gear_faction(self, art_list: list[LostVoidArtifactPos]) -> bool:
+        """
+        选鸣徽时 没有已有武备派系的鸣徽就点右上角刷新 刷新次数用完才按原来的顺序选
+        NEW 也不算想要的 同样刷新
+        :param art_list: 当前可选的候选
+        :return: 是否点了刷新
+        """
+        lv = self.ctx.lost_void
+        if self.to_choose_gear or len(art_list) == 0:
+            return False
+        if len(lv.get_owned_gear_faction_list()) == 0 or not lv.challenge_config.same_faction_first:
+            return False
+        # 只处理鸣徽 卡牌、武备、答题和没识别出来的不刷新
+        for pos in art_list:
+            if pos.artifact.is_gear or pos.artifact.category in ['卡牌', '无详情'] or not lv.is_artifact_known(pos.artifact):
+                return False
+        if any(lv.is_gear_faction_match(i) for i in art_list):
+            return False
+
+        refresh_left = self.get_refresh_left(self.last_screenshot)
+        if refresh_left is None or refresh_left <= 0:
+            log.info(f'选择决策 | 刷新 | 没有已有武备派系的鸣徽 剩余刷新次数={refresh_left} 不刷新')
+            return False
+        if self.last_refresh_left is not None and refresh_left >= self.last_refresh_left:
+            log.info(f'选择决策 | 刷新 | 上次刷新后次数没变少({self.last_refresh_left}→{refresh_left}) 不再刷新')
+            return False
+
+        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-通用选择', '按钮-刷新')
+        if not result.is_success:
+            log.info('选择决策 | 刷新 | 没找到刷新按钮')
+            return False
+
+        log.info(f'选择决策 | 刷新 | 没有已有武备派系的鸣徽 剩余刷新次数={refresh_left} 动作=刷新')
+        self.last_refresh_left = refresh_left
+        return True
+
+    def get_refresh_left(self, screen: MatLike) -> int | None:
+        """
+        识别右上角剩余刷新次数 「× 5」 用完时显示「× 0」 按钮变灰
+        :return: 识别不到时返回 None
+        """
+        area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '文本-刷新次数')
+        ocr_result_map = self.ctx.ocr.crop_and_run_ocr(screen, area.rect)
+        for ocr_result in ocr_result_map:
+            num = str_utils.get_positive_digits(ocr_result, err=None)
+            if num is not None:
+                return num
+        return None
+
+    def click_candidate(self, target: LostVoidArtifactPos) -> None:
+        """
+        点击一个候选 并记下点过的
+        """
+        self.ctx.controller.click(target.rect.center)
+        self.clicked_list.append(target)
+        self.fallback_click_count += 1
+        time.sleep(0.3)
 
     def _reached_target_choose_num(self, target_num: int) -> bool:
         for _ in range(3):
@@ -184,6 +251,11 @@ class LostVoidChooseCommon(ZOperation):
 
     def click_confirm(self) -> OperationRoundResult:
         _, latest_screen = self.ctx.controller.screenshot()
+        # 点确定前记下已选的 确定成功后写进本局记录
+        # 「请选择1项」这类画面认不出已选标记 这时用最后点的几个候选
+        _, chosen_list = self.get_artifact_pos(latest_screen)
+        if len(chosen_list) == 0 and self.to_choose_num > 0:
+            chosen_list = self.clicked_list[-self.to_choose_num:]
         result = self.round_by_find_and_click_area(
             screen=latest_screen,
             screen_name='迷失之地-通用选择',
@@ -194,6 +266,8 @@ class LostVoidChooseCommon(ZOperation):
         if result.is_success:
             self.ctx.lost_void.priority_updated = False
             log.info("藏品选择成功，已设置优先级更新标志")
+            for chosen in chosen_list:
+                self.ctx.lost_void.run_memory.add_artifact(chosen.artifact)
             return self.round_success(result.status)
         else:
             return self.round_retry(result.status, wait=1)
@@ -240,10 +314,8 @@ class LostVoidChooseCommon(ZOperation):
                 break
 
             log.info(f'选择决策 | 答题兜底 | 动作=点击 目标={target.artifact.display_name} 坐标=({target.rect.center.x},{target.rect.center.y})')
-            self.ctx.controller.click(target.rect.center)
+            self.click_candidate(target)
             tried_center_list.append(target.rect.center)
-            self.fallback_click_count += 1
-            time.sleep(0.3)
 
         _, final_screen = self.ctx.controller.screenshot()
         _, chosen_after = self.get_artifact_pos(final_screen)
@@ -329,10 +401,8 @@ class LostVoidChooseCommon(ZOperation):
             if target is None:
                 break
 
-            self.ctx.controller.click(target.rect.center)
+            self.click_candidate(target)
             tried_center_list.append(target.rect.center)
-            self.fallback_click_count += 1
-            time.sleep(0.3)
 
         _, final_screen = self.ctx.controller.screenshot()
         _, chosen_after = self.get_artifact_pos(final_screen)

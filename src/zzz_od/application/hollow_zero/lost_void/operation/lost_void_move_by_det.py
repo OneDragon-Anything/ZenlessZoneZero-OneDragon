@@ -2,6 +2,8 @@ import time
 from dataclasses import dataclass
 from typing import ClassVar
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -26,7 +28,8 @@ from zzz_od.operation.zzz_operation import ZOperation
 @dataclass
 class LostVoidStuckState:
     stuck_times: int = 0
-    prefer_left_escape: bool = True
+    prefer_left_escape: bool = True  # 当前绕行方向
+    same_side_times: int = 0  # 当前方向已经绕行的次数 只在 smart_escape 时使用
 
 
 class MoveTargetWrapper:
@@ -106,6 +109,34 @@ class LostVoidMoveByDet(ZOperation):
     STATUS_INTERACT: ClassVar[str] = '处于交互中'
     STATUS_NEED_DETECT: ClassVar[str] = '需要重新识别'
 
+    # 以下常量只在挑战配置开启 smart_escape 时使用
+    # 画面静止判卡住 按住前进时画面长时间几乎不变 说明被挡住在原地跑
+    SCENE_DIFF_SCALE: ClassVar[int] = 8  # 画面缩小倍数
+    SCENE_STATIC_DIFF: ClassVar[float] = 3.0  # 缩小灰度图逐像素平均差低于这个值算静止
+    SCENE_STATIC_SECONDS: ClassVar[float] = 1.5  # 连续静止多久算卡住
+    SCENE_IGNORE_RECT: ClassVar[tuple[int, int, int, int]] = (820, 420, 1100, 1080)  # 1080p 角色所在区域 跑动动画不算画面变化
+    SCENE_Y1: ClassVar[int] = 150  # 只比较中间部分 排除顶部队伍头像和小地图
+    SCENE_Y2: ClassVar[int] = 850  # 排除底部技能按钮
+
+    MOVING_MAX_TURN: ClassVar[int] = 15  # 移动中每次最多转多少 保守跟随目标
+    ESCAPE_MAX_TURN: ClassVar[int] = 100  # 脱困横移时每次最多转多少 横移时目标横向漂得快 要跟得上
+    ESCAPE_TARGET_MIN_DX: ClassVar[int] = 10  # 脱困时目标图标偏离画面中心超过这个像素 才按图标所在一侧绕
+    ESCAPE_BACK_STEP: ClassVar[float] = 0.5  # 脱困时每多卡一次 多后退多少秒
+    ESCAPE_BACK_MAX: ClassVar[float] = 2.0  # 脱困后退最长秒数
+    ESCAPE_FORWARD_STEP: ClassVar[float] = 0.2  # 脱困时每多卡一次 横移后多前进多少秒
+    ESCAPE_FORWARD_MAX: ClassVar[float] = 2.0  # 脱困横移后前进最长秒数
+
+    # 转向 比例 = 鼠标移动量 ÷ 目标在画面上横移的像素 初始值在 LostVoidContext.move_turn_ratio
+    STATIC_MAX_TURN: ClassVar[int] = 600  # 原地转向每次最多转多少 按比例 0.6 约 1000 像素 覆盖半个画面
+    TURN_RATIO_MIN_PIXEL: ClassVar[int] = 30  # 目标横移少于这么多像素不用来校准
+    TURN_RATIO_MIN: ClassVar[float] = 0.3  # 单次测出的比例在这个范围外不采用
+    TURN_RATIO_MAX: ClassVar[float] = 1.2
+    TURN_RATIO_SMOOTH: ClassVar[float] = 0.2  # 每次测出的比例占多少权重
+
+    # 锁定规划的入口 过不去时解除 按画面里的入口选
+    LOCKED_ENTRY_MAX_LOST_TIMES: ClassVar[int] = 10  # 连续多少次无目标处理还没看到就解除 每次转 200 按默认灵敏度约 36° 10 次约一圈
+    LOCKED_ENTRY_MAX_STUCK_TIMES: ClassVar[int] = 6  # 锁定后卡住多少次就解除 本层上限 12 次的一半 留一半给按画面选门
+
     def __init__(
         self,
         ctx: ZContext,
@@ -116,6 +147,7 @@ class LostVoidMoveByDet(ZOperation):
         ignore_entry_list: list[str] | None = None,
         allow_arrival_by_interact_btn: bool = False,
         stuck_state: LostVoidStuckState | None = None,
+        locked_entry_name: str | None = None,
     ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
@@ -127,6 +159,7 @@ class LostVoidMoveByDet(ZOperation):
         @param ignore_entry_list:
         @param allow_arrival_by_interact_btn: 是否允许仅凭交互按钮出现就判定到位
         @param stuck_state: 当前楼层共享的脱困状态
+        @param locked_entry_name: 规划的下一个区域 寻路全程只去这种入口 过不去时解除
         """
         ZOperation.__init__(
             self,
@@ -144,6 +177,13 @@ class LostVoidMoveByDet(ZOperation):
         self.stuck_state: LostVoidStuckState = (
             stuck_state if stuck_state is not None else LostVoidStuckState()
         )
+        self.locked_entry_name: str | None = locked_entry_name
+        self._locked_lost_times: int = 0  # 锁定期间连续进入无目标处理的次数 看到锁定的入口时清零
+        self._locked_start_stuck_times: int = self.stuck_state.stuck_times  # 锁定开始时本层已卡住的次数
+
+        # 挑战配置开启后 用画面静止判卡住、后退/横移/前进脱困、跨移动保留的转向比例
+        challenge_config = self.ctx.lost_void.challenge_config
+        self.smart_escape: bool = challenge_config is not None and challenge_config.smart_escape
 
         # 需要按方向选的时候 按最大x值选
         # 入口时 从右往左选可以上楼梯
@@ -172,6 +212,13 @@ class LostVoidMoveByDet(ZOperation):
 
         self._last_attack_btn_check_time: float = 0  # 上一次检查普攻按钮的时间
 
+        self._last_scene: np.ndarray | None = None  # 上一帧缩小后的灰度画面
+        self._scene_mask: np.ndarray | None = None  # 参与画面比较的区域
+        self._scene_static_start_time: float = 0  # 画面开始静止的截图时间
+        self._escape_side_decided: bool = False  # 本次寻路是否已决定过脱困方向
+        self._search_turn_right: bool = False  # 丢失目标时往右转找 脱困向左横移后镜头跟着左转 目标落到了右边
+        self._escape_times: int = 0  # 本段移动触发脱困的次数 决定脱困横移多久
+
         self._reset_turn_calibration_status()
 
     def _reset_turn_calibration_status(self):
@@ -184,12 +231,36 @@ class LostVoidMoveByDet(ZOperation):
         self.turn_calibration_count = 1
         self.turn_settle_frames = 0
 
+    def _update_turn_ratio(self, diff_x: float) -> None:
+        """
+        smart_escape 时 用上一次原地转向后目标实际横移的像素 平滑更新转向比例
+        :param diff_x: 当前目标相对画面中心的横向偏移
+        """
+        if self.last_target_x is None or self.last_actual_turn_distance == 0:
+            return
+        last_diff_x = self.last_target_x - self.ctx.controller.standard_width / 2
+        actual_pixel_moved = last_diff_x - diff_x
+        turn_distance = self.last_actual_turn_distance
+        self.last_target_x = None  # 每次转向只校准一次
+        self.last_actual_turn_distance = 0
+        if abs(actual_pixel_moved) < LostVoidMoveByDet.TURN_RATIO_MIN_PIXEL:  # 移动太少 识别框抖动占比大
+            return
+        sample = turn_distance / actual_pixel_moved
+        if not LostVoidMoveByDet.TURN_RATIO_MIN <= sample <= LostVoidMoveByDet.TURN_RATIO_MAX:
+            return  # 多半是换了目标或识别框跳了
+        ratio = self.ctx.lost_void.move_turn_ratio
+        self.ctx.lost_void.move_turn_ratio = ratio * (1 - LostVoidMoveByDet.TURN_RATIO_SMOOTH) + sample * LostVoidMoveByDet.TURN_RATIO_SMOOTH
+        if self.ctx.env_config.is_debug:
+            log.debug(f'转向比例 本次={sample:.3f} 更新为={self.ctx.lost_void.move_turn_ratio:.3f}')
+
     def _reset_stuck_status(self) -> None:
         """
         重置卡住判断相关的状态
         """
         self.same_target_times = 0
         self.last_visible_target_list = []
+        self._last_scene = None
+        self._scene_static_start_time = 0
 
     def _get_detected_class_names(self, frame_result: DetectFrameResult) -> list[str]:
         return [result.detect_class.class_name for result in frame_result.results]
@@ -265,6 +336,10 @@ class LostVoidMoveByDet(ZOperation):
         if turn:
             return self.round_wait('转动朝向目标', wait=0.5)
 
+        if self.smart_escape:
+            # 走起来之后目标位置变化不是转向造成的 不能用来校准比例
+            self.last_target_x = None
+            self.last_actual_turn_distance = 0
         # 移动前切换到最佳角色
         auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         return self.round_success('开始移动')
@@ -324,6 +399,10 @@ class LostVoidMoveByDet(ZOperation):
         if is_stuck is not None:
             return is_stuck
 
+        if self.smart_escape and self.check_scene_static(self.last_screenshot, self.last_screenshot_time):
+            log.info('寻路节点[%s] 当前目标=%s 前进中画面持续静止 判定卡住', '移动', self.target_type)
+            return self._on_stuck()
+
         self.last_target_result = target_result
         self.last_target_name = target_result.leftest_target_name
         self.turn_to_target(target_result.entire_rect.center, is_moving=True)
@@ -331,7 +410,74 @@ class LostVoidMoveByDet(ZOperation):
 
         return self.round_wait('移动中', wait_round_time=0.1)
 
-    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'x') -> bool:
+    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'x',
+                       moving_max_turn: int = MOVING_MAX_TURN) -> bool:
+        """
+        根据目标的位置转动 smart_escape 时按跨移动保留的转向比例转 否则用自适应算法
+        :param target: 目标位置
+        :param is_moving: 是否在移动中
+        :param calibration_axis: 校准轴。可以是 'xy', 'x', 'y'
+        :param moving_max_turn: smart_escape 时移动中每次最多转多少
+        :return: 是否进行了转动
+        """
+        if self.smart_escape:
+            return self._turn_to_target_by_ratio(target, is_moving, calibration_axis, moving_max_turn)
+        return self._turn_to_target_adaptive(target, is_moving, calibration_axis)
+
+    def _turn_to_target_by_ratio(self, target: Point, is_moving: bool, calibration_axis: str,
+                                 moving_max_turn: int) -> bool:
+        """
+        按转向比例把目标转到画面中心 原地转向后用实际转动校准比例
+        :param target: 目标位置
+        :param is_moving: 是否在移动中。移动中每次少转一点 保守跟随
+        :param calibration_axis: 转向轴。可以是 'xy', 'x', 'y'
+        :param moving_max_turn: 移动中每次最多转多少
+        :return: 是否进行了转动
+        """
+        screen_center_x = self.ctx.controller.standard_width / 2
+        screen_center_y = self.ctx.controller.standard_height / 2
+        diff_x = target.x - screen_center_x
+        diff_y = target.y - screen_center_y
+        x_dead_zone = 50
+
+        turn_distance_x = 0
+        if 'x' in calibration_axis:
+            if not is_moving:
+                self._update_turn_ratio(diff_x)
+            if abs(diff_x) > x_dead_zone:
+                min_turn = 5
+                max_turn = moving_max_turn if is_moving else LostVoidMoveByDet.STATIC_MAX_TURN
+                turn_distance_x = int(diff_x * self.ctx.lost_void.move_turn_ratio)
+                if 0 < abs(turn_distance_x) < min_turn:
+                    turn_distance_x = min_turn if turn_distance_x > 0 else -min_turn
+                elif abs(turn_distance_x) > max_turn:
+                    turn_distance_x = max_turn if turn_distance_x > 0 else -max_turn
+
+                if not is_moving:
+                    self.last_target_x = target.x
+                    self.last_actual_turn_distance = turn_distance_x
+
+        turn_distance_y = 0
+        if 'y' in calibration_axis:
+            # 让目标稳定在屏幕上半区 diff_y 约 -300 有死区避免频繁微调
+            target_y = -300
+            dead_zone = 100
+            if diff_y > target_y + dead_zone:
+                turn_distance_y = 20
+            elif diff_y < target_y - dead_zone:
+                turn_distance_y = -20
+
+        if turn_distance_x == 0 and turn_distance_y == 0:
+            return False
+
+        if self.ctx.env_config.is_debug:
+            log.debug(f'转向指令: X={turn_distance_x}, Y={turn_distance_y}, 当前X比例: {self.ctx.lost_void.move_turn_ratio:.4f}, 移动中: {is_moving}, 校准轴: {calibration_axis}')
+
+        self.ctx.controller.move_mouse_relative(turn_distance_x, turn_distance_y)
+        self.total_turn_times += 1
+        return True
+
+    def _turn_to_target_adaptive(self, target: Point, is_moving: bool = False, calibration_axis: str = 'x') -> bool:
         """
         根据目标的位置,使用自适应算法进行转动
         :param target: 目标位置
@@ -466,6 +612,9 @@ class LostVoidMoveByDet(ZOperation):
         @param frame_result: 当前帧识别结果
         @return:
         """
+        if self.locked_entry_name is not None:
+            return self._get_locked_entry_target(frame_result)
+
         entry_list: list[MoveTargetWrapper] = []
         for result in frame_result.results:
             if result.detect_class.class_name in [LostVoidDetector.CLASS_INTERACT, LostVoidDetector.CLASS_DISTANCE]:
@@ -508,6 +657,44 @@ class LostVoidMoveByDet(ZOperation):
             return self.ctx.lost_void.get_entry_by_priority(mixed_entry_list, self.ignore_entry_list)
         else:
             return None
+
+    def _get_locked_entry_target(self, frame_result: DetectFrameResult) -> MoveTargetWrapper | None:
+        """
+        只找锁定的入口 不与相邻入口合并 混合入口的中心在两扇门之间 朝中心跑可能进了旁边的门
+        多个时取最右 与 get_entry_by_priority 一致
+        @param frame_result: 当前帧识别结果
+        @return: 画面里没有锁定的入口时返回 None
+        """
+        target: DetectObjectResult | None = None
+        for result in frame_result.results:
+            if result.detect_class.class_name[5:] != self.locked_entry_name:
+                continue
+            if target is None or result.x1 > target.x1:
+                target = result
+
+        if target is None:
+            return None
+        self._locked_lost_times = 0
+        return MoveTargetWrapper(target)
+
+    def _check_unlock_entry(self) -> None:
+        """
+        锁定的入口过不去时解除锁定 之后按画面里的入口选
+        """
+        if self.locked_entry_name is None:
+            return
+
+        reason: str | None = None
+        if self._locked_lost_times >= LostVoidMoveByDet.LOCKED_ENTRY_MAX_LOST_TIMES:
+            reason = f'转了 {self._locked_lost_times} 次没看到'
+        elif self.stuck_state.stuck_times - self._locked_start_stuck_times >= LostVoidMoveByDet.LOCKED_ENTRY_MAX_STUCK_TIMES:
+            reason = f'锁定后卡住 {LostVoidMoveByDet.LOCKED_ENTRY_MAX_STUCK_TIMES} 次'
+        if reason is None:
+            return
+
+        log.info(f'路线规划 | 寻路去 {self.locked_entry_name} {reason} 解除锁定 按画面里的入口选')
+        self.locked_entry_name = None
+        self.last_target_result = None
 
     def get_visible_targets(self, frame_result: DetectFrameResult) -> list[MoveTargetWrapper]:
         """
@@ -595,15 +782,82 @@ class LostVoidMoveByDet(ZOperation):
         stuck_threshold = 5 if len(visible_target_list) == 1 else 20
 
         if self.same_target_times >= stuck_threshold:
-            self.ctx.controller.stop_moving_forward()
-            self.stuck_state.stuck_times += 1
-            self._reset_stuck_status()
-            if self.stuck_state.stuck_times > 12:
-                return self.round_fail('无法脱困')
-            else:
-                return self.round_success('尝试脱困')
+            return self._on_stuck()
         else:
             return None
+
+    def _on_stuck(self) -> OperationRoundResult:
+        """
+        判定卡住后 停止前进并进入脱困
+        """
+        self.ctx.controller.stop_moving_forward()
+        self.stuck_state.stuck_times += 1
+        self._reset_stuck_status()
+        self._check_unlock_entry()
+        if self.stuck_state.stuck_times > 12:
+            return self.round_fail('无法脱困')
+        else:
+            return self.round_success('尝试脱困')
+
+    def check_scene_static(self, screen: MatLike, screenshot_time: float) -> bool:
+        """
+        按住前进时 画面(排除角色和HUD)持续几乎不变 说明被障碍物挡住在原地跑
+        正常跑动或转动镜头时画面都会明显变化
+        @return: 是否判定卡住
+        """
+        scale = LostVoidMoveByDet.SCENE_DIFF_SCALE
+        small = cv2.resize(screen, (screen.shape[1] // scale, screen.shape[0] // scale), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
+        if self._scene_mask is None:
+            self._scene_mask = np.zeros(gray.shape, dtype=bool)
+            self._scene_mask[LostVoidMoveByDet.SCENE_Y1 // scale:LostVoidMoveByDet.SCENE_Y2 // scale, :] = True
+            x1, y1, x2, y2 = LostVoidMoveByDet.SCENE_IGNORE_RECT
+            self._scene_mask[y1 // scale:y2 // scale, x1 // scale:x2 // scale] = False
+
+        last_scene = self._last_scene
+        self._last_scene = gray
+        if last_scene is None or not self.ctx.controller.is_moving:
+            self._scene_static_start_time = 0
+            return False
+
+        diff = float(cv2.absdiff(gray, last_scene)[self._scene_mask].mean())
+        if self.ctx.env_config.is_debug:
+            log.debug(f'寻路画面差值: {diff:.2f}')
+
+        if diff >= LostVoidMoveByDet.SCENE_STATIC_DIFF:
+            self._scene_static_start_time = 0
+            return False
+
+        if self._scene_static_start_time == 0:
+            self._scene_static_start_time = screenshot_time
+            return False
+
+        return screenshot_time - self._scene_static_start_time >= LostVoidMoveByDet.SCENE_STATIC_SECONDS
+
+    def _get_escape_side(self) -> bool | None:
+        """
+        本次寻路第一次脱困往哪边横移 目标图标偏在画面中心哪一侧 就往哪一侧绕
+        入口在障碍物后面偏哪边 从那边绕路最短
+        @return: True 往左 False 往右 判断不了时返回 None 沿用原来的方向
+        """
+        target = self.last_target_result
+        if target is not None:
+            diff_x = target.entire_rect.center.x - self.ctx.controller.standard_width / 2
+            if abs(diff_x) >= LostVoidMoveByDet.ESCAPE_TARGET_MIN_DX:
+                log.info('寻路脱困 目标偏%s %d像素 往目标一侧绕', '左' if diff_x < 0 else '右', abs(diff_x))
+                return diff_x < 0
+        return None
+
+    @staticmethod
+    def get_escape_durations(escape_idx: int) -> tuple[float, float]:
+        """
+        smart_escape 时脱困后退和横移后前进的时长 随本层卡住次数增长
+        @param escape_idx: 第几次脱困 从 0 开始 第 0 次不后退不前进
+        @return: (后退秒数, 前进秒数)
+        """
+        back_time = min(escape_idx * LostVoidMoveByDet.ESCAPE_BACK_STEP, LostVoidMoveByDet.ESCAPE_BACK_MAX)
+        forward_time = min(escape_idx * LostVoidMoveByDet.ESCAPE_FORWARD_STEP, LostVoidMoveByDet.ESCAPE_FORWARD_MAX)
+        return back_time, forward_time
 
     @node_from(from_name='移动', status='尝试脱困')
     @node_from(from_name='无目标处理', status='尝试脱困')
@@ -612,6 +866,30 @@ class LostVoidMoveByDet(ZOperation):
         """
         脱困
         @return:
+        """
+        self._escape_times += 1
+        if self.smart_escape:
+            self._escape_facing_target()
+        else:
+            self._escape_by_attack_and_move()
+
+        self.screenshot()
+        frame_result = self.ctx.lost_void.detect_to_go(
+            self.last_screenshot, screenshot_time=self.last_screenshot_time,
+            ignore_list=self.ignore_entry_list,
+        )
+        if self.target_type == LostVoidDetector.CLASS_INTERACT:
+            return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+
+        distance_result = self.ctx.lost_void.detector.get_result_by_x(frame_result, LostVoidDetector.CLASS_DISTANCE)
+        if distance_result is not None:
+            return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+
+        return self.round_success('继续识别目标')
+
+    def _escape_by_attack_and_move(self) -> None:
+        """
+        原来的脱困方式 切换移动最优角色 尝试普攻打破障碍 后退 → 横移(左右交替) → 前进
         """
         # 在大世界 先切换到移动最优角色
         auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
@@ -635,19 +913,66 @@ class LostVoidMoveByDet(ZOperation):
         if forward_press_time > 0:
             self.ctx.controller.move_w(press=True, press_time=forward_press_time, release=True)
 
-        self.screenshot()
-        frame_result = self.ctx.lost_void.detect_to_go(
-            self.last_screenshot, screenshot_time=self.last_screenshot_time,
-            ignore_list=self.ignore_entry_list,
-        )
-        if self.target_type == LostVoidDetector.CLASS_INTERACT:
-            return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+    def _escape_facing_target(self) -> None:
+        """
+        smart_escape 的脱困方式 后退 → 横移 → 前进 只横移会贴着宽障碍或墙角滑 先退开再绕 绕过边缘后往前走
+        不普攻 不切人 横移过程中镜头一直对准目标
+        朝同一方向连续绕行2次 仍卡住才换另一侧 避免左右交替互相抵消
+        """
+        state = self.stuck_state
+        prefer_left = self._get_escape_side() if not self._escape_side_decided else None
+        self._escape_side_decided = True
+        if prefer_left is not None:
+            state.prefer_left_escape = prefer_left
+            state.same_side_times = 0
+        elif state.same_side_times >= 2:
+            state.prefer_left_escape = not state.prefer_left_escape
+            state.same_side_times = 0
+        state.same_side_times += 1
+        # 横移时间随本段移动卡住次数增长 换边后能覆盖到更远的位置
+        # 不按本层累计次数算 否则前一段移动卡过 这一段第一次横移就过长 镜头转走丢了目标
+        escape_idx = max(self._escape_times - 1, 0)
+        side_press_time = min(0.8 + 0.4 * escape_idx, 2.5)
+        # 后退和前进按本层累计卡住次数算 每次脱困后会重新开一段寻路 本段计数永远是第1次
+        level_idx = (max(state.stuck_times, 1) - 1) % 8
+        back_time, forward_time = LostVoidMoveByDet.get_escape_durations(level_idx)
+        log.info('寻路脱困 本段第%d次 本层第%d次 后退%.1f秒 向%s横移%.1f秒 前进%.1f秒',
+                 self._escape_times, state.stuck_times,
+                 back_time, '左' if state.prefer_left_escape else '右', side_press_time, forward_time)
 
-        distance_result = self.ctx.lost_void.detector.get_result_by_x(frame_result, LostVoidDetector.CLASS_DISTANCE)
-        if distance_result is not None:
-            return self.round_success(LostVoidMoveByDet.STATUS_NEED_DETECT)
+        if back_time > 0:
+            self.ctx.controller.move_s(press=True, press_time=back_time, release=True)
+        self._strafe_facing_target(state.prefer_left_escape, side_press_time)
+        if forward_time > 0:
+            self.ctx.controller.move_w(press=True, press_time=forward_time, release=True)
+        # 横移后仍丢失目标时 往横移的反方向转着找
+        self._search_turn_right = state.prefer_left_escape
 
-        return self.round_success('继续识别目标')
+    def _strafe_facing_target(self, to_left: bool, press_time: float) -> None:
+        """
+        按住 A/D 横移 期间不断识别目标 转镜头让目标保持在画面中心
+        镜头对准目标时 A/D 始终垂直于目标方向 相当于绕着目标沿障碍物边缘移动
+        @param to_left: 是否往左
+        @param press_time: 横移多久 秒
+        """
+        move = self.ctx.controller.move_a if to_left else self.ctx.controller.move_d
+        move(press=True)
+        try:
+            start_time = time.time()
+            while time.time() - start_time < press_time:
+                self.screenshot()
+                frame_result = self.ctx.lost_void.detect_to_go(
+                    self.last_screenshot, screenshot_time=self.last_screenshot_time,
+                    ignore_list=self.ignore_entry_list,
+                )
+                target_result = self.get_move_target(frame_result)
+                if target_result is not None:  # 看不到目标时只横移 不转
+                    self.last_target_result = target_result
+                    self.turn_to_target(target_result.entire_rect.center, is_moving=True,
+                                        moving_max_turn=LostVoidMoveByDet.ESCAPE_MAX_TURN)
+                time.sleep(0.05)
+        finally:
+            move(release=True)
 
     def check_interact_stop(self, screen: MatLike, frame_result: DetectFrameResult) -> bool:
         """
@@ -686,6 +1011,10 @@ class LostVoidMoveByDet(ZOperation):
                 # 不考虑 [距离]白点
                 continue
 
+            if self.locked_entry_name is not None and result.detect_class.class_name[5:] != self.locked_entry_name:
+                # 锁定了规划的入口时 站在别的门旁边不算到达 否则会直接进了旁边的门
+                continue
+
             if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
                 min_width = 70  # 感叹号的图标会大一点
             else:
@@ -705,6 +1034,9 @@ class LostVoidMoveByDet(ZOperation):
         self.screenshot()  # 重新截图
         self._reset_turn_calibration_status()  # 彻底丢失目标，重置转向状态以开始全新搜索
         self.no_target_handle_times += 1
+        if self.locked_entry_name is not None:
+            self._locked_lost_times += 1
+            self._check_unlock_entry()
 
         if self.stop_when_interact:  # 目标是要交互
             # 当前可能准备进入可以交互状态 先等等交互按钮出现
@@ -744,7 +1076,7 @@ class LostVoidMoveByDet(ZOperation):
         if self.total_turn_times >= 100:  # 基本不可能转向这么多次还没有到达
             return self.round_fail(LostVoidMoveByDet.STATUS_NO_FOUND)
 
-        self.ctx.controller.turn_by_distance(-200)
+        self.ctx.controller.turn_by_distance(200 if self._search_turn_right else -200)
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
         if in_battle:

@@ -66,3 +66,24 @@ artifact_priority_new: true
 # 商店-使用血量购买
 # 关闭后不允许在邦布商店用当前角色血量作为货币购买
 store_blood: false
+# 以下几项界面上没有开关, 只能在 yml 里设置, 默认都关闭; 「无脑挂机刷菲林」预设全部打开
+# 详见 docs/develop/zzz/application/lost_void/afk_polychrome.md
+
+# 新的寻路脱困: 画面静止判卡住, 后退/横移/前进绕开障碍
+smart_escape: false
+
+# 同派系抱团: 本局已有通用武备派系的鸣徽和武备最先选, 选鸣徽时没有同派系的就刷新
+same_faction_first: false
+
+# 商店留硬币: 普通商店最多刷新 3 次, 之后只买同派系鸣徽, 硬币留给第三层终结之役前的最后一个休息区
+# 开启后 buy_only_priority_2 不生效
+store_save_coin: false
+
+# 按 Tab 地图规划本层路线, 寻路锁定规划的入口
+route_plan_by_map: false
+
+# 进入副本前切换难度 如 难度五; 留空沿用游戏当前难度; 目前只支持战线肃清
+difficulty: ''
+
+# 追新模式找不到可刷的调查战略时 结束本次运行; 关闭时点第一个战略继续刷
+stop_when_no_strategy: false
