@@ -76,8 +76,32 @@ def _configure_runtime_logger() -> None:
         ),
     )
 
+def collect_path_problems(path: str) -> list[str]:
+    """检查安装目录里已知会影响运行的情况。
+
+    只做提示，不据此退出：这几项都不是启动的硬前提，出问题的是个别功能，
+    用户按提示迁移安装目录即可。
+
+    Args:
+        path: 待检查的目录绝对路径。
+
+    Returns:
+        问题描述列表；空列表表示没有已知问题。
+    """
+    problems: list[str] = []
+    if not path.isascii():
+        problems.append('路径包含中文字符或其他非 ASCII 字符')
+    if ' ' in path:
+        problems.append('路径中存在空格')
+    if '[' in path or ']' in path:
+        problems.append('路径包含方括号 [ ]，启动时会被 PowerShell 当成通配符')
+    return problems
+
+
 def verify_working_directory() -> str:
     """切换并校验启动器工作目录。
+
+    路径不符合建议格式时只打印提示并继续启动，不再直接退出。
 
     Returns:
         启动器使用的工作目录。
@@ -90,14 +114,17 @@ def verify_working_directory() -> str:
     os.chdir(cwd)
     print_message(f"当前工作目录：{cwd}", "INFO")
 
-    # 验证路径是否存在问题
-    if any('\u4e00' <= char <= '\u9fff' for char in cwd):
-        print_message("路径包含中文字符", "ERROR")
-        sys.exit(1)
-    if ' ' in cwd:
-        print_message("路径中存在空格", "ERROR")
-        sys.exit(1)
-    print_message("目录核验通过", "PASS")
+    problems = collect_path_problems(cwd)
+    if problems:
+        for problem in problems:
+            print_message(problem, "WARNING")
+        print_message(
+            "以上只是提示，程序会继续启动；若随后出现截图保存失败、环境文件读写失败等问题，"
+            "请把整个安装目录移动到纯英文且无空格的路径（例如 D:\\OneDragon）后重新运行",
+            "WARNING",
+        )
+    else:
+        print_message("目录核验通过", "PASS")
 
     return cwd
 
