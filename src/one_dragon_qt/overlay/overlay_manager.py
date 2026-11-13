@@ -705,14 +705,19 @@ class OverlayManager(QObject):
                 parts.append(node)
         return "｜".join(parts)
 
+    @staticmethod
+    def _format_hotkey(key) -> str:
+        """快捷键显示名：空值返回空串（不显示），单个空格显示为 SPACE。"""
+        key = str(key or "")
+        if key == " ":
+            return "SPACE"
+        return key.strip().upper()
+
     def _build_hotkey_hint(self) -> str:
         """快捷键提示：开始/暂停/继续共用一个键，名称随运行状态变化。
 
-        格式 "键|动作;键|动作"，由 QML 拆成按键块。
+        格式 "键|动作;键|动作"，由 QML 拆成按键块；对应快捷键为空时不显示该项。
         """
-        start_key = str(self.ctx.key_start_running or "f9").upper()
-        stop_key = str(self.ctx.key_stop_running or "f10").upper()
-        toggle_key = str(self.ctx.key_debug or "f12").upper()
         run_ctx = self.ctx.run_context
         if run_ctx.is_context_running:
             start_label = "暂停"
@@ -720,7 +725,16 @@ class OverlayManager(QObject):
             start_label = "继续"
         else:
             start_label = "开始"
-        return f"{start_key}|{start_label};{stop_key}|停止;{toggle_key}|显示"
+        items = (
+            (self.ctx.key_start_running, start_label),
+            (self.ctx.key_stop_running, "停止"),
+            (self.ctx.key_debug or "f12", "显示"),
+        )
+        return ";".join(
+            f"{name}|{label}"
+            for name, label in ((self._format_hotkey(k), lb) for k, lb in items)
+            if name
+        )
 
     def _get_game_rect(self):
         if self.ctx.controller is None:
