@@ -342,7 +342,8 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
             else (200 if fixed_width is None else None)
         )
         self._menu = None  # 下拉菜单实例
-        self._menu_anchor_y: int = 0  # 菜单锚定的按钮下边缘（全局坐标）
+        self._menu_anchor_y: int = 0  # 菜单打开时的按钮下边缘（全局坐标）
+        self._menu_base_y: int = 0  # 菜单打开时的最终纵坐标（全局坐标）
 
         self._setup_ui()
 
@@ -580,6 +581,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         anchor = self._menu_anchor_pos()
         self._menu_anchor_y = anchor.y()
         self._menu.exec(anchor, aniType=MenuAnimationType.DROP_DOWN)
+        self._menu_base_y = self._menu.aniManager.ani.endValue().y()
 
     def _menu_anchor_pos(self) -> 'QPoint':
         """菜单锚点：按钮左下角的全局坐标"""
@@ -595,18 +597,17 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         menu = self._menu
         if menu is None or not menu.isVisible():
             return
-        new_y = self._menu_anchor_pos().y()
-        delta = new_y - self._menu_anchor_y
-        if delta:
-            max_y = menu.screen().availableGeometry().bottom() - menu.height() + 1
-            ani = menu.aniManager.ani
-            if ani.state() == QAbstractAnimation.State.Running:
-                # 弹出动画每帧都会写入位置，需改动画终点，否则移动会被覆盖
-                end = ani.endValue()
-                ani.setEndValue(QPoint(end.x(), min(end.y() + delta, max_y)))
-            else:
-                menu.move(menu.x(), min(menu.y() + delta, max_y))
-            self._menu_anchor_y = new_y
+        # 按打开时的锚点和位置计算绝对目标，避免屏幕边缘截断后误差累积
+        target_y = self._menu_base_y + self._menu_anchor_pos().y() - self._menu_anchor_y
+        max_y = menu.screen().availableGeometry().bottom() - menu.height() + 1
+        target_y = min(target_y, max_y)
+
+        ani = menu.aniManager.ani
+        if ani.state() == QAbstractAnimation.State.Running:
+            # 弹出动画每帧都会写入位置，需改动画终点，否则移动会被覆盖
+            ani.setEndValue(QPoint(ani.endValue().x(), target_y))
+        else:
+            menu.move(menu.x(), target_y)
 
     def _on_item_triggered(self, item: ConfigItem, checked: bool) -> None:
         """当菜单项被点击时处理选中状态
