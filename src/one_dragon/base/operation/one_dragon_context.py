@@ -268,6 +268,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         未设 app_id 的 screen 自动使用插件的 app_id。
         应在 screen_loader.reload() 之后调用。
         """
+        # 重新枚举当前插件前清空记录，避免已卸载/禁用插件的画面目录被 reload() 反复注入
+        self.screen_loader._extra_screen_dirs.clear()
         for plugin_info in self.factory_manager.plugin_infos:
             if plugin_info.plugin_dir is None:
                 continue
