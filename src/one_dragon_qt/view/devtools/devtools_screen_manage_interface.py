@@ -5,9 +5,11 @@ from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from PySide6.QtCore import QObject, Qt, Signal
+from cv2.typing import MatLike
+from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -21,8 +23,11 @@ from qfluentwidgets import (
     FluentIcon,
     InfoBarIcon,
     LineEdit,
+    MessageBoxBase,
+    PlainTextEdit,
     PushButton,
     SimpleCardWidget,
+    SubtitleLabel,
     TableWidget,
     ToolButton,
 )
@@ -30,6 +35,7 @@ from qfluentwidgets import (
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea, ScreenAreaType
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.base.screen.template_info import (
@@ -60,6 +66,70 @@ from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 class ScreenInfoWorker(QObject):
 
     signal = Signal()
+
+
+class ScreenMatchWorker(QThread):
+    """后台跑画面比对，避免 OCR 卡住界面。"""
+
+    done = Signal(list)
+
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        screen: MatLike,
+        screen_info_list: list[ScreenInfo],
+        parent: QObject | None = None,
+    ) -> None:
+        """
+        Args:
+            ctx: 上下文
+            screen: 要比对的截图
+            screen_info_list: 候选画面列表（调用方传入副本，避免比对期间被 reload 改掉）
+            parent: 父对象
+        """
+        QThread.__init__(self, parent)
+        self._ctx: OneDragonContext = ctx
+        self._screen: MatLike = screen
+        self._screen_info_list: list[ScreenInfo] = screen_info_list
+        self.checked_count: int = 0
+
+    def run(self) -> None:
+        self.checked_count = len(self._screen_info_list)
+        try:
+            matched = screen_utils.get_match_screen_names(
+                self._ctx, self._screen, screen_info_list=self._screen_info_list
+            )
+        except Exception:
+            log.error('画面比对出错', exc_info=True)
+            matched = []
+        self.done.emit(matched)
+
+
+class ScreenMatchResultDialog(MessageBoxBase):
+    """显示一张截图命中了哪些画面。"""
+
+    def __init__(self, matched: list[str], checked_count: int, parent: QWidget | None = None) -> None:
+        MessageBoxBase.__init__(self, parent)
+
+        self.titleLabel = SubtitleLabel(gt('画面识别结果'), self)
+        summary = gt('共检查 {checked} 个画面，命中 {matched} 个').format(
+            checked=checked_count, matched=len(matched)
+        )
+        if not matched:
+            summary = gt('共检查 {checked} 个画面，没有命中任何画面').format(checked=checked_count)
+
+        self.summaryLabel = BodyLabel(summary, self)
+        self.resultEdit = PlainTextEdit(self)
+        self.resultEdit.setReadOnly(True)
+        self.resultEdit.setMinimumHeight(220)
+        self.resultEdit.setPlainText('\n'.join(matched))
+
+        self.viewLayout.addWidget(self.titleLabel)
+        self.viewLayout.addWidget(self.summaryLabel)
+        self.viewLayout.addWidget(self.resultEdit)
+
+        self.yesButton.setText(gt('好'))
+        self.cancelButton.hide()
 
 
 @dataclass
@@ -175,6 +245,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.template_param_inputs: dict[str, EditableComboBox] = {}
         self._template_catalog: dict[str, list[str]] | None = None
         self._updating_area_param: bool = False
+        self._match_worker: ScreenMatchWorker | None = None
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._stop_match_worker)
 
         self._whole_update = ScreenInfoWorker()
         self._whole_update.signal.connect(self._update_display_by_screen)
@@ -262,6 +336,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.screenshot_btn = PushButton(text=gt('截图'))
         self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
         img_btn_row.add_widget(self.screenshot_btn)
+
+        self.match_btn = PushButton(text=gt('识别画面'))
+        self.match_btn.setToolTip(gt('把当前图片和所有画面逐个比对，看命中哪些'))
+        self.match_btn.clicked.connect(self._on_match_clicked)
+        img_btn_row.add_widget(self.match_btn)
 
         self.choose_template_btn = PushButton(text=gt('导入模板区域'))
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
@@ -534,10 +613,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self.screen_id_edit.setText('')
             self.screen_name_edit.setText('')
             self.pc_alt_opt.setChecked(False)
+            self.match_btn.setDisabled(True)
         else:
             self.screen_id_edit.setText(self.chosen_screen.screen_id)
             self.screen_name_edit.setText(self.chosen_screen.screen_name)
             self.pc_alt_opt.setChecked(self.chosen_screen.pc_alt)
+            self.match_btn.setDisabled(self.chosen_screen.screen_image is None)
 
         self._update_image_display()
         self._update_area_table_display()
@@ -604,6 +685,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self.image_label.setImage(image, preserve_state)
         else:
             self.image_label.setImage(None)
+
+        self._update_match_btn_state()
 
     def _on_choose_existed_yml(self, screen_name: str):
         """选择了已有的yml。"""
@@ -706,6 +789,56 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         self.chosen_screen.screen_image = screen
         self._image_update.signal.emit()
+
+    def _update_match_btn_state(self) -> None:
+        """识别按钮只在有图片、且当前没在比对时可用。"""
+        has_image = self.chosen_screen is not None and self.chosen_screen.screen_image is not None
+        running = self._match_worker is not None
+        self.match_btn.setDisabled(running or not has_image)
+
+    def _stop_match_worker(self) -> None:
+        """退出前等比对的线程结束，避免 QThread 还在跑就把对象销毁。"""
+        worker = self._match_worker
+        if worker is not None:
+            worker.wait(5000)
+
+    def _on_match_clicked(self) -> None:
+        """把当前图片和所有画面比对，结果显示在弹窗里。"""
+        screen = None if self.chosen_screen is None else self.chosen_screen.screen_image
+        if screen is None:
+            return
+
+        # OCR 模型在后台初始化，没加载完时比对会全部落空，先提示等一会
+        if not self.ctx.ready_for_application:
+            self.show_info_bar(
+                gt('模型还没加载完'),
+                gt('画面识别需要 OCR 模型，等初始化完成后再试'),
+                icon=InfoBarIcon.WARNING,
+                duration=5000,
+            )
+            return
+
+        # 复制候选列表：保存/删除画面会 reload 并原地改这个列表
+        screen_info_list = list(self.ctx.screen_loader.screen_info_list)
+
+        self.match_btn.setText(gt('识别中...'))
+        worker = ScreenMatchWorker(self.ctx, screen, screen_info_list, self)
+        worker.done.connect(self._on_match_done)
+        worker.finished.connect(worker.deleteLater)
+        self._match_worker = worker
+        self._update_match_btn_state()
+        worker.start()
+
+    def _on_match_done(self, matched: list[str]) -> None:
+        """画面比对结束后的回调。"""
+        worker = self._match_worker
+        checked_count = 0 if worker is None else worker.checked_count
+        self._match_worker = None
+        self.match_btn.setText(gt('识别画面'))
+        self._update_match_btn_state()
+
+        dialog = ScreenMatchResultDialog(matched, checked_count, self.window())
+        dialog.exec()
 
     def _on_image_pasted(self, image_data) -> None:
         """通过拖放或粘贴加载图片后的回调，等同于“选择图片”。
