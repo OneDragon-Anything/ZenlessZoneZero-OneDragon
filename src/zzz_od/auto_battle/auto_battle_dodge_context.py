@@ -101,7 +101,7 @@ class AudioRecorder:
     def _record_process_loop(self) -> bool:
         """
         通过游戏窗口句柄找到游戏进程，只录制该进程（含子进程）的声音。
-        :return: 是否使用了按进程录制。返回 False 时应回退到录制输出设备
+        :return: 是否按进程录制到了停止。返回 False 时（不可用或读取失败）应回退到录制输出设备
         """
         from one_dragon.utils.process_audio_capture import (
             ProcessAudioCapture,
@@ -128,11 +128,15 @@ class AudioRecorder:
             return False
 
         log.info(f'开始录制游戏进程音频 pid={pid}')
-        with capture:
-            while self.running:
-                stream_data = capture.read(timeout_ms=100)
-                if stream_data.shape[0] > 0:
-                    self._push_audio(stream_data.mean(axis=1))
+        try:
+            with capture:  # 退出时释放进程录音资源，再回退
+                while self.running:
+                    stream_data = capture.read(timeout_ms=100)
+                    if stream_data.shape[0] > 0:
+                        self._push_audio(stream_data.mean(axis=1))
+        except ProcessAudioCaptureError:
+            log.warning('读取游戏进程音频失败，改为录制默认输出设备', exc_info=True)
+            return False
         return True
 
     def _record_device_loop(self) -> None:
