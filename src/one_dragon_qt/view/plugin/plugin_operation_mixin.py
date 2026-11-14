@@ -21,10 +21,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QWidget
 from qfluentwidgets import InfoBar, InfoBarPosition, MessageBox
 
-from one_dragon.base.config.plugin_subscription_config import (
-    PluginSubscriptionConfig,
-    get_plugin_subscription_config,
-)
+from one_dragon.base.config.plugin_subscription_config import PluginSubscriptionConfig
 from one_dragon.base.operation.application.plugin_import_service import (
     ImportResult,
     PluginImportService,
@@ -34,11 +31,9 @@ from one_dragon.base.operation.application.plugin_market import (
     MarketPlugin,
     MarketSnapshot,
     PluginMarketService,
-    get_plugin_market_service,
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import (
-    GITHUB_SOURCE_ID,
     CommonDownloader,
     CommonDownloaderParam,
 )
@@ -51,10 +46,7 @@ from one_dragon_qt.services.download_queue_service import (
     ResourceDownloadSpec,
     ResourceDownloadTaskState,
 )
-from one_dragon_qt.services.plugin_cover_service import (
-    PluginCoverService,
-    get_plugin_cover_service,
-)
+from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.view.plugin.plugin_detail_dialog import (
     ACTION_IGNORE,
     ACTION_MUTE_UPDATE,
@@ -198,9 +190,8 @@ class PluginOperationMixin:
         """初始化共用状态，由页面构造函数调用。"""
         self.ctx = ctx
         self.plugin_import_service = PluginImportService(ctx)
-        self.market_service = get_plugin_market_service()
-        self.subscription_config = get_plugin_subscription_config()
-        self.cover_service = get_plugin_cover_service()
+        self.market_service = ctx.plugin_market_service
+        self.subscription_config = ctx.plugin_subscription_config
         self._cards_by_key: dict[str, PluginCard] = {}
         self._cover_urls: dict[str, str] = {}
         self._market_snapshot: MarketSnapshot | None = None
@@ -612,14 +603,15 @@ class PluginOperationMixin:
             (规格, 错误文案)。无法构造时规格为 None。
         """
         release = entry.latest
-        if release is None or not release.download_url:
+        if release is None or not release.sources:
             return None, gt('该插件没有可下载的版本')
         if not release.sha256:
             return None, gt('该插件没有提供校验值，无法确认安装包未被篡改')
 
         archive_name = self._plugin_archive_name(entry)
         save_dir = os_utils.get_path_under_work_dir('config', 'temp', 'plugin_downloads')
-        source_id = self._plugin_download_source(release.download_url)
+        # 不指定源顺序，交给下载队列按「资源」页的设置挑选
+        download_urls = dict(release.sources)
         spec = ResourceDownloadSpec(
             resource_id=f'plugin:{entry.plugin_id}',
             resource_type='plugin',
@@ -630,10 +622,9 @@ class PluginOperationMixin:
                 CommonDownloaderParam(
                     save_file_path=save_dir,
                     save_file_name=archive_name,
-                    download_urls={source_id: release.download_url},
+                    download_urls=download_urls,
                 )
             ),
-            source_order=[source_id],
             note=action_name,
             after_download=lambda success: self._install_queued_plugin(
                 entry,
@@ -711,14 +702,6 @@ class PluginOperationMixin:
         show_tip = getattr(window, 'show_download_queue_added_tip', None)
         if callable(show_tip):
             show_tip(title)
-
-    @staticmethod
-    def _plugin_download_source(download_url: str) -> str:
-        """GitHub 地址走统一源的代理规则，其他地址按直链下载。"""
-        lowered = download_url.casefold()
-        if 'github.com/' in lowered or 'githubusercontent.com' in lowered:
-            return GITHUB_SOURCE_ID
-        return 'direct'
 
     @staticmethod
     def _plugin_archive_name(entry: MarketPlugin) -> str:
