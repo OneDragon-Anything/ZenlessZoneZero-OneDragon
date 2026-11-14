@@ -24,7 +24,6 @@ if not getattr(sys, 'frozen', False):
     import inspect
     import io
     import json
-    import librosa
     import locale
     import logging
     import math
@@ -76,11 +75,13 @@ if not getattr(sys, 'frozen', False):
     import zipfile
     from PIL import Image, ImageDraw, ImageFont
     from PySide6 import QtCore
-    from PySide6.QtCore import QAbstractAnimation, QEasingCurve, QEvent, QEventLoop, QMimeData, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QRunnable, QSize, QThread, QThreadPool, QTimer, QUrl, Qt, Signal
+    from PySide6.QtCore import QAbstractAnimation, QAbstractListModel, QByteArray, QEasingCurve, QEvent, QEventLoop, QMimeData, QModelIndex, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QRunnable, QSize, QThread, QThreadPool, QTimer, QUrl, Qt, Signal
     from PySide6.QtGui import QBrush, QCloseEvent, QColor, QCursor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QEnterEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QImageReader, QIntValidator, QKeyEvent, QKeySequence, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QRadialGradient, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
     from PySide6.QtMultimedia import QMediaPlayer
     from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
-    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTextEdit, QToolButton, QVBoxLayout, QWidget
+    from PySide6.QtQml import QQmlApplicationEngine
+    from PySide6.QtQuick import QQuickWindow
+    from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
     from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -104,7 +105,7 @@ if not getattr(sys, 'frozen', False):
     from io import BytesIO
     from logging import DEBUG
     from logging.handlers import TimedRotatingFileHandler
-    from math import isfinite
+    from math import gcd, isfinite
     from packaging import version
     from pathlib import Path, PurePosixPath, PureWindowsPath
     from pyautogui import screenshot
@@ -113,7 +114,7 @@ if not getattr(sys, 'frozen', False):
     from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
     from pynput import keyboard, mouse
     from pynput.keyboard import Controller, Key
-    from qfluentwidgets import Action, BodyLabel, BreadcrumbBar, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, ExpandSettingCard, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HorizontalSeparator, HyperlinkButton, HyperlinkCard, IconWidget, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PillPushButton, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopUpAniStackedWidget, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SearchLineEdit, SegmentedWidget, SettingCard, SettingCardGroup, SimpleCardWidget, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, TextBrowser, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, drawIcon, getFont, isDarkTheme, qconfig, qrouter, setCustomStyleSheet, setFont, setTheme, setThemeColor, themeColor
+    from qfluentwidgets import Action, BodyLabel, BreadcrumbBar, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, ExpandSettingCard, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HorizontalSeparator, HyperlinkButton, HyperlinkCard, IconWidget, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PillPushButton, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopUpAniStackedWidget, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SearchLineEdit, SegmentedWidget, SettingCard, SettingCardGroup, SimpleCardWidget, Slider, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, TextBrowser, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, drawIcon, getFont, isDarkTheme, qconfig, qrouter, setCustomStyleSheet, setFont, setTheme, setThemeColor, themeColor
     from qfluentwidgets.common.animation import BackgroundAnimationWidget, ScaleSlideAnimation
     from qfluentwidgets.common.overload import singledispatchmethod
     from qfluentwidgets.common.smooth_scroll import SmoothMode
@@ -126,10 +127,12 @@ if not getattr(sys, 'frozen', False):
     from qframelesswindow import FramelessDialog
     from random import random
     from scipy import signal
-    from scipy.signal import butter, correlate, filtfilt
+    from scipy.fft import irfft, next_fast_len, rfft
+    from scipy.io import wavfile
+    from scipy.io.wavfile import WavFileWarning
+    from scipy.signal import butter, filtfilt, resample_poly
     from scipy.spatial import KDTree
     from shapely.geometry import Polygon
-    from sklearn.preprocessing import scale
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
     from types import ModuleType, TracebackType

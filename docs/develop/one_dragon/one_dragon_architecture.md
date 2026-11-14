@@ -100,7 +100,7 @@ TEAM_DRAG_TIMING: DragTiming = DragTiming(press_wait=0.6, move_duration=0.3, rel
 
 一条龙运行界面的“结束后”配置支持无操作、关闭游戏、关机、休眠、睡眠等收尾动作。
 GUI 使用 `after_done` 配置表达是否执行运行后操作及具体动作；CLI 则使用命令行参数描述动作（`--close-game`、`--shutdown`、`--hibernate`、`--sleep`）。CLI 在 `ApplicationRunContext.run_application()` 返回后调用 finalizer；GUI 在 `AppRunner.finished` 回调中读取当时的 `after_done` 后调用同一 finalizer，根据 `ApplicationRunResult.finish_reason` 判定。
-`STOP` 仅表示运行状态已经停止，不等价于“自然完成”。
+`COMPLETED`（正常完成）和 `FAILED`（运行失败）都会执行结束后动作，避免无人值守时失败后电脑和游戏一直开着；`STOPPED`（手动停止）与 `NOT_STARTED`（未启动）不执行。
 
 ## 核心流程
 

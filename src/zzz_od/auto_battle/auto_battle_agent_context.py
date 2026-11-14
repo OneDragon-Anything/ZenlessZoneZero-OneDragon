@@ -1,22 +1,33 @@
 from __future__ import annotations
 
 import threading
-from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Optional, List, Union, Tuple, Callable, TYPE_CHECKING
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
-from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
+from one_dragon.base.conditional_operation.state_recorder import (
+    StateRecord,
+    StateRecorder,
+)
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.utils import cv2_utils, cal_utils
+from one_dragon.utils import cal_utils, cv2_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.agent_state import agent_state_checker
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
-from zzz_od.game_data.agent import Agent, AgentEnum, AgentStateCheckWay, CommonAgentStateEnum, AgentStateDef
+from zzz_od.game_data.agent import (
+    Agent,
+    AgentEnum,
+    AgentStateCheckWay,
+    AgentStateDef,
+    CommonAgentStateEnum,
+)
 
 if TYPE_CHECKING:
-    from zzz_od.context.zzz_context import ZContext
+    from one_dragon.base.geometry.rectangle import Rect
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+    from zzz_od.context.zzz_context import ZContext
 
 _battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
 
@@ -37,12 +48,12 @@ _agent_state_check_method: dict[AgentStateCheckWay, Callable] = {
 
 class AgentInfo:
 
-    def __init__(self, agent: Optional[Agent], energy: int = 0,
+    def __init__(self, agent: Agent | None, energy: int = 0,
                  special_ready: bool = False,
                  ultimate_ready: bool = False,
-                 matched_template_id: Optional[str] = None):
+                 matched_template_id: str | None = None):
         self.agent: Agent = agent
-        self.matched_template_id: Optional[str] = matched_template_id  # 上次成功匹配的模板ID
+        self.matched_template_id: str | None = matched_template_id  # 上次成功匹配的模板ID
         self.energy: int = energy  # 能量
         self.special_ready: bool = special_ready  # 特殊技
         self.ultimate_ready: bool = ultimate_ready  # 终结技
@@ -50,8 +61,8 @@ class AgentInfo:
 
 class TeamInfo:
 
-    def __init__(self, agent_names: Optional[List[str]] = None):
-        self.agent_list: List[AgentInfo] = []
+    def __init__(self, agent_names: list[str] | None = None):
+        self.agent_list: list[AgentInfo] = []
 
         self.should_check_all_agents: bool = agent_names is None  # 是否应该检查所有角色
         self.agent_list_diff_since: float = 0  # 名单开始持续不一致的时间 0 表示还没开始计
@@ -67,10 +78,10 @@ class TeamInfo:
                         break
 
     def update_agent_list(self,
-                          current_agent_list: List[Tuple[Agent, Optional[str]]],
-                          energy_list: List[int],
-                          special_list: List[int],
-                          ultimate_list: List[int],
+                          current_agent_list: list[tuple[Agent, str | None]],
+                          energy_list: list[int],
+                          special_list: list[int],
+                          ultimate_list: list[int],
                           update_time: float,) -> bool:
         """
         更新角色列表
@@ -151,7 +162,7 @@ class TeamInfo:
 
             return True
 
-    def is_same_agent_list(self, current_agent_list: List[Tuple[Optional[Agent], Optional[str]]]) -> bool:
+    def is_same_agent_list(self, current_agent_list: list[tuple[Agent | None, str | None]]) -> bool:
         """
         是否跟原来的角色列表一致 忽略顺序
         :param current_agent_list:
@@ -166,11 +177,7 @@ class TeamInfo:
         if len(old_agent_ids) != len(new_agent_ids):
             return False
 
-        for old_agent_id in old_agent_ids:
-            if old_agent_id not in new_agent_ids:
-                return False
-
-        return True
+        return all(old_agent_id in new_agent_ids for old_agent_id in old_agent_ids)
 
     def request_check_all_agents(self) -> None:
         """
@@ -209,7 +216,7 @@ class TeamInfo:
                     next_agent_list.append(not_none_agent_list[i])
                 next_agent_list.append(not_none_agent_list[0])
 
-            for i in range(none_cnt):
+            for _ in range(none_cnt):
                 next_agent_list.append(AgentInfo(None, 0))
 
             self.agent_list = next_agent_list
@@ -248,7 +255,7 @@ class TeamInfo:
                 for i in range(0, len(not_none_agent_list)-1):
                     next_agent_list.append(not_none_agent_list[i])
 
-            for i in range(none_cnt):
+            for _ in range(none_cnt):
                 next_agent_list.append(AgentInfo(None, 0))
             self.agent_list = next_agent_list
 
@@ -288,7 +295,7 @@ class TeamInfo:
 
 class CheckAgentState:
 
-    def __init__(self, state: AgentStateDef, total: Optional[int] = None, pos: Optional[int] = None):
+    def __init__(self, state: AgentStateDef, total: int | None = None, pos: int | None = None):
         self.state: AgentStateDef = state
         self.total: int = total
         self.pos: int = pos
@@ -344,14 +351,12 @@ class AutoBattleAgentContext:
         self._last_check_agent_time: float = 0
         self._last_switch_agent_time: float = 0
 
-    def get_possible_agent_list(self) -> Optional[List[Tuple[Agent, Optional[str]]]]:
+    def get_possible_agent_list(self) -> list[tuple[Agent, str | None]] | None:
         """
         获取用于匹配的候选角色列表
         """
         check_all: bool = False
-        if self.team_info.should_check_all_agents:
-            check_all = True
-        elif self.team_info.agent_list is None or len(self.team_info.agent_list) == 0:
+        if self.team_info.should_check_all_agents or self.team_info.agent_list is None or len(self.team_info.agent_list) == 0:
             check_all = True
         else:
             for i in self.team_info.agent_list:
@@ -406,7 +411,7 @@ class AutoBattleAgentContext:
         finally:
             self._check_agent_lock.release()
 
-    def _should_force_check_all_agents(self, screen_agent_list: List[Tuple[Agent | None, str | None]]) -> bool:
+    def _should_force_check_all_agents(self, screen_agent_list: list[tuple[Agent | None, str | None]]) -> bool:
         """
         当前处于战斗画面，但一个角色都识别不到时，下一次强制重新全量识别。
         这样可以兼容战斗内队伍循环切换的新模式，同时避免常驻全量识别带来的性能压力。
@@ -421,7 +426,7 @@ class AutoBattleAgentContext:
         log.debug('当前识别不到任何角色，下一次截图强制重新识别所有角色')
         return True
 
-    def _check_agent_in_parallel(self, screen: MatLike) -> List[Tuple[Agent, Optional[str]]]:
+    def _check_agent_in_parallel(self, screen: MatLike) -> list[tuple[Agent, str | None]]:
         """
         并发识别角色
         :return:
@@ -436,9 +441,9 @@ class AutoBattleAgentContext:
 
         possible_agents = self.get_possible_agent_list()
 
-        result_agent_list: List[Tuple[Optional[Agent], Optional[str]]] = []
-        future_list: List[Optional[Future]] = []
-        should_check: List[bool] = [True, False, False, False]
+        result_agent_list: list[tuple[Agent | None, str | None]] = []
+        future_list: list[Future | None] = []
+        should_check: list[bool] = [True, False, False, False]
 
         if not self.team_info.should_check_all_agents:
             if len(self.team_info.agent_list) == 3:
@@ -452,7 +457,7 @@ class AutoBattleAgentContext:
 
         for i in range(4):
             if should_check[i]:
-                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents))
+                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents, area_rect[i]))
             else:
                 future_list.append(None)
 
@@ -480,14 +485,16 @@ class AutoBattleAgentContext:
         self,
         img: MatLike,
         is_front: bool,
-        possible_agents: List[Tuple[Agent, Optional[str]]],
-    ) -> Tuple[Optional[Agent], Optional[str]]:
+        possible_agents: list[tuple[Agent, str | None]],
+        area_rect: Rect,
+    ) -> tuple[Agent | None, str | None]:
         """
         在候选列表中匹配角色
         Args:
             img: 裁剪好的头像图片
             is_front: 识别的是否前台角色
             possible_agents: 需要识别的代理人列表
+            area_rect: 头像裁剪区域，用于 overlay 识别框坐标偏移
 
         Returns:
             匹配命中的代理人和对应的皮肤模板
@@ -509,26 +516,34 @@ class AutoBattleAgentContext:
                 else:
                     priority_list[1].append((agent, t_id))
 
-        # 按优先级进行匹配
-        for agent_template_list in priority_list:
-            for agent, template_id in agent_template_list:
-                template_name = prefix + template_id
-                mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
-                if mrl.max is None:
-                    continue
-                if mrl.max.confidence < best_confidence:
-                    continue
+        # 裁剪图匹配时设置 crop_offset，让 overlay 识别框坐标回到原图坐标系 见 crop_and_match_template_binary
+        bus = getattr(self.ctx, 'debug_trace_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            # 按优先级进行匹配
+            for agent_template_list in priority_list:
+                for agent, template_id in agent_template_list:
+                    template_name = prefix + template_id
+                    mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
+                    if mrl.max is None:
+                        continue
+                    if mrl.max.confidence < best_confidence:
+                        continue
 
-                best_agent = agent
-                best_template_id = template_id
-                best_confidence = mrl.max.confidence
+                    best_agent = agent
+                    best_template_id = template_id
+                    best_confidence = mrl.max.confidence
 
-            if best_agent is not None:
-                return best_agent, best_template_id
+                if best_agent is not None:
+                    return best_agent, best_template_id
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None, None
 
-    def _check_agent_state_in_parallel(self, screen: MatLike, screenshot_time: float, agent_state_list: List[CheckAgentState]) -> List[StateRecord]:
+    def _check_agent_state_in_parallel(self, screen: MatLike, screenshot_time: float, agent_state_list: list[CheckAgentState]) -> list[StateRecord]:
         """
         并行识别多个角色状态
         :param screen: 游戏画面
@@ -536,11 +551,11 @@ class AutoBattleAgentContext:
         :param agent_state_list: 需要识别的状态列表
         :return:
         """
-        future_list: List[Future] = []
+        future_list: list[Future] = []
         for state in agent_state_list:
             future_list.append(_battle_agent_context_executor.submit(self._check_agent_state, screen, screenshot_time, state))
 
-        result_list: List[Optional[StateRecord]] = []
+        result_list: list[StateRecord | None] = []
         for future in future_list:
             try:
                 record = future.result()
@@ -551,7 +566,7 @@ class AutoBattleAgentContext:
 
         return result_list
 
-    def _check_agent_state(self, screen: MatLike, screenshot_time: float, to_check: CheckAgentState) -> Optional[StateRecord]:
+    def _check_agent_state(self, screen: MatLike, screenshot_time: float, to_check: CheckAgentState) -> StateRecord | None:
         """
         识别一个角色状态
         :param screen:
@@ -575,8 +590,8 @@ class AutoBattleAgentContext:
             return StateRecord(state.state_name, screenshot_time, value, is_clear=should_clear)
 
     def _check_all_agent_state(self, screen: MatLike, screenshot_time: float,
-                               screen_agent_list: List[Tuple[Agent, Optional[str]]]
-                               ) -> Tuple[List[StateRecord], List[StateRecord], List[StateRecord], List[StateRecord]]:
+                               screen_agent_list: list[tuple[Agent, str | None]]
+                               ) -> tuple[list[StateRecord], list[StateRecord], list[StateRecord], list[StateRecord]]:
         """
         识别所有需要的角色状态
         - 能量条
@@ -592,7 +607,7 @@ class AutoBattleAgentContext:
             return [], [], [], []
 
         total = len(screen_agent_list)
-        to_check_list: List[CheckAgentState] = []
+        to_check_list: list[CheckAgentState] = []
 
         # 能量、特殊技、终结技
         if total == 3:
@@ -672,7 +687,7 @@ class AutoBattleAgentContext:
 
         return energy_result_list, special_result_list, ultimate_result_list, other_result_list
 
-    def switch_next_agent(self, update_time: float, update_state: bool = True, check_agent: bool = False) -> List[StateRecord]:
+    def switch_next_agent(self, update_time: float, update_state: bool = True, check_agent: bool = False) -> list[StateRecord]:
         """
         代理人列表 切换下一个
         :param update_time: 更新时间
@@ -688,7 +703,7 @@ class AutoBattleAgentContext:
             return records
         return []
 
-    def switch_prev_agent(self, update_time: float, update_state: bool = True, check_agent: bool = False) -> List[StateRecord]:
+    def switch_prev_agent(self, update_time: float, update_state: bool = True, check_agent: bool = False) -> list[StateRecord]:
         """
         代理人列表 切换上一个
         :param update_time: 更新时间
@@ -704,7 +719,7 @@ class AutoBattleAgentContext:
             return records
         return []
 
-    def switch_quick_assist(self, update_time: float, update_state: bool = True) -> Tuple[int, List[StateRecord]]:
+    def switch_quick_assist(self, update_time: float, update_state: bool = True) -> tuple[int, list[StateRecord]]:
         """
         切换到快速支援的角色
         :param update_time: 更新时间
@@ -712,8 +727,8 @@ class AutoBattleAgentContext:
         :return:
         """
         # 由于快速支援没法固定是上一个或者下一个 因此要靠快速支援的识别结果来判断是哪个角色
-        switch_agent: Optional[Agent] = None
-        latest_recorder: Optional[StateRecorder] = None
+        switch_agent: Agent | None = None
+        latest_recorder: StateRecorder | None = None
         for agent_enum in AgentEnum:
             agent = agent_enum.value
             state_name = f'快速支援-{agent.agent_name}'
@@ -736,7 +751,7 @@ class AutoBattleAgentContext:
         else:
             return 0, []
 
-    def chain_left(self, update_time: float, update_state: bool = True) -> List[StateRecord]:
+    def chain_left(self, update_time: float, update_state: bool = True) -> list[StateRecord]:
         """
         连携技-左
         :return:
@@ -761,7 +776,7 @@ class AutoBattleAgentContext:
 
         return states
 
-    def chain_right(self, update_time: float, update_state: bool = True) -> List[StateRecord]:
+    def chain_right(self, update_time: float, update_state: bool = True) -> list[StateRecord]:
         """
         连携技-右
         :return:
@@ -786,7 +801,7 @@ class AutoBattleAgentContext:
 
         return states
 
-    def get_chain_name(self) -> List[str]:
+    def get_chain_name(self) -> list[str]:
         """
         获取连携的名称
         :return:
@@ -794,8 +809,8 @@ class AutoBattleAgentContext:
         result = []
         all_name_list = ['邦布'] + [agent_enum.value.agent_name for agent_enum in AgentEnum]
         for i in range(1, 3):
-            target_name: Optional[str] = None
-            latest_recorder: Optional[StateRecorder] = None
+            target_name: str | None = None
+            latest_recorder: StateRecorder | None = None
             for name in all_name_list:
                 state_name = f'连携技-{i}-{name}'
                 state_recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state_name)
@@ -810,7 +825,7 @@ class AutoBattleAgentContext:
 
         return result
 
-    def switch_by_agent_name(self, agent_name: str, update_time: float, update_state: bool = True) -> Tuple[int, List[StateRecord]]:
+    def switch_by_agent_name(self, agent_name: str, update_time: float, update_state: bool = True) -> tuple[int, list[StateRecord]]:
         """
         根据代理人名称进行切换
         :param agent_name:
@@ -834,7 +849,7 @@ class AutoBattleAgentContext:
         else:
             return 0, []
 
-    def _force_reconstruct_agent_states(self, new_front_agent_name: str, update_time: float) -> List[StateRecord]:
+    def _force_reconstruct_agent_states(self, new_front_agent_name: str, update_time: float) -> list[StateRecord]:
         """
         强制重构所有角色状态，确保前台角色状态绝对正确。
         这个方法会重排队伍列表，然后生成所有角色的状态。
@@ -871,7 +886,7 @@ class AutoBattleAgentContext:
         # 使用通用的状态生成函数来创建所有更新记录
         return self._get_agent_state_records(update_time, switch=True)
 
-    def _get_agent_state_records(self, update_time: float, switch: bool = False) -> List[StateRecord]:
+    def _get_agent_state_records(self, update_time: float, switch: bool = False) -> list[StateRecord]:
         """
         获取代理人相关的状态
         :param update_time:
@@ -880,7 +895,7 @@ class AutoBattleAgentContext:
         """
         state_records = []
         for i in range(len(self.team_info.agent_list)):
-            prefix = '前台-' if i == 0 else ('后台-%d-' % i)
+            prefix = '前台-' if i == 0 else f'后台-{i}-'
             agent_info = self.team_info.agent_list[i]
 
             # 需要识别到角色的状态

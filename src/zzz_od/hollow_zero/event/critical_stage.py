@@ -4,7 +4,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
@@ -28,7 +27,7 @@ class CriticalStage(ZOperation):
 
         self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
-            app_id=withered_domain_const.APP_ID,
+            app_id=self.ctx.withered_domain.app_id,
         )
 
         self._handlers: List[EventOcrResultHandler] = [
