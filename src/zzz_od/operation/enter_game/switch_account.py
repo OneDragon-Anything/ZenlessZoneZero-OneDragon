@@ -8,6 +8,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.enter_game import EnterGame
+from zzz_od.operation.enter_game.history_account_login import normalize_phone_number
 from zzz_od.operation.goto.goto_menu import GotoMenu
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -22,6 +23,9 @@ class SwitchAccount(ZOperation):
 
     @operation_node(name='打开菜单', is_start_node=True)
     def open_menu(self) -> OperationRoundResult:
+        if (self.ctx.game_account_config.use_history_login
+                and normalize_phone_number(self.ctx.game_account_config.account) is None):
+            return self.round_fail('请在账号栏填写真实的中国大陆 11 位手机号，支持 +86 前缀')
         if not self.ctx.game_account_config.has_login_info:
             log.warning('多账户切换未配置完整登录信息，后续登录可能失败')
         op = GotoMenu(self.ctx)
@@ -59,6 +63,10 @@ class SwitchAccount(ZOperation):
     @node_from(from_name='修改截图方法')
     @operation_node(name='等待切换账号可按', node_max_retry_times=20)
     def wait_switch_can_click(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.use_history_login:
+            for name in ('标题-退出登录', '账号下拉-点击展开', '账号下拉-点击收起', '按钮-登陆其他账号'):
+                if self.round_by_find_area(self.last_screenshot, '打开游戏', name).is_success:
+                    return self.round_success()
         # 国服
         result = self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏',
                                          retry_wait=1)

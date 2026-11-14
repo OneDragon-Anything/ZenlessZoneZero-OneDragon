@@ -18,7 +18,7 @@ from qfluentwidgets import (
     ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum
+from one_dragon.base.config.game_account_config import GameRegionEnum, LoginMethodEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -272,6 +272,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("game_region")
         )
+        self.login_method_opt.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("login_method")
+        )
         self.game_account_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("account")
         )
@@ -334,6 +337,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt.value_changed.connect(self.on_game_region_opt_changed)
         instance_settings_group.addSettingCard(self.game_region_opt)
 
+        self.login_method_opt = ComboBoxSettingCard(
+            icon=FluentIcon.PEOPLE, title="官服登录方式", options_enum=LoginMethodEnum,
+            content="每个账户独立保存；按所选方式登录，切换方式不会清空已保存的信息。",
+        )
+        self.login_method_opt.value_changed.connect(self._on_login_method_changed)
+        instance_settings_group.addSettingCard(self.login_method_opt)
         self.game_account_opt = TextSettingCard(
             icon=FluentIcon.PEOPLE,
             title="账号",
@@ -435,7 +444,17 @@ class SettingInstanceInterface(VerticalScrollInterface):
         )
         self.ctx.init_controller()
 
-    def set_ui_of_game_region(self, value):
+    def set_ui_of_game_region(self, value: str) -> None:
+        """只展示当前区服和登录方式所需的输入项，保留隐藏项的值。"""
+        use_history = value == GameRegionEnum.CN.value.value and self.ctx.game_account_config.use_history_login
+        self.login_method_opt.setVisible(value == GameRegionEnum.CN.value.value)
+        self.game_account_opt.titleLabel.setText(gt("账号（真实手机号）" if use_history else "账号"))
+        self.game_account_opt.setContent(
+            "填写真实手机号，自动匹配游戏记住的账号；无需填写星号或密码。" if use_history else None
+        )
+        self.game_account_opt.line_edit.setPlaceholderText(gt(
+            "填写完整的 11 位手机号，支持 +86" if use_history else "所有信息都明文保存在本地"
+        ))
         if value == GameRegionEnum.CNB.value.value:
             self.game_account_opt.hide()
             self.game_password_opt.hide()
@@ -443,10 +462,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
             self.bilibili_account_name.show()
         else:
             self.game_account_opt.show()
-            self.game_password_opt.show()
+            self.game_password_opt.setVisible(not use_history)
             self.help_bilibili_opt.hide()
             self.bilibili_account_name.hide()
 
-    def on_game_region_opt_changed(self, _, value):
+    def _on_login_method_changed(self, index: int, value: str) -> None:
+        """适配器已保存当前实例的选择，刷新对应输入项。"""
+        self.set_ui_of_game_region(self.ctx.game_account_config.game_region)
+
+    def on_game_region_opt_changed(self, _: int, value: str) -> None:
         self.set_ui_of_game_region(value)
         self.ctx.init_controller()
