@@ -48,6 +48,7 @@ from one_dragon_qt.services.download_queue_service import (
 )
 from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.view.plugin.plugin_detail_dialog import (
+    ACTION_CONFIG,
     ACTION_IGNORE,
     ACTION_MUTE_UPDATE,
     ACTION_SUBSCRIBE,
@@ -386,6 +387,7 @@ class PluginOperationMixin:
             actions.append((ACTION_UNINSTALL, gt('卸载')))
         else:
             actions.append((ACTION_SUBSCRIBE, gt('订阅')))
+        self._append_config_action(actions, plugin_info)
 
         meta_parts = []
         if entry.latest_version:
@@ -424,6 +426,42 @@ class PluginOperationMixin:
             return ACTION_UNMUTE_UPDATE, gt('恢复更新提示')
         return ACTION_MUTE_UPDATE, gt('不再提示此插件的更新')
 
+    def _append_config_action(
+        self,
+        actions: list[tuple[str, str]],
+        plugin_info: PluginInfo | None,
+    ) -> None:
+        """插件自带设置界面（注册了 *_app_setting.py）时，在操作区追加「设置」按钮。"""
+        if plugin_info is None:
+            return
+        manager = self._app_setting_manager()
+        if manager is not None and plugin_info.app_id in manager.settable_app_ids:
+            actions.append((ACTION_CONFIG, gt('设置')))
+
+    def _app_setting_manager(self):
+        """从主窗口取应用设置管理器，窗口未就绪时返回 None。"""
+        window = self._as_widget().window()
+        return getattr(window, 'app_setting_manager', None)
+
+    def _open_plugin_config(self, plugin_info: PluginInfo) -> None:
+        """打开插件自带的设置界面。
+
+        由 app_setting_manager 分发：INTERFACE 型推入插件页的二级导航
+        （插件页本身是 PivotNavigatorInterface），FLYOUT 型弹在页面中央。
+        """
+        from one_dragon.base.operation.application import application_const
+
+        manager = self._app_setting_manager()
+        if manager is None:
+            return
+        widget = self._as_widget()
+        manager.show_app_setting(
+            app_id=plugin_info.app_id,
+            parent=widget,
+            group_id=application_const.DEFAULT_GROUP_ID,
+            target=widget,
+        )
+
     def open_installed_detail(self, plugin_info: PluginInfo) -> None:
         """打开本机已安装插件的详情页。"""
         entry = self.find_market_entry(plugin_info)
@@ -450,6 +488,7 @@ class PluginOperationMixin:
             )
             status_kind = BADGE_INSTALLED
             actions.append((ACTION_UNINSTALL, gt('卸载')))
+        self._append_config_action(actions, plugin_info)
 
         meta_parts = []
         if plugin_info.version:
@@ -514,6 +553,8 @@ class PluginOperationMixin:
                 duration=2500,
                 parent=self._as_widget(),
             )
+        elif action == ACTION_CONFIG and plugin_info is not None:
+            self._open_plugin_config(plugin_info)
         elif action in (ACTION_MUTE_UPDATE, ACTION_UNMUTE_UPDATE) and plugin_info is not None:
             muted = action == ACTION_MUTE_UPDATE
             registry_id = self.subscription_registry_id(plugin_info)
