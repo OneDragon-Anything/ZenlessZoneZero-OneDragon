@@ -109,7 +109,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         if self.with_tooltip:
             if self._tooltip:
                 self._tooltip.close()
-            self._tooltip = ToolTip(self.tooltip_text, self)
+            self._tooltip = ToolTip(gt(self.tooltip_text), self)
             self._tooltip.shadowEffect.setColor(QColor(0, 0, 0, 15))
             self._tooltip.shadowEffect.setOffset(0, 1)
             self._tooltip.setDuration(0)

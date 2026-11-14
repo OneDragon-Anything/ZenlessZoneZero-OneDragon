@@ -117,11 +117,11 @@ class BattleAssistantInterface(AppRunInterface):
         # SegmentedWidget 模式切换
         self.mode_segment = SegmentedWidget()
         self.mode_segment.addItem(
-            routeKey=self.MODE_AUTO_BATTLE, text=self.MODE_AUTO_BATTLE,
+            routeKey=self.MODE_AUTO_BATTLE, text=gt(self.MODE_AUTO_BATTLE),
             onClick=lambda: self._apply_mode(self.MODE_AUTO_BATTLE),
         )
         self.mode_segment.addItem(
-            routeKey=self.MODE_DODGE_ASSISTANT, text=self.MODE_DODGE_ASSISTANT,
+            routeKey=self.MODE_DODGE_ASSISTANT, text=gt(self.MODE_DODGE_ASSISTANT),
             onClick=lambda: self._apply_mode(self.MODE_DODGE_ASSISTANT),
         )
         top.add_widget(self.mode_segment)
@@ -137,21 +137,21 @@ class BattleAssistantInterface(AppRunInterface):
 
         # 共用设置（两种模式共享）
         self.gpu_opt = SwitchSettingCard(
-            icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用',
+            icon=FluentIcon.GAME, title=gt('GPU运算'), content=gt('游戏画面掉帧的话 可以不启用'),
         )
         top.add_widget(self.gpu_opt)
 
         self.screenshot_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔 (秒)',
-            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
+            icon=FluentIcon.GAME, title=gt('截图间隔 (秒)'),
+            content=gt('一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力'),
             minimum=0.02, maximum=0.1,
         )
         top.add_widget(self.screenshot_opt)
 
         self.background_mode_opt = SwitchSettingCard(
             icon=FluentIcon.ROBOT,
-            title='后台模式（专享版）',
-            content='仅控制当前功能是否临时启用后台模式；相关配置请前往「设置 → 游戏设置」调整',
+            title=gt('后台模式（专享版）'),
+            content=gt('仅控制当前功能是否临时启用后台模式；相关配置请前往「设置 → 游戏设置」调整'),
         )
         self.background_mode_opt.value_changed.connect(self._on_background_mode_changed)
         top.add_widget(self.background_mode_opt)
@@ -179,16 +179,16 @@ class BattleAssistantInterface(AppRunInterface):
 
         help_card = MultiPushSettingCard(
             icon=FluentIcon.HELP,
-            title='使用说明',
-            content='先看说明 再使用与提问',
+            title=gt('使用说明'),
+            content=gt('先看说明 再使用与提问'),
             btn_list=[desc_btn, guide_btn, shared_btn]
         )
         page.add_widget(help_card)
 
         # 战斗配置
         self.config_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='战斗配置',
-            content='全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。',
+            icon=FluentIcon.GAME, title=gt('战斗配置'),
+            content=gt('全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。'),
         )
         self.config_del_btn = ToolButton(FluentIcon.DELETE)
         self.config_del_btn.clicked.connect(self._on_auto_battle_del_clicked)
@@ -198,12 +198,12 @@ class BattleAssistantInterface(AppRunInterface):
 
         # 自动战斗独有
         self.auto_ultimate_opt = SwitchSettingCard(
-            icon=FluentIcon.GAME, title='终结技一好就放', content='终结技无视时机立刻释放',
+            icon=FluentIcon.GAME, title=gt('终结技一好就放'), content=gt('终结技无视时机立刻释放'),
         )
         page.add_widget(self.auto_ultimate_opt)
 
         self.merged_opt = SwitchSettingCard(
-            icon=FluentIcon.GAME, title='使用合并配置文件', content='关闭用于调试模板文件 正常开启即可',
+            icon=FluentIcon.GAME, title=gt('使用合并配置文件'), content=gt('关闭用于调试模板文件 正常开启即可'),
         )
         page.add_widget(self.merged_opt)
 
@@ -213,7 +213,7 @@ class BattleAssistantInterface(AppRunInterface):
         page = Column()
 
         # 闪避方式
-        self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避方式')
+        self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title=gt('闪避方式'))
         self.dodge_del_btn = ToolButton(FluentIcon.DELETE)
         self.dodge_opt.hBoxLayout.addWidget(self.dodge_del_btn, alignment=Qt.AlignmentFlag.AlignRight)
         self.dodge_opt.hBoxLayout.addSpacing(16)
@@ -333,12 +333,13 @@ class BattleAssistantInterface(AppRunInterface):
             '同时，请确保游戏画面没有被其他窗口遮挡，让 AI 能看清全局。\n\n'
             '祝您游戏愉快！'
         )
-        w = MessageBox(gt("使用说明"), content, self.window())
+        w = MessageBox(gt("使用说明"), gt(content), self.window())
         w.cancelButton.hide()
         w.yesButton.setText(gt("确认"))
         w.exec()
 
     def _on_background_mode_changed(self, value: bool) -> None:
+        """切换后台模式 未安装虚拟手柄驱动时还原开关并提示"""
         if value and not pc_button_utils.is_vgamepad_installed():
             self.background_mode_opt.setValue(False, emit_signal=False)
             if self.background_mode_opt.adapter is not None:
@@ -346,8 +347,8 @@ class BattleAssistantInterface(AppRunInterface):
             else:
                 self.ctx.battle_assistant_config.background_mode = False
             InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                title=gt('后台模式不可用'),
+                content=gt('未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动'),
                 parent=self,
                 duration=5000,
             )

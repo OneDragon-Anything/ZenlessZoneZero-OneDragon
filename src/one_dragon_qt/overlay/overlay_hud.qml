@@ -41,6 +41,11 @@ Window {
     // 状态面板标题栏文本（由 Python 注入，显示当前前台角色）
     property string stateTitle: "战斗状态"
 
+    // 面板标题多语言文本（由 Python 注入）
+    property string logTitle: "日志"
+    property string stateSubTitle: "前台角色"
+    property string decisionDefaultTitle: "决策"
+
     // 模式切换提示文本（由 Python 注入，如 "HUD 已关闭"，5 秒后自动消失）
     property string toastText: ""
 
@@ -109,21 +114,22 @@ Window {
                 topLeftRadius: 8
                 topRightRadius: 8
                 Text {
+                    id: logTitleText
                     anchors.left: parent.left
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    id: logTitle
-                    text: "日志"
+                    text: root.logTitle
                     color: "#0d0d0d"
                     font.pixelSize: Math.round(17 * root.fontScale)
                     font.bold: root.fontBold
                     font.family: root.zhFont
                 }
                 Text {
-                    anchors.left: logTitle.right
+                    anchors.left: logTitleText.right
                     anchors.leftMargin: 6
-                    anchors.baseline: logTitle.baseline
+                    anchors.baseline: logTitleText.baseline
                     text: "LOG"
+                    visible: root.logTitle !== "Log" && root.logTitle.toUpperCase() !== "LOG"
                     color: Qt.rgba(13 / 255, 13 / 255, 13 / 255, 0.55)
                     font.pixelSize: Math.round(12 * root.fontScale)
                     font.bold: root.fontBold
@@ -136,7 +142,7 @@ Window {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
                     Repeater {
-                        model: root.hotkeyHint.length > 0 ? root.hotkeyHint.split(";") : []
+                        model: root.hotkeyHint.length > 0 ? root.hotkeyHint.split(";").filter(function(item) { return item.indexOf("|") >= 0; }) : []
                         Row {
                             spacing: 4
                             anchors.verticalCenter: parent.verticalCenter
@@ -158,7 +164,7 @@ Window {
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.split("|")[1]
+                                text: modelData.indexOf("|") >= 0 ? modelData.split("|")[1] : ""
                                 color: "#0d0d0d"
                                 font.pixelSize: Math.round(12 * root.fontScale)
                                 font.bold: root.fontBold
@@ -261,7 +267,7 @@ Window {
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "前台角色"
+                    text: root.stateSubTitle
                     color: "#0d0d0d"
                     font.pixelSize: Math.round(12 * root.fontScale)
                     font.bold: root.fontBold
@@ -388,7 +394,7 @@ Window {
                     anchors.right: parent.right
                     anchors.rightMargin: 70
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.decisionTitle.length > 0 ? root.decisionTitle : "决策"
+                    text: root.decisionTitle.length > 0 ? root.decisionTitle : root.decisionDefaultTitle
                     color: "#0d0d0d"
                     font.pixelSize: Math.round(16 * root.fontScale)
                     font.bold: root.fontBold

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import BodyLabel, FluentIcon, FluentThemeColor, PushSettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
@@ -45,7 +46,7 @@ class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         widget = Column()
 
-        self.tip_label = BodyLabel(text='注意：用这个方法刷业绩会使周期丁尼的总量减少')
+        self.tip_label = BodyLabel(text=gt('注意：用这个方法刷业绩会使周期丁尼的总量减少'))
         self.tip_label.setTextColor(FluentThemeColor.RED.value)
         widget.add_widget(self.tip_label)
 
@@ -56,26 +57,26 @@ class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
             self.agent_btn_list.append(agent_btn)
         self.agents_opt = MultiPushSettingCard(
             btn_list=self.agent_btn_list, icon=FluentIcon.PEOPLE,
-            title='目标配队', content='按照自动战斗配置 选择角色位置',
+            title=gt('目标配队'), content=gt('按照自动战斗配置 选择角色位置'),
         )
         widget.add_widget(self.agents_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='自动战斗', content='战斗使用的自动战斗配置',
+            icon=FluentIcon.GAME, title=gt('自动战斗'), content=gt('战斗使用的自动战斗配置'),
         )
         widget.add_widget(self.auto_battle_opt)
 
         self.daily_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,
-            title='每天进入次数',
-            content='将空洞分摊到每天运行',
+            title=gt('每天进入次数'),
+            content=gt('将空洞分摊到每天运行'),
         )
         widget.add_widget(self.daily_plan_times_opt)
 
         self.run_record_opt = PushSettingCard(
             icon=FluentIcon.SYNC,
-            title='运行记录',
-            text='重置记录'
+            title=gt('运行记录'),
+            text=gt('重置记录'),
         )
         self.run_record_opt.clicked.connect(self._on_reset_record_clicked)
         widget.add_widget(self.run_record_opt)
@@ -134,9 +135,9 @@ class HollowEvalSpeedSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def _update_run_record_display(self) -> None:
         if self.run_record.is_finished_by_week():
-            content = '已完成刷取业绩 如错误可重置'
+            content = gt('已完成刷取业绩 如错误可重置')
         else:
-            content = f'进入次数 本日: {self.run_record.daily_run_times}'
+            content = gt('进入次数 本日: {}').format(self.run_record.daily_run_times)
         self.run_record_opt.setContent(content)
 
     def _on_reset_record_clicked(self) -> None:

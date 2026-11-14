@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Any
 
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import gt_compound
 
 
 class ConfigItem:
@@ -27,7 +27,7 @@ class ConfigItem:
         显示的文本
         :return:
         """
-        return gt(self.label)
+        return gt_compound(self.label)
 
 
 def get_config_item_from_enum(enum: Iterable[Enum], value: Any) -> ConfigItem | None:
