@@ -45,6 +45,10 @@ class ScreenRoute:
         return self.node_list is not None and len(self.node_list) > 0
 
 
+class _ExtraSourceError(Exception):
+    """插件画面来源回调抛错：由调用方决定保留旧插件层。"""
+
+
 class ScreenContext:
 
     def __init__(self):
@@ -99,7 +103,13 @@ class ScreenContext:
         """
         sources: dict[Path, str] = {}
         if self._extra_screen_source is not None:
-            for dir_path, default_app_id in self._extra_screen_source():
+            try:
+                callback_sources = list(self._extra_screen_source())
+            except Exception:
+                # 回调失败不能拖垮主配置：交给调用方保留上一轮插件层
+                log.error('插件画面来源回调失败，保留现有插件画面', exc_info=True)
+                raise _ExtraSourceError() from None
+            for dir_path, default_app_id in callback_sources:
                 key = Path(dir_path).resolve()
                 if key in sources and sources[key] != default_app_id:
                     log.warning(
@@ -151,11 +161,30 @@ class ScreenContext:
 
         try:
             base = self._build_base(from_memory, from_separated_files)
-            extras, extra_paths = self._build_extras(base, self._collect_extra_sources())
+            try:
+                extras, extra_paths = self._build_extras(base, self._collect_extra_sources())
+            except _ExtraSourceError:
+                extras, extra_paths = self._keep_current_extras(base)
         except Exception:
             log.error('画面重载失败，保留原状态', exc_info=True)
             return False
         return self._apply_state(base, extras, extra_paths)
+
+    def _keep_current_extras(
+        self, base: dict[str, ScreenInfo],
+    ) -> tuple[dict[str, ScreenInfo], dict[str, Path]]:
+        """来源回调失败时沿用当前内存里的插件画面；与新 base 同名/同 id 的丢弃。"""
+        base_names = {screen_info.screen_name for screen_info in base.values()}
+        extras: dict[str, ScreenInfo] = {}
+        extra_paths: dict[str, Path] = {}
+        for screen_id in self._extra_screen_ids:
+            screen_info = self._id_2_screen.get(screen_id)
+            if screen_info is None or screen_id in base or screen_info.screen_name in base_names:
+                continue
+            extras[screen_id] = screen_info
+            if screen_id in self._extra_screen_paths:
+                extra_paths[screen_id] = self._extra_screen_paths[screen_id]
+        return extras, extra_paths
 
     def _log_reload_caller(self, from_memory: bool) -> None:
         """记录触发重载的调用方模块/行号（只定位，不拦截）。"""
@@ -271,7 +300,8 @@ class ScreenContext:
                     with file_path.open(encoding='utf-8') as file:
                         log.debug(f"加载插件画面: {file_path}")
                         data = yaml_utils.safe_load(file)
-                except (OSError, yaml.YAMLError):
+                except (OSError, ValueError, yaml.YAMLError):
+                    # ValueError 含 UnicodeDecodeError：非 UTF-8 的坏文件只跳过它，不拖垮整次重载
                     log.warning(f"插件画面配置读取失败，已跳过: {file_path}")
                     continue
                 if not isinstance(data, dict):
@@ -458,6 +488,11 @@ class ScreenContext:
         key = f'{screen_name}.{area_name}'
         return self._screen_area_map.get(key, None)
 
+    @staticmethod
+    def _is_same_path(path_1: Path, path_2: Path) -> bool:
+        """两个路径是否指向同一个文件（Windows 上忽略大小写）。"""
+        return os.path.normcase(str(path_1)) == os.path.normcase(str(path_2))
+
     def save_screen(self, screen_info: ScreenInfo) -> bool:
         """保存画面。
 
@@ -505,7 +540,11 @@ class ScreenContext:
             old_screen_id = ''
 
         target_file_path = self.get_yml_file_path(screen_info.screen_id)
-        if screen_info.screen_id != old_screen_id and target_file_path.exists():
+        # 只改 id 大小写时新旧文件在大小写不敏感的文件系统上是同一个文件：不算占用，也不能删旧文件
+        same_file = bool(old_screen_id) and self._is_same_path(
+            target_file_path, self.get_yml_file_path(old_screen_id)
+        )
+        if screen_info.screen_id != old_screen_id and not same_file and target_file_path.exists():
             log.warning(f"目标画面文件已被占用，拒绝保存: {target_file_path}")
             return False
 
@@ -523,7 +562,7 @@ class ScreenContext:
                 self._id_2_screen[old_screen_id] = old_info
             return False
 
-        if renamed:
+        if renamed and not same_file:
             old_file_path = self.get_yml_file_path(old_screen_id)
             if old_file_path.exists():
                 try:
@@ -630,7 +669,9 @@ class ScreenContext:
                 return False
         else:
             file_path = old_file_path
-        if file_path != old_file_path and file_path.exists():
+        # 大小写不敏感的文件系统上，只改 id 大小写时新旧路径是同一个文件：既不算占用，也不能删旧文件
+        same_file = self._is_same_path(file_path, old_file_path)
+        if not same_file and file_path.exists():
             log.warning(f"目标画面文件已被占用，拒绝保存: {file_path}")
             return False
 
@@ -650,7 +691,7 @@ class ScreenContext:
             return False
 
         delete_old_failed = False
-        if renamed and old_file_path.exists():
+        if renamed and not same_file and old_file_path.exists():
             try:
                 old_file_path.unlink()
             except OSError:
@@ -706,13 +747,14 @@ class ScreenContext:
         初始化画面间的跳转路径
         :return:
         """
-        self.screen_route_map.clear()
+        # 在局部变量里建好，最后一次性换引用：并发读者不会读到清空/半成品的路由表
+        route_map: dict[str, dict[str, ScreenRoute]] = {}
 
         # 先对任意两个画面之间做初始化
         for screen_1 in self.screen_info_list:
-            self.screen_route_map[screen_1.screen_name] = {}
+            route_map[screen_1.screen_name] = {}
             for screen_2 in self.screen_info_list:
-                self.screen_route_map[screen_1.screen_name][screen_2.screen_name] = ScreenRoute(
+                route_map[screen_1.screen_name][screen_2.screen_name] = ScreenRoute(
                     from_screen=screen_1.screen_name,
                     to_screen=screen_2.screen_name
                 )
@@ -721,9 +763,9 @@ class ScreenContext:
         for screen_info in self.screen_info_list:
             for area in screen_info.area_list:
                 goto_list = area.goto_list
-                if not isinstance(goto_list, (list, tuple)) or len(goto_list) == 0:
+                if not isinstance(goto_list, list | tuple) or len(goto_list) == 0:
                     continue
-                from_screen_route = self.screen_route_map[screen_info.screen_name]
+                from_screen_route = route_map[screen_info.screen_name]
                 if from_screen_route is None:
                     log.error('画面路径没有初始化 %s', screen_info.screen_name)
                     continue
@@ -750,7 +792,7 @@ class ScreenContext:
                     continue
                 screen_i = self.screen_info_list[i]
 
-                route_ik: ScreenRoute = self.screen_route_map[screen_i.screen_name][screen_k.screen_name]
+                route_ik: ScreenRoute = route_map[screen_i.screen_name][screen_k.screen_name]
                 if not route_ik.can_go:  # 无法从 i 到 k
                     continue
 
@@ -759,11 +801,11 @@ class ScreenContext:
                         continue
                     screen_j = self.screen_info_list[j]
 
-                    route_kj: ScreenRoute = self.screen_route_map[screen_k.screen_name][screen_j.screen_name]
+                    route_kj: ScreenRoute = route_map[screen_k.screen_name][screen_j.screen_name]
                     if not route_kj.can_go:  # 无法从 k 到 j
                         continue
 
-                    route_ij: ScreenRoute = self.screen_route_map[screen_i.screen_name][screen_j.screen_name]
+                    route_ij: ScreenRoute = route_map[screen_i.screen_name][screen_j.screen_name]
 
                     if (not route_ij.can_go  # 当前无法从 i 到 j
                         or len(route_ik.node_list) + len(route_kj.node_list) < len(route_ij.node_list)  # 新的更短
@@ -773,6 +815,8 @@ class ScreenContext:
                             route_ij.node_list.append(node_ik)
                         for node_kj in route_kj.node_list:
                             route_ij.node_list.append(node_kj)
+
+        self.screen_route_map = route_map
 
     def get_screen_route(self, from_screen: str, to_screen: str) -> ScreenRoute | None:
         """
