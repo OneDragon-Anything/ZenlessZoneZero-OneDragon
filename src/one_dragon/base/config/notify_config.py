@@ -19,7 +19,7 @@ class NotifyLevel:
 class NotifyLifecycleMode(Enum):
     """应用生命周期通知模式。"""
 
-    OFF = ConfigItem(label='关闭', value='off', desc='不发送开始和结束通知')
+    OFF = ConfigItem(label='不通知', value='off', desc='不发送开始和结束通知')
     FINISH_ONLY = ConfigItem(label='仅结束', value='finish_only', desc='应用完成后发送通知')
     START_AND_FINISH = ConfigItem(label='开始和结束', value='start_and_finish', desc='应用开始和完成时发送通知')
 
@@ -27,7 +27,7 @@ class NotifyLifecycleMode(Enum):
 class NotifyDetailMode(Enum):
     """节点细节通知模式。"""
 
-    OFF = ConfigItem(label='关闭', value='off', desc='不发送节点细节通知')
+    OFF = ConfigItem(label='不通知', value='off', desc='不发送节点细节通知')
     ERROR_ONLY = ConfigItem(label='仅失败', value='error_only', desc='只在节点失败时立即通知')
     ALL = ConfigItem(label='逐条', value='all', desc='每个标记节点完成后立即通知')
     MERGE = ConfigItem(label='合并', value='merge', desc='应用结束时合并发送节点细节')

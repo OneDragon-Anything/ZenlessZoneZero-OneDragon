@@ -12,7 +12,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import gt, gt_compound
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -246,7 +246,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         self.existed_yml_btn.clear()
         config_list: list[HollowZeroChallengeConfig] = get_all_hollow_zero_challenge_config()
         for config in config_list:
-            self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
+            self.existed_yml_btn.addItem(text=gt_compound(config.module_name), icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)
         self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.blockSignals(False)
@@ -388,10 +388,11 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         self._update_pathfinding_input_display()
 
     def _update_error_message(self, msg: str) -> None:
+        """显示错误信息 内容为空时隐藏"""
         if msg is None or len(msg) == 0:
             self.error_message.setVisible(False)
         else:
-            self.error_message.setText(msg)
+            self.error_message.setText(gt(msg))
             self.error_message.setVisible(True)
 
     def _on_resonium_priority_changed(self) -> None:

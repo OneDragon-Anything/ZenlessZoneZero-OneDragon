@@ -64,6 +64,7 @@ class SettingCardBase(SettingCard):
     def setContent(self, content: str):
         """设置卡片内容"""
         if content is not None:
+            content = gt(content)
             # 使用fontMetrics来计算文字是否超出最大宽度，如果超出则添加省略号
             font_metrics = self.contentLabel.fontMetrics()
             max_width = self.contentLabel.maximumWidth()
