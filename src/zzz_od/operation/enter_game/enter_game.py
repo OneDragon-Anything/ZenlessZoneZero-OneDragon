@@ -105,7 +105,7 @@ class EnterGame(ZOperation):
         # self.screenshot()
         # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
 
-        if (self.ctx.game_account_config.use_history_login
+        if (self.force_login and not self.already_login and self.ctx.game_account_config.use_history_login
                 and normalize_phone_number(self.ctx.game_account_config.account) is None):
             return self.round_fail('请在账号栏填写真实的中国大陆 11 位手机号，支持 +86 前缀')
         if self.last_screenshot is None:

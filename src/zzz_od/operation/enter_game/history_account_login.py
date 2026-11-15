@@ -3,7 +3,7 @@
 import re
 import time
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -22,6 +22,7 @@ from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
+    from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
     from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
     from zzz_od.context.zzz_context import ZContext
 
@@ -56,14 +57,14 @@ def phone_label_matches(label: str, phone: str) -> bool:
 
 def phone_labels_agree(first: str, second: str) -> bool:
     """比较两次 OCR 的可见数字是否矛盾，避免放大后误读数字而选错账号。"""
-    if '*' not in first:
-        return phone_label_matches(second, first)
-    if '*' not in second:
-        return phone_label_matches(first, second)
-    prefix_a, suffix_a = first.split('*')
-    prefix_b, suffix_b = second.split('*')
-    return ((prefix_a.startswith(prefix_b) or prefix_b.startswith(prefix_a))
-            and (suffix_a.endswith(suffix_b) or suffix_b.endswith(suffix_a)))
+    positions: list[dict[int, str]] = []
+    for label in (first, second):
+        prefix, separator, suffix = label.partition('*')
+        visible: dict[int, str] = dict(enumerate(prefix))
+        if separator:
+            visible.update({11 - len(suffix) + index: digit for index, digit in enumerate(suffix)})
+        positions.append(visible)
+    return all(positions[1].get(index, digit) == digit for index, digit in positions[0].items())
 
 
 @dataclass
@@ -80,6 +81,7 @@ class PhoneReadResult:
 
     candidates: list[PhoneCandidate]
     unreadable: bool
+    unreadable_rows: list[int] = field(default_factory=list)
 
 
 def read_phone_candidates(
@@ -106,28 +108,54 @@ def read_phone_candidates(
         else:
             row.append(fragment)
     candidates: list[PhoneCandidate] = []
-    unreadable = False
+    unreadable_rows: list[int] = []
     for row in rows:
         text = ''.join(item[0] for item in sorted(row, key=lambda item: item[1]))
         if re.fullmatch(r'\s*(?:刚刚|[0-9０-９]+\s*(?:秒|分钟|小时|天|周|个月|月|年)前)\s*', text):
             continue
         label = normalize_phone_label(text)
         if label is None:
-            # 没有形成完整号码的数字或遮挡符号需要重读，不猜测缺失部分。
-            if re.search(r'[0-9０-９]{3}|[*＊•·●×✱∗﹡]', text):
-                unreadable = True
+            # 仅明确的时间行可以跳过，其他行可能是识别失败的另一个账号。
+            unreadable_rows.append(int(y1 + row[0][2] + row[0][4] / 2))
             continue
         left = min(item[1] for item in row)
         right = max(item[1] + item[3] for item in row)
         top = min(item[2] for item in row)
         bottom = max(item[2] + item[4] for item in row)
         candidates.append(PhoneCandidate(label, Point(x1 + (left + right) / 2, y1 + (top + bottom) / 2)))
-    return PhoneReadResult(candidates, unreadable or not candidates)
+    return PhoneReadResult(candidates, bool(unreadable_rows) or not candidates, unreadable_rows)
 
 
 def normalize_login_text(text: str) -> str:
     """界面文字只统一空白、冒号及登录异体写法，不使用子序列相似度。"""
     return re.sub(r'[\s:：]', '', unicodedata.normalize('NFKC', text)).replace('登陆', '登录')
+
+
+def has_complete_ocr_text(results: list['OcrMatchResult'], target: str) -> bool:
+    """兼容整句及同一行相邻分片，始终要求完整文字相等，不跨行拼接。"""
+    target = normalize_login_text(target)
+    if any(normalize_login_text(result.data) == target for result in results):
+        return True
+    rows: list[list[OcrMatchResult]] = []
+    for result in sorted(results, key=lambda item: (item.center.y, item.x)):
+        row = next((items for items in rows if abs(items[0].center.y - result.center.y) <= 12), None)
+        if row is None:
+            rows.append([result])
+        else:
+            row.append(result)
+    for row in rows:
+        fragments: list[str] = []
+        previous_right: int | None = None
+        for result in sorted(row, key=lambda item: item.x):
+            if previous_right is not None and result.x - previous_right > 32:
+                if ''.join(fragments) == target:
+                    return True
+                fragments = []
+            fragments.append(normalize_login_text(result.data))
+            previous_right = result.x + result.w
+        if ''.join(fragments) == target:
+            return True
+    return False
 
 
 def has_exact_login_text(ctx: 'ZContext', screen: MatLike, area_name: str) -> bool:
@@ -144,7 +172,7 @@ def has_exact_login_text(ctx: 'ZContext', screen: MatLike, area_name: str) -> bo
     results = ctx.ocr_service.get_ocr_result_list(
         image=screen, rect=rect, color_range=area.color_range, crop_first=True,
     )
-    return any(normalize_login_text(result.data) == target for result in results)
+    return has_complete_ocr_text(results, target)
 
 
 def is_startup_warning(ctx: 'ZContext', screen: MatLike) -> bool:
@@ -152,7 +180,7 @@ def is_startup_warning(ctx: 'ZContext', screen: MatLike) -> bool:
     results = ctx.ocr_service.get_ocr_result_list(
         image=screen, rect=Rect(800, 350, 1120, 430), crop_first=True,
     )
-    return any(normalize_login_text(result.data) == '警告游戏前详阅' for result in results)
+    return has_complete_ocr_text(results, '警告游戏前详阅')
 
 
 class CnEntryPhase(Enum):
@@ -270,6 +298,10 @@ class HistoryAccountLogin(Operation):
             for second in enlarged.candidates:
                 if abs(first.center.y - second.center.y) <= 12 and not phone_labels_agree(first.label, second.label):
                     return PhoneReadResult(enlarged.candidates, unreadable=True)
+        if any(not any(abs(y - item.center.y) <= 12 for item in enlarged.candidates)
+               for y in original.unreadable_rows):
+            # 放大后漏掉原来的模糊行，不能把剩余目标当作唯一候选。
+            return PhoneReadResult(enlarged.candidates, unreadable=True)
         if not enlarged.unreadable:
             return enlarged
         return original if not original.unreadable else enlarged
