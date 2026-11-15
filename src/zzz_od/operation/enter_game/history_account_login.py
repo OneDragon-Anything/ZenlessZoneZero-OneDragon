@@ -298,9 +298,10 @@ class HistoryAccountLogin(Operation):
             for second in enlarged.candidates:
                 if abs(first.center.y - second.center.y) <= 12 and not phone_labels_agree(first.label, second.label):
                     return PhoneReadResult(enlarged.candidates, unreadable=True)
+        original_rows: list[int] = [item.center.y for item in original.candidates] + original.unreadable_rows
         if any(not any(abs(y - item.center.y) <= 12 for item in enlarged.candidates)
-               for y in original.unreadable_rows):
-            # 放大后漏掉原来的模糊行，不能把剩余目标当作唯一候选。
+               for y in original_rows):
+            # 放大后漏掉原来的候选或模糊行，不能把剩余目标当作唯一候选。
             return PhoneReadResult(enlarged.candidates, unreadable=True)
         if not enlarged.unreadable:
             return enlarged
