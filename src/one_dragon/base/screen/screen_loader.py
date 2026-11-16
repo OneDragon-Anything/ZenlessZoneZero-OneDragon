@@ -104,19 +104,20 @@ class ScreenContext:
         sources: dict[Path, str] = {}
         if self._extra_screen_source is not None:
             try:
-                callback_sources = list(self._extra_screen_source())
+                callback_sources: dict[Path, str] = {}
+                for dir_path, default_app_id in self._extra_screen_source():
+                    key = Path(dir_path).resolve()
+                    if key in callback_sources and callback_sources[key] != default_app_id:
+                        log.warning(
+                            f"插件画面来源 app_id 不一致，使用回调值: {key} "
+                            f"{callback_sources[key]} -> {default_app_id}"
+                        )
+                    callback_sources[key] = default_app_id
             except Exception:
-                # 回调失败不能拖垮主配置：交给调用方保留上一轮插件层
+                # 回调失败（含返回了坏条目）不能拖垮主配置：交给调用方保留上一轮插件层
                 log.error('插件画面来源回调失败，保留现有插件画面', exc_info=True)
                 raise _ExtraSourceError() from None
-            for dir_path, default_app_id in callback_sources:
-                key = Path(dir_path).resolve()
-                if key in sources and sources[key] != default_app_id:
-                    log.warning(
-                        f"插件画面来源 app_id 不一致，使用回调值: {key} "
-                        f"{sources[key]} -> {default_app_id}"
-                    )
-                sources[key] = default_app_id
+            sources.update(callback_sources)
         for dir_path, default_app_id in self._manual_extra_screen_dirs.items():
             key = Path(dir_path).resolve()
             if key in sources:
@@ -432,6 +433,9 @@ class ScreenContext:
         }
         try:
             extras, extra_paths = self._build_extras(base, self._collect_extra_sources())
+        except _ExtraSourceError:
+            # 回调失败的堆栈已在 _collect_extra_sources 里记过，这里不重复打
+            return False
         except Exception:
             log.error('插件画面重建失败，保留原状态', exc_info=True)
             return False
@@ -571,6 +575,15 @@ class ScreenContext:
                     log.error(f"新配置已保存，旧文件删除失败: {old_file_path}", exc_info=True)
                     screen_info.old_screen_id = screen_info.screen_id
                     return False
+        elif renamed:
+            # 只改了 id 大小写：save() 覆盖写入后磁盘文件名仍是旧大小写，
+            # 改成新大小写，免得别的平台上按新 id 找不到文件、留下孤儿文件。
+            old_file_path = self.get_yml_file_path(old_screen_id)
+            try:
+                if old_file_path.exists() and old_file_path.name != target_file_path.name:
+                    os.replace(old_file_path, target_file_path)
+            except OSError:
+                log.warning(f"画面文件大小写未能同步，保留原文件名: {old_file_path}", exc_info=True)
         screen_info.old_screen_id = screen_info.screen_id
         return True
 
