@@ -1,13 +1,15 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
-from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import SuibianTempleAutoManage
+from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import (
+    SuibianTempleAutoManage,
+)
 from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
     SuibianTempleBooBox,
 )
@@ -64,7 +66,7 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='前往随便观', timeout_seconds=60, node_max_retry_times=999)
+    @operation_node(name='前往随便观', timeout_seconds=60)
     def goto_suibian_temple(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '前往随便观',

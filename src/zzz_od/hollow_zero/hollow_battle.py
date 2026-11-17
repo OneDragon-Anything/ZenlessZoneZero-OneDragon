@@ -1,5 +1,5 @@
 import time
-from typing import Optional, ClassVar
+from typing import ClassVar
 
 from cv2.typing import MatLike
 
@@ -10,9 +10,12 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import (
+    WitheredDomainRunRecord,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
+from zzz_od.operation.battle.battle_loading import BATTLE_LOADING_TIMEOUT
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -34,7 +37,7 @@ class HollowBattle(ZOperation):
             op_name=gt(event_name, 'game')
         )
 
-        self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: WitheredDomainRunRecord | None = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=self.ctx.withered_domain.app_id,
         )
@@ -42,13 +45,13 @@ class HollowBattle(ZOperation):
         self.is_critical_stage: bool = is_critical_stage  # 是否关键进展
         self.move_times: int = 0  # 向前移动的次数
         self.turn_times: int = 0  # 转动的次数
-        self.last_distance: Optional[float] = None  # 上次移动前的距离
-        self.last_stuck_distance: Optional[float] = None  # 上次受困显示的距离
+        self.last_distance: float | None = None  # 上次移动前的距离
+        self.last_stuck_distance: float | None = None  # 上次受困显示的距离
         self.stuck_move_direction: int = 0  # 受困时移动的方向
-        self.last_distance_to_turn: Optional[float] = None  # 上次转向的距离
+        self.last_distance_to_turn: float | None = None  # 上次转向的距离
 
     def handle_init(self):
-        self.distance_pos: Optional[Rect] = None  # 显示距离的区域
+        self.distance_pos: Rect | None = None  # 显示距离的区域
 
     @operation_node(name='加载自动战斗指令', is_start_node=True)
     def load_auto_op(self) -> OperationRoundResult:
@@ -59,7 +62,7 @@ class HollowBattle(ZOperation):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
+    @operation_node(name='等待战斗画面加载', timeout_seconds=BATTLE_LOADING_TIMEOUT)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
         return result
@@ -140,7 +143,7 @@ class HollowBattle(ZOperation):
             return self.round_wait(wait=0.5)
 
     def _get_rid_of_stuck(self):
-        log.info('本次脱困方向 %s' % self.stuck_move_direction)
+        log.info('本次脱困方向 %s', self.stuck_move_direction)
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
         elif self.stuck_move_direction == 1:  # 向右走

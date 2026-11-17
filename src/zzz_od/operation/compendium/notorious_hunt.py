@@ -25,6 +25,7 @@ from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
     NotoriousHuntRunRecord,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.battle.battle_loading import BATTLE_LOADING_TIMEOUT
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
@@ -331,7 +332,7 @@ class NotoriousHunt(ZOperation):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='等待战斗画面加载', node_max_retry_times=60, is_start_node=False)
+    @operation_node(name='等待战斗画面加载', timeout_seconds=BATTLE_LOADING_TIMEOUT, is_start_node=False)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:

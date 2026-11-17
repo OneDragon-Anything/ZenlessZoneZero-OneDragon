@@ -93,6 +93,13 @@ class SettingGameInterface(VerticalScrollInterface):
                                                  options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
 
+        self.battle_loading_timeout_opt = SpinBoxSettingCard(
+            icon=FluentIcon.STOP_WATCH, title='战斗加载等待上限（秒）',
+            content='进入战斗时等待画面加载的最长时间，游戏加载较慢（如机械硬盘）时可调大，加载完成后会立即继续',
+            minimum=30, maximum=600, step=10,
+        )
+        basic_group.addSettingCard(self.battle_loading_timeout_opt)
+
         basic_group.addSettingCard(self._get_background_mode_group())
 
         self.hdr_btn_enable = PushButton(text=gt('启用 HDR'), icon=FluentIcon.SETTING, parent=self)
@@ -317,6 +324,8 @@ class SettingGameInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+
+        self.battle_loading_timeout_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('battle_loading_timeout'))
 
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
