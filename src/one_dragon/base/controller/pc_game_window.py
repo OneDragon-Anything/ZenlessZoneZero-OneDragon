@@ -116,8 +116,13 @@ class PcGameWindow:
 
     def active(self) -> bool:
         """
-        显示并激活当前窗口
-        :return:
+        显示并激活当前窗口。
+
+        activate() 不抛异常不等于窗口真的拿到前台焦点（前台锁、系统弹窗都会让调用返回成功但窗口没上来），
+        所以每次 activate 之后都用 is_win_active 复核；复核不过时最小化再恢复重试一次，仍失败就返回 False，
+        由调用方决定重试还是报错，避免"激活失败但上层以为成功"。
+
+        :return: 窗口是否成为前台窗口
         """
         win = self.get_win()
         if win is None:
@@ -126,9 +131,8 @@ class PcGameWindow:
             return True
 
         try:
-            win.restore()
-            win.activate()
-            return True
+            if self._activate_and_check(win):
+                return True
         except Exception as error:
             if getattr(error, 'args', None) and '1400' in str(error.args[0]):
                 log.warning('无效的窗口句柄，尝试重置窗口')
@@ -138,19 +142,26 @@ class PcGameWindow:
                 log.error('激活窗口失败', exc_info=True)
                 return False
 
-            try:
-                # 直接 activate 偶发失败，最小化再恢复可提高成功率
-                win.minimize()
-                win.restore()
-                win.activate()
+        try:
+            # 直接 activate 偶发失败，最小化再恢复可提高成功率
+            win.minimize()
+            if self._activate_and_check(win):
                 return True
-            except Exception as fallback_error:
-                if getattr(fallback_error, 'args', None) and '1400' in str(fallback_error.args[0]):
-                    log.warning('无效的窗口句柄，尝试重置窗口')
-                    self._reset_cached_window()
-                    return False
-                log.error('切换到游戏窗口失败', exc_info=True)
+            log.warning('游戏窗口激活后仍未获得前台焦点')
+            return False
+        except Exception as fallback_error:
+            if getattr(fallback_error, 'args', None) and '1400' in str(fallback_error.args[0]):
+                log.warning('无效的窗口句柄，尝试重置窗口')
+                self._reset_cached_window()
                 return False
+            log.error('切换到游戏窗口失败', exc_info=True)
+            return False
+
+    def _activate_and_check(self, win: Win32Window) -> bool:
+        """恢复并激活窗口，然后复核是否真的成为前台窗口。"""
+        win.restore()
+        win.activate()
+        return self.is_win_active
 
     @property
     def win_rect(self) -> Rect | None:
