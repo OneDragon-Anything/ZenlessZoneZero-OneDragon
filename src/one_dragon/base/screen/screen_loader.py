@@ -494,8 +494,16 @@ class ScreenContext:
 
     @staticmethod
     def _is_same_path(path_1: Path, path_2: Path) -> bool:
-        """两个路径是否指向同一个文件（Windows 上忽略大小写）。"""
-        return os.path.normcase(str(path_1)) == os.path.normcase(str(path_2))
+        """两个路径是否指向磁盘上的同一个文件。
+
+        以磁盘为准，不只比字符串：目录开了「区分大小写」（WSL 建的目录、
+        fsutil file setCaseSensitiveInfo）时，foo.yml 与 Foo.yml 是两个文件，
+        按字符串判同一会在改名时用旧内容覆盖新内容。任一方不存在则不是同一个文件。
+        """
+        try:
+            return path_1.exists() and path_2.exists() and os.path.samefile(path_1, path_2)
+        except OSError:
+            return False
 
     def save_screen(self, screen_info: ScreenInfo) -> bool:
         """保存画面。
@@ -578,6 +586,8 @@ class ScreenContext:
         elif renamed:
             # 只改了 id 大小写：save() 覆盖写入后磁盘文件名仍是旧大小写，
             # 改成新大小写，免得别的平台上按新 id 找不到文件、留下孤儿文件。
+            # 注意：仓库里 core.ignorecase=true 时 git 看不到这个改名，
+            # 随仓库分发的画面需要手动 git mv 才能让索引里的文件名跟着变。
             old_file_path = self.get_yml_file_path(old_screen_id)
             try:
                 if old_file_path.exists() and old_file_path.name != target_file_path.name:

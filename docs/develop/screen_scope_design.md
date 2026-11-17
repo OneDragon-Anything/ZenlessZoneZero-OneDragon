@@ -217,7 +217,14 @@ refresh_application_registration()           ← 运行时安装/卸载/更新�
 - 手工注入（bagel `ensure_screens`）走 `load_extra_screen_dir()`，写
   `_manual_extra_screen_dirs`；`unload_extra_screens()` 只清手工表，回调提供的目录下次重建会回来。
 - 派生表 `_extra_screen_ids`（画面 id）与 `_extra_screen_paths`（id → yml）：
-  每次 `_load_extras()` 全量重建，任何分支不手改。
+  每次 `_load_extras()` 全量重建。唯一的例外是 devtools 保存/删除插件画面：
+  `_save_extra_screen()` 与 `_drop_screen()` 会在写/删文件成功后同步改这两张表，
+  使 `from_memory` 重载不必重读插件目录；下一次完整重建仍以磁盘为准。
+- 来源回调失败（抛错或返回坏条目）时：`reload()` 照常更新主配置，插件画面**沿用当前内存里的**
+  （与新主配置同名/同 id 的丢弃）；`reload_extra_screens()` 返回 False 并保留原状态。
+- 保存画面只改 id 大小写：以磁盘上是否同一个文件判断（区分大小写的目录里是两个文件，
+  按正常改名处理）。同一文件时不算「目标被占用」、不删旧文件，并把磁盘文件名同步成新大小写；
+  仓库里 `core.ignorecase=true` 时 git 看不到这个改名，随仓库分发的画面需手动 `git mv`。
 - 重建是「先构建、成功后整体替换」：`_build_base()` / `_build_extras()` 只读文件或内存，
   构建失败（base YAML/ScreenInfo 抛错等）时保留原状态并返回失败；成功后 `_apply_state()`
   一次性替换四张内存表、两张派生表并重建路由/global/scope。
