@@ -162,6 +162,20 @@ class SettingGameInterface(VerticalScrollInterface):
         self.overlay_anti_capture_switch.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_anti_capture_switch)
 
+        self.overlay_mask_uid_switch = SwitchSettingCard(
+            icon=FluentIcon.HIDE, title='遮挡 UID',
+            content='在 normal/debug 模式下遮挡右下角 UID（对齐截图工具打码）',
+        )
+        self.overlay_mask_uid_switch.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_mask_uid_switch)
+
+        self.overlay_mask_recordable_switch = SwitchSettingCard(
+            icon=FluentIcon.VIDEO, title='UID 遮罩与游戏同层录制',
+            content='允许录屏/推流软件捕获 UID 遮罩块（解除遮罩防录屏），避免录屏时暴露 UID；调试面板仍保持防录屏（适用于显示器采集/桌面录屏；OBS 窗口采集仅捕获游戏本体，需额外添加遮挡源）',
+        )
+        self.overlay_mask_recordable_switch.value_changed.connect(self._on_overlay_appearance_changed)
+        overlay_group.addSettingCard(self.overlay_mask_recordable_switch)
+
         self.overlay_theme_color_card = PushSettingCard(
             icon=FluentIcon.PALETTE, title='主题色', text='选择颜色',
             content='标题条与状态行流光使用的颜色',
@@ -342,6 +356,8 @@ class SettingGameInterface(VerticalScrollInterface):
         self.overlay_font_size_opt.init_with_adapter(overlay_config.get_prop_adapter('hud_font_size'))
         self.overlay_font_bold_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_font_bold'))
         self.overlay_anti_capture_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_anti_capture'))
+        self.overlay_mask_uid_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_mask_uid'))
+        self.overlay_mask_recordable_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_mask_recordable'))
         self.overlay_theme_color_card.button.setText(overlay_config.hud_theme_color)
 
         for action, card in self._key_cards.items():
