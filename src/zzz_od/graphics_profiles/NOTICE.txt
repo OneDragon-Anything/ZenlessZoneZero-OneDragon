@@ -1,0 +1,3 @@
+Sleepy文件编解码来自 SpectrumQT/XXMI-Launcher，GPL-3.0。
+源提交：703cb76f26f6e5406c7acb300fcc3a6586e9acc8
+仅使用文件编解码，不包含注入器或mod运行时。
