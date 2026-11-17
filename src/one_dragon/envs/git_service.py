@@ -33,6 +33,7 @@ from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
+from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.repo_config import RepoConfig, RepositoryItem
 from one_dragon.envs.runtime_compatibility import (
     check_manifest_compatible,
@@ -566,9 +567,13 @@ class GitService:
         env_config: EnvConfig,
         repo_config: RepoConfig,
         repo_dir: str | None = None,
+        gh_proxy_service: GhProxyService | None = None,
     ) -> None:
         self.env_config: EnvConfig = env_config
         self.repo_config: RepoConfig = repo_config
+        self.gh_proxy_service: GhProxyService = (
+            gh_proxy_service if gh_proxy_service is not None else GhProxyService(env_config, repo_config)
+        )
 
         if repo_dir:
             if not Path(repo_dir).is_absolute():
@@ -673,6 +678,26 @@ class GitService:
             repository_url = self._get_repository_url(repository)
             if repository_url:
                 candidates.append((repository, repository_url))
+        return candidates
+
+    def _get_fetch_candidates(self) -> list[tuple[RepositoryItem, str]]:
+        """按候选代码源展开拉取地址，启用 ghproxy 的源每条代理线路各占一项。
+
+        每条线路在一次拉取中只出现一次，前一条失败就换下一条，全失败才结束。
+
+        Returns:
+            由（代码源, 拉取地址）组成的列表。
+        """
+        candidates: list[tuple[RepositoryItem, str]] = []
+        proxy_urls = (
+            self.gh_proxy_service.get_candidate_urls() if self.env_config.is_gh_proxy else []
+        )
+        for repository, repository_url in self._get_repository_candidates():
+            if repository.use_proxy and proxy_urls:
+                for proxy_url in proxy_urls:
+                    candidates.append((repository, f'{proxy_url}/{repository.url}'))
+                continue
+            candidates.append((repository, repository_url))
         return candidates
 
     def _get_git_repository(self) -> str:
@@ -1212,15 +1237,16 @@ class GitService:
         stage_end: float = 1.0,
         tag_name: str | None = None,
     ) -> tuple[GitSyncStatus, str]:
-        """按候选代码源顺序拉取远程代码，失败后自动回退。"""
+        """按候选代码源和代理线路顺序拉取远程代码，失败后自动回退。"""
         log.info(gt('拉取远程代码...'))
         success = False
         used_repository: RepositoryItem | None = None
+        used_repository_url: str | None = None
         local_repository_damaged = False
         source_errors: list[str] = []
 
         try:
-            for repository, repository_url in self._get_repository_candidates():
+            for repository, repository_url in self._get_fetch_candidates():
                 repository_name = self._get_repository_item(repository).ui_text
                 log.info(f'尝试代码源: {repository_name}')
                 if progress_callback is not None:
@@ -1235,6 +1261,7 @@ class GitService:
                     )
                     success = True
                     used_repository = repository
+                    used_repository_url = repository_url
                     break
                 except _LocalGitMetadataError:
                     local_repository_damaged = True
@@ -1272,6 +1299,13 @@ class GitService:
                 self.env_config.last_repository_url = used_repository.url
             except Exception:
                 log.warning('记录上次成功代码源失败', exc_info=True)
+            if used_repository_url is not None and self.env_config.is_gh_proxy:
+                try:
+                    proxy_url = self.gh_proxy_service.remember_success_by_url(used_repository_url)
+                    if proxy_url is not None:
+                        log.info(f'记录可用 GitHub 代理线路 {proxy_url}')
+                except Exception:
+                    log.warning('记录可用 GitHub 代理线路失败', exc_info=True)
 
         used_repository_name = self._get_repository_item(used_repository).ui_text if used_repository else ''
         log.info(f'远程代码拉取成功，实际代码源: {used_repository_name}')
@@ -1842,7 +1876,7 @@ class GitService:
 
         heads = None
         try:
-            for repository, repository_url in self._get_repository_candidates():
+            for repository, repository_url in self._get_fetch_candidates():
                 repository_name = self._get_repository_item(repository).ui_text
                 try:
                     remote = self._ensure_remote(repository_url)
@@ -1850,6 +1884,11 @@ class GitService:
                     with self._temporary_fetch_timeout():
                         heads = remote.list_heads(callbacks=callbacks, proxy=self._get_proxy_address())
                     log.info(f'标签查询使用代码源: {repository_name}')
+                    if self.env_config.is_gh_proxy:
+                        try:
+                            self.gh_proxy_service.remember_success_by_url(repository_url)
+                        except Exception:
+                            log.warning(f'记录 GitHub 代理线路失败 {repository_url}', exc_info=True)
                     break
                 except Exception:
                     log.warning(f'代码源 {repository_name} 获取标签失败，尝试下一个代码源', exc_info=True)

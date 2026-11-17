@@ -3,7 +3,7 @@ import threading
 import time
 from collections.abc import Callable
 from logging import DEBUG
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cv2.typing import MatLike
 
@@ -22,6 +22,9 @@ from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.utils import os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.envs.ghproxy_service import GhProxyService
 
 DEFAULT_OCR_MODEL_NAME: str = 'ppocrv6'
 PPOCRV6_MODEL_NAME: str = 'ppocrv6'
@@ -175,6 +178,20 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._model = None
         self._init_lock = threading.Lock()
         self._loading: bool = False
+        self._gh_proxy_service: GhProxyService | None = None
+        """首次显式初始化时传入的代理服务，后续懒加载沿用它。"""
+        self._source_order: list[str] | None = None
+        """初始化时记下的资源源顺序 懒加载时仍按它下载。"""
+        self._proxy_url: str | None = None
+        """初始化时记下的个人代理地址。"""
+        self._ghproxy_url: str | None = None
+        """初始化时记下的 ghproxy 地址。"""
+        self._on_source_success: Callable[[str], None] | None = None
+        """初始化时记下的源成功回调。"""
+        self._on_source_failure: Callable[[str], None] | None = None
+        """初始化时记下的源失败回调。"""
+        self._fallback_on_slow: bool = False
+        """初始化时记下的低速换源开关。"""
 
     @staticmethod
     def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
@@ -207,11 +224,44 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         except Exception:
             return None
 
+    def set_download_options(
+            self,
+            source_order: list[str] | None = None,
+            proxy_url: str | None = None,
+            ghproxy_url: str | None = None,
+            gh_proxy_service: "GhProxyService | None" = None,
+            on_source_success: Callable[[str], None] | None = None,
+            on_source_failure: Callable[[str], None] | None = None,
+            fallback_on_slow: bool = False,
+            ) -> None:
+        """记下这次初始化用的下载设置。
+
+        用户取消下载后模型是懒加载的，那时 `ocr()` / `run_ocr()` 调 `init_model()`
+        不会再传参数，所以要在这里把代理和源设置留下来。
+
+        Args:
+            source_order: 资源源候选顺序。
+            proxy_url: 个人代理地址。
+            ghproxy_url: ghproxy 代理地址。
+            gh_proxy_service: GitHub 代理线路服务。
+            on_source_success: 源下载成功回调。
+            on_source_failure: 源下载失败回调。
+            fallback_on_slow: 是否在候选源持续低速时换源。
+        """
+        self._source_order = source_order
+        self._proxy_url = proxy_url
+        self._ghproxy_url = ghproxy_url
+        self._gh_proxy_service = gh_proxy_service
+        self._on_source_success = on_source_success
+        self._on_source_failure = on_source_failure
+        self._fallback_on_slow = fallback_on_slow
+
     def init_model(
             self,
             source_order: list[str] | None = None,
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
+            gh_proxy_service: "GhProxyService | None" = None,
             skip_if_existed: bool = True,
             progress_callback: Callable[[float, str], None] | None = None,
             on_source_success: Callable[[str], None] | None = None,
@@ -225,11 +275,27 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 log.info('加载OCR模型完毕')
                 return True
 
+            # 懒加载时不一定再传一遍代理服务 记住显式传过的那份
+            if gh_proxy_service is not None:
+                self._gh_proxy_service = gh_proxy_service
+            elif self._gh_proxy_service is not None and not self._gh_proxy_service.env_config.is_gh_proxy:
+                # 用户已改成直连或个人代理 不再沿用过期的线路服务
+                self._gh_proxy_service = None
+
+            # 懒加载不带参数时 用初始化记下的下载设置
+            source_order = source_order if source_order is not None else self._source_order
+            proxy_url = proxy_url if proxy_url is not None else self._proxy_url
+            ghproxy_url = ghproxy_url if ghproxy_url is not None else self._ghproxy_url
+            on_source_success = on_source_success if on_source_success is not None else self._on_source_success
+            on_source_failure = on_source_failure if on_source_failure is not None else self._on_source_failure
+            fallback_on_slow = fallback_on_slow or self._fallback_on_slow
+
             # 先检查模型文件和下载模型
             done: bool = self.download(
                 source_order=source_order,
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
+                gh_proxy_service=self._gh_proxy_service,
                 skip_if_existed=skip_if_existed,
                 progress_callback=progress_callback,
                 on_source_success=on_source_success,

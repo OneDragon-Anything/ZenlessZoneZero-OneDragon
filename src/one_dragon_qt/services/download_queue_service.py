@@ -99,6 +99,7 @@ class DownloadTaskWorker(QThread):
                 source_order=self.task.spec.source_order or env_config.get_resource_source_order(),
                 proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
                 ghproxy_url=env_config.gh_proxy_url if env_config.is_gh_proxy else None,
+                gh_proxy_service=self.ctx.gh_proxy_service if env_config.is_gh_proxy else None,
                 skip_if_existed=False,
                 progress_signal=self.task.progress_signal,
                 status_callback=self.progress_changed.emit,

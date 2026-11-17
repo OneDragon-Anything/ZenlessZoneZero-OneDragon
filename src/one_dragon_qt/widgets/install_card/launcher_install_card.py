@@ -32,6 +32,7 @@ class LauncherInstallCard(BaseInstallCard):
             source_order=env_config.get_resource_source_order(),
             proxy_url=proxy_url,
             ghproxy_url=ghproxy_url,
+            gh_proxy_service=self.ctx.gh_proxy_service if env_config.is_gh_proxy else None,
             progress_callback=progress_callback,
             on_source_success=env_config.mark_resource_source_success,
             on_source_failure=env_config.mark_resource_source_failure,

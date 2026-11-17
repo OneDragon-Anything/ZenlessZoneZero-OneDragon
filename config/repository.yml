@@ -57,6 +57,25 @@ pip_source:
     alibaba:
       label: 阿里云
       value: "https://mirrors.aliyun.com/pypi/simple"
+gh_proxy:
+  # GitHub 代理候选线路，按顺序尝试。社区线路随时可能失效，所以内置多条并记录上次成功的一条
+  default: gh_proxy_com
+  options:
+    gh_proxy_com:
+      label: gh-proxy
+      value: "https://gh-proxy.com"
+    ghfast:
+      label: ghfast
+      value: "https://ghfast.top"
+    gh_proxy_net:
+      label: gh-proxy.net
+      value: "https://gh-proxy.net"
+    ghproxy_net:
+      label: ghproxy.net
+      value: "https://ghproxy.net"
+    ghproxy_cc:
+      label: ghproxy.cc
+      value: "https://ghproxy.cc"
 resource_download:
   default: github
   options:
