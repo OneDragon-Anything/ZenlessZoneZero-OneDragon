@@ -26,6 +26,9 @@ Window {
     // 左下角运行状态行（由 Python 注入）
     property string statusLine: ""
 
+    // 日志面板标题栏的快捷键提示（由 Python 注入）
+    property string hotkeyHint: ""
+
     // 自动战斗是否运行中（由 Python 注入，控制灵动岛流光动画）
     property bool isRunning: false
 
@@ -109,6 +112,7 @@ Window {
                     anchors.left: parent.left
                     anchors.leftMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
+                    id: logTitle
                     text: "日志"
                     color: "#0d0d0d"
                     font.pixelSize: Math.round(17 * root.fontScale)
@@ -116,14 +120,52 @@ Window {
                     font.family: root.zhFont
                 }
                 Text {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: logTitle.right
+                    anchors.leftMargin: 6
+                    anchors.baseline: logTitle.baseline
                     text: "LOG"
-                    color: "#0d0d0d"
+                    color: Qt.rgba(13 / 255, 13 / 255, 13 / 255, 0.55)
                     font.pixelSize: Math.round(12 * root.fontScale)
                     font.bold: root.fontBold
                     font.family: root.monoFont
+                }
+                // 快捷键按键块：hotkeyHint 格式 "键|动作;键|动作"
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
+                    Repeater {
+                        model: root.hotkeyHint.length > 0 ? root.hotkeyHint.split(";") : []
+                        Row {
+                            spacing: 4
+                            anchors.verticalCenter: parent.verticalCenter
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: keyText.implicitWidth + 12
+                                height: keyText.implicitHeight + 2
+                                radius: 4
+                                color: "#0d0d0d"
+                                Text {
+                                    id: keyText
+                                    anchors.centerIn: parent
+                                    text: modelData.split("|")[0]
+                                    color: root.themeColor
+                                    font.pixelSize: Math.round(12 * root.fontScale)
+                                    font.bold: root.fontBold
+                                    font.family: root.monoFont
+                                }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.split("|")[1]
+                                color: "#0d0d0d"
+                                font.pixelSize: Math.round(12 * root.fontScale)
+                                font.bold: root.fontBold
+                                font.family: root.zhFont
+                            }
+                        }
+                    }
                 }
             }
 

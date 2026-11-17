@@ -6,6 +6,7 @@
 - 详细编码规范：[docs/develop/spec/agent_guidelines.md](docs/develop/spec/agent_guidelines.md)
 - 一条龙整体架构：[docs/develop/one_dragon/one_dragon_architecture.md](docs/develop/one_dragon/one_dragon_architecture.md)
 - 应用插件开发指引：[docs/develop/guides/application_plugin_guide.md](docs/develop/guides/application_plugin_guide.md)
+- 新增 / 修改内置应用或第三方插件时，触发 `zzz-od-dev-plugin` skill：[skills/zzz-od-dev-plugin/SKILL.md](skills/zzz-od-dev-plugin/SKILL.md)
 - 应用设置界面开发指引：[docs/develop/guides/application_setting_guide.md](docs/develop/guides/application_setting_guide.md)
 
 ## 项目概述
