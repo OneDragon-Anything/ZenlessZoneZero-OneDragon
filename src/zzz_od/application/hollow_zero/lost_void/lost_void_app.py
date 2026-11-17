@@ -11,8 +11,9 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, log_utils, str_utils
+from one_dragon.utils import cal_utils, cv2_utils, log_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
@@ -28,7 +29,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level impo
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.agent_template_matcher import match_team_agent_template
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
@@ -280,7 +281,7 @@ class LostVoidApp(ZApplication):
         return self.round_retry(f'未找到{team_name}, 尝试向下滚动', wait=0.3)
 
     @node_from(from_name='矩阵行动-点击预备编队', status='手动选取角色')
-    @operation_node(name='矩阵行动-选择代理人')
+    @operation_node(name='矩阵行动-选择代理人', node_max_retry_times=5)
     def matrix_select_agent(self) -> OperationRoundResult:
         # 代理人列表
         agent_list_str = self.ctx.lost_void.challenge_config.team_info
@@ -340,7 +341,75 @@ class LostVoidApp(ZApplication):
             time.sleep(0.5)
             self.swipe_multiple_times(agent_area, agent_page_match_list[agent_loc][0], 0.1, 'up')
 
-        return self.round_success()
+        # 4. 校验主战编队 点完人后确认编队槽里是配置的代理人 防止点击没有生效还在报成功
+        time.sleep(0.5)
+        self.screenshot()
+        if self._verify_matrix_main_team(main_team_area, agent_list_str):
+            log.info('矩阵行动主战编队校验通过: %s', self._agent_id_list_to_name_str(agent_list_str))
+            return self.round_success()
+        else:
+            return self.round_retry('主战编队校验失败')
+
+    def _agent_id_list_to_name_str(self, agent_list_str: list[str]) -> str:
+        """把代理人id列表转成中文名字符串 日志给人看 不暴露内部id。"""
+        id_to_name: dict[str, str] = {agent_enum.value.agent_id: agent_enum.value.agent_name for agent_enum in AgentEnum}
+        return ' '.join(id_to_name.get(agent_id, agent_id) for agent_id in agent_list_str)
+
+    def _verify_matrix_main_team(self, main_team_area: ScreenArea, agent_list_str: list[str]) -> bool:
+        """校验主战编队槽里是否已经是配置的代理人。
+
+        主战编队槽固定 3 格（区域 605×137，单个头像 183×118，塞不下第 4 个），
+        配置的代理人数量也是 3，所以只要「配置的人都识别到了」编队就是对的。
+        万一多识别到别的头像（边缘残缺头像误匹配），只写警告不判失败，
+        免得把正确的编队判成失败、白白重试。
+
+        不通过时把槽内实际识别到的代理人写进日志 方便排查。
+        """
+        expected_ids: set[str] = set(agent_list_str)
+        actual_mr_list = self._match_matrix_main_team(main_team_area)
+        hit_ids: set[str] = {mr.data.agent_id for mr in actual_mr_list}
+
+        missing_ids = expected_ids - hit_ids
+        if len(missing_ids) == 0:
+            extra_ids = hit_ids - expected_ids
+            if len(extra_ids) > 0:
+                log.warning('矩阵行动主战编队校验: 配置的代理人都已就位, 但还识别到 [%s], 按误识别忽略',
+                            self._agent_id_list_to_name_str(sorted(extra_ids)))
+            return True
+
+        actual_str = ', '.join(
+            f'{mr.data.agent_name}(conf={mr.confidence:.2f})' for mr in actual_mr_list
+        ) if len(actual_mr_list) > 0 else '未识别到任何代理人头像'
+        log.error('主战编队校验失败: 期望 [%s], 实际识别到 [%s]',
+                  self._agent_id_list_to_name_str(agent_list_str), actual_str)
+        return False
+
+    def _match_matrix_main_team(self, main_team_area: ScreenArea) -> list[MatchResult]:
+        """识别主战编队槽里的全部代理人头像 并按位置去重。
+
+        同一个头像位置可能同时匹配到多个模板 按重叠度去重 保留置信度更高的那个
+        (与编队识别工具同一套处理 见 issue #1487)。
+        """
+        mr_list: list[MatchResult] = match_team_agent_template(
+            self.ctx, self.last_screenshot, main_team_area.rect, None
+        )
+        mr_list.sort(key=lambda x: x.left_top.x)
+
+        filter_mr_list: list[MatchResult] = []
+        for curr_mr in mr_list:
+            if len(filter_mr_list) == 0:
+                filter_mr_list.append(curr_mr)
+                continue
+
+            prev_mr = filter_mr_list[-1]
+            if cal_utils.cal_overlap_percent(curr_mr.rect, prev_mr.rect) < 0.7:
+                filter_mr_list.append(curr_mr)
+                continue
+
+            if curr_mr.confidence > prev_mr.confidence:
+                filter_mr_list[-1] = curr_mr
+
+        return filter_mr_list
 
     # 滑动x次 (滑慢点以免帧率低时可能出现的滑不到位)
     def swipe_multiple_times(self, area, swipe_num, wait, direction) -> None:
