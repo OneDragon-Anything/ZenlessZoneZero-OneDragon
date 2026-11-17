@@ -302,6 +302,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--repository-root', type=Path, default=Path('.'))
     parser.add_argument('--work-dir', type=Path, required=True)
+    parser.add_argument(
+        '--reuse-runtime',
+        action='store_true',
+        help='工作目录中已有解压好的发布包时直接复用，不再下载',
+    )
     args = parser.parse_args()
 
     token = os.environ.get('GITHUB_TOKEN', '')
@@ -311,16 +316,19 @@ def main() -> int:
     repository_root = args.repository_root.resolve()
     work_dir = args.work_dir.resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
-    tag, asset_url = _latest_stable_release(token)
-    _log(f'最新正式版：{tag}')
-
-    archive = work_dir / ASSET_NAME
-    _download(asset_url, archive, token)
     runtime_root = work_dir / 'runtime'
-    if runtime_root.exists():
-        shutil.rmtree(runtime_root)
-    with zipfile.ZipFile(archive) as package:
-        package.extractall(runtime_root)
+    if args.reuse_runtime and (runtime_root / '.runtime' / 'python311.dll').is_file():
+        _log('复用已解压的 RuntimeLauncher')
+    else:
+        tag, asset_url = _latest_stable_release(token)
+        _log(f'最新正式版：{tag}')
+
+        archive = work_dir / ASSET_NAME
+        _download(asset_url, archive, token)
+        if runtime_root.exists():
+            shutil.rmtree(runtime_root)
+        with zipfile.ZipFile(archive) as package:
+            package.extractall(runtime_root)
 
     target_manifest = work_dir / 'target_module_manifest.py'
     target_manifest.write_bytes(_target_manifest(repository_root))
