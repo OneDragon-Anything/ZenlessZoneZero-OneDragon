@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -21,17 +22,25 @@ class OpenGame(Operation):
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
-        """macOS 等待 PlayCover 启动游戏，Windows 启动游戏程序。"""
+        """macOS 启动配置的 .app 游戏应用，Windows 启动游戏程序。"""
+        if self.ctx.game_account_config.game_path == '':
+            return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
+        full_path = self.ctx.game_account_config.game_path
+
         if sys.platform == 'darwin':
-            log.info('请在 PlayCover 中启动绝区零，程序将等待游戏窗口出现')
+            app_path = Path(full_path)
+            for candidate in [app_path, *app_path.parents]:
+                if candidate.suffix.lower() == '.app':
+                    app_path = candidate
+                    break
+            if not app_path.exists():
+                return self.round_fail(f'游戏路径不存在: {app_path}')
+            log.info('尝试自动启动游戏 路径为 %s', app_path)
+            subprocess.Popen(['open', '-a', str(app_path)])
             return self.round_success(wait=5)
 
         hdr_op = DisableAutoHDR(self.ctx)
         hdr_op.execute()
-
-        if self.ctx.game_account_config.game_path == '':
-            return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
-        full_path = self.ctx.game_account_config.game_path
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)
         log.info('尝试自动启动游戏 路径为 %s', full_path)

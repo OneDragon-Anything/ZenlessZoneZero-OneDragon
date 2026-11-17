@@ -1,4 +1,5 @@
 import os
+import time
 
 import Quartz
 from AppKit import (
@@ -41,6 +42,20 @@ class MacGameWindowHandle:
         return bool(
             app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
         )
+
+    def close(self) -> None:
+        """关闭游戏窗口所属应用。"""
+        app = NSRunningApplication.runningApplicationWithProcessIdentifier_(
+            self.owner_pid
+        )
+        if app is None:
+            return
+        app.terminate()
+        for _ in range(10):
+            if app.isTerminated():
+                return
+            time.sleep(0.1)
+        app.forceTerminate()
 
 
 class MacPcGameWindow:
