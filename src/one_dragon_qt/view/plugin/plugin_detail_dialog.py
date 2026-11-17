@@ -41,6 +41,7 @@ ACTION_UPDATE = 'update'
 ACTION_IGNORE = 'ignore'
 ACTION_MUTE_UPDATE = 'mute_update'
 ACTION_UNMUTE_UPDATE = 'unmute_update'
+ACTION_CONFIG = 'config'
 
 DIALOG_WIDTH = 720
 DIALOG_HEIGHT = 560
