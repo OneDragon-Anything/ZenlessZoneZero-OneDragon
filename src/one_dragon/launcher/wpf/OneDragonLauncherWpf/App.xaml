@@ -1,0 +1,31 @@
+<Application x:Class="OneDragonLauncherWpf.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:appearance="clr-namespace:Wpf.Ui.Appearance;assembly=Wpf.Ui"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Light" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+            <SolidColorBrush x:Key="LauncherMutedBrush" Color="#5C5E68" />
+            <appearance:ApplicationTheme x:Key="LauncherTitleBarTheme">Light</appearance:ApplicationTheme>
+            <SolidColorBrush x:Key="LauncherLogBrush" Color="#F8F9FA" />
+            <SolidColorBrush x:Key="LauncherBorderBrush" Color="#12000000" />
+            <LinearGradientBrush x:Key="LauncherBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#EDF6FA" Offset="0" />
+                <GradientStop Color="#EAF7F9" Offset="0.6" />
+                <GradientStop Color="#F4F5EC" Offset="1" />
+            </LinearGradientBrush>
+            <Style x:Key="LauncherButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Height" Value="36" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="CornerRadius" Value="4" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
