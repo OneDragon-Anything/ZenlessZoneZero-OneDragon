@@ -137,7 +137,7 @@ class OperationDebugInterface(AppRunInterface):
                 self.ctx.battle_assistant_config.background_mode = False
             InfoBar.warning(
                 title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                content='未安装虚拟手柄依赖组件（vgamepad），请在「扩展安装」页安装；若安装后仍不可用，请再检查 ViGEmBus 驱动',
                 parent=self,
                 duration=5000,
             )
