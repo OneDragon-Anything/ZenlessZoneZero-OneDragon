@@ -26,6 +26,19 @@ from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
+def need_toggle_burnout_mode(is_on: bool, want_on: bool) -> bool:
+    """判断是否需要点一次燃竭模式开关。
+
+    Args:
+        is_on: 截图里开关当前是否为开启状态
+        want_on: 计划里配置的期望状态
+
+    Returns:
+        bool: 当前状态和期望不一致时为 True
+    """
+    return is_on != want_on
+
+
 class ExpertChallenge(ZOperation):
 
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
@@ -57,20 +70,34 @@ class ExpertChallenge(ZOperation):
         )
 
     @node_from(from_name='等待入口加载')
-    @operation_node(name='关闭燃竭模式')
-    def close_burnout_mode(self):
+    @operation_node(name='调整燃竭模式', node_max_retry_times=5)
+    def adjust_burnout_mode(self) -> OperationRoundResult:
+        """把燃竭模式调整到计划要求的状态。
+
+        画面里弹出确认框时先点确认；开关状态和期望不一致时点一次开关，下一次再判断。
+        确认点击也算一次重试，避免状态一直不生效时无限循环。
+
+        Returns:
+            OperationRoundResult: 节点执行结果
+        """
         result = self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-确认')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            return self.round_retry(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON')
-        if result.is_success:
+        is_on = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON').is_success
+        want_on = self.plan.expert_challenge_burnout_on
+        if need_toggle_burnout_mode(is_on, want_on):
+            if self.node_retry_times >= self.node_max_retry_times:
+                # 最后几轮只核对状态：上一步刚点过确认，可能已经生效，别直接判失败
+                return self.round_retry('燃竭模式仍在切换中，等待画面更新', wait=1)
             self.round_by_click_area('恶名狩猎', '按钮-深度追猎-ON')
-            return self.round_retry(wait=1)
-        else:
-            return self.round_success()
+            return self.round_retry(
+                f'燃竭模式 {"开启" if want_on else "关闭"}中', wait=1
+            )
 
-    @node_from(from_name='关闭燃竭模式')
+        return self.round_success()
+
+    @node_from(from_name='调整燃竭模式')
     @node_from(from_name='恢复电量', status=RestoreCharge.STATUS_RESTORE_SUCCESS)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
