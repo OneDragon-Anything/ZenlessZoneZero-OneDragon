@@ -22,6 +22,14 @@ from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import 
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import (
     LostVoidInvestigationStrategy,
 )
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_map_reader import (
+    LostVoidMap,
+    LostVoidMapNode,
+    LostVoidMapReader,
+)
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_run_memory import (
+    LostVoidRunMemory,
+)
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidChallengeConfig,
     LostVoidRegionType,
@@ -44,6 +52,9 @@ class LostVoidContext:
         self.ctx: ZContext = ctx
 
         self.detector: LostVoidDetector | None = None
+        # 寻路转向比例 = 鼠标移动量 ÷ 目标在画面上横移的像素 原地转向后按实际转动平滑更新 跨移动保留
+        # 只在挑战配置开启 smart_escape 时使用 初始值来自寻路采样 单次转向实测中位数约 0.6
+        self.move_turn_ratio: float = 0.6
         self.challenge_config: LostVoidChallengeConfig | None = None
 
         self.all_artifact_list: list[LostVoidArtifact] = []  # 武备 + 鸣徽
@@ -57,16 +68,162 @@ class LostVoidContext:
         self.dynamic_priority_list: list[str] = []  # 动态获取的优先级列表
         self.dynamic_abandon_list: list[str] = []  # 动态放弃组
         self.had_interacted_ophelia_on_current_level: bool = False  # 当前层是否已交互过奥菲莉亚
+        self.gear_faction_list: list[str] = []  # 本局开局选到的通用武备派系 同派系抱团时记录
+        self.planned_route: list[str] = []  # 按 Tab 地图规划的接下来依次进入的区域类型
+        self.route_plan_pending: bool = True  # 去下层入口前要不要打开地图规划 进入新区域时路线已走完就要
+        self.map_reader: LostVoidMapReader | None = None  # 识别 Tab 地图的节点和连线
+        # 本局记录 本局结束后清除 运行前先用只在内存里的 init_before_run 时换成写文件的
+        self.run_memory: LostVoidRunMemory = LostVoidRunMemory(0, is_mock=True)
 
     def init_before_run(self) -> None:
         self.priority_updated = False
         self.dynamic_priority_list = []
         self.dynamic_abandon_list = []
         self.had_interacted_ophelia_on_current_level = False
+        self.planned_route = []
+        self.route_plan_pending = True
+        self.map_reader = LostVoidMapReader(self.ctx.template_loader)
+        # 读取已有记录 程序中途重启后从大世界接着跑时还能用
+        self.run_memory = LostVoidRunMemory(self.ctx.current_instance_idx)
         self.init_lost_void_det_model()
         self.load_artifact_data()
         self.load_challenge_config()
         self.load_investigation_strategy()
+
+    def reset_for_new_challenge(self) -> None:
+        """
+        每局开始前清空上一局识别的派系、动态优先级、路线和本局记录 避免带入下一局
+        """
+        self.gear_faction_list = []
+        self.priority_updated = False
+        self.dynamic_priority_list = []
+        self.dynamic_abandon_list = []
+        self.planned_route = []  # 第一层在入口规划
+        self.route_plan_pending = True
+        self.run_memory.clear()
+
+    def on_challenge_end(self) -> None:
+        """
+        本局结束(通关或失败退出) 清除本局记录
+        """
+        self.planned_route = []
+        self.route_plan_pending = True
+        self.run_memory.clear()
+
+    def on_enter_region(self, region_type: str | None) -> None:
+        """
+        进入下一个区域时 记录区域并推进规划的路线
+        :param region_type: 进入的区域类型 None 表示未知
+        """
+        if region_type is not None:
+            self.run_memory.add_region(region_type)
+
+        if len(self.planned_route) == 0:
+            pass
+        elif region_type == LostVoidRegionType.FRIENDLY_TALK.value.value:
+            # 挚交会谈是新一层的开头 上一层的路线不再用
+            self.planned_route = []
+        elif region_type is not None and self.planned_route[0] == region_type:
+            self.planned_route.pop(0)
+        else:
+            # 没按规划走 剩下的路线已经对不上
+            log.info(f'路线规划 | 进入 {region_type} 与规划 {self.planned_route[0]} 不一致 清空路线')
+            self.planned_route = []
+
+        # 路线走完或清空了 这个区域的下层入口前重新规划
+        self.route_plan_pending = len(self.planned_route) == 0
+
+    def need_route_plan(self) -> bool:
+        """
+        去下层入口前是否要打开地图规划路线
+        包括每层开头(入口、第 1、2 次挚交会谈)、没按规划走、规划的路线走完
+        每个区域最多规划一次 规划结果为空(前面只剩 THRONE、识别失败)时不反复打开地图
+        第 3 次挚交会谈后面直接是终结之役 不用规划
+        """
+        return (
+            self.challenge_config is not None
+            and self.challenge_config.route_plan_by_map
+            and self.route_plan_pending
+            and self.run_memory.friendly_talk_times < lost_void_const.LAST_FRIENDLY_TALK_TIMES
+        )
+
+    def plan_route_by_map(self, map_screen: MatLike, blocked_type_list: list[str]) -> None:
+        """
+        识别 Tab 地图的节点和连线 按配置的区域优先级规划本层接下来的路线 只在 need_route_plan 的时机调用
+        :param map_screen: Tab 菜单的地图页截图
+        :param blocked_type_list: 当前房间寻路会忽略的入口类型 第一步不走这些门
+        """
+        self.route_plan_pending = False
+        self.planned_route = []
+        lost_void_map = self.map_reader.read(map_screen)
+        log.info(f'路线规划 | 识别到的地图\n{lost_void_map.describe()}')
+        route = lost_void_map.find_best_route(self.challenge_config.region_type_priority, blocked_type_list)
+        if len(route) == 0:
+            log.warning('路线规划 | 没识别到当前位置或往上的连线 这个区域按配置的区域优先级选门')
+            return
+
+        route_text = ' → '.join(f'节点{i}({LostVoidMap.type_text(lost_void_map.get_node(i))})' for i in route)
+        log.info(f'路线规划 | 规划路线 {route_text}')
+        self.planned_route = self._route_to_region_type(lost_void_map, route, blocked_type_list)
+        log.info(f'路线规划 | 寻路依次找的入口 {" → ".join(self.planned_route)}')
+
+    @staticmethod
+    def _route_to_region_type(lost_void_map: LostVoidMap, route: list[int], blocked_type_list: list[str]) -> list[str]:
+        """
+        规划的节点编号转成寻路要找的入口类型 遇到没识别出类型的节点就停在那里
+        混合节点的门上有几个图标 选一个同一步其它门上没有的类型 避免走错门
+        同一步还有别的门是同一种类型时 分不清进的是哪扇 路线停在这一步 进去后看地图重新规划
+        第一步在当前房间 寻路会忽略的类型看不到 不选这些类型 也不算别的门
+        """
+        region_type_list: list[str] = []
+        last: LostVoidMapNode = lost_void_map.current
+        for step, idx in enumerate(route):
+            node = lost_void_map.get_node(idx)
+            ignore_set = set(blocked_type_list) if step == 0 else set()
+            type_list = [t for t in node.region_type_list if t not in ignore_set]
+            if len(type_list) == 0:
+                break
+            other_type_set = {
+                t
+                for i in last.next_list if i != idx
+                for t in lost_void_map.get_node(i).region_type_list
+                if t not in ignore_set
+            }
+            unique_type = next((t for t in type_list if t not in other_type_set), None)
+            region_type_list.append(unique_type if unique_type is not None else type_list[0])
+            if unique_type is None:
+                break
+            last = node
+        return region_type_list
+
+    def is_general_gear_category(self, category: str) -> bool:
+        """
+        判断武备分类是否为通用武备派系
+        :param category: 武备分类
+        """
+        return any(self._is_category_match(category, i) for i in lost_void_const.GENERAL_GEAR_CATEGORY_LIST)
+
+    def get_owned_gear_faction_list(self) -> list[str]:
+        """
+        本局已有通用武备的派系 开局武备排最前 再按拿到的顺序加上局内拿到的武备
+        鸣徽只能升级同派系的武备 没有这个派系的武备时 拿该派系鸣徽对升级没用
+        """
+        faction_list = self.gear_faction_list.copy()
+        for item in self.run_memory.artifact_list:
+            if (item['is_gear']
+                    and item['category'] in lost_void_const.GENERAL_GEAR_CATEGORY_LIST
+                    and item['category'] not in faction_list):
+                faction_list.append(item['category'])
+        return faction_list
+
+    def is_gear_faction_match(self, artifact_pos: LostVoidArtifactPos) -> bool:
+        """
+        判断藏品是否与本局已有的通用武备同派系
+        :param artifact_pos: 识别到的藏品
+        """
+        if self.challenge_config is None or not self.challenge_config.same_faction_first:
+            return False
+        return any(self._is_priority_rule_match(artifact_pos, i) for i in self.get_owned_gear_faction_list())
 
     def load_artifact_data(self) -> None:
         """
@@ -147,6 +304,16 @@ class LostVoidContext:
             group_id=application_const.DEFAULT_GROUP_ID,
         )
         self.challenge_config = LostVoidChallengeConfig(config.challenge_config)
+
+    def is_last_rest_area(self) -> bool:
+        """
+        当前是否第三层终结之役前的最后一个休息区(第 3 次挚交会谈)
+        """
+        memory = self.run_memory
+        return (
+            memory.current_region_type == LostVoidRegionType.FRIENDLY_TALK.value.value
+            and memory.friendly_talk_times >= lost_void_const.LAST_FRIENDLY_TALK_TIMES
+        )
 
     def in_normal_world(self, screen: MatLike) -> bool:
         """
@@ -255,6 +422,29 @@ class LostVoidContext:
                 return artifact
 
         return None
+
+    def find_artifact_data(self, category: str, name: str) -> LostVoidArtifact | None:
+        """
+        按 OCR 出的分类和名称 在藏品数据里找对应的藏品 得到是否武备、等级
+        名称允许个别错字(如 万能催化剂 识别成 万能催化物)
+        :param category: 分类 卡牌和无详情的文字在这两类里一起找
+        :param name: 名称
+        :return: 找不到时为空 说明候选名没识别出来(比如 OCR 读到的是效果描述)
+        """
+        if category in ['卡牌', '无详情']:
+            cate_list = ['卡牌', '无详情']
+        else:
+            normalized = self._normalize_category_text(category)
+            cate_list = [i for i in self.cate_2_artifact if self._normalize_category_text(i) == normalized]
+        art_list = [art for cate in cate_list for art in self.cate_2_artifact.get(cate, [])]
+        idx = str_utils.find_in_list_with_fuzzy(name, [i.name for i in art_list], cutoff=0.7)
+        return art_list[idx] if idx is not None else None
+
+    def is_artifact_known(self, artifact: LostVoidArtifact) -> bool:
+        """
+        候选是否对上了藏品数据 对不上说明候选名没识别出来
+        """
+        return any(i is artifact for i in self.all_artifact_list)
 
     def match_artifact_by_ocr_full(self, name_full_str: str) -> LostVoidArtifact | None:
         """
@@ -392,14 +582,18 @@ class LostVoidContext:
 
                 if closest_artifact_pos is not None:
                     original_artifact = closest_artifact_pos.artifact
-                    # 分支标识按OCR候选直接派生，不依赖本地藏品库
-                    closest_artifact_pos.artifact = LostVoidArtifact(
-                        category=original_artifact.category,
-                        name=f'{original_artifact.name}-{branch}',
-                        level=original_artifact.level,
-                        is_gear=original_artifact.is_gear,
-                        template_id=original_artifact.template_id,
-                    )
+                    branch_name = f'{original_artifact.name}-{branch}'
+                    # 分支优先用藏品数据里的 对不上时按OCR候选直接派生
+                    branch_artifact = self.find_artifact_data(original_artifact.category, branch_name)
+                    if branch_artifact is None:
+                        branch_artifact = LostVoidArtifact(
+                            category=original_artifact.category,
+                            name=branch_name,
+                            level=original_artifact.level,
+                            is_gear=original_artifact.is_gear,
+                            template_id=original_artifact.template_id,
+                        )
+                    closest_artifact_pos.artifact = branch_artifact
 
         # 标题标识（已选择/NEW/齿轮硬币不足）仍按全图OCR做空间关联
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
@@ -543,7 +737,11 @@ class LostVoidContext:
             if len(category) == 0:
                 category = raw_category
 
-            return LostVoidArtifact(category=category, name=raw_name, level='?'), True
+            # 对上藏品数据时用数据里的 才知道是不是武备、等级
+            artifact = self.find_artifact_data(category, raw_name)
+            if artifact is None:
+                artifact = LostVoidArtifact(category=category, name=raw_name, level='?')
+            return artifact, True
 
         # 卡牌界面常见主标题样式：`「xxx」yyy`
         # 该结构应视为主选名称，而不是无详情说明文本。
@@ -552,11 +750,17 @@ class LostVoidContext:
             title = quote_match.group(1).strip()
             suffix = quote_match.group(2).strip()
             if len(title) > 0:
-                name = f'{title} {suffix}'.strip() if len(suffix) > 0 else title
-                return LostVoidArtifact(category='卡牌', name=name, level='?'), True
+                artifact = self.find_artifact_data('卡牌', text)
+                if artifact is None:
+                    name = f'{title} {suffix}'.strip() if len(suffix) > 0 else title
+                    artifact = LostVoidArtifact(category='卡牌', name=name, level='?')
+                return artifact, True
 
-        # 没有[]结构，归为次选，直接保留原文。
-        return LostVoidArtifact(category='无详情', name=text, level='?'), False
+        # 没有[]结构，归为次选，对不上藏品数据时直接保留原文。
+        artifact = self.find_artifact_data('无详情', text)
+        if artifact is None:
+            artifact = LostVoidArtifact(category='无详情', name=text, level='?')
+        return artifact, False
 
     @staticmethod
     def _pick_better_candidate(left: LostVoidArtifactPos, right: LostVoidArtifactPos) -> LostVoidArtifactPos:
@@ -726,11 +930,16 @@ class LostVoidContext:
         # 第1级 动态优先级 / 第2级 配置第一 / 第3级 配置第二 / 第4级 战斗组
         # 第5级 其他（非优先级）补位 / 第6级 放弃组 最后补位
         # 参数只控制放行到第几级：
-        # consider_priority_1 -> 放行第1、2级
+        # consider_priority_1 -> 放行第0、1、2级（第0级=已有通用武备派系 仅同派系抱团时启用）
         # consider_priority_2 -> 放行第3、4级
         # consider_not_in_priority -> 放行第5、6级
         # 注意：主选组整体优先于次选组（任务目标优先），级别序只在组内生效。
         priority_levels: list[tuple[str, list[str]]] = []
+
+        # 第0级 已有通用武备派系 同派系抱团时排在NEW和其他优先级之前
+        faction_list: list[str] = []
+        if consider_priority_1 and self.challenge_config.same_faction_first:
+            faction_list = self.get_owned_gear_faction_list()
 
         if consider_priority_1:
             if len(self.dynamic_priority_list) > 0:
@@ -746,13 +955,16 @@ class LostVoidContext:
 
         # 四个优先级配置列表全部为空时 才强制考虑非优先级的
         # 不能依据门控后的 priority_levels 判断（门控可能因轮次放行限制挡住有内容的配置）
-        if (len(self.dynamic_priority_list) == 0
+        if (len(faction_list) == 0
+                and len(self.dynamic_priority_list) == 0
                 and len(self.challenge_config.artifact_priority) == 0
                 and len(self.challenge_config.artifact_priority_2) == 0
                 and len(self.challenge_config.artifact_priority_in_battle) == 0):
             consider_not_in_priority = True
 
         level_text_list = [f'{name}={",".join(rule_list) if len(rule_list) > 0 else "空"}' for name, rule_list in priority_levels]
+        if len(faction_list) > 0:
+            level_text_list.insert(0, f'第0级(已有武备派系)={",".join(faction_list)}')
         level_text = ' '.join(level_text_list) if len(level_text_list) > 0 else '无'
         abandon_text = ', '.join(self.dynamic_abandon_list) if len(self.dynamic_abandon_list) > 0 else '空'
         primary_cnt = len([i for i in artifact_list if i.is_primary_name])
@@ -778,6 +990,14 @@ class LostVoidContext:
 
         # 规则：先主选，再次选
         for group_name, group_idx_list in [('主选', primary_idx_list), ('次选', secondary_idx_list)]:
+            # 0) 同派系抱团 已有通用武备派系最先考虑
+            for faction in faction_list:
+                for idx in group_idx_list:
+                    if idx in priority_idx_list:
+                        continue
+                    if self._is_priority_rule_match(artifact_list[idx], faction):
+                        add_idx_if_absent(idx, f'{group_name}-第0级(已有武备派系) 命中规则="{faction}"')
+
             # 1) 主次组内先考虑NEW
             if consider_priority_new:
                 for level in ['S', 'A', 'B', '?']:
@@ -930,7 +1150,10 @@ class LostVoidContext:
         if self.had_interacted_ophelia_on_current_level:
             ignore_entry_set.add(LostVoidRegionType.ELITE.value.value)
 
-        for priority in self.challenge_config.region_type_priority:
+        # 先找规划的下一个区域 规划里更后面的区域不是当前房间要进的门
+        # 没有规划或画面里没有规划的门时 按配置的区域优先级
+        priority_list = self.planned_route[:1] + self.challenge_config.region_type_priority
+        for priority in priority_list:
             if priority in ignore_entry_set:
                 continue
 

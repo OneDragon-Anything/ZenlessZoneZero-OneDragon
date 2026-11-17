@@ -1,0 +1,33 @@
+# 无脑挂机刷菲林: 辅助推进探究勋证和图鉴, 优先选择未完成收集的调查战略、武备和 NEW 藏品, 不能代表全部菲林奖励完成
+# 副本请选「战线肃清」; 进入前自动切到难度五; 没有可刷的调查战略时结束运行
+# 按速通图鉴教程: 开局武备同派系抱团, 路线 武备格 > 限时格 > 金币格
+# 各项规则说明见 docs/develop/zzz/application/lost_void/afk_polychrome.md
+auto_battle: 全配队通用
+region_type_priority:
+- 战斗-武备
+- 挑战-限时
+- 战斗-硬币
+- 邦布商店
+- 偶遇事件
+- 战斗-鸣徽
+- 挑战-无伤
+- 挚交会谈
+- 战斗-道中危机
+- 战斗-终结之役
+artifact_priority:
+- 无详情 获得鸣徽
+artifact_priority_2:
+- 终结
+- 绝境
+- 通用
+period_buff_no: 第二个
+investigation_strategy: 攻其不备战略
+chase_new_mode: true
+artifact_priority_new: true
+store_blood: true
+smart_escape: true
+same_faction_first: true
+store_save_coin: true
+route_plan_by_map: true
+difficulty: 难度五
+stop_when_no_strategy: true
