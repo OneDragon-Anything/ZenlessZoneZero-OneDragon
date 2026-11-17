@@ -85,7 +85,30 @@ def get_windows_build() -> int:
 
 
 def is_windows_build_supported(min_build: int = 19041) -> bool:
+    if sys.platform == 'darwin':
+        return True
     return get_windows_build() >= min_build
+
+
+_MAC_VK_TO_KEYCODE: dict[int, int] = {
+    0x70: 122,  # F1
+    0x71: 120,  # F2
+    0x72: 99,   # F3
+    0x73: 118,  # F4
+    0x74: 96,   # F5
+    0x75: 97,   # F6
+    0x76: 98,   # F7
+    0x77: 100,  # F8
+    0x78: 101,  # F9
+    0x79: 109,  # F10
+    0x7A: 103,  # F11
+    0x7B: 111,  # F12
+    0x20: 49,   # Space
+    0x09: 48,   # Tab
+    0x0D: 36,   # Enter
+    0x1B: 53,   # Escape
+    0xC0: 50,   # Grave (`)
+}
 
 
 def get_process_dpi_awareness() -> int:
@@ -106,6 +129,30 @@ def is_process_dpi_aware() -> bool:
 
 
 def is_key_pressed(vk: int) -> bool:
+    if sys.platform == 'darwin':
+        try:
+            import Quartz
+
+            if vk in (VK_CONTROL, VK_LCONTROL, VK_RCONTROL):
+                flags = Quartz.CGEventSourceFlagsState(
+                    Quartz.kCGEventSourceStateCombinedSessionState
+                )
+                return bool(flags & Quartz.kCGEventFlagMaskControl)
+            if vk in (VK_MENU, VK_LMENU, VK_RMENU):
+                flags = Quartz.CGEventSourceFlagsState(
+                    Quartz.kCGEventSourceStateCombinedSessionState
+                )
+                return bool(flags & Quartz.kCGEventFlagMaskAlternate)
+            keycode = _MAC_VK_TO_KEYCODE.get(vk)
+            if keycode is None:
+                return False
+            return bool(
+                Quartz.CGEventSourceKeyState(
+                    Quartz.kCGEventSourceStateCombinedSessionState, keycode
+                )
+            )
+        except Exception:
+            return False
     if _user32 is None:
         return False
     state = _user32.GetAsyncKeyState(vk)
@@ -233,8 +280,24 @@ def is_window_minimized(hwnd: int | None) -> bool:
     return False
 
 
+def _get_mac_ns_window(hwnd: int | None):
+    if sys.platform != 'darwin' or hwnd is None or int(hwnd) == 0:
+        return None
+    try:
+        import objc
+
+        ns_view = objc.objc_object(c_void_p=ctypes.c_void_p(int(hwnd)))
+        if ns_view is None:
+            return None
+        return ns_view.window()
+    except Exception:
+        return None
+
+
 def is_window_visible(hwnd: int | None) -> bool:
     """Check whether a window has the WS_VISIBLE style set."""
+    if sys.platform == 'darwin':
+        return hwnd is not None and int(hwnd) != 0
     if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
     root_hwnd = _root_hwnd(int(hwnd))
@@ -242,6 +305,13 @@ def is_window_visible(hwnd: int | None) -> bool:
 
 
 def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
+    if sys.platform == 'darwin':
+        ns_win = _get_mac_ns_window(hwnd)
+        if ns_win is None:
+            return False
+        ns_win.setHidesOnDeactivate_(False)
+        ns_win.setIgnoresMouseEvents_(bool(click_through))
+        return True
     if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
 
@@ -261,6 +331,13 @@ def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
 
 
 def set_window_display_affinity(hwnd: int | None, exclude_from_capture: bool) -> bool:
+    if sys.platform == 'darwin':
+        ns_win = _get_mac_ns_window(hwnd)
+        if ns_win is None:
+            return False
+        ns_win.setHidesOnDeactivate_(False)
+        ns_win.setSharingType_(0 if exclude_from_capture else 1)
+        return True
     if _user32 is None or hwnd is None or int(hwnd) == 0:
         return False
 

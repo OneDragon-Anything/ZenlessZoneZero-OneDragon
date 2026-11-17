@@ -45,8 +45,8 @@ Window {
     property string toastText: ""
 
     // 面板通用字体（写死）
-    property string zhFont: "Microsoft YaHei"
-    property string monoFont: "Consolas"
+    property string zhFont: Qt.platform.os === "osx" ? "PingFang SC" : "Microsoft YaHei"
+    property string monoFont: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
 
     // ============ 外观（Python 侧按配置注入，默认保持原样式） ============
     // panelOpacity：面板底色不透明度 0~1，1 为纯黑不透明
