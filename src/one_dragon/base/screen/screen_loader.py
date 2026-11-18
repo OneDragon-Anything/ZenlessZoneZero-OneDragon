@@ -2,6 +2,8 @@ import inspect
 import os
 from collections.abc import Callable
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Any
 
 import yaml
 
@@ -511,7 +513,7 @@ class ScreenContext:
         改名时先写新文件/新状态，成功后再删旧文件，避免写失败丢旧画面。
 
         Returns:
-            True 成功；False 已知冲突或写盘失败（旧文件与内存保持原样）。
+            True 成功；False 已知冲突或写盘失败。写入失败时回滚内存，并清理本次新建的文件。
         """
         old_screen_id = screen_info.old_screen_id
         if old_screen_id in self._extra_screen_ids:
@@ -556,7 +558,8 @@ class ScreenContext:
         same_file = bool(old_screen_id) and self._is_same_path(
             target_file_path, self.get_yml_file_path(old_screen_id)
         )
-        if screen_info.screen_id != old_screen_id and not same_file and target_file_path.exists():
+        create_screen_file = screen_info.screen_id != old_screen_id and not same_file
+        if create_screen_file and target_file_path.exists():
             log.warning(f"目标画面文件已被占用，拒绝保存: {target_file_path}")
             return False
 
@@ -566,8 +569,8 @@ class ScreenContext:
             self._id_2_screen.pop(old_screen_id, None)
         self._id_2_screen[screen_info.screen_id] = screen_info
         try:
-            self.save(screen_id=screen_info.screen_id)
-        except OSError:
+            self.save(screen_id=screen_info.screen_id, create_screen_file=create_screen_file)
+        except (OSError, yaml.YAMLError):
             log.error(f"保存画面失败，已回滚内存: {screen_info.screen_id}", exc_info=True)
             self._id_2_screen.pop(screen_info.screen_id, None)
             if old_screen_id and old_info is not None:
@@ -735,18 +738,65 @@ class ScreenContext:
             return False
         return not delete_old_failed
 
-    def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
+    @staticmethod
+    def _remove_failed_save_file(path: Path, original_stat: os.stat_result | None = None) -> None:
+        """清理本次保存创建的文件，跳过已被替换的目标。"""
+        try:
+            if original_stat is not None and not os.path.samestat(
+                original_stat, path.stat(follow_symlinks=False)
+            ):
+                return
+            path.unlink(missing_ok=True)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            log.error(f"保存失败后无法清理文件: {path}", exc_info=True)
+
+    def _save_new_screen_files(
+        self, target_path: Path, target_data: dict[str, Any], all_data: list[dict[str, Any]],
+    ) -> None:
+        """写入新建或改名的基础画面文件和合并文件。"""
+        target_stat: os.stat_result | None = None
+        temp_merge_path: Path | None = None
+        merge_path = self.merge_yml_file_path
+        try:
+            # 先写完整的合并文件，避免写到一半时丢失旧配置。
+            with NamedTemporaryFile('w', encoding='utf-8', dir=merge_path.parent, suffix='.tmp', delete=False) as file:
+                temp_merge_path = Path(file.name)
+                yaml.safe_dump(all_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+            with target_path.open('x', encoding='utf-8') as file:
+                try:
+                    target_stat = os.fstat(file.fileno())
+                except OSError:
+                    # 句柄仍打开；Windows 上此时其他进程不能替换该路径。
+                    target_stat = target_path.stat(follow_symlinks=False)
+                yaml.safe_dump(target_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            temp_merge_path.replace(merge_path)
+        except Exception:
+            if target_stat is not None:
+                self._remove_failed_save_file(target_path, target_stat)
+            if temp_merge_path is not None:
+                self._remove_failed_save_file(temp_merge_path)
+            raise
+
+    def save(
+        self,
+        screen_id: str | None = None,
+        reload_after_save: bool = True,
+        *,
+        create_screen_file: bool = False,
+    ) -> None:
         """
         保存到文件
 
         Args:
             screen_id: 画面ID
             reload_after_save: 保存后是否重新加载
+            create_screen_file: 独占创建独立文件；保存失败时移除本次创建的文件。
         """
         all_data = []
-
-        # 保存到单个文件
-        target_screen_id = screen_id
+        target_data = None
         for current_screen_id, screen_info in self._id_2_screen.items():
             if current_screen_id in self._extra_screen_ids:
                 continue
@@ -754,13 +804,17 @@ class ScreenContext:
             data = screen_info.to_dict()
             all_data.append(data)
 
-            if target_screen_id is not None and target_screen_id == screen_info.screen_id:
-                with self.get_yml_file_path(target_screen_id).open('w', encoding='utf-8') as file:
-                    yaml.safe_dump(data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            if screen_id is not None and screen_id == screen_info.screen_id:
+                target_data = data
 
-        # 保存到合并文件
-        with self.merge_yml_file_path.open('w', encoding='utf-8') as file:
-            yaml.safe_dump(all_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        if create_screen_file and screen_id is not None and target_data is not None:
+            self._save_new_screen_files(self.get_yml_file_path(screen_id), target_data, all_data)
+        else:
+            if screen_id is not None and target_data is not None:
+                with self.get_yml_file_path(screen_id).open('w', encoding='utf-8') as file:
+                    yaml.safe_dump(target_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            with self.merge_yml_file_path.open('w', encoding='utf-8') as file:
+                yaml.safe_dump(all_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         if reload_after_save:
             self.reload(from_memory=True)
