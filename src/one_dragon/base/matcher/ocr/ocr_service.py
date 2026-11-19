@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 from dataclasses import dataclass
 
 import cv2
@@ -195,6 +196,8 @@ class OcrService:
         if cache_entity is not None:
             ocr_result_list = cache_entity.ocr_result_list
         else:
+            # 过滤和缓存共用同一份范围快照，避免调用方原地修改缓存中的配置。
+            color_range = deepcopy(color_range)
             # 应用颜色过滤
             processed_image = self._apply_color_filter(image, color_range)
 
