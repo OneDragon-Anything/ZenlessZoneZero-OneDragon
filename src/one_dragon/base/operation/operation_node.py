@@ -48,17 +48,15 @@ class OperationNode:
             op: 该节点用于操作的指令 与func二选一 是值当前节点使用指定的Operation 优先使用func
             retry_on_op_fail: op指令失败时是否进入重试
             wait_after_op: op指令后的等待时间
-            timeout_seconds: 该节点的超时秒数 也可以是在运行时按上下文给出秒数的提供者 与node_max_retry_times互斥
+            timeout_seconds: 该节点的超时秒数 也可以是在运行时按上下文给出秒数的提供者
             is_start_node: 是否是开始节点
-            node_max_retry_times: 当前节点的重试次数 与timeout_seconds互斥
+            node_max_retry_times: 当前节点的重试次数 通常与timeout_seconds二选一
                 都不指定时为3次 只指定超时时不限制重试次数 由超时结束节点
+                两者同时指定时仍都生效 以先到者为准 保证已有的第三方插件可以加载
             mute: 是否不显示当前节点的结果日志
             screenshot_before_round: 当前节点每次运行前是否自动截图
             save_status: 是否保存当前状态到列表中
         """
-        if timeout_seconds is not None and node_max_retry_times is not None:
-            raise ValueError(f'节点 {cn} 的 timeout_seconds 与 node_max_retry_times 互斥 只能指定一个')
-
         self.cn: str = cn
         """节点名称"""
 
