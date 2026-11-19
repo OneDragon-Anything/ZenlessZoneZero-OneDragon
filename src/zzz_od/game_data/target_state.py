@@ -166,6 +166,18 @@ DETECTION_TASKS: List[DetectionTask] = [
                 {"template_name": "target_state/boss_kita", "threshold": 0.85},
                 clear_on_miss=True,
             ),
+            TargetStateDef(
+                "首领-猎血清道夫",
+                TargetCheckWay.TEMPLATE_MATCH_MULTI,
+                {"template_name": "target_state/boss_scavenger", "threshold": 0.85},
+                clear_on_miss=True,
+            ),
+            TargetStateDef(
+                "首领-熔狱行赭",
+                TargetCheckWay.TEMPLATE_MATCH_MULTI,
+                {"template_name": "target_state/boss_ochre", "threshold": 0.85},
+                clear_on_miss=True,
+            ),
         ],
     ),
 ]

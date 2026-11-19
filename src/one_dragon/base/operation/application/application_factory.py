@@ -38,14 +38,6 @@ class ApplicationFactory:
         'NEED_NOTIFY',
     )
 
-    # 可选的插件元数据字段（仅插件需要）
-    OPTIONAL_PLUGIN_FIELDS: tuple[str, ...] = (
-        'PLUGIN_AUTHOR',
-        'PLUGIN_HOMEPAGE',
-        'PLUGIN_VERSION',
-        'PLUGIN_DESCRIPTION',
-    )
-
     def __init__(self, app_const: ModuleType):
         """
         初始化应用工厂。

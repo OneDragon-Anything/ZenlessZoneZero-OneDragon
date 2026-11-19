@@ -19,6 +19,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
 from zzz_od.hollow_zero.hollow_runner import HollowRunner
+from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.deploy import Deploy
@@ -34,21 +35,25 @@ class WitheredDomainApp(ZApplication):
     STATUS_TIMES_FINISHED: ClassVar[str] = '已完成基本次数'
     STATUS_NO_EVAL_POINT: ClassVar[str] = '已完成刷取业绩'
 
-    def __init__(self, ctx: ZContext):
+    SPEED_RUN: ClassVar[bool] = False  # 是否为速刷 子类修改
+
+    def __init__(self, ctx: ZContext,
+                 app_id: str = withered_domain_const.APP_ID,
+                 op_name: str = withered_domain_const.APP_NAME):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id=withered_domain_const.APP_ID,
-            op_name=withered_domain_const.APP_NAME,
+            app_id=app_id,
+            op_name=op_name,
         )
         self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
-            app_id=withered_domain_const.APP_ID,
+            app_id=app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
         self.run_record: WitheredDomainRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
-            app_id=withered_domain_const.APP_ID,
+            app_id=app_id,
         )
 
         self.mission_name: str = '内部'
@@ -56,8 +61,24 @@ class WitheredDomainApp(ZApplication):
         self.level: int = 1
         self.phase: int = 1
 
+    def _get_challenge_config(self) -> HollowZeroChallengeConfig | None:
+        """
+        应用自己提供的挑战配置 返回None时使用设置里选择的挑战配置
+        """
+        return None
+
+    def _create_runner(self) -> HollowRunner:
+        """
+        创建在空洞内运行的操作器
+        """
+        return HollowRunner(self.ctx)
+
     def handle_init(self):
-        self.ctx.withered_domain.init_before_run()
+        self.ctx.withered_domain.init_before_run(
+            app_id=self.app_id,
+            challenge_config=self._get_challenge_config(),
+            speed_run=self.SPEED_RUN,
+        )
         mission_name = self.config.mission_name
         idx = mission_name.find('-')
         if idx != -1:
@@ -180,7 +201,7 @@ class WitheredDomainApp(ZApplication):
         except Exception:
             log.error('模型加载失败', exc_info=True)
             return self.round_fail('模型加载失败 请重新下载模型')
-        op = HollowRunner(self.ctx)
+        op = self._create_runner()
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='选择副本类型', status=STATUS_TIMES_FINISHED)

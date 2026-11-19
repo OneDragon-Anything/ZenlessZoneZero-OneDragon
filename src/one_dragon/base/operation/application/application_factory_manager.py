@@ -10,16 +10,20 @@
 from __future__ import annotations
 
 import importlib
-import json
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
     PluginInfo,
     PluginSource,
+)
+from one_dragon.base.operation.application.plugin_manifest import (
+    MANIFEST_FILE_NAME,
+    extract_manifest_info,
+    read_manifest_file,
 )
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
@@ -504,13 +508,15 @@ class ApplicationFactoryManager:
                 f"必须等于 APP_ID '{factory.app_id}'"
             )
 
-        # 读取可选的插件元数据
-        plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
-        plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
-        plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
-        plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
-        # 读取封面：插件包内的 plugin.json 声明，缺失时界面用默认封面
-        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent)
+        # 展示元数据（版本、作者、主页、简介）和封面都来自插件包内的 plugin.json，
+        # 缺失或不合法的字段为空，界面显示为空或默认封面
+        manifest = read_manifest_file(factory_file.parent / MANIFEST_FILE_NAME)
+        manifest_info = extract_manifest_info(manifest)
+        plugin_info.author = manifest_info.author
+        plugin_info.homepage = manifest_info.homepage
+        plugin_info.version = manifest_info.version
+        plugin_info.description = manifest_info.description
+        plugin_info.cover_path = self._resolve_cover_path(factory_file.parent, manifest)
 
         # 校验 KEY_SIM_DIR：必须是相对目录名，防止插件从 plugin_dir 外加载脚本
         key_sim_dir = getattr(const_module, 'KEY_SIM_DIR', '')
@@ -528,27 +534,20 @@ class ApplicationFactoryManager:
         return plugin_info
 
     @staticmethod
-    def _resolve_cover_path(plugin_dir: Path) -> Path | None:
-        """从插件包内的 plugin.json 读取封面图路径。
+    def _resolve_cover_path(plugin_dir: Path, manifest: dict[str, Any] | None) -> Path | None:
+        """从 plugin.json 的内容取封面图路径。
 
-        封面属于可选信息，未声明、格式损坏、路径越界或文件不存在都按「没有封面」
+        封面属于可选信息，未声明、路径越界或文件不存在都按「没有封面」
         处理，由界面回退到默认封面，不打断插件加载。
 
         Args:
             plugin_dir: 插件根目录。
+            manifest: plugin.json 的内容，不可用时为 None。
 
         Returns:
             封面图的绝对路径；不可用时返回 None。
         """
-        manifest_file = plugin_dir / 'plugin.json'
-        if not manifest_file.is_file():
-            return None
-
-        try:
-            manifest = json.loads(manifest_file.read_text(encoding='utf-8'))
-        except (OSError, ValueError):
-            return None
-        if not isinstance(manifest, dict):
+        if manifest is None:
             return None
 
         raw_path = str(manifest.get('cover') or '').strip()

@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+env:
+  # vgamepad 安装时默认会弹出 ViGEmBus 驱动安装程序，CI 中跳过，避免卡住
+  VGAMEPAD_SKIP_VIGEMBUS_INSTALL: 'true'
+
 jobs:
   set-timestamp:
     uses: ./.github/workflows/common-set-timestamp.yml

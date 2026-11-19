@@ -59,14 +59,14 @@ handlers:
             state_list: ["自定义-蕾米埃尔-尝试释放普攻"]
           - operation_template: "蕾米埃尔-长按普攻"
 
-      - states: "[蕾米埃尔-浮晖]{100,100}"
+      - states: "[蕾米埃尔-浮晖]{98,100}"
         interrupt_states: "[按键可用-快速支援] | [蕾米埃尔-虚曜]{3,3}"
         debug_name: "长按强化特殊技"
         operations:
           - operation_template: "蕾米埃尔-长按强化特殊技"
 
       - states: ""
-        interrupt_states: "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{100,100} | [按键可用-快速支援]"
+        interrupt_states: "[蕾米埃尔-虚曜]{3,3} | [蕾米埃尔-浮晖]{98,100} | [按键可用-快速支援]"
         debug_name: "其他情况：普通攻击"
         operations:
           - operation_template: "蕾米埃尔-普通攻击"

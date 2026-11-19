@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import inspect
 import os
-import re
 import shutil
 import stat
 import zipfile
@@ -28,6 +27,14 @@ from types import TracebackType
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from one_dragon.base.operation.application.plugin_manifest import (
+    MANIFEST_FILE_NAME,
+    MAX_MANIFEST_BYTES,
+    PluginManifestInfo,
+    extract_manifest_info,
+    parse_manifest,
+    read_manifest_file,
+)
 from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
@@ -323,18 +330,17 @@ class PluginImportService:
         layout: _ZipLayout,
     ) -> PluginPreviewInfo:
         """读取 ZIP 中一个插件根的预览信息。"""
-        content = zf.read(layout.preview_const_info).decode("utf-8")
+        manifest_info = PluginManifestInfo()
+        for info, relative_path in layout.members:
+            if relative_path == PurePosixPath(MANIFEST_FILE_NAME):
+                if not info.is_dir() and info.file_size <= MAX_MANIFEST_BYTES:
+                    manifest_info = extract_manifest_info(parse_manifest(zf.read(info)))
+                break
         return PluginPreviewInfo(
             plugin_name=layout.plugin_dir_name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
-
-    def _extract_const_value(self, content: str, const_name: str) -> str | None:
-        """从代码内容中提取字符串常量值。"""
-        pattern = rf"{const_name}\s*=\s*['\"](.+?)['\"]"
-        match = re.search(pattern, content)
-        return match.group(1) if match else None
 
     def _analyze_zip(self, zf: zipfile.ZipFile) -> list[_ZipLayout]:
         """校验 ZIP 成员，并识别全部最外层合法插件根。"""
@@ -645,16 +651,16 @@ class PluginImportService:
             return None
 
         try:
-            const_file = self._find_primary_const_file(dir_path)
+            self._find_primary_const_file(dir_path)
             self._validate_directory_symlinks(dir_path)
-            content = const_file.read_text(encoding="utf-8")
         except Exception:
             return None
 
+        manifest_info = extract_manifest_info(read_manifest_file(dir_path / MANIFEST_FILE_NAME))
         return PluginPreviewInfo(
             plugin_name=dir_path.name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
 
     def preview_plugins_from_directory(
@@ -677,11 +683,13 @@ class PluginImportService:
         layout: _DirectoryLayout,
     ) -> PluginPreviewInfo:
         """读取松散目录中一个插件根的预览信息。"""
-        content = layout.preview_const_path.read_text(encoding="utf-8")
+        manifest_info = extract_manifest_info(
+            read_manifest_file(layout.source_dir / MANIFEST_FILE_NAME)
+        )
         return PluginPreviewInfo(
             plugin_name=layout.plugin_dir_name,
-            version=self._extract_const_value(content, "PLUGIN_VERSION"),
-            author=self._extract_const_value(content, "PLUGIN_AUTHOR"),
+            version=manifest_info.version or None,
+            author=manifest_info.author or None,
         )
 
     def _analyze_directory(self, source_dir: Path) -> list[_DirectoryLayout]:
