@@ -520,6 +520,13 @@ class Operation(OperationBase):
         if self._current_node is None:
             return self.round_fail('当前节点为空')
 
+        if self._current_node.has_conflicting_limits and not self._current_node.limits_conflict_warned:
+            self._current_node.limits_conflict_warned = True
+            log.warning(
+                '%s 节点 %s 同时指定了 timeout_seconds 和 node_max_retry_times 两者应二选一 当前都会生效',
+                self.display_name, self._current_node.cn,
+            )
+
         node_timeout = self._current_node.get_timeout_seconds(self.ctx)
         if (
                 node_timeout is not None

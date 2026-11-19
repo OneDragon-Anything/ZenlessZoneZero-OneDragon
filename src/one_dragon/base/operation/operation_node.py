@@ -57,6 +57,12 @@ class OperationNode:
             screenshot_before_round: 当前节点每次运行前是否自动截图
             save_status: 是否保存当前状态到列表中
         """
+        self.limits_conflict_warned: bool = False
+        """是否已经提示过 timeout_seconds 与 node_max_retry_times 同时指定"""
+
+        self.has_conflicting_limits: bool = timeout_seconds is not None and node_max_retry_times is not None
+        """timeout_seconds 与 node_max_retry_times 是否同时指定 两者应二选一"""
+
         self.cn: str = cn
         """节点名称"""
 
