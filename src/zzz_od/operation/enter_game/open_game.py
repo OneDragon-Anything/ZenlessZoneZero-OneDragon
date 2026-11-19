@@ -72,7 +72,9 @@ class OpenGame(Operation):
             self.ctx.controller.active_window()
             if self._restore_hdr:
                 hdr_op = EnableAutoHDR(self.ctx)
-                hdr_op.execute()
+                hdr_result = hdr_op.execute()
+                if not hdr_result.success:
+                    return self.round_retry('恢复HDR失败', wait=1)
                 self._restore_hdr = False
             return self.round_success()
         else:

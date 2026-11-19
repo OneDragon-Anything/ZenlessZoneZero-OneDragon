@@ -93,8 +93,9 @@ class ZContext(OneDragonContext):
 
     def get_window_titles(self) -> list[str]:
         """获取窗口候选标题，不依赖账户区服。"""
-        if self.game_account_config.use_custom_win_title:
-            return [self.game_account_config.custom_win_title]
+        custom_title = self.game_account_config.custom_win_title
+        if self.game_account_config.use_custom_win_title and custom_title and custom_title.strip():
+            return [custom_title]
         return ['绝区零', 'ZenlessZoneZero']
 
     def on_switch_instance(self) -> None:
