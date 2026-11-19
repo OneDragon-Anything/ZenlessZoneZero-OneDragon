@@ -211,8 +211,7 @@ class GameConfig(BasicGameConfig):
     @property
     def battle_loading_timeout(self) -> int:
         """战斗画面加载的等待上限 单位秒"""
-        value = self.get('battle_loading_timeout')
-        return 60 if value is None else value
+        return self.get('battle_loading_timeout', 60)
 
     @battle_loading_timeout.setter
     def battle_loading_timeout(self, new_value: int) -> None:
