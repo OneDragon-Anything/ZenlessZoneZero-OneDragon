@@ -589,12 +589,16 @@ class PluginOperationMixin:
     # ------------------------------------------------------------------
 
     def subscribe(self, entry: MarketPlugin) -> None:
-        """订阅一个市场条目：先让用户确认第三方插件风险，再放进统一下载队列，下完再安装。"""
+        """订阅一个市场条目：先让用户确认第三方插件风险，再放进统一下载队列，下完再安装。
+
+        订阅一律按覆盖安装处理：同名插件目录已经存在时直接换成商店里的最新版本，
+        不因为目录残留、插件正在运行或目录里带 git 仓库而拦住用户。
+        """
         if not self._confirm_third_party_risk(entry):
             return
         self._enqueue_plugin_download(
             entry,
-            overwrite=False,
+            overwrite=True,
             action_name=gt('订阅'),
             current_version='',
         )
@@ -620,23 +624,16 @@ class PluginOperationMixin:
         return bool(msg_box.exec())
 
     def update_plugin(self, entry: MarketPlugin, plugin_info: PluginInfo) -> None:
-        """把已安装插件更新到市场最新版本，下载走统一队列。"""
-        action_name = gt('更新')
-        if self._reject_repo_layout_plugin(plugin_info, action_name):
-            return
-        package_dir = self.get_plugin_package_dir(plugin_info)
-        if package_dir is not None and self.is_plugin_running(package_dir):
-            self._show_error(
-                gt('无法{action}').format(action=action_name),
-                gt('插件正在运行，请先停止后再{action}').format(action=action_name),
-            )
-            return
+        """把已安装插件更新到市场最新版本，下载走统一队列。
+
+        更新无条件执行：插件正在运行、目录是仓库布局、目录里带 git 仓库都不拦，
+        一律覆盖成商店里的最新版本。
+        """
         self._enqueue_plugin_download(
             entry,
             overwrite=True,
-            action_name=action_name,
+            action_name=gt('更新'),
             current_version=plugin_info.version or '',
-            package_dir=package_dir,
         )
 
     def build_plugin_spec(
@@ -645,7 +642,6 @@ class PluginOperationMixin:
         overwrite: bool,
         action_name: str,
         current_version: str,
-        package_dir: Path | None = None,
     ) -> tuple[ResourceDownloadSpec | None, str]:
         """构造插件包的下载规格，供下载队列与统一更新弹窗共用。
 
@@ -682,7 +678,6 @@ class PluginOperationMixin:
                 action_name,
                 Path(save_dir) / archive_name,
                 success,
-                package_dir,
             ),
         )
         return spec, ''
@@ -693,7 +688,6 @@ class PluginOperationMixin:
         overwrite: bool,
         action_name: str,
         current_version: str,
-        package_dir: Path | None = None,
     ) -> None:
         """把插件包加入下载队列。已在队列中的同一版本不重复添加。
 
@@ -702,16 +696,12 @@ class PluginOperationMixin:
             overwrite: 是否覆盖已安装的同名插件。
             action_name: 操作名称，用于提示文案。
             current_version: 当前已安装的版本号，未安装时为空。
-            package_dir: 被覆盖的插件目录，安装前用它确认插件没有在运行。
         """
-        if self._import_busy:
-            return
         spec, error = self.build_plugin_spec(
             entry,
             overwrite,
             action_name,
             current_version,
-            package_dir,
         )
         if spec is None:
             self._show_error(gt('无法{action}').format(action=action_name), error)
@@ -774,9 +764,10 @@ class PluginOperationMixin:
         action_name: str,
         archive: Path,
         success: bool,
-        package_dir: Path | None = None,
     ) -> None:
         """下载队列完成后校验并安装。此方法在下载线程中调用。
+
+        安装无条件执行：插件正在运行也照样覆盖，新代码下次启动生效。
 
         Args:
             entry: 市场条目。
@@ -784,7 +775,6 @@ class PluginOperationMixin:
             action_name: 操作名称，用于提示文案。
             archive: 下载好的插件包。
             success: 下载是否成功。
-            package_dir: 被覆盖的插件目录，安装前用它确认插件没有在运行。
         """
         if not success:
             archive.unlink(missing_ok=True)
@@ -802,9 +792,6 @@ class PluginOperationMixin:
             if not _plugin_write_lock.acquire(timeout=120):
                 raise RuntimeError('有插件操作正在进行，请稍后再试')
             try:
-                # 下载期间插件可能已被启动，覆盖前在写锁内再确认一次
-                if package_dir is not None and self.is_plugin_running(package_dir):
-                    raise RuntimeError(f'插件正在运行，请先停止后再{action_name}')
                 result = self.plugin_import_service.import_plugin(archive, overwrite=overwrite)
             finally:
                 _plugin_write_lock.release()
