@@ -35,6 +35,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.plugin.plugin_operation_mixin import PluginOperationMixin
 from one_dragon_qt.widgets.plugin_card import (
+    BADGE_FAILED,
     BADGE_INSTALLED,
     BADGE_SUBSCRIBED,
     BADGE_UPDATE,
@@ -193,8 +194,25 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             self.card_grid.add_card(card)
             cards.append(card)
 
-        if plugins:
+        failed_loads = self.failed_plugin_loads()
+        for package_dir, reason in failed_loads:
+            card = self.make_card(
+                title=package_dir.name,
+                meta_text=gt('加载失败，点击查看原因'),
+                seed=f'failed:{package_dir.name}',
+                badge_text=gt('加载失败'),
+                badge_kind=BADGE_FAILED,
+                on_click=partial(self.open_failed_detail, package_dir, reason),
+                parent=self.card_grid,
+            )
+            self.remember_card(card, f'failed:{package_dir.name}', '')
+            self.card_grid.add_card(card)
+            cards.append(card)
+
+        if plugins or failed_loads:
             text = gt('已安装 {count} 个插件').format(count=len(plugins))
+            if failed_loads:
+                text += gt('，{count} 个加载失败').format(count=len(failed_loads))
             if subscribed_count:
                 text += gt('，已订阅 {count} 个').format(count=subscribed_count)
             if update_count:
