@@ -1,6 +1,8 @@
 # 应用开发指引
 
 > 本文档指引如何创建新应用并接入插件系统。架构细节请参考 [application_plugin_system.md](../one_dragon/modules/application_plugin_system.md)。
+>
+> AI 智能体新增 / 修改应用或插件时，配套使用 `zzz-od-dev-plugin` skill：[skills/zzz-od-dev-plugin/SKILL.md](../../../skills/zzz-od-dev-plugin/SKILL.md)。
 
 ---
 
@@ -75,7 +77,7 @@ plugins/my_plugin/
 ### const 文件
 
 ```python
-# my_plugin_const.py
+# const.py
 
 APP_ID = "my_plugin"
 APP_NAME = "我的插件"
@@ -88,7 +90,7 @@ NEED_NOTIFY = True
 
 ### 工厂类必须实现的方法
 
-`create_application` 和 `create_config` 必须由插件实现，漏掉会在界面上暴露成异常。`create_run_record` 父类已经有默认实现：`DEFAULT_GROUP = True` 时返回按当前区服刷新时间每日重置的通用记录，否则返回 `None`。只有运行周期或完成判定和这个默认不同时才需要覆盖；覆盖后如果创建失败，异常会继续抛出，不会被改成通用记录。
+`create_application` 和 `create_config` 必须由插件实现，漏掉会在界面上暴露成异常。`create_run_record` 父类已经有默认实现：`DEFAULT_GROUP = True` 时返回按当前区服刷新时间每日重置的通用记录，否则返回 `None`。运行周期或完成判定和这个默认不同时需要覆盖；`DEFAULT_GROUP = False` 的应用需要普通每日完成记录时，也要覆盖并返回基础 `AppRunRecord`；覆盖后如果创建失败，异常会继续抛出，不会被改成通用记录。
 
 ### 插件元数据与封面
 
@@ -133,18 +135,18 @@ NEED_NOTIFY = True
 ### 工厂类
 
 ```python
-# my_plugin_factory.py
+# factory.py
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from zzz_od.context.zzz_context import ZContext
 
-from . import my_plugin_const
+from . import const
 from .my_plugin import MyPlugin
 
 
 class MyPluginFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
-        super().__init__(my_plugin_const)
+        super().__init__(const)
         self.ctx = ctx
 
     def create_application(self, instance_idx, group_id):
@@ -177,7 +179,7 @@ import json
 
 class MyPluginFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext) -> None:
-        super().__init__(my_plugin_const)
+        super().__init__(const)
         self.ctx = ctx
 
     def load_routes(self) -> list[dict]:
@@ -392,7 +394,7 @@ repository/
 插件可在 const 中声明 `KEY_SIM_DIR`（相对插件目录的键鼠脚本目录名），脚本目录随插件一起分发、跟随插件更新：
 
 ```python
-# my_plugin_const.py
+# const.py
 KEY_SIM_DIR = 'scripts'   # 可选：插件附带键鼠脚本的目录名（相对插件目录）
 ```
 
@@ -451,7 +453,7 @@ ctx.refresh_application_registration()
 - `DEFAULT_GROUP=True`：父工厂创建基础 `AppRunRecord`，使用工厂的 `APP_ID`、请求的账号实例和当前区服的 `game_refresh_hour_offset`。记录按游戏日重置，一条龙据此跳过当天已经成功的应用。
 - `DEFAULT_GROUP=False`：默认没有运行记录，返回 `None`，不会因此抛出错误。
 
-只有需要每周或其他周期重置、记录业务进度，或自定义完成判定时，才覆盖 `create_run_record()`。覆盖方法本身抛出的创建错误仍会正常暴露。
+需要每周或其他周期重置、记录业务进度、自定义完成判定，或 `DEFAULT_GROUP=False` 的应用需要普通每日完成记录（返回基础 `AppRunRecord`）时，才覆盖 `create_run_record()`。覆盖方法本身抛出的创建错误仍会正常暴露。
 
 手动运行和一条龙共享同一账号、同一应用的运行记录。手动入口不根据完成状态跳过执行，但手动成功后，一条龙会根据共享记录跳过当天已完成的应用。需要不同完成判断时提供自定义运行记录，不按运行入口另建一套每日状态。
 

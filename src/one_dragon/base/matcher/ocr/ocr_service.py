@@ -88,12 +88,32 @@ class OcrService:
 
         Returns:
             过滤后的图片
+
+        Raises:
+            ValueError: 颜色过滤配置格式有误时抛出 附带具体配置 方便定位问题
+                （否则只会表现为「未能识别当前画面」，让人误以为字体/分辨率/代码过时）
         """
         if color_range is None:
             return image
 
-        # 应用颜色范围过滤
-        mask = cv2.inRange(image, np.array(color_range[0]), np.array(color_range[1]))
+        if (not isinstance(color_range, (list, tuple)) or len(color_range) != 2
+                or not all(isinstance(bound, (list, tuple)) for bound in color_range)):
+            raise ValueError(f'颜色过滤配置格式有误 应为 [[下界],[上界]] 实际 {color_range}')
+
+        image_channels: int = image.shape[2] if image.ndim == 3 else 1
+        if len(color_range[0]) != image_channels or len(color_range[1]) != image_channels:
+            raise ValueError(
+                f'颜色过滤配置的通道数与图片不匹配 图片为 {image_channels} 通道 '
+                f'下界 {color_range[0]} 上界 {color_range[1]} 请检查画面配置里该区域的 color_range'
+            )
+
+        try:
+            mask = cv2.inRange(image, np.array(color_range[0]), np.array(color_range[1]))
+        except Exception as e:
+            raise ValueError(
+                f'颜色过滤执行失败 下界 {color_range[0]} 上界 {color_range[1]} '
+                f'请检查画面配置里该区域的 color_range 原始错误 {e}'
+            ) from e
         return cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
 
     def _get_ocr_result_list_from_cache(

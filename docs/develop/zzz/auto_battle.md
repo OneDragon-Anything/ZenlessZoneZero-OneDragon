@@ -38,7 +38,7 @@
 
 **1. 认出是哪个首领**
 
-检测任务 `boss_avatar`（`src/zzz_od/game_data/target_state.py`）每 10 秒跑一次，不经过 CV 流水线，直接裁剪「战斗画面」的 `首领头像` 区域（右上角，1711,52 - 1837,99），逐个模板匹配，命中第一个就停。上一次命中的首领下一轮优先试，靠 `TargetStateChecker._preferred_state` 记住。
+检测任务 `boss_avatar`（`src/zzz_od/game_data/target_state.py`）每 5 秒跑一次，不经过 CV 流水线，直接裁剪「战斗画面」的 `首领头像` 区域（右上角，1711,52 - 1837,99），逐个模板匹配，命中第一个就停。上一次命中的首领下一轮优先试，靠 `TargetStateChecker._preferred_state` 记住。
 
 新增一个首领只需要做两件事：在 `assets/template/target_state/` 下建头像模板（多边形遮罩避开左侧血条和左下角数值），在任务的 `state_definitions` 里追加一条 `TEMPLATE_MATCH_MULTI` 状态。不要为每个首领各建流水线或各建一个检测任务。
 
@@ -50,3 +50,4 @@
 - 每段间隔用「等待秒数」而不是 `pre_delay`：等待可被 `interrupt_states` 打断，`pre_delay` 内部是 `time.sleep`，打断不了。
 - `![按键禁用-终结技, 0, 999]` 的意思是「终结技仍在禁用」，所以禁用一解除就中断整套动作。
 - 时间轴来自实机录制，仅供参考，见 [按键禁用](../../game/mechanics/按键禁用.md) 的实测记录。实际使用时从第一个点开始不停往前微调，找到最早可用点，尽可能减少延迟。
+- 新首领还没实测时间时，先整套照抄同类首领的动作（切人次数、每段间隔、闪避时机），只把 `states` 和 `debug_name` 换成新的，并在注释里写明「时间照抄 XXX，待实测微调」。别为了凑时间先改数值，那样后面无从上一次实机记录往回比。

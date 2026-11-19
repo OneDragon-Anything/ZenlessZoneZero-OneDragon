@@ -20,6 +20,8 @@ concurrency:
 
 env:
   CREATE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+  # vgamepad 安装时默认会弹出 ViGEmBus 驱动安装程序，CI 中跳过，避免卡住
+  VGAMEPAD_SKIP_VIGEMBUS_INSTALL: 'true'
 
 jobs:
   version:

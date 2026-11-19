@@ -273,10 +273,10 @@ class Operation(OperationBase):
                 edge_desc_list.append(edge)
 
         for edge_desc in edge_desc_list:
-            node_from = node_name_map.get(edge_desc.node_from_name, None)
+            node_from = node_name_map.get(edge_desc.node_from_name)
             if node_from is None:
                 raise ValueError(f'找不到节点 {edge_desc.node_from_name}')
-            node_to = node_name_map.get(edge_desc.node_to_name, None)
+            node_to = node_name_map.get(edge_desc.node_to_name)
             if node_to is None:
                 raise ValueError(f'找不到节点 {edge_desc.node_to_name}')
 
@@ -779,7 +779,7 @@ class Operation(OperationBase):
             return
         bus.add_perf(
             PerfTraceItem(
-                metric="operation_round_ms",
+                metric="operations",
                 value=float(elapsed_ms),
                 unit="ms",
                 meta={"operation": self.op_name},

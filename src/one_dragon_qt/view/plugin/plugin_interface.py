@@ -44,14 +44,16 @@ class PluginInterface(PivotNavigatorInterface):
             self.cover_service,
             parent=self,
         )
-        self.add_sub_interface(self.manage_interface)
+        # 启用页面栈：INTERFACE 型插件设置要靠 push_setting_interface 推入，
+        # 该方法只认 PageStackWrapper，未包裹时是静默 no-op。
+        self.add_sub_interface(self.manage_interface, enable_page_stack=True)
 
         self.store_interface: PluginStoreInterface = PluginStoreInterface(
             self.ctx,
             self.cover_service,
             parent=self,
         )
-        self.add_sub_interface(self.store_interface)
+        self.add_sub_interface(self.store_interface, enable_page_stack=True)
 
     def shutdown(self) -> None:
         """程序退出前收尾，等页面里的后台线程结束。"""
