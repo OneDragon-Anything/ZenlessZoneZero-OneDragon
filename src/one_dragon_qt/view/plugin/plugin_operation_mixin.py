@@ -57,6 +57,7 @@ from one_dragon_qt.services.plugin_cover_service import (
 )
 from one_dragon_qt.view.plugin.plugin_detail_dialog import (
     ACTION_CONFIG,
+    ACTION_DELETE_FAILED,
     ACTION_IGNORE,
     ACTION_MUTE_UPDATE,
     ACTION_SUBSCRIBE,
@@ -68,6 +69,7 @@ from one_dragon_qt.view.plugin.plugin_detail_dialog import (
     PluginDetailDialog,
 )
 from one_dragon_qt.widgets.plugin_card import (
+    BADGE_FAILED,
     BADGE_INSTALLED,
     BADGE_NONE,
     BADGE_SUBSCRIBED,
@@ -1004,6 +1006,89 @@ class PluginOperationMixin:
         InfoBar.success(
             title=gt('已取消订阅') if subscribed else gt('已卸载'),
             content=gt('{name} 已移除').format(name=plugin_info.app_name),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self._as_widget(),
+        )
+
+    # ------------------------------------------------------------------
+    # 加载失败的插件
+    # ------------------------------------------------------------------
+
+    def failed_plugin_loads(self) -> list[tuple[Path, str]]:
+        """plugins 目录下加载失败的插件包。
+
+        加载失败的插件不会注册，不在已安装列表里，这里按最近一次扫描的失败记录整理，
+        让用户能看到失败原因并删除。
+
+        Returns:
+            (插件包目录, 失败原因)，同一插件包的多条失败合并为一条。
+        """
+        plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
+        reasons: dict[Path, list[str]] = {}
+        for failed_path, reason in self.ctx.factory_manager.scan_failures:
+            resolved = failed_path.resolve(strict=False)
+            if resolved == plugins_root or not resolved.is_relative_to(plugins_root):
+                continue
+            package_dir = plugins_root / resolved.relative_to(plugins_root).parts[0]
+            reasons.setdefault(package_dir, []).append(f'{failed_path.name}: {reason}')
+        return [(package_dir, '\n'.join(items)) for package_dir, items in reasons.items()]
+
+    def open_failed_detail(self, package_dir: Path, reason: str) -> None:
+        """打开加载失败插件的详情页，展示失败原因并提供删除。"""
+        data = PluginDetailData(
+            title=package_dir.name,
+            initial=self.initial_of(package_dir.name),
+            summary=f'{reason}\n\n{package_dir}',
+            status_text=gt('加载失败'),
+            status_kind=BADGE_FAILED,
+            actions=[(ACTION_DELETE_FAILED, gt('删除'))],
+        )
+        self._show_detail(data, partial(self._on_failed_detail_action, package_dir))
+
+    def _on_failed_detail_action(self, package_dir: Path, action: str) -> None:
+        if action == ACTION_DELETE_FAILED:
+            self.delete_failed_plugin(package_dir)
+
+    def delete_failed_plugin(self, package_dir: Path) -> None:
+        """删除加载失败的插件包。"""
+        if self._import_busy:
+            return
+        msg_box = MessageBox(
+            gt('删除'),
+            gt('确定要删除加载失败的插件 "{name}" 吗？插件文件会被删除。').format(name=package_dir.name),
+            self._as_widget().window(),
+        )
+        msg_box.yesButton.setText(gt('删除'))
+        msg_box.cancelButton.setText(gt('保留'))
+        if not msg_box.exec():
+            return
+
+        if self.is_plugin_running(package_dir):
+            self._show_error(gt('删除失败'), gt('插件正在运行，请先停止后再删除'))
+            return
+
+        self._start_plugin_task(
+            lambda: self.plugin_import_service.delete_plugin(package_dir),
+            partial(self._finish_delete_failed, package_dir),
+        )
+
+    def _finish_delete_failed(self, package_dir: Path, result: ImportResult) -> None:
+        self._finish_plugin_task()
+        if not result.success:
+            self._show_error(gt('删除失败'), result.message)
+            return
+
+        found = self.subscription_config.find_registry_id('', package_dir.name)
+        if found:
+            self.subscription_config.remove_record(found)
+        self.ctx.refresh_application_registration()
+        self.refresh_cards()
+        InfoBar.success(
+            title=gt('已删除'),
+            content=gt('{name} 已移除').format(name=package_dir.name),
             orient=Qt.Horizontal,
             isClosable=True,
             position=InfoBarPosition.TOP,
