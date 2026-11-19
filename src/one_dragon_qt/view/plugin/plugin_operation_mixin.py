@@ -806,6 +806,10 @@ class PluginOperationMixin:
                 if package_dir is not None and self.is_plugin_running(package_dir):
                     raise RuntimeError(f'插件正在运行，请先停止后再{action_name}')
                 result = self.plugin_import_service.import_plugin(archive, overwrite=overwrite)
+                if not overwrite and not result.success and result.plugin_dir is not None:
+                    # 商店只对未注册的插件提供订阅 目录已存在说明是残留或工厂加载失败的插件 直接覆盖修复
+                    log.info(f'插件目录已存在但未注册，改为覆盖安装: {result.plugin_name}')
+                    result = self.plugin_import_service.import_plugin(archive, overwrite=True)
             finally:
                 _plugin_write_lock.release()
             if not result.success:
