@@ -50,19 +50,13 @@ class OperationNode:
             wait_after_op: op指令后的等待时间
             timeout_seconds: 该节点的超时秒数 也可以是在运行时按上下文给出秒数的提供者
             is_start_node: 是否是开始节点
-            node_max_retry_times: 当前节点的重试次数 通常与timeout_seconds二选一
+            node_max_retry_times: 当前节点的重试次数
                 都不指定时为3次 只指定超时时不限制重试次数 由超时结束节点
-                两者同时指定时仍都生效 以先到者为准 保证已有的第三方插件可以加载
+                两者同时指定时哪个限制先到就按哪个结束
             mute: 是否不显示当前节点的结果日志
             screenshot_before_round: 当前节点每次运行前是否自动截图
             save_status: 是否保存当前状态到列表中
         """
-        self.limits_conflict_warned: bool = False
-        """是否已经提示过 timeout_seconds 与 node_max_retry_times 同时指定"""
-
-        self.has_conflicting_limits: bool = timeout_seconds is not None and node_max_retry_times is not None
-        """timeout_seconds 与 node_max_retry_times 是否同时指定 两者应二选一"""
-
         self.cn: str = cn
         """节点名称"""
 
