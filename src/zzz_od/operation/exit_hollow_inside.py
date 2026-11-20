@@ -50,6 +50,10 @@ class ExitHollowInside(ZOperation):
         """已经按了几次 Esc 打开暂停菜单。"""
         self.confirm_clicked: bool = False
         """是否已经点过退出确认，避免重复点击。"""
+        self.confirm_clicked_at: float = 0.0
+        """上次点击退出确认时的操作已用时间，用来算补点间隔。"""
+        self.confirm_retry: int = 0
+        """退出确认已经补点了几次。"""
         self.continue_clicked: bool = False
         """是否已经点过结算的继续，避免重复点击。"""
         self.continue_clicked_at: float = 0.0
@@ -62,6 +66,8 @@ class ExitHollowInside(ZOperation):
         super().handle_init()
         self.menu_presses = 0
         self.confirm_clicked = False
+        self.confirm_clicked_at = 0.0
+        self.confirm_retry = 0
         self.continue_clicked = False
         self.continue_clicked_at = 0.0
         self.continue_retry = 0
@@ -106,17 +112,22 @@ class ExitHollowInside(ZOperation):
             return self.round_success('已到结算')
         if not self._has('退出确认-提示'):
             return self.round_success('退出确认已消失')
+        # 点一次就等提示消失，不重复点；隔一段时间还在才补点。
+        # 不能点完立刻判失败：关闭提示有动画，下一轮仍可能看得到。
         if self.confirm_clicked:
-            return self.round_fail('退出确认未关闭，已停止重复确认')
-        # 只点一次，之后回到本节点只等提示消失，避免重复点击。
-        if self.confirm_clicked:
-            return self.round_wait('等待退出确认消失', wait=0.5)
+            if self.operation_usage_time - self.confirm_clicked_at < self.RE_CLICK_INTERVAL:
+                return self.round_wait('等待退出确认消失', wait=0.5)
+            if self.confirm_retry >= self.MAX_RE_CLICKS:
+                return self.round_fail('退出确认点击后仍未关闭，停止重复尝试')
+            self.confirm_retry += 1
+            log.info('退出确认未关闭，补点第 %s 次', self.confirm_retry)
         result = self.round_by_find_and_click_area(
             self.last_screenshot, SCREEN_NAME, '退出确认-确认',
             pre_delay=0.1, success_wait=0.5, retry_wait=0.5,
         )
         if result.is_success:
             self.confirm_clicked = True
+            self.confirm_clicked_at = self.operation_usage_time
             return self.round_wait('已点击确认，等待提示消失', wait=0.5)
         return result
 

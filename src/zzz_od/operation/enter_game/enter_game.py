@@ -666,7 +666,7 @@ class EnterGame(ZOperation):
     @node_from(from_name='画面识别', status=STATUS_ALREADY_INSIDE)
     @node_from(from_name='点击进入游戏', status=STATUS_LOGIN_SUCCESS)
     @node_from(from_name='点击进入游戏', status=STATUS_LOADING)
-    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS)
+    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS, node_max_retry_times=9999)
     def wait_loading(self) -> OperationRoundResult:
         """
         等待加载场景结束，并处理加载后的弹窗和大世界识别。
