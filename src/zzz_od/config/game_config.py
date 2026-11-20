@@ -177,6 +177,24 @@ class GameConfig(BasicGameConfig):
         BasicGameConfig.__init__(self, instance_idx)
         # TODO 迁移旧配置 2026-9 删除
         self._migrate_legacy_gamepad_keys()
+        # 邦邦点开关曾写在账号配置。2027-01-01 可删除
+        self._migrate_prefer_bangbang_points()
+
+    def _migrate_prefer_bangbang_points(self) -> None:
+        """把账号配置里的邦邦点开关迁到游戏配置，并删除旧键。"""
+        if not isinstance(self.data, dict) or 'prefer_bangbang_points' in self.data:
+            return
+        if self.instance_idx is None:
+            return
+
+        from one_dragon.base.config.game_account_config import GameAccountConfig
+        account = GameAccountConfig(self.instance_idx)
+        if not isinstance(account.data, dict) or 'prefer_bangbang_points' not in account.data:
+            return
+
+        self.update('prefer_bangbang_points', account.data['prefer_bangbang_points'])
+        account.data.pop('prefer_bangbang_points')
+        account.save()
 
     def _migrate_legacy_gamepad_keys(self) -> None:
         """初始化时一次性迁移所有旧数字格式的手柄按键配置。"""
@@ -207,6 +225,14 @@ class GameConfig(BasicGameConfig):
     @ds4_key_press_time.setter
     def ds4_key_press_time(self, new_value: float) -> None:
         self.update('ds4_key_press_time', new_value)
+
+    @property
+    def prefer_bangbang_points(self) -> bool:
+        return self.get('prefer_bangbang_points', False)
+
+    @prefer_bangbang_points.setter
+    def prefer_bangbang_points(self, new_value: bool) -> None:
+        self.update('prefer_bangbang_points', new_value)
 
     @property
     def background_mode(self) -> bool:
