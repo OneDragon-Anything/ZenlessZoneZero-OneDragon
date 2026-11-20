@@ -24,6 +24,7 @@ from one_dragon.base.operation.application.application_group_manager import (
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
+    ApplicationRunContextStateEventEnum,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_app_setting_refresh_event import (
@@ -107,6 +108,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 初始化相关
         self._init_lock = threading.Lock()
+        self._registration_refresh_lock = threading.Lock()
+        self._registration_refresh_pending: bool = False
+        """有任务运行时请求了刷新应用注册，等任务结束后再执行"""
+        self._registration_refresh_listening: bool = False
         self._application_registered: bool = False  # 应用是否注册完毕
         self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
 
@@ -275,6 +280,48 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.screen_loader.load_extra_screen_dir(
                 str(screen_dir), default_app_id=plugin_info.app_id
             )
+
+    def request_application_registration_refresh(self) -> bool:
+        """安装或更新插件后请求刷新应用注册，不打断正在运行的任务。
+
+        有任务在运行时，不动当前的工厂、模块和运行依赖，只记下待刷新，
+        等运行结束（STOP 事件）后再刷新，新版本此时才生效；没有任务运行时立即刷新。
+
+        Returns:
+            是否已经立即刷新。
+        """
+        with self._registration_refresh_lock:
+            if self.run_context.is_context_stop:
+                refresh_now = True
+            else:
+                refresh_now = False
+                self._registration_refresh_pending = True
+                if not self._registration_refresh_listening:
+                    self._registration_refresh_listening = True
+                    self.run_context.event_bus.listen_event(
+                        ApplicationRunContextStateEventEnum.STOP,
+                        self._on_run_stopped_refresh_registration,
+                    )
+        if refresh_now:
+            self.refresh_application_registration()
+            return True
+
+        log.info("有任务正在运行，应用注册刷新推迟到任务结束后")
+        # 加锁判断到设置待刷新之间任务可能刚好结束，这里补做一次，避免漏掉
+        self._run_pending_registration_refresh()
+        return False
+
+    def _on_run_stopped_refresh_registration(self, event=None) -> None:
+        """任务结束事件：执行推迟的应用注册刷新。"""
+        self._run_pending_registration_refresh()
+
+    def _run_pending_registration_refresh(self) -> None:
+        """没有任务在运行且有待刷新时，执行一次刷新。"""
+        with self._registration_refresh_lock:
+            if not self._registration_refresh_pending or not self.run_context.is_context_stop:
+                return
+            self._registration_refresh_pending = False
+        self.refresh_application_registration()
 
     def refresh_application_registration(self) -> None:
         """刷新应用注册

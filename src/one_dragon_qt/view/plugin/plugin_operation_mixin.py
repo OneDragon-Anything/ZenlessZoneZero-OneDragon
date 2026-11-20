@@ -836,7 +836,7 @@ class PluginOperationMixin:
             )
             return
 
-        self.ctx.refresh_application_registration()
+        self.ctx.request_application_registration_refresh()
         for result in success_results:
             package_dir = self._find_package_dir_of_result(result)
             app_id = self._find_app_id_by_package(package_dir)

@@ -601,7 +601,7 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
         success_count = sum(1 for result in results if result.success)
         fail_count = len(results) - success_count
         if success_count > 0:
-            self.ctx.refresh_application_registration()
+            self.ctx.request_application_registration_refresh()
             self.refresh_cards()
             InfoBar.success(
                 title=gt('导入成功'),
