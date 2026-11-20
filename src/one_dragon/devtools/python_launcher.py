@@ -221,11 +221,18 @@ def execute_python_script(
         # 创建进程
         # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
 
+        # 被打包启动器拉起时告诉 GUI 子进程来源：它不是 frozen，只靠 sys.frozen 判断
+        # 会认不出启动器，启动器更新检查会被跳过
+        child_env = os.environ.copy()
+        if getattr(sys, 'frozen', False):
+            child_env['ONE_DRAGON_LAUNCHER_SOURCE'] = 'launcher'
+
         process = subprocess.Popen(
             [uv_path] + run_args,
             stdout=None,
             stderr=None,
             stdin=None,
+            env=child_env,
             creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0,
             text=True,
             encoding='utf-8'

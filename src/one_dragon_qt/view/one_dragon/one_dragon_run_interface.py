@@ -214,15 +214,25 @@ class OneDragonRunInterface(SplitAppRunInterface):
     def _on_app_state_changed(self, event) -> None:
         self.app_run_list.update_cards_display()
 
-    def _on_app_list_changed(self, new_app_list: list[ApplicationGroupConfigItem]) -> None:
+    def _on_app_list_changed(
+        self,
+        new_app_list: list[ApplicationGroupConfigItem],
+        moved_app_id: str,
+    ) -> None:
         """
         应用列表改变后的回调（拖拽排序或置顶）
 
         Args:
             new_app_list: 新顺序的应用列表
+            moved_app_id: 被拖拽或置顶的应用ID，空字符串表示识别不出来
         """
-        # 更新配置中的 app_list 顺序；用户主动调整顺序时一并保存临时应用
-        self.config.set_app_order([item.app_id for item in new_app_list])
+        # 只保存用户实际动过的那一个应用，其他新应用保留 New 标记
+        self.config.set_app_order(
+            [item.app_id for item in new_app_list],
+            moved_app_id or None,
+        )
+        # 被移动的应用已经保存，卡片上的 New 标记要同步去掉
+        self.app_run_list.update_cards_display()
 
     def _on_app_card_run(self, app_id: str) -> None:
         """
@@ -230,9 +240,15 @@ class OneDragonRunInterface(SplitAppRunInterface):
         :param app_id:
         :return:
         """
+        # 已经有应用在跑时这次点击会被拒绝，别先把 New 标记清掉
+        if self.app_runner.isRunning():
+            log.error('已有应用在运行中')
+            return
+
         for app in self.config.app_list:
             if app.app_id == app_id:
                 self.config.persist_app(app_id)
+                self.app_run_list.update_cards_display()
                 self.run_app_by_item(app)
                 break
 
@@ -248,6 +264,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
             app_id=app_id,
             enabled=value,
         )
+        # 启用后应用会被写进保存顺序，顺手去掉 New 标记
+        self.app_run_list.update_cards_display()
 
     def _on_instance_event(self, event) -> None:
         """
