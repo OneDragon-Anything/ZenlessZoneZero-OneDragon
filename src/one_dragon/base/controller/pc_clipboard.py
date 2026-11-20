@@ -1,3 +1,4 @@
+import contextlib
 import time
 
 import pywintypes
@@ -33,10 +34,8 @@ class PcClipboard:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 win32clipboard.CloseClipboard()
-            except Exception:
-                pass
 
     @staticmethod
     def copy_string(text: str) -> None:
@@ -54,10 +53,8 @@ class PcClipboard:
             win32clipboard.SetClipboardText(text, win32con.CF_UNICODETEXT)
             log.info('复制文字到剪切板成功')
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 win32clipboard.CloseClipboard()
-            except Exception:
-                pass
 
     @staticmethod
     def paste_text() -> str:
@@ -76,10 +73,8 @@ class PcClipboard:
         except pywintypes.error:
             data = ''
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 win32clipboard.CloseClipboard()
-            except Exception:
-                pass
 
         # 使用 pynput 模拟粘贴操作
         log.info('粘贴文字, 按下 Ctrl+V')

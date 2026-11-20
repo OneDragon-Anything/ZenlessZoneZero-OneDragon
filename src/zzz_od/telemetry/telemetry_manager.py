@@ -2,6 +2,7 @@
 遥测管理器
 仅上报日活（app_launched）和应用关闭（app_shutdown），附带版本信息。
 """
+import contextlib
 import platform
 import time
 import uuid
@@ -97,12 +98,10 @@ class TelemetryManager:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
 
     def _get_app_version(self) -> str:
-        try:
+        with contextlib.suppress(Exception):
             version = getattr(self.ctx.project_config, "version", None)
             if version:
                 return version
-        except Exception:
-            pass
         return "unknown"
 
     def _get_commit_version(self) -> str:
