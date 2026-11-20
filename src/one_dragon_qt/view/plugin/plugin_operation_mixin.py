@@ -1054,7 +1054,7 @@ class PluginOperationMixin:
             return
 
         self._start_plugin_task(
-            lambda: self.plugin_import_service.delete_plugin(package_dir),
+            lambda: self.plugin_import_service.delete_plugin(package_dir, backup_git=True),
             partial(self._finish_delete_failed, package_dir),
         )
 
