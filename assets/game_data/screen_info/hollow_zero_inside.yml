@@ -1,0 +1,32 @@
+screen_id: hollow_zero_inside
+screen_name: 空洞-局内HUD
+pc_alt: false
+area_list:
+- area_name: 右上计时
+  area_type: none
+  pc_rect:
+  - 1768
+  - 44
+  - 1804
+  - 100
+- area_name: 计时数字
+  area_type: none
+  pc_rect:
+  - 1590
+  - 46
+  - 1775
+  - 110
+- area_name: 普通攻击
+  area_type: none
+  pc_rect:
+  - 1403
+  - 916
+  - 1505
+  - 1017
+- area_name: 小地图
+  area_type: none
+  pc_rect:
+  - 1495
+  - 192
+  - 1740
+  - 414

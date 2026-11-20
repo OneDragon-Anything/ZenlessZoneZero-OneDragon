@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -20,8 +21,9 @@ from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data import hollow_zero_inside_screen
+from zzz_od.operation.exit_hollow_inside import ExitHollowInside
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -29,6 +31,7 @@ class EnterGame(ZOperation):
     STATUS_GAME_DATA_UPDATED: ClassVar[str] = '游戏数据已更新'
     STATUS_LOGIN_SUCCESS: ClassVar[str] = '登录成功'
     STATUS_LOADING: ClassVar[str] = '加载中'
+    STATUS_ALREADY_INSIDE: ClassVar[str] = '已在玩法局内'
     MAX_LOADING_SECONDS: ClassVar[float] = 180
     MAX_RESOURCE_DOWNLOAD_SECONDS: ClassVar[float] = 1200
 
@@ -110,6 +113,15 @@ class EnterGame(ZOperation):
         if result.is_success:
             self.round_by_click_area('打开游戏', '国服-返回按钮')
             return self.round_retry(status='返回重试', wait=1)
+
+        # 游戏保留的登录状态可能直接把人带回空洞类玩法的局内画面。
+        # 这种画面不是登录页也不是大世界，按未知画面会重试到超时，
+        # 所以先认出来并退出玩法，回到大世界再继续。
+        if hollow_zero_inside_screen.is_in_hollow_inside(self.ctx, self.last_screenshot):
+            exit_result = ExitHollowInside(self.ctx).execute()
+            if not exit_result.success:
+                return self.round_fail(f'退出空洞局内失败：{exit_result.status}')
+            return self.round_success(EnterGame.STATUS_ALREADY_INSIDE, wait=1)
 
         return self.round_retry(status='未知画面', wait=1)
 
@@ -651,9 +663,10 @@ class EnterGame(ZOperation):
 
         return self.round_retry('进入游戏点击后等待', wait=1)
 
+    @node_from(from_name='画面识别', status=STATUS_ALREADY_INSIDE)
     @node_from(from_name='点击进入游戏', status=STATUS_LOGIN_SUCCESS)
     @node_from(from_name='点击进入游戏', status=STATUS_LOADING)
-    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS, node_max_retry_times=9999)
+    @operation_node(name='登录成功', timeout_seconds=MAX_LOADING_SECONDS)
     def wait_loading(self) -> OperationRoundResult:
         """
         等待加载场景结束，并处理加载后的弹窗和大世界识别。
@@ -661,6 +674,16 @@ class EnterGame(ZOperation):
         Returns:
             仍在加载时等待；识别到弹窗时处理；识别到大世界时结束。
         """
+        # 先判空洞类玩法局内：这种画面没有加载提示，也不会有弹窗，
+        # 不在这里认出来就会一直等到超时，后面的应用根本不会被加载。
+        # 认出来后直接把角色退出去回到大世界，而不是只把画面交回上层：
+        # 上层应用都假设角色在大世界，交回去照样会失败。
+        if hollow_zero_inside_screen.is_in_hollow_inside(self.ctx, self.last_screenshot):
+            exit_result = ExitHollowInside(self.ctx).execute()
+            if not exit_result.success:
+                return self.round_fail(f'退出空洞局内失败：{exit_result.status}')
+            return self.round_success(EnterGame.STATUS_ALREADY_INSIDE, wait=1)
+
         result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
         if result.is_success:
             return self.round_wait(result.status, wait=2)
