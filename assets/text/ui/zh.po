@@ -263,6 +263,9 @@ msgstr "仪表盘"
 msgid "一条龙"
 msgstr "一条龙"
 
+msgid "插件龙"
+msgstr "插件龙"
+
 msgid "游戏设置"
 msgstr "游戏设置"
 
