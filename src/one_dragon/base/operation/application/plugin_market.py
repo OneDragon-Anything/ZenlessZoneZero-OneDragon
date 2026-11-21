@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -237,33 +239,37 @@ class PluginMarketService:
         return snapshot
 
     def _download(self) -> list[MarketPlugin]:
-        target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
         urls = dict(self._env_config.repo_config.plugin_market_urls)
         if not urls:
             raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
         settings = self._env_config.get_resource_download_settings()
-        # ghproxy 显式传 None 且不传成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
-        ok = CommonDownloader(
-            CommonDownloaderParam(
-                save_file_path=str(target.parent),
-                save_file_name=target.name,
-                download_urls=urls,
-            )
-        ).download(
-            source_order=settings.source_order,
-            proxy_url=settings.proxy_url,
-            ghproxy_url=None,
-            skip_if_existed=False,
-            min_bytes_per_second=MIN_BYTES_PER_SECOND,
-            fallback_on_slow=settings.fallback_on_slow,
-        )
-        if not ok or not target.exists():
-            raise RuntimeError('插件市场数据下载失败')
+        temp_root = Path(os_utils.get_path_under_work_dir('config', 'temp'))
+        temp_root.mkdir(parents=True, exist_ok=True)
+        # 每次下载用独占的临时目录：同时有多个加载或多个客户端实例也不会写同一个文件名
+        work_dir = Path(tempfile.mkdtemp(prefix='plugin_market_', dir=temp_root))
         try:
+            target = work_dir / 'plugins.json'
+            # ghproxy 显式传 None 且不传成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
+            ok = CommonDownloader(
+                CommonDownloaderParam(
+                    save_file_path=str(work_dir),
+                    save_file_name=target.name,
+                    download_urls=urls,
+                )
+            ).download(
+                source_order=settings.source_order,
+                proxy_url=settings.proxy_url,
+                ghproxy_url=None,
+                skip_if_existed=False,
+                min_bytes_per_second=MIN_BYTES_PER_SECOND,
+                fallback_on_slow=settings.fallback_on_slow,
+            )
+            if not ok or not target.exists():
+                raise RuntimeError('插件市场数据下载失败')
             payload = json.loads(target.read_text(encoding='utf-8'))
         finally:
             # 原始索引解析完就删：留下的只有解析后的快照缓存一份
-            target.unlink(missing_ok=True)
+            shutil.rmtree(work_dir, ignore_errors=True)
         if not isinstance(payload, dict | list):
             raise RuntimeError('插件市场数据格式异常')
         return parse_market_payload(payload)
