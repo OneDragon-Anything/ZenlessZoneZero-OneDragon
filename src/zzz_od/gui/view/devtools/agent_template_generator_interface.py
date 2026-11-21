@@ -40,6 +40,7 @@ from qfluentwidgets import (
     themeColor,
 )
 
+from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.screen.template_info import (
@@ -546,9 +547,14 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         """截图到指定模板，并切换到该模板。"""
         self._show_step(idx)
         controller = self.ctx.controller
-        if controller is not None and not controller.is_game_window_ready:
-            controller.init_game_win()
-        if controller is None or not controller.is_game_window_ready:
+        try:
+            if controller is not None and not controller.is_game_window_ready:
+                controller.init_game_win()
+            window_ready = controller is not None and controller.is_game_window_ready
+        except WindowAmbiguousError as e:
+            self.show_info_bar(gt('游戏窗口不唯一'), str(e), icon=InfoBarIcon.ERROR)
+            return
+        if not window_ready:
             self.show_info_bar(gt('没找到游戏窗口'), '', icon=InfoBarIcon.ERROR)
             return
         try:
