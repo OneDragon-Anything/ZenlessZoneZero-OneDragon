@@ -1,4 +1,4 @@
 agent_name: "比利"
 agent_type: "ATTACK"
-dmg_type: "ELECTRIC"
+dmg_type: "PHYSICAL"
 rare_type: "A"
