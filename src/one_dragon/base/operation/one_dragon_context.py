@@ -351,6 +351,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
 
+            # 调试图只保留最近的一批，避免历史运行攒下的图片一直堆着
+            debug_utils.prune_debug_images()
+
             if not self._application_registered:  # 只需要注册一次
                 self.register_application_factory()
                 self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
