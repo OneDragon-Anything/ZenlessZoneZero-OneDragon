@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -20,8 +21,17 @@ from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.enter_game.history_account_login import (
+    CnEntryPhase,
+    HistoryAccountLogin,
+    classify_cn_entry_phase,
+    has_exact_login_text,
+    is_history_login_window,
+    is_startup_warning,
+    normalize_phone_number,
+    save_history_login_diagnostic,
+)
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -47,7 +57,7 @@ class EnterGame(ZOperation):
         # 未配置登录信息时，无法主动切换账号，依赖游戏保存的登录状态直接进入
         # switch=True 时前置流程已执行游戏内登出，不能跳过 force_login
         cfg = self.ctx.game_account_config
-        if not switch and self.force_login and not cfg.has_login_info:
+        if not switch and self.force_login and not cfg.has_login_info and not cfg.use_history_login:
             log.warning('登录信息未配置完整，跳过强制重新登录，将使用游戏当前登录状态')
             self.force_login = False
 
@@ -55,6 +65,9 @@ class EnterGame(ZOperation):
         self.after_first_enter_click: bool = False  # 是否已经完成第一次进入游戏点击
         self.after_second_enter_click: bool = False  # 是否已经完成加载配置后的第二次进入游戏点击
         self.resource_download_start_time: float | None = None  # 资源下载开始时间
+        self._cn_switch_started_at: float | None = None
+        self._cn_switch_last_click_at: float | None = None
+        self._cn_switch_click_count: int = 0
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
@@ -62,11 +75,17 @@ class EnterGame(ZOperation):
         self.screenshot_func: str = self.ctx.controller.screenshot_method
 
     def handle_init(self):
+        if self.ctx.game_account_config.game_region == GameRegionEnum.CN.value.value:
+            method = '直接选择历史账号' if self.ctx.game_account_config.use_history_login else '账号密码'
+            log.info('官服登录方式：%s', method)
         # 本OP会被复用 多次登录时重置这个记录
         self.already_login = False
         self.after_first_enter_click = False
         self.after_second_enter_click = False
         self.resource_download_start_time = None
+        self._cn_switch_started_at = None
+        self._cn_switch_last_click_at = None
+        self._cn_switch_click_count = 0
         self.interact_ignore_word_list.clear()
 
         # B服登录时采用BitBlt截图
@@ -86,8 +105,14 @@ class EnterGame(ZOperation):
         # self.screenshot()
         # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
 
+        if (self.force_login and not self.already_login and self.ctx.game_account_config.use_history_login
+                and normalize_phone_number(self.ctx.game_account_config.account) is None):
+            return self.round_fail('请在账号栏填写真实的中国大陆 11 位手机号，支持 +86 前缀')
         if self.last_screenshot is None:
             return self.round_retry('未获取到游戏截图', wait=1)
+
+        if self.ctx.game_account_config.use_history_login and is_startup_warning(self.ctx, self.last_screenshot):
+            return self.round_retry('等待游戏启动警告页结束', wait=1)
 
         data_updated_result = self.check_game_data_updated(self.last_screenshot, back_to_check_screen=False)
         if data_updated_result is not None:
@@ -100,6 +125,10 @@ class EnterGame(ZOperation):
         login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
             return login_result
+
+        if self.ctx.game_account_config.use_history_login and not self.already_login:
+            # 窗口创建后还有启动动画和警告页，不能当成历史账号窗口。
+            return self.round_retry('等待游戏启动完成或可识别的登录界面', wait=1)
 
         login_result = self.match_login_error(self.last_screenshot)
         if login_result is not None:
@@ -119,6 +148,29 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
+        if self.ctx.game_account_config.use_history_login:
+            history_window = is_history_login_window(self, screen)
+            if not history_window and has_exact_login_text(self.ctx, screen, '点击进入游戏'):
+                return self.round_success('点击进入游戏', wait=1)
+            if self.already_login:
+                # 已提交后重新出现账号窗口，表示登录未成功，不再自动尝试。
+                if history_window or has_exact_login_text(self.ctx, screen, '按钮-登陆其他账号'):
+                    return self.round_fail('历史账号登录未成功，请手动处理验证或重新登录')
+                return None
+            if not history_window:
+                # 仅在有明确画面证据时判断需要手动登录，不猜测未知画面。
+                for name in ('国服-账号密码', '国服-账号密码-新'):
+                    if has_exact_login_text(self.ctx, screen, name):
+                        return self.round_fail('当前是手动登录界面，请先手动登录并保留账号记录')
+                if has_exact_login_text(self.ctx, screen, '按钮-登陆其他账号'):
+                    return self.round_fail('检测到账号确认界面，但未识别历史账号下拉箭头')
+                return None
+            result = HistoryAccountLogin(self.ctx).execute()
+            if not result.success:
+                return self.round_fail(result.status)
+            self.already_login = True
+            return self.round_wait('历史账号已提交', wait=2)
+
         # 先识别国服的退出 '按钮-退出登录-确定', 再识别 'B服新-登录记录'
         result = self.round_by_find_area(screen, '打开游戏', '标题-退出登录')
         if result.is_success:
@@ -183,7 +235,7 @@ class EnterGame(ZOperation):
     @operation_node(name='国服-输入账号密码')
     def input_account_password(self) -> OperationRoundResult:
         if self.ctx.game_account_config.account == '' or self.ctx.game_account_config.password == '':
-            return self.round_fail('未配置账号密码')
+            return self.round_fail('当前选择账号密码登录，请填写账号密码，或在多账户管理切换为直接选择历史账号')
         if len(self.ctx.game_account_config.account) <= 3 or len(self.ctx.game_account_config.password) <= 3:
             return self.round_fail('账号或密码太短, 请检查')
 
@@ -220,7 +272,7 @@ class EnterGame(ZOperation):
         @return:
         """
         if self.ctx.game_account_config.account == '' or self.ctx.game_account_config.password == '':
-            return self.round_fail('未配置账号密码')
+            return self.round_fail('当前选择账号密码登录，请填写账号密码，或在多账户管理切换为直接选择历史账号')
         if len(self.ctx.game_account_config.account) <= 3 or len(self.ctx.game_account_config.password) <= 3:
             return self.round_fail('账号或密码太短, 请检查')
 
@@ -479,6 +531,8 @@ class EnterGame(ZOperation):
             target_word_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
+            if self.ctx.game_account_config.use_history_login:
+                return self.round_fail('历史账号登录遇到提示，请手动处理后重试')
             time.sleep(0.5)  # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
@@ -581,6 +635,34 @@ class EnterGame(ZOperation):
             target_word_list,
         )
 
+    def prepare_cn_account_switch(self) -> OperationRoundResult:
+        """两种官服登录方式共用前置等待，到加载完成的登录页才点击切换。"""
+        phase = classify_cn_entry_phase(self.ctx, self.last_screenshot)
+        if phase == CnEntryPhase.RESOURCE_DOWNLOAD:
+            self._cn_switch_started_at = None
+            return self.wait_resource_download()
+        self.resource_download_start_time = None
+        now = self.operation_usage_time
+        if self._cn_switch_started_at is None:
+            self._cn_switch_started_at = now
+        if now - self._cn_switch_started_at >= self.MAX_LOADING_SECONDS:
+            return self.round_fail('等待加载完成的可切号页面超时')
+        if phase != CnEntryPhase.READY:
+            if phase == CnEntryPhase.LOADING:
+                self.after_first_enter_click = True
+            return self.round_wait(phase.value, wait=1)
+        if self._cn_switch_last_click_at is not None and now - self._cn_switch_last_click_at < 3:
+            return self.round_wait('等待切换账号后的退出弹窗', wait=1)
+        if self._cn_switch_click_count >= 3:
+            return self.round_fail('已在就绪页尝试切换三次，但未识别到退出弹窗')
+        self._cn_switch_last_click_at = now
+        self._cn_switch_click_count += 1
+        result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '切换账号')
+        if not result.is_success:
+            return self.round_retry('未能点击就绪页的切换账号按钮', wait=1)
+        self.after_second_enter_click = False
+        return self.round_wait(f'已发送切换点击（{self._cn_switch_click_count}/3），等待退出弹窗', wait=1)
+
     @node_from(from_name='画面识别', status='点击进入游戏')
     @operation_node(name='点击进入游戏', node_max_retry_times=15)
     def check_enter_click_status(self) -> OperationRoundResult:
@@ -591,11 +673,27 @@ class EnterGame(ZOperation):
         也可能因为截图时机直接进入第二次点击后的登录阶段。
         """
         # 第一次点击进入游戏后，普通加载和资源更新都在这里分流。
+        if self.ctx.game_account_config.use_history_login and is_startup_warning(self.ctx, self.last_screenshot):
+            return self.round_retry('等待游戏启动警告页结束', wait=1)
         data_updated_result = self.check_game_data_updated(self.last_screenshot, back_to_check_screen=True)
         if data_updated_result is not None:
             return data_updated_result
 
         if self.force_login and not self.already_login:
+            history_window = (self.ctx.game_account_config.use_history_login
+                              and is_history_login_window(self, self.last_screenshot))
+            if history_window:
+                result = HistoryAccountLogin(self.ctx).execute()
+                if not result.success:
+                    return self.round_fail(result.status)
+                self.already_login = True
+                self.after_first_enter_click = False
+                self.after_second_enter_click = False
+                self.resource_download_start_time = None
+                return self.round_success('切换账号确定', wait=2)
+            if (self.ctx.game_account_config.game_region == GameRegionEnum.CN.value.value
+                    and not has_exact_login_text(self.ctx, self.last_screenshot, '标题-退出登录')):
+                return self.prepare_cn_account_switch()
             result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '切换账号确定')
             if result.is_success:
                 self.after_first_enter_click = False
@@ -688,6 +786,8 @@ class EnterGame(ZOperation):
     # B服登录后恢复原有截图方法
     # noinspection PyUnusedLocal
     def restore_screenshot_func(self, result: OperationResult) -> None:
+        if self.ctx.game_account_config.use_history_login and not result.success:
+            save_history_login_diagnostic(self.last_screenshot, 'enter_game_history_failure')
         if self.ctx.game_account_config.game_region == GameRegionEnum.CNB.value.value:
             log.info('B服登录结束, 恢复原来的截图方式: ' + self.screenshot_func)
             self.ctx.controller.screenshot_controller.init_screenshot(self.screenshot_func)
