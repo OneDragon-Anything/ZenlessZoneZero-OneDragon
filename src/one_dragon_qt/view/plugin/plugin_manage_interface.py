@@ -639,7 +639,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
 
         try:
             refreshed = self.ctx.request_application_registration_refresh()
-            self.refresh_cards()
+            if refreshed:
+                # 立即刷新已完成，同步重建卡片；推迟的情况不读旧状态，
+                # 等应用结束后 ContextPluginRefreshEvent 到达再重建
+                self.refresh_cards()
             self.load_market(force=True)
             InfoBar.success(
                 title=gt('刷新成功') if refreshed else gt('已推迟刷新'),

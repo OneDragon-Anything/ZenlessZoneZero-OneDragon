@@ -36,6 +36,10 @@ from one_dragon.base.operation.application.plugin_market import (
     PluginMarketService,
     get_plugin_market_service,
 )
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextPluginRefreshEvent,
+)
+from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import (
     GITHUB_SOURCE_ID,
@@ -209,6 +213,12 @@ class PluginOperationMixin:
         self._market_snapshot: MarketSnapshot | None = None
         self._market_runner: MarketLoadRunner | None = None
         self._import_busy: bool = False
+        # 注册刷新完成后重建卡片：推迟刷新结束时页面没有别的时机知道插件已经换了
+        ctx.listen_event(ContextPluginRefreshEvent.EVENT_ID, self._on_registration_refreshed)
+
+    def _on_registration_refreshed(self, event: ContextEventItem | None = None) -> None:
+        """注册刷新完成：切回界面线程重建卡片。事件回调跑在事件线程池里。"""
+        QTimer.singleShot(0, self._as_widget(), self.refresh_cards)
 
     # ------------------------------------------------------------------
     # 由子类实现

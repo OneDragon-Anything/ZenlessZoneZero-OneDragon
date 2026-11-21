@@ -59,6 +59,7 @@ class ApplicationRunContextStateEventEnum(StrEnum):
     PAUSE = "pause"  # 暂停运行事件
     RESUME = "resume"  # 恢复运行事件
     STOP = "stop"  # 停止运行事件
+    FINISHED = "finished"  # 应用执行真正结束事件（线程收尾完成，可以安全替换模块）
 
 
 CONFIG = TypeVar('CONFIG', bound="ApplicationConfig")
@@ -540,6 +541,11 @@ class ApplicationRunContext:
             self.current_instance_idx = None
             self.current_group_id = None
             self.current_application = None
+            # 应用执行真正结束（收尾完成）才派发：STOP 事件在 stop_running 里先于
+            # 线程收尾发出，此时替换模块会让运行中的线程混用新旧代码
+            self.event_bus.dispatch_event(
+                ApplicationRunContextStateEventEnum.FINISHED, run_result
+            )
 
         return run_result
 

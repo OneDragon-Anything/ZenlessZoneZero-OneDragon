@@ -29,6 +29,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_app_setting_refresh_event import (
     ContextAppSettingRefreshEvent,
+    ContextPluginRefreshEvent,
 )
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
@@ -305,7 +306,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """安装或更新插件后请求刷新应用注册，不打断正在运行的任务。
 
         有任务在运行时，不动当前的工厂、模块和运行依赖，只记下待刷新，
-        等运行结束（STOP 事件）后再刷新，新版本此时才生效；没有任务运行时立即刷新。
+        等应用线程真正收尾结束（FINISHED 事件）后再刷新，新版本此时才生效；
+        没有任务运行时立即刷新。
 
         Returns:
             是否已经立即刷新。
@@ -318,9 +320,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 self._registration_refresh_pending = True
                 if not self._registration_refresh_listening:
                     self._registration_refresh_listening = True
+                    # 监听 FINISHED 而不是 STOP：STOP 在 stop_running 里先于线程收尾发出，
+                    # 此时刷新会把运行中线程正在用的模块换掉
                     self.run_context.event_bus.listen_event(
-                        ApplicationRunContextStateEventEnum.STOP,
-                        self._on_run_stopped_refresh_registration,
+                        ApplicationRunContextStateEventEnum.FINISHED,
+                        self._on_run_finished_refresh_registration,
                     )
         if refresh_now:
             self.refresh_application_registration()
@@ -331,8 +335,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self._run_pending_registration_refresh()
         return False
 
-    def _on_run_stopped_refresh_registration(self, event: ContextEventItem | None = None) -> None:
-        """任务结束事件：执行推迟的应用注册刷新。"""
+    def _on_run_finished_refresh_registration(self, event: ContextEventItem | None = None) -> None:
+        """应用执行结束事件：执行推迟的应用注册刷新。"""
         self._run_pending_registration_refresh()
 
     def _run_pending_registration_refresh(self) -> None:
@@ -382,6 +386,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
         self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
+
+        # 通知插件页面重建卡片：推迟刷新结束时页面拿不到刷新完成的时机
+        self.dispatch_event(ContextPluginRefreshEvent.EVENT_ID, ContextPluginRefreshEvent())
 
         log.info("应用注册刷新完成")
 
