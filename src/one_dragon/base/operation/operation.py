@@ -525,9 +525,12 @@ class Operation(OperationBase):
         if self._current_node is None:
             return self.round_fail('当前节点为空')
 
-        if self._current_node.timeout_seconds is not None \
-                and self._current_node_start_time is not None \
-                and time.time() - self._current_node_start_time > self._current_node.timeout_seconds:
+        node_timeout = self._current_node.get_timeout_seconds(self.ctx)
+        if (
+                node_timeout is not None
+                and self._current_node_start_time is not None
+                and time.time() - self._current_node_start_time > node_timeout
+        ):
             return self.round_fail(Operation.STATUS_TIMEOUT)
 
         self.node_max_retry_times = self._current_node.node_max_retry_times

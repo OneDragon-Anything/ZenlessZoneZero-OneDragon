@@ -209,6 +209,15 @@ class GameConfig(BasicGameConfig):
         self.update('ds4_key_press_time', new_value)
 
     @property
+    def battle_loading_timeout(self) -> int:
+        """战斗画面加载的等待上限 单位秒"""
+        return self.get('battle_loading_timeout', 60)
+
+    @battle_loading_timeout.setter
+    def battle_loading_timeout(self, new_value: int) -> None:
+        self.update('battle_loading_timeout', new_value)
+
+    @property
     def background_mode(self) -> bool:
         return self.get('background_mode', False)
 
