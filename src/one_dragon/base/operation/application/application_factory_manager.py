@@ -29,6 +29,8 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     DEV_APP_ID_SUFFIX,
     DEV_APP_NAME_SUFFIX,
+    PLUGIN_CONFLICT_NAME_SUFFIX,
+    PLUGIN_CONFLICT_SUFFIX,
     ensure_sys_path,
     import_module_from_file,
     is_const_file,
@@ -278,7 +280,8 @@ class ApplicationFactoryManager:
             是否为仓库根。
         """
         third_party_roots = {
-            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+            root for root, source in self._plugin_dirs
+            if source in (PluginSource.THIRD_PARTY, PluginSource.DEV)
         }
         return directory in third_party_roots and directory.parent in third_party_roots
 
@@ -332,9 +335,9 @@ class ApplicationFactoryManager:
         if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(module_root, self._added_sys_paths)
 
-        # 4. 开发版：导入工厂之前把常量模块的 APP_ID 加上 _dev 后缀
-        if source == PluginSource.DEV:
-            self._rewrite_dev_app_id(factory_file, module_name, module_root)
+        # 4. 撞 ID 时按来源改写注册身份（开发版 _dev、与内置撞的商店版 _plugin）
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
+            self._rewrite_source_app_id(factory_file, module_name, module_root, source)
 
         # 5. 模块加载/重载
         if module_name in sys.modules:
@@ -353,17 +356,26 @@ class ApplicationFactoryManager:
             module, module_name, factory_file, source
         )
 
-    def _rewrite_dev_app_id(self, factory_file: Path, module_name: str, module_root: Path) -> None:
-        """把开发版插件的 APP_ID 加上 _dev 后缀。
+    def _rewrite_source_app_id(
+        self,
+        factory_file: Path,
+        module_name: str,
+        module_root: Path,
+        source: PluginSource,
+    ) -> None:
+        """撞 ID 时按来源改写插件注册身份，让同名插件共存。
 
+        插件声明的 APP_ID 不变，注册身份按来源区分：
+        开发版一律加 ``_dev``；商店插件与内置应用或别的插件撞 ID 时加 ``_plugin``。
         必须在导入工厂模块之前改写：插件内部普遍写 `from .const import APP_ID`，
         配置文件名、运行记录文件名和 plugin_data 数据目录都取这个值，
-        导入之后再改就不生效，开发版会和商店版共用同一份配置。
+        导入之后再改就不生效，两个版本会共用同一份配置。
 
         Args:
             factory_file: 工厂文件路径。
-            module_name: 工厂模块名（已带 dev_ 包名前缀）。
-            module_root: 模块根目录（plugins/.dev）。
+            module_name: 工厂模块名。
+            module_root: 模块根目录。
+            source: 插件来源。
         """
         const_file = next(
             (f for f in factory_file.parent.iterdir() if f.is_file() and is_const_file(f.name)),
@@ -381,14 +393,29 @@ class ApplicationFactoryManager:
             const_module = import_module_from_file(const_file, const_module_name, module_root)
 
         app_id = getattr(const_module, 'APP_ID', '')
-        if not isinstance(app_id, str) or not app_id or app_id.endswith(DEV_APP_ID_SUFFIX):
+        if not isinstance(app_id, str) or not app_id:
             return
-        const_module.APP_ID = f'{app_id}{DEV_APP_ID_SUFFIX}'
+
+        if source == PluginSource.DEV:
+            if app_id.endswith(DEV_APP_ID_SUFFIX):
+                return
+            suffix = DEV_APP_ID_SUFFIX
+            name_suffix = DEV_APP_NAME_SUFFIX
+        elif app_id in self._plugin_infos:
+            # 与内置应用或前面已注册的插件撞 ID：换注册身份，不报重复
+            if app_id.endswith(PLUGIN_CONFLICT_SUFFIX):
+                return
+            suffix = PLUGIN_CONFLICT_SUFFIX
+            name_suffix = PLUGIN_CONFLICT_NAME_SUFFIX
+        else:
+            return
+
+        const_module.APP_ID = f'{app_id}{suffix}'
         app_name = getattr(const_module, 'APP_NAME', '')
-        if isinstance(app_name, str) and app_name and not app_name.endswith(DEV_APP_NAME_SUFFIX):
-            # 应用列表里商店版和开发版同名，加后缀才分得清
-            const_module.APP_NAME = f'{app_name}{DEV_APP_NAME_SUFFIX}'
-        log.debug(f"开发版插件注册为 {const_module.APP_ID}")
+        if isinstance(app_name, str) and app_name and not app_name.endswith(name_suffix):
+            # 应用列表里两个同名应用分不清，加后缀才认得出来
+            const_module.APP_NAME = f'{app_name}{name_suffix}'
+        log.info(f"插件 {app_id} 撞 ID，注册身份改为 {const_module.APP_ID}（来源 {source.value}）")
 
     def _get_unload_prefix(
         self,
@@ -547,11 +574,13 @@ class ApplicationFactoryManager:
             )
 
         # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
-        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
+        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存；
+        # 撞 ID 后按来源改过身份的插件（_dev / _plugin）目录名与 APP_ID 本来就不同，跳过这条。
         if (
             source == PluginSource.THIRD_PARTY
             and self._is_repo_root(factory_file.parent.parent)
             and factory_file.parent.name != factory.app_id
+            and not factory.app_id.endswith((DEV_APP_ID_SUFFIX, PLUGIN_CONFLICT_SUFFIX))
         ):
             raise ImportError(
                 f"仓库布局下插件目录名 '{factory_file.parent.name}' "

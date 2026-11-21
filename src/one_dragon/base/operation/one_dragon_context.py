@@ -177,6 +177,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             dev_dir = plugins_dir / DEV_PLUGIN_DIR_NAME
             if dev_dir.is_dir():
                 dirs.append((dev_dir, PluginSource.DEV))
+                # .dev 下同样支持仓库布局：.dev/<仓库>/<id>/，整个 git 仓库可以直接放进来
+                try:
+                    dev_children = sorted(dev_dir.iterdir())
+                except OSError:
+                    dev_children = []
+                for dev_child in dev_children:
+                    if not dev_child.is_dir() or dev_child.name.startswith('.'):
+                        continue
+                    if list_repo_plugin_dirs(dev_child):
+                        dirs.append((dev_child, PluginSource.DEV))
             try:
                 repo_dirs = sorted(plugins_dir.iterdir())
             except OSError:

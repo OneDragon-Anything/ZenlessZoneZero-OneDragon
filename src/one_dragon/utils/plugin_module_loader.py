@@ -65,12 +65,17 @@ CONST_FILE_NAME = 'const.py'
 DEV_PLUGIN_DIR_NAME = '.dev'
 DEV_APP_ID_SUFFIX = '_dev'
 DEV_APP_NAME_SUFFIX = '（开发版）'
+PLUGIN_CONFLICT_SUFFIX = '_plugin'
+PLUGIN_CONFLICT_NAME_SUFFIX = '（插件版）'
 DEV_PACKAGE_PREFIX = 'dev_'
-"""开发版插件的目录名、APP_ID 后缀、显示名后缀与包名前缀。
+"""插件来源不同但声明的 APP_ID 相同时，注册身份的区分规则。
 
-开发版放在 plugins/.dev/<id>/，注册时 APP_ID 加 _dev 后缀（bagel → bagel_dev），
-所以能和商店版共存；配置、运行记录、数据目录都跟着新 APP_ID 走，互不影响。
-包名另外加 dev_ 前缀（bagel → dev_bagel），因为商店版与开发版目录同名，
+插件声明的 APP_ID 不变，注册身份按来源区分，谁都不许因为撞 ID 加载失败：
+- 开发版（plugins/.dev/<id>/）一律加 _dev：bagel → bagel_dev
+- 商店插件与内置应用或别的插件撞 ID 时加 _plugin：life_on_line → life_on_line_plugin
+
+配置、运行记录、plugin_data 数据目录都跟着注册身份走，所以两个版本互不影响。
+开发版的包名另外加 dev_ 前缀（bagel → dev_bagel）：插件目录与商店版同名，
 不加前缀会在 sys.modules 里撞成同一个模块。
 """
 
