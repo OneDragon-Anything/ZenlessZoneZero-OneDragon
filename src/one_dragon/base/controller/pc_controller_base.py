@@ -36,6 +36,10 @@ if TYPE_CHECKING:
     from one_dragon.base.controller.drag_timing import DragTiming
 
 
+class GameWindowNotReadyError(RuntimeError):
+    """截图时找不到可用的游戏窗口。"""
+
+
 class PcControllerBase(ControllerBase):
 
     MOUSEEVENTF_MOVE = 0x0001
@@ -163,13 +167,24 @@ class PcControllerBase(ControllerBase):
             log.error('关闭游戏失败', exc_info=True)
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
+        """获取游戏截图。
+
+        Args:
+            independent: 是否独立创建截图资源。
+
+        Returns:
+            游戏画面，截图策略均失败时返回 None。
+
+        Raises:
+            GameWindowNotReadyError: 游戏窗口不存在或缓存的窗口已失效。
+        """
         if self.is_game_window_ready:
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
                 self.screenshot_controller.init_screenshot(self.screenshot_method)
             return self.screenshot_controller.get_screenshot(independent)
         else:
-            raise RuntimeError('游戏窗口未就绪')
+            raise GameWindowNotReadyError('游戏窗口未就绪')
 
     def enable_foreground_mode(self) -> None:
         """
