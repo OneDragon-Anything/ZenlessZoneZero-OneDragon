@@ -307,10 +307,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def _get_instanceSettings_group(self) -> QWidget:
         instance_settings_group = SettingCardGroup(gt("当前账户设置"))
 
-        self.game_path_opt = PushSettingCard(
-            icon=FluentIcon.FOLDER, title="游戏路径", text="选择"
-        )
-        self.game_path_opt.clicked.connect(self._on_game_path_clicked)
+        self.game_path_opt = self._create_game_path_card()
         instance_settings_group.addSettingCard(self.game_path_opt)
 
         self.custom_win_title_input = LineEdit()
@@ -415,6 +412,12 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         self.ctx.one_dragon_config.delete_instance(idx)
         self._refresh_content_widget()
+
+    def _create_game_path_card(self) -> PushSettingCard | MultiPushSettingCard:
+        """创建路径卡片；子类可扩展按钮，保留 setContent 与路径保存逻辑。"""
+        card = PushSettingCard(icon=FluentIcon.FOLDER, title="游戏路径", text="选择")
+        card.clicked.connect(self._on_game_path_clicked)
+        return card
 
     def _on_game_path_clicked(self) -> None:
         executable_name = self.ctx.project_config.game_executable_name or 'game.exe'

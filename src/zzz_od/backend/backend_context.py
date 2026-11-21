@@ -20,10 +20,11 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.config.basic_game_config import TypeInputWay
 from one_dragon.base.controller.pc_clipboard import PcClipboard
+from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.application import application_const
@@ -414,6 +415,16 @@ class ZzzBackendContext:
         if not self._ctx.ready_for_application:
             raise BackendNotReadyError('ZContext 未就绪（ready_for_application=False）')
 
+    @staticmethod
+    def _is_game_window_ready(controller: Any) -> bool:
+        """控制器存在且游戏窗口就绪；存在多个同名窗口时视为未就绪。"""
+        if controller is None:
+            return False
+        try:
+            return controller.is_game_window_ready
+        except WindowAmbiguousError:
+            return False
+
     def _refresh_runtime_config(self) -> None:
         """刷新外部 GUI 可能已经写入 YAML 的运行配置。
 
@@ -479,7 +490,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         image = controller.get_screenshot(independent=False)
         if image is None:
@@ -535,7 +546,7 @@ class ZzzBackendContext:
         saved_path: str | None = None
         if screenshot is None:
             controller = self._ctx.controller
-            if controller is None or not controller.is_game_window_ready:
+            if not self._is_game_window_ready(controller):
                 return AnalyzeScreenResult(success=False, ocr_texts=[], screens=[], error='游戏窗口未就绪')
             image = controller.get_screenshot(independent=False)
             if image is None:
@@ -687,7 +698,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         controller.close_game()
         return '已发送关闭游戏信号,可用 check_game_window 验证'
@@ -711,7 +722,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         controller.active_window()
         clicked = controller.click(Point(int(x), int(y)), press_time=press_time, pc_alt=pc_alt)
@@ -735,7 +746,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         controller.active_window()
         if press_time > 0:
@@ -763,7 +774,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         controller.active_window()
         controller.drag_to(Point(int(x2), int(y2)), start=Point(int(x1), int(y1)), duration=duration)
@@ -789,7 +800,7 @@ class ZzzBackendContext:
         """
         self._ensure_ready()
         controller = self._ctx.controller
-        if controller is None or not controller.is_game_window_ready:
+        if not self._is_game_window_ready(controller):
             raise BackendNotReadyError('游戏窗口未就绪')
         use_cb = self._resolve_use_clipboard(use_clipboard)
         controller.active_window()
