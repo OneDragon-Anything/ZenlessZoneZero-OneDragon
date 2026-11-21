@@ -58,10 +58,11 @@ class ChargePlanApp(ZApplication):
         self.temp_plan: ChargePlanItem | None = None  # 本次运行临时插入的计划
         self.last_tried_plan: ChargePlanItem | None = None
         self.current_plan: ChargePlanItem | None = None
-        self.double_reward_checked: bool = False  # 本次运行是否已检查过双倍活动
+        self.double_reward_checked: bool = False  # 本次运行是否已检查过多倍活动
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
+        # 每轮开始清理临时计划和上轮状态，确保本轮从头选择计划
         self.temp_plan = None
         self.last_tried_plan = None
         self.double_reward_checked = False
@@ -139,60 +140,92 @@ class ChargePlanApp(ZApplication):
         self.ether_battery = ether_battery
         self.run_record.record_current_charge_power(self.battery_charge)
         log.info('剩余电量 %s 储蓄电量 %s 以太电池 %s', self.battery_charge, self.backup_battery_charge, self.ether_battery)
+        # 多倍活动只在本轮首次识别电量后检查一次，后续跳过计划时直接查找下一个计划
         if self.config.double_reward and not self.double_reward_checked:
             self.double_reward_checked = True
             return self.round_success('查看双倍活动')
         return self.round_success('查找候选计划')
 
+    @staticmethod
+    def _is_reward_event(activity_text: str) -> bool:
+        """活动横幅是否包含多倍奖励，多倍活动通常为双倍或三倍。"""
+        normalized = ''.join(activity_text.split())
+        return any(text in normalized for text in ('双倍', '二倍', '三倍'))
+
+    @staticmethod
+    def _get_reward_times(reward_times_text: str) -> int | None:
+        """从「剩余/总数」中识别剩余量，活动总数仅支持个位数（若有超过10的例外则要加复杂度进行适配）。"""
+        digit = str_utils.get_positive_digits(reward_times_text, None)
+        if digit is None:
+            return None
+        times_left, total = divmod(digit, 10)
+        if times_left > total:
+            return None
+        return times_left
+
     @node_from(from_name='识别电量', status='查看双倍活动')
     @operation_node(name='查看双倍活动')
     def check_double_reward_event(self) -> OperationRoundResult:
-        """
-        实战模拟室的每日双倍总数都是5次, 刷盘子的2次暂不考虑. 理由:
-        1. 如果没抽角色, 体力没事干的时候就去屯金盘收益最高, 此时体力计划能顺便覆盖盘子双倍
-        2. 双倍盘子活动出现的时机一般在卡池开了之后几天, 此时如果抽了角色也差不多养好了要刷盘子了
-        3. 双倍基础材料活动都是在版本末期, 没事干的时候整一出双倍材料, 总不能没事干的时候一直刷基础材料吧.
-           这个活动就显得很鸡肋, 像是专门给预抽卡的人群(比如氪佬)设计的
-        """
-
-        op = TransportByCompendium(self.ctx, '训练', '实战模拟室')
-        result1 = self.round_by_op_result(op.execute())
-        if not result1.is_success:
-            return result1
-
-        # 查看剩余几次的文字
-        result1 = self.round_by_find_area(
-            self.screenshot(), '快捷手册', '每日怪物卡双倍掉落次数'
+        """检查实战模拟室和区域巡防的多倍活动，并按剩余次数和当前电量生成临时计划。"""
+        # 两个栏目的横幅布局相同：左侧识别活动倍数，右侧识别剩余/总次数
+        activity_area = self.ctx.screen_loader.get_area(
+            '快捷手册', '多倍活动存在特征区'
         )
-        if not result1.is_success:
-            return self.round_success('无双倍活动')
-        # ocr 检测剩余次数
-        area = self.ctx.screen_loader.get_area('快捷手册', '怪物卡双倍剩余次数')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        digit = str_utils.get_positive_digits(ocr_result, None)
-        if digit is None:
-            return self.round_retry('双倍活动识别出错', wait=1)
-        times_left = digit // 10
-        if times_left == 0 or digit % 10 != 5:
-            return self.round_success('无双倍活动')
-        # 识别出错
-        if times_left > 5:
-            return self.round_retry('双倍活动识别出错', wait=1)
+        reward_times_area = self.ctx.screen_loader.get_area(
+            '快捷手册', '多倍活动剩余次数区'
+        )
+        event_list = (
+            ('实战模拟室', 20),  # 每张怪物卡 20 电量
+            ('区域巡防', 60),  # 每次 60 电量
+        )
 
-        card_num = min(self.battery_charge // 20, times_left)
-        if card_num <= 0:
-            self.temp_plan = None
-            return self.round_success('无双倍活动')
+        # 依次切换到实战模拟室和区域巡防两个栏目，并使用相同的横幅区域来检查对应的多倍活动
+        for category_name, charge_per_run in event_list:
+            op = TransportByCompendium(self.ctx, '训练', category_name)
+            op_result = self.round_by_op_result(op.execute())
+            if not op_result.is_success:
+                return op_result
 
-        temp_plan = self.config.combat_simulation_double_reward_config
-        temp_plan.skipped = False
-        temp_plan.run_times = 1
-        temp_plan.plan_times = 1
-        temp_plan.card_num = str(card_num)
+            # 横幅文案部分（多倍活动存在特征区），用于判断是否有多倍活动
+            screen = self.screenshot()
+            activity_part = cv2_utils.crop_image_only(screen, activity_area.rect)
+            activity_text = self.ctx.ocr.run_ocr_single_line(activity_part)
+            if not self._is_reward_event(activity_text):
+                continue
 
-        self.temp_plan = temp_plan
-        return self.round_success()
+            # 横幅数字部分（多倍活动剩余次数区），实战模拟室可指卡片数量，区域巡防可指挑战次数
+            reward_times_part = cv2_utils.crop_image_only(screen, reward_times_area.rect)
+            reward_times_text = self.ctx.ocr.run_ocr_single_line(reward_times_part)
+            times_left = self._get_reward_times(reward_times_text)
+            if times_left is None:
+                return self.round_retry('多倍活动识别出错', wait=1)
+
+            # 活动倍数不影响消耗，执行数量取活动剩余数量与当前电量可承担数量的较小值
+            executable_times = min(self.battery_charge // charge_per_run, times_left)
+            if executable_times <= 0:
+                continue
+
+            # 执行数量：实战模拟室选对应数量的卡片（游戏内上限为5）进行单次挑战，区域巡防按对应次数进行多次挑战
+            if category_name == '实战模拟室':
+                # 实战模拟室活动总数通常固定为5，所以「剩余/总数」可在单次挑战中搞定
+                temp_plan = self.config.combat_simulation_double_reward_config
+                temp_plan.card_num = str(executable_times)
+                temp_plan.run_times = 1
+                temp_plan.plan_times = 1
+            else:
+                # 区域巡防活动总数通常为2，活动剩余次数=多次挑战次数
+                temp_plan = self.config.area_patrol_double_reward_config
+                if temp_plan.category_name != category_name:
+                    continue
+                temp_plan.run_times = 0
+                temp_plan.plan_times = executable_times
+
+            temp_plan.skipped = False
+            self.temp_plan = temp_plan
+            log.info('识别到%s多倍活动，计划执行%s次', category_name, executable_times)
+            return self.round_success()
+
+        return self.round_success('无多倍活动')
 
     @node_from(from_name='识别电量', status='查找候选计划')
     @node_from(from_name='查看双倍活动')
@@ -298,7 +331,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.current_plan)
+        op = AreaPatrol(self.ctx, self.current_plan, is_temp_plan=self.current_plan is self.temp_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
