@@ -189,6 +189,10 @@ class ApplicationFactoryManager:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
                             continue
+                        if plugin_dir.name.startswith('.'):
+                            # 隐藏目录不是插件：覆盖安装留下的 .<插件名>.backup-<uuid> 备份、
+                            # 编辑器和系统的临时目录都落在 plugins 下，扫进来只会留下假的失败记录
+                            continue
                         if self._is_repo_root(plugin_dir):
                             # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
                             continue
