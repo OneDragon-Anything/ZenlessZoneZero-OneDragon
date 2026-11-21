@@ -11,7 +11,7 @@ repositories:
   options:
     github:
       label: GitHub
-      url: "https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
+      url: "https://github.com/pokemc32ryan/ZenlessZoneZero-OneDragon-mac.git"
       use_proxy: true
     cnb:
       label: CNB

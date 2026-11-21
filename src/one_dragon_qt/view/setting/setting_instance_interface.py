@@ -1,9 +1,11 @@
 import base64
 import hashlib
 import os
+import sys
 import uuid
 import webbrowser
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFileDialog, QWidget
@@ -417,6 +419,38 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self._refresh_content_widget()
 
     def _on_game_path_clicked(self) -> None:
+        if sys.platform == 'darwin':
+            default_dir = (
+                Path.home()
+                / 'Library'
+                / 'Containers'
+                / 'io.playcover.PlayCover'
+                / 'Applications'
+            )
+            if not default_dir.is_dir():
+                default_dir = Path.home() / 'Applications' / 'PlayCover'
+            if not default_dir.is_dir():
+                default_dir = Path('/Applications')
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                gt('选择你的游戏应用 (.app)'),
+                str(default_dir),
+                filter='Application (*.app)',
+                options=QFileDialog.Option.DontResolveSymlinks,
+            )
+            if not file_path:
+                return
+            selected_path = Path(file_path)
+            for candidate in [selected_path, *selected_path.parents]:
+                if candidate.suffix.lower() == '.app':
+                    selected_path = candidate
+                    break
+            if selected_path.suffix.lower() == '.app':
+                norm_path = str(selected_path)
+                log.info(f"{gt('选择路径')} {norm_path}")
+                self._on_game_path_chosen(norm_path)
+            return
+
         executable_name = self.ctx.project_config.game_executable_name or 'game.exe'
         file_path, _ = QFileDialog.getOpenFileName(
             self, f"{gt('选择你的')} {executable_name}", filter="Exe (*.exe)"

@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -21,13 +22,25 @@ class OpenGame(Operation):
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
-        """禁用自动 HDR + 启动游戏 exe。"""
-        hdr_op = DisableAutoHDR(self.ctx)
-        hdr_op.execute()
-
+        """macOS 启动配置的 .app 游戏应用，Windows 启动游戏程序。"""
         if self.ctx.game_account_config.game_path == '':
             return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
         full_path = self.ctx.game_account_config.game_path
+
+        if sys.platform == 'darwin':
+            app_path = Path(full_path)
+            for candidate in [app_path, *app_path.parents]:
+                if candidate.suffix.lower() == '.app':
+                    app_path = candidate
+                    break
+            if not app_path.exists():
+                return self.round_fail(f'游戏路径不存在: {app_path}')
+            log.info('尝试自动启动游戏 路径为 %s', app_path)
+            subprocess.Popen(['open', '-a', str(app_path)])
+            return self.round_success(wait=5)
+
+        hdr_op = DisableAutoHDR(self.ctx)
+        hdr_op.execute()
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)
         log.info('尝试自动启动游戏 路径为 %s', full_path)
@@ -65,8 +78,9 @@ class OpenGame(Operation):
         self.ctx.controller.init_game_win()
         if self.ctx.controller.is_game_window_ready:
             self.ctx.controller.active_window()
-            hdr_op = EnableAutoHDR(self.ctx)
-            hdr_op.execute()
+            if sys.platform == 'win32':
+                hdr_op = EnableAutoHDR(self.ctx)
+                hdr_op.execute()
             return self.round_success()
         else:
             return self.round_retry(wait=1)

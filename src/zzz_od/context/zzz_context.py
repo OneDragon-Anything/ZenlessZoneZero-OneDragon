@@ -126,7 +126,8 @@ class ZContext(OneDragonContext):
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
                 standard_width=self.project_config.screen_standard_width,
-                standard_height=self.project_config.screen_standard_height
+                standard_height=self.project_config.screen_standard_height,
+                keyboard_mouse_controller=self.keyboard_mouse_controller,
             )
             # 初始化窗口标题
             self.controller.set_window_title(self._get_win_title())

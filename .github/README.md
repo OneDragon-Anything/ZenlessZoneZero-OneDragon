@@ -28,6 +28,72 @@ __ZenlessZoneZero-OneDragon__
 
 </div>
 
+## 🍎 macOS 安装与使用指南（怎么打开、怎么用）
+
+本分支支持在 **Apple Silicon Mac** 上通过 **PlayCover** 运行《绝区零》并使用一条龙自动化。
+
+### 一、前置准备
+
+1. **PlayCover 与游戏设置**
+   - 在 PlayCover 中安装并运行《绝区零》（窗口标题支持 `绝区零` / `絕區零` / `ZenlessZoneZero`）。
+   - 游戏需注入仓库内置的 [`tools/macos/libUnityDesktopMode.dylib`](../tools/macos/libUnityDesktopMode.dylib) 插件，使游戏以 **PC 桌面模式**接收键鼠输入，并**关闭 PlayCover 内置的键位映射（Keymapping）**。
+   - 建议将游戏窗口比例保持为 **16:9**（例如 `1920x1080`）。
+
+2. **安装虚拟鼠标驱动（Karabiner VirtualHIDDevice）**
+   - 安装并启用 **Karabiner-DriverKit-VirtualHIDDevice**（如果您已安装 Karabiner-Elements，即已包含该驱动）。
+   - 首次安装后，请前往 **系统设置 -> 通用 -> 登录项与扩展 -> 驱动程序扩展** 中批准启用 Karabiner 驱动。
+
+3. **安装 `uv` 与 Xcode Command Line Tools**
+   - 打开终端（Terminal），确保已安装 Xcode 命令行工具与 `uv`：
+     ```bash
+     xcode-select --install
+     curl -LsSf https://astral.sh/uv/install.sh | sh
+     ```
+
+4. **克隆仓库并初始化虚拟环境（仅首次需要）**
+   - 将整个仓库 clone 下来，并在仓库根目录执行 `uv sync`：
+     ```bash
+     git clone https://github.com/pokemc32ryan/ZenlessZoneZero-OneDragon-mac.git
+     cd ZenlessZoneZero-OneDragon-mac
+     uv sync
+     ```
+
+---
+
+### 二、怎么打开一条龙
+
+日常启动只需 **1 个终端窗口**，无需手动开两个终端：
+
+- **方式 A（推荐，双击启动）**：在 Finder 中打开仓库根目录，直接双击 **`启动一条龙.command`**。
+- **方式 B（终端命令启动）**：在仓库根目录下执行：
+  ```bash
+  ./启动一条龙.command
+  ```
+  *(注意：**不要**加 `sudo` 执行脚本；脚本内部会在需要时自动提示输入一次开机密码，用于在当前终端后台拉起 Karabiner 虚拟 HID 守护进程，退出一条龙时会自动清理。)*
+
+#### 首次打开时的 macOS 权限授权
+首次运行弹出系统权限提示时，请在 **系统设置 -> 隐私与安全性** 中为**实际运行脚本的终端（如 Terminal / iTerm）及 Python** 授予：
+1. **屏幕录制与系统录音权限**（用于按窗口 ID 截取游戏画面，以及通过 `ScreenCaptureKit` 直接识别自动战斗闪避音效，无需切换虚拟声卡）。
+2. **辅助功能权限（Accessibility）**与**输入监控权限（Input Monitoring）**（用于监听快捷键 `F9` / `F10` 等并发送键鼠控制）。
+
+---
+
+### 三、怎么使用
+
+1. **首次基础配置**：
+   - 在一条龙界面左侧进入 **账户管理**：
+     - 选择对应的**游戏区服**（国服 / B服 / 国际服）。
+     - 点击 **游戏路径**，选择 PlayCover 中的游戏 `.app`（默认会打开 `~/Library/Containers/io.playcover.PlayCover/Applications`，选择 `com.miHoYo.Nap.app` 或 `com.HoYoverse.Nap.app` 即可）。
+   - 在 **一条龙 -> 运行设置** 中勾选需要执行的日常任务（如邮件、每日签到、咖啡店、录像店营业、刮刮乐、恶名狩猎、体力刷本、迷失之地等），并在对应模块配置好配队与体力计划。
+2. **开始 / 暂停运行**：
+   - 点击界面右下角的 **「开始」** 按钮（或直接按快捷键 **`F9`**）启动：
+     - **若游戏尚未打开**：一条龙会自动根据已设置的「游戏路径」打开 `.app` 并等待进入登录画面。
+     - **若游戏处于登录画面**：一条龙会自动点击第一次「点击进入游戏」、等待「加载配置数据中」进度跑完、再次点击「点击进入游戏」进入大世界后开始执行任务。
+     - **若已在游戏大世界内**：将直接开始执行任务。
+   - 运行过程中：
+     - 游戏需要保持在**前台**接收键鼠输入（请勿在运行期间移动鼠标或切换窗口）。
+     - 按 **`F9`** 可随时暂停 / 继续，按 **`F10`** 可立即停止当前任务。
+
 ## 🚀 功能介绍
 
 <div align="left">

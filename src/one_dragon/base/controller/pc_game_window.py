@@ -1,9 +1,17 @@
+from __future__ import annotations
+
 import ctypes
+import sys
 from ctypes.wintypes import RECT
 
 import pyautogui
-import win32ui
-from pygetwindow import Win32Window
+
+if sys.platform == 'win32':
+    import win32ui
+    from pygetwindow import Win32Window
+else:
+    win32ui = None
+    Win32Window = object
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -230,3 +238,9 @@ class PcGameWindow:
         gp: Point | None = self.get_scaled_game_pos(game_pos)
         # 缺少一个屏幕边界判断 游戏窗口拖动后可能会超出整个屏幕
         return rect.left_top + gp if gp is not None else None
+
+
+if sys.platform == 'darwin':
+    from one_dragon.base.controller.mac_game_window import MacPcGameWindow
+
+    PcGameWindow = MacPcGameWindow

@@ -1,9 +1,15 @@
+import sys
 import time
+from contextlib import suppress
 
-import pywintypes
-import win32clipboard
-import win32con
 from pynput.keyboard import Controller, Key
+
+if sys.platform == 'win32':
+    import pywintypes
+    import win32clipboard
+    import win32con
+elif sys.platform == 'darwin':
+    from AppKit import NSPasteboard
 
 from one_dragon.utils.log_utils import log, mask_text
 
@@ -29,14 +35,16 @@ class PcClipboard:
 
         :return: 无
         """
+        if sys.platform == 'darwin':
+            NSPasteboard.generalPasteboard().clearContents()
+            return
+
         try:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
         finally:
-            try:
+            with suppress(Exception):
                 win32clipboard.CloseClipboard()
-            except Exception:
-                pass
 
     @staticmethod
     def copy_string(text: str) -> None:
@@ -46,6 +54,13 @@ class PcClipboard:
         :param text: 要复制到剪贴板的文本
         :return: 无
         """
+        if sys.platform == 'darwin':
+            log.info(f'复制文字到剪切板:{mask_text(text)}')
+            pasteboard = NSPasteboard.generalPasteboard()
+            pasteboard.clearContents()
+            pasteboard.setString_forType_(text, 'public.utf8-plain-text')
+            return
+
         try:
             # 脱敏（前后10%的字符不加密）
             log.info(f'复制文字到剪切板:{mask_text(text)}')
@@ -54,10 +69,8 @@ class PcClipboard:
             win32clipboard.SetClipboardText(text, win32con.CF_UNICODETEXT)
             log.info('复制文字到剪切板成功')
         finally:
-            try:
+            with suppress(Exception):
                 win32clipboard.CloseClipboard()
-            except Exception:
-                pass
 
     @staticmethod
     def paste_text() -> str:
@@ -68,23 +81,27 @@ class PcClipboard:
         """
         keyboard = Controller()
 
-        try:
-            log.info('粘贴文字, 查找剪切板')
-            win32clipboard.OpenClipboard()
-            data = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
-            log.info(f'粘贴文字, 获取到:{mask_text(data)}')
-        except pywintypes.error:
-            data = ''
-        finally:
+        if sys.platform == 'darwin':
+            pasteboard = NSPasteboard.generalPasteboard()
+            data = pasteboard.stringForType_('public.utf8-plain-text') or ''
+            modifier = Key.cmd
+        else:
+            modifier = Key.ctrl
             try:
-                win32clipboard.CloseClipboard()
-            except Exception:
-                pass
+                log.info('粘贴文字, 查找剪切板')
+                win32clipboard.OpenClipboard()
+                data = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
+                log.info(f'粘贴文字, 获取到:{mask_text(data)}')
+            except pywintypes.error:
+                data = ''
+            finally:
+                with suppress(Exception):
+                    win32clipboard.CloseClipboard()
 
         # 使用 pynput 模拟粘贴操作
-        log.info('粘贴文字, 按下 Ctrl+V')
-        log.debug('粘贴文字, 按下 Ctrl')
-        with keyboard.pressed(Key.ctrl):
+        log.info('粘贴文字, 按下粘贴快捷键')
+        log.debug('粘贴文字, 按下修饰键')
+        with keyboard.pressed(modifier):
             time.sleep(0.2)
             log.debug('粘贴文字, 按下 V')
             keyboard.press('v')

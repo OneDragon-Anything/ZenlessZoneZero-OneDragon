@@ -1,18 +1,24 @@
+import sys
+
 import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
-from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import (
-    BitBltScreencapper,
-)
 from one_dragon.base.controller.pc_screenshot.pil_screencapper import PilScreencapper
-from one_dragon.base.controller.pc_screenshot.print_window_screencapper import (
-    PrintWindowScreencapper,
-)
 from one_dragon.base.controller.pc_screenshot.screencapper_base import ScreencapperBase
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils.log_utils import log
+
+if sys.platform == 'win32':
+    from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import (
+        BitBltScreencapper,
+    )
+    from one_dragon.base.controller.pc_screenshot.print_window_screencapper import (
+        PrintWindowScreencapper,
+    )
+elif sys.platform == 'darwin':
+    import Quartz
 
 
 class PcScreenshotController:
@@ -29,11 +35,21 @@ class PcScreenshotController:
         self.standard_height: int = standard_height
 
         self.strategies: dict[str, ScreencapperBase] = {
-            ScreenshotMethodEnum.PRINT_WINDOW.value.value: PrintWindowScreencapper(game_win, standard_width, standard_height),
-            ScreenshotMethodEnum.BITBLT.value.value: BitBltScreencapper(game_win, standard_width, standard_height),
-            ScreenshotMethodEnum.PIL.value.value: PilScreencapper(game_win, standard_width, standard_height),
+            ScreenshotMethodEnum.PIL.value.value: PilScreencapper(
+                game_win, standard_width, standard_height
+            ),
         }
+        if sys.platform == 'win32':
+            self.strategies.update({
+                ScreenshotMethodEnum.PRINT_WINDOW.value.value: PrintWindowScreencapper(
+                    game_win, standard_width, standard_height
+                ),
+                ScreenshotMethodEnum.BITBLT.value.value: BitBltScreencapper(
+                    game_win, standard_width, standard_height
+                ),
+            })
         self.active_strategy_name: str | None = None
+        self._mac_screenshot_permission_warning_logged: bool = False
 
     def get_screenshot(self, independent: bool = False, resize: bool = True) -> MatLike | None:
         """根据初始化的方法获取截图
@@ -48,6 +64,17 @@ class PcScreenshotController:
         if not self.active_strategy_name and not independent:
             log.error("截图方法尚未初始化，请先调用 init_screenshot()")
             return None
+
+        if sys.platform == 'darwin':
+            if not Quartz.CGPreflightScreenCaptureAccess():
+                if not self._mac_screenshot_permission_warning_logged:
+                    log.error(
+                        'macOS 当前运行的一条龙进程没有屏幕录制权限；'
+                        '请在“系统设置 → 隐私权与安全性 → 屏幕与系统录音”中授权实际运行程序'
+                    )
+                    self._mac_screenshot_permission_warning_logged = True
+                return None
+            self._mac_screenshot_permission_warning_logged = False
 
         rect: Rect = self.game_win.win_rect
         if rect is None or rect.width <= 0 or rect.height <= 0:
@@ -70,16 +97,24 @@ class PcScreenshotController:
                 if result is None:
                     continue
 
+                if result.ndim == 3 and result.shape[2] == 4:
+                    result = cv2.cvtColor(result, cv2.COLOR_RGBA2RGB)
+
                 if not independent and self.active_strategy_name != method_name:
                     self.active_strategy_name = method_name
 
-                if resize and self.game_win.is_win_scale:
+                if resize and (
+                    result.shape[1] != self.standard_width
+                    or result.shape[0] != self.standard_height
+                ):
                     result = cv2.resize(result, (self.standard_width, self.standard_height))
 
                 return result
 
             except Exception:
                 continue
+        if sys.platform == 'darwin':
+            log.error('macOS 截图失败，请在“系统设置 → 隐私与安全性 → 屏幕录制”中授权')
         return None
 
     def init_screenshot(self, method: str) -> str | None:
@@ -135,7 +170,7 @@ class PcScreenshotController:
             ScreenshotMethodEnum.PRINT_WINDOW.value.value,
             ScreenshotMethodEnum.BITBLT.value.value,
             ScreenshotMethodEnum.PIL.value.value,
-        ]
+        ] if sys.platform == 'win32' else [ScreenshotMethodEnum.PIL.value.value]
 
         if method == ScreenshotMethodEnum.AUTO.value.value or method not in self.strategies:
             return default_priority.copy()
