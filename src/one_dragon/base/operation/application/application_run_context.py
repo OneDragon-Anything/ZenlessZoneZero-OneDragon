@@ -59,6 +59,7 @@ class ApplicationRunContextStateEventEnum(StrEnum):
     PAUSE = "pause"  # 暂停运行事件
     RESUME = "resume"  # 恢复运行事件
     STOP = "stop"  # 停止运行事件
+    APPLICATION_FINISHED = "application_finished"  # 应用线程执行结束并清理完当前运行信息
 
 
 CONFIG = TypeVar('CONFIG', bound="ApplicationConfig")
@@ -540,6 +541,10 @@ class ApplicationRunContext:
             self.current_instance_idx = None
             self.current_group_id = None
             self.current_application = None
+            # 线程里的应用已经执行完并清理完运行信息 推迟的应用注册刷新可以安全执行
+            self.event_bus.dispatch_event(
+                ApplicationRunContextStateEventEnum.APPLICATION_FINISHED, run_result
+            )
 
         return run_result
 

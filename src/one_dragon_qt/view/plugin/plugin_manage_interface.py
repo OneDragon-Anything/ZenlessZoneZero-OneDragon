@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from packaging import version
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QResizeEvent
 from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -30,6 +30,10 @@ from one_dragon.base.operation.application.plugin_import_service import (
     PluginPreviewInfo,
 )
 from one_dragon.base.operation.application.plugin_info import PluginInfo
+from one_dragon.base.operation.context_app_setting_refresh_event import (
+    ContextAppSettingRefreshEvent,
+)
+from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -51,6 +55,9 @@ _T = TypeVar("_T")
 class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
     """插件管理页：本机已安装的插件。"""
 
+    registration_refreshed = Signal()
+    """应用注册刷新完成（包括推迟到任务结束后的刷新），回到 GUI 线程重建卡片"""
+
     def __init__(
         self,
         ctx: OneDragonContext,
@@ -66,6 +73,8 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             nav_text_cn='插件管理',
         )
         self.connect_cover_signal()
+        self.registration_refreshed.connect(self.refresh_cards)
+        self.ctx.listen_event(ContextAppSettingRefreshEvent.EVENT_ID, self._on_registration_refreshed_event)
 
     # ------------------------------------------------------------------
     # 布局
@@ -133,7 +142,13 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
         if self.market_snapshot is None:
             self.load_market()
 
+    def _on_registration_refreshed_event(self, event: ContextEventItem) -> None:
+        """应用注册刷新完成事件，可能来自后台线程，转成信号回到 GUI 线程。"""
+        if isinstance(event.data, ContextAppSettingRefreshEvent):
+            self.registration_refreshed.emit()
+
     def closeEvent(self, event: QCloseEvent) -> None:
+        self.ctx.unlisten_event(ContextAppSettingRefreshEvent.EVENT_ID, self._on_registration_refreshed_event)
         self.close_plugin_operation()
         super().closeEvent(event)
 

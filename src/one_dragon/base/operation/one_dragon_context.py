@@ -112,6 +112,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 初始化相关
         self._init_lock = threading.Lock()
         self._registration_refresh_lock: threading.Lock = threading.Lock()
+        self._registration_refresh_run_lock: threading.Lock = threading.Lock()
+        """串行化整个应用注册刷新过程"""
         self._registration_refresh_pending: bool = False
         """有任务运行时请求了刷新应用注册，等任务结束后再执行"""
         self._registration_refresh_listening: bool = False
@@ -288,23 +290,29 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """安装或更新插件后请求刷新应用注册，不打断正在运行的任务。
 
         有任务在运行时，不动当前的工厂、模块和运行依赖，只记下待刷新，
-        等运行结束（STOP 事件）后再刷新，新版本此时才生效；没有任务运行时立即刷新。
+        等运行结束后再刷新，新版本此时才生效；没有任务运行时立即刷新。
+        运行结束以应用线程执行完并清理完运行信息为准，只收到 STOP 状态不算结束。
 
         Returns:
             是否已经立即刷新。
         """
         with self._registration_refresh_lock:
-            if self.run_context.is_context_stop:
+            if not self._is_task_running():
                 refresh_now = True
             else:
                 refresh_now = False
                 self._registration_refresh_pending = True
                 if not self._registration_refresh_listening:
                     self._registration_refresh_listening = True
-                    self.run_context.event_bus.listen_event(
+                    # 直接启动运行上下文的流程只有 STOP 事件，应用线程的流程还有 APPLICATION_FINISHED
+                    for event_id in (
                         ApplicationRunContextStateEventEnum.STOP,
-                        self._on_run_stopped_refresh_registration,
-                    )
+                        ApplicationRunContextStateEventEnum.APPLICATION_FINISHED,
+                    ):
+                        self.run_context.event_bus.listen_event(
+                            event_id,
+                            self._on_run_stopped_refresh_registration,
+                        )
         if refresh_now:
             self.refresh_application_registration()
             return True
@@ -318,10 +326,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """任务结束事件：执行推迟的应用注册刷新。"""
         self._run_pending_registration_refresh()
 
+    def _is_task_running(self) -> bool:
+        """是否有任务在运行：运行上下文未停止，或应用线程还没有执行完并清理完。"""
+        run_context = self.run_context
+        return not run_context.is_context_stop or run_context.current_app_id is not None
+
     def _run_pending_registration_refresh(self) -> None:
         """没有任务在运行且有待刷新时，执行一次刷新。"""
         with self._registration_refresh_lock:
-            if not self._registration_refresh_pending or not self.run_context.is_context_stop:
+            if not self._registration_refresh_pending or self._is_task_running():
                 return
             self._registration_refresh_pending = False
         self.refresh_application_registration()
@@ -331,7 +344,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         重新扫描插件目录，刷新所有应用的注册。
         可在运行时调用以加载新的应用或更新已有应用。
+        立即刷新和推迟的刷新共用同一把锁，整个清空、扫描、注册过程串行执行。
         """
+        with self._registration_refresh_run_lock:
+            self._do_refresh_application_registration()
+
+    def _do_refresh_application_registration(self) -> None:
+        """执行一次完整的应用注册刷新，调用方需要持有刷新执行锁。"""
         log.info("开始刷新应用注册...")
 
         # 清空现有注册
