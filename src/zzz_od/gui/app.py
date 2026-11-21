@@ -174,7 +174,7 @@ try:
             from one_dragon_qt.view.plugin.plugin_interface import (
                 PluginInterface,
             )
-            self.plugin_interface = PluginInterface(self.ctx, parent=self)
+            self.plugin_interface = PluginInterface(self.ctx, self.plugin_cover_service, parent=self)
             self.add_sub_interface(
                 self.plugin_interface,
                 position=NavigationItemPosition.BOTTOM,
