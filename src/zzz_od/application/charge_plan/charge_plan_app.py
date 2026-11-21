@@ -331,7 +331,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.current_plan, is_temp_plan=self.current_plan is self.temp_plan)
+        op = AreaPatrol(self.ctx, self.current_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')

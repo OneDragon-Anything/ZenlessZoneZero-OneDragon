@@ -303,6 +303,9 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
+        # 不在计划列表中（如多倍活动的临时计划） 直接累加传入的计划
+        to_add.run_times += 1
+
     def _is_same_plan(
         self, x: ChargePlanItem, y: ChargePlanItem, compare_plan_id: bool = True
     ) -> bool:
