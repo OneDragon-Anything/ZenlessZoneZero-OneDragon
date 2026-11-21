@@ -15,6 +15,7 @@ from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.coffee.coffee_config import (
@@ -37,6 +38,9 @@ class CoffeeApp(ZApplication):
 
     STATUS_EXTRA_COFFEE: ClassVar[str] = '不占用上限的咖啡'
     STATUS_WITHOUT_BENEFIT: ClassVar[str] = '没有增益的咖啡'
+
+    TINMAN_COFFEE: ClassVar[str] = '汀曼特调'  # 首选咖啡
+    FALLBACK_COFFEE: ClassVar[str] = '浓缩咖啡'  # 没有汀曼特调的账号改喝这个
 
     def __init__(self, ctx: ZContext):
         """
@@ -133,7 +137,8 @@ class CoffeeApp(ZApplication):
         if not result.is_success:
             return self.round_success(status='已喝过', wait=1)
 
-        to_choose_list = self._get_coffee_to_choose()
+        # 按优先级点击，保底咖啡放最后，只有前面的都没出现才会点它
+        to_choose_list = self._get_coffee_to_choose() + self._get_fallback_coffee_to_choose()
 
         # 背景文字会干扰 OCR，不能根据区域内是否有文字判断状态，只尝试当天候选咖啡名
         area = self.ctx.screen_loader.get_area('咖啡店', '右侧选项区域')
@@ -174,6 +179,33 @@ class CoffeeApp(ZApplication):
             ocr_result_list.append(ocr_result)
             mrl_list.append(mrl)
 
+        # 先只找首选咖啡，全部阈值都没找到，才找保底咖啡
+        # 不能放进同一个列表：否则首选咖啡在高阈值没认出来时，会先在高阈值命中保底咖啡
+        matched = self._match_coffee(to_choose_list, ocr_result_list)
+        # 咖啡列表加载时会滑入，某一帧没认出首选咖啡不代表没有；前几轮照常重试，最后一轮还没有才找保底咖啡
+        if matched is None and self.node_retry_times >= self.node_max_retry_times:
+            fallback_list = self._get_fallback_coffee_to_choose()
+            matched = self._match_coffee(fallback_list, ocr_result_list)
+            if matched is not None:
+                log.info(f'没找到{to_choose_list}，改选保底咖啡 {matched[0]}')
+
+        if matched is not None:
+            coffee_name, ocr_result = matched
+            mrl = mrl_list[ocr_result_list.index(ocr_result)]
+            self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[coffee_name]
+            time.sleep(0.5)  # 暂停半秒以防点不到咖啡
+            self.ctx.controller.click(mrl.max.center + area.left_top + Point(0, -50))
+            return self.round_success(self.chosen_coffee.coffee_name, wait=0.5)
+
+        return self.round_retry(status='没找到目标咖啡', wait=1)
+
+    def _match_coffee(self, to_choose_list: list[str], ocr_result_list: list[str]) -> tuple[str, str] | None:
+        """
+        在 OCR 结果里按顺序找候选咖啡，阈值从高到低逐级放宽
+        :param to_choose_list: 候选咖啡名，越靠前越优先
+        :param ocr_result_list: 咖啡列表区域的 OCR 文本
+        :return: (咖啡名, 命中的 OCR 文本)；都没找到时返回 None
+        """
         for lcs_percent in [0.8, 0.6, 0.4]:
             for coffee_name in to_choose_list:
                 results = difflib.get_close_matches(gt(coffee_name, 'game'), ocr_result_list, n=1)
@@ -194,13 +226,8 @@ class CoffeeApp(ZApplication):
                 if results[0].find('淡') > -1 and coffee_name.find('淡') == -1:
                     continue
 
-                mrl = mrl_list[ocr_result_list.index(results[0])]
-                self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[coffee_name]
-                time.sleep(0.5)  # 暂停半秒以防点不到咖啡
-                self.ctx.controller.click(mrl.max.center + area.left_top + Point(0, -50))
-                return self.round_success(self.chosen_coffee.coffee_name, wait=0.5)
-
-        return self.round_retry(status='没找到目标咖啡', wait=1)
+                return coffee_name, results[0]
+        return None
 
     def _get_coffee_to_choose(self) -> list[str]:
         """获取候选咖啡，额外咖啡喝完后固定选择汀曼特调"""
@@ -210,10 +237,15 @@ class CoffeeApp(ZApplication):
                 continue
             to_choose_list.append(coffee.coffee_name)
 
-        tinman_coffee = '汀曼特调'
-        if tinman_coffee not in self.had_coffee_list:
-            to_choose_list.append(tinman_coffee)
+        if CoffeeApp.TINMAN_COFFEE not in self.had_coffee_list:
+            to_choose_list.append(CoffeeApp.TINMAN_COFFEE)
         return to_choose_list
+
+    def _get_fallback_coffee_to_choose(self) -> list[str]:
+        """获取保底咖啡：部分账号没有汀曼特调，这时改喝浓缩咖啡"""
+        if CoffeeApp.FALLBACK_COFFEE in self.had_coffee_list:
+            return []
+        return [CoffeeApp.FALLBACK_COFFEE]
 
     @node_from(from_name='选择咖啡')
     @operation_node(name='点单')
