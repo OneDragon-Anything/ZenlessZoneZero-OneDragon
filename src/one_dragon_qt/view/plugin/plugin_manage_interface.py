@@ -35,6 +35,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.plugin.plugin_operation_mixin import PluginOperationMixin
 from one_dragon_qt.widgets.plugin_card import (
+    BADGE_FAILED,
     BADGE_INSTALLED,
     BADGE_SUBSCRIBED,
     BADGE_UPDATE,
@@ -155,7 +156,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             update_version = self.pending_update_version(plugin_info, entry) if subscribed else ''
             if subscribed:
                 subscribed_count += 1
-            if update_version:
+            if plugin_info.is_dev:
+                badge_text = gt('开发版')
+                badge_kind = BADGE_INSTALLED
+            elif update_version:
                 update_count += 1
                 badge_text = gt('可更新 v{version}').format(version=update_version)
                 badge_kind = BADGE_UPDATE
@@ -193,8 +197,25 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             self.card_grid.add_card(card)
             cards.append(card)
 
-        if plugins:
+        failed_loads = self.failed_plugin_loads()
+        for package_dir, reason in failed_loads:
+            card = self.make_card(
+                title=package_dir.name,
+                meta_text=gt('加载失败，点击查看原因'),
+                seed=f'failed:{package_dir.name}',
+                badge_text=gt('加载失败'),
+                badge_kind=BADGE_FAILED,
+                on_click=partial(self.open_failed_detail, package_dir, reason),
+                parent=self.card_grid,
+            )
+            self.remember_card(card, f'failed:{package_dir.name}', '')
+            self.card_grid.add_card(card)
+            cards.append(card)
+
+        if plugins or failed_loads:
             text = gt('已安装 {count} 个插件').format(count=len(plugins))
+            if failed_loads:
+                text += gt('，{count} 个加载失败').format(count=len(failed_loads))
             if subscribed_count:
                 text += gt('，已订阅 {count} 个').format(count=subscribed_count)
             if update_count:
@@ -583,7 +604,7 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
         success_count = sum(1 for result in results if result.success)
         fail_count = len(results) - success_count
         if success_count > 0:
-            self.ctx.refresh_application_registration()
+            self.ctx.request_application_registration_refresh()
             self.refresh_cards()
             InfoBar.success(
                 title=gt('导入成功'),
@@ -617,12 +638,18 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             return
 
         try:
-            self.ctx.refresh_application_registration()
-            self.refresh_cards()
+            refreshed = self.ctx.request_application_registration_refresh()
+            if refreshed:
+                # 立即刷新已完成，同步重建卡片；推迟的情况不读旧状态，
+                # 等应用结束后 ContextPluginRefreshEvent 到达再重建
+                self.refresh_cards()
             self.load_market(force=True)
             InfoBar.success(
-                title=gt('刷新成功'),
-                content=gt('已重新加载插件'),
+                title=gt('刷新成功') if refreshed else gt('已推迟刷新'),
+                content=(
+                    gt('已重新加载插件') if refreshed
+                    else gt('有任务正在运行，插件将在任务结束后重新加载')
+                ),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,

@@ -27,11 +27,14 @@ from one_dragon.base.operation.application.plugin_manifest import (
 )
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
+    DEV_APP_ID_SUFFIX,
+    PLUGIN_CONFLICT_SUFFIX,
     ensure_sys_path,
     import_module_from_file,
     is_const_file,
     is_factory_file,
     list_repo_plugin_dirs,
+    resolve_app_id,
     resolve_module_name,
 )
 
@@ -158,8 +161,8 @@ class ApplicationFactoryManager:
         """
         factories: list[ApplicationFactory] = []
 
-        # 内置应用递归扫描；第三方插件只扫描每个真实插件根的第一层。
-        if source == PluginSource.THIRD_PARTY:
+        # 内置应用递归扫描；第三方插件与开发版只扫描每个真实插件根的第一层。
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             python_files: list[Path] = []
             if directory.is_dir():
                 try:
@@ -188,6 +191,10 @@ class ApplicationFactoryManager:
                 for plugin_dir in plugin_dirs:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
+                            continue
+                        if plugin_dir.name.startswith('.'):
+                            # 隐藏目录不是插件：覆盖安装留下的 .<插件名>.backup-<uuid> 备份、
+                            # 编辑器和系统的临时目录都落在 plugins 下，扫进来只会留下假的失败记录
                             continue
                         if self._is_repo_root(plugin_dir):
                             # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
@@ -272,7 +279,8 @@ class ApplicationFactoryManager:
             是否为仓库根。
         """
         third_party_roots = {
-            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+            root for root, source in self._plugin_dirs
+            if source in (PluginSource.THIRD_PARTY, PluginSource.DEV)
         }
         return directory in third_party_roots and directory.parent in third_party_roots
 
@@ -316,32 +324,89 @@ class ApplicationFactoryManager:
         except ValueError as e:
             raise ImportError(f"无法计算相对路径: {factory_file}") from e
         rel_parts = relative_path.parts
-        if source == PluginSource.THIRD_PARTY and len(rel_parts) < 2:
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV) and len(rel_parts) < 2:
             raise ImportError(
-                f"第三方插件不能直接放在 plugins 根目录: {factory_file.name}，"
+                f"插件不能直接放在扫描根目录: {factory_file.name}，"
                 f"请放在子目录中（如 plugins/my_plugin/{factory_file.name}）"
             )
 
-        # 3. THIRD_PARTY 特殊处理：将 plugins 目录加入 sys.path
-        if source == PluginSource.THIRD_PARTY:
+        # 3. 第三方插件与开发版：把扫描根加入 sys.path 以支持相对导入
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(module_root, self._added_sys_paths)
 
         # 4. 模块加载/重载
-        if module_name in sys.modules:
-            if reload_modules:
+        if module_name in sys.modules and not reload_modules:
+            module = sys.modules[module_name]
+        else:
+            if reload_modules and module_name in sys.modules:
                 unload_prefix = self._get_unload_prefix(module_name, source, rel_parts)
                 if unload_prefix:
                     self._unload_plugin_modules(unload_prefix)
-                module = import_module_from_file(factory_file, module_name, module_root, reload=True)
-            else:
-                module = sys.modules[module_name]
-        else:
-            module = import_module_from_file(factory_file, module_name, module_root)
+            # 必须在卸载之后、导入工厂之前改写注册身份：卸载会把 const 模块一起删掉，
+            # 重新导入时 const.py 会重新执行把 APP_ID 恢复原值，先改就等于白改
+            if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
+                self._rewrite_source_app_id(factory_file, module_name, module_root, source)
+            module = import_module_from_file(
+                factory_file, module_name, module_root, reload=reload_modules
+            )
 
         # 5. 查找并实例化工厂类（每个模块最多一个）
         return self._find_factory_in_module(
             module, module_name, factory_file, source
         )
+
+    def _rewrite_source_app_id(
+        self,
+        factory_file: Path,
+        module_name: str,
+        module_root: Path,
+        source: PluginSource,
+    ) -> None:
+        """按 resolve_app_id 的结果把注册身份写回常量模块。
+
+        ID 怎么算只在 resolve_app_id 一处定义，这里只负责把结果落进 const 模块。
+        必须在导入工厂模块之前改写：插件内部普遍写 `from .const import APP_ID`，
+        配置文件名、运行记录文件名和 plugin_data 数据目录都取这个值，
+        导入之后再改就不生效，两个版本会共用同一份配置。
+
+        Args:
+            factory_file: 工厂文件路径。
+            module_name: 工厂模块名。
+            module_root: 模块根目录。
+            source: 插件来源。
+        """
+        const_file = next(
+            (f for f in factory_file.parent.iterdir() if f.is_file() and is_const_file(f.name)),
+            None,
+        )
+        if const_file is None:
+            return
+
+        package_prefix, _, _ = module_name.rpartition('.')
+        const_module_name = (
+            f"{package_prefix}.{const_file.stem}" if package_prefix else const_file.stem
+        )
+        const_module = sys.modules.get(const_module_name)
+        if const_module is None:
+            const_module = import_module_from_file(const_file, const_module_name, module_root)
+
+        declared_app_id = getattr(const_module, 'APP_ID', '')
+        if not isinstance(declared_app_id, str) or not declared_app_id:
+            return
+
+        app_id, name_suffix = resolve_app_id(
+            declared_app_id, source, self._plugin_infos.keys()
+        )
+        if app_id == declared_app_id:
+            return
+
+        const_module.APP_ID = app_id
+        if name_suffix:
+            app_name = getattr(const_module, 'APP_NAME', '')
+            if isinstance(app_name, str) and app_name and not app_name.endswith(name_suffix):
+                # 应用列表里两个同名应用分不清，加后缀才认得出来
+                const_module.APP_NAME = f'{app_name}{name_suffix}'
+        log.info(f"插件 {declared_app_id} 撞 ID，注册身份改为 {app_id}（来源 {source.value}）")
 
     def _get_unload_prefix(
         self,
@@ -365,6 +430,9 @@ class ApplicationFactoryManager:
         if source == PluginSource.THIRD_PARTY:
             # 卸载整个插件包：取相对路径第一段（插件包名）
             return rel_parts[0] if rel_parts else None
+        if source == PluginSource.DEV:
+            # 开发版包名带 dev_ 前缀，按模块名第一段卸载
+            return module_name.split('.')[0] if module_name else None
         else:
             # BUILTIN: 仅卸载当前 factory 所在的父包
             # 例如 zzz_od.application.xxx.xxx_factory -> zzz_od.application.xxx
@@ -497,11 +565,13 @@ class ApplicationFactoryManager:
             )
 
         # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
-        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
+        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存；
+        # 撞 ID 后按来源改过身份的插件（_dev / _plugin）目录名与 APP_ID 本来就不同，跳过这条。
         if (
             source == PluginSource.THIRD_PARTY
             and self._is_repo_root(factory_file.parent.parent)
             and factory_file.parent.name != factory.app_id
+            and not factory.app_id.endswith((DEV_APP_ID_SUFFIX, PLUGIN_CONFLICT_SUFFIX))
         ):
             raise ImportError(
                 f"仓库布局下插件目录名 '{factory_file.parent.name}' "

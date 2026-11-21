@@ -41,12 +41,14 @@ CORNER_RADIUS = 10
 BADGE_SUBSCRIBED = 'subscribed'
 BADGE_INSTALLED = 'installed'
 BADGE_UPDATE = 'update'
+BADGE_FAILED = 'failed'
 BADGE_NONE = 'none'
 
 BADGE_COLORS: dict[str, tuple[str, str]] = {
     BADGE_SUBSCRIBED: ('#0f6cbd', '#2b88d8'),
     BADGE_INSTALLED: ('#0b6a4a', '#138a5e'),
     BADGE_UPDATE: ('#b85c00', '#c96a12'),
+    BADGE_FAILED: ('#c42b1c', '#e5584a'),
     BADGE_NONE: ('#5d5d5d', '#6b6b6b'),
 }
 """标签实心底色：浅色主题、深色主题。文字统一用白色。"""

@@ -843,8 +843,14 @@ class PluginImportService:
         return plugins_root / f".{plugin_dir_name}.tmp-{uuid4().hex}"
 
     def _replace_plugin_dir(self, staging_dir: Path, target_dir: Path, overwrite: bool) -> None:
-        """用已完成的临时目录替换目标目录，失败时恢复旧版本。"""
+        """用已完成的临时目录替换目标目录，失败时恢复旧版本。
+
+        目标目录里带 git 仓库时也照样替换：商店更新和订阅不允许被拦。
+        这种目录不删旧版本，改名为同级的隐藏备份目录留在原处，日志给出路径，
+        需要时手动恢复；普通目录替换成功后照常清理备份。
+        """
         backup_dir: Path | None = None
+        keep_backup: bool = False
         if self._path_exists(target_dir):
             if not overwrite:
                 raise FileExistsError(f"插件目录已存在: {target_dir.name}")
@@ -852,11 +858,7 @@ class PluginImportService:
                 raise ValueError("插件目标目录不能是符号链接")
             if not target_dir.is_dir():
                 raise ValueError("插件目标路径不是目录")
-            git_dir = find_git_repo(target_dir)
-            if git_dir is not None:
-                raise ValueError(
-                    f"插件目录含 git 仓库（{git_dir.name}），不能覆盖安装，请用 git 更新"
-                )
+            keep_backup = find_git_repo(target_dir) is not None
             backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
             target_dir.replace(backup_dir)
 
@@ -868,13 +870,24 @@ class PluginImportService:
             raise
         else:
             if backup_dir is not None and self._path_exists(backup_dir):
+                if keep_backup:
+                    log.warning(
+                        f"插件目录含 git 仓库，旧版本未删除，已备份到 {backup_dir}，需要时手动恢复"
+                    )
+                    return
                 try:
                     self._remove_path(backup_dir)
                 except Exception as e:
                     log.warning(f"清理插件备份目录失败: {backup_dir}, {e}")
 
-    def delete_plugin(self, plugin_dir: str | Path) -> ImportResult:
-        """删除 plugins 根目录下的一个插件目录。"""
+    def delete_plugin(self, plugin_dir: str | Path, backup_git: bool = False) -> ImportResult:
+        """删除 plugins 根目录下的一个插件目录。
+
+        Args:
+            plugin_dir: 插件目录。
+            backup_git: 目录含 git 仓库时，是否改名为同级隐藏备份目录而不是拒绝。
+                备份目录以 . 开头，不会被扫描为插件，旧内容需要时可手动恢复。
+        """
         plugin_path = Path(plugin_dir)
         if isinstance(plugin_dir, str) and not plugin_path.is_absolute():
             plugin_path = self.plugins_dir / plugin_path
@@ -920,10 +933,28 @@ class PluginImportService:
 
         git_dir = find_git_repo(plugin_dir_resolved)
         if git_dir is not None:
+            if not backup_git:
+                return ImportResult(
+                    success=False,
+                    plugin_name=plugin_name,
+                    message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
+                )
+            # 不销毁可能未提交的内容：改名成隐藏备份留在原处
+            backup_dir = plugin_dir_resolved.with_name(f".{plugin_name}.backup-{uuid4().hex}")
+            try:
+                plugin_dir_resolved.replace(backup_dir)
+            except Exception as e:
+                log.error(f"备份插件目录失败: {e}", exc_info=True)
+                return ImportResult(
+                    success=False,
+                    plugin_name=plugin_name,
+                    message=f"备份失败: {e}",
+                )
+            log.warning(f"插件目录含 git 仓库，未直接删除，已备份到 {backup_dir}，需要时手动恢复")
             return ImportResult(
-                success=False,
+                success=True,
                 plugin_name=plugin_name,
-                message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
+                message=f"已移除，含 git 仓库的旧目录备份在 {backup_dir.name}",
             )
 
         try:

@@ -228,7 +228,7 @@ class AppSettingManager(QObject):
             return None
 
         module_name, module_root = result
-        if source == PluginSource.THIRD_PARTY:
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(base_dir)
 
         module = import_module_from_file(setting_file, module_name, module_root)

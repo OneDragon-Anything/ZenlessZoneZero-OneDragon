@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Collection
 from pathlib import Path
 from types import ModuleType
 
@@ -22,10 +23,13 @@ def resolve_module_name(
 ) -> tuple[str, Path] | None:
     """根据文件路径和插件来源，解析出 dotted module name 和 module_root。
 
+    开发版（DEV）的第一段包名会加 ``dev_`` 前缀：插件目录名与商店版相同，
+    不加前缀会在 sys.modules 里撞成同一个模块，商店版和开发版只会活一个。
+
     Args:
         file_path: .py 文件的绝对路径
         source: 插件来源
-        base_dir: 扫描根目录（BUILTIN 时忽略，用 find_src_dir；THIRD_PARTY 时用此值）
+        base_dir: 扫描根目录（BUILTIN 时忽略，用 find_src_dir；其他来源用此值）
 
     Returns:
         (module_name, module_root) 或 None（无法解析时）
@@ -39,13 +43,76 @@ def resolve_module_name(
     except ValueError:
         return None
 
-    rel_parts = relative_path.parts
+    rel_parts = list(relative_path.parts)
+    if source == PluginSource.DEV and len(rel_parts) >= 2:
+        rel_parts[0] = f'{DEV_PACKAGE_PREFIX}{rel_parts[0]}'
     module_name = ".".join([*rel_parts[:-1], file_path.stem])
     return module_name, module_root
 
 
+def package_dir_of(module_name: str, module_root: Path) -> Path:
+    """把包名还原成真实目录。
+
+    开发版的包名带 ``dev_`` 前缀，目录名不带，拼路径前要先去掉。
+    """
+    parts = module_name.split(".")
+    if parts[0].startswith(DEV_PACKAGE_PREFIX):
+        parts[0] = parts[0][len(DEV_PACKAGE_PREFIX):]
+    return module_root / Path(*parts)
+
+
+def resolve_app_id(
+    declared_app_id: str,
+    source: PluginSource,
+    taken_app_ids: Collection[str],
+) -> tuple[str, str]:
+    """解析插件最终使用的注册 ID —— 全项目唯一的 ID 发现入口。
+
+    插件声明的 APP_ID 不变，注册身份按来源区分，撞 ID 也不许加载失败：
+
+    - BUILTIN：原样使用
+    - DEV：一律加 ``_dev``（bagel → bagel_dev）
+    - THIRD_PARTY：与已占用 ID 撞了才加 ``_plugin``（life_on_line → life_on_line_plugin）
+
+    Args:
+        declared_app_id: 插件常量模块里声明的 APP_ID。
+        source: 插件来源。
+        taken_app_ids: 已经被占用的注册 ID。
+
+    Returns:
+        (注册 ID, 应用名后缀)。没有改名时后缀为空字符串。
+    """
+    if source == PluginSource.DEV:
+        if declared_app_id.endswith(DEV_APP_ID_SUFFIX):
+            return declared_app_id, ''
+        return f'{declared_app_id}{DEV_APP_ID_SUFFIX}', DEV_APP_NAME_SUFFIX
+
+    if source == PluginSource.THIRD_PARTY and declared_app_id in taken_app_ids:
+        if declared_app_id.endswith(PLUGIN_CONFLICT_SUFFIX):
+            return declared_app_id, ''
+        return f'{declared_app_id}{PLUGIN_CONFLICT_SUFFIX}', PLUGIN_CONFLICT_NAME_SUFFIX
+
+    return declared_app_id, ''
+
+
 FACTORY_FILE_NAME = 'factory.py'
 CONST_FILE_NAME = 'const.py'
+DEV_PLUGIN_DIR_NAME = '.dev'
+DEV_APP_ID_SUFFIX = '_dev'
+DEV_APP_NAME_SUFFIX = '（开发版）'
+PLUGIN_CONFLICT_SUFFIX = '_plugin'
+PLUGIN_CONFLICT_NAME_SUFFIX = '（插件版）'
+DEV_PACKAGE_PREFIX = 'dev_'
+"""插件来源不同但声明的 APP_ID 相同时，注册身份的区分规则。
+
+插件声明的 APP_ID 不变，注册身份按来源区分，谁都不许因为撞 ID 加载失败：
+- 开发版（plugins/.dev/<id>/）一律加 _dev：bagel → bagel_dev
+- 商店插件与内置应用或别的插件撞 ID 时加 _plugin：life_on_line → life_on_line_plugin
+
+配置、运行记录、plugin_data 数据目录都跟着注册身份走，所以两个版本互不影响。
+开发版的包名另外加 dev_ 前缀（bagel → dev_bagel）：插件目录与商店版同名，
+不加前缀会在 sys.modules 里撞成同一个模块。
+"""
 
 
 def is_factory_file(file_name: str) -> bool:
@@ -206,7 +273,8 @@ def _ensure_parent_packages(module_name: str, module_root: Path) -> None:
         if pkg_name in sys.modules:
             continue
 
-        pkg_dir = module_root / Path(*parts[: i + 1])
+        # 开发版包名带 dev_ 前缀，真实目录名不带
+        pkg_dir = package_dir_of(pkg_name, module_root)
         init_file = pkg_dir / "__init__.py"
         if init_file.exists():
             spec = importlib.util.spec_from_file_location(
