@@ -64,16 +64,21 @@ class KeyboardMouseController(PcButtonController):
                 self.keyboard.release(real_key)
 
     def release(self, key: str) -> None:
-        """松开按键。账本只记状态，不再当门禁。
+        """松开按键。
 
-        不管账本里有没有这条键都发 key-up：多发的 key-up 无害，漏发会让按键
-        一直卡在按下状态。多个线程同时按同一个键、或者进程中断时，账本和真实
-        键态会错开，按账本判断就永远松不掉。
+        键盘键：账本只记状态，不当门禁，不管账本里有没有都发 key-up。多发的
+        key-up 无害，漏发会让按键一直卡在按下状态。多个线程同时按同一个键、
+        或者进程中断时，账本和真实键态会错开，按账本判断就永远松不掉。
+
+        鼠标键：账本里有才发。没按下就发鼠标松开，系统会当成一次完整点击的
+        抬起，在桌面上会弹出右键菜单（实测）。
         """
         with self._pressed_lock:
+            was_pressed = key in self._pressed_keys
             self._pressed_keys.discard(key)
             if pc_button_utils.is_mouse_button(key):
-                self.mouse.release(pc_button_utils.get_mouse_button(key))
+                if was_pressed:
+                    self.mouse.release(pc_button_utils.get_mouse_button(key))
                 return
             real_key = pc_button_utils.get_keyboard_button(key)
             if self._is_unknown_keyboard_key(real_key):
