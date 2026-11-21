@@ -1676,6 +1676,9 @@ class GitService:
 
     def get_target_branch(self) -> str:
         """获取当前启动器实际同步的物理分支。"""
+        if self.env_config.custom_git_branch:
+            # 自定义分支名按原样使用，避免 `test` 被映射成集成分支
+            return self.env_config.git_branch
         return self.repo_config.resolve_branch(
             self.env_config.git_branch,
             integrated_launcher=detect_running_launcher_type() == 'runtime',

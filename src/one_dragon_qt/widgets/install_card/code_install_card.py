@@ -99,7 +99,7 @@ class CodeInstallCard(BaseInstallCard):
             return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码')
         elif current_branch != target_branch:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = f"{gt('当前分支')}: {current_branch}; {gt('建议分支')}: {self.ctx.env_config.git_branch}; {gt('不自动同步')}"
+            msg = f"{gt('当前分支')}: {current_branch}; {gt('建议分支')}: {target_branch}; {gt('不自动同步')}"
             return icon, msg
         else:
             latest, msg = self.ctx.git_service.is_current_branch_latest()
