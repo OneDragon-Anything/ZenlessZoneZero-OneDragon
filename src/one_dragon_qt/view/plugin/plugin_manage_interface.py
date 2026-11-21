@@ -57,8 +57,7 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
         cover_service: PluginCoverService,
         parent: QWidget | None = None,
     ) -> None:
-        self.init_plugin_operation(ctx)
-        self.cover_service = cover_service
+        self.init_plugin_operation(ctx, cover_service)
 
         VerticalScrollInterface.__init__(
             self,

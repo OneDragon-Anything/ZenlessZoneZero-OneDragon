@@ -187,8 +187,10 @@ class PluginOperationMixin:
     def init_plugin_operation(
         self,
         ctx: OneDragonContext,
+        cover_service: PluginCoverService,
     ) -> None:
         """初始化共用状态，由页面构造函数调用。"""
+        self.cover_service = cover_service
         self.ctx = ctx
         self.plugin_import_service = PluginImportService(ctx)
         self.market_service = ctx.plugin_market_service

@@ -242,7 +242,7 @@ class PluginMarketService:
         if not urls:
             raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
         settings = self._env_config.get_resource_download_settings()
-        # 不传 ghproxy 与成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
+        # ghproxy 显式传 None 且不传成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
         ok = CommonDownloader(
             CommonDownloaderParam(
                 save_file_path=str(target.parent),
@@ -252,6 +252,7 @@ class PluginMarketService:
         ).download(
             source_order=settings.source_order,
             proxy_url=settings.proxy_url,
+            ghproxy_url=None,
             skip_if_existed=False,
             min_bytes_per_second=MIN_BYTES_PER_SECOND,
             fallback_on_slow=settings.fallback_on_slow,

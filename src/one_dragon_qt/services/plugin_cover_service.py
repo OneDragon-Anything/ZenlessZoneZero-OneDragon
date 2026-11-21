@@ -78,14 +78,14 @@ class _DownloadTask(QRunnable):
         self._key: str = key
         self._target: Path = target
         self._settings: ResourceDownloadSettings = settings
-        """在 GUI 线程里取好的下载设置，后台线程不再去读配置对象。"""
+        """请求发起时取的下载设置快照，让同一次请求的各候选源用同一份设置。"""
 
     def run(self) -> None:
         ok = False
         temp_path = self._target.with_suffix(self._target.suffix + '.part')
         try:
             self._target.parent.mkdir(parents=True, exist_ok=True)
-            # 不传 ghproxy 与成功/失败回调：代理站点处理不了这类域名，封面也不该影响自动选源
+            # ghproxy 显式传 None 且不传成功/失败回调：代理站点处理不了这类域名，封面也不该影响自动选源
             ok = CommonDownloader(
                 CommonDownloaderParam(
                     save_file_path=str(temp_path.parent),
@@ -95,6 +95,7 @@ class _DownloadTask(QRunnable):
             ).download(
                 source_order=self._settings.source_order,
                 proxy_url=self._settings.proxy_url,
+                ghproxy_url=None,
                 skip_if_existed=False,
                 fallback_on_slow=self._settings.fallback_on_slow,
             )

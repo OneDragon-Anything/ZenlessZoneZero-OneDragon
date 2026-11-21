@@ -27,6 +27,8 @@ class ResourceDownloadSettings:
     """候选源ID顺序。"""
     proxy_url: str | None
     """个人代理地址，未启用时为 None。"""
+    ghproxy_url: str | None
+    """GitHub 代理站点前缀，未启用时为 None；只对 github 源生效，索引与封面这类域名代理不了的场景不要传。"""
     fallback_on_slow: bool
     """是否在候选源持续低速时尝试下一个源。"""
 
@@ -189,11 +191,12 @@ class EnvConfig(YamlConfig):
     def get_resource_download_settings(self) -> ResourceDownloadSettings:
         """把「资源」页的下载源与代理设置翻译成下载参数。
 
-        不含 ghproxy 与成功/失败回调：这两项只有下载队列需要，由队列自己补。
+        不含成功/失败回调：它们会改写「上次成功源」，只有下载队列需要，由队列自己补。
         """
         return ResourceDownloadSettings(
             source_order=self.get_resource_source_order(),
             proxy_url=self.personal_proxy if self.is_personal_proxy else None,
+            ghproxy_url=self.gh_proxy_url if self.is_gh_proxy else None,
             fallback_on_slow=self.is_resource_source_auto,
         )
 

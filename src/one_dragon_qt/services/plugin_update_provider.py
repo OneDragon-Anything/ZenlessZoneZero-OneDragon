@@ -32,8 +32,7 @@ class PluginUpdateProvider(PluginOperationMixin, QObject):
     ) -> None:
         QObject.__init__(self, parent)
         self._window: MainAppWindowBase = window
-        self.init_plugin_operation(ctx)
-        self.cover_service = window.plugin_cover_service
+        self.init_plugin_operation(ctx, window.plugin_cover_service)
         self._pending: list[tuple[MarketPlugin, PluginInfo]] = []
 
     def refresh_cards(self) -> None:
