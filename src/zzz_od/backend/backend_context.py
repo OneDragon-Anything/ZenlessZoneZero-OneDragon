@@ -637,7 +637,10 @@ class ZzzBackendContext:
                                     error='id_mark 只能用于可自行匹配的文本或模板区域')
             screen_info = self._ctx.screen_loader.get_screen(screen_name)  # 未找到 raise
             action = screen_info.upsert_area(area)
-            self._ctx.screen_loader.save_screen(screen_info)
+            if not self._ctx.screen_loader.save_screen(screen_info):
+                return _area_result(False, screen_name, area_name, None,
+                                    error='画面保存失败：ID/名称可能与其他画面冲突，或文件写入失败',
+                                    count=len(screen_info.area_list))
             return _area_result(True, screen_name, area_name, action, count=len(screen_info.area_list))
         except Exception as e:  # noqa: BLE001 工具层兜底,不向 MCP 透传
             return _area_result(False, screen_name, area_name, None, error=str(e),
@@ -660,7 +663,10 @@ class ZzzBackendContext:
             if not screen_info.remove_area_by_name(area_name):
                 return _area_result(False, screen_name, area_name, None,
                                     error=f'未找到 area: {area_name}', count=len(screen_info.area_list))
-            self._ctx.screen_loader.save_screen(screen_info)
+            if not self._ctx.screen_loader.save_screen(screen_info):
+                return _area_result(False, screen_name, area_name, None,
+                                    error='画面保存失败：ID/名称可能与其他画面冲突，或文件写入失败',
+                                    count=len(screen_info.area_list))
             return _area_result(True, screen_name, area_name, 'deleted', count=len(screen_info.area_list))
         except Exception as e:  # noqa: BLE001 工具层兜底
             return _area_result(False, screen_name, area_name, None, error=str(e),
