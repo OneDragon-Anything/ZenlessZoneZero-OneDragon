@@ -221,6 +221,16 @@ class OneDragonConfig(YamlConfig):
         self.update('instance_run', new_value)
 
     @property
+    def return_to_start_after_done(self) -> bool:
+        """全部参与账户完成后是否沿用原流程切回起始账户。"""
+        return self.get('return_to_start_after_done', True)
+
+    @return_to_start_after_done.setter
+    def return_to_start_after_done(self, new_value: bool) -> None:
+        """保存整次一条龙轮换的返回设置。"""
+        self.update('return_to_start_after_done', new_value)
+
+    @property
     def after_done(self) -> str:
         return self.get('after_done', AfterDoneOpEnum.NONE.value.value)
 

@@ -87,6 +87,8 @@ class OneDragonApp(Application):
         next_idx = self._instance_idx + 1
         if next_idx >= len(self._instance_list):
             next_idx = 0
+        if next_idx == self._instance_start_idx and not self.ctx.one_dragon_config.return_to_start_after_done:
+            return self.round_success(OneDragonApp.STATUS_ALL_DONE)
         current_instance = self._instance_list[self._instance_idx]
         next_instance = self._instance_list[next_idx]
 
@@ -99,6 +101,12 @@ class OneDragonApp(Application):
         self.ctx.switch_instance(next_instance.idx)
         log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
         return self.round_success()
+
+    @node_from(from_name='切换实例配置', status=STATUS_ALL_DONE)
+    @operation_node(name='结束轮换', screenshot_before_round=False)
+    def finish_rotation(self) -> OperationRoundResult:
+        """保留最后一个账户的配置和游戏状态，正常结束本轮。"""
+        return self.round_success(OneDragonApp.STATUS_ALL_DONE)
 
     @node_from(from_name='切换实例配置', status='游戏路径不同')
     @operation_node(name='关闭游戏', screenshot_before_round=False)
