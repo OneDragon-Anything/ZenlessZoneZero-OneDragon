@@ -11,16 +11,16 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urljoin
 
+from one_dragon.base.web.common_downloader import (
+    DIRECT_SOURCE_ID,
+    CommonDownloader,
+    CommonDownloaderParam,
+)
+from one_dragon.envs.env_config import EnvConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-
-MARKET_URL = 'https://onedragon-anyone.github.io/plugin-data/api/v1/plugins.json'
-"""插件市场索引地址。
-
-数据仓（OneDragon-Anyone/plugin-data）提供审核配置，构建产物发布到
-plugin-data 站点的 api/v1/ 下；旧地址 plugin-registry/plugins.json 已废弃。
-"""
 
 CACHE_TTL_SECONDS = 600
 """市场数据的本地缓存有效期，过期后重新拉取。"""
@@ -38,6 +38,8 @@ class MarketRelease:
     download_url: str
     sha256: str
     changelog_html: str
+    sources: dict[str, str]
+    """每个下载源各一份地址，键与资源下载源 ID 一致；旧索引只有单一地址时，按直链 `direct` 放一项。"""
 
 
 @dataclass(frozen=True)
@@ -93,16 +95,29 @@ class MarketSnapshot:
         return None
 
 
+def _parse_sources(raw: object) -> dict[str, str]:
+    """解析索引里的多源地址表，只保留字符串值。"""
+    if not isinstance(raw, dict):
+        return {}
+    return {str(key): url for key, url in raw.items() if isinstance(url, str) and url}
+
+
 def _parse_release(raw: dict) -> MarketRelease | None:
     version = str(raw.get('version') or '').strip()
     if not version:
         return None
+    download_url = str(raw.get('downloadUrl') or '')
+    sources = _parse_sources(raw.get('sources'))
+    if not sources and download_url:
+        # 旧索引、旧缓存没有地址表：只有一个地址，当作不属于任何已配置源的直链
+        sources = {DIRECT_SOURCE_ID: download_url}
     return MarketRelease(
         version=version,
         published_at=str(raw.get('publishedAt') or ''),
-        download_url=str(raw.get('downloadUrl') or ''),
+        download_url=download_url,
         sha256=str(raw.get('sha256') or ''),
         changelog_html=str(raw.get('changelogHtml') or ''),
+        sources=sources,
     )
 
 
@@ -162,9 +177,10 @@ def parse_market_payload(payload: dict | list) -> list[MarketPlugin]:
 class PluginMarketService:
     """负责拉取并缓存插件市场数据。"""
 
-    def __init__(self, cache_path: Path | None = None) -> None:
+    def __init__(self, env_config: EnvConfig, cache_path: Path | None = None) -> None:
+        self._env_config: EnvConfig = env_config
         self._cache_path: Path = cache_path or (
-            Path(os_utils.get_path_under_work_dir('config')) / 'plugin_market_cache.json'
+            Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market_cache.json'
         )
         self._snapshot: MarketSnapshot | None = None
         self._lock: threading.Lock = threading.Lock()
@@ -173,6 +189,13 @@ class PluginMarketService:
     @property
     def cache_path(self) -> Path:
         return self._cache_path
+
+    def index_roots(self) -> dict[str, str]:
+        """各源索引所在目录，封面等静态资源按它拼地址；构建产物把 covers 放在索引同级。"""
+        return {
+            source_id: urljoin(url, '.')
+            for source_id, url in self._env_config.repo_config.plugin_market_urls.items()
+        }
 
     def load(self, force: bool = False) -> MarketSnapshot:
         """读取市场数据，优先使用未过期的本地缓存。
@@ -214,19 +237,33 @@ class PluginMarketService:
         return snapshot
 
     def _download(self) -> list[MarketPlugin]:
-        # 延迟导入，避免模块加载期就引入网络依赖
-        from one_dragon.utils import http_utils
-
         target = Path(os_utils.get_path_under_work_dir('config', 'temp')) / 'plugin_market.json'
-        ok = http_utils.download_file(
-            MARKET_URL,
-            str(target),
+        urls = dict(self._env_config.repo_config.plugin_market_urls)
+        if not urls:
+            raise RuntimeError('插件市场索引地址未配置，请检查 config/repository.yml')
+        settings = self._env_config.get_resource_download_settings()
+        # 不传 ghproxy 与成功/失败回调：代理站点处理不了 Pages 域名，索引也不该影响自动选源
+        ok = CommonDownloader(
+            CommonDownloaderParam(
+                save_file_path=str(target.parent),
+                save_file_name=target.name,
+                download_urls=urls,
+            )
+        ).download(
+            source_order=settings.source_order,
+            proxy_url=settings.proxy_url,
+            skip_if_existed=False,
             min_bytes_per_second=MIN_BYTES_PER_SECOND,
+            fallback_on_slow=settings.fallback_on_slow,
         )
         if not ok or not target.exists():
             raise RuntimeError('插件市场数据下载失败')
-        payload = json.loads(target.read_text(encoding='utf-8'))
-        if not isinstance(payload, (dict, list)):
+        try:
+            payload = json.loads(target.read_text(encoding='utf-8'))
+        finally:
+            # 原始索引解析完就删：留下的只有解析后的快照缓存一份
+            target.unlink(missing_ok=True)
+        if not isinstance(payload, dict | list):
             raise RuntimeError('插件市场数据格式异常')
         return parse_market_payload(payload)
 
@@ -287,19 +324,5 @@ def _release_to_raw(release: MarketRelease | None) -> dict | None:
         'downloadUrl': release.download_url,
         'sha256': release.sha256,
         'changelogHtml': release.changelog_html,
+        'sources': release.sources,
     }
-
-
-_service_instance: PluginMarketService | None = None
-
-
-def get_plugin_market_service() -> PluginMarketService:
-    """取全局市场服务。
-
-    两个插件页面共用一份，避免首次打开时并发拉同一份 plugins.json，
-    也避免同时写同一个缓存文件。
-    """
-    global _service_instance
-    if _service_instance is None:
-        _service_instance = PluginMarketService()
-    return _service_instance

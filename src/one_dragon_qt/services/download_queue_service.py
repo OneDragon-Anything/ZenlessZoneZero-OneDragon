@@ -95,16 +95,17 @@ class DownloadTaskWorker(QThread):
                 self.task.spec.before_download()
             env_config = self.ctx.env_config
             downloader = self.task.spec.downloader_factory()
+            settings = env_config.get_resource_download_settings()
             success = downloader.download(
-                source_order=self.task.spec.source_order or env_config.get_resource_source_order(),
-                proxy_url=env_config.personal_proxy if env_config.is_personal_proxy else None,
+                source_order=self.task.spec.source_order or settings.source_order,
+                proxy_url=settings.proxy_url,
                 ghproxy_url=env_config.gh_proxy_url if env_config.is_gh_proxy else None,
                 skip_if_existed=False,
                 progress_signal=self.task.progress_signal,
                 status_callback=self.progress_changed.emit,
                 on_source_success=env_config.mark_resource_source_success,
                 on_source_failure=env_config.mark_resource_source_failure,
-                fallback_on_slow=env_config.is_resource_source_auto,
+                fallback_on_slow=settings.fallback_on_slow,
             )
         except Exception as exc:
             error_message = str(exc)
