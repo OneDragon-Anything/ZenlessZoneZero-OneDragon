@@ -4,6 +4,7 @@ from typing import List, Optional
 from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils
+from one_dragon.utils.i18_utils import gt_compound
 
 
 def get_auto_battle_op_config_list(sub_dir: str) -> List[ConfigItem]:
@@ -29,7 +30,7 @@ def get_auto_battle_op_config_list(sub_dir: str) -> List[ConfigItem]:
     # 将 template_name_set 转换为列表并排序
     sorted_template_names = sorted(template_name_set, key=lambda x: x.lower())
 
-    return [ConfigItem(label=template_name, value=template_name)
+    return [ConfigItem(label=gt_compound(template_name), value=template_name)
             for template_name in sorted_template_names]
 
 

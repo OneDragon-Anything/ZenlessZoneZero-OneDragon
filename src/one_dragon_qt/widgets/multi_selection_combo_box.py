@@ -21,6 +21,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 
@@ -153,7 +154,7 @@ class FluentDropdownButton(QFrame):
         content_layout.setSpacing(2)
 
         # 占位符标签 - 使用 CaptionLabel 自动继承主题样式
-        self._placeholder_label = CaptionLabel(text=self._placeholder_text)
+        self._placeholder_label = CaptionLabel(text=gt(self._placeholder_text))
         self._placeholder_label.setObjectName("placeholderLabel")
         content_layout.addWidget(self._placeholder_label)
 
@@ -426,7 +427,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
     def set_placeholder_text(self, text: str) -> None:
         """设置占位符文本"""
         self._placeholder_text = text
-        self._dropdown_btn._placeholder_label.setText(text)
+        self._dropdown_btn._placeholder_label.setText(gt(text))
         if not self._selected_items:
             self._dropdown_btn._placeholder_label.show()
 

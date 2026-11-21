@@ -11,6 +11,7 @@ from PySide6.QtGui import QGuiApplication
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.utils.i18_utils import get_default_lang, gt, gt_compound
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
@@ -159,7 +160,7 @@ class OverlayManager(QObject):
         current = self.config.display_mode
         next_mode = order[(order.index(current) + 1) % len(order)]
         self.config.display_mode = next_mode
-        toast_text = {"off": "HUD 已关闭", "normal": "HUD 开启", "debug": "HUD 调试"}[next_mode]
+        toast_text = {"off": gt("HUD 已关闭"), "normal": gt("HUD 开启"), "debug": gt("HUD 调试")}[next_mode]
         self._toast_until = time.time() + 5.0
         self._safe_follow_window()
         if self._hud_window is not None:
@@ -182,6 +183,10 @@ class OverlayManager(QObject):
             "ERROR": "#ff7c7c",
             "CRITICAL": "#ff5f5f",
         }.get(level_name, "#d0d0d0")
+        msg = payload.message
+        if get_default_lang() != "zh":
+            from one_dragon.utils.log_translator import translate_log_text
+            msg = translate_log_text(msg)
         self._hud_window.append_log(
             {
                 "created": payload.created,
@@ -189,7 +194,7 @@ class OverlayManager(QObject):
                 "level": level_name,
                 "levelColor": level_color,
                 "source": source,
-                "message": payload.message,
+                "message": msg,
             }
         )
         # 日志面板常驻，只按固定行数裁剪（样式写死，不读配置）
@@ -424,7 +429,7 @@ class OverlayManager(QObject):
                 {
                     "big": idx == 0,
                     "accent": accent,
-                    "key": key,
+                    "key": gt_compound(key),
                     "value": seconds,
                     "stateValue": value,
                     "valueColor": "#ffffff",
@@ -459,14 +464,18 @@ class OverlayManager(QObject):
     def _build_decision_rows(self, items) -> list[dict]:
         rows: list[dict] = []
         for item in sorted(items, key=lambda x: x.created, reverse=True)[:24]:
+            trigger_str = getattr(item, "trigger", "") or ""
+            expr_str = getattr(item, "expression", "") or ""
+            action_str = getattr(item, "operation", "") or ""
+            status_str = getattr(item, "status", "") or ""
             rows.append(
                 {
                     "time": time.strftime("%H:%M:%S", time.localtime(item.created)),
-                    "source": item.source,
-                    "trigger": item.trigger,
-                    "expr": item.expression,
-                    "action": item.operation,
-                    "status": item.status,
+                    "source": getattr(item, "source", ""),
+                    "trigger": gt_compound(str(trigger_str)) if trigger_str else "",
+                    "expr": gt_compound(str(expr_str)) if expr_str else "",
+                    "action": gt(str(action_str), "ui") if action_str else "",
+                    "status": gt(str(status_str), "ui") if status_str else "",
                 }
             )
         return rows
@@ -480,7 +489,7 @@ class OverlayManager(QObject):
         expr = str(getattr(latest, "expression", "") or "").strip()
         if not expr:
             return ""
-        return expr
+        return gt_compound(expr)
 
     def _build_perf_rows(self, items) -> list[dict]:
         now = time.time()
@@ -638,14 +647,14 @@ class OverlayManager(QObject):
         try:
             from zzz_od.game_data.agent import AgentEnum
         except Exception:
-            return "战斗状态"
+            return gt("战斗状态")
         auto_ctx = self.ctx.auto_battle_context
         for agent_enum in AgentEnum:
             agent_name = agent_enum.value.agent_name
             recorder = auto_ctx.state_record_service.get_state_recorder(f"前台-{agent_name}")
             if recorder is not None and recorder.last_record_time > 0:
-                return f"前台-{agent_name}"
-        return "战斗状态"
+                return gt_compound(f"前台-{agent_name}")
+        return gt("战斗状态")
 
     def _collect_auto_battle_items(self) -> list[tuple[str, str, str]]:
         """只显示游戏里看不到的信息：自定义状态 + 角色专属状态。
@@ -695,15 +704,21 @@ class OverlayManager(QObject):
         parts = [str(run_ctx.run_status_text or "-")]
         app = getattr(run_ctx, "current_application", None)
         if app is not None:
-            app_name = str(getattr(app, "display_name", None) or getattr(app, "op_name", "-"))
+            raw_app_name = getattr(app, "display_name", None) or getattr(app, "op_name", None) or "-"
+            app_name = gt_compound(str(raw_app_name)) if raw_app_name != "-" else "-"
             if app_name and app_name != "-":
                 parts.append(app_name)
             node = "-"
             with contextlib.suppress(Exception):
-                node = str(app.current_node.name or "-")
+                raw_node = (
+                    getattr(app.current_node, "display_name", None)
+                    or getattr(app.current_node, "name", None)
+                    or "-"
+                )
+                node = gt_compound(str(raw_node)) if raw_node != "-" else "-"
             if node and node != "-":
                 parts.append(node)
-        return "｜".join(parts)
+        return " ｜ ".join(parts)
 
     @staticmethod
     def _format_hotkey(key) -> str:
@@ -720,15 +735,15 @@ class OverlayManager(QObject):
         """
         run_ctx = self.ctx.run_context
         if run_ctx.is_context_running:
-            start_label = "暂停"
+            start_label = gt("暂停")
         elif run_ctx.is_context_pause:
-            start_label = "继续"
+            start_label = gt("继续")
         else:
-            start_label = "开始"
+            start_label = gt("开始")
         items = (
             (self.ctx.key_start_running, start_label),
-            (self.ctx.key_stop_running, "停止"),
-            (self.ctx.key_debug or "f12", "显示"),
+            (self.ctx.key_stop_running, gt("停止")),
+            (self.ctx.key_debug or "f12", gt("显示")),
         )
         return ";".join(
             f"{name}|{label}"

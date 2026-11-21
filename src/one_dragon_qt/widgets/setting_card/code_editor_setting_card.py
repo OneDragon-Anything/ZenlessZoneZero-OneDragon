@@ -480,16 +480,17 @@ class PythonCodeEditorDialog(BaseCodeEditorDialog):
 
     def __init__(self, parent=None, title: str = "Python 脚本编辑器",
                  initial_code: str = "", script_path: str = ""):
+        """初始化 Python 脚本编辑弹窗 传入脚本路径时增加外部编辑按钮"""
         self._script_path = script_path
         super().__init__(parent=parent, title=title,
-                         placeholder="# 输入 Python 脚本",
+                         placeholder=gt("# 输入 Python 脚本"),
                          initial_code=initial_code)
         self.yesButton.setText(gt("保存"))
         self.cancelButton.setText(gt("取消"))
 
         if script_path:
             from qfluentwidgets import PushButton
-            self.external_edit_btn = PushButton(FluentIcon.EDIT, '外部编辑')
+            self.external_edit_btn = PushButton(FluentIcon.EDIT, gt('外部编辑'))
             self.external_edit_btn.clicked.connect(self._on_external_edit)
             # 插入到最左侧，再加一个弹性空间把它推到左边
             self.buttonLayout.insertWidget(0, self.external_edit_btn)
@@ -696,7 +697,7 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, JsonEditorMixin):
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)
-        self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
+        self.editor.setPlaceholderText(gt("请输入 JSON 格式的请求体"))
         self.highlighter = JsonHighlighter(self.editor.document())
 
         # 创建按钮布局

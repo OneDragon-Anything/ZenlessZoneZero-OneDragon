@@ -378,9 +378,9 @@ class SettingGameInterface(VerticalScrollInterface):
     def _on_overlay_theme_color_clicked(self) -> None:
         """弹调色盘选主题色，确认后写回配置并刷新 Overlay。"""
         config = OverlayConfig()
-        dialog = ColorDialog(QColor(config.hud_theme_color), '请选择 Overlay 主题色', self)
-        dialog.yesButton.setText('确定')
-        dialog.cancelButton.setText('取消')
+        dialog = ColorDialog(QColor(config.hud_theme_color), gt('请选择 Overlay 主题色'), self)
+        dialog.yesButton.setText(gt('确定'))
+        dialog.cancelButton.setText(gt('取消'))
         if dialog.exec():
             config.hud_theme_color = dialog.color.name()
             self.overlay_theme_color_card.button.setText(config.hud_theme_color)
@@ -414,8 +414,8 @@ class SettingGameInterface(VerticalScrollInterface):
             self.background_mode_switch.setValue(False, emit_signal=False)
             self.ctx.game_config.background_mode = False
             InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                title=gt('后台模式不可用'),
+                content=gt('未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动'),
                 parent=self, duration=5000,
             )
 

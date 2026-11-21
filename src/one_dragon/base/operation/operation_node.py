@@ -69,6 +69,11 @@ class OperationNode:
         self.save_status: bool = save_status
         """是否保存当前状态到列表中"""
 
+    @property
+    def display_name(self) -> str:
+        from one_dragon.utils.i18_utils import gt_compound
+        return gt_compound(self.cn, model='ui')
+
 def operation_node(
         name: str,
         retry_on_op_fail: bool = False,

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIconBase
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import IconSize, Margins
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -34,8 +35,9 @@ class GamepadActionKeyCard(MultiPushSettingCard, AdapterInitMixin):
         margins: Margins = Margins(16, 16, 0, 16),
         parent: QWidget = None,
     ) -> None:
+        """初始化手柄动作按键卡片 包含修饰键与按键两个下拉框"""
         self.modifier_combo = ComboBox()
-        self.modifier_combo.addItem('无', userData='')
+        self.modifier_combo.addItem(gt('无'), userData='')
         for item in modifier_enum:
             ci: ConfigItem = item.value
             self.modifier_combo.addItem(ci.ui_text, userData=ci.value)

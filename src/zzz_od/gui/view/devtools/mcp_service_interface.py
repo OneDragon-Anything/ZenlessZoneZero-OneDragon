@@ -28,6 +28,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.utils import os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
@@ -272,7 +273,7 @@ class McpServiceInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         """构造 MCP 服务页内容。"""
         content = Column(spacing=8)
-        group = SettingCardGroup('MCP 服务')
+        group = SettingCardGroup(gt('MCP 服务'))
         content.add_widget(group)
 
         self.port_card = TextSettingCard(icon=FluentIcon.GLOBE, title='端口', content='仅监听 127.0.0.1')
@@ -287,16 +288,16 @@ class McpServiceInterface(VerticalScrollInterface):
         self.copy_card.clicked.connect(self._copy_url)
         group.addSettingCard(self.copy_card)
 
-        action_group = SettingCardGroup('服务操作')
+        action_group = SettingCardGroup(gt('服务操作'))
         content.add_widget(action_group)
 
-        self.start_btn = PrimaryPushButton(text='启动 F9', icon=FluentIcon.PLAY)
+        self.start_btn = PrimaryPushButton(text=gt('启动 F9'), icon=FluentIcon.PLAY)
         self.start_btn.setShortcut(QKeySequence('F9'))
         self.start_btn.clicked.connect(lambda: self._run_action('start'))
-        self.stop_btn = PushButton(text='停止 F10', icon=FluentIcon.POWER_BUTTON)
+        self.stop_btn = PushButton(text=gt('停止 F10'), icon=FluentIcon.POWER_BUTTON)
         self.stop_btn.setShortcut(QKeySequence('F10'))
         self.stop_btn.clicked.connect(lambda: self._run_action('stop'))
-        self.restart_btn = PushButton(text='重启 F11', icon=FluentIcon.SYNC)
+        self.restart_btn = PushButton(text=gt('重启 F11'), icon=FluentIcon.SYNC)
         self.restart_btn.setShortcut(QKeySequence('F11'))
         self.restart_btn.clicked.connect(lambda: self._run_action('restart'))
         self.action_card = MultiPushSettingCard(
@@ -307,19 +308,19 @@ class McpServiceInterface(VerticalScrollInterface):
         )
         action_group.addSettingCard(self.action_card)
 
-        status_group = SettingCardGroup('当前运行状态')
+        status_group = SettingCardGroup(gt('当前运行状态'))
         content.add_widget(status_group)
         self.run_status_card = PushSettingCard(icon=FluentIcon.SPEED_HIGH, title='当前运行状态', content='尚未读取', text='刷新')
         self.run_status_card.clicked.connect(lambda: self._run_action('status'))
         status_group.addSettingCard(self.run_status_card)
 
-        log_group = SettingCardGroup('运行消息')
+        log_group = SettingCardGroup(gt('运行消息'))
         content.add_widget(log_group)
         self.message_box = PlainTextEdit()
         self.message_box.setReadOnly(True)
         self.message_box.setMaximumBlockCount(MESSAGE_MAX_BLOCKS)
         self.message_box.setMinimumHeight(180)
-        self.message_box.setPlaceholderText('MCP 服务操作和运行状态消息会显示在这里')
+        self.message_box.setPlaceholderText(gt('MCP 服务操作和运行状态消息会显示在这里'))
         log_group.addSettingCard(self.message_box)
 
         return content

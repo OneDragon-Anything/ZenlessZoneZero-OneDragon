@@ -223,6 +223,12 @@ class OverlayHudWindow:
             )
         # 校验通过再赋值，避免异常时 self._window 被污染、后续复用到错误对象
         self._window = root
+        from one_dragon.utils.i18_utils import gt
+
+        self._set("logTitle", gt("日志"))
+        self._set("stateSubTitle", gt("前台角色"))
+        self._set("decisionDefaultTitle", gt("决策"))
+        self._set("stateTitle", gt("战斗状态"))
         return self._window
 
     def _set(self, name: str, value) -> None:
