@@ -168,13 +168,13 @@ class PluginCoverService(QObject):
 
     @staticmethod
     def _normalize_cover(raw_url: str) -> str:
-        """封面字段归一化：去空白，相对路径开头带不带 `/` 结果相同。"""
-        return (raw_url or '').strip().lstrip('/')
+        """封面字段归一化：只去首尾空白，路径语义交给 urljoin，按标准 URL 规则解析。"""
+        return (raw_url or '').strip()
 
     def resolve_cover_urls(self, raw_url: str) -> dict[str, str]:
         """把市场里的封面字段补成各源的完整地址。
 
-        相对路径按各源索引所在目录解析，开头带不带 `/` 结果相同，
+        相对路径按各源索引所在目录解析（标准相对引用语义，构建工具产出的是 `covers/xxx.png`），
         下载时按「资源」页的候选顺序挑选，哪个源有这张图就用哪个。
 
         Args:
