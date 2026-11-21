@@ -78,6 +78,8 @@ def _bfs_search_map(
                 next_node = current_map.nodes[next_idx]
                 next_entry = next_node.entry
 
+                if next_node.blocked:  # 移动无进展时标记为卡住 寻路时避开
+                    continue
                 if not next_entry.can_go:  # 无法移动
                     continue
                 if avoid_entry_list is not None and next_entry.entry_name in avoid_entry_list:  # 避免途经点

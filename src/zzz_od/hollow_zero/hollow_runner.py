@@ -40,6 +40,7 @@ from zzz_od.hollow_zero.event.upgrade_resonium import UpgradeResonium
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
 from zzz_od.hollow_zero.hollow_battle import HollowBattle
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
+from zzz_od.hollow_zero.hollow_map import hollow_map_utils
 from zzz_od.hollow_zero.hollow_map.hollow_zero_map import (
     HollowZeroMap,
     HollowZeroMapNode,
@@ -50,6 +51,9 @@ from zzz_od.operation.zzz_operation import ZOperation
 class HollowRunner(ZOperation):
 
     STATUS_LEAVE: ClassVar[str] = '离开空洞'
+
+    MAX_SAME_MOVE_TIMES: ClassVar[int] = 3  # 连续点击同一格但游戏无进展的次数上限 超过则标记该格并绕行
+    MAX_BLOCKED_NODES: ClassVar[int] = 8  # 单层内累计卡住的节点上限 超过则判定寻路异常 可控失败
 
     def __init__(self, ctx: ZContext):
         ZOperation.__init__(
@@ -115,6 +119,9 @@ class HollowRunner(ZOperation):
 
         self._last_save_image_time: float = 0
         self._last_move_time: float = 0  # 上一次移动的时间
+
+        self._last_move_node: Optional[HollowZeroMapNode] = None  # 上一次点击移动的节点
+        self._same_move_times: int = 0  # 连续点击同一节点但游戏未前进的次数
 
         self._handled_events: set[str] = set()  # 当前已处理过的事件 移动后清空
 
@@ -207,6 +214,24 @@ class HollowRunner(ZOperation):
         next_to_move = target_node.next_node_to_move
         log.info(f"前往目标: [{target_node.entry.entry_name}] 当前移动: [{next_to_move.entry.entry_name}]")
 
+        # 连续多次点击同一个节点但游戏没有前进时 标记该节点为卡住 让寻路绕行 避免无限循环
+        if next_to_move is not None:
+            if self._is_same_move_node(next_to_move):
+                self._same_move_times += 1
+            else:
+                self._same_move_times = 0
+            self._last_move_node = HollowZeroMapNode(next_to_move.pos, next_to_move.entry)
+
+            if self._same_move_times >= HollowRunner.MAX_SAME_MOVE_TIMES:
+                self._same_move_times = 0
+                self._last_move_node = None
+                self.ctx.withered_domain.add_blocked_node(next_to_move)
+                log.warning('连续 %d 次尝试移动到 [%s] 无进展 标记该节点并绕行',
+                            HollowRunner.MAX_SAME_MOVE_TIMES, next_to_move.entry.entry_name)
+                if self.ctx.withered_domain.blocked_node_count() >= HollowRunner.MAX_BLOCKED_NODES:
+                    return self.round_fail('寻路持续无进展 已标记过多节点')
+                return self.round_retry('移动无进展 标记节点绕行', wait=0.5)
+
         # 999 是寻路兜底策略的特殊标识 是在识别识别的情况下使用的
         pathfinding_success = next_to_move is not None and next_to_move.path_step_cnt != 999
         if not pathfinding_success:
@@ -254,6 +279,14 @@ class HollowRunner(ZOperation):
                 return self.round_retry()
 
         return self.round_wait()
+
+    def _is_same_move_node(self, node: HollowZeroMapNode) -> bool:
+        """
+        判断本次要点击的节点 是否与上一次点击的是同一个位置
+        """
+        if self._last_move_node is None:
+            return False
+        return hollow_map_utils.is_same_node_pos(self._last_move_node, node)
 
     def _before_move(self, current_map: HollowZeroMap,
                      target_node: HollowZeroMapNode) -> tuple[HollowZeroMapNode, OperationRoundResult | None]:

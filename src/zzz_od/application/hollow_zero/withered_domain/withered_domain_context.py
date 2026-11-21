@@ -54,6 +54,7 @@ class WitheredDomainContext:
         self._visited_nodes: List[HollowZeroMapNode] = []  # 已经去过的点
         self.last_target_node: Optional[HollowZeroMapNode] = None  # 上一次想前往的节点
         self._last_current_node: Optional[HollowZeroMapNode] = None  # 上一次当前所在的点
+        self._blocked_nodes: List[HollowZeroMapNode] = []  # 卡住无法移动上去的节点 寻路时避开
         self.speed_up_clicked: bool = False  # 是否已经点击加速
         self.invalid_map_times: int = 0  # 识别不到正确地图的次数
         self.app_id: str = withered_domain_const.APP_ID  # 当前运行的应用 零号业绩速刷和枯萎之都共用上下文
@@ -131,6 +132,7 @@ class WitheredDomainContext:
         else:
             self.invalid_map_times = 0
 
+        self._apply_blocked_nodes(current_map)
         hollow_pathfinding.search_map(current_map, set(self._get_avoid()), self._visited_nodes)
 
         # 优先考虑 一步可达时前往
@@ -233,6 +235,37 @@ class WitheredDomainContext:
             log.info(f"优先级 [随机相邻]")
             return fake_node
 
+    def add_blocked_node(self, node: HollowZeroMapNode) -> None:
+        """
+        记录一个移动无进展的节点 后续寻路时避开
+        """
+        if node is None:
+            return
+        for existed in self._blocked_nodes:
+            if hollow_map_utils.is_same_node_pos(node, existed):
+                return
+        self._blocked_nodes.append(HollowZeroMapNode(node.pos, node.entry))
+
+    def blocked_node_count(self) -> int:
+        """
+        当前已记录的卡住节点数量
+        """
+        return len(self._blocked_nodes)
+
+    def _apply_blocked_nodes(self, current_map: HollowZeroMap) -> None:
+        """
+        将已记录的卡住节点标记到当前地图上 供寻路避开
+        """
+        for node in current_map.nodes:
+            node.blocked = False
+        if len(self._blocked_nodes) == 0:
+            return
+        for node in current_map.nodes:
+            for blocked in self._blocked_nodes:
+                if hollow_map_utils.is_same_node_pos(node, blocked):
+                    node.blocked = True
+                    break
+
     def try_target_node(self, current_map: HollowZeroMap, target: HollowZeroMapNode) -> Optional[HollowZeroMapNode]:
         """
         找到目标点后 针对一些可能识别错误的场景进行修正
@@ -294,6 +327,7 @@ class WitheredDomainContext:
         # node的类型已经被改了 只能用visited来判断
         if visited.entry.is_tp:
             self._visited_nodes.clear()
+            self._blocked_nodes.clear()
 
             if visited.entry.entry_name == '传送点':
                 if self.level_info is not None:
@@ -343,6 +377,7 @@ class WitheredDomainContext:
         前往下一层了 更新信息
         """
         self._visited_nodes.clear()
+        self._blocked_nodes.clear()
         if self.level_info is not None:
             self.level_info.to_next_level()
         self.last_target_node = None
@@ -354,6 +389,7 @@ class WitheredDomainContext:
         重新开始空洞时 初始化空洞的信息
         """
         self.level_info = HollowLevelInfo(mission_type_name, mission_name, level, phase)
+        self._blocked_nodes.clear()
 
     def update_agent_list_after_support(self, new_agent: Agent, pos: int) -> None:
         """
