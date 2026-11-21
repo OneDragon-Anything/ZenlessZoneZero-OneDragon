@@ -301,7 +301,10 @@ class PluginOperationMixin:
 
         订阅记录只在商店安装或更新成功后写入。没有记录，或记录来源是本地，
         都只算安装。旧记录没有 source 字段，当时只有商店安装会写记录，按订阅处理。
+        开发版插件不参与商店订阅，一律按未订阅处理。
         """
+        if plugin_info.is_dev:
+            return False
         package_dir = self.get_plugin_package_dir(plugin_info)
         dir_name = package_dir.name if package_dir is not None else ''
         registry_id = self.subscription_config.find_registry_id(plugin_info.app_id, dir_name)
@@ -313,7 +316,9 @@ class PluginOperationMixin:
         return str(record.get('source') or 'market') == 'market'
 
     def find_market_entry(self, plugin_info: PluginInfo) -> MarketPlugin | None:
-        """查找某个已安装插件对应的市场条目。"""
+        """查找某个已安装插件对应的市场条目。开发版不对应任何市场条目。"""
+        if plugin_info.is_dev:
+            return None
         snapshot = self._market_snapshot
         if snapshot is None:
             return None
@@ -427,6 +432,9 @@ class PluginOperationMixin:
 
     def subscription_registry_id(self, plugin_info: PluginInfo) -> str:
         """已安装插件在订阅记录里的市场条目 id，没有订阅记录时返回空字符串。"""
+        if plugin_info.is_dev:
+            # 开发版目录名与商店版相同，不能按目录名反查到商店版的订阅记录
+            return ''
         package_dir = self.get_plugin_package_dir(plugin_info)
         dir_name = package_dir.name if package_dir is not None else ''
         return self.subscription_config.find_registry_id(plugin_info.app_id, dir_name) or ''
@@ -478,7 +486,11 @@ class PluginOperationMixin:
         entry = self.find_market_entry(plugin_info)
         actions: list[tuple[str, str]] = []
         subscribed = self.is_subscribed(plugin_info)
-        if subscribed:
+        if plugin_info.is_dev:
+            # 开发版放 plugins/.dev，不参与商店更新，也不给卸载入口
+            status_text = gt('开发版 · 不参与商店更新与卸载')
+            status_kind = BADGE_INSTALLED
+        elif subscribed:
             status_text = gt('已订阅')
             status_kind = BADGE_SUBSCRIBED
             update_version = self.pending_update_version(plugin_info, entry)
@@ -629,8 +641,11 @@ class PluginOperationMixin:
         """把已安装插件更新到市场最新版本，下载走统一队列。
 
         更新无条件执行：插件正在运行、目录是仓库布局、目录里带 git 仓库都不拦，
-        一律覆盖成商店里的最新版本。
+        一律覆盖成商店里的最新版本。开发版插件不走商店更新。
         """
+        if plugin_info.is_dev:
+            self._show_error(gt('无法更新'), gt('开发版插件不参与商店更新'))
+            return
         self._enqueue_plugin_download(
             entry,
             overwrite=True,
@@ -920,6 +935,12 @@ class PluginOperationMixin:
         subscribed: bool | None = None,
     ) -> None:
         """删除插件目录。订阅来的插件文案用取消订阅，本地安装用卸载。"""
+        if plugin_info.is_dev:
+            self._show_error(
+                gt('无法卸载'),
+                gt('开发版插件不参与卸载，请直接删除 plugins/.dev 下的目录'),
+            )
+            return
         if self._import_busy:
             return
         if self._reject_repo_layout_plugin(plugin_info, gt('卸载')):

@@ -18,9 +18,11 @@ class PluginSource(str, Enum):
     用于区分插件的来源，由 ApplicationFactoryManager 在扫描时自动设置。
     - BUILTIN: 内置插件，位于 application 目录下，由项目维护
     - THIRD_PARTY: 第三方插件，位于 plugins 目录下，由用户安装，支持相对导入
+    - DEV: 开发版插件，位于 plugins/.dev 目录下，用于本地开发调试
     """
     BUILTIN = 'builtin'
     THIRD_PARTY = 'third_party'
+    DEV = 'dev'
 
 
 @dataclass
@@ -75,5 +77,14 @@ class PluginInfo:
 
     @property
     def is_third_party(self) -> bool:
-        """是否为第三方插件"""
-        return self.source == PluginSource.THIRD_PARTY
+        """是否为第三方插件（含开发版）"""
+        return self.source in (PluginSource.THIRD_PARTY, PluginSource.DEV)
+
+    @property
+    def is_dev(self) -> bool:
+        """是否为开发版插件。
+
+        开发版放在 plugins/.dev 下，注册时 APP_ID 加了 _dev 后缀，
+        可以和商店版共存，但不参与商店的更新与卸载。
+        """
+        return self.source == PluginSource.DEV

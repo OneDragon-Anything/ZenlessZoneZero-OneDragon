@@ -156,7 +156,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             update_version = self.pending_update_version(plugin_info, entry) if subscribed else ''
             if subscribed:
                 subscribed_count += 1
-            if update_version:
+            if plugin_info.is_dev:
+                badge_text = gt('开发版')
+                badge_kind = BADGE_INSTALLED
+            elif update_version:
                 update_count += 1
                 badge_text = gt('可更新 v{version}').format(version=update_version)
                 badge_kind = BADGE_UPDATE

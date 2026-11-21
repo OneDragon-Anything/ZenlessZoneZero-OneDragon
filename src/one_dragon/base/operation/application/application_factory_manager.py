@@ -27,6 +27,8 @@ from one_dragon.base.operation.application.plugin_manifest import (
 )
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
+    DEV_APP_ID_SUFFIX,
+    DEV_APP_NAME_SUFFIX,
     ensure_sys_path,
     import_module_from_file,
     is_const_file,
@@ -158,8 +160,8 @@ class ApplicationFactoryManager:
         """
         factories: list[ApplicationFactory] = []
 
-        # 内置应用递归扫描；第三方插件只扫描每个真实插件根的第一层。
-        if source == PluginSource.THIRD_PARTY:
+        # 内置应用递归扫描；第三方插件与开发版只扫描每个真实插件根的第一层。
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             python_files: list[Path] = []
             if directory.is_dir():
                 try:
@@ -320,17 +322,21 @@ class ApplicationFactoryManager:
         except ValueError as e:
             raise ImportError(f"无法计算相对路径: {factory_file}") from e
         rel_parts = relative_path.parts
-        if source == PluginSource.THIRD_PARTY and len(rel_parts) < 2:
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV) and len(rel_parts) < 2:
             raise ImportError(
-                f"第三方插件不能直接放在 plugins 根目录: {factory_file.name}，"
+                f"插件不能直接放在扫描根目录: {factory_file.name}，"
                 f"请放在子目录中（如 plugins/my_plugin/{factory_file.name}）"
             )
 
-        # 3. THIRD_PARTY 特殊处理：将 plugins 目录加入 sys.path
-        if source == PluginSource.THIRD_PARTY:
+        # 3. 第三方插件与开发版：把扫描根加入 sys.path 以支持相对导入
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(module_root, self._added_sys_paths)
 
-        # 4. 模块加载/重载
+        # 4. 开发版：导入工厂之前把常量模块的 APP_ID 加上 _dev 后缀
+        if source == PluginSource.DEV:
+            self._rewrite_dev_app_id(factory_file, module_name, module_root)
+
+        # 5. 模块加载/重载
         if module_name in sys.modules:
             if reload_modules:
                 unload_prefix = self._get_unload_prefix(module_name, source, rel_parts)
@@ -346,6 +352,43 @@ class ApplicationFactoryManager:
         return self._find_factory_in_module(
             module, module_name, factory_file, source
         )
+
+    def _rewrite_dev_app_id(self, factory_file: Path, module_name: str, module_root: Path) -> None:
+        """把开发版插件的 APP_ID 加上 _dev 后缀。
+
+        必须在导入工厂模块之前改写：插件内部普遍写 `from .const import APP_ID`，
+        配置文件名、运行记录文件名和 plugin_data 数据目录都取这个值，
+        导入之后再改就不生效，开发版会和商店版共用同一份配置。
+
+        Args:
+            factory_file: 工厂文件路径。
+            module_name: 工厂模块名（已带 dev_ 包名前缀）。
+            module_root: 模块根目录（plugins/.dev）。
+        """
+        const_file = next(
+            (f for f in factory_file.parent.iterdir() if f.is_file() and is_const_file(f.name)),
+            None,
+        )
+        if const_file is None:
+            return
+
+        package_prefix, _, _ = module_name.rpartition('.')
+        const_module_name = (
+            f"{package_prefix}.{const_file.stem}" if package_prefix else const_file.stem
+        )
+        const_module = sys.modules.get(const_module_name)
+        if const_module is None:
+            const_module = import_module_from_file(const_file, const_module_name, module_root)
+
+        app_id = getattr(const_module, 'APP_ID', '')
+        if not isinstance(app_id, str) or not app_id or app_id.endswith(DEV_APP_ID_SUFFIX):
+            return
+        const_module.APP_ID = f'{app_id}{DEV_APP_ID_SUFFIX}'
+        app_name = getattr(const_module, 'APP_NAME', '')
+        if isinstance(app_name, str) and app_name and not app_name.endswith(DEV_APP_NAME_SUFFIX):
+            # 应用列表里商店版和开发版同名，加后缀才分得清
+            const_module.APP_NAME = f'{app_name}{DEV_APP_NAME_SUFFIX}'
+        log.debug(f"开发版插件注册为 {const_module.APP_ID}")
 
     def _get_unload_prefix(
         self,
@@ -369,6 +412,9 @@ class ApplicationFactoryManager:
         if source == PluginSource.THIRD_PARTY:
             # 卸载整个插件包：取相对路径第一段（插件包名）
             return rel_parts[0] if rel_parts else None
+        if source == PluginSource.DEV:
+            # 开发版包名带 dev_ 前缀，按模块名第一段卸载
+            return module_name.split('.')[0] if module_name else None
         else:
             # BUILTIN: 仅卸载当前 factory 所在的父包
             # 例如 zzz_od.application.xxx.xxx_factory -> zzz_od.application.xxx

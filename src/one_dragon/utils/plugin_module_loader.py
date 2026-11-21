@@ -22,10 +22,13 @@ def resolve_module_name(
 ) -> tuple[str, Path] | None:
     """根据文件路径和插件来源，解析出 dotted module name 和 module_root。
 
+    开发版（DEV）的第一段包名会加 ``dev_`` 前缀：插件目录名与商店版相同，
+    不加前缀会在 sys.modules 里撞成同一个模块，商店版和开发版只会活一个。
+
     Args:
         file_path: .py 文件的绝对路径
         source: 插件来源
-        base_dir: 扫描根目录（BUILTIN 时忽略，用 find_src_dir；THIRD_PARTY 时用此值）
+        base_dir: 扫描根目录（BUILTIN 时忽略，用 find_src_dir；其他来源用此值）
 
     Returns:
         (module_name, module_root) 或 None（无法解析时）
@@ -39,13 +42,37 @@ def resolve_module_name(
     except ValueError:
         return None
 
-    rel_parts = relative_path.parts
+    rel_parts = list(relative_path.parts)
+    if source == PluginSource.DEV and len(rel_parts) >= 2:
+        rel_parts[0] = f'{DEV_PACKAGE_PREFIX}{rel_parts[0]}'
     module_name = ".".join([*rel_parts[:-1], file_path.stem])
     return module_name, module_root
 
 
+def package_dir_of(module_name: str, module_root: Path) -> Path:
+    """把包名还原成真实目录。
+
+    开发版的包名带 ``dev_`` 前缀，目录名不带，拼路径前要先去掉。
+    """
+    parts = module_name.split(".")
+    if parts[0].startswith(DEV_PACKAGE_PREFIX):
+        parts[0] = parts[0][len(DEV_PACKAGE_PREFIX):]
+    return module_root / Path(*parts)
+
+
 FACTORY_FILE_NAME = 'factory.py'
 CONST_FILE_NAME = 'const.py'
+DEV_PLUGIN_DIR_NAME = '.dev'
+DEV_APP_ID_SUFFIX = '_dev'
+DEV_APP_NAME_SUFFIX = '（开发版）'
+DEV_PACKAGE_PREFIX = 'dev_'
+"""开发版插件的目录名、APP_ID 后缀、显示名后缀与包名前缀。
+
+开发版放在 plugins/.dev/<id>/，注册时 APP_ID 加 _dev 后缀（bagel → bagel_dev），
+所以能和商店版共存；配置、运行记录、数据目录都跟着新 APP_ID 走，互不影响。
+包名另外加 dev_ 前缀（bagel → dev_bagel），因为商店版与开发版目录同名，
+不加前缀会在 sys.modules 里撞成同一个模块。
+"""
 
 
 def is_factory_file(file_name: str) -> bool:
@@ -206,7 +233,8 @@ def _ensure_parent_packages(module_name: str, module_root: Path) -> None:
         if pkg_name in sys.modules:
             continue
 
-        pkg_dir = module_root / Path(*parts[: i + 1])
+        # 开发版包名带 dev_ 前缀，真实目录名不带
+        pkg_dir = package_dir_of(pkg_name, module_root)
         init_file = pkg_dir / "__init__.py"
         if init_file.exists():
             spec = importlib.util.spec_from_file_location(
