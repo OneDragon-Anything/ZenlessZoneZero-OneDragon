@@ -984,7 +984,7 @@ class PluginOperationMixin:
             if found:
                 self.subscription_config.remove_record(found)
 
-        self.ctx.refresh_application_registration()
+        self.ctx.request_application_registration_refresh()
         self.refresh_cards()
         InfoBar.success(
             title=gt('已取消订阅') if subscribed else gt('已卸载'),
@@ -1032,6 +1032,12 @@ class PluginOperationMixin:
         self._show_detail(data, partial(self._on_failed_detail_action, package_dir))
 
     def _on_failed_detail_action(self, package_dir: Path, action: str) -> None:
+        """分发加载失败插件详情页的操作。
+
+        Args:
+            package_dir: 加载失败的插件包目录。
+            action: 详情页触发的动作标识。
+        """
         if action == ACTION_DELETE_FAILED:
             self.delete_failed_plugin(package_dir)
 
@@ -1059,6 +1065,12 @@ class PluginOperationMixin:
         )
 
     def _finish_delete_failed(self, package_dir: Path, result: ImportResult) -> None:
+        """完成删除加载失败插件的任务：清理订阅记录，请求刷新应用注册并重建卡片。
+
+        Args:
+            package_dir: 被删除的插件包目录。
+            result: 删除任务的结果，失败时只提示错误。
+        """
         self._finish_plugin_task()
         if not result.success:
             self._show_error(gt('删除失败'), result.message)
@@ -1067,7 +1079,7 @@ class PluginOperationMixin:
         found = self.subscription_config.find_registry_id('', package_dir.name)
         if found:
             self.subscription_config.remove_record(found)
-        self.ctx.refresh_application_registration()
+        self.ctx.request_application_registration_refresh()
         self.refresh_cards()
         InfoBar.success(
             title=gt('已删除'),

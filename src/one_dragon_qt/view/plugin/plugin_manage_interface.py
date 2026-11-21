@@ -635,12 +635,15 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             return
 
         try:
-            self.ctx.refresh_application_registration()
+            refreshed = self.ctx.request_application_registration_refresh()
             self.refresh_cards()
             self.load_market(force=True)
             InfoBar.success(
-                title=gt('刷新成功'),
-                content=gt('已重新加载插件'),
+                title=gt('刷新成功') if refreshed else gt('已推迟刷新'),
+                content=(
+                    gt('已重新加载插件') if refreshed
+                    else gt('有任务正在运行，插件将在任务结束后重新加载')
+                ),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,

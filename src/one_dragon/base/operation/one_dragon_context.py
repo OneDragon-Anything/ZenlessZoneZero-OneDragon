@@ -33,7 +33,10 @@ from one_dragon.base.operation.context_app_setting_refresh_event import (
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
-from one_dragon.base.operation.context_event_bus import ContextEventBus
+from one_dragon.base.operation.context_event_bus import (
+    ContextEventBus,
+    ContextEventItem,
+)
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.base.operation.one_dragon_env_context import (
@@ -108,7 +111,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 初始化相关
         self._init_lock = threading.Lock()
-        self._registration_refresh_lock = threading.Lock()
+        self._registration_refresh_lock: threading.Lock = threading.Lock()
         self._registration_refresh_pending: bool = False
         """有任务运行时请求了刷新应用注册，等任务结束后再执行"""
         self._registration_refresh_listening: bool = False
@@ -311,7 +314,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self._run_pending_registration_refresh()
         return False
 
-    def _on_run_stopped_refresh_registration(self, event=None) -> None:
+    def _on_run_stopped_refresh_registration(self, event: ContextEventItem | None = None) -> None:
         """任务结束事件：执行推迟的应用注册刷新。"""
         self._run_pending_registration_refresh()
 
