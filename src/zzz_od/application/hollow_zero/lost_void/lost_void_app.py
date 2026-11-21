@@ -1,5 +1,6 @@
+import math
 import time
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import cv2
 
@@ -12,7 +13,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, log_utils, str_utils
+from one_dragon.utils import cv2_utils, gpu_executor, log_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
@@ -35,6 +36,9 @@ from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.deploy import Deploy
 
+if TYPE_CHECKING:
+    from cv2.typing import MatLike
+
 
 class LostVoidApp(ZApplication):
 
@@ -42,6 +46,7 @@ class LostVoidApp(ZApplication):
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
+    STATUS_NO_STRATEGY: ClassVar[str] = '没有可刷的调查战略'
 
     def __init__(self, ctx: ZContext,
                  lost_void_debug: bool = False,
@@ -66,6 +71,12 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
+
+        self._strategy_scan_phase: str = '回到左端'
+        self._strategy_last_page: list[tuple[str, int]] = []
+        self._strategy_level_map: dict[str, int] = {}  # 向右检查时看到的 可选战略名称 -> 等级 只记 0～7
+        self._strategy_target_name: str | None = None  # 看完整个列表后要选的战略
+        self._stop_reason: str | None = None  # 挑战配置要求提前结束运行的原因
 
         # debug
         self.lost_void_debug = lost_void_debug
@@ -426,6 +437,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='矩阵行动-开始挑战')
     def matrix_start_challenge(self) -> OperationRoundResult:
         """在矩阵行动页面点击开始挑战。"""
+        self.ctx.lost_void.reset_for_new_challenge()
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动-编队选择',
@@ -470,9 +482,44 @@ class LostVoidApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='副本画面识别')
+    @operation_node(name='选择难度', node_max_retry_times=5)
+    def choose_difficulty(self) -> OperationRoundResult:
+        """
+        挑战配置指定了难度时 在战线肃清切换到该难度 没指定时沿用游戏当前难度
+        难度一~六只差一个字 lcs匹配会互相命中 这里用包含判断
+        """
+        difficulty = self.ctx.lost_void.challenge_config.difficulty
+        if not difficulty or self.config.mission_name != '战线肃清':
+            return self.round_success('无需选择')
+
+        target = gt(difficulty, 'game')
+        title_area = self.ctx.screen_loader.get_area('迷失之地-战线肃清', '标题-战线肃清')
+        title_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=self.last_screenshot, rect=title_area.rect, crop_first=True,
+        )
+        if any(target in text.replace(' ', '') for text in title_map):
+            return self.round_success(f'已选择{difficulty}')
+
+        list_area = self.ctx.screen_loader.get_area('迷失之地-战线肃清', '区域-难度列表')
+        list_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=self.last_screenshot, rect=list_area.rect, crop_first=True,
+        )
+        for text, mrl in list_map.items():
+            if target in text.replace(' ', '') and mrl.max is not None:
+                self.ctx.controller.click(mrl.max.center)
+                return self.round_retry(f'点击{difficulty}', wait=1)
+
+        self.round_by_click_area('迷失之地-战线肃清', '按钮-难度')
+        return self.round_retry('打开难度列表', wait=1)
+
+    @node_from(from_name='选择难度')
     @operation_node(name='打开调查战略列表')
     def open_strategy_list(self) -> OperationRoundResult:
-        return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
+        self._strategy_scan_phase = '回到左端'
+        self._strategy_last_page = []
+        self._strategy_level_map = {}
+        self._strategy_target_name = None
+        return self.round_by_click_area(f'迷失之地-{self.config.mission_name}', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
 
     @node_from(from_name='打开调查战略列表')
@@ -498,89 +545,56 @@ class LostVoidApp(ZApplication):
             return self._choose_strategy_by_ocr()
 
     def _choose_strategy_by_chase_new_mode(self) -> OperationRoundResult:
-        """
-        追新模式下的选择逻辑
-        """
-        # 优先寻找无等级战略
-        log.debug("【追新模式】 开始执行无等级圈圈流水线分析...")
-        no_level_context = self.ctx.cv_service.run_pipeline('调查战略无等级圈圈', self.last_screenshot)
-        if no_level_context.is_success and no_level_context.contours:
-            target_contour = no_level_context.contours[0]
-            M = cv2.moments(target_contour)
-            if M["m00"] == 0:
-                log.debug("【追新模式】 轮廓面积为零，跳过无等级战略检测")
-            else:
-                center_x = int(M["m10"] / M["m00"])
-                center_y = int(M["m01"] / M["m00"])
-                offset_x, offset_y = no_level_context.crop_offset
-                click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(
-                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})"
-                )
-                self.ctx.controller.click(click_pos)
-                time.sleep(1)
-                return self._click_confirm_after_strategy_chosen()
+        """先回左端，再一直拖到最右边看完整个列表，选已确认等级最低的战略，同等级按列表顺序。"""
+        if self._strategy_scan_phase == '选择目标':
+            return self._choose_strategy_by_ocr(self._strategy_target_name)
 
-        log.debug("【追新模式】 未找到无等级战略，使用原有逻辑...")
+        page, candidates = self._recognize_strategy_page()
+        if not page:
+            return self.round_retry('未识别到调查战略名称', wait=1)
 
-        swipe_attempts = 0
-        MAX_SWIPES = 3
+        at_edge = (
+            len(page) == len(self._strategy_last_page)
+            and all(
+                name == last_name and abs(x - last_x) <= 5
+                for (name, x), (last_name, last_x) in zip(page, self._strategy_last_page, strict=True)
+            )
+        )
+        if self._strategy_scan_phase == '回到左端':
+            if not at_edge:
+                self._strategy_last_page = page
+                self._swipe_strategy_list(towards_right=False)
+                return self.round_wait('调查战略列表返回左端')
+            self._strategy_scan_phase = '向右检查'
+            self._strategy_last_page = []
+            at_edge = False
 
-        while swipe_attempts < MAX_SWIPES:
-            log.debug("【追新模式】 开始执行CV流水线分析...")
-            frame_context = self.ctx.cv_service.run_pipeline('调查战略等级圈圈', self.last_screenshot)
-            digit_context = self.ctx.cv_service.run_pipeline('调查战略等级分析', self.last_screenshot)
+        for name, level, _ in candidates:
+            self._strategy_level_map[name] = min(level, self._strategy_level_map.get(name, level))
 
-            if not frame_context.is_success or not frame_context.contours:
-                log.debug("【追新模式】 未找到任何战略外框，执行滑动...")
-                self._swipe_strategy_list()
-                swipe_attempts += 1
-                continue
-
-            target_contour_to_click = None
-            log.debug(f"【追新模式】 找到 {len(frame_context.contours)} 个战略外框，"
-                      f"{len(digit_context.contours) if digit_context.is_success and digit_context.contours else 0} 个等级数字。开始匹配...")
-            for frame_contour in frame_context.contours:
-                frame_rect = cv2.boundingRect(frame_contour)
-                found_digit_contour = None
-
-                if digit_context.is_success and digit_context.contours:
-                    for digit_contour in digit_context.contours:
-                        M = cv2.moments(digit_contour)
-                        if M["m00"] == 0:
-                            continue
-                        center_x = int(M["m10"] / M["m00"])
-                        center_y = int(M["m01"] / M["m00"])
-
-                        if (frame_rect[0] < center_x < frame_rect[0] + frame_rect[2] and
-                                frame_rect[1] < center_y < frame_rect[1] + frame_rect[3]):
-                            found_digit_contour = digit_contour
-                            break
-
-                if found_digit_contour is None:
-                    log.debug("【追新模式】 找到一个未满级/无等级目标，准备点击。")
-                    target_contour_to_click = frame_contour
-                    break
-
-            if target_contour_to_click is not None:
-                M = cv2.moments(target_contour_to_click)
-                center_x = int(M["m10"] / M["m00"])
-                center_y = int(M["m01"] / M["m00"])
-                offset_x, offset_y = frame_context.crop_offset
-                click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(
-                    f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})"
-                )
-                self.ctx.controller.click(click_pos)
-                time.sleep(1)
-                return self._click_confirm_after_strategy_chosen()
-
-            log.debug("【追新模式】 当前屏幕无可选择目标，执行滑动...")
+        if not at_edge:
+            self._strategy_last_page = page
             self._swipe_strategy_list()
-            self.screenshot()
-            swipe_attempts += 1
+            return self.round_wait('向右检查调查战略')
 
-        # 回退逻辑: 选择第一个
+        found_text = ', '.join(f'{name}={level}' for name, level in self._strategy_level_map.items())
+        log.info('调查战略追新 | 已看完整个列表 可选=%s', found_text if found_text else '无')
+        order_list = [i.strategy_name for i in self.ctx.lost_void.investigation_strategy_list]
+        found_list = [name for name in order_list if name in self._strategy_level_map]
+        if found_list:
+            # 选等级最低的 同等级按列表顺序选第一个
+            name = min(found_list, key=lambda i: self._strategy_level_map[i])
+            self._strategy_target_name = name
+            self._strategy_scan_phase = '选择目标'
+            log.info('调查战略追新 | 选择等级最低战略=%s 等级=%s', name, self._strategy_level_map[name])
+            return self._choose_strategy_by_ocr(name)
+
+        if self.ctx.lost_void.challenge_config.stop_when_no_strategy:
+            self._stop_reason = '没有找到可继续刷取的调查战略 结束运行'
+            log.warning(self._stop_reason)
+            return self.round_success(LostVoidApp.STATUS_NO_STRATEGY)
+
+        # 回退逻辑: 没有确认未满级的战略 选择第一个
         frame_context = self.ctx.cv_service.run_pipeline('调查战略等级圈圈', self.last_screenshot)
         if frame_context.is_success and frame_context.contours:
             target_contour = frame_context.contours[0]
@@ -596,20 +610,97 @@ class LostVoidApp(ZApplication):
 
         return self.round_fail("追新模式失败：未找到任何可选择的调查战略")
 
-    def _swipe_strategy_list(self) -> None:
+    def _recognize_strategy_page(self) -> tuple[list[tuple[str, int]], list[tuple[str, int, Point]]]:
+        """读取当前页名称、位置和等级；不确定的等级不参与选择。"""
+        if self.ctx.ocr.is_use_gpu():
+            ocr_map = gpu_executor.submit(self.ctx.ocr.run_ocr, self.last_screenshot).result()
+        else:
+            ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        strategy_names = {
+            gt(strategy.strategy_name, 'game').replace(' ', ''): strategy.strategy_name
+            for strategy in self.ctx.lost_void.investigation_strategy_list
+        }
+        page: list[tuple[str, int]] = [
+            (strategy_names[text.replace(' ', '')], results.max.center.x)
+            for text, results in ocr_map.items()
+            if text.replace(' ', '') in strategy_names and results.max is not None
+        ]
+        page.sort(key=lambda item: item[1])
+        candidates: list[tuple[str, int, Point]] = []
+        for pipeline_name, allow_empty in (
+            ('调查战略无等级圈圈', True),
+            ('调查战略等级圈圈', False),
+        ):
+            result = self.ctx.cv_service.run_pipeline(pipeline_name, self.last_screenshot)
+            if not result.is_success:
+                continue
+            for contour, (x1, y1, x2, y2) in result.get_absolute_rect_pairs():
+                perimeter = cv2.arcLength(contour, True)
+                if perimeter == 0 or 4 * math.pi * cv2.contourArea(contour) / perimeter ** 2 < 0.7:
+                    continue
+                center = Point((x1 + x2) // 2, (y1 + y2) // 2)
+                names_on_left = [(name, x) for name, x in page if center.x - 4 * (x2 - x1) < x < center.x]
+                if not names_on_left:
+                    continue
+                name = names_on_left[-1][0]
+                level = self._recognize_strategy_level(
+                    self.last_screenshot[y1:y2, x1:x2], allow_empty=allow_empty,
+                )
+                log.debug('调查战略追新 | 战略=%s 等级=%s', name, level)
+                if level is None or level >= 8 or (allow_empty and level != 0):
+                    continue
+                candidates.append((name, level, center))
+        candidates.sort(key=lambda item: (item[1] != 0, item[2].x))
+        return page, candidates
+
+    def _recognize_strategy_level(self, badge: 'MatLike', allow_empty: bool = False) -> int | None:
+        """提取圆圈内的白色数字，用双孔字形排除 8，其他数字使用单字 OCR。"""
+        height, width = badge.shape[:2]
+        inner = badge[height // 4:3 * height // 4, width // 4:3 * width // 4]
+        mask = cv2.inRange(inner, (160, 160, 160), (255, 255, 255))
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return 0 if allow_empty else None
+        digit_idx = max(range(len(contours)), key=lambda idx: cv2.contourArea(contours[idx]))
+        holes = sum(
+            1 for idx, contour in enumerate(contours)
+            if hierarchy[0][idx][3] == digit_idx and cv2.contourArea(contour) >= 4
+        )
+        if holes == 2:
+            return 8
+
+        x, y, width, height = cv2.boundingRect(contours[digit_idx])
+        digit = mask[y:y + height, x:x + width]
+        digit = cv2.copyMakeBorder(digit, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=0)
+        digit = cv2.resize(digit, None, fx=3, fy=3, interpolation=cv2.INTER_NEAREST)
+        digit = cv2.cvtColor(digit, cv2.COLOR_GRAY2RGB)
+        if self.ctx.ocr.is_use_gpu():
+            text = gpu_executor.submit(self.ctx.ocr.run_ocr_single_line, digit, threshold=0.8).result()
+        else:
+            text = self.ctx.ocr.run_ocr_single_line(digit, threshold=0.8)
+        text = text.strip()
+        return int(text) if len(text) == 1 and text in '012345678' else None
+
+    def _swipe_strategy_list(self, towards_right: bool = True) -> None:
         """
-        滑动调查战略列表
+        滑动调查战略列表 一次拖约 1500 像素 原来拖 800 像素只移动 3 个战略
+        :param towards_right: True 看右边的战略(往左拖) False 看左边的战略(往右拖)
         """
         # 调查战略的详情打开之后鼠标不能在详情处滑, 会滑不动
-        start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2.5)
-        end = start + Point(-800, 0)
-        self.ctx.controller.drag_to(start=start, end=end)
+        y = self.ctx.controller.standard_height // 2.5
+        left = Point(200, y)
+        right = Point(1700, y)
+        if towards_right:
+            self.ctx.controller.drag_to(start=right, end=left)
+        else:
+            self.ctx.controller.drag_to(start=left, end=right)
         time.sleep(1)
 
     def _click_confirm_after_strategy_chosen(self) -> OperationRoundResult:
         """
         选择战略后，点击确定按钮
         """
+        self.screenshot()
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         ocr_word_list = list(ocr_result_map.keys())
         idx = str_utils.find_best_match_by_difflib(gt('确定', 'game'), ocr_word_list)
@@ -622,25 +713,24 @@ class LostVoidApp(ZApplication):
 
         return self.round_wait(status='确定')
 
-    def _choose_strategy_by_ocr(self) -> OperationRoundResult:
+    def _choose_strategy_by_ocr(self, strategy_name: str | None = None) -> OperationRoundResult:
         """
         通过OCR识别选择调查战略
         """
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         ocr_word_list = list(ocr_result_map.keys())
-        target = gt(self.ctx.lost_void.challenge_config.investigation_strategy, 'game')
+        strategy_name = strategy_name or self.ctx.lost_void.challenge_config.investigation_strategy
+        target = gt(strategy_name, 'game')
         idx = str_utils.find_best_match_by_difflib(target, ocr_word_list)
 
         if idx is None or idx < 0:
             is_after = str_utils.is_target_after_ocr_list(
-                target_cn=self.ctx.lost_void.challenge_config.investigation_strategy,
+                target_cn=strategy_name,
                 order_cn_list=[i.strategy_name for i in self.ctx.lost_void.investigation_strategy_list],
                 ocr_result_list=ocr_word_list
             )
 
-            start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            end = start + Point(800 * (-1 if is_after else 1), 0)
-            self.ctx.controller.drag_to(start=start, end=end)
+            self._swipe_strategy_list(towards_right=is_after)
             return self.round_retry(status='未识别到目标调查战略', wait=1)
 
         target_pos = ocr_result_map[ocr_word_list[idx]].max.center
@@ -723,6 +813,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='出战')
     def deploy(self) -> OperationRoundResult:
         self.next_region_type = LostVoidRegionType.ENTRY
+        self.ctx.lost_void.reset_for_new_challenge()
         op = Deploy(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -751,9 +842,13 @@ class LostVoidApp(ZApplication):
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
+                self.ctx.lost_void.on_enter_region(op_result.data)
             elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
                 self.ctx.lost_void.had_interacted_ophelia_on_current_level = False
                 self.next_region_type = LostVoidRegionType.ENTRY
+                # 通关和失败退出空洞都会返回这个状态 本局已经结束
+                # 其他失败(如超时)可能还在局内 下次启动从大世界接着跑 不清除
+                self.ctx.lost_void.on_challenge_end()
 
         return self.round_by_op_result(op_result)
 
@@ -802,10 +897,15 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='全部领取')
     @node_from(from_name='全部领取', success=False)
+    @node_from(from_name='选择调查战略', status=STATUS_NO_STRATEGY)
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        result = self.round_by_op_result(op.execute())
+        if result.is_success and self._stop_reason is not None:
+            # 提前结束不算正常完成 不触发完成后的关机等动作
+            return self.round_fail(self._stop_reason)
+        return result
 
 
 def __debug():

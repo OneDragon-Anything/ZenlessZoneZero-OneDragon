@@ -41,6 +41,7 @@ class LostVoidChooseGear(ZOperation):
         # 本次画面最左侧槽位的武备名 携带成功后写入 completed_name_list
         # 最左侧槽位OCR解析失败时为None 本画面不记录(宁可下次重复识别 也不存错位的名字)
         self.first_slot_gear_name: str | None = None
+        self.chosen_gear: LostVoidArtifactPos | None = None  # 点中的武备 携带成功后写进本局记录
 
     @operation_node(name='选择武备', is_start_node=True)
     def choose_gear(self) -> OperationRoundResult:
@@ -89,11 +90,7 @@ class LostVoidChooseGear(ZOperation):
                 target = priority_new[0] if len(priority_new) > 0 else unlocked_gears[0]
                 self.ctx.controller.click(target.rect.center)
                 time.sleep(0.5)
-
-                # 将选择的武备类型鸣徽添加至第一优先级
-                text = target.artifact.category
-                self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
-                log.info('【武备追新】添加开局选择的武备属性至第一优先级: [' + text + ']')
+                self._record_chosen_gear(target)
 
                 choose_new = True
                 log.info(f'【武备追新】当前可选未获取武备 {",".join([i.artifact.display_name for i in unlocked_gears])}')
@@ -104,9 +101,26 @@ class LostVoidChooseGear(ZOperation):
             priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
             target = priority_list[0] if len(priority_list) > 0 else gear_list[0]
             self.ctx.controller.click(target.rect.center)
+            self.chosen_gear = target
             time.sleep(0.5)
 
         return self.round_success(wait=0.5)
+
+    def _record_chosen_gear(self, target: LostVoidArtifactPos) -> None:
+        """
+        记录开局选择的武备 供本局后续选择使用
+        """
+        self.chosen_gear = target
+        text = target.artifact.category
+        if self.ctx.lost_void.challenge_config.same_faction_first and self.ctx.lost_void.is_general_gear_category(text):
+            # 同派系抱团 通用武备记录派系 本局同派系鸣徽和武备最优先
+            if text not in self.ctx.lost_void.gear_faction_list:
+                self.ctx.lost_void.gear_faction_list.append(text)
+            log.info(f'【武备追新】记录开局通用武备派系: [{text}]')
+        else:
+            # 将选择的武备类型鸣徽添加至战斗组优先级
+            self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
+            log.info('【武备追新】添加开局选择的武备属性至第一优先级: [' + text + ']')
 
     def _find_gears_with_status(self) -> tuple[list[tuple[Any, bool]], Any]:
         """
@@ -342,6 +356,8 @@ class LostVoidChooseGear(ZOperation):
         if result.is_success:
             self.ctx.lost_void.priority_updated = False
             log.info("武备选择成功，已设置优先级更新标志")
+            if self.chosen_gear is not None:
+                self.ctx.lost_void.run_memory.add_artifact(self.chosen_gear.artifact)
             # 只记录本画面最左侧槽位的武备名 与重复判断读取的信号一致
             # 记录其他槽位名称会让别的画面的首个武备有机会与本画面的非首个武备误匹配
             if (self.completed_name_list is not None

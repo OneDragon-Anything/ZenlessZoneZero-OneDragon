@@ -116,6 +116,13 @@ resource_download:
       required_files:
         - model.onnx
         - labels.csv
+    lost_void_depth:
+      label: 迷失之地深度避障
+      default: depth-anything-v2-small
+      repo: yolo
+      tag: zzz_model
+      required_files:
+        - model.onnx
 regions:
   china_cnb:
     label: 中国 - CNB
