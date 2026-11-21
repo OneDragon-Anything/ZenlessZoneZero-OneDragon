@@ -49,6 +49,8 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "hud_font_size": "large",
     "hud_font_bold": True,
     "hud_anti_capture": True,
+    "hud_mask_uid": True,
+    "hud_mask_recordable": True,
     "hud_log_width_level": 2,
     "hud_log_height_level": 2,
     "hud_theme_color": _DEFAULT_HUD_THEME_COLOR,
@@ -63,6 +65,8 @@ _OVERLAY_SCALAR_KEYS = {
     "hud_font_size",
     "hud_font_bold",
     "hud_anti_capture",
+    "hud_mask_uid",
+    "hud_mask_recordable",
     "hud_log_width_level",
     "hud_log_height_level",
     "hud_theme_color",
@@ -194,6 +198,24 @@ class OverlayConfig(YamlConfig):
     @hud_anti_capture.setter
     def hud_anti_capture(self, value: bool) -> None:
         self._update_overlay_data("hud_anti_capture", bool(value))
+
+    @property
+    def hud_mask_uid(self) -> bool:
+        """是否在 normal/debug 模式下遮挡右下角 UID。"""
+        return bool(self._overlay_data()["hud_mask_uid"])
+
+    @hud_mask_uid.setter
+    def hud_mask_uid(self, value: bool) -> None:
+        self._update_overlay_data("hud_mask_uid", bool(value))
+
+    @property
+    def hud_mask_recordable(self) -> bool:
+        """是否允许录屏/推流软件捕获 UID 遮挡块（解除防录屏，与游戏画面同层录制）。"""
+        return bool(self._overlay_data()["hud_mask_recordable"])
+
+    @hud_mask_recordable.setter
+    def hud_mask_recordable(self, value: bool) -> None:
+        self._update_overlay_data("hud_mask_recordable", bool(value))
 
 
     @property

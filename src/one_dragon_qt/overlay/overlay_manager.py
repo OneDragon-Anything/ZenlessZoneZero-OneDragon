@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import time
 from collections.abc import Sequence
 from typing import Protocol, TypeVar
@@ -16,6 +17,7 @@ from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
 from one_dragon_qt.overlay.overlay_hud_window import OverlayHudWindow
 from one_dragon_qt.overlay.overlay_log_handler import OverlayLogHandler
+from one_dragon_qt.overlay.overlay_uid_window import OverlayUidWindow
 from one_dragon_qt.overlay.overlay_window import OverlayWindow
 from one_dragon_qt.overlay.utils import win32_utils
 
@@ -69,6 +71,7 @@ class OverlayManager(QObject):
         self._started = False
         self._overlay_window: OverlayWindow | None = None
         self._hud_window: OverlayHudWindow | None = None
+        self._uid_window: OverlayUidWindow | None = None
         self._log_handler: OverlayLogHandler | None = None
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
@@ -131,6 +134,11 @@ class OverlayManager(QObject):
         if self._hud_window is not None:
             self._hud_window.close()
             self._hud_window = None
+
+        if self._uid_window is not None:
+            self._uid_window.close()
+            self._uid_window.deleteLater()
+            self._uid_window = None
 
         OverlayManager._instance = None
 
@@ -209,6 +217,11 @@ class OverlayManager(QObject):
             self._hud_window = OverlayHudWindow()
             self._hud_window.ensure_created()
         return self._hud_window
+
+    def _ensure_uid_window(self) -> OverlayUidWindow:
+        if self._uid_window is None:
+            self._uid_window = OverlayUidWindow()
+        return self._uid_window
 
     def _iter_panel_names(self) -> list[str]:
         return [
@@ -291,6 +304,24 @@ class OverlayManager(QObject):
 
         self._sync_hud_panels(game_qt_rect)
 
+        # UID 遮挡窗口
+        uid_visible = self.config.hud_mask_uid and mode in ("normal", "debug")
+        if uid_visible:
+            uid_window = self._ensure_uid_window()
+            scale_y = (float(getattr(game_qt_rect, "height", 0)) or 1080.0) / 1080.0
+            w = max(1, math.ceil(106 * scale_y))
+            h = max(1, math.ceil(21 * scale_y))
+            x2 = int(getattr(game_qt_rect, "x2", 0))
+            y2 = int(getattr(game_qt_rect, "y2", 0))
+            target_rect = QRect(x2 - w, y2 - h, w, h)
+            if uid_window.geometry() != target_rect:
+                uid_window.setGeometry(target_rect)
+            anti_capture = not self.config.hud_mask_recordable and self.config.hud_anti_capture
+            uid_window.set_anti_capture(anti_capture)
+            uid_window.set_mask_visible(True)
+        elif self._uid_window is not None:
+            self._uid_window.set_mask_visible(False)
+
     @staticmethod
     def _qt_rect_to_qrect(qt_rect: Rect):
         return QRect(
@@ -325,6 +356,8 @@ class OverlayManager(QObject):
             self._overlay_window.set_overlay_visible(False)
         if self._hud_window is not None:
             self._hud_window.set_visible(False)
+        if self._uid_window is not None:
+            self._uid_window.set_mask_visible(False)
 
     def _safe_poll_input_mode(self) -> None:
         try:
