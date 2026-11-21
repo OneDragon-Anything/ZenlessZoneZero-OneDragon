@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Collection
 from pathlib import Path
 from types import ModuleType
 
@@ -58,6 +59,40 @@ def package_dir_of(module_name: str, module_root: Path) -> Path:
     if parts[0].startswith(DEV_PACKAGE_PREFIX):
         parts[0] = parts[0][len(DEV_PACKAGE_PREFIX):]
     return module_root / Path(*parts)
+
+
+def resolve_app_id(
+    declared_app_id: str,
+    source: PluginSource,
+    taken_app_ids: Collection[str],
+) -> tuple[str, str]:
+    """解析插件最终使用的注册 ID —— 全项目唯一的 ID 发现入口。
+
+    插件声明的 APP_ID 不变，注册身份按来源区分，撞 ID 也不许加载失败：
+
+    - BUILTIN：原样使用
+    - DEV：一律加 ``_dev``（bagel → bagel_dev）
+    - THIRD_PARTY：与已占用 ID 撞了才加 ``_plugin``（life_on_line → life_on_line_plugin）
+
+    Args:
+        declared_app_id: 插件常量模块里声明的 APP_ID。
+        source: 插件来源。
+        taken_app_ids: 已经被占用的注册 ID。
+
+    Returns:
+        (注册 ID, 应用名后缀)。没有改名时后缀为空字符串。
+    """
+    if source == PluginSource.DEV:
+        if declared_app_id.endswith(DEV_APP_ID_SUFFIX):
+            return declared_app_id, ''
+        return f'{declared_app_id}{DEV_APP_ID_SUFFIX}', DEV_APP_NAME_SUFFIX
+
+    if source == PluginSource.THIRD_PARTY and declared_app_id in taken_app_ids:
+        if declared_app_id.endswith(PLUGIN_CONFLICT_SUFFIX):
+            return declared_app_id, ''
+        return f'{declared_app_id}{PLUGIN_CONFLICT_SUFFIX}', PLUGIN_CONFLICT_NAME_SUFFIX
+
+    return declared_app_id, ''
 
 
 FACTORY_FILE_NAME = 'factory.py'

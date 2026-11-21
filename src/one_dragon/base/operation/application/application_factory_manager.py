@@ -28,14 +28,13 @@ from one_dragon.base.operation.application.plugin_manifest import (
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
     DEV_APP_ID_SUFFIX,
-    DEV_APP_NAME_SUFFIX,
-    PLUGIN_CONFLICT_NAME_SUFFIX,
     PLUGIN_CONFLICT_SUFFIX,
     ensure_sys_path,
     import_module_from_file,
     is_const_file,
     is_factory_file,
     list_repo_plugin_dirs,
+    resolve_app_id,
     resolve_module_name,
 )
 
@@ -335,21 +334,21 @@ class ApplicationFactoryManager:
         if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(module_root, self._added_sys_paths)
 
-        # 4. 撞 ID 时按来源改写注册身份（开发版 _dev、与内置撞的商店版 _plugin）
-        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
-            self._rewrite_source_app_id(factory_file, module_name, module_root, source)
-
-        # 5. 模块加载/重载
-        if module_name in sys.modules:
-            if reload_modules:
+        # 4. 模块加载/重载
+        if module_name in sys.modules and not reload_modules:
+            module = sys.modules[module_name]
+        else:
+            if reload_modules and module_name in sys.modules:
                 unload_prefix = self._get_unload_prefix(module_name, source, rel_parts)
                 if unload_prefix:
                     self._unload_plugin_modules(unload_prefix)
-                module = import_module_from_file(factory_file, module_name, module_root, reload=True)
-            else:
-                module = sys.modules[module_name]
-        else:
-            module = import_module_from_file(factory_file, module_name, module_root)
+            # 必须在卸载之后、导入工厂之前改写注册身份：卸载会把 const 模块一起删掉，
+            # 重新导入时 const.py 会重新执行把 APP_ID 恢复原值，先改就等于白改
+            if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
+                self._rewrite_source_app_id(factory_file, module_name, module_root, source)
+            module = import_module_from_file(
+                factory_file, module_name, module_root, reload=reload_modules
+            )
 
         # 5. 查找并实例化工厂类（每个模块最多一个）
         return self._find_factory_in_module(
@@ -363,10 +362,9 @@ class ApplicationFactoryManager:
         module_root: Path,
         source: PluginSource,
     ) -> None:
-        """撞 ID 时按来源改写插件注册身份，让同名插件共存。
+        """按 resolve_app_id 的结果把注册身份写回常量模块。
 
-        插件声明的 APP_ID 不变，注册身份按来源区分：
-        开发版一律加 ``_dev``；商店插件与内置应用或别的插件撞 ID 时加 ``_plugin``。
+        ID 怎么算只在 resolve_app_id 一处定义，这里只负责把结果落进 const 模块。
         必须在导入工厂模块之前改写：插件内部普遍写 `from .const import APP_ID`，
         配置文件名、运行记录文件名和 plugin_data 数据目录都取这个值，
         导入之后再改就不生效，两个版本会共用同一份配置。
@@ -392,30 +390,23 @@ class ApplicationFactoryManager:
         if const_module is None:
             const_module = import_module_from_file(const_file, const_module_name, module_root)
 
-        app_id = getattr(const_module, 'APP_ID', '')
-        if not isinstance(app_id, str) or not app_id:
+        declared_app_id = getattr(const_module, 'APP_ID', '')
+        if not isinstance(declared_app_id, str) or not declared_app_id:
             return
 
-        if source == PluginSource.DEV:
-            if app_id.endswith(DEV_APP_ID_SUFFIX):
-                return
-            suffix = DEV_APP_ID_SUFFIX
-            name_suffix = DEV_APP_NAME_SUFFIX
-        elif app_id in self._plugin_infos:
-            # 与内置应用或前面已注册的插件撞 ID：换注册身份，不报重复
-            if app_id.endswith(PLUGIN_CONFLICT_SUFFIX):
-                return
-            suffix = PLUGIN_CONFLICT_SUFFIX
-            name_suffix = PLUGIN_CONFLICT_NAME_SUFFIX
-        else:
+        app_id, name_suffix = resolve_app_id(
+            declared_app_id, source, self._plugin_infos.keys()
+        )
+        if app_id == declared_app_id:
             return
 
-        const_module.APP_ID = f'{app_id}{suffix}'
-        app_name = getattr(const_module, 'APP_NAME', '')
-        if isinstance(app_name, str) and app_name and not app_name.endswith(name_suffix):
-            # 应用列表里两个同名应用分不清，加后缀才认得出来
-            const_module.APP_NAME = f'{app_name}{name_suffix}'
-        log.info(f"插件 {app_id} 撞 ID，注册身份改为 {const_module.APP_ID}（来源 {source.value}）")
+        const_module.APP_ID = app_id
+        if name_suffix:
+            app_name = getattr(const_module, 'APP_NAME', '')
+            if isinstance(app_name, str) and app_name and not app_name.endswith(name_suffix):
+                # 应用列表里两个同名应用分不清，加后缀才认得出来
+                const_module.APP_NAME = f'{app_name}{name_suffix}'
+        log.info(f"插件 {declared_app_id} 撞 ID，注册身份改为 {app_id}（来源 {source.value}）")
 
     def _get_unload_prefix(
         self,
