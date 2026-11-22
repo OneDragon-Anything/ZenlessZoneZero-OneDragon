@@ -142,6 +142,26 @@ jobs:
             return;
           }
 
+          // 1.5 确认事项验证通过后，把确认项折叠起来，减少 Issue 正文的长度
+          try {
+            const checkSectionRegex = /(^|\n)(### 请确认您已完成以下几件事[^\n]*\n\n)([\s\S]*?)(?=\n### |$)/;
+            if (checkSectionRegex.test(normalizedIssueBody) && !normalizedIssueBody.includes('<summary>确认事项</summary>')) {
+              const foldedBody = normalizedIssueBody.replace(
+                checkSectionRegex,
+                (_, prefix, heading, items) => `${prefix}${heading}<details>\n<summary>确认事项</summary>\n\n${items.trimEnd()}\n\n</details>\n`
+              );
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: foldedBody
+              });
+              console.log('确认事项已折叠。');
+            }
+          } catch (error) {
+            console.error(`折叠 Issue #${issueNumber} 的确认事项失败`, error);
+          }
+
           // 2. 根据问题类型添加标签
           let issueTypeLabel = '';
           if (issueType === 'Bug') {
