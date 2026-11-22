@@ -16,6 +16,7 @@ SQUASH_SOURCE_PATTERN = re.compile(
     re.MULTILINE,
 )
 MAIN_BRANCH = "main"
+MISSING_IMPORT_PATTERN = re.compile(r"当前运行时无法导入 (\S+)")
 RUNTIME_CHECK_DIR = REPO_ROOT / ".install" / "runtime-compatibility"
 
 # 同一次运行内 test 与 test-integrated 共用：PR 信息、已拉取的 PR 引用、作者信息。
@@ -468,6 +469,17 @@ def display_author_name(author: str) -> str:
     return author.split(" <", maxsplit=1)[0]
 
 
+BRANCH_TITLES = {
+    "test": "test 分支(源码启动器)",
+    "test-integrated": "test-integrated 分支(集成启动器)",
+}
+
+
+def format_pr_link(repository: str, number: str) -> str:
+    """生成指向 PR 的 Markdown 链接。"""
+    return f"[#{number}](https://github.com/{repository}/pull/{number})"
+
+
 def build_success_summary(
     target_branch: str,
     base_sha: str,
@@ -478,22 +490,25 @@ def build_success_summary(
     skipped: list[SkippedPr],
     conflict_label: str,
     conflict_report: str,
+    repository: str,
 ) -> str:
     """生成测试分支重建成功后的摘要。"""
     lines = [
-        f"## {target_branch} 分支重建结果",
+        f"## {BRANCH_TITLES.get(target_branch, target_branch)}重建完成",
         "",
-        f"- 基线:`main` @ `{base_sha}` → `{target_branch}` @ `{branch_sha}`",
+        f"- 基线:`main` @ `{base_sha}`,`{target_branch}` 现为 `{branch_sha}`",
         f"- PR 来源:{source}",
+        f"- 合入 {len(applied)} 个,冲突 {len(conflicted)} 个,其他未合入 {len(skipped)} 个",
         "",
         f"### 已合入({len(applied)})",
         "",
     ]
     if not applied:
-        lines.append(f"无,`{target_branch}` 与 `main` 一致。")
+        lines.append(f"没有 PR 被合入,`{target_branch}` 与 `main` 内容一致。")
     else:
         lines.extend(
-            f"- #{item.number} {item.title} — {display_author_name(item.author)}"
+            f"- {format_pr_link(repository, item.number)} {item.title} — "
+            f"{display_author_name(item.author)}"
             for item in applied
         )
 
@@ -501,18 +516,24 @@ def build_success_summary(
         lines.extend(
             [
                 "",
-                f"### 冲突跳过({len(conflicted)})",
+                f"### 合并冲突({len(conflicted)})",
                 "",
-                f"> 已打上 `{conflict_label}` 标签，请根据下方冲突关系处理后重跑。",
+                f"> 已给这些 PR 打上 `{conflict_label}` 标签。请按下方冲突位置处理后重新运行。",
                 "",
             ]
         )
-        lines.extend(f"- #{item.number} {item.title}" for item in conflicted)
+        lines.extend(
+            f"- {format_pr_link(repository, item.number)} {item.title}"
+            for item in conflicted
+        )
         lines.extend(["", conflict_report])
 
     if skipped:
-        lines.extend(["", f"### 其他跳过({len(skipped)})", ""])
-        lines.extend(f"- #{item.number}:{item.reason}" for item in skipped)
+        lines.extend(["", f"### 未合入({len(skipped)})", ""])
+        lines.extend(
+            f"- {format_pr_link(repository, item.number)}:{item.reason}"
+            for item in skipped
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -535,10 +556,11 @@ def maintain_conflict_labels(
         )
 
 
-def check_runtime_compatibility() -> bool | None:
+def check_runtime_compatibility() -> tuple[bool | None, str]:
     """检查当前工作区代码是否兼容最新正式版 RuntimeLauncher。
 
-    返回 True 兼容，False 不兼容，None 表示检查本身失败。
+    返回 (结果, 无法导入的模块名)。结果 True 兼容，False 不兼容，
+    None 表示检查本身失败；模块名只在不兼容且能识别时非空。
     """
     result = run_command(
         [
@@ -551,12 +573,18 @@ def check_runtime_compatibility() -> bool | None:
             "--reuse-runtime",
         ],
         check=False,
+        capture_output=True,
     )
+    # 保留原来的日志输出，方便在 Actions 日志里排查。
+    for stream in (result.stdout, result.stderr):
+        if stream:
+            print(stream.rstrip(), flush=True)
     if result.returncode == 0:
-        return True
+        return True, ""
     if result.returncode == 2:
-        return False
-    return None
+        match = MISSING_IMPORT_PATTERN.search((result.stdout or "") + (result.stderr or ""))
+        return False, match.group(1) if match else ""
+    return None, ""
 
 
 def rebuild_test_branch(
@@ -660,18 +688,19 @@ def rebuild_test_branch(
 
         if integrated:
             # 在已合入前序 PR 的工作区上检查，结果与最终分支内容一致。
-            compatible = check_runtime_compatibility()
+            compatible, missing_import = check_runtime_compatibility()
             if compatible is not True:
                 run_command(["git", "reset", "--hard", "HEAD"])
                 run_command(["git", "clean", "-fd"])
-                skipped.append(
-                    SkippedPr(
-                        pr,
-                        "当前运行时无法加载新增导入"
-                        if compatible is False
-                        else "无法确认运行时兼容性,集成分支跳过",
+                if compatible is False:
+                    reason = (
+                        f"集成启动器的运行时缺少 `{missing_import}`"
+                        if missing_import
+                        else "集成启动器的运行时无法加载新增导入"
                     )
-                )
+                else:
+                    reason = "兼容性检查本身失败,为安全起见未合入集成分支"
+                skipped.append(SkippedPr(pr, reason))
                 continue
 
         authors = get_commit_authors(pr_ref)
@@ -711,6 +740,7 @@ def rebuild_test_branch(
             skipped,
             conflict_label,
             conflict_report,
+            repository,
         ),
     )
     return 0
