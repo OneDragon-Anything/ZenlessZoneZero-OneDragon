@@ -3,30 +3,29 @@ description: 请记得填写你的标题
 labels: ["Triage | 待检查"]
 
 body:
-  - type: checkboxes
+  - type: textarea
     id: check
     attributes:
-      label: 请确认您已完成以下几件事并勾选项目，未按要求勾选可能被认作无效反馈直接关闭
-      options:
-        - label: 正在使用最新的 OneDragon
-          required: true
-        - label: 已搜索过 issue 中无人提出相似问题或无解决方案
-          required: true
-        - label: 已为所有模型以及战斗脚本更新至最新版
-          required: true
-        - label: 已经依照 [官方文档](https://one-dragon.com/zzz/zh/home.html) 和 [常见问题排查](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5) 进行过问题自查
-          required: true
-        - label: 运行时无任何帧率显示或其他覆盖层窗口遮盖游戏
-          required: true
-        - label: 未认真阅读此处选项随意勾选
-        - label: 未安装任何修改游戏UI和贴图的模组
-          required: true
-        - label: 了解反馈时应携带日志和问题截图，且明白应该使用F11截图
-          required: true
-        - label: 已经修改了此issue的标题为想要反馈的问题简述
-          required: true
-        - label: 此 issue 由我本人亲自提交，所描述的问题是我自己实际遇到并确认过的
-          required: true
+      label: 确认事项
+      description: 请逐项确认并保持勾选（`[x]`），未按要求勾选可能被认作无效反馈直接关闭。请不要删除或修改下面的内容，只需要核对勾选状态。
+      value: |
+        <details>
+        <summary>点击展开确认事项</summary>
+
+        - [x] 正在使用最新的 OneDragon
+        - [x] 已搜索过 issue 中无人提出相似问题或无解决方案
+        - [x] 已为所有模型以及战斗脚本更新至最新版
+        - [x] 已经依照 [官方文档](https://one-dragon.com/zzz/zh/home.html) 和 [常见问题排查](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5) 进行过问题自查
+        - [x] 运行时无任何帧率显示或其他覆盖层窗口遮盖游戏
+        - [ ] 未认真阅读此处选项随意勾选
+        - [x] 未安装任何修改游戏UI和贴图的模组
+        - [x] 了解反馈时应携带日志和问题截图，且明白应该使用F11截图
+        - [x] 已经修改了此issue的标题为想要反馈的问题简述
+        - [x] 此 issue 由我本人亲自提交，所描述的问题是我自己实际遇到并确认过的
+
+        </details>
+    validations:
+      required: true
 
   - type: input
     attributes:
