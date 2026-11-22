@@ -132,20 +132,11 @@ def configure_git() -> None:
     )
 
 
-def ensure_labels(
-    include_label: str,
-    conflict_label: str,
-    integrated_conflict_label: str,
-) -> None:
+def ensure_labels(include_label: str, conflict_label: str) -> None:
     """创建或更新测试分支使用的标签。"""
     labels = [
         (include_label, "0E8A16", "合入 test 分支"),
-        (conflict_label, "D93F0B", "合入 test 分支时冲突,需 rebase"),
-        (
-            integrated_conflict_label,
-            "B60205",
-            "合入 test-integrated 分支时冲突,需 rebase",
-        ),
+        (conflict_label, "D93F0B", "合入测试分支时冲突,需 rebase"),
     ]
     for name, color, description in labels:
         run_command(
@@ -727,7 +718,11 @@ def rebuild_test_branch(
         return 1
 
     branch_sha = get_short_sha("HEAD")
-    maintain_conflict_labels(conflicted, applied, conflict_label)
+    maintain_conflict_labels(
+        conflicted,
+        [] if integrated else applied,
+        conflict_label,
+    )
     append_summary(
         summary_path,
         build_success_summary(
@@ -750,10 +745,6 @@ def main() -> int:
     """执行 Build Test Branch workflow 的全部逻辑。"""
     include_label = os.environ.get("INCLUDE_LABEL", "test-branch")
     conflict_label = os.environ.get("CONFLICT_LABEL", "test-conflict")
-    integrated_conflict_label = os.environ.get(
-        "INTEGRATED_CONFLICT_LABEL",
-        "test-integrated-conflict",
-    )
     input_prs = os.environ.get("INPUT_PRS", "")
     repository = os.environ["GITHUB_REPOSITORY"]
     summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
@@ -761,7 +752,7 @@ def main() -> int:
     configure_git()
     # 清掉上次遗留的运行时，本次运行内的多次兼容性检查共用同一份下载。
     shutil.rmtree(RUNTIME_CHECK_DIR, ignore_errors=True)
-    ensure_labels(include_label, conflict_label, integrated_conflict_label)
+    ensure_labels(include_label, conflict_label)
     prs, source, require_label = resolve_prs(input_prs, include_label)
 
     test_result = rebuild_test_branch(
@@ -779,7 +770,7 @@ def main() -> int:
         source,
         require_label,
         include_label,
-        integrated_conflict_label,
+        conflict_label,
         repository,
         summary_path,
         "test-integrated",

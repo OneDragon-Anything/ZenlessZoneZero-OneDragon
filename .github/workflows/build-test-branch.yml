@@ -8,7 +8,7 @@
 # 仅处理目标分支为 main 的 PR，其他 PR 会跳过并写入构建摘要。
 #
 # 集成启动器分支使用与客户端相同的新增导入检查；
-# 两个分支分别使用 `test-conflict` 和 `test-integrated-conflict` 标记冲突。
+# 两个分支共用 `test-conflict` 标记冲突;只有 `test` 分支的构建会移除该标签。
 # 每次都从 origin/main 重新开始，所以测试分支上不会残留历史垃圾。
 name: Build Test Branch
 
@@ -34,7 +34,6 @@ permissions:
 env:
   INCLUDE_LABEL: test-branch
   CONFLICT_LABEL: test-conflict
-  INTEGRATED_CONFLICT_LABEL: test-integrated-conflict
 
 jobs:
   build-test-branch:
