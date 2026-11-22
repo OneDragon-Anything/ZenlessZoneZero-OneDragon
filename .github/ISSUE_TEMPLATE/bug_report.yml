@@ -100,8 +100,6 @@ body:
       label: "游戏截图"
       description: |
         - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
-        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
-        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
       placeholder: "游戏截图"
 
   - type: textarea
