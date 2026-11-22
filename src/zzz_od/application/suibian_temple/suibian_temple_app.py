@@ -1,3 +1,7 @@
+import time
+
+import pyautogui
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -27,7 +31,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempl
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.transport import Transport
+from zzz_od.operation.transport_by_quick_nav import TransportByQuickNav
 
 
 class SuibianTempleApp(ZApplication):
@@ -46,6 +50,11 @@ class SuibianTempleApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+        self.shiye_seen: bool = False  # 本次运行里是否见过狮耶（见过又丢时改用原地扫视）
+
+    def handle_init(self) -> None:
+        """每次执行前重置运行期状态"""
+        self.shiye_seen = False
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
@@ -60,11 +69,11 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='识别初始画面', status='不在随便观')
     @operation_node(name='传送')
     def goto_category(self) -> OperationRoundResult:
-        op = Transport(self.ctx, '澄辉坪', '随便观', wait_at_last=False)
+        op = TransportByQuickNav(self.ctx, '澄辉坪', '随便观', wait_at_last=False)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='前往随便观', timeout_seconds=60, node_max_retry_times=999)
+    @operation_node(name='前往随便观', timeout_seconds=180, node_max_retry_times=999)
     def goto_suibian_temple(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '前往随便观',
@@ -93,7 +102,47 @@ class SuibianTempleApp(ZApplication):
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        return self.round_retry(status='未识别当前画面', wait=1)
+        # 经营界面打开后，经营日志每日弹窗会盖住识别特征，先关掉它
+        ocr_result = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, crop_first=False)
+        if any('经营日志' in ocr_str for ocr_str in ocr_result):
+            self.ctx.controller.click(Point(119, 60))
+            return self.round_retry(status='关闭经营日志弹窗', wait=1)
+
+        # 看到狮耶后的三种情况：
+        # 1. 对话已打开（对话标题「狮耶」在屏幕底部居中，与 NPC 头顶名字牌区分）：
+        #    按交互键推进对话，推进完直接进入经营界面，不处理的话每轮 F 都在对话里空转
+        # 2. NPC 名字牌偏离画面中心：转向对准（盲走解决不了交互所需的朝向）
+        # 3. 名字牌居中：短前移贴到石台边，再悬停 NPC 本体（名字牌下方约 420px，
+        #    悬停后 F 圆钮才亮）按交互键打开对话
+        shiye_match = next((mrl.max for ocr_str, mrl in ocr_result.items() if '狮耶' in ocr_str), None)
+        if shiye_match is not None:
+            self.shiye_seen = True
+            if shiye_match.center.y > 700:
+                # NPC 对话要用鼠标左键推进（F 只负责打开对话，在对话里按 F 无效）
+                self.ctx.controller.click(Point(960, 930), press_time=0.001)
+                return self.round_retry(status='推进狮耶对话', wait=1)
+
+            dx = shiye_match.center.x - 1920 / 2
+            if abs(dx) > 250:
+                # turn_by_angle_diff 正角度为逆时针（向左转），NPC 偏左时 dx<0 应左转
+                angle_diff = max(-25, min(25, -0.04 * dx))
+                self.ctx.controller.turn_by_angle_diff(angle_diff)
+                return self.round_retry(status='转向狮耶', wait=0.6)
+
+            self.ctx.controller.move_w(press=True, press_time=0.5, release=True)
+            pyautogui.moveTo(shiye_match.center.x + 20, shiye_match.center.y + 420, duration=0.2)
+            time.sleep(0.4)
+            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+            return self.round_retry(status='贴近狮耶并交互', wait=1.2)
+
+        if self.shiye_seen:
+            # 见过又丢了说明转向出了画面，原地扫视找回；此时盲走只会越走越远
+            self.ctx.controller.turn_by_angle_diff(45)
+            return self.round_retry(status='原地扫视找狮耶', wait=0.6)
+
+        # 狮耶还不在画面里（刚落点太远），朝门口方向走一小段
+        self.ctx.controller.move_w(press=True, press_time=0.8, release=True)
+        return self.round_retry(status='未识别当前画面', wait=0.5)
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
