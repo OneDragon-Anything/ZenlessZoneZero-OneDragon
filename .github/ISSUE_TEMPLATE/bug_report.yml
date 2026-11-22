@@ -33,6 +33,17 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: launcher-type
+    attributes:
+      label: 启动器类型
+      description: 你使用的是哪种启动器？（集成启动器：一键安装/整合包方式；源码启动器：通过源码/代码环境运行）
+      options:
+        - "集成启动器"
+        - "源码启动器"
+    validations:
+      required: true
+
   - type: dropdown # 新增的下拉选择框
     id: issue-type
     attributes:
