@@ -37,10 +37,13 @@ body:
     id: launcher-type
     attributes:
       label: 启动器类型
-      description: 你使用的是哪种启动器？（集成启动器：一键安装/整合包方式；源码启动器：通过源码/代码环境运行）
+      description: |
+        不确定的话，看你运行的是哪个文件：
+        - 集成启动器：解压 WithRuntime 压缩包后，运行 OneDragon-RuntimeLauncher.exe
+        - 原始启动器：运行安装器安装后，运行 OneDragon-Launcher.exe；或者克隆源码，用 uv run 运行
       options:
-        - "集成启动器"
-        - "源码启动器"
+        - "集成启动器（OneDragon-RuntimeLauncher.exe）"
+        - "原始启动器（安装器安装 / 克隆源码运行）"
     validations:
       required: true
 
