@@ -1,12 +1,10 @@
 import ctypes
-from ctypes.wintypes import RECT
+from ctypes.wintypes import DWORD, RECT
 from pathlib import Path
 from threading import RLock
 
 import psutil
 import pyautogui
-import pywintypes
-import win32process
 import win32ui
 from pygetwindow import Win32Window
 
@@ -14,6 +12,19 @@ from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
+
+
+def _get_window_thread_and_pid(hwnd: int) -> tuple[int, int]:
+    """取窗口所属的线程 ID 和进程 ID。
+
+    Raises:
+        OSError: 窗口句柄已失效。
+    """
+    pid = DWORD()
+    thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    if thread_id == 0:
+        raise ctypes.WinError()
+    return thread_id, pid.value
 
 
 class PcGameWindow:
@@ -66,10 +77,10 @@ class PcGameWindow:
         if not ctypes.windll.user32.IsWindow(self._hWnd):
             return False
         try:
-            thread_id, pid = win32process.GetWindowThreadProcessId(self._hWnd)
+            thread_id, pid = _get_window_thread_and_pid(self._hWnd)
             return (thread_id == self._thread_id and pid == self._process.pid
                     and self._process.is_running())
-        except (pywintypes.error, psutil.NoSuchProcess):
+        except (OSError, psutil.NoSuchProcess):
             log.debug('核对绑定窗口时窗口或进程已退出', exc_info=True)
             return False
 
@@ -92,9 +103,9 @@ class PcGameWindow:
                     continue
                 win = windows[0]
                 try:
-                    thread_id, pid = win32process.GetWindowThreadProcessId(win._hWnd)
+                    thread_id, pid = _get_window_thread_and_pid(win._hWnd)
                     process = psutil.Process(pid)
-                except (pywintypes.error, psutil.NoSuchProcess):
+                except (OSError, psutil.NoSuchProcess):
                     log.debug('绑定窗口时进程已退出', exc_info=True)
                     return
                 self._win = win
