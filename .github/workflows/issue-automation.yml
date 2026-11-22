@@ -163,13 +163,23 @@ jobs:
               });
             }
             if (foldedBody !== normalizedIssueBody) {
-              await github.rest.issues.update({
+              // REST 更新不支持条件写入。写回前重新读取一次正文，已被修改（用户在触发后编辑了）就跳过折叠，避免覆盖
+              const { data: latestIssue } = await github.rest.issues.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
-                body: foldedBody
               });
-              console.log('较长的内容已折叠。');
+              if ((latestIssue.body || '').replace(/\r\n/g, '\n') !== normalizedIssueBody) {
+                console.log('Issue 正文在触发后已被修改，跳过折叠。');
+              } else {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: foldedBody
+                });
+                console.log('较长的内容已折叠。');
+              }
             }
           } catch (error) {
             console.error(`折叠 Issue #${issueNumber} 的内容失败`, error);
@@ -215,12 +225,13 @@ jobs:
             branchPrefix = `[${issueBranch}]`;
           }
 
+          // 先去掉标题开头已有的范围、分支前缀，再按所选内容统一组合，避免前缀重复或和所选不一致
           let newTitle = issueTitle;
-          if (branchPrefix && !newTitle.includes(branchPrefix)) { // 避免重复添加前缀
-            newTitle = `${branchPrefix} ${newTitle}`;
-          }
-          if (scopePrefix && !newTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
-            newTitle = scopePrefix + newTitle;
+          if (scopePrefix || branchPrefix) {
+            const knownPrefixes = ['自动战斗', '一条龙日常', '迷失之地', '游戏助手', '其他', '主分支', '测试分支'];
+            const existingPrefixRegex = new RegExp(`^(?:\\s*\\[(?:${knownPrefixes.join('|')})\\])+\\s*`);
+            const titleBody = issueTitle.replace(existingPrefixRegex, '');
+            newTitle = [scopePrefix.trim(), branchPrefix, titleBody].filter(Boolean).join(' ');
           }
           if (newTitle !== issueTitle) {
             await github.rest.issues.update({
