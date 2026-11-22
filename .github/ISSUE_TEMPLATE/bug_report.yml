@@ -107,8 +107,17 @@ body:
   - type: textarea
     attributes:
       label: "运行日志"
-      description: "日志保存在 .log/log.txt 中"
-      placeholder: "运行日志"
+      description: |
+        日志保存在 .log/log.txt 中。如果直接粘贴日志，请粘贴在下面折叠框的代码块里；如果是上传日志文件，可以删掉下面的内容直接上传。
+      value: |
+        <details>
+        <summary>点击展开运行日志</summary>
+
+        ```
+        在这里粘贴日志
+        ```
+
+        </details>
 
   - type: textarea
     attributes:
