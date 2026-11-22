@@ -49,6 +49,17 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: code-branch
+    attributes:
+      label: 代码分支
+      description: 你使用的是主分支还是测试分支？（在主程序的代码同步设置里可以看到当前分支）
+      options:
+        - "主分支"
+        - "测试分支"
+    validations:
+      required: true
+
   - type: dropdown # 新增的下拉选择框
     id: issue-type
     attributes:
