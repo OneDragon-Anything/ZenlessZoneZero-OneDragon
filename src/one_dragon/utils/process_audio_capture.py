@@ -264,6 +264,8 @@ class ProcessAudioCapture:
 
     def open(self) -> None:
         """激活进程音频并开始捕获。失败时会清理已申请的资源并抛出 ProcessAudioCaptureError"""
+        if self._started:  # 已经打开，避免重复初始化
+            return
         try:
             self._open()
         except Exception:
