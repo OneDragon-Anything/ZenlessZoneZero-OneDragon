@@ -43,6 +43,8 @@ ACTION_MUTE_UPDATE = 'mute_update'
 ACTION_UNMUTE_UPDATE = 'unmute_update'
 ACTION_CONFIG = 'config'
 ACTION_DELETE_FAILED = 'delete_failed'
+ACTION_SWITCH_TO_DEV = 'switch_to_dev'
+ACTION_SWITCH_TO_MARKET = 'switch_to_market'
 
 DIALOG_WIDTH = 720
 DIALOG_HEIGHT = 560

@@ -84,7 +84,7 @@ if not getattr(sys, 'frozen', False):
     from PySide6.QtWidgets import QAbstractButton, QAbstractItemView, QAbstractScrollArea, QApplication, QComboBox, QCompleter, QDialog, QFileDialog, QFrame, QGraphicsDropShadowEffect, QGraphicsEffect, QGraphicsOpacityEffect, QGraphicsScene, QGraphicsView, QGridLayout, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit, QListView, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpacerItem, QSpinBox, QStackedWidget, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
     from abc import ABC, abstractmethod
     from collections import deque
-    from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Sequence
     from colorama import Fore, Style, init
     from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
     from contextlib import suppress

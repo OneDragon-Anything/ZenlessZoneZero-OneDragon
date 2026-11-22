@@ -29,7 +29,7 @@ from one_dragon.base.operation.application.plugin_import_service import (
     ImportResult,
     PluginImportService,
 )
-from one_dragon.base.operation.application.plugin_info import PluginInfo
+from one_dragon.base.operation.application.plugin_info import PluginInfo, PluginSource
 from one_dragon.base.operation.application.plugin_market import (
     MarketPlugin,
     MarketSnapshot,
@@ -49,7 +49,7 @@ from one_dragon.base.web.common_downloader import (
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.plugin_module_loader import find_git_repo
+from one_dragon.utils.plugin_module_loader import DEV_PLUGIN_DIR_NAME, find_git_repo
 from one_dragon_qt.services.download_queue_service import (
     DownloadQueueService,
     ResourceDownloadSpec,
@@ -65,6 +65,8 @@ from one_dragon_qt.view.plugin.plugin_detail_dialog import (
     ACTION_IGNORE,
     ACTION_MUTE_UPDATE,
     ACTION_SUBSCRIBE,
+    ACTION_SWITCH_TO_DEV,
+    ACTION_SWITCH_TO_MARKET,
     ACTION_UNINSTALL,
     ACTION_UNMUTE_UPDATE,
     ACTION_UNSUBSCRIBE,
@@ -313,7 +315,7 @@ class PluginOperationMixin:
         都只算安装。旧记录没有 source 字段，当时只有商店安装会写记录，按订阅处理。
         开发版插件不参与商店订阅，一律按未订阅处理。
         """
-        if plugin_info.is_dev:
+        if plugin_info.is_dev_only:
             return False
         package_dir = self.get_plugin_package_dir(plugin_info)
         dir_name = package_dir.name if package_dir is not None else ''
@@ -327,7 +329,7 @@ class PluginOperationMixin:
 
     def find_market_entry(self, plugin_info: PluginInfo) -> MarketPlugin | None:
         """查找某个已安装插件对应的市场条目。开发版不对应任何市场条目。"""
-        if plugin_info.is_dev:
+        if plugin_info.is_dev_only:
             return None
         snapshot = self._market_snapshot
         if snapshot is None:
@@ -442,8 +444,7 @@ class PluginOperationMixin:
 
     def subscription_registry_id(self, plugin_info: PluginInfo) -> str:
         """已安装插件在订阅记录里的市场条目 id，没有订阅记录时返回空字符串。"""
-        if plugin_info.is_dev:
-            # 开发版目录名与商店版相同，不能按目录名反查到商店版的订阅记录
+        if plugin_info.is_dev_only:
             return ''
         package_dir = self.get_plugin_package_dir(plugin_info)
         dir_name = package_dir.name if package_dir is not None else ''
@@ -496,8 +497,8 @@ class PluginOperationMixin:
         entry = self.find_market_entry(plugin_info)
         actions: list[tuple[str, str]] = []
         subscribed = self.is_subscribed(plugin_info)
-        if plugin_info.is_dev:
-            # 开发版放 plugins/.dev，不参与商店更新，也不给卸载入口
+        if plugin_info.is_dev_only:
+            # 只有开发版、没有商店版副本：不参与商店更新，也不给卸载入口
             status_text = gt('开发版 · 不参与商店更新与卸载')
             status_kind = BADGE_INSTALLED
         elif subscribed:
@@ -523,6 +524,26 @@ class PluginOperationMixin:
             actions.append((ACTION_UNINSTALL, gt('卸载')))
         self._append_config_action(actions, plugin_info)
 
+        copy = plugin_info.inactive_copy
+        summary = plugin_info.description
+        if copy is not None:
+            # 同 ID 的开发版与商店版并存：只加载一份，详情页提供切换
+            active_is_dev = plugin_info.is_dev
+            status_text = f"{gt('当前使用开发版') if active_is_dev else gt('当前使用商店版')} · {status_text}"
+            if active_is_dev:
+                actions.append((ACTION_SWITCH_TO_MARKET, gt('切换到商店版')))
+            else:
+                actions.append((ACTION_SWITCH_TO_DEV, gt('切换到开发版')))
+            active_label, other_label = (
+                (gt('开发版'), gt('商店版')) if active_is_dev else (gt('商店版'), gt('开发版'))
+            )
+            summary = (
+                f'{summary}\n\n' if summary else ''
+            ) + (
+                f'{active_label}（使用中）v{plugin_info.version or "?"}：{plugin_info.plugin_dir}\n'
+                f'{other_label} v{copy.version or "?"}：{copy.plugin_dir}'
+            )
+
         meta_parts = []
         if plugin_info.version:
             meta_parts.append(f'v{plugin_info.version}')
@@ -534,7 +555,7 @@ class PluginOperationMixin:
             initial=self.initial_of(plugin_info.app_name),
             meta_text=' · '.join(meta_parts),
             tags=[],
-            summary=plugin_info.description,
+            summary=summary,
             readme_html=entry.readme_html if entry is not None else '',
             changelog_html=(
                 entry.latest.changelog_html
@@ -547,6 +568,31 @@ class PluginOperationMixin:
             actions=actions,
         )
         self._show_detail(data, partial(self._on_detail_action, entry, plugin_info))
+
+    def switch_plugin_copy(self, plugin_info: PluginInfo, use_dev: bool) -> None:
+        """同 ID 的开发版与商店版并存时，切换加载哪一份。
+
+        Args:
+            plugin_info: 当前生效的插件信息。
+            use_dev: True 切到开发版，False 切到商店版。
+        """
+        self.ctx.env_config.set_plugin_use_dev(plugin_info.app_id, use_dev)
+        refreshed = self.ctx.request_application_registration_refresh()
+        if refreshed:
+            self.refresh_cards()
+        label = gt('开发版') if use_dev else gt('商店版')
+        InfoBar.success(
+            title=gt('已切换到{label}').format(label=label) if refreshed else gt('已推迟切换'),
+            content=(
+                plugin_info.app_name if refreshed
+                else gt('有任务正在运行，将在任务结束后切换到{label}').format(label=label)
+            ),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self._as_widget(),
+        )
 
     def _show_detail(
         self,
@@ -586,6 +632,8 @@ class PluginOperationMixin:
                 duration=2500,
                 parent=self._as_widget(),
             )
+        elif action in (ACTION_SWITCH_TO_DEV, ACTION_SWITCH_TO_MARKET) and plugin_info is not None:
+            self.switch_plugin_copy(plugin_info, use_dev=action == ACTION_SWITCH_TO_DEV)
         elif action == ACTION_CONFIG and plugin_info is not None:
             self._open_plugin_config(plugin_info)
         elif action in (ACTION_MUTE_UPDATE, ACTION_UNMUTE_UPDATE) and plugin_info is not None:
@@ -653,7 +701,7 @@ class PluginOperationMixin:
         更新无条件执行：插件正在运行、目录是仓库布局、目录里带 git 仓库都不拦，
         一律覆盖成商店里的最新版本。开发版插件不走商店更新。
         """
-        if plugin_info.is_dev:
+        if plugin_info.is_dev_only:
             self._show_error(gt('无法更新'), gt('开发版插件不参与商店更新'))
             return
         self._enqueue_plugin_download(
@@ -914,10 +962,11 @@ class PluginOperationMixin:
         Returns:
             True 表示已拒绝并弹出提示，调用方应直接返回。
         """
-        if plugin_info.plugin_dir is None:
+        market_dir = self.market_plugin_dir(plugin_info)
+        if market_dir is None:
             return False
         plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
-        plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
+        plugin_dir = market_dir.resolve(strict=False)
         if not plugin_dir.is_relative_to(plugins_root) or plugin_dir == plugins_root:
             return False
         top_dir = plugins_root / plugin_dir.relative_to(plugins_root).parts[0]
@@ -945,7 +994,7 @@ class PluginOperationMixin:
         subscribed: bool | None = None,
     ) -> None:
         """删除插件目录。订阅来的插件文案用取消订阅，本地安装用卸载。"""
-        if plugin_info.is_dev:
+        if plugin_info.is_dev_only:
             self._show_error(
                 gt('无法卸载'),
                 gt('开发版插件不参与卸载，请直接删除 plugins/.dev 下的目录'),
@@ -1046,19 +1095,28 @@ class PluginOperationMixin:
             resolved = failed_path.resolve(strict=False)
             if resolved == plugins_root or not resolved.is_relative_to(plugins_root):
                 continue
-            package_dir = plugins_root / resolved.relative_to(plugins_root).parts[0]
+            parts = resolved.relative_to(plugins_root).parts
+            if parts[0] == DEV_PLUGIN_DIR_NAME:
+                # 开发版：包目录是 .dev 下的子目录，.dev 自身永远不是插件
+                if len(parts) < 2:
+                    continue
+                package_dir = plugins_root / parts[0] / parts[1]
+            else:
+                package_dir = plugins_root / parts[0]
             reasons.setdefault(package_dir, []).append(f'{failed_path.name}: {reason}')
         return [(package_dir, '\n'.join(items)) for package_dir, items in reasons.items()]
 
     def open_failed_detail(self, package_dir: Path, reason: str) -> None:
         """打开加载失败插件的详情页，展示失败原因并提供删除。"""
+        is_dev = package_dir.parent.name == DEV_PLUGIN_DIR_NAME
         data = PluginDetailData(
             title=package_dir.name,
             initial=self.initial_of(package_dir.name),
             summary=f'{reason}\n\n{package_dir}',
-            status_text=gt('加载失败'),
+            status_text=gt('开发版加载失败') if is_dev else gt('商店版加载失败'),
             status_kind=BADGE_FAILED,
-            actions=[(ACTION_DELETE_FAILED, gt('删除'))],
+            # 开发版目录由开发者自己管理，不提供删除
+            actions=[] if is_dev else [(ACTION_DELETE_FAILED, gt('删除'))],
         )
         self._show_detail(data, partial(self._on_failed_detail_action, package_dir))
 
@@ -1221,17 +1279,32 @@ class PluginOperationMixin:
     # ------------------------------------------------------------------
 
     def get_plugin_package_dir(self, plugin_info: PluginInfo) -> Path | None:
-        """获取插件所属的顶层插件目录。"""
-        if plugin_info.plugin_dir is None:
+        """获取插件所属的顶层插件目录（商店版目录）。
+
+        商店的订阅、更新、卸载只作用于商店版：开发版生效且存在商店版副本时返回商店版目录；
+        只有开发版时返回 None，不会把 plugins/.dev 当成插件目录。
+        """
+        market_dir = self.market_plugin_dir(plugin_info)
+        if market_dir is None:
             return None
 
         plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
-        plugin_dir = plugin_info.plugin_dir.resolve(strict=False)
+        plugin_dir = market_dir.resolve(strict=False)
         if plugin_dir == plugins_root or not plugin_dir.is_relative_to(plugins_root):
             return None
 
         relative_path = plugin_dir.relative_to(plugins_root)
         return plugins_root / relative_path.parts[0]
+
+    @staticmethod
+    def market_plugin_dir(plugin_info: PluginInfo) -> Path | None:
+        """商店版副本所在的插件目录；只有开发版时返回 None。"""
+        if plugin_info.source == PluginSource.THIRD_PARTY:
+            return plugin_info.plugin_dir
+        copy = plugin_info.inactive_copy
+        if plugin_info.source == PluginSource.DEV and copy is not None:
+            return copy.plugin_dir
+        return None
 
     def is_plugin_running(self, plugin_package_dir: Path) -> bool:
         """判断插件包中是否有应用正在运行。"""

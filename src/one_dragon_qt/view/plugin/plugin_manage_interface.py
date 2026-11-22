@@ -29,7 +29,7 @@ from one_dragon.base.operation.application.plugin_import_service import (
     ImportResult,
     PluginPreviewInfo,
 )
-from one_dragon.base.operation.application.plugin_info import PluginInfo
+from one_dragon.base.operation.application.plugin_info import PluginInfo, PluginSource
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -156,11 +156,12 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
             update_version = self.pending_update_version(plugin_info, entry) if subscribed else ''
             if subscribed:
                 subscribed_count += 1
+            if update_version:
+                update_count += 1
             if plugin_info.is_dev:
                 badge_text = gt('开发版')
                 badge_kind = BADGE_INSTALLED
             elif update_version:
-                update_count += 1
                 badge_text = gt('可更新 v{version}').format(version=update_version)
                 badge_kind = BADGE_UPDATE
             elif subscribed:
@@ -175,8 +176,16 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
                 meta_parts.append(f'v{plugin_info.version}')
             if plugin_info.author:
                 meta_parts.append(plugin_info.author)
+            copy = plugin_info.inactive_copy
+            if copy is not None:
+                meta_parts.append(
+                    gt('另有{kind}{version}').format(
+                        kind=gt('开发版') if copy.source == PluginSource.DEV else gt('商店版'),
+                        version=f' v{copy.version}' if copy.version else '',
+                    )
+                )
 
-            plugin_id = entry.plugin_id if entry is not None else plugin_info.app_id
+            plugin_id =entry.plugin_id if entry is not None else plugin_info.app_id
             card = self.make_card(
                 title=plugin_info.app_name,
                 meta_text=' · '.join(meta_parts),
