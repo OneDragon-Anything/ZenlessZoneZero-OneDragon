@@ -89,7 +89,7 @@ jobs:
               owner: targetOwner,
               repo: targetRepo,
               issue_number: issueNumber,
-              body: '感谢你的反馈。此 Issue 没有使用 Issue 模板，视为未认真阅读反馈要求，已被标记为“无效”并关闭。请使用“问题反馈-通用”模板并按要求填写后重新提交。'
+              body: '感谢你的反馈。此 Issue 未能遵循反馈要求，因此已被标记为“无效”并关闭。请仔细阅读并按照要求重新提交。'
             });
             await github.rest.issues.update({
               owner: targetOwner,
