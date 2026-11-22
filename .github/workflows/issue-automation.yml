@@ -102,10 +102,23 @@ jobs:
             return;
           }
 
-          // 1. 检查“未认真阅读”选项并处理
-          const isMisread = normalizedIssueBody.includes('- [x] 未认真阅读此处选项随意勾选') || normalizedIssueBody.includes('- [X] 未认真阅读此处选项随意勾选');
+          // 1. 检查确认事项：“未认真阅读”选项被勾选，或必须勾选的确认项没有勾选，都按无效反馈处理
+          const requiredChecks = [
+            '正在使用最新的 OneDragon',
+            '已搜索过 issue 中无人提出相似问题或无解决方案',
+            '已为所有模型以及战斗脚本更新至最新版',
+            '进行过问题自查',
+            '运行时无任何帧率显示或其他覆盖层窗口遮盖游戏',
+            '未安装任何修改游戏UI和贴图的模组',
+            '了解反馈时应携带日志和问题截图，且明白应该使用F11截图',
+            '已经修改了此issue的标题为想要反馈的问题简述',
+            '此 issue 由我本人亲自提交',
+          ];
+          const isChecked = (text) => new RegExp(`- \\[[xX]\\] [^\\n]*${escapeRegExp(text)}`).test(normalizedIssueBody);
+          const uncheckedRequired = requiredChecks.filter((text) => !isChecked(text));
+          const isMisread = isChecked('未认真阅读此处选项随意勾选') || uncheckedRequired.length > 0;
           if (isMisread) {
-            console.log('检测到“未认真阅读”选项被勾选。');
+            console.log(`确认事项不符合要求。未勾选的必选项: ${uncheckedRequired.join('；') || '无'}`);
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
