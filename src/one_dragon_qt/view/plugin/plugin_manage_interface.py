@@ -32,6 +32,7 @@ from one_dragon.base.operation.application.plugin_import_service import (
 from one_dragon.base.operation.application.plugin_info import PluginInfo
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.view.plugin.plugin_operation_mixin import PluginOperationMixin
 from one_dragon_qt.widgets.plugin_card import (
     BADGE_FAILED,
@@ -55,9 +56,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
     def __init__(
         self,
         ctx: OneDragonContext,
+        cover_service: PluginCoverService,
         parent: QWidget | None = None,
     ) -> None:
-        self.init_plugin_operation(ctx)
+        self.init_plugin_operation(ctx, cover_service)
 
         VerticalScrollInterface.__init__(
             self,

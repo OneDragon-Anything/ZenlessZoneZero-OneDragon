@@ -122,20 +122,16 @@ class AudioRecorder:
 
         capture = ProcessAudioCapture(pid, self._sample_rate, self._used_channel)
         try:
-            capture.open()
-        except ProcessAudioCaptureError:
-            log.warning('按进程录制音频失败，改为录制默认输出设备', exc_info=True)
-            return False
-
-        log.info(f'开始录制游戏进程音频 pid={pid}')
-        try:
-            with capture:  # 退出时释放进程录音资源，再回退
+            with capture:  # 只在这里打开一次，退出时释放进程录音资源，再回退
+                log.info(f'开始录制游戏进程音频 pid={pid}')
                 while self.running:
                     stream_data = capture.read(timeout_ms=100)
                     if stream_data.shape[0] > 0:
                         self._push_audio(stream_data.mean(axis=1))
-        except ProcessAudioCaptureError:
-            log.warning('读取游戏进程音频失败，改为录制默认输出设备', exc_info=True)
+        except ProcessAudioCaptureError as e:
+            # 不打印堆栈，避免吓到用户；详细原因仅在 debug 日志里
+            log.info('当前系统可能不支持按进程录制音频，改为录制默认输出设备')
+            log.debug(f'按进程录制音频失败: {e}', exc_info=True)
             return False
         return True
 
