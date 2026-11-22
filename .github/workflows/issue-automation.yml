@@ -52,10 +52,10 @@ jobs:
           const reportedCodeVersion = extractSectionValue(normalizedIssueBody, '代码版本');
           const reportedCommitHash = extractCommitHash(reportedCodeVersion);
 
-          // 0. 未使用模板的 Issue：提醒使用模板并关闭；贡献达到阈值的人放行
+          // 0. 没有“未认真阅读”选项（未使用模板）的 Issue，视为没认真阅读；贡献达到阈值的人放行
           const contributionThreshold = 10;
-          const templateHeadings = ['问题类型', '问题范围', '代码版本'];
-          const usedTemplate = templateHeadings.some((label) => new RegExp(`(?:^|\\n)### ${escapeRegExp(label)}\\s*\\n`).test(normalizedIssueBody));
+          // 模板里有“未认真阅读”选项；正文里没有这个选项，说明没有使用模板，按“没认真阅读”处理
+          const usedTemplate = normalizedIssueBody.includes('未认真阅读此处选项随意勾选');
           if (!usedTemplate) {
             const author = context.payload.issue.user.login;
             const isBot = context.payload.issue.user.type === 'Bot';
@@ -79,11 +79,17 @@ jobs:
               return;
             }
 
+            await github.rest.issues.addLabels({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              labels: ['Invalid | 无效反馈']
+            });
             await github.rest.issues.createComment({
               owner: targetOwner,
               repo: targetRepo,
               issue_number: issueNumber,
-              body: '感谢你的反馈。此 Issue 没有使用 Issue 模板，已先关闭。请点击“New issue”，使用“问题反馈-通用”模板并按要求填写后重新提交。'
+              body: '感谢你的反馈。此 Issue 没有使用 Issue 模板，视为未认真阅读反馈要求，已被标记为“无效”并关闭。请使用“问题反馈-通用”模板并按要求填写后重新提交。'
             });
             await github.rest.issues.update({
               owner: targetOwner,
