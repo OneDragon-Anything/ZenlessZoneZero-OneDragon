@@ -266,18 +266,25 @@ def _check_with_runtime(
     repository_root: Path,
     target_manifest: Path,
     work_dir: Path,
+    reuse_extracted: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    """用发布包的 PYZ、扩展模块和标准库检查新增导入。"""
+    """用发布包的 PYZ、扩展模块和标准库检查新增导入。
+
+    reuse_extracted 为 True 时，工作目录里已提取好的 PYZ 和导入器直接复用。
+    """
     runtime_dir = runtime_root / '.runtime'
     if not (runtime_dir / 'python311.dll').is_file() or not (runtime_dir / 'base_library.zip').is_file():
         raise RuntimeError('RuntimeLauncher 包内缺少冻结运行时')
 
-    executable = (runtime_root / 'OneDragon-RuntimeLauncher.exe').read_bytes()
     pyz_path = work_dir / 'PYZ.pyz'
     importer_dir = work_dir / 'pyinstaller_importers'
-    module_count = _extract_pyz(executable, pyz_path)
-    _extract_bootstrap_modules(executable, importer_dir)
-    _log(f'已从 RuntimeLauncher 提取 {module_count} 个冻结模块')
+    if reuse_extracted and pyz_path.is_file() and importer_dir.is_dir():
+        _log('复用已提取的冻结模块')
+    else:
+        executable = (runtime_root / 'OneDragon-RuntimeLauncher.exe').read_bytes()
+        module_count = _extract_pyz(executable, pyz_path)
+        _extract_bootstrap_modules(executable, importer_dir)
+        _log(f'已从 RuntimeLauncher 提取 {module_count} 个冻结模块')
 
     bootstrap = work_dir / 'runtime_compatibility_bootstrap.py'
     _write_bootstrap(bootstrap, runtime_dir, pyz_path, importer_dir, repository_root, target_manifest)
@@ -317,7 +324,8 @@ def main() -> int:
     work_dir = args.work_dir.resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
     runtime_root = work_dir / 'runtime'
-    if args.reuse_runtime and (runtime_root / '.runtime' / 'python311.dll').is_file():
+    reused_runtime = args.reuse_runtime and (runtime_root / '.runtime' / 'python311.dll').is_file()
+    if reused_runtime:
         _log('复用已解压的 RuntimeLauncher')
     else:
         tag, asset_url = _latest_stable_release(token)
@@ -332,7 +340,13 @@ def main() -> int:
 
     target_manifest = work_dir / 'target_module_manifest.py'
     target_manifest.write_bytes(_target_manifest(repository_root))
-    result = _check_with_runtime(runtime_root, repository_root, target_manifest, work_dir)
+    result = _check_with_runtime(
+        runtime_root,
+        repository_root,
+        target_manifest,
+        work_dir,
+        reuse_extracted=reused_runtime,
+    )
     for stream in (result.stdout, result.stderr):
         if stream:
             _log(stream.decode('utf-8', errors='replace').rstrip())
