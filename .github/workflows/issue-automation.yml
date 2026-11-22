@@ -52,6 +52,50 @@ jobs:
           const reportedCodeVersion = extractSectionValue(normalizedIssueBody, '代码版本');
           const reportedCommitHash = extractCommitHash(reportedCodeVersion);
 
+          // 0. 未使用模板的 Issue：提醒使用模板并关闭；贡献达到阈值的人放行
+          const contributionThreshold = 10;
+          const templateHeadings = ['问题类型', '问题范围', '代码版本'];
+          const usedTemplate = templateHeadings.some((label) => new RegExp(`(?:^|\\n)### ${escapeRegExp(label)}\\s*\\n`).test(normalizedIssueBody));
+          if (!usedTemplate) {
+            const author = context.payload.issue.user.login;
+            const isBot = context.payload.issue.user.type === 'Bot';
+            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (isBot || trustedAssociations.includes(context.payload.issue.author_association)) {
+              console.log(`@${author} 是机器人或仓库成员，未使用模板也放行。`);
+              return;
+            }
+
+            // 贡献次数 = 该用户在默认分支上的 commit 数
+            const commitResponse = await github.request('GET /repos/{owner}/{repo}/commits', {
+              owner: targetOwner,
+              repo: targetRepo,
+              author,
+              per_page: 1,
+            });
+            const lastPage = commitResponse.headers.link?.match(/[?&]page=(\d+)>;\s*rel="last"/)?.[1];
+            const commitCount = lastPage ? Number(lastPage) : commitResponse.data.length;
+            if (commitCount >= contributionThreshold) {
+              console.log(`@${author} 有 ${commitCount} 次贡献，未使用模板也放行。`);
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              body: '感谢你的反馈。此 Issue 没有使用 Issue 模板，已先关闭。请点击“New issue”，使用“问题反馈-通用”模板并按要求填写后重新提交。'
+            });
+            await github.rest.issues.update({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              state: 'closed',
+              state_reason: 'not_planned',
+            });
+            console.log(`Issue #${issueNumber} 未使用模板，作者 @${author} 有 ${commitCount} 次贡献，已关闭。`);
+            return;
+          }
+
           // 1. 检查“未认真阅读”选项并处理
           const isMisread = normalizedIssueBody.includes('- [x] 未认真阅读此处选项随意勾选') || normalizedIssueBody.includes('- [X] 未认真阅读此处选项随意勾选');
           if (isMisread) {
