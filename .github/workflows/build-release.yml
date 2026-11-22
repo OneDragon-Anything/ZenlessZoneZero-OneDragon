@@ -265,12 +265,12 @@ jobs:
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip` 为精简包，不含识别模型，模型按需下载。
           - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为集成启动器更新包（exe + .runtime），只用于已有环境的就地升级，首次安装不要下载。
 
-          **原始启动器（需要运行安装器，或自行用源码运行）**
+          **源码启动器（需要运行安装器，或自行用源码运行）**
 
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
-          - 更新原始启动器：前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
+          - 更新源码启动器：前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
 
           __不要下载Source Code__
 
