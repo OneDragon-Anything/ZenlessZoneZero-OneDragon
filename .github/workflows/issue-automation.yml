@@ -49,6 +49,7 @@ jobs:
 
           const issueType = extractSectionValue(normalizedIssueBody, '问题类型');
           const issueScope = extractSectionValue(normalizedIssueBody, '问题范围');
+          const issueBranch = extractSectionValue(normalizedIssueBody, '代码分支');
           const reportedCodeVersion = extractSectionValue(normalizedIssueBody, '代码版本');
           const reportedCommitHash = extractCommitHash(reportedCodeVersion);
 
@@ -142,24 +143,36 @@ jobs:
             return;
           }
 
-          // 1.5 确认事项验证通过后，把确认项折叠起来，减少 Issue 正文的长度
+          // 1.5 确认事项验证通过后，把内容较长的部分折叠起来，减少 Issue 正文的长度；内容短的不折叠
           try {
-            const checkSectionRegex = /(^|\n)(### 请确认您已完成以下几件事[^\n]*\n\n)([\s\S]*?)(?=\n### |$)/;
-            if (checkSectionRegex.test(normalizedIssueBody) && !normalizedIssueBody.includes('<summary>确认事项</summary>')) {
-              const foldedBody = normalizedIssueBody.replace(
-                checkSectionRegex,
-                (_, prefix, heading, items) => `${prefix}${heading}<details>\n<summary>确认事项</summary>\n\n${items.trimEnd()}\n\n</details>\n`
-              );
+            const foldMinLength = 200;
+            const foldSections = [
+              { heading: '请确认您已完成以下几件事', summary: '确认事项' },
+              { heading: '游戏截图', summary: '游戏截图' },
+              { heading: '运行日志', summary: '运行日志' },
+            ];
+            let foldedBody = normalizedIssueBody;
+            for (const { heading, summary } of foldSections) {
+              const sectionRegex = new RegExp(`(^|\\n)(### ${escapeRegExp(heading)}[^\\n]*\\n\\n)([\\s\\S]*?)(?=\\n### |$)`);
+              foldedBody = foldedBody.replace(sectionRegex, (whole, prefix, title, content) => {
+                const text = content.trim();
+                if (text.length < foldMinLength || text.includes('<details')) {
+                  return whole;
+                }
+                return `${prefix}${title}<details>\n<summary>${summary}</summary>\n\n${text}\n\n</details>\n`;
+              });
+            }
+            if (foldedBody !== normalizedIssueBody) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
                 body: foldedBody
               });
-              console.log('确认事项已折叠。');
+              console.log('较长的内容已折叠。');
             }
           } catch (error) {
-            console.error(`折叠 Issue #${issueNumber} 的确认事项失败`, error);
+            console.error(`折叠 Issue #${issueNumber} 的内容失败`, error);
           }
 
           // 2. 根据问题类型添加标签
@@ -196,9 +209,20 @@ jobs:
             scopePrefix = '[其他] ';
           }
 
+          // 代码分支类型也加到标题里，格式：[问题范围][分支类型] 标题
+          let branchPrefix = '';
+          if (issueBranch === '主分支' || issueBranch === '测试分支') {
+            branchPrefix = `[${issueBranch}]`;
+          }
+
           let newTitle = issueTitle;
-          if (scopePrefix && !issueTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
-            newTitle = scopePrefix + issueTitle;
+          if (branchPrefix && !newTitle.includes(branchPrefix)) { // 避免重复添加前缀
+            newTitle = `${branchPrefix} ${newTitle}`;
+          }
+          if (scopePrefix && !newTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
+            newTitle = scopePrefix + newTitle;
+          }
+          if (newTitle !== issueTitle) {
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
