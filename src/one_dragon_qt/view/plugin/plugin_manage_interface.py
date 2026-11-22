@@ -29,16 +29,17 @@ from one_dragon.base.operation.application.plugin_import_service import (
     ImportResult,
     PluginPreviewInfo,
 )
-from one_dragon.base.operation.application.plugin_info import PluginInfo, PluginSource
+from one_dragon.base.operation.application.plugin_info import PluginInfo
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.plugin.plugin_operation_mixin import PluginOperationMixin
 from one_dragon_qt.widgets.plugin_card import (
     BADGE_FAILED,
     BADGE_INSTALLED,
     BADGE_SUBSCRIBED,
     BADGE_UPDATE,
+    CHANNEL_DEV,
+    CHANNEL_MARKET,
     PluginCard,
     PluginCardGrid,
     PluginPager,
@@ -158,10 +159,7 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
                 subscribed_count += 1
             if update_version:
                 update_count += 1
-            if plugin_info.is_dev:
-                badge_text = gt('开发版')
-                badge_kind = BADGE_INSTALLED
-            elif update_version:
+            if update_version:
                 badge_text = gt('可更新 v{version}').format(version=update_version)
                 badge_kind = BADGE_UPDATE
             elif subscribed:
@@ -176,16 +174,8 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
                 meta_parts.append(f'v{plugin_info.version}')
             if plugin_info.author:
                 meta_parts.append(plugin_info.author)
-            copy = plugin_info.inactive_copy
-            if copy is not None:
-                meta_parts.append(
-                    gt('另有{kind}{version}').format(
-                        kind=gt('开发版') if copy.source == PluginSource.DEV else gt('商店版'),
-                        version=f' v{copy.version}' if copy.version else '',
-                    )
-                )
 
-            plugin_id =entry.plugin_id if entry is not None else plugin_info.app_id
+            plugin_id = entry.plugin_id if entry is not None else plugin_info.app_id
             card = self.make_card(
                 title=plugin_info.app_name,
                 meta_text=' · '.join(meta_parts),
@@ -200,6 +190,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
                 on_click=partial(self.open_installed_detail, plugin_info),
                 parent=self.card_grid,
             )
+            if plugin_info.is_dev:
+                card.set_channels(CHANNEL_DEV, both=plugin_info.has_both_copies)
+            elif plugin_info.has_both_copies:
+                card.set_channels(CHANNEL_MARKET, both=True)
             self.remember_card(
                 card, plugin_id, entry.cover_url if entry is not None else ''
             )
@@ -613,16 +607,10 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
         success_count = sum(1 for result in results if result.success)
         fail_count = len(results) - success_count
         if success_count > 0:
-            self.ctx.request_application_registration_refresh()
-            self.refresh_cards()
-            InfoBar.success(
-                title=gt('导入成功'),
-                content=gt('成功导入 {count} 个插件').format(count=success_count),
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3000,
-                parent=self
+            # 重新扫描并导入插件模块比较耗时，放后台线程，界面不卡
+            self._start_plugin_task(
+                self.ctx.request_application_registration_refresh,
+                partial(self._finish_import_refresh, success_count),
             )
 
         if fail_count > 0:
@@ -641,33 +629,52 @@ class PluginManageInterface(PluginOperationMixin, VerticalScrollInterface):
                 parent=self
             )
 
+    def _finish_import_refresh(self, success_count: int, _refreshed: bool) -> None:
+        """导入后的后台刷新结束：重建卡片并提示导入成功。"""
+        self._finish_plugin_task()
+        self.refresh_cards()
+        InfoBar.success(
+            title=gt('导入成功'),
+            content=gt('成功导入 {count} 个插件').format(count=success_count),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self,
+        )
+
     def _on_refresh_clicked(self) -> None:
         """刷新按钮点击"""
         if self._import_busy:
             return
 
-        try:
-            refreshed = self.ctx.request_application_registration_refresh()
-            if refreshed:
-                # 立即刷新已完成，同步重建卡片；推迟的情况不读旧状态，
-                # 等应用结束后 ContextPluginRefreshEvent 到达再重建
-                self.refresh_cards()
-            self.load_market(force=True)
-            InfoBar.success(
-                title=gt('刷新成功') if refreshed else gt('已推迟刷新'),
-                content=(
-                    gt('已重新加载插件') if refreshed
-                    else gt('有任务正在运行，插件将在任务结束后重新加载')
-                ),
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=2000,
-                parent=self
-            )
-        except Exception as e:
-            log.error(f'刷新插件失败: {e}', exc_info=True)
-            self._show_error(gt('刷新失败'), str(e))
+        # 重新扫描并导入插件模块比较耗时，放后台线程，界面不卡；
+        # 刷新完成后卡片由 ContextPluginRefreshEvent 触发重建，推迟的情况不读旧状态
+        self._start_plugin_task(
+            self.ctx.request_application_registration_refresh,
+            self._finish_refresh_clicked,
+        )
+
+    def _finish_refresh_clicked(self, refreshed: bool) -> None:
+        """刷新按钮的后台刷新结束：重新加载市场并提示结果。
+
+        Args:
+            refreshed: 是否已经立即刷新；有任务运行时为 False，任务结束后才生效。
+        """
+        self._finish_plugin_task()
+        self.load_market(force=True)
+        InfoBar.success(
+            title=gt('刷新成功') if refreshed else gt('已推迟刷新'),
+            content=(
+                gt('已重新加载插件') if refreshed
+                else gt('有任务正在运行，插件将在任务结束后重新加载')
+            ),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=2000,
+            parent=self,
+        )
 
     def _on_open_dir_clicked(self) -> None:
         """打开插件目录"""

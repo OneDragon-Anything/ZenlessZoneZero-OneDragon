@@ -24,6 +24,7 @@ from qfluentwidgets import (
     MaskDialogBase,
     PrimaryPushButton,
     PushButton,
+    SegmentedWidget,
     StrongBodyLabel,
     TextBrowser,
     TransparentToolButton,
@@ -33,6 +34,7 @@ from qfluentwidgets import (
 
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.fast_scroll_area import FastScrollArea
+from one_dragon_qt.widgets.plugin_card import CHANNEL_DEV
 
 ACTION_SUBSCRIBE = 'subscribe'
 ACTION_UNSUBSCRIBE = 'unsubscribe'
@@ -71,6 +73,11 @@ class PluginDetailData:
     """可执行操作，元素为 (动作标识, 按钮文字)；第一个动作按主要按钮绘制。"""
 
     action_enabled: bool = True
+
+    channels: list[tuple[str, str]] = field(default_factory=list)
+    """同 ID 的商店版与开发版并存时的两个通道，元素为 (通道标识, 分段控件文字)；为空时不显示切换。"""
+    channel_current: str = ''
+    """当前使用的通道标识。"""
 
 
 class HtmlView(TextBrowser):
@@ -192,6 +199,8 @@ class PluginDetailDialog(MaskDialogBase):
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(12)
         layout.addWidget(self._build_header())
+        if self._data.channels:
+            layout.addWidget(self._build_channel_switch(), 0, Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self._build_action_row(), 0, Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(self._build_body(), 1)
 
@@ -274,6 +283,24 @@ class PluginDetailDialog(MaskDialogBase):
         layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignTop)
 
         return header
+
+    def _build_channel_switch(self) -> QWidget:
+        """商店版 / 开发版的分段控件：选中项就是正在使用的那份，点另一项即切换。"""
+        switch = SegmentedWidget(self.widget)
+        for key, text in self._data.channels:
+            icon = FluentIcon.CODE if key == CHANNEL_DEV else FluentIcon.SHOPPING_CART
+            switch.addItem(
+                key, text, lambda _checked=False, k=key: self._on_channel_clicked(k), icon
+            )
+        switch.setCurrentItem(self._data.channel_current)
+        switch.setEnabled(self._data.action_enabled)
+        return switch
+
+    def _on_channel_clicked(self, key: str) -> None:
+        """点了当前已选中的通道不做事，点另一个通道触发切换。"""
+        if key == self._data.channel_current:
+            return
+        self._trigger(ACTION_SWITCH_TO_DEV if key == CHANNEL_DEV else ACTION_SWITCH_TO_MARKET)
 
     def _build_action_row(self) -> QWidget:
         row = QWidget(self.widget)

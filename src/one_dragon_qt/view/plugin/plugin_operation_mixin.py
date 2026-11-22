@@ -82,6 +82,8 @@ from one_dragon_qt.widgets.plugin_card import (
     BADGE_UPDATE,
     CARD_HEIGHT,
     CARD_WIDTH,
+    CHANNEL_DEV,
+    CHANNEL_MARKET,
     PluginCard,
     PluginCardGrid,
     PluginPager,
@@ -187,6 +189,12 @@ class MarketLoadRunner(QObject):
         self.load_finished.emit(self._service.load(force=self._force))
 
 
+class _RefreshBridge(QObject):
+    """把注册刷新完成事件转成 Qt 信号，保证重建卡片在界面线程执行。"""
+
+    requested = Signal()
+
+
 class PluginOperationMixin:
     """插件页面共用的订阅与详情逻辑。
 
@@ -215,12 +223,27 @@ class PluginOperationMixin:
         self._market_snapshot: MarketSnapshot | None = None
         self._market_runner: MarketLoadRunner | None = None
         self._import_busy: bool = False
-        # 注册刷新完成后重建卡片：推迟刷新结束时页面没有别的时机知道插件已经换了
-        ctx.listen_event(ContextPluginRefreshEvent.EVENT_ID, self._on_registration_refreshed)
+        self._detail_open: bool = False
 
     def _on_registration_refreshed(self, event: ContextEventItem | None = None) -> None:
-        """注册刷新完成：切回界面线程重建卡片。事件回调跑在事件线程池里。"""
-        QTimer.singleShot(0, self._as_widget(), self.refresh_cards)
+        """注册刷新完成：通过队列信号切回界面线程。事件回调可能跑在事件线程池里。"""
+        bridge = getattr(self, '_refresh_bridge', None)
+        if bridge is not None:
+            bridge.requested.emit()
+
+    def _rebuild_cards_if_ready(self) -> None:
+        """重建卡片。页面内容还没构建（从未显示过）时跳过，显示时自己会重建。"""
+        if getattr(self, 'card_grid', None) is None:
+            return
+        # 短时间内连续的刷新完成事件合并成一次重建，避免卡片被反复销毁和创建
+        if getattr(self, '_rebuild_scheduled', False):
+            return
+        self._rebuild_scheduled = True
+        QTimer.singleShot(0, self._as_widget(), self._run_scheduled_rebuild)
+
+    def _run_scheduled_rebuild(self) -> None:
+        self._rebuild_scheduled = False
+        self.refresh_cards()
 
     # ------------------------------------------------------------------
     # 由子类实现
@@ -525,24 +548,19 @@ class PluginOperationMixin:
         self._append_config_action(actions, plugin_info)
 
         copy = plugin_info.inactive_copy
-        summary = plugin_info.description
+        channels: list[tuple[str, str]] = []
+        channel_current = ''
         if copy is not None:
-            # 同 ID 的开发版与商店版并存：只加载一份，详情页提供切换
-            active_is_dev = plugin_info.is_dev
-            status_text = f"{gt('当前使用开发版') if active_is_dev else gt('当前使用商店版')} · {status_text}"
-            if active_is_dev:
-                actions.append((ACTION_SWITCH_TO_MARKET, gt('切换到商店版')))
-            else:
-                actions.append((ACTION_SWITCH_TO_DEV, gt('切换到开发版')))
-            active_label, other_label = (
-                (gt('开发版'), gt('商店版')) if active_is_dev else (gt('商店版'), gt('开发版'))
+            # 同 ID 的开发版与商店版并存：只加载一份，详情页顶部的分段控件切换
+            dev_version, market_version = (
+                (plugin_info.version, copy.version)
+                if plugin_info.is_dev else (copy.version, plugin_info.version)
             )
-            summary = (
-                f'{summary}\n\n' if summary else ''
-            ) + (
-                f'{active_label}（使用中）v{plugin_info.version or "?"}：{plugin_info.plugin_dir}\n'
-                f'{other_label} v{copy.version or "?"}：{copy.plugin_dir}'
-            )
+            channels = [
+                (CHANNEL_MARKET, f"{gt('商店版')} v{market_version}" if market_version else gt('商店版')),
+                (CHANNEL_DEV, f"{gt('开发版')} v{dev_version}" if dev_version else gt('开发版')),
+            ]
+            channel_current = CHANNEL_DEV if plugin_info.is_dev else CHANNEL_MARKET
 
         meta_parts = []
         if plugin_info.version:
@@ -555,7 +573,7 @@ class PluginOperationMixin:
             initial=self.initial_of(plugin_info.app_name),
             meta_text=' · '.join(meta_parts),
             tags=[],
-            summary=summary,
+            summary=plugin_info.description,
             readme_html=entry.readme_html if entry is not None else '',
             changelog_html=(
                 entry.latest.changelog_html
@@ -566,6 +584,8 @@ class PluginOperationMixin:
             status_kind=status_kind,
             homepage=plugin_info.homepage,
             actions=actions,
+            channels=channels,
+            channel_current=channel_current,
         )
         self._show_detail(data, partial(self._on_detail_action, entry, plugin_info))
 
@@ -576,16 +596,33 @@ class PluginOperationMixin:
             plugin_info: 当前生效的插件信息。
             use_dev: True 切到开发版，False 切到商店版。
         """
+        if self._import_busy:
+            return
         self.ctx.env_config.set_plugin_use_dev(plugin_info.app_id, use_dev)
-        refreshed = self.ctx.request_application_registration_refresh()
-        if refreshed:
-            self.refresh_cards()
+        # 重新扫描并导入插件模块比较耗时，放后台线程，界面不卡；
+        # 刷新完成后卡片由 ContextPluginRefreshEvent 触发重建
+        self._start_plugin_task(
+            self.ctx.request_application_registration_refresh,
+            partial(self._finish_switch_copy, plugin_info, use_dev),
+        )
+
+    def _finish_switch_copy(
+        self, plugin_info: PluginInfo, use_dev: bool, refreshed: bool
+    ) -> None:
+        """切换的后台刷新结束：提示切换结果。
+
+        Args:
+            plugin_info: 切换前生效的插件信息。
+            use_dev: True 切到了开发版，False 切到了商店版。
+            refreshed: 是否已经立即刷新；有任务运行时为 False，任务结束后才生效。
+        """
+        self._finish_plugin_task()
         label = gt('开发版') if use_dev else gt('商店版')
         InfoBar.success(
             title=gt('已切换到{label}').format(label=label) if refreshed else gt('已推迟切换'),
             content=(
                 plugin_info.app_name if refreshed
-                else gt('有任务正在运行，将在任务结束后切换到{label}').format(label=label)
+                else gt('任务结束后生效')
             ),
             orient=Qt.Horizontal,
             isClosable=True,
@@ -600,9 +637,21 @@ class PluginOperationMixin:
         action_handler: Callable[[str], None],
     ) -> None:
         """以弹窗形式展示插件详情。"""
-        detail = PluginDetailDialog(data, parent=self._as_widget().window())
-        detail.action_triggered.connect(action_handler)
-        detail.exec()
+        if self._detail_open:
+            # 刷新期间界面卡顿，排队的重复点击不能再叠一个弹窗
+            return
+        self._detail_open = True
+        actions: list[str] = []
+        try:
+            detail = PluginDetailDialog(data, parent=self._as_widget().window())
+            detail.action_triggered.connect(actions.append)
+            detail.exec()
+        finally:
+            self._detail_open = False
+        # 等弹窗完全退出（卡片的点击回调也已返回）再处理动作：
+        # 动作可能重建卡片，不能在弹窗的嵌套事件循环里销毁正在处理点击的卡片
+        for action in actions:
+            action_handler(action)
 
     def _on_detail_action(
         self,
@@ -872,6 +921,8 @@ class PluginOperationMixin:
                 _plugin_write_lock.release()
             if not result.success:
                 raise RuntimeError(result.message or '导入插件失败')
+            # 重新扫描并导入插件模块比较耗时，在后台线程里完成，界面线程只处理结果
+            self.ctx.request_application_registration_refresh()
         finally:
             archive.unlink(missing_ok=True)
 
@@ -909,7 +960,6 @@ class PluginOperationMixin:
             )
             return
 
-        self.ctx.request_application_registration_refresh()
         for result in success_results:
             package_dir = self._find_package_dir_of_result(result)
             app_id = self._find_app_id_by_package(package_dir)
@@ -1036,9 +1086,21 @@ class PluginOperationMixin:
             return
 
         self._start_plugin_task(
-            lambda: self.plugin_import_service.delete_plugin(plugin_package_dir),
+            partial(self._delete_and_refresh, plugin_package_dir, False),
             partial(self._finish_unsubscribe, plugin_info, registry_id, subscribed),
         )
+
+    def _delete_and_refresh(self, package_dir: Path, backup_git: bool) -> ImportResult:
+        """后台线程：删除插件目录，成功后重新加载应用注册（耗时操作不占界面线程）。
+
+        Args:
+            package_dir: 要删除的插件包目录。
+            backup_git: 目录含 git 仓库时是否改名为备份目录而不是拒绝。
+        """
+        result = self.plugin_import_service.delete_plugin(package_dir, backup_git=backup_git)
+        if result.success:
+            self.ctx.request_application_registration_refresh()
+        return result
 
     def _finish_unsubscribe(
         self,
@@ -1064,7 +1126,6 @@ class PluginOperationMixin:
             if found:
                 self.subscription_config.remove_record(found)
 
-        self.ctx.request_application_registration_refresh()
         self.refresh_cards()
         InfoBar.success(
             title=gt('已取消订阅') if subscribed else gt('已卸载'),
@@ -1149,7 +1210,7 @@ class PluginOperationMixin:
             return
 
         self._start_plugin_task(
-            lambda: self.plugin_import_service.delete_plugin(package_dir, backup_git=True),
+            partial(self._delete_and_refresh, package_dir, True),
             partial(self._finish_delete_failed, package_dir),
         )
 
@@ -1168,7 +1229,6 @@ class PluginOperationMixin:
         found = self.subscription_config.find_registry_id('', package_dir.name)
         if found:
             self.subscription_config.remove_record(found)
-        self.ctx.request_application_registration_refresh()
         self.refresh_cards()
         InfoBar.success(
             title=gt('已删除'),
@@ -1396,6 +1456,16 @@ class PluginOperationMixin:
         self.cover_service.cover_ready.connect(
             self._on_cover_ready,
             Qt.ConnectionType.QueuedConnection,
+        )
+        # 注册刷新完成后重建卡片：推迟刷新结束时页面没有别的时机知道插件已经换了。
+        # 事件可能来自非界面线程，经队列信号回到界面线程
+        self._refresh_bridge = _RefreshBridge(self._as_widget())
+        self._refresh_bridge.requested.connect(
+            self._rebuild_cards_if_ready,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        self.ctx.listen_event(
+            ContextPluginRefreshEvent.EVENT_ID, self._on_registration_refreshed
         )
 
     def _on_cover_ready(self, plugin_id: str) -> None:
