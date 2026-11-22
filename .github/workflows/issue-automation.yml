@@ -151,7 +151,14 @@ jobs:
               { heading: '游戏截图', summary: '游戏截图' },
               { heading: '运行日志', summary: '运行日志' },
             ];
-            let foldedBody = normalizedIssueBody;
+            // 按最新的正文折叠（而不是触发时的正文），避免覆盖用户在触发后做的编辑
+            const { data: latestIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+            const latestBody = (latestIssue.body || '').replace(/\r\n/g, '\n');
+            let foldedBody = latestBody;
             for (const { heading, summary } of foldSections) {
               const sectionRegex = new RegExp(`(^|\\n)(### ${escapeRegExp(heading)}[^\\n]*\\n\\n)([\\s\\S]*?)(?=\\n### |$)`);
               foldedBody = foldedBody.replace(sectionRegex, (whole, prefix, title, content) => {
@@ -162,24 +169,14 @@ jobs:
                 return `${prefix}${title}<details>\n<summary>${summary}</summary>\n\n${text}\n\n</details>\n`;
               });
             }
-            if (foldedBody !== normalizedIssueBody) {
-              // REST 更新不支持条件写入。写回前重新读取一次正文，已被修改（用户在触发后编辑了）就跳过折叠，避免覆盖
-              const { data: latestIssue } = await github.rest.issues.get({
+            if (foldedBody !== latestBody) {
+              await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
+                body: foldedBody
               });
-              if ((latestIssue.body || '').replace(/\r\n/g, '\n') !== normalizedIssueBody) {
-                console.log('Issue 正文在触发后已被修改，跳过折叠。');
-              } else {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  body: foldedBody
-                });
-                console.log('较长的内容已折叠。');
-              }
+              console.log('较长的内容已折叠。');
             }
           } catch (error) {
             console.error(`折叠 Issue #${issueNumber} 的内容失败`, error);
