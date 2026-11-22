@@ -239,8 +239,8 @@ class MainAppWindowBase(AppWindowBase):
             self.context_app_setting_refresh_signal.emit()
 
     def _refresh_app_setting_entries(self) -> None:
-        """在主线程重新扫描应用设置入口，刷新齿轮按钮显隐。"""
-        self.app_setting_manager.discover()
+        """在后台线程重新扫描应用设置入口，完成后在主线程刷新齿轮按钮显隐。"""
+        self.app_setting_manager.discover_async()
 
     def _show_download_request_dialog(self, event: ContextDownloadRequestEvent) -> None:
         """将后端资源下载请求交给框架协调器聚合处理。"""

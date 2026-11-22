@@ -11,11 +11,12 @@
 from __future__ import annotations
 
 import contextlib
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.application.plugin_info import PluginSource
@@ -48,6 +49,9 @@ class AppSettingManager(QObject):
 
     ready = Signal()
 
+    _scan_finished = Signal(object)
+    """后台扫描完成，携带新的 app_id → 设置回调映射，经队列连接回到界面线程应用。"""
+
     def __init__(self, ctx: OneDragonContext) -> None:
         super().__init__()
         self.ctx: OneDragonContext = ctx
@@ -56,6 +60,10 @@ class AppSettingManager(QObject):
         self._notify_interface_cache: dict[int, NotifySettingInterface] = {}
         self._app_setting_map: dict[str, Callable[..., None]] = {}
         self._pushed_navis: list[PivotNavigatorInterface] = []
+        self._scan_lock = threading.Lock()
+        self._scan_running: bool = False
+        self._scan_again: bool = False
+        self._scan_finished.connect(self._apply_scan, Qt.ConnectionType.QueuedConnection)
 
     # ─── 公共 API ─────────────────────────────────────────
 
@@ -65,10 +73,46 @@ class AppSettingManager(QObject):
         可重复调用：每次扫描前清空上次的注册结果与界面实例缓存，
         使插件安装/卸载后的增删能正确反映到 settable_app_ids。
         """
+        self._apply_scan(self._discover_providers())
+
+    def discover_async(self) -> None:
+        """在后台线程扫描设置提供者，完成后回到界面线程应用并发出 ready 信号。
+
+        扫描要导入每个插件的设置模块，插件多或模块重时会明显卡住界面，所以插件
+        安装、卸载、切换后的重扫走这里。扫描期间又来了新的请求时，当前扫描结束后
+        再补扫一次，保证最终结果反映最新的插件状态。
+        """
+        with self._scan_lock:
+            if self._scan_running:
+                self._scan_again = True
+                return
+            self._scan_running = True
+        threading.Thread(target=self._scan_worker, name='app-setting-scan', daemon=True).start()
+
+    def _scan_worker(self) -> None:
+        """后台线程：循环扫描直到没有新的请求。"""
+        while True:
+            try:
+                result = self._discover_providers()
+            except Exception:
+                log.warning('扫描应用设置提供者失败', exc_info=True)
+                result = None
+            with self._scan_lock:
+                again = self._scan_again
+                self._scan_again = False
+                if not again:
+                    self._scan_running = False
+            if again:
+                continue
+            if result is not None:
+                self._scan_finished.emit(result)
+            return
+
+    def _apply_scan(self, new_map: dict[str, Callable[..., None]]) -> None:
+        """界面线程：用扫描结果替换注册，重置旧的设置界面并发出 ready 信号。"""
         self._reset_pushed_setting_interfaces()
-        self._app_setting_map.clear()
         self._interface_cache.clear()
-        self._discover_providers()
+        self._app_setting_map = new_map
         self.ready.emit()
 
     def _reset_pushed_setting_interfaces(self) -> None:
@@ -136,8 +180,12 @@ class AppSettingManager(QObject):
 
     # ─── 扫描与注册 ──────────────────────────────────────
 
-    def _discover_providers(self) -> None:
-        """扫描 factory_manager.plugin_infos 中的 app_setting.py 与 *_app_setting.py 并注册。"""
+    def _discover_providers(self) -> dict[str, Callable[..., None]]:
+        """扫描 factory_manager.plugin_infos 中的 app_setting.py 与 *_app_setting.py，返回新的注册映射。
+
+        不修改 self 的状态，可以在后台线程里调用。
+        """
+        app_setting_map: dict[str, Callable[..., None]] = {}
         fm = self.ctx.factory_manager
         seen_app_ids: set[str] = set()
 
@@ -158,9 +206,12 @@ class AppSettingManager(QObject):
                     )
                 ):
                     continue
-                self._try_register_provider(setting_file, info.source, base_dir, seen_app_ids)
+                self._try_register_provider(
+                    setting_file, info.source, base_dir, seen_app_ids, app_setting_map
+                )
 
-        log.info(f"发现 {len(self._app_setting_map)} 个应用设置提供者")
+        log.info(f"发现 {len(app_setting_map)} 个应用设置提供者")
+        return app_setting_map
 
     @staticmethod
     def _module_root_for(
@@ -198,8 +249,9 @@ class AppSettingManager(QObject):
         source: PluginSource,
         base_dir: Path,
         seen_app_ids: set[str],
+        app_setting_map: dict[str, Callable[..., None]],
     ) -> None:
-        """尝试加载并注册单个 provider 文件。"""
+        """尝试加载单个 provider 文件，注册进 app_setting_map。"""
         try:
             provider = self._load_provider(setting_file, source, base_dir)
         except Exception:
@@ -213,9 +265,9 @@ class AppSettingManager(QObject):
 
         seen_app_ids.add(provider.app_id)
         if provider.setting_type == SettingType.INTERFACE:
-            self._app_setting_map[provider.app_id] = self._make_interface_handler(provider.get_setting_cls)
+            app_setting_map[provider.app_id] = self._make_interface_handler(provider.get_setting_cls)
         elif provider.setting_type == SettingType.FLYOUT:
-            self._app_setting_map[provider.app_id] = self._make_flyout_handler(provider.get_setting_cls)
+            app_setting_map[provider.app_id] = self._make_flyout_handler(provider.get_setting_cls)
 
     @staticmethod
     def _load_provider(
