@@ -257,14 +257,22 @@ jobs:
 
           ## 安装方式
 
+          不知道怎么选？普通用户请下载「集成启动器」的 `WithRuntime-Full.zip`，解压后运行 `OneDragon-RuntimeLauncher.exe` 即可。
+
+          **集成启动器（推荐，解压即用，无需安装 Python）**
+
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime-Full.zip` 为完整包，内含运行环境、程序代码和识别模型，无需额外下载模型。首次安装选这个。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip` 为精简包，不含识别模型，模型按需下载。
+          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为集成启动器更新包（exe + .runtime），只用于已有环境的就地升级，首次安装不要下载。
+
+          **源码启动器（需要运行安装器，或自行用源码运行）**
+
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
-          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
-          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime-Full.zip` 为内嵌运行时 + 源码 + 模型的完整独立包（无需安装 Python，也无需额外下载模型），解压即用。
-          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip` 为内嵌运行时 + 源码的精简独立包（无需安装 Python，模型按需下载），解压即用。
-          - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
-          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为集成启动器更新包（exe + .runtime），用于已有环境的就地升级。
-          - __不要下载Source Code__
+          - 更新源码启动器：前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
+
+          __不要下载Source Code__
 
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
           若运行出错请查看 [自助排障指南](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
