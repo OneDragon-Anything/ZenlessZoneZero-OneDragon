@@ -88,6 +88,15 @@ resource_download:
       github: "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases"
       cnb: "https://cnb.cool/OneDragon-Anything/OneDragon-YOLO/-/releases"
       gitee: "https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases"
+    vigembus:
+      github: "https://github.com/nefarius/ViGEmBus/releases"
+  # 驱动安装包：官方已停止维护，固定在最终版本
+  drivers:
+    vigembus:
+      label: ViGEmBus 虚拟手柄驱动
+      repo: vigembus
+      tag: v1.22.0
+      file: ViGEmBus_1.22.0_x64_x86_arm64.exe
   # 插件市场索引 plugins.json 在各源上的完整文件地址。
   # 约定：封面图的 covers/ 目录与 plugins.json 同级，客户端按索引所在目录拼封面地址。
   plugin_market:

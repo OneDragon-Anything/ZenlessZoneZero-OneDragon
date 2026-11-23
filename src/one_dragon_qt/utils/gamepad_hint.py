@@ -7,7 +7,6 @@ from qfluentwidgets import InfoBar, InfoBarPosition, PushButton
 
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.web.common_downloader import (
-    GITHUB_SOURCE_ID,
     CommonDownloader,
     CommonDownloaderParam,
 )
@@ -16,13 +15,6 @@ from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.download_queue_service import ResourceDownloadSpec
 
 VIGEMBUS_RELEASES_URL = 'https://github.com/nefarius/ViGEmBus/releases/latest'
-# ViGEmBus 已停止维护，最终版本固定，直接写死 tag 和文件名
-VIGEMBUS_TAG = 'v1.22.0'
-VIGEMBUS_INSTALLER_NAME = 'ViGEmBus_1.22.0_x64_x86_arm64.exe'
-VIGEMBUS_DOWNLOAD_URL = (
-    f'https://github.com/nefarius/ViGEmBus/releases/download/'
-    f'{VIGEMBUS_TAG}/{VIGEMBUS_INSTALLER_NAME}'
-)
 
 
 def _after_installer_download(save_path: str, success: bool) -> None:
@@ -38,25 +30,30 @@ def enqueue_vigembus_installer(parent: QWidget) -> None:
     """
     window = parent.window()
     queue = getattr(window, 'download_queue', None)
-    if queue is None:
+    ctx = getattr(window, 'ctx', None)
+    installer = (
+        ctx.env_config.repo_config.get_driver_installer('vigembus')
+        if ctx is not None else None
+    )
+    if queue is None or installer is None:
         QDesktopServices.openUrl(QUrl(VIGEMBUS_RELEASES_URL))
         return
 
+    title, tag, file_name, download_urls = installer
     save_dir = os_utils.get_path_under_work_dir('.temp', 'vigembus')
-    save_path = os.path.join(save_dir, VIGEMBUS_INSTALLER_NAME)
+    save_path = os.path.join(save_dir, file_name)
     spec = ResourceDownloadSpec(
         resource_id='vigembus',
         resource_type='driver',
-        title='ViGEmBus 虚拟手柄驱动',
+        title=title,
         current_version='',
-        target_version=VIGEMBUS_TAG,
+        target_version=tag,
         note='下载完成后会自动打开安装程序',
-        source_order=[GITHUB_SOURCE_ID],
         downloader_factory=lambda: CommonDownloader(
             CommonDownloaderParam(
                 save_file_path=save_dir,
-                save_file_name=VIGEMBUS_INSTALLER_NAME,
-                download_urls={GITHUB_SOURCE_ID: VIGEMBUS_DOWNLOAD_URL},
+                save_file_name=file_name,
+                download_urls=download_urls,
             )
         ),
         after_download=lambda success: _after_installer_download(save_path, success),
