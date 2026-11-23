@@ -901,7 +901,11 @@ class PluginOperationMixin:
             if not _plugin_write_lock.acquire(timeout=120):
                 raise RuntimeError('有插件操作正在进行，请稍后再试')
             try:
-                result = self.plugin_import_service.import_plugin(archive, overwrite=overwrite)
+                result = self.plugin_import_service.import_plugin(
+                    archive,
+                    overwrite=overwrite,
+                    target_dir=self._in_place_target_dir(entry),
+                )
             finally:
                 _plugin_write_lock.release()
             if not result.success:
@@ -921,6 +925,29 @@ class PluginOperationMixin:
                 action_name,
             ),
         )
+
+    def _in_place_target_dir(self, entry: MarketPlugin) -> Path | None:
+        """已装的商店版是仓库布局（plugins/<仓库>/<插件>/）时，返回它的目录，原地更新。
+
+        不这样做的话，更新会在 plugins/<插件>/ 另建一份平铺副本，
+        旧的仓库布局副本因 APP_ID 重复加载失败。平铺安装、没装、只有开发版时返回 None。
+
+        Args:
+            entry: 市场条目。
+        """
+        plugin_info = self.installed_market_map().get(entry.plugin_id)
+        if plugin_info is None:
+            return None
+        market_dir = self.market_plugin_dir(plugin_info)
+        if market_dir is None:
+            return None
+        plugins_root = self.plugin_import_service.plugins_dir.resolve(strict=False)
+        resolved = market_dir.resolve(strict=False)
+        if not resolved.is_relative_to(plugins_root):
+            return None
+        if len(resolved.relative_to(plugins_root).parts) != 2:
+            return None
+        return market_dir
 
     @staticmethod
     def _sha256_of(path: Path) -> str:
