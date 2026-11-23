@@ -70,7 +70,8 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='识别初始画面', status='不在随便观')
     @operation_node(name='传送')
     def goto_category(self) -> OperationRoundResult:
-        op = TransportByQuickNav(self.ctx, '澄辉坪', '随便观', wait_at_last=False)
+        op = TransportByQuickNav(self.ctx, '澄辉坪', '随便观',
+                                 wait_at_last=False, dest_alias_list=['随便观外庭'])
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')

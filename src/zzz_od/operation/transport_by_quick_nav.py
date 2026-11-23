@@ -3,6 +3,7 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
@@ -33,12 +34,15 @@ class TransportByQuickNav(ZOperation):
     BOTTOM_BAR_RECT = Rect(60, 1020, 1860, 1062)
 
     def __init__(self, ctx: ZContext, region_name: str, dest_name: str,
-                 wait_at_last: bool = True) -> None:
+                 wait_at_last: bool = True,
+                 dest_alias_list: list[str] | None = None) -> None:
         ZOperation.__init__(self, ctx, op_name=f'快捷导航传送 {region_name} {dest_name}')
 
         self.region_name: str = region_name
         self.dest_name: str = dest_name
         self.wait_at_last: bool = wait_at_last
+        # 卡片 OCR 实际文字与目的地名不同时，由调用方声明别名（如「随便观」的卡片实际是「随便观外庭」）
+        self.dest_alias_list: list[str] = dest_alias_list or []
 
     def _ocr_in_rect(self, rect: Rect) -> dict[str, object]:
         """指定区域内 OCR，返回 文字 -> 识别结果 的映射"""
@@ -128,14 +132,16 @@ class TransportByQuickNav(ZOperation):
                     return self.round_retry(wait=1)
 
         bottom_result = self._ocr_in_rect(self.BOTTOM_BAR_RECT)
-        # 只接受完全一致的卡片名（如「随便观」不能误中「随便观外庭」）；
-        # OCR 噪声导致未命中时靠翻页重试，宁可失败也不点错卡
+        # 只接受完全一致的卡片名（含调用方声明的 OCR 别名），
+        # 宁可翻页重试失败也不误点其他前缀卡片
+        exact_names = [self.dest_name, *self.dest_alias_list]
         for ocr_str, mrl in bottom_result.items():
-            if ocr_str.strip() == self.dest_name:
+            if ocr_str.strip() in exact_names:
                 self.ctx.controller.click(mrl.max.center)
                 return self.round_success(wait=1.5)
 
         # 目的地不在当前可见的 6 张卡片里，点右箭头翻页
+        log.info(f'[{self.op_name}] 目的地未命中, 当前底部栏 OCR: {list(bottom_result.keys())}')
         self.ctx.controller.click(Point(1888, 973))
         return self.round_retry(wait=1)
 
