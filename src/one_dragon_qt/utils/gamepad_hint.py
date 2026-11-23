@@ -62,7 +62,7 @@ def enqueue_vigembus_installer(parent: QWidget) -> None:
         after_download=lambda success: _after_installer_download(save_path, success),
     )
     log.info('ViGEmBus 安装包加入下载队列')
-    queue.enqueue(spec, priority=True)
+    queue.enqueue(spec)
 
 
 def check_background_mode_available(parent: QWidget) -> bool:
