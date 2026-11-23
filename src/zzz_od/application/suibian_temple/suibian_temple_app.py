@@ -54,6 +54,7 @@ class SuibianTempleApp(ZApplication):
 
     def handle_init(self) -> None:
         """每次执行前重置运行期状态"""
+        super().handle_init()
         self.shiye_seen = False
 
     @operation_node(name='识别初始画面', is_start_node=True)
@@ -130,7 +131,11 @@ class SuibianTempleApp(ZApplication):
                 return self.round_retry(status='转向狮耶', wait=0.6)
 
             self.ctx.controller.move_w(press=True, press_time=0.5, release=True)
-            pyautogui.moveTo(shiye_match.center.x + 20, shiye_match.center.y + 420, duration=0.2)
+            # OCR 坐标是游戏内坐标，悬停前先转成屏幕坐标（含窗口位置/缩放/标题栏偏移）
+            hover_pos = self.ctx.controller.game_win.game2win_pos(
+                Point(shiye_match.center.x + 20, shiye_match.center.y + 420))
+            if hover_pos is not None:
+                pyautogui.moveTo(hover_pos.x, hover_pos.y, duration=0.2)
             time.sleep(0.4)
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
             return self.round_retry(status='贴近狮耶并交互', wait=1.2)

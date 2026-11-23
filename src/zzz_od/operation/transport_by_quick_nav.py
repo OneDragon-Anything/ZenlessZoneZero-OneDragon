@@ -128,13 +128,12 @@ class TransportByQuickNav(ZOperation):
                     return self.round_retry(wait=1)
 
         bottom_result = self._ocr_in_rect(self.BOTTOM_BAR_RECT)
-        # 先找完全一致的卡片（如「随便观」不能误中「随便观外庭」），再退而求其次做包含匹配
-        for exact_only in (True, False):
-            for ocr_str, mrl in bottom_result.items():
-                matched = ocr_str.strip() == self.dest_name if exact_only else self.dest_name in ocr_str
-                if matched:
-                    self.ctx.controller.click(mrl.max.center)
-                    return self.round_success(wait=1.5)
+        # 只接受完全一致的卡片名（如「随便观」不能误中「随便观外庭」）；
+        # OCR 噪声导致未命中时靠翻页重试，宁可失败也不点错卡
+        for ocr_str, mrl in bottom_result.items():
+            if ocr_str.strip() == self.dest_name:
+                self.ctx.controller.click(mrl.max.center)
+                return self.round_success(wait=1.5)
 
         # 目的地不在当前可见的 6 张卡片里，点右箭头翻页
         self.ctx.controller.click(Point(1888, 973))
