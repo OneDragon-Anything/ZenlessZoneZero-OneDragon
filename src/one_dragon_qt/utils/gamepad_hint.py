@@ -82,20 +82,11 @@ def enqueue_vigembus_installer(parent: QWidget) -> None:
 
 def check_background_mode_available(parent: QWidget) -> bool:
     """
-    检查后台模式所需的虚拟手柄环境，不可用时弹出提示。
-    缺 ViGEmBus 驱动时，提示里带按钮打开 GitHub 最新版下载页。
+    检查后台模式所需的 ViGEmBus 驱动，缺失时弹出提示。
+    提示里带「下载并安装」按钮，走资源下载队列下载并打开安装程序。
 
     :return: 是否可用
     """
-    if not pc_button_utils.is_vgamepad_installed():
-        InfoBar.warning(
-            title='后台模式不可用',
-            content='未检测到 vgamepad 依赖，请在环境配置中同步依赖后重启一条龙',
-            parent=parent,
-            duration=5000,
-        )
-        return False
-
     if not pc_button_utils.is_vigembus_driver_installed():
         bar = InfoBar.warning(
             title='后台模式不可用',
