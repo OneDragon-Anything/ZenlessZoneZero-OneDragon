@@ -1,9 +1,8 @@
 from functools import lru_cache
+
 from pynput import keyboard, mouse
-from typing import Union
 
 try:
-    import vgamepad
     _VGAMEPAD_INSTALLED = True
 except Exception:
     _VGAMEPAD_INSTALLED = False
@@ -54,7 +53,7 @@ def get_mouse_button(key: str) -> mouse.Button:
 
 
 @lru_cache
-def get_keyboard_button(key: str) -> Union[keyboard.KeyCode, keyboard.Key, str]:
+def get_keyboard_button(key: str) -> keyboard.KeyCode | keyboard.Key | str:
     # 处理小键盘数字键: numpad_0 到 numpad_9
     if key.startswith('numpad_') and len(key) == 8 and key[-1].isdigit():
         vk_code = 96 + int(key[-1])  # 小键盘0的虚拟键码是96
@@ -75,3 +74,18 @@ def is_vgamepad_installed() -> bool:
     :return:
     """
     return _VGAMEPAD_INSTALLED
+
+
+def is_vigembus_driver_installed() -> bool:
+    """
+    是否安装了 ViGEmBus 驱动（检查 Windows 服务注册表项，不创建虚拟手柄）
+    非 Windows 或无法读取时返回 False
+    :return:
+    """
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            r'SYSTEM\CurrentControlSet\Services\ViGEmBus'):
+            return True
+    except Exception:
+        return False

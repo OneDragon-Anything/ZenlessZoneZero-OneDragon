@@ -2,10 +2,10 @@ import os.path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, InfoBar, ToolButton
+from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.application import application_const
+from one_dragon_qt.utils.gamepad_hint import check_background_mode_available
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
@@ -129,15 +129,9 @@ class OperationDebugInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
 
     def _on_background_mode_changed(self, value: bool) -> None:
-        if value and not pc_button_utils.is_vgamepad_installed():
+        if value and not check_background_mode_available(self):
             self.background_mode_opt.setValue(False, emit_signal=False)
             if self.background_mode_opt.adapter is not None:
                 self.background_mode_opt.adapter.set_value(False)
             else:
                 self.ctx.battle_assistant_config.background_mode = False
-            InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
-                parent=self,
-                duration=5000,
-            )
