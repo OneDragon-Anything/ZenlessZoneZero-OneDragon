@@ -75,8 +75,8 @@ if not getattr(sys, 'frozen', False):
     import zipfile
     from PIL import Image, ImageDraw, ImageFont
     from PySide6 import QtCore
-    from PySide6.QtCore import QAbstractListModel, QByteArray, QEasingCurve, QEvent, QEventLoop, QMimeData, QModelIndex, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QRunnable, QSize, QThread, QThreadPool, QTimer, QUrl, Qt, Signal
-    from PySide6.QtGui import QBrush, QCloseEvent, QColor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QEnterEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QImageReader, QIntValidator, QKeyEvent, QKeySequence, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QRadialGradient, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
+    from PySide6.QtCore import QAbstractAnimation, QAbstractListModel, QByteArray, QEasingCurve, QEvent, QEventLoop, QMimeData, QModelIndex, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QRunnable, QSize, QThread, QThreadPool, QTimer, QUrl, Qt, Signal
+    from PySide6.QtGui import QBrush, QCloseEvent, QColor, QCursor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QEnterEvent, QFont, QFontMetrics, QGuiApplication, QIcon, QImage, QImageReader, QIntValidator, QKeyEvent, QKeySequence, QLinearGradient, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QRadialGradient, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QValidator, QWheelEvent, Qt
     from PySide6.QtMultimedia import QMediaPlayer
     from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
     from PySide6.QtQml import QQmlApplicationEngine
