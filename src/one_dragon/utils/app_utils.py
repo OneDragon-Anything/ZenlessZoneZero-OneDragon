@@ -5,17 +5,33 @@ import subprocess
 import sys
 from pathlib import Path
 
+from one_dragon.launcher.launcher_type import (
+    LAUNCHER_EXE,
+    RUNTIME_LAUNCHER_EXE,
+    detect_running_launcher_type,
+)
 from one_dragon.utils import os_utils
 
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
 
 
+def get_launcher_path() -> Path:
+    """获取要启动的启动器 exe 路径。
+
+    当前进程本身就是启动器时直接用它；安装器等其他程序和源码运行时，
+    按工作目录里已安装的启动器选择，两种都装了时优先集成启动器。
+    """
+    if getattr(sys, 'frozen', False) and detect_running_launcher_type() is not None:
+        return Path(sys.executable)
+    work_dir = Path(os_utils.get_work_dir())
+    if (work_dir / RUNTIME_LAUNCHER_EXE).exists():
+        return work_dir / RUNTIME_LAUNCHER_EXE
+    return work_dir / LAUNCHER_EXE
+
+
 def start_one_dragon(restart: bool) -> None:
     """启动独立的一条龙进程，重启时在创建进程成功后退出当前程序。"""
-    if getattr(sys, 'frozen', False):
-        launcher_path = Path(sys.executable)
-    else:
-        launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
+    launcher_path = get_launcher_path()
     env = os.environ.copy()
     # 重启进程必须重新初始化 PyInstaller，不能复用即将退出的父进程环境。
     env['PYINSTALLER_RESET_ENVIRONMENT'] = '1'
@@ -67,11 +83,7 @@ def get_launcher_version() -> str:
     Returns:
         str: 版本号
     """
-    if getattr(sys, 'frozen', False):
-        launcher_path = Path(sys.executable)
-    else:
-        launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
-    return get_exe_version(str(launcher_path))
+    return get_exe_version(str(get_launcher_path()))
 
 
 if __name__ == '__main__':
