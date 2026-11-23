@@ -90,7 +90,7 @@ def check_background_mode_available(parent: QWidget) -> bool:
     if not pc_button_utils.is_vgamepad_installed():
         InfoBar.warning(
             title='后台模式不可用',
-            content='未安装虚拟手柄依赖组件（vgamepad），请在「扩展安装」页安装',
+            content='未检测到 vgamepad 依赖，请在环境配置中同步依赖后重启一条龙',
             parent=parent,
             duration=5000,
         )
