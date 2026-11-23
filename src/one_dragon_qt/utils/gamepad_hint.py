@@ -12,7 +12,10 @@ from one_dragon.base.web.common_downloader import (
 )
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.services.download_queue_service import ResourceDownloadSpec
+from one_dragon_qt.services.download_queue_service import (
+    ResourceDownloadSpec,
+    ResourceDownloadTaskState,
+)
 
 VIGEMBUS_RELEASES_URL = 'https://github.com/nefarius/ViGEmBus/releases/latest'
 
@@ -59,7 +62,22 @@ def enqueue_vigembus_installer(parent: QWidget) -> None:
         after_download=lambda success: _after_installer_download(save_path, success),
     )
     log.info('ViGEmBus 安装包加入下载队列')
-    queue.enqueue(spec)
+    existing = queue.get_task(spec.task_key)
+    if existing is None:
+        queue.enqueue(spec)
+    elif existing.state in (
+        ResourceDownloadTaskState.FAILED,
+        ResourceDownloadTaskState.CANCELLED,
+    ):
+        queue.retry(spec.task_key)
+    elif existing.state == ResourceDownloadTaskState.SUCCEEDED:
+        if os.path.exists(save_path):
+            _after_installer_download(save_path, True)
+        else:
+            # 安装包已被清理，成功任务没法再用，移除后重新下载
+            queue.remove(spec.task_key)
+            queue.enqueue(spec)
+    # 等待或进行中的任务继续去重，不重复添加
 
 
 def check_background_mode_available(parent: QWidget) -> bool:
