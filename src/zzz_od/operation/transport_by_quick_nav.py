@@ -163,5 +163,5 @@ class TransportByQuickNav(ZOperation):
         """与 Transport 同名参数保持一致契约：落地可能触发好感度事件，使用 BackToNormalWorld 处理"""
         if not self.wait_at_last:
             return self.round_success('不等待大世界加载')
-        op = BackToNormalWorld(self.ctx)
+        op = BackToNormalWorld(self.ctx, timeout_seconds=120)
         return self.round_by_op_result(op.execute())
