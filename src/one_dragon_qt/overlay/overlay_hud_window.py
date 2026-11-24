@@ -164,6 +164,7 @@ class OverlayHudWindow:
         self._window: QQuickWindow | None = None
         self._models: dict[str, OverlayListModel] = {}
         self._qml_path = Path(__file__).parent / "overlay_hud.qml"
+        self._applied_anti_capture: bool = False
 
     def ensure_created(self) -> QQuickWindow:
         """创建 QML 引擎与窗口（幂等）。"""
@@ -229,6 +230,9 @@ class OverlayHudWindow:
         if self._window is not None:
             self._window.setProperty(name, value)
 
+    def is_visible(self) -> bool:
+        return self._window is not None and self._window.isVisible()
+
     def set_visible(self, visible: bool) -> None:
         if self._window is None:
             return
@@ -236,6 +240,10 @@ class OverlayHudWindow:
             self._window.show()
             self._window.raise_()
         elif not visible and self._window.isVisible():
+            if self._applied_anti_capture:
+                hwnd = int(self._window.winId())
+                if win32_utils.set_window_display_affinity(hwnd, False):
+                    self._applied_anti_capture = False
             self._window.hide()
 
     def set_geometry(self, rect: QRect) -> None:
@@ -329,13 +337,27 @@ class OverlayHudWindow:
         win32_utils.set_window_click_through(hwnd, enabled)
 
     def set_anti_capture(self, enabled: bool) -> None:
-        if self._window is None or not self._window.isVisible():
+        enabled = bool(enabled)
+        if self._window is None:
+            return
+        if not self._window.isVisible():
+            if not enabled and self._applied_anti_capture:
+                hwnd = int(self._window.winId())
+                if win32_utils.set_window_display_affinity(hwnd, False):
+                    self._applied_anti_capture = False
+            return
+        if enabled == self._applied_anti_capture:
             return
         hwnd = int(self._window.winId())
-        win32_utils.set_window_display_affinity(hwnd, enabled)
+        if win32_utils.set_window_display_affinity(hwnd, enabled):
+            self._applied_anti_capture = enabled
 
     def close(self) -> None:
         if self._window is not None:
+            if self._applied_anti_capture:
+                hwnd = int(self._window.winId())
+                win32_utils.set_window_display_affinity(hwnd, False)
+            self._applied_anti_capture = False
             self._window.close()
             self._window = None
         if self._engine is not None:

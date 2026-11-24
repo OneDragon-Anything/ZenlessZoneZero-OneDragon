@@ -6,6 +6,8 @@ from qfluentwidgets import (
     InfoBar,
     PushButton,
     SettingCardGroup,
+    ToolTipFilter,
+    ToolTipPosition,
 )
 
 from one_dragon.base.config.basic_game_config import (
@@ -159,6 +161,15 @@ class SettingGameInterface(VerticalScrollInterface):
             icon=FluentIcon.VIEW, title='防截图',
             content='防止 BitBlt 等前台截图方式受到影响',
         )
+        self.overlay_anti_capture_switch.setToolTip(
+            gt(
+                '启用 WDA_EXCLUDEFROMCAPTURE 防止前台截图或录屏捕获调试面板；'
+                '默认 Print Window 截图不受影响无需开启，开启后可能导致 NVIDIA 即时回放（开启桌面捕获时）自动关闭'
+            )
+        )
+        self.overlay_anti_capture_switch.installEventFilter(
+            ToolTipFilter(self.overlay_anti_capture_switch, showDelay=300, position=ToolTipPosition.TOP)
+        )
         self.overlay_anti_capture_switch.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_anti_capture_switch)
 
@@ -168,13 +179,6 @@ class SettingGameInterface(VerticalScrollInterface):
         )
         self.overlay_mask_uid_switch.value_changed.connect(self._on_overlay_appearance_changed)
         overlay_group.addSettingCard(self.overlay_mask_uid_switch)
-
-        self.overlay_mask_recordable_switch = SwitchSettingCard(
-            icon=FluentIcon.VIDEO, title='UID 遮罩与游戏同层录制',
-            content='允许录屏/推流软件捕获 UID 遮罩块（解除遮罩防录屏），避免录屏时暴露 UID；调试面板仍保持防录屏（适用于显示器采集/桌面录屏；OBS 窗口采集仅捕获游戏本体，需额外添加遮挡源）',
-        )
-        self.overlay_mask_recordable_switch.value_changed.connect(self._on_overlay_appearance_changed)
-        overlay_group.addSettingCard(self.overlay_mask_recordable_switch)
 
         self.overlay_theme_color_card = PushSettingCard(
             icon=FluentIcon.PALETTE, title='主题色', text='选择颜色',
@@ -357,7 +361,6 @@ class SettingGameInterface(VerticalScrollInterface):
         self.overlay_font_bold_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_font_bold'))
         self.overlay_anti_capture_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_anti_capture'))
         self.overlay_mask_uid_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_mask_uid'))
-        self.overlay_mask_recordable_switch.init_with_adapter(overlay_config.get_prop_adapter('hud_mask_recordable'))
         self.overlay_theme_color_card.button.setText(overlay_config.hud_theme_color)
 
         for action, card in self._key_cards.items():

@@ -266,24 +266,31 @@ class OverlayManager(QObject):
             self._hide_overlay()
             return
 
+        mode = self.config.display_mode
+        toast_showing = time.time() < self._toast_until
+        if mode == "off" and not toast_showing:
+            self._hide_overlay()
+            return
+
         game_qt_rect = self._to_qt_rect(game_rect)
 
-        overlay = self._ensure_overlay_window()
-        overlay.update_with_game_rect(game_qt_rect)
-        overlay.set_vision_layer_enabled(
-            self.config.vision_layer_enabled and self.config.display_mode == "debug"
-        )
-        overlay.set_vision_transform(
-            offset_x=self.config.vision_offset_x,
-            offset_y=self.config.vision_offset_y,
-            scale_x=self.config.vision_scale_x,
-            scale_y=self.config.vision_scale_y,
-        )
-        mode = self.config.display_mode
-        overlay.set_anti_capture(self.config.hud_anti_capture)
-        overlay.set_overlay_visible(mode != "off")
-        if mode != "off":
+        if mode == "debug":
+            overlay = self._ensure_overlay_window()
+            overlay.update_with_game_rect(game_qt_rect)
+            overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
+            overlay.set_vision_transform(
+                offset_x=self.config.vision_offset_x,
+                offset_y=self.config.vision_offset_y,
+                scale_x=self.config.vision_scale_x,
+                scale_y=self.config.vision_scale_y,
+            )
+            overlay.set_anti_capture(self.config.hud_anti_capture)
+            overlay.set_overlay_visible(True)
             overlay.set_passthrough(not self._ctrl_interaction)
+        elif self._overlay_window is not None:
+            self._overlay_window.set_vision_layer_enabled(False)
+            self._overlay_window.set_vision_items([])
+            self._overlay_window.set_overlay_visible(False)
 
         hud = self._ensure_hud_window()
         hud.set_geometry(self._qt_rect_to_qrect(game_qt_rect))
@@ -295,32 +302,41 @@ class OverlayManager(QObject):
         hud.set_log_size(self.config.hud_log_width, self.config.hud_log_height)
         hud.set_theme_color(self.config.hud_theme_color)
         # off 模式下 toast 展示期（5 秒）窗口仍可见，展示结束自动隐藏
-        toast_showing = time.time() < self._toast_until
         hud_visible = mode != "off" or toast_showing
         hud.set_visible(hud_visible)
         if hud_visible:
             hud.set_passthrough(True)
-            hud.set_anti_capture(self.config.hud_anti_capture)
+            hud.set_anti_capture(self.config.hud_anti_capture and mode != "off")
 
         self._sync_hud_panels(game_qt_rect)
 
-        # UID 遮挡窗口
+        # UID 遮挡窗口（始终不设 WDA_EXCLUDEFROMCAPTURE，保持桌面录屏与外部截图可见）
         uid_visible = self.config.hud_mask_uid and mode in ("normal", "debug")
         if uid_visible:
             uid_window = self._ensure_uid_window()
+            std_w, std_h = self._get_uid_mask_std_size()
             scale_y = (float(getattr(game_qt_rect, "height", 0)) or 1080.0) / 1080.0
-            w = max(1, math.ceil(106 * scale_y))
-            h = max(1, math.ceil(21 * scale_y))
+            w = max(1, math.ceil(std_w * scale_y))
+            h = max(1, math.ceil(std_h * scale_y))
             x2 = int(getattr(game_qt_rect, "x2", 0))
             y2 = int(getattr(game_qt_rect, "y2", 0))
             target_rect = QRect(x2 - w, y2 - h, w, h)
             if uid_window.geometry() != target_rect:
                 uid_window.setGeometry(target_rect)
-            anti_capture = not self.config.hud_mask_recordable and self.config.hud_anti_capture
-            uid_window.set_anti_capture(anti_capture)
             uid_window.set_mask_visible(True)
         elif self._uid_window is not None:
             self._uid_window.set_mask_visible(False)
+
+    @staticmethod
+    def _get_uid_mask_std_size() -> tuple[int, int]:
+        """返回 1920x1080 标准分辨率下的 UID 遮罩宽高（含端点像素，与 fill_uid_black 对齐）。"""
+        try:
+            from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
+
+            rect = ScreenNormalWorldEnum.UID.value.rect
+            return max(1, int(rect.width) + 1), max(1, int(rect.height) + 1)
+        except Exception:
+            return 133, 21
 
     @staticmethod
     def _qt_rect_to_qrect(qt_rect: Rect):
@@ -390,7 +406,11 @@ class OverlayManager(QObject):
             log.error("刷新 Overlay 状态面板失败", exc_info=True)
 
     def _refresh_state_panel(self) -> None:
-        if self._overlay_window is None or not self._overlay_window.isVisible():
+        if self.config.display_mode == "off":
+            return
+        hud_visible = self._hud_window is not None and self._hud_window.is_visible()
+        overlay_visible = self._overlay_window is not None and self._overlay_window.isVisible()
+        if not hud_visible and not overlay_visible:
             return
 
         self._refresh_debug_panels()
