@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Optional, Union
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidRegionType,
+)
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import AgentEnum, Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 
 
 class LostVoidInteractNPC(Enum):
@@ -52,7 +52,7 @@ class LostVoidInteractTarget:
 
 
 
-def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidInteractTarget]:
+def match_interact_target(ctx: ZContext, ocr_result: str) -> LostVoidInteractTarget | None:
     """
     匹配具体的交互目标
     @param ctx: 上下文
@@ -60,19 +60,25 @@ def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidI
     @return: 交互目标
     """
     # 删除一些交互时候可能识别到的特殊字符
-    ocr_result = ocr_result.replace('<', '')
-    ocr_result = ocr_result.replace('>', '')
+    ocr_result = ocr_result.replace('<', '').replace('>', '').strip()
     if len(ocr_result) == 0:
         return None
 
-    target_list: list[Union[str, Agent]] = (
+    # 游戏内迷雾传送门交互标签显示为「迷雾区域」，YOLO 类别为「0015-迷雾」
+    entry_alias_list: list[tuple[str, str]] = [
+        (LostVoidRegionType.MIST.value.value, '迷雾区域'),
+    ]
+
+    target_list: list[str | Agent] = (
             [i.value.value for i in LostVoidRegionType]  # 入口
+            + [target for target, _ in entry_alias_list]  # 入口别名
             + [i.value for i in LostVoidInteractNPC]  # NPC
             + [i.value for i in AgentEnum]  # 代理人
             + [i.value for i in LostVoidBoss]  # BOSS
     )
     target_word_list: list[str] = (
         [gt(i.value.value, 'game') for i in LostVoidRegionType]  # 入口
+        + [gt(alias, 'game') for _, alias in entry_alias_list]  # 入口别名
         + [gt(i.value, 'game') for i in LostVoidInteractNPC]  # NPC
         + [gt(i.value.agent_name, 'game') for i in AgentEnum]  # 代理人
         + [gt(i.value, 'game') for i in LostVoidBoss]  # BOSS
@@ -83,7 +89,7 @@ def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidI
         return None
 
     start_idx: int = 0
-    end_idx: int = start_idx + len(LostVoidRegionType)
+    end_idx: int = start_idx + len(LostVoidRegionType) + len(entry_alias_list)
 
     if start_idx <= idx < end_idx:
         return LostVoidInteractTarget(name=target_list[idx], icon=target_list[idx], is_entry=True)
