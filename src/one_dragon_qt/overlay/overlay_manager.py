@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections.abc import Sequence
 from contextlib import suppress
@@ -34,6 +35,7 @@ _VISION_TTL_SECONDS = 1.8
 _DECISION_TTL_SECONDS = 30.0
 _TIMELINE_TTL_SECONDS = 60.0
 _PERF_TTL_SECONDS = 30.0
+_BIND_RETRY_SECONDS = 2.0
 
 
 class _CreatedTrace(Protocol):
@@ -87,6 +89,8 @@ class OverlayManager(QObject):
         self._toggle_combo_pressed = False
         self._last_toggle_hotkey_time = 0.0
         self._last_game_qt_rect: Rect | None = None
+        self._bind_thread: threading.Thread | None = None
+        self._last_bind_request_time = 0.0
 
         self._signal_bridge = _OverlaySignalBridge()
         self._signal_bridge.log_received.connect(self._on_log_received_signal)
@@ -870,31 +874,58 @@ class OverlayManager(QObject):
         return time.time() - recorder.last_record_time <= seconds
 
     def _get_game_rect(self):
+        """取已绑定游戏窗口的位置；未绑定时交给后台线程查找，本次返回 None。"""
         if self.ctx.controller is None:
             return None
         game_win = getattr(self.ctx.controller, "game_win", None)
         if game_win is None:
             return None
         rect = self._resolve_game_rect_once(game_win)
-        if rect is not None:
-            return rect
+        if rect is None:
+            peek_hwnd = getattr(game_win, "peek_hwnd", None)
+            if callable(peek_hwnd) and peek_hwnd() is None:
+                self._request_game_win_binding(game_win)
+        return rect
 
-        refresh = getattr(game_win, "refresh_win", None)
-        if callable(refresh):
-            refresh()
-            return self._resolve_game_rect_once(game_win)
-        return None
+    def _request_game_win_binding(self, game_win) -> None:
+        """在后台线程查找游戏窗口。
+
+        查找要枚举全部窗口并逐个读标题，遇到无响应的窗口会卡很久，不能放在界面线程。
+        同一时间只跑一个查找，并限制频率。
+        """
+        init_win = getattr(game_win, "init_win", None)
+        if not callable(init_win):
+            return
+        if self._bind_thread is not None and self._bind_thread.is_alive():
+            return
+        now = time.monotonic()
+        if now - self._last_bind_request_time < _BIND_RETRY_SECONDS:
+            return
+        self._last_bind_request_time = now
+
+        def bind() -> None:
+            try:
+                init_win()
+            except Exception:
+                log.debug("Overlay 后台查找游戏窗口失败", exc_info=True)
+
+        self._bind_thread = threading.Thread(target=bind, name="overlay-bind-game-win", daemon=True)
+        self._bind_thread.start()
 
     @staticmethod
     def _resolve_game_rect_once(game_win):
-        if not game_win.is_win_valid:
+        """只读已有绑定，不查找窗口，避免界面线程被窗口查找卡住。"""
+        peek_hwnd = getattr(game_win, "peek_hwnd", None)
+        peek_win = getattr(game_win, "peek_win", None)
+        peek_win_rect = getattr(game_win, "peek_win_rect", None)
+        if not (callable(peek_hwnd) and callable(peek_win) and callable(peek_win_rect)):
             return None
-        hwnd = game_win.get_hwnd() if hasattr(game_win, "get_hwnd") else None
+        hwnd = peek_hwnd()
         if hwnd is None:
             return None
         if win32_utils.is_window_minimized(hwnd):
             return None
-        win = game_win.get_win() if hasattr(game_win, "get_win") else None
+        win = peek_win()
         if win is not None:
             if bool(getattr(win, "isMinimized", False)):
                 return None
@@ -914,7 +945,7 @@ class OverlayManager(QObject):
         if not win32_utils.is_window_visible(hwnd):
             return None
 
-        rect = game_win.win_rect
+        rect = peek_win_rect()
         if rect is None:
             return None
         # Minimized windows can report parked coordinates such as (-32000, -32000).
@@ -961,9 +992,11 @@ class OverlayManager(QObject):
         if self.ctx.controller is None:
             return False
         game_win = getattr(self.ctx.controller, "game_win", None)
-        if game_win is None:
+        peek_win = getattr(game_win, "peek_win", None)
+        if not callable(peek_win):
             return False
-        return bool(game_win.is_win_active)
+        win = peek_win()
+        return bool(win.isActive) if win is not None else False
 
     def _install_log_handler(self) -> None:
         if self._log_handler is not None:
