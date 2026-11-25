@@ -125,9 +125,14 @@ class CompendiumChooseMissionType(ZOperation):
         处理滑动操作
         目前看只需要往下滚动即可
         """
-        # 滑动
-        start = area.center + Point(-100, 0)
-        end = start + Point(0, 300 * -1)
+        if (self.mission_type.category.category_name == '恶名狩猎'
+                and not self.mission_type.is_agent_plan):
+            # 周常进度占据列表上方。拖动两端留在卡片区内，步长小于一张卡片。
+            start = Point(area.x1 + 75, area.y2 - 145)
+            end = start + Point(0, -110)
+        else:
+            start = area.center + Point(-100, 0)
+            end = start + Point(0, -300)
         self.ctx.controller.drag_to(start=start, end=end)
         return self.round_retry(status=f'找不到 {self.mission_type.mission_type_name}', wait=1)
 
