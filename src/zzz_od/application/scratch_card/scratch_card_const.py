@@ -1,5 +1,6 @@
 APP_ID = "scratch_card"
 APP_NAME = "刮刮卡"
 DEFAULT_GROUP = False
+INTERNAL_APP = True
 PRIORITY = 310
 NEED_NOTIFY = True

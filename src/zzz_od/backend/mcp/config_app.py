@@ -10,10 +10,8 @@ from pydantic import Field
 
 from zzz_od.backend.backend_context import ZzzBackendContext
 from zzz_od.backend.config_router import (
-    RouterEntry,
     _build_list_fields,
     _build_set_fields,
-    _enum_options,
     _ro_item_fields_for,
     all_entries,
     get_entry,
@@ -148,6 +146,13 @@ def make_set_config(backend: ZzzBackendContext) -> Callable:
                     valid_values = [m.value.value for m in field_meta['enum_cls']]
                     if value not in valid_values:
                         return {'ok': False, 'error': f'{key} 值 {value} 不合法(可用: {valid_values})'}
+            if app_id == 'standalone_app' and key == 'active_app_id':
+                if not isinstance(value, str):
+                    return {'ok': False, 'error': 'active_app_id 必须为字符串'}
+                if value and value not in config.app_list:
+                    return {'ok': False, 'error': f'active_app_id {value} 不在 app_list 中'}
+                if value and not ctx.run_context.is_app_standalone_available(value):
+                    return {'ok': False, 'error': f'应用 {value} 只能通过固定入口运行'}
             config.update(key, value)
             config.save()
             return {'ok': True, 'app_id': app_id, 'key': key, 'value': value}

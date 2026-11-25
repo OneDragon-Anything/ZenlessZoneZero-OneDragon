@@ -113,27 +113,39 @@ class ChoosePredefinedTeam(ZOperation):
 
     @operation_node(name='画面识别', node_max_retry_times=10, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
+        """
+        进入可交互的预备编队列表。
+
+        已经在列表中就直接过。还看得到「预备编队」按钮就点，点完等「预备出战」。
+        按钮回弹期间两个都看不到，留在本节点再看；重试耗尽则失败。
+
+        Returns:
+            识别到「预备出战」时返回成功；点到按钮后返回等待；两个都没有时返回重试。
+        """
         if self.start_at_team_list:
             return self.round_success(ChoosePredefinedTeam.STATUS_TEAM_LIST_READY)
 
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '预备编队')
-        if result.is_success:
-            return self.round_success(result.status)
-        return self.round_retry(result.status, wait=1)
+        ready = self.round_by_ocr(
+            self.last_screenshot,
+            '预备出战',
+            area=self.ctx.screen_loader.get_area('实战模拟室', '预备出战'),
+            lcs_percent=0.75,
+        )
+        if ready.is_success:
+            return self.round_success(ready.status, wait=0.5)
 
-    @node_from(from_name='画面识别', status='预备编队')
-    @operation_node(name='点击预备编队')
-    def click_team(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
+        clicked = self.round_by_find_and_click_area(
             self.last_screenshot,
             '实战模拟室',
             '预备编队',
-            success_wait=1,
-            retry_wait=1,
+            success_wait=0.5,
+            retry_wait=0.5,
         )
+        if clicked.is_success:
+            return self.round_wait(clicked.status, wait=0.5)
+        return self.round_retry(ready.status, wait=0.5)
 
-    @node_from(from_name='点击预备编队')
-    @node_from(from_name='画面识别', status=STATUS_TEAM_LIST_READY)
+    @node_from(from_name='画面识别')
     @node_from(from_name='选择编队', status=STATUS_CONTINUE_CHOOSE)
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:

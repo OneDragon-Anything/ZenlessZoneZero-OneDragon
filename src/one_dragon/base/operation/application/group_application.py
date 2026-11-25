@@ -1,4 +1,4 @@
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
@@ -21,18 +21,19 @@ class GroupApplication(Application):
         self,
         ctx: OneDragonContext,
         group_id: str,
-        op_to_enter_game: Optional[Operation] = None,
-    ):
+        op_to_enter_game: Operation | None = None,
+    ) -> None:
         Application.__init__(
             self,
             ctx=ctx,
             app_id=f'group_{group_id}',
-            op_name='%s %s' % (gt('执行应用组'), group_id),
+            op_name=f'{gt("执行应用组")} {group_id}',
             op_to_enter_game=op_to_enter_game,
+            use_factory_run_record=False,
         )
         self._group_id: str = group_id
 
-        self._group_config: Optional[ApplicationGroupConfig] = None
+        self._group_config: ApplicationGroupConfig | None = None
         self._current_app_idx: int = 0  # 当前运行的app 下标
         self._fail_app_idx_list: list[int] = []  # 失败的app下标 未实现重试功能
 
@@ -78,6 +79,7 @@ class GroupApplication(Application):
             app_id=app.app_id,
             instance_idx=self.ctx.current_instance_idx,
         )
+        # 一条龙应用默认有每日记录；非一条龙应用可以没有记录。
         if run_record is not None:
             run_record.check_and_update_status()
             if run_record.is_done:

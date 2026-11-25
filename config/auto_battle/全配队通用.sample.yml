@@ -46,6 +46,14 @@ target_lock_interval: 1.0 # 目标锁定检测间隔
 abnormal_status_interval: 0 # 目标异常状态检测，代表不检测
 
 scenes:
+  # 首领专属交互：终结技禁用触发闪避段，普攻禁用触发切人段
+  # 两个状态都挂进 triggers，是因为普攻禁用出现时要能立刻打断闪避段的等待并转入切人分支
+  - triggers: ["按键禁用-终结技", "按键禁用-普通攻击"]
+    priority: 100
+    interval: 0.01
+    handlers:
+      - state_template: "首领交互"
+
   # 新增得格挡破碎检测
   - triggers: ["格挡-破碎"]
     priority: 98

@@ -10,7 +10,6 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
@@ -37,7 +36,7 @@ class HollowBattle(ZOperation):
 
         self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
-            app_id=withered_domain_const.APP_ID,
+            app_id=self.ctx.withered_domain.app_id,
         )
 
         self.is_critical_stage: bool = is_critical_stage  # 是否关键进展

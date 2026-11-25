@@ -11,7 +11,7 @@ from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 
 
 class ResourceManagerInterface(PivotNavigatorInterface):
-    """资源管理一级界面，包含资源和插件两个二级页面。"""
+    """资源管理一级界面，包含资源管理二级页面。"""
 
     def __init__(
         self,
@@ -33,11 +33,6 @@ class ResourceManagerInterface(PivotNavigatorInterface):
 
     def create_sub_interface(self) -> None:
         """创建资源管理下的二级页面。"""
-        from zzz_od.gui.view.setting.setting_plugin_interface import (
-            SettingPluginInterface,
-        )
-
         self.add_sub_interface(
             ResourceManagementInterface(self.ctx, self.download_queue, parent=self)
         )
-        self.add_sub_interface(SettingPluginInterface(self.ctx, parent=self))

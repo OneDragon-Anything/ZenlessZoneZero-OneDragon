@@ -1,21 +1,17 @@
-from PySide6.QtCore import QEvent
-from PySide6.QtCore import Qt
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QColor
-from PySide6.QtGui import QIcon
-from PySide6.QtGui import Qt
+from collections.abc import Iterable
 from enum import Enum
-from qfluentwidgets import FluentIconBase
-from qfluentwidgets import ToolTip
-from typing import Optional, List, Iterable
-from typing import Union
+
+from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtGui import QColor, QIcon
+from PySide6.QtWidgets import QLabel
+from qfluentwidgets import FluentIconBase, ToolTip, isDarkTheme
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.layout_utils import IconSize, Margins
 from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
@@ -25,12 +21,12 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
     value_changed = Signal(int, object)
 
     def __init__(self,
-                 icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
-                 icon_size: IconSize = IconSize(16, 16),
-                 margins: Margins = Margins(16, 16, 0, 16),
-                 options_enum: Optional[Iterable[Enum]] = None,
-                 options_list: Optional[List[ConfigItem]] = None,
-                 tooltip: Optional[str] = None,
+                 icon: str | QIcon | FluentIconBase, title: str, content: str | None=None,
+                 icon_size: IconSize | None = None,
+                 margins: Margins | None = None,
+                 options_enum: Iterable[Enum] | None = None,
+                 options_list: list[ConfigItem] | None = None,
+                 tooltip: str | None = None,
                  parent=None
                  ):
 
@@ -39,12 +35,21 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             icon=icon,
             title=title,
             content=content,
-            icon_size=icon_size,
-            margins=margins,
+            icon_size=icon_size if icon_size is not None else IconSize(16, 16),
+            margins=margins if margins is not None else Margins(16, 16, 0, 16),
             parent=parent
         )
         AdapterInitMixin.__init__(self)
         self.default_content = content
+
+        # 选项小标签（ConfigItem.tag），样式同标题栏的「集成/源码」标签；没有 tag 时隐藏
+        self.tag_label = QLabel(self)
+        self.tag_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 固定高度，否则会被卡片布局纵向拉伸成竖长的方块
+        self.tag_label.setFixedHeight(20)
+        self.tag_label.setVisible(False)
+        self.hBoxLayout.addWidget(self.tag_label, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(8)
 
         # 初始化下拉框
         self.combo_box = ComboBox(self)
@@ -53,12 +58,12 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
 
         # 处理工具提示
         self.tooltip_text: str = tooltip
-        self._tooltip: Optional[ToolTip] = None
+        self._tooltip: ToolTip | None = None
         if self.with_tooltip:
             self.titleLabel.installEventFilter(self)
 
         # 初始化选项
-        self._opts_list: List[ConfigItem] = []
+        self._opts_list: list[ConfigItem] = []
         self._initialize_options(options_enum, options_list)
 
         # 设置初始索引
@@ -70,7 +75,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         # 连接信号与槽
         self.combo_box.currentIndexChanged.connect(self._on_index_changed)
 
-    def _initialize_options(self, options_enum: Optional[Iterable[Enum]], options_list: Optional[List[ConfigItem]]) -> None:
+    def _initialize_options(self, options_enum: Iterable[Enum] | None, options_list: list[ConfigItem] | None) -> None:
         """从枚举或列表初始化下拉框选项。"""
         if options_enum:
             for opt in options_enum:
@@ -122,7 +127,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             self._tooltip.close()
             self._tooltip = None
 
-    def set_options_by_list(self, options: List[ConfigItem]) -> None:
+    def set_options_by_list(self, options: list[ConfigItem]) -> None:
         """通过 ConfigItem 列表设置下拉框选项。"""
         self.combo_box.blockSignals(True)
         self.combo_box.clear()
@@ -155,6 +160,22 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             if desc is None or len(desc) == 0:
                 desc = self.default_content
             self.setContent(desc)
+        self._update_tag()
+
+    def _update_tag(self) -> None:
+        """按当前选中项的 tag 更新小标签。"""
+        index = self.combo_box.currentIndex()
+        tag = self._opts_list[index].tag if 0 <= index < len(self._opts_list) else ''
+        self.tag_label.setVisible(bool(tag))
+        if not tag:
+            return
+        self.tag_label.setText(gt(tag))
+        text_color = 'white' if isDarkTheme() else '#333333'
+        self.tag_label.setStyleSheet(
+            f"color: {text_color}; background-color: rgba(128, 128, 128, 76);"
+            " border-radius: 10px; padding: 0px 10px;"
+            " font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';"
+        )
 
     def setValue(self, value: object, emit_signal: bool = True) -> None:
         """设置下拉框的值。"""

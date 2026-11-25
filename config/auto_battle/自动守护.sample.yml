@@ -4,6 +4,14 @@ auto_lock_interval: 0  # 关闭自动锁定
 auto_turn_interval: 0  # 关闭自动转向
 
 scenes:
+  # 首领专属交互：终结技禁用触发闪避段，普攻禁用触发切人段
+  # 两个状态都挂进 triggers，是因为普攻禁用出现时要能立刻打断闪避段的等待并转入切人分支
+  - triggers: ["按键禁用-终结技", "按键禁用-普通攻击"]
+    priority: 100
+    interval: 0.01
+    handlers:
+      - state_template: "首领交互"
+
   - triggers: ["格挡-破碎"]
     priority: 99
     interval: 0.3

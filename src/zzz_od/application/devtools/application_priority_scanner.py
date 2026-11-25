@@ -11,13 +11,16 @@ class ApplicationPriorityItem:
     app_id: str
     app_name: str
     default_group: bool
+    internal_app: bool
     priority: int | None
     source: str
     const_file: Path
 
 
 def _read_const_fields(const_file: Path) -> dict[str, object]:
-    field_names = {'APP_ID', 'APP_NAME', 'DEFAULT_GROUP', 'PRIORITY'}
+    field_names = {
+        'APP_ID', 'APP_NAME', 'DEFAULT_GROUP', 'INTERNAL_APP', 'PRIORITY',
+    }
     fields: dict[str, object] = {}
     tree = ast.parse(const_file.read_text(encoding='utf-8'), filename=str(const_file))
 
@@ -112,6 +115,7 @@ def _scan_directory(
             app_id = fields.get('APP_ID')
             app_name = fields.get('APP_NAME')
             default_group = fields.get('DEFAULT_GROUP')
+            internal_app = fields.get('INTERNAL_APP', False)
             priority = fields.get('PRIORITY')
 
             if not isinstance(app_id, str):
@@ -120,6 +124,10 @@ def _scan_directory(
                 raise ValueError('APP_NAME 必须为字符串')
             if not isinstance(default_group, bool):
                 raise ValueError('DEFAULT_GROUP 必须为布尔值')
+            if not isinstance(internal_app, bool):
+                raise ValueError('INTERNAL_APP 必须为布尔值')
+            if default_group and internal_app:
+                raise ValueError('DEFAULT_GROUP 和 INTERNAL_APP 不能同时为 True')
             if priority is not None and (
                 not isinstance(priority, int) or isinstance(priority, bool)
             ):
@@ -133,6 +141,7 @@ def _scan_directory(
                 app_id=app_id,
                 app_name=app_name,
                 default_group=default_group,
+                internal_app=internal_app,
                 priority=priority,
                 source=source,
                 const_file=const_file.relative_to(project_root),
@@ -174,12 +183,13 @@ def scan_application_priorities() -> tuple[list[ApplicationPriorityItem], list[s
 def main() -> int:
     items, errors = scan_application_priorities()
     print(f'APP 优先级扫描结果：{len(items)} 个应用')
-    print('PRIORITY  DEFAULT  SOURCE       APP_ID                           APP_NAME  CONST_FILE')
+    print('PRIORITY  DEFAULT  INTERNAL  SOURCE       APP_ID                           APP_NAME  CONST_FILE')
     for item in items:
         priority = str(item.priority) if item.priority is not None else '-'
         default_group = 'yes' if item.default_group else 'no'
+        internal_app = 'yes' if item.internal_app else 'no'
         print(
-            f'{priority:>8}  {default_group:<7}  {item.source:<11}  '
+            f'{priority:>8}  {default_group:<7}  {internal_app:<8}  {item.source:<11}  '
             f'{item.app_id:<32} {item.app_name}  {item.const_file}'
         )
 

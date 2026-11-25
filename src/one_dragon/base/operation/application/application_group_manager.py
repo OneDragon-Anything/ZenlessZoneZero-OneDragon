@@ -6,7 +6,6 @@ from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
 from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
-    ApplicationGroupConfigItem,
 )
 
 if TYPE_CHECKING:
@@ -72,18 +71,9 @@ class ApplicationGroupManager:
         config: ApplicationGroupConfig,
         app_id: str,
         enabled: bool,
-    ) -> bool:
-        """更新一条龙应用状态，非默认组应用禁用后从配置中移除。
-
-        Returns:
-            是否从一条龙配置中移除了应用。
-        """
-        if not enabled and app_id not in self._default_app_id_list:
-            config.remove_app(app_id)
-            return True
-
+    ) -> None:
+        """更新一条龙应用状态。"""
         config.set_app_enable(app_id, enabled)
-        return False
 
     def get_one_dragon_group_config(self, instance_idx: int) -> ApplicationGroupConfig:
         """
@@ -104,31 +94,9 @@ class ApplicationGroupManager:
         config = ApplicationGroupConfig(instance_idx=instance_idx, group_id=DEFAULT_GROUP_ID)
         need_migration = not config.is_file_exists
 
-        # 默认组应用自动加入，配置中已开启的非默认组应用继续保留显示
-        default_app_ids = set(self._default_app_id_list)
-        kept_apps: list[ApplicationGroupConfigItem] = []
-        migrated_app_ids: list[str] = []
-        removed_disabled_app = False
-        for item in config._all_apps:
-            if item.app_id in default_app_ids:
-                kept_apps.append(item)
-                continue
-
-            if self.ctx.run_context.is_app_registered(item.app_id):
-                if item.enabled:
-                    kept_apps.append(item)
-                    migrated_app_ids.append(item.app_id)
-                else:
-                    removed_disabled_app = True
-            else:
-                kept_apps.append(item)
-
-        if removed_disabled_app:
-            config._all_apps = kept_apps
-            config.save_app_list()
-
-        app_id_list = [*self._default_app_id_list, *migrated_app_ids]
-        config.update_full_app_list(app_id_list)
+        # 运行时只加载默认组应用。update_full_app_list 会保留 YAML 中其他原始项，
+        # 但不会把 standalone、internal 或未注册应用放进一条龙运行列表。
+        config.update_full_app_list(self._default_app_id_list)
 
         # 从旧的配置文件迁移过来 2026-09-21 可删除
         if need_migration:

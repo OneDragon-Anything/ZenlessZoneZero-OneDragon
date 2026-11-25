@@ -109,7 +109,12 @@ class ResourceUpdateDialog(MessageBoxBase):
 
         self.remember_check: CheckBox | None = None
         if show_remember:
-            self.remember_check = CheckBox(gt('以后自动下载，不再询问'))
+            # 第三方插件更新始终要确认，列表里有插件时必须写明该选项不包含插件
+            has_plugin = any(spec.resource_type == 'plugin' for spec in specs)
+            self.remember_check = CheckBox(
+                gt('官方资源以后自动下载，不再询问（插件更新仍需确认）')
+                if has_plugin else gt('以后自动下载，不再询问')
+            )
             self.remember_check.setChecked(False)
             self.viewLayout.addWidget(self.remember_check)
 

@@ -44,6 +44,101 @@ def resolve_module_name(
     return module_name, module_root
 
 
+FACTORY_FILE_NAME = 'factory.py'
+CONST_FILE_NAME = 'const.py'
+
+
+def is_factory_file(file_name: str) -> bool:
+    """文件名是否为插件工厂文件。
+
+    推荐固定文件名 ``factory.py``；旧写法 ``*_factory.py`` 继续兼容，但不推荐。
+
+    Args:
+        file_name: 文件名（含 .py 后缀）。
+
+    Returns:
+        是否为工厂文件。
+    """
+    return file_name == FACTORY_FILE_NAME or file_name.endswith('_' + FACTORY_FILE_NAME)
+
+
+def is_const_file(file_name: str) -> bool:
+    """文件名是否为插件常量文件。
+
+    推荐固定文件名 ``const.py``；旧写法 ``*_const.py`` 继续兼容，但不推荐。
+
+    Args:
+        file_name: 文件名（含 .py 后缀）。
+
+    Returns:
+        是否为常量文件。
+    """
+    return file_name == CONST_FILE_NAME or file_name.endswith('_' + CONST_FILE_NAME)
+
+
+def has_factory_and_const(plugin_dir: Path) -> bool:
+    """目录第一层是否同时有工厂文件和常量文件。"""
+    try:
+        names = [f.name for f in plugin_dir.glob('*.py') if f.is_file()]
+    except OSError:
+        return False
+    return any(is_factory_file(n) for n in names) and any(is_const_file(n) for n in names)
+
+
+def list_repo_plugin_dirs(repo_dir: Path) -> list[Path]:
+    """列出仓库目录下放着插件的子目录，只认一层。
+
+    插件仓库布局为 ``<仓库>/<id>/``，仓库根放开发用的文件。子目录第一层同时有
+    工厂文件和常量文件（推荐 ``factory.py`` + ``const.py``，旧的 ``*_factory.py`` +
+    ``*_const.py`` 兼容）才是插件根。plugin.json 只是附加信息，不参与判定。
+    目录自己第一层已经有工厂和常量文件时是扁平插件，不是仓库，返回空列表。
+
+    Args:
+        repo_dir: 待检查的目录。
+
+    Returns:
+        插件根子目录列表（按名称排序），没有插件时为空列表。
+    """
+    if has_factory_and_const(repo_dir):
+        return []
+    try:
+        children = sorted(repo_dir.iterdir())
+    except OSError:
+        return []
+    return [
+        child
+        for child in children
+        if child.is_dir()
+        and not child.name.startswith('.')
+        and has_factory_and_const(child)
+    ]
+
+
+def find_git_repo(top_dir: Path) -> Path | None:
+    """找出 plugins 下顶层目录里带 .git 的 git 仓库目录。
+
+    顶层目录自己是仓库（扁平布局直接 clone），或它的直接子目录是仓库
+    （仓库布局 ``plugins/<仓库>/``，这里 top_dir 就是仓库根）都算。
+    商店安装、导入覆盖和删除都是整目录替换或删除，会连 .git 和未提交的文件一起处理掉，
+    所以带 git 仓库的插件要拒绝这些操作，改用 git 自己管理。
+
+    Args:
+        top_dir: plugins 下的顶层目录。
+
+    Returns:
+        带 .git 的目录；没有时返回 None。
+    """
+    try:
+        if (top_dir / '.git').exists():
+            return top_dir
+        for child in top_dir.iterdir():
+            if child.is_dir() and not child.is_symlink() and (child / '.git').exists():
+                return child
+    except OSError:
+        return None
+    return None
+
+
 def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> None:
     """确保目录在 sys.path 中（用于第三方插件）。
 
@@ -54,7 +149,8 @@ def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> Non
     dir_str = str(directory.resolve())
     if dir_str not in sys.path:
         if added_paths is None or dir_str not in added_paths:
-            sys.path.insert(0, dir_str)
+            # 追加到末尾：插件目录名不能遮蔽标准库和已安装的包
+            sys.path.append(dir_str)
             if added_paths is not None:
                 added_paths.add(dir_str)
 

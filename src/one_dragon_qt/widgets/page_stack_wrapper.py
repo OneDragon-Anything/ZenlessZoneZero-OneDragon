@@ -36,15 +36,21 @@ class PageStackWrapper(QWidget):
         if isinstance(content, BaseInterface):
             content.on_interface_shown()
 
-    def reset_to_root(self) -> None:
-        """重置到根页面，清除二级设置界面。"""
+    def reset_to_root(self, notify_shown: bool = True) -> None:
+        """重置到根页面，清除二级设置界面。
+
+        :param notify_shown: 回到根页面后是否触发子界面的 on_interface_shown。
+            批量重置不可见页面时应传 False：子界面在 on_interface_shown 里会注册
+            按键等事件监听，不可见页面注册后会在界面隐藏时也能响应，属误触发。
+        """
         if not self.is_secondary_shown:
             return
         if isinstance(self._secondary_content, BaseInterface):
             self._secondary_content.on_interface_hidden()
         self._page_stack.setCurrentWidget(self._sub_interface, duration=0)
         self._clear_secondary()
-        self._sub_interface.on_interface_shown()
+        if notify_shown:
+            self._sub_interface.on_interface_shown()
 
     def on_interface_shown(self) -> None:
         if self.is_secondary_shown:

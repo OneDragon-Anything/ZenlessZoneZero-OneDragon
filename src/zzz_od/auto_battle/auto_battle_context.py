@@ -30,10 +30,13 @@ from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContex
 from zzz_od.game_data.agent import Agent, AgentEnum
 
 if TYPE_CHECKING:
+    from one_dragon.base.geometry.rectangle import Rect
     from zzz_od.context.zzz_context import ZContext
 
 
 _battle_state_check_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
+
+BTN_BAN_CHECK_INTERVAL: float = 0.02  # 按键禁用的识别间隔秒
 
 
 class AutoBattleContext:
@@ -84,6 +87,11 @@ class AutoBattleContext:
 
         # 自动释放终结技开关
         self.auto_ultimate_enabled: bool = True  # 是否在终结技可用时自动释放
+
+        # 按键禁用状态的首次识别时间 禁用期间不刷新 用于判断已经禁用了多久
+        self._btn_ban_first_time: dict[str, float] = {}
+        self._last_btn_ban_time: float = 0
+        self._last_btn_ban_result: dict[str, bool] = {}
 
     def init_auto_op(
         self,
@@ -164,6 +172,9 @@ class AutoBattleContext:
             return
         usage_states = self.auto_op.usage_states
 
+        # 禁用状态重新计时 避免状态被重置后仍按旧时间判断
+        self._btn_ban_first_time = {}
+
         # 遍历所有当前策略使用的状态，并将其重置为初始状态
         log.info(f"正在清空 {len(usage_states)} 个状态...")
         for state_id in usage_states:
@@ -205,6 +216,9 @@ class AutoBattleContext:
         self.with_distance_times: int = 0  # 有显示距离的次数
         self.last_check_distance = -1
 
+        # 新一场战斗 禁用状态重新计时
+        self._btn_ban_first_time = {}
+
     def init_screen_area(self) -> None:
         """
         初始化识别区域 不要每次用的时候再读取
@@ -212,7 +226,8 @@ class AutoBattleContext:
         self._check_distance_area = self.ctx.screen_loader.get_area('战斗画面', '距离显示区域')
 
         self.area_btn_normal: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-普通攻击')
-        self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
+        # 特殊攻击的禁用图标暂时不检测 要用时取消这行和 ban_check_list 里的注释
+        # self.area_btn_special: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-特殊攻击')
         self.area_btn_ultimate: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-终结技')
         self.area_btn_switch: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换角色')
         self.area_btn_switch_backup_mark: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '按键-切换后援标记')
@@ -545,9 +560,22 @@ class AutoBattleContext:
         识别战斗状态的总入口
         :return: 当前是否在战斗画面
         """
-        in_battle = self.is_normal_attack_btn_available(screen)
+        normal_attack_available: bool = self.is_normal_attack_btn_available(screen)
+
+        # 普通攻击和终结技各自判断 按钮禁用时中心显示灰白 X 只看圆心区域 外圈进度环不参与
+        # 禁用的按钮图标变了 模板匹配不到 不能当成离开战斗 否则战斗结束识别会被误触发
+        ban_check_list: list[tuple[str, ScreenArea, str]] = [
+            (BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value, self.area_btn_normal, 'btn_ban_normal_attack'),
+            # 特殊攻击的禁用图标暂时不检测 要用时取消下面的注释
+            # (BattleStateEnum.STATUS_SPECIAL_BAN.value, self.area_btn_special, 'btn_ban_special_attack'),
+            (BattleStateEnum.STATUS_ULTIMATE_BAN.value, self.area_btn_ultimate, 'btn_ban_ultimate'),
+        ]
+
+        ban_result: dict[str, bool] = self.check_btn_ban(screen, ban_check_list)
+        in_battle: bool = normal_attack_available or ban_result.get(BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value, False)
+
         self.last_check_in_battle = in_battle
-        if in_battle:
+        if normal_attack_available:
             self.state_record_service.update_state(
                 StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, screenshot_time))
         else:
@@ -556,7 +584,17 @@ class AutoBattleContext:
             self.state_record_service.update_state(
                 StateRecord(BattleStateEnum.STATUS_NORMAL_ATTACK_READY.value, is_clear=True))
 
+        ban_state_records = self._update_btn_ban_states(ban_result, screenshot_time)
+        if len(ban_state_records) > 0:
+            self.state_record_service.batch_update_states(ban_state_records)
+
         future_list: list[Future] = []
+
+        # 终结技被禁用说明进入了首领封招阶段 这段交互对时间极度敏感 脚本慢 0.1 秒以上就格挡不到
+        # 期间角色无法攻击 其他识别都没有意义 继续跑只会占住线程池和 GPU 把下一帧的普攻禁用检测推后
+        # 所以只保留普攻可用和两个禁用状态的识别与写回 战斗结束检测在 else 分支 不受这里影响
+        if in_battle and ban_result.get(BattleStateEnum.STATUS_ULTIMATE_BAN.value, False):
+            return in_battle
 
         # 统一提交检测任务
         if in_battle:
@@ -642,8 +680,8 @@ class AutoBattleContext:
         # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents, self.area_chain_1.rect))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents, self.area_chain_2.rect))
 
         # 连携条检测（独立运行，结果在方法内部处理）
         _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
@@ -706,26 +744,36 @@ class AutoBattleContext:
                             self.switch_by_name(back_agent.agent_name)
                             break
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, area_rect: Rect) -> Agent | None:
         """
         在候选列表重匹配角色
+        :param img: 裁剪好的连携技头像图片
+        :param possible_agents: 候选角色列表
+        :param area_rect: 裁剪区域，用于 overlay 识别框坐标偏移
         :return:
         """
         prefix = 'avatar_chain_'
-        for agent, specific_template_id in possible_agents:
-            # 上次识别过的模板 ID，接着用
-            if specific_template_id:
-                template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
-                if mrl.max is not None:
-                    return agent
-            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
-            else:
-                for template_id in agent.template_id_list:
-                    template_to_check = prefix + template_id
+        bus = getattr(self.ctx, 'debug_trace_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            for agent, specific_template_id in possible_agents:
+                # 上次识别过的模板 ID，接着用
+                if specific_template_id:
+                    template_to_check = prefix + specific_template_id
                     mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
                     if mrl.max is not None:
                         return agent
+                # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+                else:
+                    for template_id in agent.template_id_list:
+                        template_to_check = prefix + template_id
+                        mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                        if mrl.max is not None:
+                            return agent
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None
 
@@ -775,7 +823,7 @@ class AutoBattleContext:
 
             possible_agents = self.agent_context.get_possible_agent_list()
 
-            agent = self._match_quick_assist_agent_in(part, possible_agents)
+            agent = self._match_quick_assist_agent_in(part, possible_agents, self.area_btn_switch.rect)
 
             if agent is not None:
                 state_records: list[StateRecord] = [
@@ -859,26 +907,36 @@ class AutoBattleContext:
 
         return gray_ratio <= 0.2
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, area_rect: Rect) -> Agent | None:
         """
         在候选列表重匹配角色
+        :param img: 裁剪好的快速支援头像图片
+        :param possible_agents: 候选角色列表
+        :param area_rect: 裁剪区域，用于 overlay 识别框坐标偏移
         :return:
         """
         prefix = 'avatar_quick_'
-        for agent, specific_template_id in possible_agents:
-            # 上次识别过的模板 ID，接着用
-            if specific_template_id:
-                template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
-                if mrl.max is not None:
-                    return agent
-            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
-            else:
-                for template_id in agent.template_id_list:
-                    template_to_check = prefix + template_id
+        bus = getattr(self.ctx, 'debug_trace_bus', None)
+        if bus is not None:
+            bus.set_crop_offset(area_rect.x1, area_rect.y1)
+        try:
+            for agent, specific_template_id in possible_agents:
+                # 上次识别过的模板 ID，接着用
+                if specific_template_id:
+                    template_to_check = prefix + specific_template_id
                     mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
                     if mrl.max is not None:
                         return agent
+                # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+                else:
+                    for template_id in agent.template_id_list:
+                        template_to_check = prefix + template_id
+                        mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                        if mrl.max is not None:
+                            return agent
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
 
         return None
 
@@ -1033,10 +1091,90 @@ class AutoBattleContext:
         :param screen:
         :return:
         """
-        part = cv2_utils.crop_image_only(screen, self.area_btn_normal.rect)
-        mrl = self.ctx.tm.match_template(part, 'battle', 'btn_normal_attack',
-                                         threshold=0.9)
+        mrl = self.ctx.tm.crop_and_match_template(
+            screen, self.area_btn_normal.rect, 'battle', 'btn_normal_attack',
+            threshold=0.9,
+        )
         return mrl.max is not None
+
+    def check_btn_ban(self, screen: MatLike,
+                      ban_check_list: list[tuple[str, ScreenArea, str]]) -> dict[str, bool]:
+        """
+        识别按键是否处于禁用态 禁用时按钮中心显示灰白 X
+        :param screen: 游戏画面
+        :param ban_check_list: 需要识别的 (状态名, 按钮区域, 模板ID) 列表
+        :return: 状态名 -> 是否禁用
+        """
+        now = time.time()
+        if now - self._last_btn_ban_time < BTN_BAN_CHECK_INTERVAL:
+            return self._last_btn_ban_result
+        self._last_btn_ban_time = now
+
+        future_list: list[Future] = []
+        for _, area, template_id in ban_check_list:
+            future_list.append(_battle_state_check_executor.submit(
+                self._match_btn_ban_gray, screen, area, template_id,
+            ))
+
+        result: dict[str, bool] = {}
+        for (state_name, _, _), future in zip(ban_check_list, future_list, strict=True):
+            try:
+                result[state_name] = future.result()
+            except Exception:
+                log.error('识别按键禁用状态失败 %s', state_name, exc_info=True)
+
+        self._last_btn_ban_result = result
+        return result
+
+    def _match_btn_ban_gray(self, screen: MatLike, area: ScreenArea, template_id: str) -> bool:
+        """
+        灰度识别按键禁用图标
+        禁用图标是灰白的 X 颜色不提供额外信息 灰度匹配比彩色快四倍 判定结果一致
+        :param screen: 游戏画面
+        :param area: 按钮区域
+        :param template_id: 禁用图标模板ID
+        :return: 是否命中禁用图标
+        """
+        part = cv2_utils.crop_image_only(screen, area.rect)
+        part_gray = cv2.cvtColor(part, cv2.COLOR_RGB2GRAY)
+        # 裁剪后的小图原点是 (0,0) 匹配前把区域左上角压进偏移 调试覆盖层才能把框画在真实位置
+        bus = self.ctx.tm.debug_trace_bus
+        if bus is not None:
+            parent_x, parent_y = bus.crop_offset
+            bus.set_crop_offset(parent_x + area.rect.x1, parent_y + area.rect.y1)
+        try:
+            mrl = self.ctx.tm.match_template(part_gray, 'battle', template_id,
+                                             template_type='gray', threshold=0.9)
+        finally:
+            if bus is not None:
+                bus.reset_crop_offset()
+        return mrl.max is not None
+
+    def _update_btn_ban_states(self, ban_result: dict[str, bool], screenshot_time: float) -> list[StateRecord]:
+        """
+        更新按键禁用状态
+        禁用与可用是两套独立信号 可以同时成立
+        本次没有识别的状态视为未禁用 会清掉禁用状态 这样禁用解除后能及时复位
+        禁用期间只记录首次识别到的时间 不刷新 因此可以用 [状态, 时间下限, 时间上限] 判断已经禁用了多久
+        :param ban_result: 状态名 -> 是否禁用
+        :param screenshot_time: 截图时间
+        :return: 需要投递的状态记录
+        """
+        state_records: list[StateRecord] = []
+        for state_name in [BattleStateEnum.STATUS_NORMAL_ATTACK_BAN.value,
+                           # 特殊攻击的禁用图标暂时不检测 要用时取消下面的注释
+                           # BattleStateEnum.STATUS_SPECIAL_BAN.value,
+                           BattleStateEnum.STATUS_ULTIMATE_BAN.value]:
+            if ban_result.get(state_name, False):
+                if state_name in self._btn_ban_first_time:
+                    continue  # 已经在禁用中 不刷新时间
+                self._btn_ban_first_time[state_name] = screenshot_time
+                state_records.append(StateRecord(state_name, screenshot_time))
+            elif state_name in self._btn_ban_first_time:
+                del self._btn_ban_first_time[state_name]
+                state_records.append(StateRecord(state_name, is_clear=True))
+
+        return state_records
 
     def start_context_async(self) -> None:
         """

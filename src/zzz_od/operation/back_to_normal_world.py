@@ -3,7 +3,7 @@ from cv2.typing import MatLike
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
@@ -15,7 +15,8 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class BackToNormalWorld(ZOperation):
 
-    def __init__(self, ctx: ZContext, ensure_normal_world: bool = False, allow_battle: bool = False):
+    def __init__(self, ctx: ZContext, ensure_normal_world: bool = False, allow_battle: bool = False,
+                 timeout_seconds: float = -1):
         """
         需要保证在任何情况下调用，都能返回大世界，让后续的应用可执行
 
@@ -24,8 +25,11 @@ class BackToNormalWorld(ZOperation):
             ensure_normal_world (bool): 是否回到普通大世界
             allow_battle (bool): 是否允许在战斗状态直接返回成功（锄大地传送后用，让调用方处理战斗）。
                 启用时调用方必须处理返回的 status='大世界-战斗'，否则角色将卡在战斗画面。
+            timeout_seconds (float): 操作超时时间（秒），默认-1不超时。
+                本指令内部有 WAIT 分支不受重试上限约束，作为嵌套指令同步执行时
+                会占用调用方的一轮，调用方应设置超时避免被拖住。
         """
-        ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
+        ZOperation.__init__(self, ctx, op_name=gt('返回大世界'), timeout_seconds=timeout_seconds)
 
         self.ensure_normal_world: bool = ensure_normal_world  # 是否回到普通大世界
         self.allow_battle: bool = allow_battle  # 是否允许战斗状态直接返回
@@ -68,11 +72,17 @@ class BackToNormalWorld(ZOperation):
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
 
-        # 大部分画面都有街区或勘域可以直接返回，“区域”通过 0.5 LCS 匹配“街区”的“区”或“勘域”的“域”
-        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-区域')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
-
+        # 核对完整入口词，避免把“迷宫诡域”的单个“域”当作返回入口。
+        area = self.ctx.screen_loader.get_area('画面-通用', '左上角-区域')
+        if area is not None:
+            labels = {gt(word, 'game') for word in ('街区', '勘域', '区域')}
+            matches = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot, rect=area.rect,
+            )
+            for match in matches:
+                if str_utils.remove_whitespace(match.data) in labels:
+                    if self.ctx.controller.click(match.center, pc_alt=area.pc_alt):
+                        return self.round_retry('左上角-区域', wait=1)
 
         # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')

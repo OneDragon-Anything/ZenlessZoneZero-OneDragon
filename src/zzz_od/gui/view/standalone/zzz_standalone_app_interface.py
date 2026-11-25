@@ -8,8 +8,9 @@ from zzz_od.gui.view.standalone.zzz_standalone_app_run_interface import (
 
 
 class ZStandaloneAppInterface(PivotNavigatorInterface):
+    """侧边栏「应用运行」入口，里面是独立应用运行页。"""
 
-    def __init__(self, ctx: ZContext, parent=None):
+    def __init__(self, ctx: ZContext, parent=None) -> None:
         self.ctx: ZContext = ctx
         PivotNavigatorInterface.__init__(
             self,
@@ -19,7 +20,7 @@ class ZStandaloneAppInterface(PivotNavigatorInterface):
             parent=parent,
         )
 
-    def create_sub_interface(self):
+    def create_sub_interface(self) -> None:
         self.add_sub_interface(
             sub_interface=ZStandaloneAppRunInterface(self.ctx),
             enable_page_stack=True,

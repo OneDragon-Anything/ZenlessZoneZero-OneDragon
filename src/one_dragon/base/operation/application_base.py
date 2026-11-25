@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -34,6 +33,7 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Operation | None = None,
                  run_record: AppRunRecord | None = None,
+                 use_factory_run_record: bool = True,
                  ) -> None:
         Operation.__init__(
             self,
@@ -49,15 +49,13 @@ class Application(Operation):
         # 应用唯一标识
         self.app_id: str = app_id
 
-        # 运行记录
+        # 优先使用显式记录；组执行器等无工厂的应用可关闭自动获取。
         self.run_record: AppRunRecord | None = run_record
-        if run_record is None:
-            # 部分应用没有运行记录 跳过即可
-            with suppress(Exception):
-                self.run_record = ctx.run_context.get_run_record(
-                    app_id=self.app_id,
-                    instance_idx=ctx.current_instance_idx,
-                )
+        if self.run_record is None and use_factory_run_record:
+            self.run_record = ctx.run_context.get_run_record(
+                app_id=self.app_id,
+                instance_idx=ctx.current_instance_idx,
+            )
 
     def handle_init(self) -> None:
         """
@@ -105,17 +103,19 @@ class Application(Operation):
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
 
-    def _update_record_after_stop(self, result: OperationResult):
+    def _update_record_after_stop(self, result: OperationResult) -> None:
         """
         应用停止后的对运行记录的更新
         :param result: 运行结果
         :return:
         """
-        if self.run_record is not None:
-            if result.success:
-                self.run_record.update_status(AppRunRecord.STATUS_SUCCESS)
-            else:
-                self.run_record.update_status(AppRunRecord.STATUS_FAIL)
+        if self.run_record is None:
+            return
+
+        if result.success:
+            self.run_record.update_status(AppRunRecord.STATUS_SUCCESS)
+        else:
+            self.run_record.update_status(AppRunRecord.STATUS_FAIL)
 
     @property
     def current_execution_desc(self) -> str:

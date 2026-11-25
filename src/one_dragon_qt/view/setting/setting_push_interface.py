@@ -1,9 +1,11 @@
 import contextlib
 import json
+from collections.abc import Callable
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
@@ -45,6 +47,25 @@ from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAda
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
+class PushTestRunner(QThread):
+    """后台发送测试推送 避免网络请求卡住界面线程。"""
+
+    # 不能用 finished 命名 会遮蔽 QThread 内置的线程结束信号
+    push_done = Signal(bool, str)
+
+    def __init__(self, push_func: Callable[[], tuple[bool, str]]) -> None:
+        super().__init__()
+        self._push_func: Callable[[], tuple[bool, str]] = push_func
+
+    def run(self) -> None:
+        try:
+            ok, msg = self._push_func()
+        except Exception as e:
+            ok, msg = False, f'测试推送失败: {e}'
+
+        self.push_done.emit(ok, msg)
+
+
 class SettingPushInterface(VerticalScrollInterface):
 
     def __init__(self, ctx, parent=None):
@@ -58,6 +79,8 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.ctx = ctx
         self._error_bar: InfoBar | None = None
+        self._info_bar: InfoBar | None = None
+        self._push_test_runner: PushTestRunner | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -257,42 +280,72 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message(str(e))
                 return
 
-        try:
-            ok, msg = self.ctx.push_service.push(
-                title=gt('测试推送通知'),
-                content=gt('这是一条测试消息'),
-                image=self._get_test_screenshot(),
-                channel_id=test_method,
-            )
-            if not ok:
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向当前通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+        self._start_test_push(test_method, "已向当前通知方式发送测试消息")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        try:
-            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+        self._start_test_push(None, "已向所有已配置的通知方式发送测试消息")
+
+    def _start_test_push(self, channel_id: str | None, success_msg: str) -> None:
+        """
+        后台发送测试推送 避免网络请求卡住界面线程
+
+        推送期间禁用按钮 既提示正在发送 也避免连点堆积多次推送。
+
+        Args:
+            channel_id: 推送渠道ID 为空时使用所有通过配置校验的渠道
+            success_msg: 推送成功时的提示文案
+        """
+        # 上一次未结束时直接返回 覆盖字段会让仍在运行的线程被回收导致崩溃
+        if self._push_test_runner is not None and self._push_test_runner.isRunning():
+            return
+
+        # 先生成截图再禁用按钮 生成失败时按钮仍可点击 不会卡在禁用状态
+        image = self._get_test_screenshot()
+
+        self.test_current_btn.setDisabled(True)
+        self.test_all_btn.setDisabled(True)
+        self._clear_error_bar()
+        self._info_bar = InfoBar.info(
+            title='提示',
+            content="正在发送测试消息...",
+            orient=InfoBarPosition.TOP,
+            isClosable=True,
+            duration=-1,
+            parent=self
+        )
+
+        def push_test() -> tuple[bool, str]:
             ok, msg = self.ctx.push_service.push(
                 title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
-                image=self._get_test_screenshot(),
+                image=image,
+                channel_id=channel_id,
             )
-            if not ok:
-                self._show_error_message(msg)
-            elif len(msg) > 0:
-                # 有渠道失败但其他渠道成功时 ok 仍为 True，错误信息只在这里带回来
-                self._show_error_message(msg)
-            else:
-                self._show_success_message("已向所有已配置的通知方式发送测试消息")
-        except ValueError as e:
-            self._show_error_message(str(e))
-        except Exception as e:
-            self._show_error_message(f"测试推送失败: {str(e)}")
+            # 单渠道成功时渠道也会回「推送成功」这类文案 只有全渠道的空 msg 才代表全部成功
+            return ok, ('' if ok and channel_id is not None else msg)
+
+        self._push_test_runner = PushTestRunner(push_func=push_test)
+        self._push_test_runner.push_done.connect(
+            lambda ok, msg: self._on_test_push_finished(ok, msg, success_msg)
+        )
+        self._push_test_runner.start()
+
+    def _on_test_push_finished(self, ok: bool, msg: str, success_msg: str) -> None:
+        """测试推送结束后的界面反馈"""
+        self.test_current_btn.setDisabled(False)
+        self.test_all_btn.setDisabled(False)
+
+        if self._info_bar is not None:
+            with contextlib.suppress(RuntimeError):
+                self._info_bar.close()
+            self._info_bar = None
+
+        # 部分渠道失败时 ok 仍为 True 错误信息通过 msg 带回来
+        if not ok or len(msg) > 0:
+            self._show_error_message(msg if msg else "测试推送失败")
+        else:
+            self._show_success_message(success_msg)
 
     def _get_test_screenshot(self) -> MatLike | None:
         """生成通知测试用标准色相图。"""

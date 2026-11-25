@@ -116,6 +116,20 @@ class StateCalNode:
             states = states.union(self.right_child.usage_states)
         return states
 
+    @cached_property
+    def usage_recorders(self) -> list[StateRecorder]:
+        """
+        需要用到的全部状态记录器 用于中断时打印状态快照
+        """
+        recorders: list[StateRecorder] = []
+        if self.state_recorder is not None:
+            recorders.append(self.state_recorder)
+        if self.left_child is not None:
+            recorders.extend(self.left_child.usage_recorders)
+        if self.right_child is not None:
+            recorders.extend(self.right_child.usage_recorders)
+        return recorders
+
     def dispose(self) -> None:
         """
         销毁时 将子节点都销毁了

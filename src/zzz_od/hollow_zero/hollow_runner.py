@@ -12,7 +12,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cal_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
     HollowZeroExtraExitEnum,
     HollowZeroExtraTask,
@@ -59,13 +58,13 @@ class HollowRunner(ZOperation):
         )
 
         self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
-            app_id=withered_domain_const.APP_ID,
+            app_id=self.ctx.withered_domain.app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
         self.run_record: WitheredDomainRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
-            app_id=withered_domain_const.APP_ID,
+            app_id=self.ctx.withered_domain.app_id,
         )
 
         self._special_event_handlers: dict[str, Type] = {
@@ -199,6 +198,10 @@ class HollowRunner(ZOperation):
         if target_node is None:
             return None
 
+        target_node, special_result = self._before_move(current_map, target_node)
+        if special_result is not None:
+            return special_result
+
         # if target_node.entry.entry_name == '不宜久留':  # 测试代码 在特殊情况停下
         #     return self.round_fail('不宜久留')
         next_to_move = target_node.next_node_to_move
@@ -251,6 +254,16 @@ class HollowRunner(ZOperation):
                 return self.round_retry()
 
         return self.round_wait()
+
+    def _before_move(self, current_map: HollowZeroMap,
+                     target_node: HollowZeroMapNode) -> tuple[HollowZeroMapNode, OperationRoundResult | None]:
+        """
+        移动前的扩展点 子类可以修改目标 或者直接返回本轮的结果
+        :param current_map: 当前地图
+        :param target_node: 寻路得到的目标
+        :return: 最终的目标；不为None的本轮结果
+        """
+        return target_node, None
 
     def get_map_node_pos_to_click(self, screen: MatLike, node: HollowZeroMapNode) -> Point:
         """

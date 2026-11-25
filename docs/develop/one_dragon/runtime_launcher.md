@@ -79,11 +79,26 @@ LauncherBase          → 基础参数解析、run() 入口
 
 ### 解决方案
 
-`module_manifest.py` 文件记录了打包时所有源码文件的外部依赖 import 语句。这个文件既打包进 `.runtime/`（作为本地清单），又提交到 git 仓库（作为远程清单）。
+`module_manifest.py` 文件记录了打包时所有源码文件的外部依赖 import 语句。这个文件既打包进 `.runtime/`（作为本地清单），又提交到 git 仓库（作为远程清单）。它记录的是源码直接引用的导入，不是打包产物包含的全部模块；PyInstaller 还会递归收集这些依赖引用的模块，并通过 hook 补充模块和文件。
 
-代码更新时，`GitService._check_manifest_compatible()` 对比本地清单和目标 commit 的清单：
-- 相同 → 兼容，允许更新
-- 不同 → 不兼容，阻止更新并提示用户下载新版集成启动器
+代码更新时，职责分为两部分：
+
+- `one_dragon.envs.runtime_compatibility` 负责读取冻结运行时的打包清单、解析导入要求并探测新增依赖，不依赖 Git 仓库、提交 ID 或更新流程。
+- `GitService` 负责从目标提交读取清单并调用兼容性检查；不兼容时，在首次同步、更新或回滚修改工作区前停止，保留现有同步结果与提示。
+
+兼容性检查先比较清单内容，相同则直接允许更新；不同时通过 AST 提取导入要求，不执行清单代码：
+
+- 仅换行、注释、顺序、别名或导入分组改变，以及删除导入，不阻止更新。
+- 本地清单已有的导入作为打包基准，不重复加载，避免为了检查重新导入全部可选依赖。
+- 对目标清单新增的导入，使用当前冻结解释器的正常导入机制检查。即使模块没有写在本地清单中，只要已由 PyInstaller 递归收集或通过 hook 打包，仍可使用。
+- `from package import name` 同时检查已有属性和可导入的子模块，不能只看顶层包存在。缺少模块、导入名称，或导入时发生 DLL 等加载错误，均阻止更新，并将具体依赖和异常写入日志。
+- 两份清单不同时，解析失败、相对导入或通配符导入无法可靠比较，继续阻止更新；当前生成器只产生绝对、具名导入。
+
+检查只导入当前运行时中的新增依赖，不执行目标版本的业务源码，也不修改模块搜索路径。新增依赖的初始化代码会在检查时运行；冻结模块继续从 EXE 加载，磁盘源码仅补齐未冻结模块。
+
+此检查只能确认新增导入在当前运行时可用，不能证明依赖版本、函数签名、运行行为、动态导入或资源文件完全兼容。依赖升级、增加尚未打包的依赖或资源时，仍应更新整个集成启动器。
+
+官方依据：[onedir 的依赖复用条件](https://pyinstaller.org/en/stable/operating-mode.html#bundling-to-one-folder)明确区分只改代码与新增、替换、升级依赖；[依赖分析](https://pyinstaller.org/en/stable/operating-mode.html#analysis-finding-the-files-your-program-needs)说明递归收集；[hidden imports](https://pyinstaller.org/en/stable/when-things-go-wrong.html#listing-hidden-imports)说明静态分析不能发现全部动态导入。这里放宽的是“清单文字必须相同”的限制，不是让旧运行时自动升级依赖。
 
 代码源配置、候选源顺序和 fetch 回退机制见 [Git 服务与代码源回退](modules/git_service.md)。
 
@@ -95,6 +110,9 @@ LauncherBase          → 基础参数解析、run() 入口
 
 - **打包时**：spec 文件通过 `importlib` 动态加载 `generate_module_manifest.py`，在 Analysis 阶段生成 `module_manifest.py`
 - **CI 自动构建**：`build-running-resources.yml` 工作流每次推送到 main 或者 pr 更新时运行 `generate_module_manifest.py`，如果清单有变化则自动提交
+- **CI 兼容性检查**：`runtime-compatibility.yml` 在推送到 main 或手动触发时，下载最新正式版 RuntimeLauncher。检查脚本提取 EXE 内的 PYZ 和冻结导入器，使用同版本 Python 加载 `.runtime` 中的标准库、扩展模块和 DLL，再调用同一套新增导入检查。确认不兼容时打开或评论同一个未关闭 issue，并提醒仓库变量 `COMPATIBILITY_NOTIFY_USER` 指定的 GitHub 用户；变量缺失、为空或不是合法用户名时，Action 失败且不打开 issue。下载、解压或检查进程异常同样只让 Action 失败，不打开 issue。
+
+检查只使用发布列表中第一个非草稿、非预发布版本；该正式版缺少 RuntimeLauncher 资产时直接失败，不回退到较旧版本。两个 CI 下载脚本仅在协议、主机名和有效端口均相同时保留 Authorization，其他来源的重定向移除凭据；携带凭据的 HTTPS 请求重定向到 HTTP 时直接拒绝。兼容性子进程开启 UTF-8，并在检查期间持有 `.runtime` 的 DLL 搜索目录句柄。
 
 ## 代码同步流程
 

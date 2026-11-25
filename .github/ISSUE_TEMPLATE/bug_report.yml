@@ -25,11 +25,38 @@ body:
           required: true
         - label: 已经修改了此issue的标题为想要反馈的问题简述
           required: true
+        - label: 此 issue 由我本人亲自提交，所描述的问题是我自己实际遇到并确认过的
+          required: true
 
   - type: input
     attributes:
       label: 代码版本
       description: "窗口上方显示 点击可复制到粘贴板 不填入大概率不受理"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: launcher-type
+    attributes:
+      label: 启动器类型
+      description: |
+        不确定的话，看你运行的是哪个文件：
+        - 集成启动器：解压 WithRuntime 压缩包后，运行 OneDragon-RuntimeLauncher.exe
+        - 源码启动器：运行安装器安装后，运行 OneDragon-Launcher.exe；或者克隆源码，用 uv run 运行
+      options:
+        - "集成启动器（OneDragon-RuntimeLauncher.exe）"
+        - "源码启动器（安装器安装 / 克隆源码运行）"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: code-branch
+    attributes:
+      label: 代码分支
+      description: 你使用的是主分支还是测试分支？（在主程序的代码同步设置里可以看到当前分支）
+      options:
+        - "主分支"
+        - "测试分支"
     validations:
       required: true
 
@@ -73,8 +100,6 @@ body:
       label: "游戏截图"
       description: |
         - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
-        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
-        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
       placeholder: "游戏截图"
 
   - type: textarea
@@ -87,4 +112,4 @@ body:
     attributes:
       label: "你的建议"
       description: "针对这个场景，你觉得合适的解决方案是"
-      placeholder: "你的建议"
+      placeholder: "你的建议"
