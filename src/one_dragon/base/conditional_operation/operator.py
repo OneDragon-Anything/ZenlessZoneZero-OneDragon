@@ -1,3 +1,4 @@
+import contextlib
 import time
 from abc import abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -274,12 +275,10 @@ class ConditionalOperator(ConditionalOperatorLoader):
         一系列指令任务完成后
         """
         with self._task_lock:  # 上锁 保证_running_trigger_cnt安全
-            try:
+            with contextlib.suppress(Exception):  # run_async里有callback打印日志
                 result = future.result()
                 if result:  # 顺利执行完毕
                     self.running_executor_cnt.dec()
-            except Exception:  # run_async里有callback打印日志
-                pass
 
     @cached_property
     def usage_states(self) -> set[str]:

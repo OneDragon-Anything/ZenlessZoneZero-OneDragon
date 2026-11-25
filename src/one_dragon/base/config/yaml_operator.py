@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import os
 import shutil
@@ -111,11 +112,9 @@ class YamlOperator:
         new_content = yaml.dump(self.data, allow_unicode=True, sort_keys=False)
         # 尝试读取旧文件内容
         old_content = None
-        try:
+        with contextlib.suppress(Exception):
             with open(write_path, 'r', encoding='utf-8') as file:
                 old_content = file.read()
-        except Exception:
-            pass
 
         # 读取报错/内容不一致时写入
         if old_content == new_content:

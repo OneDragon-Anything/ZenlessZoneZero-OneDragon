@@ -1,3 +1,4 @@
+import contextlib
 import os
 from typing import Any
 
@@ -856,7 +857,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         if self.chosen_template is None:
             return
 
-        try:
+        with contextlib.suppress(Exception):
             h_text = self.h_move_input.text().strip()
             v_text = self.v_move_input.text().strip()
 
@@ -874,8 +875,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
                 self.chosen_template.update_all_points(dx, dy)
                 self._update_point_table_display()
                 self._update_all_image_display()
-        except Exception:
-            pass
 
     def _on_image_right_clicked(self, x: int, y: int) -> None:
         """
