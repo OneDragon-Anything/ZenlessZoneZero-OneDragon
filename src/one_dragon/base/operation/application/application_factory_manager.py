@@ -152,8 +152,9 @@ class ApplicationFactoryManager:
     def _select_plugin_copies(self) -> tuple[frozenset[Path], dict[str, InactiveCopy]]:
         """同 ID 的商店版和开发版并存时，按插件的切换选项选一份，另一份不导入。
 
-        两份同 ID 同包名，不能同时导入。配对依据是插件目录名（开发版目录名必须等于
-        APP_ID）；商店版目录名对不上 APP_ID 时认不出来，按原来的重复 APP_ID 报错处理。
+        两份同 ID 同包名，不能同时导入。配对依据是插件目录名，不是仓库目录名（开发版的
+        插件目录名必须等于 APP_ID）；商店版插件目录名对不上 APP_ID 时认不出来，
+        按原来的重复 APP_ID 报错处理。
         只有一份时照常加载，不受切换选项影响。
 
         Returns:
@@ -573,8 +574,8 @@ class ApplicationFactoryManager:
             )
 
         # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
-        # 仓库布局和开发版的插件目录名必须等于 APP_ID：目录名是商店版与开发版配对的依据，
-        # 也让本机重名的插件不可能共存
+        # 仓库布局和开发版的插件目录名必须等于 APP_ID，仓库目录名和扁平商店版目录名不限。
+        # 插件目录名是商店版与开发版配对的依据，也让本机重名的插件不可能共存
         if (
             (
                 source == PluginSource.THIRD_PARTY

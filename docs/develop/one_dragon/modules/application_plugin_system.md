@@ -16,7 +16,7 @@
 | **THIRD_PARTY** | `plugins/` (项目根目录) | `spec_from_file_location` | ✅ 支持 | ✅ |
 | **DEV** | `plugins/.dev/` (开发版) | `spec_from_file_location` | ✅ 支持 | ✅ |
 
-DEV 是开发版插件的来源，开发者把本地开发的插件放在 `plugins/.dev/<APP_ID>/`（也支持仓库布局 `plugins/.dev/<仓库>/<APP_ID>/`），避免被商店订阅、更新覆盖。它与商店版（THIRD_PARTY）是**同一个插件**：同 `APP_ID`、同包名、共用配置和数据。同 ID 两份并存时，`ApplicationFactoryManager._select_plugin_copies()` 在导入之前按目录名配对，由 `EnvConfig.plugin_use_dev_ids` 决定导入哪一份（默认商店版），另一份记为 `PluginInfo.inactive_copy`，不导入；只有一份时照常加载。开发版目录名必须等于 `APP_ID`，`plugins/.dev` 自身不是插件也不是仓库根。
+DEV 是开发版插件的来源，开发者把本地开发的插件放在 `plugins/.dev/<APP_ID>/`（也支持仓库布局 `plugins/.dev/<仓库>/<APP_ID>/`），避免被商店订阅、更新覆盖。它与商店版（THIRD_PARTY）是**同一个插件**：同 `APP_ID`、同包名、共用配置和数据。同 ID 两份并存时，`ApplicationFactoryManager._select_plugin_copies()` 在导入之前按目录名配对，由 `EnvConfig.plugin_use_dev_ids` 决定导入哪一份（默认商店版），另一份记为 `PluginInfo.inactive_copy`，不导入；只有一份时照常加载。开发版的插件目录（直接放工厂和常量文件的那层）名字必须等于 `APP_ID`，仓库目录名不限；`plugins/.dev` 自身不是插件也不是仓库根。
 
 ## 核心组件
 
@@ -89,7 +89,7 @@ project_root/
 │                   └── dodge_assistant_factory.py
 └── plugins/                   # 第三方插件（THIRD_PARTY，gitignore）
     ├── .dev/                  # 开发版插件（DEV），同 ID 与商店版并存时按切换选项只加载一份
-    │   └── my_plugin/         # 目录名必须等于 APP_ID
+    │   └── my_plugin/         # 插件目录名必须等于 APP_ID
     └── my_plugin/
         ├── __init__.py
         ├── my_plugin_const.py
