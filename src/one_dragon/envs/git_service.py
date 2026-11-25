@@ -21,6 +21,7 @@ from pygit2 import (
     Blob,
     Commit,
     Oid,
+    Reference,
     Remote,
     RemoteCallbacks,
     Repository,
@@ -29,7 +30,13 @@ from pygit2 import (
     init_repository,
     settings,
 )
-from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
+from pygit2.enums import (
+    CheckoutStrategy,
+    ConfigLevel,
+    ReferenceType,
+    ResetMode,
+    SortMode,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.envs.env_config import EnvConfig
@@ -269,6 +276,63 @@ def _restore_temp_fetch_state(
         if ref_name in restored_repo.references:
             restored_repo.references.delete(ref_name)
     return restored_repo
+
+
+def _hide_non_commit_refs(repo: Repository, hidden_refs: list[tuple[str, Oid]]) -> None:
+    """临时删除目标无法当作 commit 处理的引用，规避 libgit2 本地 fetch 报错。
+
+    libgit2 通过本地 transport 导入 fetch 结果时会枚举正式仓库的全部引用做
+    revwalk hide，引用直接指向 tree/blob 时会报 "object is not a committish"
+    使代码同步失败（如 Codex CLI 留下的 refs/codex/... checkpoint 引用）。
+    每删除一个引用就立即记录到 hidden_refs，即使后续处理失败，
+    调用方也能根据记录恢复已删除的部分。引用指向的对象本身仍留在对象库中，
+    不会丢失数据。
+    :param repo: 正式仓库
+    :param hidden_refs: 已删除引用的记录（引用名, 原目标），由调用方持有并负责恢复
+    """
+    for ref_name in list(repo.references):
+        try:
+            ref: Reference = repo.references[ref_name]
+        except Exception:
+            log.warning(f'读取引用 {ref_name} 失败 跳过隐藏', exc_info=True)
+            continue
+        if ref.type is not ReferenceType.DIRECT:
+            continue
+        # 目标直接是 commit，或是能剥到 commit 的 tag，才能参与 fetch 协商
+        target_committish: bool = False
+        try:
+            repo[ref.target].peel(Commit)
+            target_committish = True
+        except Exception:
+            # 目标对象缺失 / tree / blob / 剥不到 commit 的 tag 都无法参与协商
+            target_committish = False
+        if target_committish:
+            continue
+        # 先记录再删除：即使两步之间出现异常，记录也已存在可恢复；
+        # 删除失败时回退记录，保证 hidden_refs 只含真正被删除的引用
+        target: Oid = ref.target
+        hidden_refs.append((ref_name, target))
+        log.info(f'已临时隐藏非 commit 引用 {ref_name} 目标 {target}')
+        try:
+            repo.references.delete(ref_name)
+        except Exception:
+            log.warning(f'隐藏非 commit 引用 {ref_name} 失败', exc_info=True)
+            hidden_refs.remove((ref_name, target))
+            continue
+
+
+def _restore_hidden_refs(repo: Repository, hidden_refs: list[tuple[str, Oid]]) -> None:
+    """恢复被临时删除的引用。"""
+    for ref_name, target in hidden_refs:
+        try:
+            if ref_name in repo.references:
+                # 导入窗口内被外部进程(如 Codex)重建的引用不覆盖 保留外部新值
+                log.warning(f'引用 {ref_name} 在导入期间已被重建 跳过恢复')
+                continue
+            repo.references.create(ref_name, target, force=True)
+        except Exception:
+            # 记录原目标 便于手动恢复: git update-ref <引用名> <目标>
+            log.error(f'恢复引用 {ref_name} 失败 原目标 {target}', exc_info=True)
 
 
 def _fetch_remote_worker(
@@ -888,7 +952,10 @@ class GitService:
 
         callbacks = _FetchProgressRemoteCallbacks(report_progress, timeout=None)
 
+        hidden_refs: list[tuple[str, Oid]] = []
         try:
+            # libgit2 本地 transport 会枚举全部引用，先隐藏无法参与协商的引用，结束后恢复
+            _hide_non_commit_refs(active_repo, hidden_refs)
             log.info(f'开始导入临时 Git 仓库: {remote_path}')
             active_repo.remotes.create(remote_name, remote_path)
             active_repo.config[f'remote.{remote_name}.tagopt'] = '--no-tags'
@@ -936,6 +1003,22 @@ class GitService:
             except Exception:
                 log.error('恢复 Git 导入前状态失败', exc_info=True)
             raise
+        finally:
+            self._restore_hidden_refs_after_import(hidden_refs)
+
+    def _restore_hidden_refs_after_import(self, hidden_refs: list[tuple[str, Oid]]) -> None:
+        """导入结束后恢复被临时隐藏的引用（成功与失败路径都要执行）。"""
+        if not hidden_refs:
+            return
+        try:
+            # 导入过程可能已释放并重开仓库，这里统一用当前缓存的仓库句柄
+            restore_repo = self._repo
+            if restore_repo is None:
+                restore_repo = self._open_repo()
+        except Exception:
+            log.error('恢复 Git 隐藏引用失败 无法打开仓库', exc_info=True)
+            return
+        _restore_hidden_refs(restore_repo, hidden_refs)
 
     def _fetch_remote_once(
         self,
