@@ -48,9 +48,7 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "hud_opacity": 100,
     "hud_font_size": "large",
     "hud_font_bold": True,
-    # 防截图键换过一次名：旧键 hud_anti_capture 默认 True，会通过 WDA_EXCLUDEFROMCAPTURE
-    # 触发 NVIDIA 即时回放（开启桌面捕获时）被强制自动关闭；改用新键使新老用户均默认关闭。
-    "overlay_anti_capture": False,
+    "hud_anti_capture": False,
     "hud_mask_uid": True,
     "hud_log_width_level": 2,
     "hud_log_height_level": 2,
@@ -65,7 +63,7 @@ _OVERLAY_SCALAR_KEYS = {
     "hud_opacity",
     "hud_font_size",
     "hud_font_bold",
-    "overlay_anti_capture",
+    "hud_anti_capture",
     "hud_mask_uid",
     "hud_log_width_level",
     "hud_log_height_level",
@@ -82,11 +80,6 @@ _OVERLAY_SCALAR_KEYS = {
     "follow_interval_ms",
     "input_poll_interval_ms",
     "state_poll_interval_ms",
-}
-
-_OVERLAY_PROP_TO_KEY: dict[str, str] = {
-    "display_mode": "overlay_display_mode",
-    "hud_anti_capture": "overlay_anti_capture",
 }
 
 
@@ -113,10 +106,9 @@ class OverlayConfig(YamlConfig):
         """
         Override update so YamlConfigAdapter can still write overlay.* fields.
         """
-        storage_key = _OVERLAY_PROP_TO_KEY.get(key, key)
-        if storage_key in _OVERLAY_SCALAR_KEYS:
+        if key in _OVERLAY_SCALAR_KEYS:
             data = self._overlay_data()
-            data[storage_key] = value
+            data[key] = value
             return YamlConfig.update(self, "overlay", data, save=save)
         return YamlConfig.update(self, key, value, save=save)
 
@@ -199,11 +191,11 @@ class OverlayConfig(YamlConfig):
     @property
     def hud_anti_capture(self) -> bool:
         """防截图：开启后通过 WDA_EXCLUDEFROMCAPTURE 防止前台截图/录屏捕获调试面板。"""
-        return bool(self._overlay_data()["overlay_anti_capture"])
+        return bool(self._overlay_data()["hud_anti_capture"])
 
     @hud_anti_capture.setter
     def hud_anti_capture(self, value: bool) -> None:
-        self._update_overlay_data("overlay_anti_capture", bool(value))
+        self._update_overlay_data("hud_anti_capture", bool(value))
 
     @property
     def hud_mask_uid(self) -> bool:
