@@ -54,7 +54,7 @@ DEV 是开发版插件的来源，开发者把本地开发的插件放在 `plugi
 - `plugin_dir`: 插件目录路径
 - `source`: 插件来源（BUILTIN/THIRD_PARTY/DEV）
 - `is_third_party`: 是否为外部插件（THIRD_PARTY 或 DEV）
-- `is_dev` / `is_dev_only`: 是否为开发版 / 是否只有开发版没有商店版副本
+- `is_dev`: 当前生效的是否为开发版
 - `inactive_copy`: 同 ID 下未导入的那份副本（`InactiveCopy`，只读 `plugin.json` 版本），没有并存时为 `None`
 
 ### ApplicationFactory

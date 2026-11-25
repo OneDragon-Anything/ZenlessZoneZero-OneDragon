@@ -111,8 +111,3 @@ class PluginInfo:
     def has_both_copies(self) -> bool:
         """是否同时存在商店版和开发版两份副本（可切换）。"""
         return self.inactive_copy is not None
-
-    @property
-    def is_dev_only(self) -> bool:
-        """是否只有开发版、没有商店版副本。"""
-        return self.source == PluginSource.DEV and self.inactive_copy is None
