@@ -174,7 +174,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         plugins_dir = self.plugins_dir
         if plugins_dir is not None:
             dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
-            # 开发版目录：plugins/.dev/<id>/，注册时 APP_ID 加 _dev，与商店版共存
+            # 开发版目录：plugins/.dev/<id>/，与商店版同一个 APP_ID，并存时只加载一份
             dev_dir = plugins_dir / DEV_PLUGIN_DIR_NAME
             if dev_dir.is_dir():
                 dirs.append((dev_dir, PluginSource.DEV))
