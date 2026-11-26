@@ -7,14 +7,21 @@
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon_qt.services.plugin_cover_service import PluginCoverService
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 
 
 class PluginInterface(PivotNavigatorInterface):
     """插件一级界面，包含插件管理与插件商店两个二级页面。"""
 
-    def __init__(self, ctx: OneDragonContext, parent=None) -> None:
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        cover_service: PluginCoverService,
+        parent=None,
+    ) -> None:
         self.ctx: OneDragonContext = ctx
+        self.cover_service: PluginCoverService = cover_service
         PivotNavigatorInterface.__init__(
             self,
             object_name='plugin_interface',
@@ -34,15 +41,19 @@ class PluginInterface(PivotNavigatorInterface):
 
         self.manage_interface: PluginManageInterface = PluginManageInterface(
             self.ctx,
+            self.cover_service,
             parent=self,
         )
-        self.add_sub_interface(self.manage_interface)
+        # 启用页面栈：INTERFACE 型插件设置要靠 push_setting_interface 推入，
+        # 该方法只认 PageStackWrapper，未包裹时是静默 no-op。
+        self.add_sub_interface(self.manage_interface, enable_page_stack=True)
 
         self.store_interface: PluginStoreInterface = PluginStoreInterface(
             self.ctx,
+            self.cover_service,
             parent=self,
         )
-        self.add_sub_interface(self.store_interface)
+        self.add_sub_interface(self.store_interface, enable_page_stack=True)
 
     def shutdown(self) -> None:
         """程序退出前收尾，等页面里的后台线程结束。"""

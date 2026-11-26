@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 
-from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QEnterEvent,
@@ -542,6 +542,7 @@ class PluginCardGrid(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._cards: list[PluginCard] = []
+        self._relayout_pending: bool = False
         self._layout: FlowLayout = FlowLayout(self, needAni=False, isTight=True)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setHorizontalSpacing(12)
@@ -562,10 +563,30 @@ class PluginCardGrid(QWidget):
             card.setParent(None)
             card.deleteLater()
         self._cards.clear()
+        self._invalidate_layout()
 
     def add_card(self, card: PluginCard) -> None:
         self._cards.append(card)
         self._layout.addWidget(card)
+        self._invalidate_layout()
+
+    def _invalidate_layout(self) -> None:
+        """安排一次布局重排，同一轮事件内的多次请求合并为一次。
+
+        紧凑模式的 FlowLayout 只排 isVisible() 的卡片，而 addItem 不会使布局失效。
+        网格已经显示时清空再重建，新卡片在当前事件里还没显示，排布时被跳过；
+        之后卡片显示也没人再触发重排，全部停在 (0, 0) 互相覆盖。
+        所以延后到卡片显示之后再失效一次。
+        """
+        if self._relayout_pending:
+            return
+        self._relayout_pending = True
+        QTimer.singleShot(0, self, self._relayout)
+
+    def _relayout(self) -> None:
+        self._relayout_pending = False
+        self._layout.invalidate()
+        self.updateGeometry()
 
     def apply_visible(self, cards: list[PluginCard]) -> None:
         """只显示给定的卡片，其余隐藏并退出布局占位。

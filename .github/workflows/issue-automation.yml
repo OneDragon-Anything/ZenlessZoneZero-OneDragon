@@ -49,13 +49,77 @@ jobs:
 
           const issueType = extractSectionValue(normalizedIssueBody, '问题类型');
           const issueScope = extractSectionValue(normalizedIssueBody, '问题范围');
+          const issueBranch = extractSectionValue(normalizedIssueBody, '代码分支');
           const reportedCodeVersion = extractSectionValue(normalizedIssueBody, '代码版本');
           const reportedCommitHash = extractCommitHash(reportedCodeVersion);
 
-          // 1. 检查“未认真阅读”选项并处理
-          const isMisread = normalizedIssueBody.includes('- [x] 未认真阅读此处选项随意勾选') || normalizedIssueBody.includes('- [X] 未认真阅读此处选项随意勾选');
+          // 0. 没有“未认真阅读”选项（未使用模板）的 Issue，视为没认真阅读；贡献达到阈值的人放行
+          const contributionThreshold = 10;
+          // 模板里有“未认真阅读”选项；正文里没有这个选项，说明没有使用模板，按“没认真阅读”处理
+          const usedTemplate = normalizedIssueBody.includes('未认真阅读此处选项随意勾选');
+          if (!usedTemplate) {
+            const author = context.payload.issue.user.login;
+            const isBot = context.payload.issue.user.type === 'Bot';
+            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (isBot || trustedAssociations.includes(context.payload.issue.author_association)) {
+              console.log(`@${author} 是机器人或仓库成员，未使用模板也放行。`);
+              return;
+            }
+
+            // 贡献次数 = 该用户在默认分支上的 commit 数
+            const commitResponse = await github.request('GET /repos/{owner}/{repo}/commits', {
+              owner: targetOwner,
+              repo: targetRepo,
+              author,
+              per_page: 1,
+            });
+            const lastPage = commitResponse.headers.link?.match(/[?&]page=(\d+)>;\s*rel="last"/)?.[1];
+            const commitCount = lastPage ? Number(lastPage) : commitResponse.data.length;
+            if (commitCount >= contributionThreshold) {
+              console.log(`@${author} 有 ${commitCount} 次贡献，未使用模板也放行。`);
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              labels: ['Invalid | 无效反馈']
+            });
+            await github.rest.issues.createComment({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              body: '感谢你的反馈。此 Issue 未能遵循反馈要求，因此已被标记为“无效”并关闭。请仔细阅读并按照要求重新提交。'
+            });
+            await github.rest.issues.update({
+              owner: targetOwner,
+              repo: targetRepo,
+              issue_number: issueNumber,
+              state: 'closed',
+              state_reason: 'not_planned',
+            });
+            console.log(`Issue #${issueNumber} 未使用模板，作者 @${author} 有 ${commitCount} 次贡献，已关闭。`);
+            return;
+          }
+
+          // 1. 检查确认事项：“未认真阅读”选项被勾选，或必须勾选的确认项没有勾选，都按无效反馈处理
+          const requiredChecks = [
+            '正在使用最新的 OneDragon',
+            '已搜索过 issue 中无人提出相似问题或无解决方案',
+            '已为所有模型以及战斗脚本更新至最新版',
+            '进行过问题自查',
+            '运行时无任何帧率显示或其他覆盖层窗口遮盖游戏',
+            '未安装任何修改游戏UI和贴图的模组',
+            '了解反馈时应携带日志和问题截图，且明白应该使用F11截图',
+            '已经修改了此issue的标题为想要反馈的问题简述',
+            '此 issue 由我本人亲自提交',
+          ];
+          const isChecked = (text) => new RegExp(`- \\[[xX]\\] [^\\n]*${escapeRegExp(text)}`).test(normalizedIssueBody);
+          const uncheckedRequired = requiredChecks.filter((text) => !isChecked(text));
+          const isMisread = isChecked('未认真阅读此处选项随意勾选') || uncheckedRequired.length > 0;
           if (isMisread) {
-            console.log('检测到“未认真阅读”选项被勾选。');
+            console.log(`确认事项不符合要求。未勾选的必选项: ${uncheckedRequired.join('；') || '无'}`);
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -77,6 +141,45 @@ jobs:
             });
             console.log('Issue 已被标记为“无效”并关闭。');
             return;
+          }
+
+          // 1.5 确认事项验证通过后，把内容较长的部分折叠起来，减少 Issue 正文的长度；内容短的不折叠
+          try {
+            const foldMinLength = 200;
+            const foldSections = [
+              { heading: '请确认您已完成以下几件事', summary: '确认事项' },
+              { heading: '游戏截图', summary: '游戏截图' },
+              { heading: '运行日志', summary: '运行日志' },
+            ];
+            // 按最新的正文折叠（而不是触发时的正文），避免覆盖用户在触发后做的编辑
+            const { data: latestIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+            const latestBody = (latestIssue.body || '').replace(/\r\n/g, '\n');
+            let foldedBody = latestBody;
+            for (const { heading, summary } of foldSections) {
+              const sectionRegex = new RegExp(`(^|\\n)(### ${escapeRegExp(heading)}[^\\n]*\\n\\n)([\\s\\S]*?)(?=\\n### |$)`);
+              foldedBody = foldedBody.replace(sectionRegex, (whole, prefix, title, content) => {
+                const text = content.trim();
+                if (text.length < foldMinLength || text.includes('<details')) {
+                  return whole;
+                }
+                return `${prefix}${title}<details>\n<summary>${summary}</summary>\n\n${text}\n\n</details>\n`;
+              });
+            }
+            if (foldedBody !== latestBody) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: foldedBody
+              });
+              console.log('较长的内容已折叠。');
+            }
+          } catch (error) {
+            console.error(`折叠 Issue #${issueNumber} 的内容失败`, error);
           }
 
           // 2. 根据问题类型添加标签
@@ -113,9 +216,21 @@ jobs:
             scopePrefix = '[其他] ';
           }
 
+          // 代码分支类型也加到标题里，格式：[问题范围][分支类型] 标题
+          let branchPrefix = '';
+          if (issueBranch === '主分支' || issueBranch === '测试分支') {
+            branchPrefix = `[${issueBranch}]`;
+          }
+
+          // 先去掉标题开头已有的范围、分支前缀，再按所选内容统一组合，避免前缀重复或和所选不一致
           let newTitle = issueTitle;
-          if (scopePrefix && !issueTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
-            newTitle = scopePrefix + issueTitle;
+          if (scopePrefix || branchPrefix) {
+            const knownPrefixes = ['自动战斗', '一条龙日常', '迷失之地', '游戏助手', '其他', '主分支', '测试分支'];
+            const existingPrefixRegex = new RegExp(`^(?:\\s*\\[(?:${knownPrefixes.join('|')})\\])+\\s*`);
+            const titleBody = issueTitle.replace(existingPrefixRegex, '');
+            newTitle = [scopePrefix.trim(), branchPrefix, titleBody].filter(Boolean).join(' ');
+          }
+          if (newTitle !== issueTitle) {
             await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,

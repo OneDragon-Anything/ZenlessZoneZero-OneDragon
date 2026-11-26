@@ -280,7 +280,11 @@ class AppSettingManager(QObject):
         if pivot_navi is None:
             return
 
-        cache_key = (id(pivot_navi), interface_cls)
+        # 缓存键按 push 实际落点的一级页面区分：同一导航器的多个子页
+        # （如插件管理页/商店页，经 enable_page_stack 各持有页面栈）必须各得
+        # 独立实例，否则 Qt addWidget 会把控件从另一页的页面栈里搬走。
+        current_page = pivot_navi.stacked_widget.currentWidget()
+        cache_key = (id(current_page), interface_cls)
         if cache_key not in self._interface_cache:
             self._interface_cache[cache_key] = interface_cls(self.ctx)
 

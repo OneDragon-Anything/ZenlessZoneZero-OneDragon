@@ -1,5 +1,6 @@
 import os
 import urllib.parse
+from dataclasses import dataclass
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -16,6 +17,20 @@ DEFAULT_VENV_DIR_PATH = os_utils.get_path_under_work_dir('.venv')  # 默认的�
 DEFAULT_VENV_PYTHON_PATH = os.path.join(DEFAULT_VENV_DIR_PATH, 'Scripts', 'python.exe')  # 默认的虚拟环境中python.exe的路径
 
 GH_PROXY_URL = 'https://ghfast.top'  # 免费代理的路径
+
+
+@dataclass(frozen=True, slots=True)
+class ResourceDownloadSettings:
+    """「资源」页下载设置翻译出的下载参数，下载队列与不经队列的下载共用。"""
+
+    source_order: list[str]
+    """候选源ID顺序。"""
+    proxy_url: str | None
+    """个人代理地址，未启用时为 None。"""
+    ghproxy_url: str | None
+    """GitHub 代理站点前缀，未启用时为 None；只对 github 源生效，索引与封面这类域名代理不了的场景不要传。"""
+    fallback_on_slow: bool
+    """是否在候选源持续低速时尝试下一个源。"""
 
 
 class ProxyTypeEnum(Enum):
@@ -173,8 +188,22 @@ class EnvConfig(YamlConfig):
             language=i18_utils.get_default_lang(),
         )
 
+    def get_resource_download_settings(self) -> ResourceDownloadSettings:
+        """把「资源」页的下载源与代理设置翻译成下载参数。
+
+        不含成功/失败回调：它们会改写「上次成功源」，只有下载队列需要，由队列自己补。
+        """
+        return ResourceDownloadSettings(
+            source_order=self.get_resource_source_order(),
+            proxy_url=self.personal_proxy if self.is_personal_proxy else None,
+            ghproxy_url=self.gh_proxy_url if self.is_gh_proxy else None,
+            fallback_on_slow=self.is_resource_source_auto,
+        )
+
     def mark_resource_source_success(self, source_id: str) -> None:
-        """记录本次资源下载成功使用的源。"""
+        """记录本次资源下载成功使用的源；不在已配置源里的地址不记，免得污染自动选源。"""
+        if self.repo_config.get_resource_source(source_id) is None:
+            return
         self.last_resource_source = source_id
 
     @property
