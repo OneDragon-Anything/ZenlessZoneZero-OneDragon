@@ -8,6 +8,7 @@ from one_dragon.utils import thread_utils
 
 if sys.platform == 'darwin':
     from pynput.keyboard._darwin import Listener as DarwinKeyboardListener
+    from pynput.keyboard._darwin import NSSystemDefined
     from pynput.mouse._darwin import Listener as DarwinMouseListener
     from Quartz import (
         CFMachPortCreateRunLoopSource,
@@ -15,6 +16,7 @@ if sys.platform == 'darwin':
         CFRunLoopGetCurrent,
         CFRunLoopRunInMode,
         CFRunLoopStop,
+        CGEventGetFlags,
         CGEventTapEnable,
         kCFRunLoopDefaultMode,
         kCFRunLoopRunTimedOut,
@@ -50,7 +52,13 @@ if sys.platform == 'darwin':
 
 
     class MacKeyboardListener(MacListenerMixin, DarwinKeyboardListener):
-        pass
+
+        def _handle_message(self, _proxy, event_type, event, _refcon, injected):
+            # NSSystemDefined 会调用 NSEvent.eventWithCGEvent_，在 macOS 后台线程会触发 TSM 主线程队列断言崩溃
+            if event_type == NSSystemDefined:
+                self._flags = CGEventGetFlags(event)
+                return
+            super()._handle_message(_proxy, event_type, event, _refcon, injected)
 
 
     class MacMouseListener(MacListenerMixin, DarwinMouseListener):

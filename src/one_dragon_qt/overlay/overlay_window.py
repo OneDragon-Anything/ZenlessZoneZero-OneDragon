@@ -42,6 +42,7 @@ class OverlayWindow(QWidget):
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.Tool
             | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowDoesNotAcceptFocus
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
@@ -91,7 +92,9 @@ class OverlayWindow(QWidget):
         if visible:
             if not self.isVisible():
                 self.show()
-                self.raise_()
+                import sys
+                if sys.platform != "darwin":
+                    self.raise_()
             self.set_passthrough(self._passthrough_enabled)
             self.set_anti_capture(self._anti_capture_enabled)
         else:

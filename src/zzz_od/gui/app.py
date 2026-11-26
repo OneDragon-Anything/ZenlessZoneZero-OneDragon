@@ -338,6 +338,15 @@ def main() -> None:
 
     w.show()
     w.activateWindow()
+    if sys.platform == 'darwin':
+        from AppKit import (
+            NSApplicationActivateIgnoringOtherApps,
+            NSRunningApplication,
+        )
+
+        NSRunningApplication.currentApplication().activateWithOptions_(
+            NSApplicationActivateIgnoringOtherApps
+        )
 
     # 加载配置
     init_runner = CtxInitRunner(_ctx, w)

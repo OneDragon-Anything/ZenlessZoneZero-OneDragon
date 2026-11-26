@@ -10,7 +10,7 @@ Window {
     id: root
     visible: false
     color: "transparent"
-    flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+    flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput
 
     // 面板可见性由 Python 侧注入（面板位置用 anchors 相对 HUD 窗口固定，不受分辨率影响）
     property bool logVisible: true

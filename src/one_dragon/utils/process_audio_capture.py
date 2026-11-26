@@ -64,9 +64,9 @@ _UNKNOWN_RELEASE = 2
 
 class _GUID(ctypes.Structure):
     _fields_ = [
-        ('Data1', wintypes.DWORD),
-        ('Data2', wintypes.WORD),
-        ('Data3', wintypes.WORD),
+        ('Data1', ctypes.c_uint32),
+        ('Data2', ctypes.c_uint16),
+        ('Data3', ctypes.c_uint16),
         ('Data4', ctypes.c_ubyte * 8),
     ]
 
@@ -126,10 +126,11 @@ class _WaveFormatEx(ctypes.Structure):
     ]
 
 
-_QueryInterfaceFunc = ctypes.WINFUNCTYPE(_HRESULT, ctypes.c_void_p, ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p))
-_AddRefFunc = ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
-_ReleaseFunc = ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
-_ActivateCompletedFunc = ctypes.WINFUNCTYPE(_HRESULT, ctypes.c_void_p, ctypes.c_void_p)
+_WINFUNCTYPE = getattr(ctypes, 'WINFUNCTYPE', ctypes.CFUNCTYPE)
+_QueryInterfaceFunc = _WINFUNCTYPE(_HRESULT, ctypes.c_void_p, ctypes.POINTER(_GUID), ctypes.POINTER(ctypes.c_void_p))
+_AddRefFunc = _WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
+_ReleaseFunc = _WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
+_ActivateCompletedFunc = _WINFUNCTYPE(_HRESULT, ctypes.c_void_p, ctypes.c_void_p)
 
 
 class _CompletionHandlerVtbl(ctypes.Structure):

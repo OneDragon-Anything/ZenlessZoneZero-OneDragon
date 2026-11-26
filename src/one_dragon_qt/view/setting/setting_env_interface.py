@@ -16,6 +16,8 @@ from qfluentwidgets import (
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.envs.env_config import ProxyTypeEnum, ScreenshotMethodEnum
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.overlay.overlay_config import OverlayConfig
+from one_dragon_qt.overlay.overlay_manager import OverlayManager
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -95,6 +97,14 @@ class SettingEnvInterface(VerticalScrollInterface):
             content='按下截图按键时，自动将截图复制到剪贴板'
         )
         basic_group.addSettingCard(self.copy_screenshot_opt)
+
+        self.overlay_hud_opt = SwitchSettingCard(
+            icon=FluentIcon.VIEW,
+            title='Overlay HUD 覆盖层',
+            content='在游戏窗口上方显示运行状态与日志（默认关闭）',
+        )
+        self.overlay_hud_opt.value_changed.connect(self._on_overlay_hud_changed)
+        basic_group.addSettingCard(self.overlay_hud_opt)
 
         return basic_group
 
@@ -191,6 +201,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         self.debug_opt.setVisible(self.ctx.env_config.developer_mode)
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
+        self.overlay_hud_opt.setValue(OverlayConfig().hud_enabled, emit_signal=False)
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))
@@ -213,6 +224,14 @@ class SettingEnvInterface(VerticalScrollInterface):
         if hasattr(window, 'set_developer_mode'):
             window.set_developer_mode(value)
         self.debug_opt.setVisible(value)
+
+    def _on_overlay_hud_changed(self, value: bool) -> None:
+        """切换 Overlay HUD 覆盖层开关。"""
+        cfg = OverlayConfig()
+        cfg.hud_enabled = value
+        mgr = OverlayManager.instance()
+        if mgr is not None:
+            mgr.reload_config()
 
     def _on_proxy_type_changed(self, index: int, value: str) -> None:
         self.update_proxy_ui()

@@ -3,6 +3,7 @@
 仅上报日活（app_launched）和应用关闭（app_shutdown），附带版本信息。
 """
 import platform
+import threading
 import time
 import uuid
 from datetime import datetime
@@ -45,12 +46,19 @@ class TelemetryManager:
             self._aliyun_client = AliyunWebTrackingClient(ALIYUN_WEB_TRACKING_ENDPOINT)
             self._initialized = True
 
-            self._send_event("app_launched", {
-                "launch_time_seconds": time.time() - self._session_start,
-                "platform": platform.system(),
-                "machine_id": f"{platform.node()}-{platform.machine()}",
-                "session_start": datetime.now().isoformat(),
-            })
+            threading.Thread(
+                target=self._send_event,
+                args=(
+                    "app_launched",
+                    {
+                        "launch_time_seconds": time.time() - self._session_start,
+                        "platform": platform.system(),
+                        "machine_id": f"{platform.node()}-{platform.machine()}",
+                        "session_start": datetime.now().isoformat(),
+                    },
+                ),
+                daemon=True,
+            ).start()
             log.debug("Telemetry initialized")
             return True
         except Exception as e:

@@ -107,6 +107,9 @@ class AudioRecorder:
         通过游戏窗口句柄找到游戏进程，只录制该进程（含子进程）的声音。
         :return: 是否按进程录制到了停止。返回 False 时（不可用或读取失败）应回退到录制输出设备
         """
+        if sys.platform == 'darwin':
+            return False
+
         from one_dragon.utils.process_audio_capture import (
             ProcessAudioCapture,
             ProcessAudioCaptureError,

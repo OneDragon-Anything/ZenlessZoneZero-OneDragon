@@ -61,11 +61,17 @@ class MacGameWindowHandle:
 class MacPcGameWindow:
     """通过 macOS 窗口列表定位 PlayCover 中的游戏窗口。"""
 
-    GAME_TITLE_ALIASES: dict[str, set[str]] = {
-        '绝区零': {'绝区零', '絕區零', 'ZenlessZoneZero'},
-        '絕區零': {'绝区零', '絕區零', 'ZenlessZoneZero'},
-        'ZenlessZoneZero': {'绝区零', '絕區零', 'ZenlessZoneZero'},
+    _ZZZ_ALIASES: set[str] = {
+        '绝区零',
+        '絕區零',
+        'ZenlessZoneZero',
+        'Zenless Zone Zero',
+        'com.HoYoverse.Nap',
+        'com.miHoYo.Nap',
     }
+    GAME_TITLE_ALIASES: dict[str, set[str]] = dict.fromkeys(
+        _ZZZ_ALIASES, _ZZZ_ALIASES
+    )
 
     def __init__(
         self,
@@ -213,10 +219,17 @@ class MacPcGameWindow:
         if window is None:
             return False
         if window.isActive:
-            return True
+            rect = self.win_rect
+            if rect is not None and rect.width >= 400:
+                return True
         if not window.activate():
             log.error('无法激活 PlayCover 游戏窗口，请检查系统辅助功能权限')
             return False
+        for _ in range(20):
+            rect = self.win_rect
+            if window.isActive and rect is not None and rect.width >= 400:
+                break
+            time.sleep(0.05)
         return True
 
     def get_scaled_game_pos(self, game_pos: Point) -> Point | None:

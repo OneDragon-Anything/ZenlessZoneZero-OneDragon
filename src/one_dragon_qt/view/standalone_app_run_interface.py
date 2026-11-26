@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QWidget
 from qfluentwidgets import (
@@ -10,13 +10,18 @@ from qfluentwidgets import (
     FluentIconBase,
     MessageBoxBase,
     PrimaryPushButton,
+    PushButton,
     SubtitleLabel,
     getFont,
 )
 
 from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.application_run_context import (
+    RunFinishReason,
+)
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.multi_select_list import MultiSelectListWidget
@@ -38,6 +43,8 @@ class StandaloneRunInterface(SplitAppRunInterface):
                  nav_icon: FluentIconBase | QIcon | str = FluentIcon.PLAY,
                  parent: QWidget | None = None):
         self.ctx: OneDragonContext = ctx
+        self._loop_running: bool = False
+        self._runner_finished_connected: bool = False
 
         SplitAppRunInterface.__init__(
             self,
@@ -50,6 +57,10 @@ class StandaloneRunInterface(SplitAppRunInterface):
             left_stretch=1,
             right_stretch=1,
         )
+
+        self._loop_restart_timer = QTimer(self)
+        self._loop_restart_timer.setSingleShot(True)
+        self._loop_restart_timer.timeout.connect(self._restart_loop_app)
 
     def get_left_widget(self) -> QWidget:
         left = Column(spacing=4)
@@ -74,9 +85,23 @@ class StandaloneRunInterface(SplitAppRunInterface):
         left.add_stretch(1)
         return left
 
+    def get_content_widget(self) -> QWidget:
+        content_widget = SplitAppRunInterface.get_content_widget(self)
+        self.loop_btn = PushButton(
+            text=f"{gt('循环运行')} F8",
+            icon=FluentIcon.SYNC,
+        )
+        self.loop_btn.clicked.connect(self._on_loop_run_clicked)
+        self.btn_row_layout.insertWidget(1, self.loop_btn)
+        return content_widget
+
     def on_interface_shown(self) -> None:
         SplitAppRunInterface.on_interface_shown(self)
+        if not self._runner_finished_connected:
+            self.app_runner.finished.connect(self._on_app_runner_finished)
+            self._runner_finished_connected = True
         self._refresh_app_list()
+        self._update_loop_btn_state()
 
         # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
         window = self.window()
@@ -84,11 +109,92 @@ class StandaloneRunInterface(SplitAppRunInterface):
             window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
 
     def on_interface_hidden(self) -> None:
+        self._stop_loop_mode()
         SplitAppRunInterface.on_interface_hidden(self)
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             with contextlib.suppress(RuntimeError):
                 window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
+
+    def on_context_state_changed(self) -> None:
+        SplitAppRunInterface.on_context_state_changed(self)
+        self._update_loop_btn_state()
+
+    def _handle_key_press(self, key: str) -> None:
+        if key == 'f8' and self.ctx.run_context.is_context_stop and not self._loop_running:
+            self._on_loop_run_clicked()
+            return
+        if key == self.ctx.key_stop_running:
+            self._stop_loop_mode()
+            return
+        SplitAppRunInterface._handle_key_press(self, key)
+
+    def _on_start_clicked(self) -> None:
+        if self.ctx.run_context.is_context_stop:
+            self._loop_running = False
+            self._loop_restart_timer.stop()
+            self._update_loop_btn_state()
+        SplitAppRunInterface._on_start_clicked(self)
+
+    def _on_stop_clicked(self) -> None:
+        self._stop_loop_mode()
+        SplitAppRunInterface._on_stop_clicked(self)
+
+    def _on_loop_run_clicked(self) -> None:
+        """以循环运行模式启动当前选中的应用。"""
+        if not self.app_id:
+            log.error('请先选择一个应用')
+            return
+        if self.app_runner.isRunning() or not self.ctx.run_context.is_context_stop:
+            log.error('已有应用在运行中')
+            return
+        self._loop_running = True
+        self._loop_restart_timer.stop()
+        self._update_loop_btn_state()
+        self.run_app()
+
+    def _stop_loop_mode(self) -> None:
+        """退出循环运行模式并取消待执行的自动重启。"""
+        self._loop_running = False
+        self._loop_restart_timer.stop()
+        self._update_loop_btn_state()
+
+    def _update_loop_btn_state(self) -> None:
+        if not hasattr(self, 'loop_btn'):
+            return
+        if self._loop_running:
+            self.loop_btn.setText(f"{gt('循环运行中')} F8")
+            self.loop_btn.setEnabled(False)
+        else:
+            self.loop_btn.setText(f"{gt('循环运行')} F8")
+            self.loop_btn.setEnabled(self.ctx.run_context.is_context_stop)
+
+    def _on_app_runner_finished(self) -> None:
+        if not self._loop_running:
+            return
+        result = self.app_runner.run_result
+        if result is None or result.finish_reason in (
+            RunFinishReason.STOPPED,
+            RunFinishReason.NOT_STARTED,
+        ):
+            self._stop_loop_mode()
+            return
+        log.info(
+            '循环运行：本次执行结束（%s），2.5 秒后自动重新开始',
+            result.finish_reason.name,
+        )
+        self._update_loop_btn_state()
+        self._loop_restart_timer.start(2500)
+
+    def _restart_loop_app(self) -> None:
+        if not self._loop_running:
+            return
+        if not self.app_id:
+            self._stop_loop_mode()
+            return
+        if not self.ctx.run_context.is_context_stop:
+            self.ctx.run_context.stop_running()
+        self.run_app()
 
     # ── 应用列表管理 ──
 

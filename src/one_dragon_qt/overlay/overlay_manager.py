@@ -244,6 +244,12 @@ class OverlayManager(QObject):
                 self._warned_unsupported = True
             return
 
+        mode = self.config.display_mode
+        toast_showing = time.time() < self._toast_until
+        if mode == "off" and not toast_showing:
+            self._hide_overlay()
+            return
+
         game_rect = self._get_game_rect()
         if game_rect is None:
             self._hide_overlay()
