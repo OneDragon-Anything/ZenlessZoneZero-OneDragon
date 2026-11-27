@@ -158,6 +158,8 @@ class PcControllerBase(ControllerBase):
             return
         try:
             win.close()
+            if hasattr(self.game_win, 'refresh_win'):
+                self.game_win.refresh_win()
             log.info('关闭游戏成功')
         except Exception:
             log.error('关闭游戏失败', exc_info=True)

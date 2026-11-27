@@ -43,6 +43,25 @@ class MacGameWindowHandle:
             app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
         )
 
+    def is_unresponsive(self) -> bool:
+        """检查游戏进程是否已退出或主线程无响应（卡死）。"""
+        app = NSRunningApplication.runningApplicationWithProcessIdentifier_(
+            self.owner_pid
+        )
+        if app is None or app.isTerminated():
+            return True
+        try:
+            import ApplicationServices as AS
+
+            app_ref = AS.AXUIElementCreateApplication(self.owner_pid)
+            AS.AXUIElementSetMessagingTimeout(app_ref, 1.0)
+            err, _ = AS.AXUIElementCopyAttributeValue(
+                app_ref, AS.kAXWindowsAttribute, None
+            )
+            return err == AS.kAXErrorCannotComplete
+        except Exception:
+            return False
+
     def close(self) -> None:
         """关闭游戏窗口所属应用。"""
         app = NSRunningApplication.runningApplicationWithProcessIdentifier_(
@@ -56,6 +75,10 @@ class MacGameWindowHandle:
                 return
             time.sleep(0.1)
         app.forceTerminate()
+        for _ in range(10):
+            if app.isTerminated():
+                return
+            time.sleep(0.1)
 
 
 class MacPcGameWindow:

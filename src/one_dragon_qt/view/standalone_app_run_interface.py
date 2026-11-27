@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 
+import numpy as np
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QWidget
@@ -44,6 +45,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
                  parent: QWidget | None = None):
         self.ctx: OneDragonContext = ctx
         self._loop_running: bool = False
+        self._restart_reopen_game: bool = False
         self._runner_finished_connected: bool = False
 
         SplitAppRunInterface.__init__(
@@ -61,6 +63,10 @@ class StandaloneRunInterface(SplitAppRunInterface):
         self._loop_restart_timer = QTimer(self)
         self._loop_restart_timer.setSingleShot(True)
         self._loop_restart_timer.timeout.connect(self._restart_loop_app)
+
+        self._loop_reopen_timer = QTimer(self)
+        self._loop_reopen_timer.setSingleShot(True)
+        self._loop_reopen_timer.timeout.connect(self._start_loop_app_after_close)
 
     def get_left_widget(self) -> QWidget:
         left = Column(spacing=4)
@@ -156,7 +162,9 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def _stop_loop_mode(self) -> None:
         """退出循环运行模式并取消待执行的自动重启。"""
         self._loop_running = False
+        self._restart_reopen_game = False
         self._loop_restart_timer.stop()
+        self._loop_reopen_timer.stop()
         self._update_loop_btn_state()
 
     def _update_loop_btn_state(self) -> None:
@@ -179,12 +187,33 @@ class StandaloneRunInterface(SplitAppRunInterface):
         ):
             self._stop_loop_mode()
             return
+        self._restart_reopen_game = result.finish_reason == RunFinishReason.FAILED
         log.info(
             '循环运行：本次执行结束（%s），2.5 秒后自动重新开始',
             result.finish_reason.name,
         )
         self._update_loop_btn_state()
         self._loop_restart_timer.start(2500)
+
+    def _is_game_frozen_or_crashed(self) -> bool:
+        """判断游戏是否已崩溃、无响应或长时间黑屏卡死（普通识别失败返回 False）。"""
+        controller = self.ctx.controller
+        if controller is None:
+            return False
+        if not controller.is_game_window_ready:
+            return True
+        win = controller.game_win.get_win() if controller.game_win is not None else None
+        if win is not None and hasattr(win, 'is_unresponsive') and win.is_unresponsive():
+            return True
+        try:
+            _, screen = controller.screenshot()
+            if screen is not None and screen.size > 0:
+                black_ratio = float(np.mean(np.max(screen, axis=2) < 15))
+                if black_ratio >= 0.96:
+                    return True
+        except Exception:
+            return True
+        return False
 
     def _restart_loop_app(self) -> None:
         if not self._loop_running:
@@ -194,6 +223,23 @@ class StandaloneRunInterface(SplitAppRunInterface):
             return
         if not self.ctx.run_context.is_context_stop:
             self.ctx.run_context.stop_running()
+        reopen_game = self._restart_reopen_game
+        self._restart_reopen_game = False
+        if reopen_game and self._is_game_frozen_or_crashed():
+            if self.ctx.controller is not None and self.ctx.controller.is_game_window_ready:
+                log.info('循环运行：检测到游戏无响应或黑屏卡死，强制关闭游戏并重新启动')
+                self.ctx.controller.close_game()
+                self._loop_reopen_timer.start(2000)
+                return
+            log.info('循环运行：检测到游戏已退出，将自动重新打开游戏')
+        self.run_app()
+
+    def _start_loop_app_after_close(self) -> None:
+        if not self._loop_running:
+            return
+        if not self.app_id:
+            self._stop_loop_mode()
+            return
         self.run_app()
 
     # ── 应用列表管理 ──
