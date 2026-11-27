@@ -1,4 +1,5 @@
 import time
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -20,7 +21,6 @@ from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from typing import ClassVar
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -542,6 +542,34 @@ class EnterGame(ZOperation):
         self.resource_download_start_time = None
         return self.round_fail('资源下载超时')
 
+    @staticmethod
+    def is_login_screen(ctx: ZContext, screen: MatLike | None) -> bool:
+        """判断当前画面是否处于登录或加载配置画面。"""
+        if screen is None:
+            return False
+        area = ctx.screen_loader.get_area('打开游戏', '进入游戏点击后状态')
+        if area is None:
+            return False
+        ocr_result_map = ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect,
+            color_range=area.color_range,
+            crop_first=True,
+        )
+        target_word_list: list[str] = [
+            '点击进入游戏',
+            '加载配置数据中',
+            '版本校对中',
+            '登录游戏服务器中',
+            EnterGame.STATUS_LOGIN_SUCCESS,
+            '资源下载中',
+        ]
+        match_word, _ = ocr_utils.match_word_list_by_priority(
+            ocr_result_map,
+            target_word_list,
+        )
+        return match_word is not None
+
     def check_enter_click_status_text(
             self,
             screen: MatLike,
@@ -582,7 +610,7 @@ class EnterGame(ZOperation):
         )
 
     @node_from(from_name='画面识别', status='点击进入游戏')
-    @operation_node(name='点击进入游戏', node_max_retry_times=15)
+    @operation_node(name='点击进入游戏', node_max_retry_times=60)
     def check_enter_click_status(self) -> OperationRoundResult:
         """
         识别进入游戏点击后的加载状态。
@@ -617,12 +645,15 @@ class EnterGame(ZOperation):
         )
         if match_word is not None:
             if match_word == '资源下载中':
+                self.after_first_enter_click = True
+                self.after_second_enter_click = False
                 return self.wait_resource_download()
 
             self.resource_download_start_time = None
             if match_word == '点击进入游戏':
                 click_result = self.round_by_click_area('打开游戏', '点击进入游戏')
                 if click_result.is_success:
+                    self.ctx.controller.mouse_move(Point(200, 200))
                     if self.after_first_enter_click:
                         self.after_second_enter_click = True
                     else:
@@ -630,8 +661,9 @@ class EnterGame(ZOperation):
                     return self.round_wait(status=match_word, wait=2)
                 return click_result
 
-            if match_word == '加载配置数据中':
+            if match_word in ('加载配置数据中', '版本校对中'):
                 self.after_first_enter_click = True
+                self.after_second_enter_click = False
 
             if match_word == '登录游戏服务器中':
                 self.after_second_enter_click = True
@@ -649,6 +681,15 @@ class EnterGame(ZOperation):
                 return login_error_result
             return self.round_success(EnterGame.STATUS_LOADING)
 
+        if self.after_first_enter_click:
+            if (
+                self.round_by_find_area(self.last_screenshot, '加载中', '加载中').is_success
+                or self.is_in_big_world(self.last_screenshot) is not None
+                or self.is_gray_loading_screen(self.last_screenshot)
+            ):
+                self.after_second_enter_click = True
+                return self.round_success(EnterGame.STATUS_LOADING)
+
         return self.round_retry('进入游戏点击后等待', wait=1)
 
     @node_from(from_name='点击进入游戏', status=STATUS_LOGIN_SUCCESS)
@@ -661,6 +702,19 @@ class EnterGame(ZOperation):
         Returns:
             仍在加载时等待；识别到弹窗时处理；识别到大世界时结束。
         """
+        match_word, _ = self.check_enter_click_status_text(
+            self.last_screenshot,
+            include_enter_click=True,
+        )
+        if match_word == '点击进入游戏':
+            click_result = self.round_by_click_area('打开游戏', '点击进入游戏')
+            if click_result.is_success:
+                self.ctx.controller.mouse_move(Point(200, 200))
+                return self.round_wait(status=match_word, wait=2)
+            return click_result
+        if match_word is not None:
+            return self.round_wait(status=match_word, wait=1)
+
         result = self.round_by_find_area(self.last_screenshot, '加载中', '加载中')
         if result.is_success:
             return self.round_wait(result.status, wait=2)

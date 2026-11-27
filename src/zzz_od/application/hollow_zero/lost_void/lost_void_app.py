@@ -96,7 +96,15 @@ class LostVoidApp(ZApplication):
 
         mission_name = self.config.mission_name
         screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, f'迷失之地-{mission_name}')
-        if screen_name == '迷失之地-大世界':
+        in_lost_void_screens = {
+            '迷失之地-大世界',
+            '迷失之地-武备选择',
+            '迷失之地-通用选择',
+            '迷失之地-无详情选择',
+            '迷失之地-商店',
+            '迷失之地-挚交会谈',
+        }
+        if screen_name in in_lost_void_screens:
             return self.round_success('迷失之地-大世界')
 
         if can_go or screen_name == f'迷失之地-{mission_name}':

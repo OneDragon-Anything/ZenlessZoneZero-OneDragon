@@ -11,14 +11,12 @@ from PySide6.QtWidgets import (
 from qfluentwidgets import (
     FluentIcon,
     HyperlinkButton,
-    InfoBar,
     MessageBox,
     PushButton,
     SegmentedWidget,
     ToolButton,
 )
 
-from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
@@ -148,14 +146,6 @@ class BattleAssistantInterface(AppRunInterface):
         )
         top.add_widget(self.screenshot_opt)
 
-        self.background_mode_opt = SwitchSettingCard(
-            icon=FluentIcon.ROBOT,
-            title='后台模式（专享版）',
-            content='仅控制当前功能是否临时启用后台模式；相关配置请前往「设置 → 游戏设置」调整',
-        )
-        self.background_mode_opt.value_changed.connect(self._on_background_mode_changed)
-        top.add_widget(self.background_mode_opt)
-
         self.mode_segment.setCurrentItem(self.MODE_AUTO_BATTLE)
 
         return top
@@ -276,9 +266,6 @@ class BattleAssistantInterface(AppRunInterface):
         self.screenshot_opt.init_with_adapter(
             get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval')
         )
-        self.background_mode_opt.init_with_adapter(
-            get_prop_adapter(self.ctx.battle_assistant_config, 'background_mode')
-        )
 
     # ------------------------------------------------------------------
     # Auto battle config
@@ -338,20 +325,6 @@ class BattleAssistantInterface(AppRunInterface):
         w.yesButton.setText(gt("确认"))
         w.exec()
 
-    def _on_background_mode_changed(self, value: bool) -> None:
-        if value and not pc_button_utils.is_vgamepad_installed():
-            self.background_mode_opt.setValue(False, emit_signal=False)
-            if self.background_mode_opt.adapter is not None:
-                self.background_mode_opt.adapter.set_value(False)
-            else:
-                self.ctx.battle_assistant_config.background_mode = False
-            InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
-                parent=self,
-                duration=5000,
-            )
-
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -359,7 +332,6 @@ class BattleAssistantInterface(AppRunInterface):
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
         self._init_config_cards()
-        self._on_background_mode_changed(self.ctx.battle_assistant_config.background_mode)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
     def on_interface_hidden(self) -> None:

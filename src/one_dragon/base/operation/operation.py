@@ -1128,7 +1128,7 @@ class Operation(OperationBase):
 
         to_click = area.left_top if click_left_top else area.center
         time.sleep(pre_delay)
-        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
+        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt)
         if click:
             self.update_screen_after_operation(screen_name, area_name)
             return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)

@@ -18,7 +18,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -102,7 +102,7 @@ def _area_result(success: bool, screen_name: str, area_name: str, action: str | 
     }
 
 
-class RunState(str, Enum):
+class RunState(StrEnum):
     """运行槽状态。
 
     IDLE:从未运行;RUNNING:operation 活(含 stop 后退出中的间隙,统一报 RUNNING);
@@ -116,7 +116,7 @@ class RunState(str, Enum):
     STOPPED = 'stopped'
 
 
-class RunType(str, Enum):
+class RunType(StrEnum):
     """运行单元类型:app 路径委托 run_application,op 路径槽自管生命周期。"""
 
     APPLICATION = 'application'
@@ -580,7 +580,6 @@ class ZzzBackendContext:
         color_range: list[list[int]] | None = None,
         goto_list: list[str] | None = None,
         id_mark: bool = False,
-        gamepad_key: str | None = None,
         area_type: ScreenAreaType | str | None = None,
     ) -> dict:
         """按 area_name 在指定 screen 插入或更新一个 area(写 yml + reload)。操作类。
@@ -599,7 +598,6 @@ class ZzzBackendContext:
             color_range: 文本识别前的颜色过滤范围。
             goto_list: 交互后可能跳转的画面名列表。
             id_mark: 是否画面唯一标识；区域必须可自行匹配。
-            gamepad_key: 手柄动作名。
             area_type: 区域类型；支持 none、text、template，None 表示兼容旧配置推断。
 
         Returns:
@@ -623,7 +621,6 @@ class ZzzBackendContext:
                 color_range=color_range,
                 goto_list=goto_list or [],
                 id_mark=id_mark,
-                gamepad_key=gamepad_key,
             )
             if (area.is_template_area and area.template_id
                     and self._ctx.template_loader.load_template(

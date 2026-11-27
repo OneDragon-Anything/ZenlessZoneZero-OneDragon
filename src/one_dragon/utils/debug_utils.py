@@ -1,14 +1,16 @@
 import io
 import os
+import sys
 import time
 from functools import lru_cache
-from typing import Optional
 
 import cv2
-import win32clipboard
-import win32con
 from cv2.typing import MatLike
 from PIL import Image
+
+if sys.platform == 'win32':
+    import win32clipboard
+    import win32con
 
 from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.log_utils import log
@@ -19,7 +21,7 @@ def get_debug_dir_path() -> str:
     return os_utils.get_path_under_work_dir('.debug')
 
 
-@lru_cache()
+@lru_cache
 def get_debug_image_dir_path() -> str:
     return os_utils.get_path_under_work_dir('.debug', 'images')
 
@@ -34,6 +36,10 @@ def get_debug_image(filename, suffix: str = '.png') -> MatLike:
 
 def copy_image_to_clipboard(image) -> bool:
     """将图片复制到剪贴板"""
+    if sys.platform != 'win32':
+        log.error('复制调试图片到剪贴板目前仅支持 Windows')
+        return False
+
     try:
         pil_image = Image.fromarray(image)
         with io.BytesIO() as output:
@@ -53,10 +59,10 @@ def copy_image_to_clipboard(image) -> bool:
         return False
 
 
-def save_debug_image(image, file_name: Optional[str] = None, prefix: str = '', copy_screenshot: bool = False) -> str:
+def save_debug_image(image, file_name: str | None = None, prefix: str = '', copy_screenshot: bool = False) -> str:
     """保存调试图片到文件，可选择是否同时复制到剪贴板"""
     if file_name is None:
-        file_name = '%s_%d' % (prefix, round(time.time() * 1000))
+        file_name = f'{prefix}_{round(time.time() * 1000)}'
     path = get_debug_image_path(file_name)
     log.debug('临时图片保存 %s', path)
 

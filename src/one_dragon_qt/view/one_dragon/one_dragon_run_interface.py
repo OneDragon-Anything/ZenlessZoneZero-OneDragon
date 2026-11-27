@@ -46,6 +46,7 @@ from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 class OneDragonRunInterface(SplitAppRunInterface):
 
     run_all_apps_signal = Signal()
+    _app_state_changed_signal = Signal()
 
     def __init__(self, ctx: OneDragonContext,
                  nav_text_cn: str = '一条龙运行',
@@ -132,6 +133,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.ctx.listen_event(ApplicationEventId.APPLICATION_START.value, self._on_app_state_changed)
         self.ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, self._on_app_state_changed)
         self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_event)
+        self._app_state_changed_signal.connect(self.app_run_list.update_cards_display)
 
         self.instance_run_opt.blockSignals(True)
         self.instance_run_opt.setValue(self.ctx.one_dragon_config.instance_run)
@@ -156,6 +158,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
+        with contextlib.suppress(RuntimeError):
+            self._app_state_changed_signal.disconnect(self.app_run_list.update_cards_display)
         with contextlib.suppress(RuntimeError):
             self._context_event_signal.instance_changed.disconnect(self._on_instance_changed)
         window = self.window()
@@ -212,7 +216,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.app_run_list.update_cards_display()
 
     def _on_app_state_changed(self, event) -> None:
-        self.app_run_list.update_cards_display()
+        self._app_state_changed_signal.emit()
 
     def _on_app_list_changed(self, new_app_list: list[ApplicationGroupConfigItem]) -> None:
         """

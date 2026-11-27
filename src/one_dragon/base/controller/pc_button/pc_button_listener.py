@@ -1,9 +1,68 @@
+import sys
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 
 from pynput import keyboard, mouse
 
 from one_dragon.utils import thread_utils
+
+if sys.platform == 'darwin':
+    from pynput.keyboard._darwin import Listener as DarwinKeyboardListener
+    from pynput.keyboard._darwin import NSSystemDefined
+    from pynput.mouse._darwin import Listener as DarwinMouseListener
+    from Quartz import (
+        CFMachPortCreateRunLoopSource,
+        CFRunLoopAddSource,
+        CFRunLoopGetCurrent,
+        CFRunLoopRunInMode,
+        CFRunLoopStop,
+        CGEventGetFlags,
+        CGEventTapEnable,
+        kCFRunLoopDefaultMode,
+        kCFRunLoopRunTimedOut,
+    )
+
+    class MacListenerMixin:
+
+        def _run(self) -> None:
+            self._loop = None
+            try:
+                tap = self._create_event_tap()
+                if tap is None:
+                    self._log.warning('无法创建 macOS 输入事件监听器，请检查辅助功能权限')
+                    self._mark_ready()
+                    return
+
+                loop_source = CFMachPortCreateRunLoopSource(None, tap, 0)
+                self._loop = CFRunLoopGetCurrent()
+                CFRunLoopAddSource(self._loop, loop_source, kCFRunLoopDefaultMode)
+                CGEventTapEnable(tap, True)
+                self._mark_ready()
+
+                while self.running:
+                    result = CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1, False)
+                    if result != kCFRunLoopRunTimedOut:
+                        break
+            finally:
+                self._loop = None
+
+        def _stop_platform(self) -> None:
+            if self._loop is not None:
+                CFRunLoopStop(self._loop)
+
+
+    class MacKeyboardListener(MacListenerMixin, DarwinKeyboardListener):
+
+        def _handle_message(self, _proxy, event_type, event, _refcon, injected):
+            # NSSystemDefined 会调用 NSEvent.eventWithCGEvent_，在 macOS 后台线程会触发 TSM 主线程队列断言崩溃
+            if event_type == NSSystemDefined:
+                self._flags = CGEventGetFlags(event)
+                return
+            super()._handle_message(_proxy, event_type, event, _refcon, injected)
+
+
+    class MacMouseListener(MacListenerMixin, DarwinMouseListener):
+        pass
 
 
 class PcButtonListener:
@@ -12,18 +71,17 @@ class PcButtonListener:
                  on_button_tap: Callable[[str], None],
                  listen_keyboard: bool = False,
                  listen_mouse: bool = False,
-                 listen_gamepad: bool = False,
                  ):
-        self.keyboard_listener = keyboard.Listener(on_press=self._on_keyboard_press)
-        self.mouse_listener = mouse.Listener(on_click=self._on_mouse_click)
-        self.gamepad_listener = None
-
+        if sys.platform == 'darwin':
+            self.keyboard_listener = MacKeyboardListener(on_press=self._on_keyboard_press)
+            self.mouse_listener = MacMouseListener(on_click=self._on_mouse_click)
+        else:
+            self.keyboard_listener = keyboard.Listener(on_press=self._on_keyboard_press)
+            self.mouse_listener = mouse.Listener(on_click=self._on_mouse_click)
         self.on_button_tap: Callable[[str], None] = on_button_tap
 
         self.listen_keyboard: bool = listen_keyboard
         self.listen_mouse: bool = listen_mouse
-        self.listen_gamepad: bool = listen_gamepad
-
         self._executor = ThreadPoolExecutor(thread_name_prefix='od_key_mouse_btn_listener', max_workers=8)
 
     def _on_keyboard_press(self, event):

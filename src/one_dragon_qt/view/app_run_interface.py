@@ -1,3 +1,5 @@
+import contextlib
+
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
@@ -64,6 +66,8 @@ class AppRunner(QThread):
 
 class AppRunInterface(VerticalScrollInterface):
 
+    _key_press_signal = Signal(str)
+
     def __init__(
         self,
         ctx: OneDragonContext,
@@ -101,8 +105,8 @@ class AppRunInterface(VerticalScrollInterface):
 
         # 按钮行
         btn_row_widget = QWidget()
-        btn_row_layout = QHBoxLayout(btn_row_widget)
-        btn_row_layout.setContentsMargins(0, 0, 0, 0)
+        self.btn_row_layout = QHBoxLayout(btn_row_widget)
+        self.btn_row_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.addWidget(btn_row_widget)
 
         self.start_btn = PrimaryPushButton(
@@ -110,14 +114,14 @@ class AppRunInterface(VerticalScrollInterface):
             icon=FluentIcon.PLAY,
         )
         self.start_btn.clicked.connect(self._on_start_clicked)
-        btn_row_layout.addWidget(self.start_btn)
+        self.btn_row_layout.addWidget(self.start_btn)
 
         self.stop_btn = PushButton(
             text=f"{gt('停止')} {self.ctx.key_stop_running.upper()}",
             icon=FluentIcon.CLOSE
         )
         self.stop_btn.clicked.connect(self._on_stop_clicked)
-        btn_row_layout.addWidget(self.stop_btn)
+        self.btn_row_layout.addWidget(self.stop_btn)
 
         self.log_card = LogDisplayCard()
         content_layout.addWidget(self.log_card)
@@ -141,17 +145,23 @@ class AppRunInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+        self._key_press_signal.connect(self._handle_key_press)
         self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_key_press)
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
+        with contextlib.suppress(RuntimeError):
+            self._key_press_signal.disconnect(self._handle_key_press)
         self.ctx.unlisten_all_event(self)
 
     def _on_key_press(self, event: ContextEventItem) -> None:
         """
-        按键监听
+        按键监听（从事件总线后台线程转发到 Qt 主线程）。
         """
         key: str = event.data
+        self._key_press_signal.emit(key)
+
+    def _handle_key_press(self, key: str) -> None:
         if key == self.ctx.key_start_running and self.ctx.run_context.is_context_stop:
             self._on_start_clicked()
 

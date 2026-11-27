@@ -31,7 +31,6 @@ class ScreenArea:
         id_mark: bool = False,
         goto_list: list[str] | None = None,
         color_range: list[list[int]] | None = None,
-        gamepad_key: str | None = None,
     ) -> None:
         self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
@@ -44,7 +43,6 @@ class ScreenArea:
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后可能会跳转的画面名称列表
         self.color_range: list[list[int]] | None = color_range  # OCR识别前的颜色过滤范围
-        self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
         self._area_type: ScreenAreaType = self._init_area_type(area_type)
 
     def _init_area_type(self, area_type: ScreenAreaType | str | None) -> ScreenAreaType:
@@ -169,7 +167,5 @@ class ScreenArea:
             order_dict['template_match_threshold'] = self.template_match_threshold
         if self.goto_list:
             order_dict['goto_list'] = self.goto_list
-        if self.gamepad_key:
-            order_dict['gamepad_key'] = self.gamepad_key
 
         return order_dict

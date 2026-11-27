@@ -1,5 +1,4 @@
 from one_dragon.base.config.yaml_config import YamlConfig
-from zzz_od.config.game_config import GamepadTypeEnum
 
 
 class BattleAssistantConfig(YamlConfig):
@@ -22,21 +21,6 @@ class BattleAssistantConfig(YamlConfig):
     @screenshot_interval.setter
     def screenshot_interval(self, new_value: float) -> None:
         self.update('screenshot_interval', new_value)
-
-    @property
-    def background_mode(self) -> bool:
-        old_control_method = self.get('control_method', None)
-        return self.get(
-            'background_mode',
-            old_control_method in [
-                GamepadTypeEnum.XBOX.value.value,
-                GamepadTypeEnum.DS4.value.value,
-            ],
-        )
-
-    @background_mode.setter
-    def background_mode(self, new_value: bool) -> None:
-        self.update('background_mode', new_value)
 
     @property
     def auto_battle_config(self) -> str:

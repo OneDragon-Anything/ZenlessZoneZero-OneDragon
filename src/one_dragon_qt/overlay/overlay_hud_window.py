@@ -234,7 +234,9 @@ class OverlayHudWindow:
             return
         if visible and not self._window.isVisible():
             self._window.show()
-            self._window.raise_()
+            import sys
+            if sys.platform != "darwin":
+                self._window.raise_()
         elif not visible and self._window.isVisible():
             self._window.hide()
 

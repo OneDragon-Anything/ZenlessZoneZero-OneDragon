@@ -17,7 +17,7 @@ class PcButtonController:
     def tap_combo(self, keys: list[str]) -> None:
         """顺序按下组合键：先按修饰键等待轮盘，再按动作键，最后全部释放。
 
-        例如 ['xbox_lb', 'xbox_a']:
+        例如 ['shift', 'a']:
         1) 按住 LB（不释放）→ 等待 combo_press_time（轮盘出现）
         2) 按住 A（不释放）→ 等待 key_press_time
         3) 逐个释放

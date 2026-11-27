@@ -116,8 +116,11 @@ class UseBangbooPlugin(ZOperation):
     @node_from(from_name='选择插件', status=STATUS_CHOSEN)
     @operation_node(name='使用', node_max_retry_times=3)
     def click_use(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, self.SCREEN_NAME, '邦布插件-使用',
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(self.last_screenshot, self.SCREEN_NAME, '邦布插件-使用',
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            self.ctx.controller.mouse_move(Point(200, 200))
+        return result
 
     @node_from(from_name='使用')
     @operation_node(name='确认关闭', node_max_retry_times=3)

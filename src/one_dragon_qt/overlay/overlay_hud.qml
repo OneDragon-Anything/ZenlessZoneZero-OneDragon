@@ -10,7 +10,7 @@ Window {
     id: root
     visible: false
     color: "transparent"
-    flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint
+    flags: Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput
 
     // 面板可见性由 Python 侧注入（面板位置用 anchors 相对 HUD 窗口固定，不受分辨率影响）
     property bool logVisible: true
@@ -45,8 +45,8 @@ Window {
     property string toastText: ""
 
     // 面板通用字体（写死）
-    property string zhFont: "Microsoft YaHei"
-    property string monoFont: "Consolas"
+    property string zhFont: Qt.platform.os === "osx" ? "PingFang SC" : "Microsoft YaHei"
+    property string monoFont: Qt.platform.os === "osx" ? "Menlo" : "Consolas"
 
     // ============ 外观（Python 侧按配置注入，默认保持原样式） ============
     // panelOpacity：面板底色不透明度 0~1，1 为纯黑不透明

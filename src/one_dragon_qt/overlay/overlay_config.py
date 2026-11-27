@@ -42,9 +42,8 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "vision_offset_y": 0,
     "vision_scale_x": 1.0,
     "vision_scale_y": 1.0,
-    # 档位键换过一次名：旧键 display_mode 默认 off，老配置里残留的关闭状态会让
-    # overlay 永远不显示，因此改用新键，老用户与新用户都从 normal 起。
-    "overlay_display_mode": "normal",
+    # 默认关闭，可在设置中开启或通过快捷键切换
+    "overlay_display_mode": "off",
     "hud_opacity": 100,
     "hud_font_size": "large",
     "hud_font_bold": True,
@@ -112,17 +111,26 @@ class OverlayConfig(YamlConfig):
 
     @property
     def display_mode(self) -> str:
-        mode = str(self._overlay_data()["overlay_display_mode"] or "normal")
+        mode = str(self._overlay_data()["overlay_display_mode"] or "off")
         if mode not in ("off", "normal", "debug"):
-            return "normal"
+            return "off"
         return mode
 
     @display_mode.setter
     def display_mode(self, value: str) -> None:
-        mode = str(value or "normal")
+        mode = str(value or "off")
         if mode not in ("off", "normal", "debug"):
-            mode = "normal"
+            mode = "off"
         self._update_overlay_data("overlay_display_mode", mode)
+
+    @property
+    def hud_enabled(self) -> bool:
+        """是否启用 Overlay HUD。"""
+        return self.display_mode != "off"
+
+    @hud_enabled.setter
+    def hud_enabled(self, value: bool) -> None:
+        self.display_mode = "normal" if value else "off"
 
     @property
     def hud_opacity(self) -> int:
