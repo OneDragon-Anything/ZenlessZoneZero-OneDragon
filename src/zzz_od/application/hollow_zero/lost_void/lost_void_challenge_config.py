@@ -26,6 +26,7 @@ class LostVoidRegionType(Enum):
     FRIENDLY_TALK = ConfigItem('挚交会谈')
     ELITE = ConfigItem('战斗-道中危机')
     BOSS = ConfigItem('战斗-终结之役')
+    MIST = ConfigItem('迷雾')
 
     @classmethod
     def from_value(cls, value: str):

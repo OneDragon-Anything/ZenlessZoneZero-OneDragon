@@ -216,6 +216,8 @@ class LostVoidRunLevel(ZOperation):
             return self.round_success('非战斗区域')
         if self.region_type == LostVoidRegionType.FRIENDLY_TALK:
             return self.round_success('非战斗区域')
+        if self.region_type == LostVoidRegionType.MIST:
+            return self.round_success('非战斗区域')
         if self.region_type == LostVoidRegionType.ELITE:
             return self.round_success('战斗区域')
         if self.region_type == LostVoidRegionType.BOSS:
