@@ -16,6 +16,7 @@ from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunR
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.battle.battle_loading import BATTLE_LOADING_TIMEOUT
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 from zzz_od.operation.transport import Transport
@@ -278,7 +279,7 @@ class IntelBoardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
+    @operation_node(name='等待战斗画面加载', timeout_seconds=BATTLE_LOADING_TIMEOUT)
     def wait_battle_screen(self) -> OperationRoundResult:
         # 11. 等待战斗画面加载完成
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')

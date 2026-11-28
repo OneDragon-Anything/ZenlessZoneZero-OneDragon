@@ -6,6 +6,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation import Operation
+from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
@@ -59,9 +60,12 @@ from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.zzz_operation import ZOperation
 
+MAX_MOVE_FAIL_TIMES: int = 3  # 非战斗画面识别中 连续移动失败超过该次数后放弃当前寻路
+
 
 class LostVoidRunLevel(ZOperation):
     STATUS_NEXT_LEVEL: ClassVar[str] = '进入下层'
+    STATUS_MOVE_FAIL: ClassVar[str] = '移动失败'
     STATUS_COMPLETE: ClassVar[str] = '通关'
     STATUS_AGENT_DEAD: ClassVar[str] = '代理人阵亡'
 
@@ -144,6 +148,25 @@ class LostVoidRunLevel(ZOperation):
         self.entry_gear_repeat_times: int = 0  # 入口层重复进入已完成武备选择画面的次数
         self.entry_gear_interact_done: bool = False  # 刚完成了一次入口层武备选择交互 交互后需要调整站位
         self.entry_door_block_times: int = 0  # 入口层放弃感叹号后 交互文本不是入口时前进重试的次数
+        self.move_fail_times: int = 0  # 非战斗画面识别中 连续移动失败的次数
+
+    def _on_move_fail(self, op_result: OperationResult) -> OperationRoundResult:
+        """识别寻路的移动失败处理 连续失败超过上限时进入寻路失败的恢复流程
+
+        Args:
+            op_result: 识别寻路指令的结果
+
+        Returns:
+            移动超时直接失败 连续失败次数未超限则重试 超限则失败
+        """
+        if op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+            self.move_fail_times = 0
+            return self.round_fail(Operation.STATUS_TIMEOUT)
+        self.move_fail_times += 1
+        if self.move_fail_times > MAX_MOVE_FAIL_TIMES:
+            self.move_fail_times = 0
+            return self.round_fail(LostVoidRunLevel.STATUS_MOVE_FAIL)
+        return self.round_retry(LostVoidRunLevel.STATUS_MOVE_FAIL)
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
@@ -317,6 +340,7 @@ class LostVoidRunLevel(ZOperation):
                                    stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
+                self.move_fail_times = 0
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
                     if self.boss_pre_battle:
                         self.screenshot()
@@ -333,10 +357,8 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     self.interact_target = LostVoidInteractTarget(name='感叹号', icon='感叹号', is_exclamation=True)
                     return self.round_success(LostVoidDetector.CLASS_INTERACT, wait=1)
-            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
-                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
-                return self.round_retry('移动失败')
+                return self._on_move_fail(op_result)
 
         # 处理白点移动
         if with_distance and not self.boss_pre_battle:
@@ -346,6 +368,7 @@ class LostVoidRunLevel(ZOperation):
                                    stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
+                self.move_fail_times = 0
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
                     self.interact_target = LostVoidInteractTarget(name='战斗后', icon='战斗后', after_battle=True)
                     return self.round_success(LostVoidMoveByDet.STATUS_IN_BATTLE)
@@ -358,7 +381,7 @@ class LostVoidRunLevel(ZOperation):
                                                                   is_distance=True)
                     return self.round_success(LostVoidDetector.CLASS_DISTANCE)
             else:
-                return self.round_retry('移动失败')
+                return self._on_move_fail(op_result)
 
         # 在转动视角之前，检查是否需要更新优先级
         if not self.boss_pre_battle and not self.ctx.lost_void.priority_updated:
@@ -372,6 +395,7 @@ class LostVoidRunLevel(ZOperation):
                                    stuck_state=self.stuck_state)
             op_result = op.execute()
             if op_result.success:
+                self.move_fail_times = 0
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
                     self.interact_target = LostVoidInteractTarget(name='战斗后', icon='战斗后', after_battle=True)
                     return self.round_success(LostVoidMoveByDet.STATUS_IN_BATTLE)
@@ -385,7 +409,7 @@ class LostVoidRunLevel(ZOperation):
                     self.interact_target = LostVoidInteractTarget(name=interact_type, icon=interact_type, is_entry=True)
                     return self.round_success(LostVoidDetector.CLASS_ENTRY, wait=1)
             else:
-                return self.round_retry('移动失败')
+                return self._on_move_fail(op_result)
 
         # 没找到目标时，先瞬检是否已进入战斗（战斗关卡无图标，只会落到转圈分支）
         if self.ctx.lost_void.check_battle_encounter(self.last_screenshot, self.last_screenshot_time):
@@ -1258,6 +1282,7 @@ class LostVoidRunLevel(ZOperation):
         else:
             return result
 
+    @node_from(from_name='非战斗画面识别', success=False, status=STATUS_MOVE_FAIL)
     @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=STATUS_AGENT_DEAD)
@@ -1291,6 +1316,7 @@ class LostVoidRunLevel(ZOperation):
                 self.entry_gear_repeat_times = 0
                 self.entry_gear_interact_done = False
                 self.entry_door_block_times = 0
+                self.move_fail_times = 0
                 self.ao_fei_li_ya_talked = False
                 # 重开后角色位置重置 卡住计数也重新开始 否则上一轮的累计次数会让新一轮直接放弃寻路
                 self.stuck_state = LostVoidStuckState()

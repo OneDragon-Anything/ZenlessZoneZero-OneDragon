@@ -11,6 +11,7 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.battle.battle_loading import BATTLE_LOADING_TIMEOUT
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -53,7 +54,7 @@ class ShiyuDefenseBattle(ZOperation):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
+    @operation_node(name='等待战斗画面加载', timeout_seconds=BATTLE_LOADING_TIMEOUT)
     def wait_battle_screen(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
         return result
