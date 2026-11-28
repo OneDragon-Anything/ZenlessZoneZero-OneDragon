@@ -388,9 +388,9 @@ class ImageMattingInterface(VerticalScrollInterface):
                 # 记录保存目录
                 ImageMattingInterface.last_save_directory = os.path.dirname(file_path)
                 
-                # 转换为BGR格式保存
-                result_bgr = cv2.cvtColor(self.result_image, cv2.COLOR_RGB2BGR)
-                cv2.imwrite(file_path, result_bgr)
+                # result_image 是 RGB，save_image 内部转 BGR；imencode + tofile 兼容中文路径
+                if not cv2_utils.save_image(self.result_image, file_path):
+                    raise RuntimeError('写盘失败')
                 QMessageBox.information(self, '成功', '扣图结果已保存')
             except Exception as e:
                 QMessageBox.critical(self, '错误', f'保存失败: {str(e)}')
@@ -416,7 +416,9 @@ class ImageMattingInterface(VerticalScrollInterface):
                 # 记录保存目录
                 ImageMattingInterface.last_save_directory = os.path.dirname(file_path)
                 
-                cv2.imwrite(file_path, self.mask_image)
+                # 掩码是单通道，save_image 原样按 PNG 写，不做通道转换
+                if not cv2_utils.save_image(self.mask_image, file_path):
+                    raise RuntimeError('写盘失败')
                 QMessageBox.information(self, '成功', '掩码图已保存')
             except Exception as e:
                 QMessageBox.critical(self, '错误', f'保存失败: {str(e)}')

@@ -4,7 +4,6 @@ import time
 from functools import lru_cache
 from typing import Optional
 
-import cv2
 import win32clipboard
 import win32con
 from cv2.typing import MatLike
@@ -60,8 +59,7 @@ def save_debug_image(image, file_name: Optional[str] = None, prefix: str = '', c
     path = get_debug_image_path(file_name)
     log.debug('临时图片保存 %s', path)
 
-    bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(path, bgr_image)
+    cv2_utils.save_image(image, path)
 
     if copy_screenshot:
         copy_image_to_clipboard(image)
