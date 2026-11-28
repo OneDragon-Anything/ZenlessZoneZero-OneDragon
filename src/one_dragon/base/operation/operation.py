@@ -695,6 +695,7 @@ class Operation(OperationBase):
         Args:
             result: 最终操作结果。
         """
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
         self.ctx.unlisten_all_event(self)
         if result.success:
             log.info('%s 执行成功 返回状态 %s', self.display_name, coalesce_gt(result.status, '成功', model='ui'))
