@@ -51,6 +51,7 @@ class ScreenContext:
         self._id_2_screen: dict[str, ScreenInfo] = {}
         self._extra_screen_ids: set[str] = set()
         self._extra_screen_file_path_map: dict[str, Path] = {}
+        self._extra_screen_dirs: dict[str, str] = {}  # 插件画面目录 -> default_app_id
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
         self.last_screen_name: str | None = None  # 上一个画面名字
@@ -80,6 +81,11 @@ class ScreenContext:
             from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
             from_separated_files: 是否从单独文件加载
         """
+        # 记录插件画面注入目录：无参/分离文件 reload 会重建 screen 集合，插件画面需在末尾重新注入
+        extra_dirs: list[tuple[str, str]] = []
+        if not from_memory:
+            extra_dirs = list(self._extra_screen_dirs.items())
+
         self.screen_info_list.clear()
         self.screen_info_map.clear()
         self._screen_area_map.clear()
@@ -162,6 +168,10 @@ class ScreenContext:
             s.screen_name for s in self.screen_info_list if not s.app_id
         }
 
+        # 重新注入插件画面（修复：无参/分离文件 reload 会把插件画面冲掉）
+        for dir_path, default_app_id in extra_dirs:
+            self.load_extra_screen_dir(dir_path, default_app_id=default_app_id)
+
     def load_extra_screen_dir(self, dir_path: str, default_app_id: str = '') -> None:
         """从额外目录加载 screen YAML 并注册（用于插件 screen 注入）
 
@@ -174,6 +184,7 @@ class ScreenContext:
         screen_dir = Path(dir_path)
         if not screen_dir.is_dir():
             return
+        self._extra_screen_dirs[str(screen_dir)] = default_app_id
 
         added = False
         for file_path in screen_dir.iterdir():
@@ -190,11 +201,13 @@ class ScreenContext:
                 data['app_id'] = default_app_id
 
             screen_info = ScreenInfo(data)
+            if screen_info.screen_id in self._id_2_screen:
+                if self._extra_screen_file_path_map.get(screen_info.screen_id) == file_path:
+                    continue  # 同一插件画面已加载，幂等跳过
+                log.warning(f"插件画面ID冲突，已跳过: {screen_info.screen_id}")
+                continue
             if screen_info.screen_name in self.screen_info_map:
                 log.warning(f"插件画面名称冲突，已跳过: {screen_info.screen_name}")
-                continue
-            if screen_info.screen_id in self._id_2_screen:
-                log.warning(f"插件画面ID冲突，已跳过: {screen_info.screen_id}")
                 continue
 
             self.screen_info_list.append(screen_info)
