@@ -1,0 +1,80 @@
+# 空洞类玩法的局内常驻界面（HUD）。
+# 登录后可能直接落在这种画面（例如在贝果计划局内退出游戏再登录），
+# 登录流程需要识别它并退出玩法，避免把「已在游戏内」误判成未知画面并一直等待。
+# 各区域的判定方式见 hollow_zero_inside_screen.py；本文件只记录坐标。
+screen_id: hollow_zero_inside
+screen_name: 空洞-局内HUD
+pc_alt: false
+area_list:
+# ---- 识别用区域 ----
+- area_name: 右上计时
+  pc_rect:
+  - 1768
+  - 44
+  - 1804
+  - 100
+- area_name: 计时数字
+  pc_rect:
+  - 1590
+  - 46
+  - 1775
+  - 110
+- area_name: 普通攻击
+  pc_rect:
+  - 1403
+  - 916
+  - 1505
+  - 1017
+- area_name: 小地图
+  pc_rect:
+  - 1495
+  - 192
+  - 1740
+  - 414
+# ---- 退出流程用区域 ----
+- area_name: 菜单-退出战斗
+  pc_rect:
+  - 1616
+  - 1006
+  - 1832
+  - 1052
+  area_type: text
+  text: 退出战斗
+  lcs_percent: 0.5
+- area_name: 退出确认-提示
+  id_mark: true
+  pc_rect:
+  - 695
+  - 525
+  - 1225
+  - 575
+  area_type: text
+  text: 仅保留安全箱内物资
+  lcs_percent: 0.7
+- area_name: 退出确认-确认
+  pc_rect:
+  - 977
+  - 615
+  - 1250
+  - 685
+  area_type: text
+  text: 确认
+  lcs_percent: 0.7
+- area_name: 结算-继续
+  pc_rect:
+  - 830
+  - 930
+  - 1090
+  - 1000
+  area_type: text
+  text: 继续
+  lcs_percent: 0.7
+- area_name: 仓库-返回研究站
+  pc_rect:
+  - 1600
+  - 991
+  - 1855
+  - 1060
+  area_type: text
+  text: 返回研究站
+  lcs_percent: 0.7
