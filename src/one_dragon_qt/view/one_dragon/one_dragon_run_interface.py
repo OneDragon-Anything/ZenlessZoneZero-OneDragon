@@ -98,6 +98,13 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.value_changed.connect(self._on_instance_run_changed)
         run_group.addSettingCard(self.instance_run_opt)
 
+        self.return_to_start_opt: SwitchSettingCard = SwitchSettingCard(
+            icon=FluentIcon.PEOPLE,
+            title='完成后切回起始账号',
+            content='关闭后，全部账户完成便停留在最后一个账户；“结束后”动作仍按设置执行',
+        )
+        run_group.addSettingCard(self.return_to_start_opt)
+
         self.after_done_opt = ComboBoxSettingCard(icon=FluentIcon.CALENDAR, title='结束后',
                                                   options_enum=AfterDoneOpEnum)
         self.after_done_opt.value_changed.connect(self._on_after_done_changed)
@@ -137,6 +144,11 @@ class OneDragonRunInterface(SplitAppRunInterface):
         self.instance_run_opt.setValue(self.ctx.one_dragon_config.instance_run)
         self.instance_run_opt.setVisible(self.need_multiple_instance)
         self.instance_run_opt.blockSignals(False)
+
+        self.return_to_start_opt.init_with_adapter(
+            self.ctx.one_dragon_config.get_prop_adapter('return_to_start_after_done'),
+        )
+        self.return_to_start_opt.setVisible(self.need_multiple_instance)
 
         self.after_done_opt.setValue(self.ctx.one_dragon_config.after_done)
 
