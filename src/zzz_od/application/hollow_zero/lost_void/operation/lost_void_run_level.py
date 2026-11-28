@@ -129,6 +129,7 @@ class LostVoidRunLevel(ZOperation):
         self.not_in_battle_times: int = 0  # 识别到不在战斗的次数
         self.last_check_finish_time: float = 0  # 上一次识别结束的时间
         self.talk_opt_idx = 0  # 交互选择的选项
+        self.plan_route_on_update: bool = False  # 这次打开菜单时用地图规划本层路线
         self.reward_eval_found: bool = False  # 挑战结果中可以识别到业绩点
         self.reward_dn_found: bool = False  # 挑战结果中可以识别到丁尼
         self.click_challenge_confirm: bool = False  # 点击了挑战确认
@@ -360,8 +361,17 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_retry('移动失败')
 
-        # 在转动视角之前，检查是否需要更新优先级
+        # 感叹号 NPC 都处理完、要去下层入口时 路线为空就打开菜单(默认是地图页)规划路线
+        # 要求看到下层入口 避免转视角时 NPC 暂时不在画面里就提前规划 之后和 NPC 交互可能还会加入要忽略的入口
+        need_route_plan = with_entry and not self.boss_pre_battle and self.ctx.lost_void.need_route_plan()
+
+        # 在转动视角之前，检查是否需要更新优先级 需要规划路线时在同一次打开菜单里规划
         if not self.boss_pre_battle and not self.ctx.lost_void.priority_updated:
+            self.plan_route_on_update = need_route_plan
+            return self.round_success('需要更新优先级')
+
+        if need_route_plan:
+            self.plan_route_on_update = True
             return self.round_success('需要更新优先级')
 
         # 处理下层入口
@@ -369,7 +379,8 @@ class LostVoidRunLevel(ZOperation):
             self.nothing_times = 0
             op = LostVoidMoveByDet(self.ctx, self.region_type, LostVoidDetector.CLASS_ENTRY,
                                    stop_when_disappear=False, ignore_entry_list=self.had_been_list,
-                                   stuck_state=self.stuck_state)
+                                   stuck_state=self.stuck_state,
+                                   locked_entry_name=self._get_locked_entry_name())
             op_result = op.execute()
             if op_result.success:
                 if op_result.status == LostVoidMoveByDet.STATUS_IN_BATTLE:
@@ -409,10 +420,24 @@ class LostVoidRunLevel(ZOperation):
 
         return self.round_wait(status='转动识别目标')
 
+    def _get_locked_entry_name(self) -> str | None:
+        """
+        去下层入口时要锁定的入口 即规划的下一个区域 寻路全程只去这扇门
+        当前画面里看不到也锁定 寻路会原地转向找 转一圈还找不到再解除
+        规划完关闭菜单时 规划的门经常不在画面里 不锁就会直接去看得到的门
+        """
+        planned_route = self.ctx.lost_void.planned_route
+        if len(planned_route) == 0 or planned_route[0] in self.had_been_list:
+            return None
+        log.info(f'路线规划 | 寻路锁定规划的入口 {planned_route[0]}')
+        return planned_route[0]
+
     @node_from(from_name='非战斗画面识别', status='需要更新优先级')
     @operation_node(name='更新优先级')
     def update_priority(self) -> OperationRoundResult:
-        op = UpdatePriorityOperation(self.ctx)
+        op = UpdatePriorityOperation(self.ctx, plan_route=self.plan_route_on_update,
+                                     route_blocked_type_list=self.had_been_list)
+        self.plan_route_on_update = False
         op_result = op.execute()
         if op_result.success:
             self.ctx.lost_void.priority_updated = True
