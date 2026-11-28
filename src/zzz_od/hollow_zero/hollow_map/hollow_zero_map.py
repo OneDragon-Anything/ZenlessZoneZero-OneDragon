@@ -25,6 +25,7 @@ class HollowZeroMapNode:
         self.path_step_cnt: int = -1  # 前往目标节点需要的步数 即路上需要点击多少次鼠标
         self.path_node_cnt: int = -1  # 前往目标节点需要经过的格子数量 会影响最终的移动耗时
         self.path_go_way: int = 1  # 0=往相邻节点移动 1=往需要步数的节点移动
+        self.blocked: bool = False  # 移动无进展时标记为卡住 寻路时避开
 
     @property
     def gt_max_visited_times(self) -> bool:
