@@ -25,6 +25,11 @@ class GameRegionEnum(Enum):
     TWHKMO = ConfigItem('港澳台服', 'twhkmo')
 
 
+class LoginMethodEnum(Enum):
+    PASSWORD = ConfigItem('账号密码', 'password')
+    HISTORY = ConfigItem('直接选择历史账号', 'history')
+
+
 class GameAccountConfig(YamlConfig):
 
     def __init__(self, instance_idx: int):
@@ -129,9 +134,32 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def has_login_info(self) -> bool:
+        if self.use_history_login:
+            return bool(self.account.strip())
         if self.game_region == GameRegionEnum.CNB.value.value:
             return bool(self.bilibili_account_name.strip())
         return bool(self.account.strip() and self.password.strip())
+
+    @property
+    def login_method(self) -> str:
+        return self.get('login_method', 'password')
+
+    @login_method.setter
+    def login_method(self, value: str) -> None:
+        self.update('login_method', value)
+
+    @property
+    def history_account(self) -> str:
+        """兼容保留旧标识数据；历史登录改用 account 中的真实手机号。"""
+        return self.get('history_account', '')
+
+    @history_account.setter
+    def history_account(self, value: str) -> None:
+        self.update('history_account', value)
+
+    @property
+    def use_history_login(self) -> bool:
+        return self.game_region == GameRegionEnum.CN.value.value and self.login_method == 'history'
 
     @property
     def game_client(self) -> str:
