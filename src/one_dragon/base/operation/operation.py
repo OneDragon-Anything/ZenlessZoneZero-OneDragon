@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 from cv2.typing import MatLike
 
+from one_dragon.base.controller.window_error import WindowAmbiguousError
 from one_dragon.base.debug.debug_trace_bus import (
     DebugTraceBus,
     DecisionTraceItem,
@@ -456,6 +457,10 @@ class Operation(OperationBase):
                     )
                 if self.ctx.run_context.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
                     self._on_pause()
+            except WindowAmbiguousError as error:
+                log.error('%s', error)
+                op_result = self.op_fail(str(error))
+                break
             except Exception as e:
                 round_result: OperationRoundResult = self.round_retry('异常')
                 if self.last_screenshot is not None:
