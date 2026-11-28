@@ -10,18 +10,33 @@ from zzz_od.operation.enter_game.open_game import OpenGame
 
 class OpenAndEnterGame(Operation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext) -> None:
         self.ctx: ZContext = ctx
         Operation.__init__(self, ctx, op_name=gt('打开并登录游戏'),
                            need_check_game_win=False)
 
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
-        """打开游戏(禁用 HDR + 启动 exe + 等窗口就绪 + 恢复 HDR),委托 OpenGame。"""
+        """打开游戏，具体启动与窗口等待流程委托给 OpenGame。"""
+        if self.ctx.game_account_config.is_cloud_game:
+            self.ctx.controller.init_game_win()
+            if self.ctx.controller.is_game_window_ready:
+                return self.round_success()
+
         op = OpenGame(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='打开游戏')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
+    @operation_node(name='云游戏排队')
+    def cloud_queue(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.is_cloud_game:
+            from zzz_od.operation.enter_game.cloud_game_queue import CloudGameQueue
+            cloud_queue_op = CloudGameQueue(self.ctx)
+            return self.round_by_op_result(cloud_queue_op.execute())
+        return self.round_success()
+
+    @node_from(from_name='云游戏排队')
     @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
