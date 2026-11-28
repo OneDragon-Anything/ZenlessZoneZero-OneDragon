@@ -15,7 +15,7 @@ from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.i18_utils import gt, gt_compound
 from one_dragon_qt.widgets.draggable_list import DraggableListItem
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
@@ -72,7 +72,7 @@ class AppRunCard(DraggableListItem):
         content_widget = MultiPushSettingCard(
             btn_list=[self.setting_btn, self.more_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
-            title=self.app.app_name,
+            title=gt_compound(self.app.app_name),
             parent=parent,
         )
 
@@ -91,7 +91,7 @@ class AppRunCard(DraggableListItem):
         更新显示的状态
         :return:
         """
-        title = gt(self.app.app_name)
+        title = gt_compound(self.app.app_name)
         self.content_widget.setTitle(title)
         if self.run_record is None:
             self.content_widget.setContent('')

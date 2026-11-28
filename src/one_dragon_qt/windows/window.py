@@ -23,6 +23,7 @@ from qfluentwidgets.common.animation import BackgroundAnimationWidget
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qfluentwidgets.window.stacked_widget import StackedWidget
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import apply_shadow
 
 
@@ -138,7 +139,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
+        self.launcherVersionButton = QPushButton(f"ⓘ {gt('启动器版本')} {gt('未知')}")
         self.launcherVersionButton.setObjectName("launcherVersionButton")
         self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
         self.launcherVersionButton.setVisible(False)
@@ -148,7 +149,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.codeVersionButton = QPushButton("ⓘ 代码版本 未知")
+        self.codeVersionButton = QPushButton(f"ⓘ {gt('代码版本')} {gt('未知')}")
         self.codeVersionButton.setObjectName("codeVersionButton")
         self.codeVersionButton.clicked.connect(lambda: self.copy_version(self.code_version))
         self.codeVersionButton.setVisible(False)
@@ -158,11 +159,11 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.downloadQueueButton = QPushButton("下载")
+        self.downloadQueueButton = QPushButton(gt("下载"))
         self.downloadQueueButton.setObjectName("downloadQueueButton")
         self.downloadQueueButton.setIcon(FluentIcon.DOWNLOAD.icon())
         self.downloadQueueButton.setIconSize(QSize(12, 12))
-        self.downloadQueueButton.setToolTip("下载队列")
+        self.downloadQueueButton.setToolTip(gt("下载队列"))
         self.downloadQueueButton.clicked.connect(self.download_queue_requested.emit)
         btn_layout.addWidget(
             self.downloadQueueButton,
@@ -170,7 +171,7 @@ class PhosTitleBar(SplitTitleBar):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
         )
 
-        self.questionButton = QPushButton("ⓘ 问题反馈")
+        self.questionButton = QPushButton(f"ⓘ {gt('问题反馈')}")
         self.questionButton.setObjectName("questionButton")
         self.questionButton.clicked.connect(self.open_github)
         btn_layout.addWidget(
@@ -217,7 +218,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('启动器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -228,7 +229,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.code_version = version
-        self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
+        self.codeVersionButton.setText(f"ⓘ {gt('代码版本')} {version}")
         if version:
             self.codeVersionButton.setVisible(True)
 
@@ -240,7 +241,7 @@ class PhosTitleBar(SplitTitleBar):
         """
         self.launch_tag = tag
         if tag:
-            self.launchTagLabel.setText(tag)
+            self.launchTagLabel.setText(gt(tag))
             self.launchTagLabel.setVisible(True)
         else:
             self.launchTagLabel.setVisible(False)
@@ -248,11 +249,11 @@ class PhosTitleBar(SplitTitleBar):
     def set_download_queue_counts(self, active: int, failed: int) -> None:
         """更新标题栏下载队列数量。"""
         if active > 0:
-            self.downloadQueueButton.setText(f"下载 {active}")
+            self.downloadQueueButton.setText(f"{gt('下载')} {active}")
         elif failed > 0:
-            self.downloadQueueButton.setText(f"下载 {failed}")
+            self.downloadQueueButton.setText(f"{gt('下载')} {failed}")
         else:
-            self.downloadQueueButton.setText("下载")
+            self.downloadQueueButton.setText(gt("下载"))
         self.downloadQueueButton.setProperty("hasError", failed > 0)
         self.downloadQueueButton.setStyleSheet('color: #d13438;' if failed > 0 else '')
 
@@ -277,7 +278,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 安装器版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('安装器版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -288,7 +289,7 @@ class PhosTitleBar(SplitTitleBar):
         @return:
         """
         self.launcher_version = version
-        self.launcherVersionButton.setText(f"ⓘ 程序版本 {version}")
+        self.launcherVersionButton.setText(f"ⓘ {gt('程序版本')} {version}")
         if version:
             self.launcherVersionButton.setVisible(True)
 
@@ -331,7 +332,7 @@ class PhosTitleBar(SplitTitleBar):
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
         InfoBar.success(
-            title="已复制版本号",
+            title=gt("已复制版本号"),
             content="",
             orient=Qt.Orientation.Horizontal,
             isClosable=True,

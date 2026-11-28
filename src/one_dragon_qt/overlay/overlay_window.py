@@ -210,6 +210,11 @@ class OverlayWindow(QWidget):
     @staticmethod
     def _format_vision_label(item: VisionTraceItem) -> str:
         label = (item.label or "").strip()
+        if not label:
+            return ""
+        from one_dragon.utils.i18_utils import gt_compound
+
+        label = gt_compound(label)
         if item.score <= 0:
             return label
         return f"{label} {item.score:.2f}".strip()

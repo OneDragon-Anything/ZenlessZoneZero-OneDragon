@@ -251,7 +251,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
 
     def _add_resource_content(self, content_widget: Column) -> None:
         """添加框架通用资源和项目资源。"""
-        self.download_settings_group = SettingCardGroup('下载设置')
+        self.download_settings_group = SettingCardGroup(gt('下载设置'))
         self.resource_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.GLOBE,
             title='下载源',
@@ -316,7 +316,7 @@ class ResourceManagementInterface(VerticalScrollInterface):
         self.download_settings_group.addSettingCard(self.auto_download_opt)
         content_widget.add_widget(self.download_settings_group)
 
-        self.download_items_group = SettingCardGroup('更新与下载')
+        self.download_items_group = SettingCardGroup(gt('更新与下载'))
         self.download_items_group.addSettingCard(self.code_card)
         self.launcher_opt = LauncherDownloadCard(self.ctx)
         self.launcher_opt.use_download_queue(

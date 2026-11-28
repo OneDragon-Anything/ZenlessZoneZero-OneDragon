@@ -194,6 +194,7 @@ class BattleStateDisplay(QWidget):
 class TaskDisplay(TableWidget):
 
     def __init__(self, ctx: ZContext, parent=None):
+        """初始化自动战斗任务信息表格"""
         TableWidget.__init__(self, parent=parent)
 
         self.ctx: ZContext = ctx
@@ -217,9 +218,9 @@ class TaskDisplay(TableWidget):
         self.horizontalScrollBar().setVisible(False)
 
         data = [
-            ["[触发器]", "/"],
-            ["[条件集]", "/"],
-            ["[持续时间]", "/"]
+            [gt("[触发器]"), "/"],
+            [gt("[条件集]"), "/"],
+            [gt("[持续时间]"), "/"]
         ]
 
         for i, row in enumerate(data):
@@ -239,12 +240,13 @@ class TaskDisplay(TableWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
+        """刷新表格中的触发器、条件集与持续时间 自动战斗未运行时显示 /"""
         auto_op = self.ctx.auto_battle_context.auto_op
         if auto_op is None or not auto_op.is_running:
             data = [
-                ["[触发器]", "/"],
-                ["[条件集]", "/"],
-                ["[持续时间]", "/"]
+                [gt("[触发器]"), "/"],
+                [gt("[条件集]"), "/"],
+                [gt("[持续时间]"), "/"]
             ]
 
             for i, row in enumerate(data):
@@ -266,9 +268,9 @@ class TaskDisplay(TableWidget):
         states = info.expr_display
 
         data = [
-            ["[触发器]", info.trigger_display],
-            ["[条件集]", states],
-            ["[持续时间]", past_time]
+            [gt("[触发器]"), info.trigger_display],
+            [gt("[条件集]"), states],
+            [gt("[持续时间]"), past_time]
         ]
 
         for i, row in enumerate(data):
