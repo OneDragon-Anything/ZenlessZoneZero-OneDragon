@@ -134,7 +134,7 @@ if not getattr(sys, 'frozen', False):
     from scipy.spatial import KDTree
     from shapely.geometry import Polygon
     from soundcard.mediafoundation import SoundcardRuntimeWarning
-    from threading import Event, Lock
+    from threading import Event, Lock, RLock
     from types import ModuleType, TracebackType
     from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Literal, NamedTuple, Optional, Protocol, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode, urljoin, urlparse
