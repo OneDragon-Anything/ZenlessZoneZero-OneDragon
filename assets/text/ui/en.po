@@ -250,6 +250,9 @@ msgstr "Dashboard"
 msgid "一条龙"
 msgstr "OneDragon"
 
+msgid "插件龙"
+msgstr "Plugin Dragon"
+
 msgid "游戏设置"
 msgstr "Game Settings"
 
