@@ -600,6 +600,26 @@ class RepoConfig(YamlConfig):
                 urls[source_id] = f'{base_url}/{file_name}'
         return urls
 
+    def get_driver_installer(self, driver_key: str) -> tuple[str, str, str, dict[str, str]] | None:
+        """获取驱动安装包的下载信息。
+
+        :param driver_key: resource_download.drivers 中的驱动标识
+        :return: (显示名称, 版本标签, 文件名, 源 ID 到下载地址的映射)；未配置时为 None
+        """
+        raw = self._get_resource_download_config().get('drivers', {})
+        item = raw.get(driver_key) if isinstance(raw, dict) else None
+        if not isinstance(item, dict):
+            return None
+        repo_key = str(item.get('repo', ''))
+        tag = str(item.get('tag', ''))
+        file_name = str(item.get('file', ''))
+        if not repo_key or not tag or not file_name:
+            return None
+        urls = self.get_resource_asset_urls(repo_key, tag, file_name)
+        if not urls:
+            return None
+        return str(item.get('label', driver_key)), tag, file_name, urls
+
     def get_resource_source_candidates(
         self,
         user_choice: str | None = None,

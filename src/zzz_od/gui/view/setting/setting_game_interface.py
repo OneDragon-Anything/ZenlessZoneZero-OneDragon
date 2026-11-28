@@ -3,7 +3,6 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     ColorDialog,
     FluentIcon,
-    InfoBar,
     PushButton,
     SettingCardGroup,
 )
@@ -14,7 +13,6 @@ from one_dragon.base.config.basic_game_config import (
     ScreenSizeEnum,
     TypeInputWay,
 )
-from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
@@ -23,6 +21,7 @@ from one_dragon_qt.overlay.overlay_config import (
     HudFontSizeEnum,
     OverlayConfig,
 )
+from one_dragon_qt.utils.gamepad_hint import check_background_mode_available
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.level_slider import LevelSlider
@@ -410,14 +409,9 @@ class SettingGameInterface(VerticalScrollInterface):
 
     def _on_background_mode_changed(self, value: bool) -> None:
         """后台模式开关变更时检查 vgamepad 是否可用。"""
-        if value and not pc_button_utils.is_vgamepad_installed():
+        if value and not check_background_mode_available(self):
             self.background_mode_switch.setValue(False, emit_signal=False)
             self.ctx.game_config.background_mode = False
-            InfoBar.warning(
-                title='后台模式不可用',
-                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
-                parent=self, duration=5000,
-            )
 
     def _on_hdr_enable_clicked(self) -> None:
         self.hdr_btn_enable.setEnabled(False)
