@@ -6,13 +6,13 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils
 from zzz_od.application.life_on_line import life_on_line_const
 from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
 from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.battle.battle_loading import BATTLE_LOADING_TIMEOUT
 from zzz_od.operation.hdd.enter_hdd_mission import EnterHddMission
 from zzz_od.operation.key_sim_runner import KeySimRunner
 from zzz_od.operation.transport import Transport
@@ -83,7 +83,7 @@ class LifeOnLineApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='进入副本')
-    @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
+    @operation_node(name='等待战斗画面加载', timeout_seconds=BATTLE_LOADING_TIMEOUT)
     def wait_battle_screen(self) -> OperationRoundResult:
         self.chosen_team = True
         return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击',
