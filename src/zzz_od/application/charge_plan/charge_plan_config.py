@@ -303,6 +303,9 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
+        # 不在计划列表中（如多倍活动的临时计划） 直接累加传入的计划
+        to_add.run_times += 1
+
     def _is_same_plan(
         self, x: ChargePlanItem, y: ChargePlanItem, compare_plan_id: bool = True
     ) -> bool:
@@ -363,6 +366,15 @@ class ChargePlanConfig(ApplicationConfig):
     @combat_simulation_double_reward_config.setter
     def combat_simulation_double_reward_config(self, new_value: ChargePlanItem) -> None:
         self.update('combat_simulation_double_reward_config', new_value.to_dict())
+
+    @property
+    def area_patrol_double_reward_config(self) -> ChargePlanItem:
+        data = self.get('area_patrol_double_reward_config', {})
+        return ChargePlanItem.from_dict(data)
+
+    @area_patrol_double_reward_config.setter
+    def area_patrol_double_reward_config(self, new_value: ChargePlanItem) -> None:
+        self.update('area_patrol_double_reward_config', new_value.to_dict())
 
     @property
     def restore_charge(self) -> str:
