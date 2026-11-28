@@ -247,6 +247,39 @@ class EnvConfig(YamlConfig):
         self.update('plugin_update_notify', new_value)
 
     @property
+    def plugin_use_dev_ids(self) -> list[str]:
+        """同 ID 下选择加载开发版（plugins/.dev）的插件 ID 列表。
+
+        不在列表里的插件，开发版与商店版并存时加载商店版。
+        """
+        value = self.get('plugin_use_dev_ids', [])
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, str)]
+
+    def is_plugin_use_dev(self, app_id: str) -> bool:
+        """插件在开发版与商店版并存时是否选择开发版。
+
+        Args:
+            app_id: 插件 ID。
+
+        Returns:
+            True 表示加载开发版，False 表示加载商店版。
+        """
+        return app_id.casefold() in {item.casefold() for item in self.plugin_use_dev_ids}
+
+    def set_plugin_use_dev(self, app_id: str, use_dev: bool) -> None:
+        """设置插件在开发版与商店版并存时加载哪一份。
+
+        Args:
+            app_id: 插件 ID。
+            use_dev: True 加载开发版，False 加载商店版。
+        """
+        key = app_id.casefold()
+        others = [item for item in self.plugin_use_dev_ids if item.casefold() != key]
+        self.update('plugin_use_dev_ids', [*others, app_id] if use_dev else others)
+
+    @property
     def force_update(self) -> bool:
         """
         代码是否强制更新 会直接丢弃现有的改动

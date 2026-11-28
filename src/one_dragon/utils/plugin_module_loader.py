@@ -46,6 +46,12 @@ def resolve_module_name(
 
 FACTORY_FILE_NAME = 'factory.py'
 CONST_FILE_NAME = 'const.py'
+DEV_PLUGIN_DIR_NAME = '.dev'
+"""开发版插件目录名（plugins/.dev）。
+
+开发版与商店版同 ID、同包名，两份不能同时导入，
+由插件各自的切换选项（EnvConfig.plugin_use_dev_ids）决定加载哪一份。
+"""
 
 
 def is_factory_file(file_name: str) -> bool:

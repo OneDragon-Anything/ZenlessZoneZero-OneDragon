@@ -14,6 +14,9 @@
 |------|----------|----------|----------|------------|
 | **BUILTIN** | `src/zzz_od/application/` | `spec_from_file_location` | 需完整路径 | ✅ |
 | **THIRD_PARTY** | `plugins/` (项目根目录) | `spec_from_file_location` | ✅ 支持 | ✅ |
+| **DEV** | `plugins/.dev/` (开发版) | `spec_from_file_location` | ✅ 支持 | ✅ |
+
+DEV 是开发版插件的来源，开发者把本地开发的插件放在 `plugins/.dev/<APP_ID>/`（也支持仓库布局 `plugins/.dev/<仓库>/<APP_ID>/`），避免被商店订阅、更新覆盖。它与商店版（THIRD_PARTY）是**同一个插件**：同 `APP_ID`、同包名、共用配置和数据。同 ID 两份并存时，`ApplicationFactoryManager._select_plugin_copies()` 在导入之前按目录名配对，由 `EnvConfig.plugin_use_dev_ids` 决定导入哪一份（默认商店版），另一份记为 `PluginInfo.inactive_copy`，不导入；只有一份时照常加载。开发版的插件目录（直接放工厂和常量文件的那层）名字必须等于 `APP_ID`，仓库目录名不限；`plugins/.dev` 自身不是插件也不是仓库根。
 
 ## 核心组件
 
@@ -49,8 +52,10 @@
 - `app_id`, `app_name`, `default_group`, `internal_app`: 核心信息
 - `author`, `homepage`, `version`, `description`: 插件元数据
 - `plugin_dir`: 插件目录路径
-- `source`: 插件来源（BUILTIN/THIRD_PARTY）
-- `is_third_party`: 是否为第三方插件
+- `source`: 插件来源（BUILTIN/THIRD_PARTY/DEV）
+- `is_third_party`: 是否为外部插件（THIRD_PARTY 或 DEV）
+- `is_dev`: 当前生效的是否为开发版
+- `inactive_copy`: 同 ID 下未导入的那份副本（`InactiveCopy`，只读 `plugin.json` 版本），没有并存时为 `None`
 
 ### ApplicationFactory
 
@@ -83,6 +88,8 @@ project_root/
 │               └── dodge_assistant/
 │                   └── dodge_assistant_factory.py
 └── plugins/                   # 第三方插件（THIRD_PARTY，gitignore）
+    ├── .dev/                  # 开发版插件（DEV），同 ID 与商店版并存时按切换选项只加载一份
+    │   └── my_plugin/         # 插件目录名必须等于 APP_ID
     └── my_plugin/
         ├── __init__.py
         ├── my_plugin_const.py
@@ -146,6 +153,7 @@ uv run python src/zzz_od/application/devtools/application_priority_scanner.py
 
 - **BUILTIN**: 调用 `find_src_dir()` 反向查找路径中最后一个 `src` 目录作为 module_root
 - **THIRD_PARTY**: 使用扫描根目录（如 `plugins/`）作为 module_root
+- **DEV**: 使用 `plugins/.dev/`（或其下的仓库目录）作为 module_root，模块名与商店版相同（`<APP_ID>.factory`），所以两份不能同时导入
 
 ### 内置插件 (BUILTIN)
 

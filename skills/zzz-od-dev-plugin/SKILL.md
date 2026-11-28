@@ -13,7 +13,19 @@ tags: [zzz, one-dragon, application, plugin, development]
 | 类型 | 目录 | 是否提交 | 导入方式 |
 |---|---|---:|---|
 | 内置应用 | `src/zzz_od/application/<app>/` | 是 | 绝对导入 |
-| 第三方插件 | `plugins/<plugin>/` | 否，`plugins/` 被 gitignore | 插件内可相对导入 |
+| 第三方插件（商店安装） | `plugins/<plugin>/` | 否，`plugins/` 被 gitignore | 插件内可相对导入 |
+| 第三方插件（开发版） | `plugins/.dev/<APP_ID>/` | 否，`plugins/` 被 gitignore | 插件内可相对导入 |
+
+## 开发版放 plugins/.dev
+
+**本地开发、调试第三方插件时，一律把代码放在 `plugins/.dev/<APP_ID>/`（或仓库布局 `plugins/.dev/<仓库>/<APP_ID>/`，可直接 `git clone` 到这里），不要写进 `plugins/<APP_ID>/`。** `plugins/<APP_ID>/` 是商店订阅、更新、导入的落点，会被整体覆盖或删除，里面的改动会丢。
+
+- 开发版和商店版是同一个插件：同 `APP_ID`、同包名，配置、运行记录、`plugin_data` 共用。**不要给开发版改 `APP_ID`、加后缀或改包名**。
+- 开发版的插件目录（直接放 `factory.py`、`const.py` 的那层）名字必须等于 `APP_ID`，否则加载失败；仓库布局下仓库目录名不限。仓库根本身就是插件时，clone 出来的文件夹名要等于 `APP_ID`。
+- 两份并存时只加载一份：在插件管理页打开插件详情，用顶部的「商店版 / 开发版」分段控件切换，默认商店版；只有开发版时照常加载。
+- 加载失败不会自动回退到另一份，失败卡片会写明是开发版还是商店版。
+- 商店的订阅、更新、卸载只作用于商店版，不会改动 `.dev`。
+- 验证开发版时先确认详情页里当前使用的是开发版，否则看到的是商店版的行为。
 
 ## 先读文档
 
@@ -111,7 +123,7 @@ area_list:
 - [ ] factory 类继承 `ApplicationFactory`，并实现 `create_application`；第三方插件和需要应用配置的内置应用还要实现 `create_config`，无配置的内置应用可不覆盖。
 - [ ] 应用类继承 `ZApplication`，构造函数传入 `app_id` 和 `op_name`。
 - [ ] 状态机只有一个 `is_start_node=True`。
-- [ ] 第三方插件位于 `plugins/<plugin>/` 子目录，运行所需文件都在插件根内。
+- [ ] 第三方插件位于子目录，运行所需文件都在插件根内；开发中的代码放 `plugins/.dev/<APP_ID>/`，插件目录名等于 `APP_ID`，没有改 `APP_ID` 或包名。
 - [ ] 第三方插件需要持久化数据时用 `self.data_dir`，不写到插件目录或 `config/`；内置应用保留现有 `config/` 路径，要迁移必须兼容读取旧配置。
 - [ ] 如有设置界面，按设置界面文档接入。
 - [ ] 如有 screen_info，区域名和代码中的 `round_by_find_area` / `round_by_click_area` 一致。

@@ -98,6 +98,23 @@ plugins/                          # ← 添加到 sys.path
     └── plugin_c_factory.py
 ```
 
+## 开发版插件（plugins/.dev）
+
+本地开发插件时，把代码放在 `plugins/.dev/<APP_ID>/`（也支持仓库布局 `plugins/.dev/<仓库>/<APP_ID>/`，可直接 `git clone` 到这里），不要放进 `plugins/<APP_ID>/`：后者是商店订阅、更新、导入的落点，会被整体覆盖。
+
+```
+plugins/
+├── my_plugin/                # 商店安装的版本
+└── .dev/
+    └── my_plugin/            # 开发版，插件目录名必须等于 APP_ID
+```
+
+- 开发版的**插件目录**（直接放 `factory.py`、`const.py` 的那层）名字必须等于 `APP_ID`，否则加载失败；仓库布局下仓库目录名不限。仓库根本身就是插件时按扁平布局识别，clone 出来的文件夹名要等于 `APP_ID`。
+- 开发版和商店版是同一个插件：同 `APP_ID`、同包名，配置和数据共用，不要改 `APP_ID` 或加后缀。
+- 两份并存时只加载一份，在插件管理页的插件详情里切换，默认商店版；只有开发版时照常加载。
+- 商店的订阅、更新、卸载只作用于 `plugins/<APP_ID>/`，不会碰 `.dev`。
+- 详细规则见 [应用开发指引：开发版插件](../docs/develop/guides/application_plugin_guide.md#开发版插件pluginsdev)。
+
 ## 发布到插件商店
 
 想让用户在插件管理页里订阅和更新，用官方模板仓库 [`plugin-template`](https://github.com/OneDragon-Anyone/plugin-template) 创建插件仓库，推送 tag 自动发布，再到商店网页提交一次即可上架。规则、`plugin.json` 字段和提交流程见 [应用开发指引：发布到插件商店](../docs/develop/guides/application_plugin_guide.md#发布到插件商店)。

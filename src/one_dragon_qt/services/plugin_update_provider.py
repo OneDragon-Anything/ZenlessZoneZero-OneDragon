@@ -74,18 +74,14 @@ class PluginUpdateProvider(PluginOperationMixin, QObject):
         return bool(pending)
 
     def build_specs(self) -> list[ResourceDownloadSpec]:
-        """为待更新的插件构造下载规格，正在运行的插件先跳过。"""
+        """为待更新的插件构造下载规格。插件正在运行也照样更新。"""
         specs: list[ResourceDownloadSpec] = []
         for entry, plugin_info in self._pending:
-            package_dir = self.get_plugin_package_dir(plugin_info)
-            if package_dir is not None and self.is_plugin_running(package_dir):
-                continue
             spec, error = self.build_plugin_spec(
                 entry,
                 True,
                 gt('更新'),
                 plugin_info.version or '',
-                package_dir,
             )
             if spec is None:
                 log.warning(f'插件 {entry.name} 无法更新: {error}')

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
+    InactiveCopy,
     PluginInfo,
     PluginSource,
 )
@@ -27,6 +28,7 @@ from one_dragon.base.operation.application.plugin_manifest import (
 )
 from one_dragon.utils.log_utils import log
 from one_dragon.utils.plugin_module_loader import (
+    DEV_PLUGIN_DIR_NAME,
     ensure_sys_path,
     import_module_from_file,
     is_const_file,
@@ -114,10 +116,14 @@ class ApplicationFactoryManager:
         self._plugin_infos.clear()
         self._scan_failures.clear()
 
+        skip_dirs, inactive_copies = self._select_plugin_copies()
+
         for plugin_dir, source in self._plugin_dirs:
             if not plugin_dir.is_dir():
                 continue
-            for factory in self._scan_directory(plugin_dir, reload_modules, source):
+            for factory in self._scan_directory(
+                plugin_dir, reload_modules, source, skip_dirs
+            ):
                 if factory.default_group:
                     default_factories.append(factory)
                 else:
@@ -131,6 +137,9 @@ class ApplicationFactoryManager:
             )
         )
 
+        for app_id, plugin_info in self._plugin_infos.items():
+            plugin_info.inactive_copy = inactive_copies.get(app_id.casefold())
+
         internal_count = sum(1 for factory in other_factories if factory.internal_app)
         log.info(
             f"发现 {len(default_factories)} 个默认组应用, "
@@ -140,11 +149,68 @@ class ApplicationFactoryManager:
         )
         return default_factories + other_factories
 
+    def _select_plugin_copies(self) -> tuple[frozenset[Path], dict[str, InactiveCopy]]:
+        """同 ID 的商店版和开发版并存时，按插件的切换选项选一份，另一份不导入。
+
+        两份同 ID 同包名，不能同时导入。配对依据是插件目录名，不是仓库目录名（开发版的
+        插件目录名必须等于 APP_ID）；商店版插件目录名对不上 APP_ID 时认不出来，
+        按原来的重复 APP_ID 报错处理。
+        只有一份时照常加载，不受切换选项影响。
+
+        Returns:
+            (不导入的插件目录集合, {APP_ID casefold: 未生效副本})
+        """
+        market_dirs: dict[str, list[Path]] = {}
+        dev_dirs: dict[str, list[Path]] = {}
+        for root, source in self._plugin_dirs:
+            if source not in (PluginSource.THIRD_PARTY, PluginSource.DEV) or not root.is_dir():
+                continue
+            target = dev_dirs if source == PluginSource.DEV else market_dirs
+            for plugin_dir in self._list_candidate_dirs(root):
+                target.setdefault(plugin_dir.name.casefold(), []).append(plugin_dir)
+
+        skip_dirs: set[Path] = set()
+        inactive_copies: dict[str, InactiveCopy] = {}
+        for key in market_dirs.keys() & dev_dirs.keys():
+            use_dev = self.ctx.env_config.is_plugin_use_dev(key)
+            skipped, skipped_source = (
+                (market_dirs[key], PluginSource.THIRD_PARTY)
+                if use_dev
+                else (dev_dirs[key], PluginSource.DEV)
+            )
+            skip_dirs.update(skipped)
+            manifest_info = extract_manifest_info(
+                read_manifest_file(skipped[0] / MANIFEST_FILE_NAME)
+            )
+            inactive_copies[key] = InactiveCopy(
+                source=skipped_source,
+                plugin_dir=skipped[0],
+                version=manifest_info.version,
+            )
+        return frozenset(skip_dirs), inactive_copies
+
+    def _list_candidate_dirs(self, root: Path) -> list[Path]:
+        """列出扫描根下可能是插件的目录（不导入），规则与 _scan_directory 一致。"""
+        if self._is_repo_root(root):
+            return list_repo_plugin_dirs(root)
+        try:
+            children = sorted(root.iterdir())
+        except OSError:
+            return []
+        return [
+            child for child in children
+            if child.is_dir()
+            and not child.is_symlink()
+            and not child.name.startswith('.')
+            and not self._is_repo_root(child)
+        ]
+
     def _scan_directory(
         self,
         directory: Path,
         reload_modules: bool = False,
-        source: PluginSource = PluginSource.BUILTIN
+        source: PluginSource = PluginSource.BUILTIN,
+        skip_dirs: frozenset[Path] = frozenset(),
     ) -> list[ApplicationFactory]:
         """扫描目录中的工厂模块
 
@@ -152,14 +218,15 @@ class ApplicationFactoryManager:
             directory: 要扫描的目录
             reload_modules: 是否重新加载模块
             source: 插件来源
+            skip_dirs: 同 ID 下未被选中的插件目录，不扫描不导入
 
         Returns:
             list[ApplicationFactory]: 该目录下加载成功的工厂列表
         """
         factories: list[ApplicationFactory] = []
 
-        # 内置应用递归扫描；第三方插件只扫描每个真实插件根的第一层。
-        if source == PluginSource.THIRD_PARTY:
+        # 内置应用递归扫描；第三方插件与开发版只扫描每个真实插件根的第一层。
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             python_files: list[Path] = []
             if directory.is_dir():
                 try:
@@ -189,8 +256,14 @@ class ApplicationFactoryManager:
                     try:
                         if plugin_dir.is_symlink() or not plugin_dir.is_dir():
                             continue
+                        if plugin_dir.name.startswith('.'):
+                            # 隐藏目录不是插件：覆盖安装留下的 .<插件名>.backup-<uuid> 备份、
+                            # 编辑器和系统的临时目录都落在 plugins 下，扫进来只会留下假的失败记录
+                            continue
                         if self._is_repo_root(plugin_dir):
                             # 已作为独立扫描根处理，这里不能再把仓库根当插件根扫
+                            continue
+                        if plugin_dir in skip_dirs:
                             continue
                         plugin_dir_resolved = plugin_dir.resolve(strict=True)
                         if plugin_dir_resolved != directory_resolved / plugin_dir.name:
@@ -272,8 +345,12 @@ class ApplicationFactoryManager:
             是否为仓库根。
         """
         third_party_roots = {
-            root for root, source in self._plugin_dirs if source == PluginSource.THIRD_PARTY
+            root for root, source in self._plugin_dirs
+            if source in (PluginSource.THIRD_PARTY, PluginSource.DEV)
         }
+        if directory.name == DEV_PLUGIN_DIR_NAME and directory.parent in third_party_roots:
+            # plugins/.dev 是开发版的扫描根，自己永远不是仓库根
+            return False
         return directory in third_party_roots and directory.parent in third_party_roots
 
     def _load_factory_from_file(
@@ -316,27 +393,27 @@ class ApplicationFactoryManager:
         except ValueError as e:
             raise ImportError(f"无法计算相对路径: {factory_file}") from e
         rel_parts = relative_path.parts
-        if source == PluginSource.THIRD_PARTY and len(rel_parts) < 2:
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV) and len(rel_parts) < 2:
             raise ImportError(
-                f"第三方插件不能直接放在 plugins 根目录: {factory_file.name}，"
+                f"插件不能直接放在扫描根目录: {factory_file.name}，"
                 f"请放在子目录中（如 plugins/my_plugin/{factory_file.name}）"
             )
 
-        # 3. THIRD_PARTY 特殊处理：将 plugins 目录加入 sys.path
-        if source == PluginSource.THIRD_PARTY:
+        # 3. 第三方插件与开发版：把扫描根加入 sys.path 以支持相对导入
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             ensure_sys_path(module_root, self._added_sys_paths)
 
         # 4. 模块加载/重载
-        if module_name in sys.modules:
-            if reload_modules:
+        if module_name in sys.modules and not reload_modules:
+            module = sys.modules[module_name]
+        else:
+            if reload_modules and module_name in sys.modules:
                 unload_prefix = self._get_unload_prefix(module_name, source, rel_parts)
                 if unload_prefix:
                     self._unload_plugin_modules(unload_prefix)
-                module = import_module_from_file(factory_file, module_name, module_root, reload=True)
-            else:
-                module = sys.modules[module_name]
-        else:
-            module = import_module_from_file(factory_file, module_name, module_root)
+            module = import_module_from_file(
+                factory_file, module_name, module_root, reload=reload_modules
+            )
 
         # 5. 查找并实例化工厂类（每个模块最多一个）
         return self._find_factory_in_module(
@@ -362,7 +439,7 @@ class ApplicationFactoryManager:
         Returns:
             str | None: 需要卸载的模块前缀
         """
-        if source == PluginSource.THIRD_PARTY:
+        if source in (PluginSource.THIRD_PARTY, PluginSource.DEV):
             # 卸载整个插件包：取相对路径第一段（插件包名）
             return rel_parts[0] if rel_parts else None
         else:
@@ -497,14 +574,17 @@ class ApplicationFactoryManager:
             )
 
         # 身份只认常量模块的 APP_ID；plugin.json 只是附加信息，不参与校验。
-        # 仓库布局下插件目录名必须等于 APP_ID，这样本机重名的插件不可能共存
+        # 仓库布局和开发版的插件目录名必须等于 APP_ID，仓库目录名和扁平商店版目录名不限。
+        # 插件目录名是商店版与开发版配对的依据，也让本机重名的插件不可能共存
         if (
-            source == PluginSource.THIRD_PARTY
-            and self._is_repo_root(factory_file.parent.parent)
-            and factory_file.parent.name != factory.app_id
-        ):
+            (
+                source == PluginSource.THIRD_PARTY
+                and self._is_repo_root(factory_file.parent.parent)
+            )
+            or source == PluginSource.DEV
+        ) and factory_file.parent.name != factory.app_id:
             raise ImportError(
-                f"仓库布局下插件目录名 '{factory_file.parent.name}' "
+                f"插件目录名 '{factory_file.parent.name}' "
                 f"必须等于 APP_ID '{factory.app_id}'"
             )
 
