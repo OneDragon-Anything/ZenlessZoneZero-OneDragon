@@ -48,7 +48,8 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "hud_opacity": 80,
     "hud_font_size": "large",
     "hud_font_bold": True,
-    "hud_anti_capture": True,
+    "hud_anti_capture": False,
+    "hud_mask_uid": True,
     "hud_log_width_level": 2,
     "hud_log_height_level": 2,
     "hud_theme_color": _DEFAULT_HUD_THEME_COLOR,
@@ -63,6 +64,7 @@ _OVERLAY_SCALAR_KEYS = {
     "hud_font_size",
     "hud_font_bold",
     "hud_anti_capture",
+    "hud_mask_uid",
     "hud_log_width_level",
     "hud_log_height_level",
     "hud_theme_color",
@@ -188,12 +190,21 @@ class OverlayConfig(YamlConfig):
 
     @property
     def hud_anti_capture(self) -> bool:
-        """防录屏：开启后 overlay 不会被录屏/截图捕获，与显示档位无关。"""
+        """防截图：开启后通过 WDA_EXCLUDEFROMCAPTURE 防止前台截图/录屏捕获调试面板。"""
         return bool(self._overlay_data()["hud_anti_capture"])
 
     @hud_anti_capture.setter
     def hud_anti_capture(self, value: bool) -> None:
         self._update_overlay_data("hud_anti_capture", bool(value))
+
+    @property
+    def hud_mask_uid(self) -> bool:
+        """是否在 normal/debug 模式下遮挡右下角 UID。"""
+        return bool(self._overlay_data()["hud_mask_uid"])
+
+    @hud_mask_uid.setter
+    def hud_mask_uid(self, value: bool) -> None:
+        self._update_overlay_data("hud_mask_uid", bool(value))
 
 
     @property

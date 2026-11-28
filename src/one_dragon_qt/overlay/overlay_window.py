@@ -27,7 +27,8 @@ class OverlayWindow(QWidget):
         super().__init__(None)
 
         self._passthrough_enabled = True
-        self._anti_capture_enabled = True
+        self._anti_capture_enabled = False
+        self._applied_anti_capture = False
         self._standard_width = 1920
         self._standard_height = 1080
         self._vision_items: list[VisionTraceItem] = []
@@ -83,9 +84,19 @@ class OverlayWindow(QWidget):
         win32_utils.set_window_click_through(hwnd, enabled)
 
     def set_anti_capture(self, enabled: bool) -> None:
+        enabled = bool(enabled)
         self._anti_capture_enabled = enabled
+        if not self.isVisible():
+            if not enabled and self._applied_anti_capture:
+                hwnd = int(self.winId())
+                if win32_utils.set_window_display_affinity(hwnd, False):
+                    self._applied_anti_capture = False
+            return
+        if enabled == self._applied_anti_capture:
+            return
         hwnd = int(self.winId())
-        win32_utils.set_window_display_affinity(hwnd, enabled)
+        if win32_utils.set_window_display_affinity(hwnd, enabled):
+            self._applied_anti_capture = enabled
 
     def set_overlay_visible(self, visible: bool) -> None:
         if visible:
@@ -95,6 +106,10 @@ class OverlayWindow(QWidget):
             self.set_passthrough(self._passthrough_enabled)
             self.set_anti_capture(self._anti_capture_enabled)
         else:
+            if self._applied_anti_capture:
+                hwnd = int(self.winId())
+                if win32_utils.set_window_display_affinity(hwnd, False):
+                    self._applied_anti_capture = False
             if self.isVisible():
                 self.hide()
 
