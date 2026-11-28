@@ -18,9 +18,26 @@ class PluginSource(str, Enum):
     用于区分插件的来源，由 ApplicationFactoryManager 在扫描时自动设置。
     - BUILTIN: 内置插件，位于 application 目录下，由项目维护
     - THIRD_PARTY: 第三方插件，位于 plugins 目录下，由用户安装，支持相对导入
+    - DEV: 开发版插件，位于 plugins/.dev 目录下，用于本地开发调试
     """
     BUILTIN = 'builtin'
     THIRD_PARTY = 'third_party'
+    DEV = 'dev'
+
+
+@dataclass
+class InactiveCopy:
+    """同 ID 下未生效的那份副本（只读展示，不导入）。
+
+    Attributes:
+        source: 副本来源（THIRD_PARTY 或 DEV）
+        plugin_dir: 副本目录
+        version: 副本 plugin.json 里的版本号，读不到为空
+    """
+
+    source: PluginSource
+    plugin_dir: Path
+    version: str = ''
 
 
 @dataclass
@@ -66,6 +83,9 @@ class PluginInfo:
     # 插件目录信息
     plugin_dir: Path | None = None
 
+    # 同 ID 下未生效的副本（开发版与商店版并存时才有）
+    inactive_copy: InactiveCopy | None = None
+
     # 键鼠脚本目录名（相对 plugin_dir；空 = 插件不附带键鼠脚本）
     key_sim_dir: str = ''
 
@@ -75,5 +95,19 @@ class PluginInfo:
 
     @property
     def is_third_party(self) -> bool:
-        """是否为第三方插件"""
-        return self.source == PluginSource.THIRD_PARTY
+        """是否为第三方插件（含开发版）"""
+        return self.source in (PluginSource.THIRD_PARTY, PluginSource.DEV)
+
+    @property
+    def is_dev(self) -> bool:
+        """是否为开发版插件。
+
+        开发版放在 plugins/.dev 下，与商店版同 ID；同 ID 两份并存时
+        只导入其中一份，由插件的切换选项决定。不参与商店的更新与卸载。
+        """
+        return self.source == PluginSource.DEV
+
+    @property
+    def has_both_copies(self) -> bool:
+        """是否同时存在商店版和开发版两份副本（可切换）。"""
+        return self.inactive_copy is not None

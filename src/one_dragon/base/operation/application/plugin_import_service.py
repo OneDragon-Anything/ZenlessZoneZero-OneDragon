@@ -132,13 +132,26 @@ class PluginImportService:
             results.append(self.import_plugin(zip_path, overwrite=overwrite))
         return results
 
-    def import_plugin(self, zip_path: str | Path, overwrite: bool = False) -> ImportResult:
-        """按旧单插件语义导入一个 ZIP 文件。"""
+    def import_plugin(
+        self,
+        zip_path: str | Path,
+        overwrite: bool = False,
+        target_dir: str | Path | None = None,
+    ) -> ImportResult:
+        """按旧单插件语义导入一个 ZIP 文件。
+
+        Args:
+            zip_path: 插件 ZIP。
+            overwrite: 目标目录已存在时是否覆盖。
+            target_dir: 原地更新用：指定写入 plugins/<仓库>/<插件> 这种仓库布局的已装目录，
+                不指定时写入 plugins/<插件名>。
+        """
         results = self._import_zip_source(
             Path(zip_path),
             overwrite=overwrite,
             selected_plugin_names=None,
             require_single=True,
+            target_override=Path(target_dir) if target_dir is not None else None,
         )
         return results[0]
 
@@ -162,6 +175,7 @@ class PluginImportService:
         overwrite: bool,
         selected_plugin_names: set[str] | None,
         require_single: bool,
+        target_override: Path | None = None,
     ) -> list[ImportResult]:
         """分析一个 ZIP 来源，并按插件根分别导入。"""
         source_name = zip_path.stem
@@ -232,7 +246,7 @@ class PluginImportService:
                     ]
 
                 return [
-                    self._import_zip_layout(zf, layout, overwrite)
+                    self._import_zip_layout(zf, layout, overwrite, target_override)
                     for layout in layouts
                 ]
         except ValueError as e:
@@ -266,12 +280,16 @@ class PluginImportService:
         zf: zipfile.ZipFile,
         layout: _ZipLayout,
         overwrite: bool,
+        target_override: Path | None = None,
     ) -> ImportResult:
         """独立导入 ZIP 中的一个插件根。"""
         plugin_name = layout.plugin_dir_name
         staging_dir: Path | None = None
         try:
-            target_dir = self._get_target_dir(plugin_name)
+            if target_override is not None:
+                target_dir = self._get_in_place_target_dir(plugin_name, target_override)
+            else:
+                target_dir = self._get_target_dir(plugin_name)
             if self._path_exists(target_dir) and not overwrite:
                 return ImportResult(
                     success=False,
@@ -836,6 +854,34 @@ class PluginImportService:
             raise ValueError("插件目标路径不是目录")
         return target_dir
 
+    def _get_in_place_target_dir(self, plugin_dir_name: str, target_dir: Path) -> Path:
+        """校验并返回原地更新的目标目录：只允许 plugins/<仓库>/<插件> 这一种位置。
+
+        仓库布局的插件装在 plugins/<仓库>/<插件>/，商店更新要写回这里，
+        不能在 plugins/ 下另建一份平铺副本。隐藏目录（如 plugins/.dev 开发版）不允许。
+
+        Args:
+            plugin_dir_name: ZIP 里的插件目录名，必须是合法目录名。
+            target_dir: 已装插件所在的目录。
+
+        Raises:
+            ValueError: 目标不在 plugins/<仓库>/<插件> 位置，或是符号链接。
+        """
+        self._validate_plugin_dir_name(plugin_dir_name)
+        plugins_root = self._plugins_root()
+        resolved = target_dir.resolve(strict=False)
+        if not resolved.is_relative_to(plugins_root):
+            raise ValueError("原地更新的目标不在 plugins 目录下")
+        parts = resolved.relative_to(plugins_root).parts
+        if len(parts) != 2 or parts[0].startswith('.'):
+            raise ValueError("原地更新只支持 plugins/<仓库>/<插件> 位置的目录")
+        repo_dir = plugins_root / parts[0]
+        if repo_dir.is_symlink() or target_dir.is_symlink():
+            raise ValueError("插件目标目录不能是符号链接")
+        if resolved.exists() and not resolved.is_dir():
+            raise ValueError("插件目标路径不是目录")
+        return resolved
+
     def _new_staging_dir(self, plugin_dir_name: str) -> Path:
         """创建同一文件系统中的临时目录路径。"""
         plugins_root = self._plugins_root()
@@ -843,8 +889,14 @@ class PluginImportService:
         return plugins_root / f".{plugin_dir_name}.tmp-{uuid4().hex}"
 
     def _replace_plugin_dir(self, staging_dir: Path, target_dir: Path, overwrite: bool) -> None:
-        """用已完成的临时目录替换目标目录，失败时恢复旧版本。"""
+        """用已完成的临时目录替换目标目录，失败时恢复旧版本。
+
+        目标目录里带 git 仓库时也照样替换：商店更新和订阅不允许被拦。
+        这种目录不删旧版本，改名为同级的隐藏备份目录留在原处，日志给出路径，
+        需要时手动恢复；普通目录替换成功后照常清理备份。
+        """
         backup_dir: Path | None = None
+        keep_backup: bool = False
         if self._path_exists(target_dir):
             if not overwrite:
                 raise FileExistsError(f"插件目录已存在: {target_dir.name}")
@@ -852,11 +904,13 @@ class PluginImportService:
                 raise ValueError("插件目标目录不能是符号链接")
             if not target_dir.is_dir():
                 raise ValueError("插件目标路径不是目录")
-            git_dir = find_git_repo(target_dir)
-            if git_dir is not None:
-                raise ValueError(
-                    f"插件目录含 git 仓库（{git_dir.name}），不能覆盖安装，请用 git 更新"
-                )
+            # 仓库布局原地更新时目标在 plugins/<仓库>/<插件>，.git 在仓库根上，要看上一级
+            git_top = (
+                target_dir
+                if target_dir.parent == self._plugins_root()
+                else target_dir.parent
+            )
+            keep_backup = find_git_repo(git_top) is not None
             backup_dir = target_dir.with_name(f".{target_dir.name}.backup-{uuid4().hex}")
             target_dir.replace(backup_dir)
 
@@ -868,13 +922,24 @@ class PluginImportService:
             raise
         else:
             if backup_dir is not None and self._path_exists(backup_dir):
+                if keep_backup:
+                    log.warning(
+                        f"插件目录含 git 仓库，旧版本未删除，已备份到 {backup_dir}，需要时手动恢复"
+                    )
+                    return
                 try:
                     self._remove_path(backup_dir)
                 except Exception as e:
                     log.warning(f"清理插件备份目录失败: {backup_dir}, {e}")
 
-    def delete_plugin(self, plugin_dir: str | Path) -> ImportResult:
-        """删除 plugins 根目录下的一个插件目录。"""
+    def delete_plugin(self, plugin_dir: str | Path, backup_git: bool = False) -> ImportResult:
+        """删除 plugins 根目录下的一个插件目录。
+
+        Args:
+            plugin_dir: 插件目录。
+            backup_git: 目录含 git 仓库时，是否改名为同级隐藏备份目录而不是拒绝。
+                备份目录以 . 开头，不会被扫描为插件，旧内容需要时可手动恢复。
+        """
         plugin_path = Path(plugin_dir)
         if isinstance(plugin_dir, str) and not plugin_path.is_absolute():
             plugin_path = self.plugins_dir / plugin_path
@@ -920,10 +985,28 @@ class PluginImportService:
 
         git_dir = find_git_repo(plugin_dir_resolved)
         if git_dir is not None:
+            if not backup_git:
+                return ImportResult(
+                    success=False,
+                    plugin_name=plugin_name,
+                    message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
+                )
+            # 不销毁可能未提交的内容：改名成隐藏备份留在原处
+            backup_dir = plugin_dir_resolved.with_name(f".{plugin_name}.backup-{uuid4().hex}")
+            try:
+                plugin_dir_resolved.replace(backup_dir)
+            except Exception as e:
+                log.error(f"备份插件目录失败: {e}", exc_info=True)
+                return ImportResult(
+                    success=False,
+                    plugin_name=plugin_name,
+                    message=f"备份失败: {e}",
+                )
+            log.warning(f"插件目录含 git 仓库，未直接删除，已备份到 {backup_dir}，需要时手动恢复")
             return ImportResult(
-                success=False,
+                success=True,
                 plugin_name=plugin_name,
-                message=f"插件目录含 git 仓库（{git_dir.name}），不能在这里删除，请手动处理",
+                message=f"已移除，含 git 仓库的旧目录备份在 {backup_dir.name}",
             )
 
         try:

@@ -24,15 +24,20 @@ from one_dragon.base.operation.application.application_group_manager import (
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
+    ApplicationRunContextStateEventEnum,
 )
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_app_setting_refresh_event import (
     ContextAppSettingRefreshEvent,
+    ContextPluginRefreshEvent,
 )
 from one_dragon.base.operation.context_download_request_event import (
     ContextDownloadRequestEvent,
 )
-from one_dragon.base.operation.context_event_bus import ContextEventBus
+from one_dragon.base.operation.context_event_bus import (
+    ContextEventBus,
+    ContextEventItem,
+)
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.operation.context_notify_event import ContextNotifyEvent
 from one_dragon.base.operation.one_dragon_env_context import (
@@ -51,7 +56,10 @@ from one_dragon.utils import (
     thread_utils,
 )
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.plugin_module_loader import list_repo_plugin_dirs
+from one_dragon.utils.plugin_module_loader import (
+    DEV_PLUGIN_DIR_NAME,
+    list_repo_plugin_dirs,
+)
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -107,6 +115,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 初始化相关
         self._init_lock = threading.Lock()
+        self._registration_refresh_lock: threading.Lock = threading.Lock()
+        self._registration_refresh_pending: bool = False
+        """有任务运行时请求了刷新应用注册，等任务结束后再执行"""
+        self._registration_refresh_listening: bool = False
         self._application_registered: bool = False  # 应用是否注册完毕
         self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
 
@@ -162,6 +174,20 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         plugins_dir = self.plugins_dir
         if plugins_dir is not None:
             dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+            # 开发版目录：plugins/.dev/<id>/，与商店版同一个 APP_ID，并存时只加载一份
+            dev_dir = plugins_dir / DEV_PLUGIN_DIR_NAME
+            if dev_dir.is_dir():
+                dirs.append((dev_dir, PluginSource.DEV))
+                # .dev 下同样支持仓库布局：.dev/<仓库>/<id>/，整个 git 仓库可以直接放进来
+                try:
+                    dev_children = sorted(dev_dir.iterdir())
+                except OSError:
+                    dev_children = []
+                for dev_child in dev_children:
+                    if not dev_child.is_dir() or dev_child.name.startswith('.'):
+                        continue
+                    if list_repo_plugin_dirs(dev_child):
+                        dirs.append((dev_child, PluginSource.DEV))
             try:
                 repo_dirs = sorted(plugins_dir.iterdir())
             except OSError:
@@ -292,6 +318,51 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 str(screen_dir), default_app_id=plugin_info.app_id
             )
 
+    def request_application_registration_refresh(self) -> bool:
+        """安装或更新插件后请求刷新应用注册，不打断正在运行的任务。
+
+        有任务在运行时，不动当前的工厂、模块和运行依赖，只记下待刷新，
+        等应用线程真正收尾结束（FINISHED 事件）后再刷新，新版本此时才生效；
+        没有任务运行时立即刷新。
+
+        Returns:
+            是否已经立即刷新。
+        """
+        with self._registration_refresh_lock:
+            if self.run_context.is_context_stop:
+                refresh_now = True
+            else:
+                refresh_now = False
+                self._registration_refresh_pending = True
+                if not self._registration_refresh_listening:
+                    self._registration_refresh_listening = True
+                    # 监听 FINISHED 而不是 STOP：STOP 在 stop_running 里先于线程收尾发出，
+                    # 此时刷新会把运行中线程正在用的模块换掉
+                    self.run_context.event_bus.listen_event(
+                        ApplicationRunContextStateEventEnum.FINISHED,
+                        self._on_run_finished_refresh_registration,
+                    )
+        if refresh_now:
+            self.refresh_application_registration()
+            return True
+
+        log.info("有任务正在运行，应用注册刷新推迟到任务结束后")
+        # 加锁判断到设置待刷新之间任务可能刚好结束，这里补做一次，避免漏掉
+        self._run_pending_registration_refresh()
+        return False
+
+    def _on_run_finished_refresh_registration(self, event: ContextEventItem | None = None) -> None:
+        """应用执行结束事件：执行推迟的应用注册刷新。"""
+        self._run_pending_registration_refresh()
+
+    def _run_pending_registration_refresh(self) -> None:
+        """没有任务在运行且有待刷新时，执行一次刷新。"""
+        with self._registration_refresh_lock:
+            if not self._registration_refresh_pending or not self.run_context.is_context_stop:
+                return
+            self._registration_refresh_pending = False
+        self.refresh_application_registration()
+
     def refresh_application_registration(self) -> None:
         """刷新应用注册
 
@@ -331,6 +402,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 通知前端重扫应用设置入口 使新装/卸载插件的设置及时生效
         self.dispatch_event(ContextAppSettingRefreshEvent.EVENT_ID, ContextAppSettingRefreshEvent())
+
+        # 通知插件页面重建卡片：推迟刷新结束时页面拿不到刷新完成的时机
+        self.dispatch_event(ContextPluginRefreshEvent.EVENT_ID, ContextPluginRefreshEvent())
 
         log.info("应用注册刷新完成")
 

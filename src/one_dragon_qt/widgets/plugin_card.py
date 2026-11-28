@@ -30,9 +30,13 @@ from qfluentwidgets import (
     FluentIcon,
     ImageLabel,
     StrongBodyLabel,
+    Theme,
     TransparentToolButton,
+    isDarkTheme,
     setCustomStyleSheet,
 )
+
+from one_dragon.utils.i18_utils import gt
 
 CARD_WIDTH = 300
 CARD_HEIGHT = 188
@@ -41,12 +45,14 @@ CORNER_RADIUS = 10
 BADGE_SUBSCRIBED = 'subscribed'
 BADGE_INSTALLED = 'installed'
 BADGE_UPDATE = 'update'
+BADGE_FAILED = 'failed'
 BADGE_NONE = 'none'
 
 BADGE_COLORS: dict[str, tuple[str, str]] = {
     BADGE_SUBSCRIBED: ('#0f6cbd', '#2b88d8'),
     BADGE_INSTALLED: ('#0b6a4a', '#138a5e'),
     BADGE_UPDATE: ('#b85c00', '#c96a12'),
+    BADGE_FAILED: ('#c42b1c', '#e5584a'),
     BADGE_NONE: ('#5d5d5d', '#6b6b6b'),
 }
 """标签实心底色：浅色主题、深色主题。文字统一用白色。"""
@@ -126,6 +132,51 @@ class _CardOverlay(QWidget):
         painter.end()
 
 
+CHANNEL_MARKET = 'market'
+CHANNEL_DEV = 'dev'
+CHANNEL_ACCENT = ('#0f6cbd', '#2b88d8')
+"""通道标记使用中的底色：浅色主题、深色主题（与订阅标签同一个强调色）。"""
+
+
+class _ChannelChip(QWidget):
+    """卡片右上角的通道标记：图标表示版本通道，实心表示正在使用。
+
+    商店版用购物车图标，开发版用代码图标；使用中的实心强调色，
+    未使用的半透明深色底、图标变淡。不靠文字区分。
+    """
+
+    WIDTH = 28
+    HEIGHT = 22
+
+    def __init__(self, channel: str, active: bool, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._icon = FluentIcon.CODE if channel == CHANNEL_DEV else FluentIcon.SHOPPING_CART
+        self._active: bool = active
+        self.setFixedSize(self.WIDTH, self.HEIGHT)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        name = gt('开发版') if channel == CHANNEL_DEV else gt('商店版')
+        self.setToolTip(f"{name}{gt('（使用中）') if active else ''}")
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self._active:
+            light, dark = CHANNEL_ACCENT
+            color = QColor(dark if isDarkTheme() else light)
+        else:
+            color = QColor(0, 0, 0, 120)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(self.rect(), self.HEIGHT / 2, self.HEIGHT / 2)
+        painter.setOpacity(1.0 if self._active else 0.6)
+        icon_size = 12
+        icon_rect = QRectF(
+            (self.WIDTH - icon_size) / 2, (self.HEIGHT - icon_size) / 2, icon_size, icon_size
+        )
+        self._icon.render(painter, icon_rect.toRect(), Theme.DARK)
+        painter.end()
+
+
 class PluginCard(QWidget):
     """一个插件的卡片，整块是封面。"""
 
@@ -202,6 +253,10 @@ class PluginCard(QWidget):
         badge_row.setContentsMargins(0, 0, 0, 0)
         badge_row.addWidget(self.badge_label)
         badge_row.addStretch(1)
+        self._channel_row = QHBoxLayout()
+        self._channel_row.setContentsMargins(0, 0, 0, 0)
+        self._channel_row.setSpacing(4)
+        badge_row.addLayout(self._channel_row)
         badge_row.addWidget(self.warning_label)
 
         layout = QVBoxLayout(self)
@@ -265,6 +320,24 @@ class PluginCard(QWidget):
             f'  font-size: 11px;'
             f'}}',
         )
+
+    def set_channels(self, current: str, both: bool) -> None:
+        """设置右上角的版本通道标记。
+
+        Args:
+            current: 正在使用的通道，CHANNEL_MARKET 或 CHANNEL_DEV。
+            both: True 表示商店版和开发版两份并存，两个标记都显示；
+                False 表示只有当前这一份，只显示当前通道的标记。
+        """
+        while self._channel_row.count():
+            item = self._channel_row.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        channels = (CHANNEL_MARKET, CHANNEL_DEV) if both else (current,)
+        for channel in channels:
+            self._channel_row.addWidget(_ChannelChip(channel, channel == current, self))
 
     def set_enabled_state(self, enabled: bool) -> None:
         """操作进行中时禁用点击。"""
@@ -560,7 +633,9 @@ class PluginCardGrid(QWidget):
         """移除并销毁全部卡片。"""
         for card in self._cards:
             self._layout.removeWidget(card)
-            card.setParent(None)
+            # 先显式隐藏再销毁，不要 setParent(None)：新建的卡片加入布局时 Qt 会排队一次
+            # 「显示」，若此时卡片已被摘成无父控件，排队的显示会让它弹成独立窗口
+            card.hide()
             card.deleteLater()
         self._cards.clear()
         self._invalidate_layout()

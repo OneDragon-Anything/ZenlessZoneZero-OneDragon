@@ -82,6 +82,10 @@ notice_cache/
 # 第三方插件目录
 plugins/*
 !plugins/README.md
+# 开发版插件目录只保留占位文件，里面的插件代码和仓库不入库
+!plugins/.dev/
+plugins/.dev/*
+!plugins/.dev/.gitkeep
 
 # 插件数据目录（ctx.get_plugin_data_dir / factory.data_dir）
 plugin_data/
