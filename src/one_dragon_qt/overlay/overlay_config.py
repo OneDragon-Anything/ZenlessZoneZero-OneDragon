@@ -45,7 +45,7 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     # 档位键换过一次名：旧键 display_mode 默认 off，老配置里残留的关闭状态会让
     # overlay 永远不显示，因此改用新键，老用户与新用户都从 normal 起。
     "overlay_display_mode": "normal",
-    "hud_opacity": 100,
+    "hud_opacity": 80,
     "hud_font_size": "large",
     "hud_font_bold": True,
     "hud_anti_capture": True,
