@@ -34,7 +34,7 @@ from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.screen.screen_area import ScreenArea, ScreenAreaType
 from one_dragon.base.screen.screen_match import find_screen_matches
 from one_dragon.utils import cv2_utils, debug_utils, os_utils
-from one_dragon.utils.log_utils import mask_text
+from one_dragon.utils.log_utils import log, mask_text
 from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.backend.app_registry import _app_description
 from zzz_od.backend.schemas import (
@@ -845,9 +845,41 @@ class ZzzBackendContext:
             raise BackendNotReadyError(f'应用 {target_app_id} 未注册')
         if not self._ctx.run_context.is_app_standalone_available(target_app_id):
             raise BackendNotReadyError(f'应用 {target_app_id} 只能通过固定入口运行')
-        return self._start_app(source, target_app_id, application_const.DEFAULT_GROUP_ID)
+        def refresh_and_persist() -> None:
+            """刷新配置后再记一次运行记录。"""
+            self._refresh_runtime_config()
+            # 刷新可能切了实例，按刷新后的实例写默认组顺序
+            self._persist_default_group_app(target_app_id)
 
-    def _start_app(self, source: str, app_id: str, group_id: str) -> tuple[bool, Future | None]:
+        # 通过 HTTP / MCP 跑过一次也算用户用过：刷新完成、真正开跑后再清 New 标记
+        return self._start_app(
+            source,
+            target_app_id,
+            application_const.DEFAULT_GROUP_ID,
+            refresh_config=refresh_and_persist,
+        )
+
+    def _persist_default_group_app(self, app_id: str) -> None:
+        """把独立应用写进默认应用组的保存顺序。
+
+        Args:
+            app_id: 应用 id
+        """
+        try:
+            group_config = self._ctx.app_group_manager.get_one_dragon_group_config(
+                self._ctx.current_instance_idx
+            )
+            group_config.persist_app(app_id)
+        except Exception:  # noqa: BLE001 配置保存失败不影响本次运行
+            log.error('保存默认应用组顺序失败 %s', app_id, exc_info=True)
+
+    def _start_app(
+        self,
+        source: str,
+        app_id: str,
+        group_id: str,
+        refresh_config: 'Callable[[], None] | None' = None,
+    ) -> tuple[bool, Future | None]:
         """app 路径统一入口:委托 ``run_slot._start`` 的 app 分派。
 
         ``refresh_config`` 作为钩子注入槽线程:仅在 ``_start`` 赢锁后、``run_application``
@@ -865,7 +897,7 @@ class ZzzBackendContext:
         return self.run_slot._start(
             source, app_id=app_id, group_id=group_id,
             instance_idx=self._ctx.current_instance_idx,
-            refresh_config=self._refresh_runtime_config,
+            refresh_config=refresh_config or self._refresh_runtime_config,
         )
 
     def list_applications(self) -> ApplicationListResult:

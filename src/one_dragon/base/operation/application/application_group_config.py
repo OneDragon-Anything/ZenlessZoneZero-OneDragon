@@ -20,6 +20,14 @@ class ApplicationGroupConfigItem:
         self.is_persisted: bool = is_persisted
         self.app_name: str = ''  # 不需要保存 每次注入
 
+    @property
+    def is_new(self) -> bool:
+        """是否是新加入、用户还没动过的应用。
+
+        新应用只会以未保存状态出现在列表里；用户启用、运行或拖拽排序后都会被写进保存顺序。
+        """
+        return not self.is_persisted
+
 
 class ApplicationGroupConfig(YamlOperator):
 
@@ -162,12 +170,20 @@ class ApplicationGroupConfig(YamlOperator):
         if len(self._all_apps) != len(old_all_apps):
             self.save_app_list()
 
-    def set_app_order(self, app_id_list: list[str]) -> None:
+    def set_app_order(
+        self,
+        app_id_list: list[str],
+        persist_app_id: str | None = None,
+    ) -> None:
         """
-        设置应用运行顺序，并将当前列表中的临时应用纳入保存顺序。
+        设置应用运行顺序。
+
+        只把用户实际拖拽/置顶的那个应用纳入保存顺序：其他没被操作的新应用仍保持
+        New 标记，列表里也不该因为一次排序就把它们全变成老应用。
 
         Args:
             app_id_list: 应用ID列表
+            persist_app_id: 被用户拖拽或置顶的应用ID，None 表示只调整顺序
         """
         old_list = self.app_list
         app_map: dict[str, ApplicationGroupConfigItem] = {}
@@ -184,8 +200,11 @@ class ApplicationGroupConfig(YamlOperator):
                 new_list.append(item)
 
         self.app_list = new_list
-        for item in self.app_list:
-            self._persist_app_item(item)
+        if persist_app_id is not None:
+            for item in self.app_list:
+                if item.app_id == persist_app_id:
+                    self._persist_app_item(item)
+                    break
         self.save_app_list()
 
     def move_up_app(self, app_id: str) -> None:
